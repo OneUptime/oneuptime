@@ -2,7 +2,8 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 
 /*
  * The text of the Forms product's pages: the list of forms, the form
- * builder, the On Submit page, the Share page and the submissions.
+ * builder and its Branding section, the On Submit page, the Share page and
+ * the submissions.
  *
  * Kept in one module free of React and of the dashboard's UI code, so the
  * pages, the builder and App/Tests/Dashboard/FormsI18n all read these exact
@@ -56,6 +57,21 @@ export const FormsCopy: {
   noCustomFieldsScheduledMaintenance: string;
   manageCustomFields: string;
   newQuestionLabel: string;
+
+  // The Branding section, over the builder.
+  brandingDescription: string;
+  brandingSummaryDefault: string;
+  brandingSummaryDefaultLogo: string;
+  brandingSummaryDefaultFavicon: string;
+  editBranding: string;
+  logoDescription: string;
+  logoDefault: string;
+  logoAltTextDescription: string;
+  logoAltTextPlaceholder: string;
+  logoAltTextEmpty: string;
+  faviconDescription: string;
+  faviconDefault: string;
+  uploadFavicon: string;
 
   // A question on the canvas, and its settings.
   dragToReorder: string;
@@ -259,6 +275,27 @@ export const FormsCopy: {
     "No scheduled maintenance custom fields yet. Create them in Scheduled Maintenance > Settings > Custom Fields.",
   manageCustomFields: "Manage Custom Fields",
   newQuestionLabel: "Untitled question",
+
+  brandingDescription:
+    "Your logo at the top of the form's page, and your favicon in the browser tab.",
+  brandingSummaryDefault:
+    "The form shows the OneUptime logo and favicon until you upload your own.",
+  brandingSummaryDefaultLogo:
+    "The form shows the OneUptime logo until you upload yours.",
+  brandingSummaryDefaultFavicon:
+    "The form shows the OneUptime favicon until you upload yours.",
+  editBranding: "Edit Branding",
+  logoDescription:
+    "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
+  logoDefault: "The OneUptime logo, until you upload yours.",
+  logoAltTextDescription:
+    "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.",
+  logoAltTextPlaceholder: "Your organization's name",
+  logoAltTextEmpty: "None. Screen readers skip the logo.",
+  faviconDescription:
+    "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.",
+  faviconDefault: "The OneUptime favicon, until you upload yours.",
+  uploadFavicon: "Upload favicon",
 
   dragToReorder: "Drag to move this question",
   moveUp: "Move Up",

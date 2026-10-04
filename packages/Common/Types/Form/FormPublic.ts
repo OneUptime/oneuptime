@@ -11,6 +11,10 @@ import {
 } from "../CustomField/CustomFieldValueValidator";
 import Email from "../Email";
 import { JSONObject, JSONValue } from "../JSON";
+import {
+  getPublicFormBranding,
+  PublicFormImage,
+} from "./FormBranding";
 import ObjectID from "../ObjectID";
 import {
   FORM_CHOICE_QUESTION_TYPES,
@@ -148,6 +152,14 @@ export interface PublicForm {
   // The questions, in the order to ask them.
   fields: Array<PublicFormField>;
   isCaptchaRequired: boolean;
+  /*
+   * The form's branding (FormBranding), each only when the form has it: its
+   * logo, shown in place of the OneUptime logo, the logo's alt text, and the
+   * browser tab's icon.
+   */
+  logo?: PublicFormImage | undefined;
+  logoAltText?: string | undefined;
+  favicon?: PublicFormImage | undefined;
 }
 
 // The answers, as the public page sends them: keyed by question id.
@@ -271,6 +283,14 @@ export interface PublicFormSource {
   // The stored questions (Form.fields), read here with readFormFields.
   fields?: unknown;
   targetType: FormTargetType;
+  /*
+   * The form's branding as stored, when it was read: its logo and favicon
+   * Files ({ file, fileType }) and the logo's alt text. Only what the page
+   * may draw is passed on (getPublicFormBranding).
+   */
+  logoFile?: unknown;
+  logoAltText?: string | null | undefined;
+  faviconFile?: unknown;
 }
 
 export type BuildPublicFormFunction = (data: {
@@ -467,6 +487,15 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
   ) {
     publicForm.description = data.form.description;
   }
+
+  Object.assign(
+    publicForm,
+    getPublicFormBranding({
+      logoFile: data.form.logoFile,
+      logoAltText: data.form.logoAltText,
+      faviconFile: data.form.faviconFile,
+    }),
+  );
 
   const bindings: Record<string, FormFieldBinding> = {};
   const skipped: Array<{ fieldId: string; reason: FormSkippedFieldReason }> =

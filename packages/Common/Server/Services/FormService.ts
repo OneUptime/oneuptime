@@ -3,6 +3,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
+import FileService from "./FileService";
 import FormSubmissionService from "./FormSubmissionService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import SubscriptionPlan, {
@@ -12,6 +13,11 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  FORM_BRANDING_IMAGES,
+  FormBrandingImageDefinition,
+  getFormBrandingImageProblem,
+} from "../../Types/Form/FormBranding";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
@@ -66,10 +72,12 @@ import {
   neutralizeUntrustedMarkdown,
   neutralizeUntrustedPlainText,
 } from "../../Utils/Markdown/UntrustedMarkdown";
+import File from "../../Models/DatabaseModels/File";
 import Model from "../../Models/DatabaseModels/Form";
 import FormSubmission from "../../Models/DatabaseModels/FormSubmission";
 import FormRateLimit from "../Middleware/FormRateLimit";
 import CaptchaUtil from "../Utils/Captcha";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import FormRecordOptions from "../Utils/Form/FormRecordOptions";
 import { getFormSubmissionNote } from "../Utils/Form/FormSubmissionNote";
 import {
@@ -100,6 +108,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  *     without asked;
  *   - its settings are that target's settings (validateFormTargetSettings);
  *   - its IP allowlist holds only entries the public routes can match;
+ *   - its logo and favicon, when it has them, are images the public page
+ *     can draw, of 1 MB at most (FormBranding);
  *   - every record its settings and questions name - a severity, monitors
  *     offered to choose from, a custom field, an owner - belongs to its own
  *     project, because every submission is created in that project with them.
@@ -255,6 +265,9 @@ export class Service extends DatabaseService<Model> {
       targetType,
     });
     this.assertValidIpAllowlist(createBy.data.ipWhitelist);
+    await this.assertValidBrandingImages(
+      createBy.data as unknown as Dictionary<unknown>,
+    );
 
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
@@ -297,6 +310,16 @@ export class Service extends DatabaseService<Model> {
 
     if (has("targetType") && !isFormTargetType(data["targetType"])) {
       throw new BadDataException(FORM_TARGET_TYPE_MESSAGE);
+    }
+
+    if (
+      FORM_BRANDING_IMAGES.some(
+        (image: FormBrandingImageDefinition): boolean => {
+          return has(image.idColumn) || has(image.relationColumn);
+        },
+      )
+    ) {
+      await this.assertValidBrandingImages(data);
     }
 
     const changesQuestions: boolean = has("fields");
@@ -375,7 +398,11 @@ export class Service extends DatabaseService<Model> {
    * What the public page shows for the form a link names: its questions, in
    * the safe subset buildPublicForm builds question by question - never the
    * form's id, project, target, settings, link key or allowlist, never a
-   * custom field or record the form does not offer.
+   * custom field or record the form does not offer - and its branding: its
+   * logo, the logo's alt text and its favicon, when it has them, the images
+   * themselves inside the answer (FormBranding). This is the only way a
+   * form's images reach anyone without an account: through this form, after
+   * every check its questions are behind, and never by a file's id.
    *
    * clientIp is the trusted client address (resolveClientIp), or undefined
    * when there is none; a form with an IP allowlist refuses the latter.
@@ -385,7 +412,11 @@ export class Service extends DatabaseService<Model> {
     shareKey: string | undefined;
     clientIp: string | undefined;
   }): Promise<PublicForm> {
-    const form: Model = await this.getFormForPublicRequest(data);
+    const form: Model = await this.getFormForPublicRequest({
+      shareKey: data.shareKey,
+      clientIp: data.clientIp,
+      includeBranding: true,
+    });
     const built: BuiltPublicForm = await this.buildPublicFormFor(form);
 
     return built.form;
@@ -675,6 +706,10 @@ export class Service extends DatabaseService<Model> {
         description: form.description,
         fields: form.fields,
         targetType: targetType,
+        // Read for the public page only (getPublicForm); a submission has none.
+        logoFile: form.logoFile,
+        logoAltText: form.logoAltText,
+        faviconFile: form.faviconFile,
       },
       customFields: customFields,
       recordOptions: recordOptions,
@@ -795,10 +830,16 @@ export class Service extends DatabaseService<Model> {
    * order, each needing the one before: the link has a share key's shape
    * (so junk never reaches Postgres), a form holds that key, the form is on,
    * its project's plan includes forms, and the visitor's network is allowed.
+   *
+   * includeBranding reads the form's logo and favicon - the images
+   * themselves, through the form's own relations - with the form, in the
+   * same query: for the public page's read. A submission never needs them,
+   * so it never pays for them.
    */
   private async getFormForPublicRequest(data: {
     shareKey: string | undefined;
     clientIp: string | undefined;
+    includeBranding?: boolean | undefined;
   }): Promise<Model> {
     const shareKey: string =
       typeof data.shareKey === "string"
@@ -824,6 +865,19 @@ export class Service extends DatabaseService<Model> {
         targetSettings: true,
         successMessage: true,
         ipWhitelist: true,
+        ...(data.includeBranding
+          ? {
+              logoAltText: true,
+              logoFile: {
+                file: true,
+                fileType: true,
+              },
+              faviconFile: {
+                file: true,
+                fileType: true,
+              },
+            }
+          : {}),
       },
       props: {
         isRoot: true,
@@ -1125,6 +1179,63 @@ export class Service extends DatabaseService<Model> {
 
     if (problem) {
       throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * A logo or favicon a write points the form at must be a File that exists,
+   * of an image type every browser draws, of 1 MB at most
+   * (getFormBrandingImageProblem): the public page is handed it inside the
+   * form every time it opens. Either spelling of the reference is read - the
+   * dashboard's forms write the relation, server-side callers and the API
+   * the id - and two that disagree are refused (RelationIdUtil). A write that
+   * clears one (null) needs no check, and a reference that is not a UUID
+   * names no file.
+   *
+   * Files carry no owner, so this cannot tell whose upload a file was: as
+   * with a status page's logo, holding a file's id is what lets a form point
+   * at it. What it does guarantee is that a form's page is only ever handed
+   * an image of an allowed type and size - never a document - and the image
+   * is only ever handed out through the form (getPublicForm). The file
+   * itself is never made public.
+   */
+  private async assertValidBrandingImages(
+    data: Dictionary<unknown>,
+  ): Promise<void> {
+    for (const image of FORM_BRANDING_IMAGES) {
+      const fileId: ObjectID | null = RelationIdUtil.readConsistent(
+        data as Record<string, unknown>,
+        [image.idColumn, image.relationColumn],
+        image.name,
+      );
+
+      if (!fileId) {
+        continue;
+      }
+
+      const file: File | null = ObjectID.isValidUUID(fileId.toString())
+        ? await FileService.findOneById({
+            id: fileId,
+            select: {
+              _id: true,
+              fileType: true,
+              file: true,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          })
+        : null;
+
+      const problem: string | null = getFormBrandingImageProblem({
+        image: image,
+        file: file,
+      });
+
+      if (problem) {
+        throw new BadDataException(problem);
+      }
     }
   }
 

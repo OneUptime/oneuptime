@@ -12,6 +12,7 @@ import {
 } from "../Utils/Form";
 import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
+import { PublicFormImage } from "Common/Types/Form/FormBranding";
 import {
   PublicForm,
   PublicFormSubmissionResult,
@@ -28,12 +29,13 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import { showPublicFormFavicon } from "Common/UI/Components/PublicForm/PublicFormFavicon";
 import {
   buildPublicFormFields,
   getPublicFormInitialValues,
 } from "Common/UI/Components/PublicForm/PublicFormFields";
+import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
 import { CAPTCHA_ENABLED, CAPTCHA_SITE_KEY } from "Common/UI/Config";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -62,6 +64,11 @@ import { Params, useParams } from "react-router-dom";
  * The questions are drawn by buildPublicFormFields, the builder the
  * dashboard's form preview draws them with, so what an admin previews is
  * what a submitter sees.
+ *
+ * The form's branding comes with its questions: its logo replaces the
+ * OneUptime logo at the top of every screen that has the form (the form
+ * and the thank-you screen), and its favicon is the tab's icon while the
+ * form is open. A link that leads to no form shows OneUptime's.
  */
 
 const CAPTCHA_TOKEN_KEY: string = "captchaToken";
@@ -79,6 +86,9 @@ interface PageShellProps {
   headingRef?: React.RefObject<HTMLHeadingElement> | undefined;
   // A card holding one short message rather than a form.
   isNarrow?: boolean | undefined;
+  // The form's own logo and what it says. Without one, the OneUptime logo.
+  logo?: PublicFormImage | undefined;
+  logoAltText?: string | undefined;
   children: ReactNode;
 }
 
@@ -91,11 +101,7 @@ const PageShell: FunctionComponent<PageShellProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className={`mx-auto w-full ${widthClassName}`}>
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
-        />
+        <PublicFormLogo logo={props.logo} altText={props.logoAltText} />
         {props.heading ? (
           <h1
             ref={props.headingRef}
@@ -238,6 +244,20 @@ const FormPage: () => JSX.Element = () => {
       document.title = previousTitle;
     };
   }, [formName]);
+
+  /*
+   * The form's favicon is the tab's icon while it is open, and the page's
+   * own comes back on the way out.
+   */
+  const favicon: PublicFormImage | undefined = form?.favicon;
+
+  useEffect(() => {
+    if (!favicon) {
+      return;
+    }
+
+    return showPublicFormFavicon({ document: document, favicon: favicon });
+  }, [favicon]);
 
   type TranslateMessageFunction = (message: string) => string;
 
@@ -443,7 +463,11 @@ const FormPage: () => JSX.Element = () => {
 
   if (result) {
     return (
-      <PageShell heading={form.name}>
+      <PageShell
+        heading={form.name}
+        logo={form.logo}
+        logoAltText={form.logoAltText}
+      >
         <div className="text-center" data-testid="form-success">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
             <Icon
@@ -506,7 +530,12 @@ const FormPage: () => JSX.Element = () => {
       : null;
 
   return (
-    <PageShell heading={form.name} headingRef={pageHeadingRef}>
+    <PageShell
+      heading={form.name}
+      headingRef={pageHeadingRef}
+      logo={form.logo}
+      logoAltText={form.logoAltText}
+    >
       {form.description ? (
         <div
           className="mb-6 border-b border-gray-100 pb-6 text-sm text-gray-700"
