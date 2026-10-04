@@ -1,0 +1,259 @@
+# What OBI instruments in the test, all on the `apps` node so that one OBI
+# pod sees the whole request path: app (Node.js 26, Express) -> Redis,
+# Postgres and downstream (Node.js 26). `sleeper` is busybox making HTTP
+# calls in a loop: its executable is on the chart's ebpf.excludeExePaths list,
+# so OBI must not instrument it. No probes on the apps: kubelet probes would
+# add spans of their own.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      nodeSelector:
+        e2e.oneuptime.com/apps: "true"
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          args: ["redis-server", "--save", "", "--appendonly", "no"]
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: data
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      nodeSelector:
+        e2e.oneuptime.com/apps: "true"
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_PASSWORD
+              value: e2e-not-a-secret
+          ports:
+            - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
+            periodSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: data
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: downstream
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: downstream
+  template:
+    metadata:
+      labels:
+        app: downstream
+    spec:
+      nodeSelector:
+        e2e.oneuptime.com/apps: "true"
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: downstream
+          image: node:26-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/src/downstream.js"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: src
+              mountPath: /src
+      volumes:
+        - name: src
+          configMap:
+            name: e2e-src
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: downstream
+  namespace: shop
+spec:
+  selector:
+    app: downstream
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      nodeSelector:
+        e2e.oneuptime.com/apps: "true"
+      terminationGracePeriodSeconds: 2
+      # The app's three npm dependencies, installed at pod start into an
+      # emptyDir, so the test builds no image. The app file is copied next
+      # to them: OBI's route harvester reads the routes from it, and skips
+      # node_modules and ConfigMap volumes' symlinked ..data directories.
+      initContainers:
+        - name: npm-install
+          image: node:26-alpine
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              cp /src/app.js /src/package.json /app/
+              for i in 1 2 3 4 5; do
+                npm install --omit=dev --no-audit --no-fund --no-package-lock --loglevel=error && exit 0
+                echo "npm install failed (attempt $i), retrying" >&2
+                sleep $((i * 5))
+              done
+              exit 1
+          volumeMounts:
+            - name: src
+              mountPath: /src
+            - name: app
+              mountPath: /app
+      containers:
+        - name: app
+          image: node:26-alpine
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+          command: ["node", "/app/app.js"]
+          env:
+            - name: REDIS_HOST
+              value: redis.data.svc.cluster.local
+            - name: PG_HOST
+              value: postgres.data.svc.cluster.local
+            - name: PG_PASSWORD
+              value: e2e-not-a-secret
+            - name: DOWNSTREAM_HOST
+              value: downstream.shop.svc.cluster.local
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: src
+          configMap:
+            name: e2e-src
+        - name: app
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: shop
+spec:
+  selector:
+    app: app
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# Excluded executable: busybox sh + wget calling downstream every 2s. If OBI
+# instrumented it, its HTTP client spans would reach the sink.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sleeper
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sleeper
+  template:
+    metadata:
+      labels:
+        app: sleeper
+    spec:
+      nodeSelector:
+        e2e.oneuptime.com/apps: "true"
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: sleeper
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              trap 'exit 0' TERM
+              while :; do
+                wget -q -O /dev/null http://downstream.shop.svc.cluster.local:8080/ping || true
+                sleep 2
+              done

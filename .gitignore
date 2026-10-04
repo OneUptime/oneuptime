@@ -21,6 +21,8 @@ node_modules
 .idea
 # testing
 **/coverage
+# Python bytecode (Tests/Ops/agent-ebpf-e2e's analyzer and its unit tests)
+__pycache__/
 
 # production
 /build
