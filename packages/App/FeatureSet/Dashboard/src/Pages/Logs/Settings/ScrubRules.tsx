@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
@@ -19,9 +18,15 @@ import {
   Teal500,
   Indigo500,
 } from "Common/Types/BrandColors";
-import React, { FunctionComponent, ReactElement } from "react";
+import {
+  LOG_SCRUB_FIELDS,
+  LOG_SCRUB_PATTERN_TYPES,
+} from "Common/Types/Telemetry/ScrubRule";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getLogScrubRuleFormFields } from "../../../Components/Telemetry/ScrubRuleForm";
+import ScrubRulePatternPill from "../../../Components/Telemetry/ScrubRulePatternPill";
 
 interface PillConfig {
   label: string;
@@ -150,6 +155,10 @@ flowchart TD
 | **Sensitive Attribute Keys** | The whole value of any attribute whose key looks sensitive (password, token, apiKey, authorization, cookie, ...) | \`password: "hunter2"\` → \`password: "[REDACTED]"\` |
 | **Custom Regex** | Your own pattern | Any regex you define |
 
+A **Custom Regex** rule needs its pattern: a regular expression for the text to scrub, written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`). Matching is case-sensitive. A pattern that is empty, does not compile, or matches empty text is refused when you save, because the rule would scrub nothing. A rule saved before that check without a usable pattern is marked **Scrubs nothing** in the table: edit it to give it one.
+
+A new rule is named after its pattern type ("Scrub email addresses") until you type a name of your own.
+
 ---
 
 ### Scrub Actions Explained
@@ -159,6 +168,8 @@ flowchart TD
 | **Redact** | Replaces the entire match with \`[REDACTED]\` | \`user@example.com\` → \`[REDACTED]\` |
 | **Mask** | Partially hides the value, preserving structure | \`user@example.com\` → \`u***@***.com\` |
 | **Hash** | Replaces with a deterministic SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
+
+A new rule redacts, unless you pick another action under **Advanced**.
 
 > **Tip:** Use **Hash** when you need to correlate occurrences of the same value across logs without exposing the actual data. The same input always produces the same hash.
 
@@ -171,7 +182,7 @@ Each log entry has two parts that can contain sensitive data:
 - **Body**: The main log message text
 - **Attributes**: Key-value metadata attached to the log (e.g. \`user.email\`, \`client.ip\`)
 
-You can choose to scrub the body only, attributes only, or both.
+A new rule scrubs both; you can choose the body only or attributes only under **Advanced**. A **Sensitive Attribute Keys** rule always scrubs attribute values, since it matches attribute keys.
 
 ---
 
@@ -184,6 +195,19 @@ const LogScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * One page that starts from what the rule scrubs: the pattern type, its
+   * regex for Custom Regex, a name that follows the type, and the rest
+   * folded under Advanced at the server's defaults
+   * (Components/Telemetry/ScrubRuleForm, shared with Traces).
+   */
+  const formFields: Array<ModelField<LogScrubRule>> = useMemo((): Array<
+    ModelField<LogScrubRule>
+  > => {
+    return getLogScrubRuleFormFields();
+  }, []);
+
   return (
     <ModelTable<LogScrubRule>
       modelType={LogScrubRule}
@@ -215,159 +239,14 @@ const LogScrubRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No scrub rules found."}
-      formSteps={[
-        {
-          title: "Basic Info",
-          id: "basic-info",
-        },
-        {
-          title: "Pattern Configuration",
-          id: "pattern-config",
-        },
-        {
-          title: "Scrub Settings",
-          id: "scrub-settings",
-        },
-      ]}
-      formFields={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "e.g. Scrub Email Addresses",
-          validation: {
-            minLength: 2,
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Describe what this scrub rule does.",
-        },
-        {
-          field: {
-            patternType: true,
-          },
-          title: "Pattern Type",
-          stepId: "pattern-config",
-          description:
-            "The type of sensitive data to detect. Select 'Custom' to provide your own regex pattern.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            {
-              label: "Email Address",
-              value: "email",
-            },
-            {
-              label: "Credit Card Number",
-              value: "creditCard",
-            },
-            {
-              label: "SSN (Social Security Number)",
-              value: "ssn",
-            },
-            {
-              label: "Phone Number",
-              value: "phoneNumber",
-            },
-            {
-              label: "IP Address",
-              value: "ipAddress",
-            },
-            {
-              label: "Sensitive Attribute Keys",
-              value: "sensitiveKeys",
-            },
-            {
-              label: "Custom Regex",
-              value: "custom",
-            },
-          ],
-        },
-        {
-          field: {
-            customRegex: true,
-          },
-          title: "Custom Regex Pattern",
-          stepId: "pattern-config",
-          description: "A regular expression to match sensitive data.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "e.g. \\bSECRET-[A-Z0-9]+\\b",
-          showIf: (values: FormValues<LogScrubRule>): boolean => {
-            return values.patternType === "custom";
-          },
-        },
-        {
-          field: {
-            scrubAction: true,
-          },
-          title: "Scrub Action",
-          stepId: "scrub-settings",
-          description:
-            "How to handle matched data. Mask: partially hide (e.g. j***@***.com). Hash: replace with deterministic hash. Redact: replace with [REDACTED].",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            {
-              label: "Redact",
-              value: "redact",
-            },
-            {
-              label: "Mask",
-              value: "mask",
-            },
-            {
-              label: "Hash",
-              value: "hash",
-            },
-          ],
-        },
-        {
-          field: {
-            fieldsToScrub: true,
-          },
-          title: "Fields to Scrub",
-          stepId: "scrub-settings",
-          description:
-            "Which parts of the log to scrub: the log body (message), attribute values, or both.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            {
-              label: "Both (Body & Attributes)",
-              value: "both",
-            },
-            {
-              label: "Body Only",
-              value: "body",
-            },
-            {
-              label: "Attributes Only",
-              value: "attributes",
-            },
-          ],
-        },
-        {
-          field: {
-            isEnabled: true,
-          },
-          title: "Enabled",
-          stepId: "scrub-settings",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-      ]}
+      formFields={formFields}
+      /*
+       * The pattern itself, so a rule that scrubs nothing - a custom one
+       * ingest cannot use - is flagged in its row (ScrubRulePatternPill).
+       */
+      selectMoreFields={{
+        customRegex: true,
+      }}
       showRefreshButton={true}
       showViewIdButton={true}
       filters={[
@@ -430,19 +309,14 @@ const LogScrubRules: FunctionComponent<
           title: "Pattern Type",
           type: FieldType.Element,
           getElement: (item: LogScrubRule): ReactElement => {
-            const key: string = (item.patternType as string) || "unknown";
-            const config: PillConfig = patternTypeConfig[key] || {
-              label: key,
-              color: Blue500,
-              icon: IconProp.ShieldCheck,
-              tooltip: key,
-            };
             return (
-              <Pill
-                text={config.label}
-                color={config.color}
-                icon={config.icon}
-                tooltip={config.tooltip}
+              <ScrubRulePatternPill
+                patternType={item.patternType}
+                customRegex={item.customRegex}
+                fieldsToScrub={item.fieldsToScrub}
+                patternTypes={patternTypeConfig}
+                knownPatternTypes={LOG_SCRUB_PATTERN_TYPES}
+                knownFieldsToScrub={LOG_SCRUB_FIELDS}
               />
             );
           },

@@ -18,6 +18,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import { TRACE_SCRUB_RULE_DEFAULTS } from "../../Types/Telemetry/ScrubRule";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
@@ -241,7 +242,7 @@ export default class TraceScrubRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Pattern Type",
     description:
-      "The type of sensitive data pattern to detect: email, creditCard, ssn, phoneNumber, ipAddress, or custom.",
+      "The type of sensitive data to detect: email, creditCard, ssn, phoneNumber, ipAddress, sensitiveKeys (the whole value of every attribute whose key looks sensitive, such as password or token), or custom (the regular expression in customRegex). Any other value is refused: it would scrub nothing.",
   })
   @Column({
     nullable: false,
@@ -278,7 +279,7 @@ export default class TraceScrubRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Custom Regex",
     description:
-      "A custom regular expression pattern to match. Only used when patternType is 'custom'.",
+      "The regular expression a 'custom' rule scrubs, written without slashes or flags and matched case-sensitively. Required when patternType is 'custom': a pattern that is empty, does not compile, or matches empty text is refused. Ignored for the other pattern types.",
   })
   @Column({
     nullable: true,
@@ -315,13 +316,15 @@ export default class TraceScrubRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Scrub Action",
     description:
-      "How to scrub matched data: 'mask' partially hides it, 'hash' replaces with a hash, 'redact' removes entirely.",
+      "How to scrub matched data: 'redact' replaces it with [REDACTED] (the default), 'mask' partially hides it, 'hash' replaces it with a short hash of the value.",
+    defaultValue: TRACE_SCRUB_RULE_DEFAULTS.scrubAction,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: "redact",
+    default: TRACE_SCRUB_RULE_DEFAULTS.scrubAction,
   })
   public scrubAction?: string = undefined;
 
@@ -353,13 +356,15 @@ export default class TraceScrubRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Fields to Scrub",
     description:
-      "Which span fields to scrub: 'name' (span name), 'attributes' (attribute values), 'events' (span event attributes), or 'all'.",
+      "Which span fields to scrub: 'name' (the span name), 'attributes' (attribute values), 'events' (span event attributes), or 'all', the default. A sensitiveKeys rule always scrubs attribute and event attribute values, whatever this says.",
+    defaultValue: TRACE_SCRUB_RULE_DEFAULTS.fieldsToScrub,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: "all",
+    default: TRACE_SCRUB_RULE_DEFAULTS.fieldsToScrub,
   })
   public fieldsToScrub?: string = undefined;
 
@@ -392,12 +397,13 @@ export default class TraceScrubRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Enabled",
     description: "Whether this scrub rule is active.",
-    defaultValue: true,
+    defaultValue: TRACE_SCRUB_RULE_DEFAULTS.isEnabled,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
     type: ColumnType.Boolean,
-    default: true,
+    default: TRACE_SCRUB_RULE_DEFAULTS.isEnabled,
   })
   public isEnabled?: boolean = undefined;
 
