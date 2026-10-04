@@ -159,9 +159,9 @@ describe("the default first report: the next 1st of the month at 09:00", () => {
       "2026-11-01T14:00:00.000Z",
     );
     // 09:00 EDT (UTC-4) in the summer.
-    expect(firstDefault("2026-06-10T12:00:00.000Z", Timezone.AmericaNew_York)).toBe(
-      "2026-07-01T13:00:00.000Z",
-    );
+    expect(
+      firstDefault("2026-06-10T12:00:00.000Z", Timezone.AmericaNew_York),
+    ).toBe("2026-07-01T13:00:00.000Z");
   });
 
   test("goes by the month in the report's timezone, which can be ahead of UTC's", () => {
@@ -190,14 +190,17 @@ describe("the default first report: the next 1st of the month at 09:00", () => {
   });
 
   test("falls back to UTC for a timezone it does not know, or none", () => {
-    expect(firstDefault(NOW, "Not/A_Timezone")).toBe("2026-11-01T09:00:00.000Z");
+    expect(firstDefault(NOW, "Not/A_Timezone")).toBe(
+      "2026-11-01T09:00:00.000Z",
+    );
     expect(firstDefault(NOW, undefined)).toBe("2026-11-01T09:00:00.000Z");
     expect(firstDefault(NOW, null)).toBe("2026-11-01T09:00:00.000Z");
     expect(firstDefault(NOW, "")).toBe("2026-11-01T09:00:00.000Z");
   });
 
   test("is always in the future when no moment is given", () => {
-    const first: Date = StatusPageReportScheduleUtil.getDefaultFirstReportDate();
+    const first: Date =
+      StatusPageReportScheduleUtil.getDefaultFirstReportDate();
 
     expect(first.getTime()).toBeGreaterThan(Date.now());
     expect(first.getUTCDate()).toBe(1);

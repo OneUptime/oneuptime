@@ -119,7 +119,9 @@ export default class StatusPageReportScheduleUtil {
         .millisecond(0);
     };
 
-    const thisMonth: moment.Moment = moment.tz(after, timezone).startOf("month");
+    const thisMonth: moment.Moment = moment
+      .tz(after, timezone)
+      .startOf("month");
 
     let candidate: moment.Moment = atNine(thisMonth);
 

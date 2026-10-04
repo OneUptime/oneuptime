@@ -15,6 +15,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -32,7 +33,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import StatusPageSwitchRow from "./StatusPageSwitchRow";
 import { getReportScheduleFormFields } from "./StatusPageReportScheduleForm";
 import {
   getReportPeriodDates,
@@ -363,13 +363,14 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
        */
       <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
         <div className="px-5 py-4 md:px-6">
-          <StatusPageSwitchRow
+          <ModelSwitchRow<StatusPage>
             /*
              * Keyed on the page, so a switch read for one page never shows
              * on the next one's card.
              */
             key={statusPageIdString}
-            statusPageId={props.statusPageId}
+            modelType={StatusPage}
+            modelId={props.statusPageId}
             column={REPORT_SWITCH_COLUMN}
             initialValue={page.isReportEnabled === true}
             title={StatusPageReportsCopy.switchTitle}

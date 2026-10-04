@@ -296,11 +296,9 @@ beforeEach(() => {
     },
   };
 
-  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation(
-    (): Date => {
-      return new Date(NOW.getTime());
-    },
-  );
+  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+    return new Date(NOW.getTime());
+  });
 
   getJestSpyOn(logger, "error").mockImplementation((): void => {
     return undefined;
@@ -378,7 +376,8 @@ describe("switching reports on", () => {
   });
 
   test("the default first report is 09:00 in the page's report timezone", async () => {
-    stored[STATUS_PAGE_ID.toString()]!.reportTimezone = Timezone.AmericaNew_York;
+    stored[STATUS_PAGE_ID.toString()]!.reportTimezone =
+      Timezone.AmericaNew_York;
 
     expect(await put({ isReportEnabled: true })).toBe("saved");
 
@@ -484,9 +483,9 @@ describe("editing the schedule", () => {
   });
 
   test("a first report date alone, while reports are off, is stored as sent - nothing is filled in", async () => {
-    expect(
-      await put({ reportStartDateTime: "2026-10-15T10:00:00.000Z" }),
-    ).toBe("saved");
+    expect(await put({ reportStartDateTime: "2026-10-15T10:00:00.000Z" })).toBe(
+      "saved",
+    );
 
     expect(onlyWrite()).toEqual({
       reportStartDateTime: "2026-10-15T10:00:00.000Z",

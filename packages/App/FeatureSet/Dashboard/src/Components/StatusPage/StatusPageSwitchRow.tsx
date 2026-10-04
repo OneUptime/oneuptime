@@ -10,7 +10,6 @@ import {
   DisplaySwitchColumn,
 } from "./StatusPageDisplaySettingsCopy";
 import { BrandingSwitchColumn } from "./StatusPageBrandingCopy";
-import { ReportSwitchColumn } from "./StatusPageReportsCopy";
 
 /*
  * One switch for one of a status page's boolean columns, that saves the
@@ -19,8 +18,7 @@ import { ReportSwitchColumn } from "./StatusPageReportsCopy";
  * Subscriber Settings and the panel's at the top of a channel's subscriber
  * list, so a channel reads and behaves the same in both places, every
  * switch on the "What your status page shows" card on Advanced Settings,
- * Search Engine Indexing on the Branding page, and "Send email reports" on
- * the Reports page.
+ * and Search Engine Indexing on the Branding page.
  *
  * It is the shared ModelSwitchRow (Common/UI/Components/ModelSwitch), for a
  * status page: the switch moves at once, is locked while the change is
@@ -35,8 +33,7 @@ import { ReportSwitchColumn } from "./StatusPageReportsCopy";
 export type StatusPageSwitchColumn =
   | SubscriptionSwitchColumn
   | DisplaySwitchColumn
-  | BrandingSwitchColumn
-  | ReportSwitchColumn;
+  | BrandingSwitchColumn;
 
 export interface ComponentProps {
   statusPageId: ObjectID;

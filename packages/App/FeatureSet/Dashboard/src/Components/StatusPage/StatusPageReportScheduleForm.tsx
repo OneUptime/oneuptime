@@ -3,12 +3,14 @@ import OneUptimeDate from "Common/Types/Date";
 import Recurring from "Common/Types/Events/Recurring";
 import StatusPageReportPeriodType from "Common/Types/StatusPage/StatusPageReportPeriodType";
 import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -43,29 +45,32 @@ const MORE_FIELDS: FormFieldCollapsibleSection<StatusPage> =
   getAdvancedFormSection<StatusPage>();
 
 // The report columns the form holds right now.
-const fromFormValues: (values: FormValues<StatusPage>) => ReportScheduleColumns =
-  (values: FormValues<StatusPage>): ReportScheduleColumns => {
-    const formValues: Record<string, unknown> = (values || {}) as Record<
-      string,
-      unknown
-    >;
+const fromFormValues: (
+  values: FormValues<StatusPage>,
+) => ReportScheduleColumns = (
+  values: FormValues<StatusPage>,
+): ReportScheduleColumns => {
+  const formValues: Record<string, unknown> = (values || {}) as Record<
+    string,
+    unknown
+  >;
 
-    return {
-      reportRecurringInterval: formValues[
-        "reportRecurringInterval"
-      ] as ReportScheduleColumns["reportRecurringInterval"],
-      reportStartDateTime: formValues["reportStartDateTime"] as
-        | Date
-        | string
-        | undefined,
-      reportTimezone: formValues["reportTimezone"] as string | undefined,
-      reportPeriodType: formValues["reportPeriodType"] as string | undefined,
-      reportDataInDays: formValues["reportDataInDays"] as
-        | number
-        | string
-        | undefined,
-    };
+  return {
+    reportRecurringInterval: formValues[
+      "reportRecurringInterval"
+    ] as ReportScheduleColumns["reportRecurringInterval"],
+    reportStartDateTime: formValues["reportStartDateTime"] as
+      | Date
+      | string
+      | undefined,
+    reportTimezone: formValues["reportTimezone"] as string | undefined,
+    reportPeriodType: formValues["reportPeriodType"] as string | undefined,
+    reportDataInDays: formValues["reportDataInDays"] as
+      | number
+      | string
+      | undefined,
   };
+};
 
 export interface ReportSchedulePreviewProps {
   columns: ReportScheduleColumns;
@@ -89,17 +94,19 @@ export const ReportSchedulePreview: FunctionComponent<
     <div
       className="mt-3 space-y-1 rounded-md border border-gray-200 bg-gray-50 p-4"
       data-testid={REPORT_SCHEDULE_PREVIEW_TEST_ID}
-      aria-live="polite"
     >
       <p className="text-sm font-medium text-gray-900">
         {facts.nextSendAt
-          ? translator.translateTemplate(StatusPageReportsCopy.previewNextReport, {
-              date: OneUptimeDate.getDateAsFormattedStringInTimezone({
-                date: facts.nextSendAt,
-                timezone: facts.timezone,
-                showWeekday: true,
-              }),
-            })
+          ? translator.translateTemplate(
+              StatusPageReportsCopy.previewNextReport,
+              {
+                date: OneUptimeDate.getDateAsFormattedStringInTimezone({
+                  date: facts.nextSendAt,
+                  timezone: facts.timezone,
+                  showWeekday: true,
+                }),
+              },
+            )
           : translator.translateText(StatusPageReportsCopy.previewNoSchedule)}
       </p>
       {facts.period ? (

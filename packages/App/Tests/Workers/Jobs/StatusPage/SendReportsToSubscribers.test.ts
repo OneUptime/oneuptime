@@ -63,7 +63,14 @@ jest.mock("Common/Server/Services/StatusPageService", () => {
 
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import "../../../../FeatureSet/Workers/Jobs/StatusPage/SendReportsToSubscribers";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const JOB_NAME: string = "StatusPage:SendReportToSubscribers";
 
@@ -223,7 +230,9 @@ describe("StatusPage:SendReportToSubscribers", () => {
   });
 
   test("moves the next send on before sending, so a failed send is not retried every minute", async () => {
-    service.sendEmailReport.mockRejectedValueOnce(new Error("SMTP down") as never);
+    service.sendEmailReport.mockRejectedValueOnce(
+      new Error("SMTP down") as never,
+    );
 
     await tick("2026-11-01T09:00:30.000Z", [
       page({
@@ -234,8 +243,8 @@ describe("StatusPage:SendReportToSubscribers", () => {
     ]);
 
     expect(writtenNextSend()).toBe("2026-12-01T09:00:00.000Z");
-    expect(
-      service.updateOneById.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(service.sendEmailReport.mock.invocationCallOrder[0]!);
+    expect(service.updateOneById.mock.invocationCallOrder[0]!).toBeLessThan(
+      service.sendEmailReport.mock.invocationCallOrder[0]!,
+    );
   });
 });

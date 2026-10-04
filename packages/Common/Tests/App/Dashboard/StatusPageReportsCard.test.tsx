@@ -215,11 +215,9 @@ beforeEach(() => {
   columnGate = { isAllowed: true };
   plan = null;
 
-  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation(
-    (): Date => {
-      return new Date(NOW.getTime());
-    },
-  );
+  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+    return new Date(NOW.getTime());
+  });
 
   getItemMock.mockReset();
   getItemMock.mockImplementation(async (): Promise<unknown> => {
@@ -345,7 +343,9 @@ function editScheduleButton(): HTMLElement | null {
 
 // The schedule lines, by their titles: { "Next report": "...", ... }.
 function scheduleLines(): Record<string, string> {
-  const details: HTMLElement = screen.getByTestId(STATUS_PAGE_REPORT_SCHEDULE_TEST_ID);
+  const details: HTMLElement = screen.getByTestId(
+    STATUS_PAGE_REPORT_SCHEDULE_TEST_ID,
+  );
   const lines: Record<string, string> = {};
 
   for (const title of [
@@ -392,7 +392,9 @@ describe("a page whose reports are off", () => {
   test("is one card, one switch, off, and nothing to fill in", async () => {
     await renderCard();
 
-    expect(screen.getByText(StatusPageReportsCopy.cardTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(StatusPageReportsCopy.cardTitle),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(StatusPageReportsCopy.cardDescription),
     ).toBeInTheDocument();
@@ -742,7 +744,9 @@ describe("Edit Schedule", () => {
     const dialog: HTMLElement = await openScheduleDialog();
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Save Changes" }),
+      );
     });
 
     await waitFor(() => {
@@ -758,15 +762,19 @@ describe("Edit Schedule", () => {
     >;
 
     expect(values["isReportEnabled"]).toBeUndefined();
-    expect(Recurring.fromJSON(values["reportRecurringInterval"] as JSONObject).toString()).toBe(
-      "1 Month",
-    );
+    expect(
+      Recurring.fromJSON(
+        values["reportRecurringInterval"] as JSONObject,
+      ).toString(),
+    ).toBe("1 Month");
     expect(values["reportTimezone"]).toBe(Timezone.UTC);
     expect(values["reportPeriodType"]).toBe(
       StatusPageReportPeriodType.PreviousCalendarPeriod,
     );
     expect(
-      OneUptimeDate.fromString(values["reportStartDateTime"] as string).toISOString(),
+      OneUptimeDate.fromString(
+        values["reportStartDateTime"] as string,
+      ).toISOString(),
     ).toBe("2026-11-01T09:00:00.000Z");
 
     await waitFor(() => {
@@ -804,7 +812,9 @@ describe("Edit Schedule", () => {
     });
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Save Changes" }),
+      );
     });
 
     await waitFor(() => {
@@ -815,9 +825,11 @@ describe("Edit Schedule", () => {
       createOrUpdateMock.mock.calls[0]![0] as { model: BaseModel }
     ).model as unknown as Record<string, unknown>;
 
-    expect(Recurring.fromJSON(values["reportRecurringInterval"] as JSONObject).toString()).toBe(
-      "1 Month",
-    );
+    expect(
+      Recurring.fromJSON(
+        values["reportRecurringInterval"] as JSONObject,
+      ).toString(),
+    ).toBe("1 Month");
     expect(values["reportPeriodType"]).toBe(
       StatusPageReportPeriodType.PreviousCalendarPeriod,
     );

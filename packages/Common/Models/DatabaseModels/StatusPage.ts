@@ -2685,7 +2685,8 @@ export default class StatusPage extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Is Report Enabled",
-    description: "Is Report Enabled for this Status Page?",
+    description:
+      "Whether this status page's email subscribers get reports. Turned on without a schedule, reports go out on the 1st of every month at 09:00 in the report timezone, each covering the calendar month before it.",
     defaultValue: false,
   })
   @Column({
@@ -2730,7 +2731,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Report Start Date Time",
-    description: "When would you like to send the first report?",
+    description:
+      "When the first report goes out. Every later one follows it by the recurring interval, at the same time of day. Left out when reports are turned on, it is the next 1st of the month at 09:00 in the report timezone.",
   })
   @Column({
     type: ColumnType.Date,
@@ -2774,7 +2776,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     type: TableColumnType.JSON,
     title: "Report Recurring Interval",
-    description: "How often would you like to send the report?",
+    description:
+      "How often a report goes out. Left out when reports are turned on, it is every month.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -2819,7 +2822,8 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Send Next Report By",
-    description: "When should the next report be sent?",
+    description:
+      "When the next report goes out. The server works it out from the schedule.",
   })
   @Index()
   @Column({

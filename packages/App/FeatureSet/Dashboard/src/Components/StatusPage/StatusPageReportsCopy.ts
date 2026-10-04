@@ -25,7 +25,10 @@ import {
  * schedule up - and so did switching them off.
  *
  * Now the card is a switch, "Send email reports", that saves the moment it
- * is flipped. Switched on for the first time, the server gives the page the
+ * is flipped (the shared ModelSwitchRow, as on the status page's other
+ * switch cards: locked without the permission, the plan's name beside it
+ * below Growth, "Saved", and moved back with the reason when the server
+ * refuses). Switched on for the first time, the server gives the page the
  * default schedule (Common/Utils/StatusPage/ReportSchedule): every month,
  * on the 1st at 09:00 in the report timezone, each report covering the
  * calendar month before it. While reports are on, the card says in plain
@@ -263,9 +266,9 @@ export const getReportScheduleFacts: (data: {
  * The dates a period runs over, as the card shows them: "Oct 1, 2026 -
  * Oct 31, 2026", in the report's timezone.
  */
-export const getReportPeriodDates: (period: StatusPageReportPeriod) => string = (
+export const getReportPeriodDates: (
   period: StatusPageReportPeriod,
-): string => {
+) => string = (period: StatusPageReportPeriod): string => {
   const day: (date: Date) => string = (date: Date): string => {
     return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
       date: date,
