@@ -313,6 +313,8 @@ import SettingsGlobalOIDCView from "../../../../App/FeatureSet/AdminDashboard/sr
 import SettingsGlobalSSO from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/Index";
 import SettingsGlobalSSOView from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/View";
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
+import ProjectScopedTeamsPicker from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/ProjectScopedTeamsPicker";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import GlobalOIDC from "../../../Models/DatabaseModels/GlobalOidc";
 import GlobalOIDCProject from "../../../Models/DatabaseModels/GlobalOidcProject";
 import GlobalSSO from "../../../Models/DatabaseModels/GlobalSso";
@@ -320,6 +322,7 @@ import GlobalSSOProject from "../../../Models/DatabaseModels/GlobalSsoProject";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -522,6 +525,120 @@ const columnsOf: (fields: unknown) => Array<string> = (
   );
 };
 
+// A form's steps, as id and title.
+const stepsOf: (steps: unknown) => Array<string> = (
+  steps: unknown,
+): Array<string> => {
+  return ((steps as Array<{ id: string; title: string }>) || []).map(
+    (step: { id: string; title: string }) => {
+      return `${step.id}: ${step.title}`;
+    },
+  );
+};
+
+/*
+ * A provider's Attached Projects form is one page: the project, then its teams
+ * under it. The teams are the project picker's own (ProjectScopedTeamsPicker,
+ * several at once), and the picker starts on the project's members team as
+ * soon as a project is picked (its own suite and AdminAddToProjectMembersTeam
+ * drive that).
+ */
+const expectOnePageAttachForm: (table: MockProps) => void = (
+  table: MockProps,
+): void => {
+  expect(table["formSteps"]).toBeUndefined();
+
+  const fields: Array<MockProps> = table["formFields"] as Array<MockProps>;
+
+  for (const field of fields) {
+    expect(field["stepId"]).toBeUndefined();
+  }
+
+  const teamsField: MockProps = fields[1]!;
+
+  expect(teamsField["fieldType"]).toBe(FormFieldSchemaType.CustomComponent);
+  expect(teamsField["required"]).toBe(false);
+
+  const onChange: Mock<(value: unknown) => void> =
+    jest.fn<(value: unknown) => void>();
+  const projectId: string = "44444444-4444-4444-8444-444444444444";
+
+  const element: ReactElement = (
+    teamsField["getCustomElement"] as (
+      values: Record<string, unknown>,
+      props: { onChange: (value: unknown) => void },
+    ) => ReactElement
+  )({ project: projectId, teams: [] }, { onChange });
+
+  expect(element.type).toBe(ProjectScopedTeamsPicker);
+
+  const pickerProps: {
+    projectId?: ObjectID | undefined;
+    selectedTeamIds: Array<string>;
+    isMultiSelect?: boolean | undefined;
+    onChange: (teamIds: Array<string>) => void;
+  } = element.props as {
+    projectId?: ObjectID | undefined;
+    selectedTeamIds: Array<string>;
+    isMultiSelect?: boolean | undefined;
+    onChange: (teamIds: Array<string>) => void;
+  };
+
+  // The teams of the project picked above it, several at once.
+  expect(pickerProps.projectId?.toString()).toBe(projectId);
+  expect(pickerProps.selectedTeamIds).toEqual([]);
+  expect(pickerProps.isMultiSelect).not.toBe(false);
+
+  // What the picker reports is what the form holds: the list of team ids.
+  pickerProps.onChange(["55555555-5555-4555-8555-555555555555"]);
+
+  expect(onChange).toHaveBeenCalledWith([
+    "55555555-5555-4555-8555-555555555555",
+  ]);
+};
+
+/*
+ * Every OIDC provider form, the Global one included, comes from one builder
+ * (Common/UI/Components/Sso/OidcProviderFormFields), and every SAML provider
+ * form from another (SamlProviderFormFields): what the identity provider
+ * gives on Provider; Enabled, then everything with an answer folded under
+ * Advanced, on Sign-in. Both walk the same two steps.
+ */
+const OIDC_FORM_STEPS: Array<string> = [
+  "provider: Provider",
+  "sign-in: Sign-in",
+];
+
+const SAML_FORM_STEPS: Array<string> = OIDC_FORM_STEPS;
+
+const GLOBAL_SAML_FORM_FIELDS: Array<string> = [
+  "name",
+  "signOnURL",
+  "issuerURL",
+  "publicCertificate",
+  "isEnabled",
+  "signatureMethod",
+  "digestMethod",
+  "description",
+  "disableSignUpWithSso",
+  "restrictToAttachedProjects",
+];
+
+const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
+  "name",
+  "issuerURL",
+  "clientId",
+  "clientSecret",
+  "isEnabled",
+  "discoveryURL",
+  "scopes",
+  "emailClaimName",
+  "nameClaimName",
+  "description",
+  "disableSignUpWithSso",
+  "restrictToAttachedProjects",
+];
+
 // The value next to a label in an "Identity Provider URLs" card, exactly.
 const printedValueFor: (label: string) => string = (label: string): string => {
   const labelElement: HTMLElement = screen.getByText(label);
@@ -660,7 +777,7 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
 });
 
 describe("the provider lists", () => {
-  test("Global SSO: the SAML provider table and form, as before", async () => {
+  test("Global SSO: the SAML provider table, and the two-step form every SAML provider shares", async () => {
     await renderPage(PAGES[0]!);
 
     const table: MockProps = lastTable("global-sso-table");
@@ -673,18 +790,8 @@ describe("the provider lists", () => {
     expect((table["viewPageRoute"] as Route).toString()).toBe(
       "/admin/settings/global-sso",
     );
-    expect(columnsOf(table["formFields"])).toEqual([
-      "name",
-      "description",
-      "signOnURL",
-      "issuerURL",
-      "publicCertificate",
-      "signatureMethod",
-      "digestMethod",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    expect(stepsOf(table["formSteps"])).toEqual(SAML_FORM_STEPS);
+    expect(columnsOf(table["formFields"])).toEqual(GLOBAL_SAML_FORM_FIELDS);
     expect(columnsOf(table["filters"])).toEqual([
       "name",
       "description",
@@ -693,7 +800,7 @@ describe("the provider lists", () => {
     expect(columnsOf(table["columns"])).toEqual(["name", "isEnabled"]);
   });
 
-  test("Global OIDC: the OIDC provider table and form, as before", async () => {
+  test("Global OIDC: the OIDC provider table, and the two-step form every OIDC provider shares", async () => {
     await renderPage(PAGES[2]!);
 
     const table: MockProps = lastTable("global-oidc-table");
@@ -705,26 +812,82 @@ describe("the provider lists", () => {
     expect((table["viewPageRoute"] as Route).toString()).toBe(
       "/admin/settings/global-oidc",
     );
-    expect(columnsOf(table["formFields"])).toEqual([
-      "name",
-      "description",
-      "discoveryURL",
-      "issuerURL",
-      "clientId",
-      "clientSecret",
-      "scopes",
-      "emailClaimName",
-      "nameClaimName",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    expect(stepsOf(table["formSteps"])).toEqual(OIDC_FORM_STEPS);
+    expect(columnsOf(table["formFields"])).toEqual(GLOBAL_OIDC_FORM_FIELDS);
     expect(columnsOf(table["filters"])).toEqual([
       "name",
       "description",
       "isEnabled",
     ]);
     expect(columnsOf(table["columns"])).toEqual(["name", "isEnabled"]);
+  });
+
+  test("Global OIDC: a provider just added opens on its own page, where its redirect URI, attached projects and test link are", async () => {
+    await renderPage(PAGES[2]!);
+
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return;
+      });
+
+    const onCreateSuccess: (
+      item: GlobalOIDC,
+      modalType?: ModalType,
+    ) => Promise<GlobalOIDC> = lastTable("global-oidc-table")[
+      "onCreateSuccess"
+    ] as (item: GlobalOIDC, modalType?: ModalType) => Promise<GlobalOIDC>;
+
+    const created: GlobalOIDC = new GlobalOIDC();
+    created._id = PROVIDER_ID;
+
+    await expect(onCreateSuccess(created, ModalType.Create)).resolves.toBe(
+      created,
+    );
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      `/admin/settings/global-oidc/${PROVIDER_ID}`,
+    );
+
+    // Saving an edit from the list never moves anyone.
+    await onCreateSuccess(created, ModalType.Edit);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  test("Global SSO: a provider just added opens on its own page, where its ACS URL, Entity ID, attached projects and test link are", async () => {
+    await renderPage(PAGES[0]!);
+
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return;
+      });
+
+    const onCreateSuccess: (
+      item: GlobalSSO,
+      modalType?: ModalType,
+    ) => Promise<GlobalSSO> = lastTable("global-sso-table")[
+      "onCreateSuccess"
+    ] as (item: GlobalSSO, modalType?: ModalType) => Promise<GlobalSSO>;
+
+    const created: GlobalSSO = new GlobalSSO();
+    created._id = PROVIDER_ID;
+
+    await expect(onCreateSuccess(created, ModalType.Create)).resolves.toBe(
+      created,
+    );
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      `/admin/settings/global-sso/${PROVIDER_ID}`,
+    );
+
+    // Saving an edit from the list never moves anyone.
+    await onCreateSuccess(created, ModalType.Edit);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -783,18 +946,9 @@ describe("the Global SSO provider page", () => {
     expect(detailProps["modelType"]).toBe(GlobalSSO);
     expect(detailProps["id"]).toBe("global-sso-detail");
     expect((detailProps["modelId"] as ObjectID).toString()).toBe(PROVIDER_ID);
-    expect(columnsOf(detail["formFields"])).toEqual([
-      "name",
-      "description",
-      "signOnURL",
-      "issuerURL",
-      "publicCertificate",
-      "signatureMethod",
-      "digestMethod",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    // The edit dialog has the create form's layout.
+    expect(stepsOf(detail["formSteps"])).toEqual(SAML_FORM_STEPS);
+    expect(columnsOf(detail["formFields"])).toEqual(GLOBAL_SAML_FORM_FIELDS);
     expect(columnsOf(detailProps["fields"])).toEqual([
       "name",
       "description",
@@ -819,6 +973,7 @@ describe("the Global SSO provider page", () => {
       ((table["query"] as MockProps)["globalSsoId"] as ObjectID).toString(),
     ).toBe(PROVIDER_ID);
     expect(columnsOf(table["formFields"])).toEqual(["project", "teams"]);
+    expectOnePageAttachForm(table);
     expect(columnsOf(table["columns"])).toEqual([
       "project",
       "teams",
@@ -894,20 +1049,9 @@ describe("the Global OIDC provider page", () => {
     expect(detailProps["modelType"]).toBe(GlobalOIDC);
     expect(detailProps["id"]).toBe("global-oidc-detail");
     expect((detailProps["modelId"] as ObjectID).toString()).toBe(PROVIDER_ID);
-    expect(columnsOf(detail["formFields"])).toEqual([
-      "name",
-      "description",
-      "discoveryURL",
-      "issuerURL",
-      "clientId",
-      "clientSecret",
-      "scopes",
-      "emailClaimName",
-      "nameClaimName",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    // The edit dialog has the create form's layout.
+    expect(stepsOf(detail["formSteps"])).toEqual(OIDC_FORM_STEPS);
+    expect(columnsOf(detail["formFields"])).toEqual(GLOBAL_OIDC_FORM_FIELDS);
     expect(columnsOf(detailProps["fields"])).toEqual([
       "name",
       "description",
@@ -934,6 +1078,7 @@ describe("the Global OIDC provider page", () => {
       ((table["query"] as MockProps)["globalOidcId"] as ObjectID).toString(),
     ).toBe(PROVIDER_ID);
     expect(columnsOf(table["formFields"])).toEqual(["project", "teams"]);
+    expectOnePageAttachForm(table);
     expect(columnsOf(table["columns"])).toEqual([
       "project",
       "teams",

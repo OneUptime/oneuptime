@@ -17,14 +17,15 @@ Logg-monitorer søker etter og teller logger som samsvarer med spesifikke filtre
 1. Gå til **Overvåkere** i OneUptime-dashbordet
 2. Klikk **Opprett monitor**
 3. Velg **Logger** som monitortype
-4. Velg telemetritjenestene som skal overvåkes
-5. Konfigurer loggfiltre og kriterier etter behov
+4. Velg hvilke logger som skal telles: teksten de inneholder, tidsvinduet og alvorlighetsnivåene
+5. Åpne **Flere felt** under disse filtrene for å avgrense dem til telemetritjenester, infrastrukturenheter eller attributter
+6. Konfigurer kriteriene etter behov
 
 ## Konfigurasjonsalternativer
 
 ### Telemetritjenester
 
-Velg én eller flere tjenester det skal overvåkes logger fra. Tjenester må sende logger til OneUptime via OpenTelemetry.
+Velg under **Flere felt** én eller flere tjenester det skal overvåkes logger fra. La feltet stå tomt for å overvåke logger fra alle tjenester. Tjenester må sende logger til OneUptime via OpenTelemetry.
 
 ### Loggfiltre
 

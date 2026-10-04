@@ -12,7 +12,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 
 | Page                     | What you do there                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **AI**                   | Turn automatic investigation, automatic code fixes and postmortem drafts on or off, and set the optional limits AI works under — none apply until you set them. See [AI SRE](/docs/ai/ai-sre). |
+| **AI**                   | Switch what OneUptime AI does on its own on or off — investigating new incidents, drafting postmortems, opening fix and missing-telemetry pull requests — each saving as soon as you flip it. Which incidents are investigated and the optional limits AI works under are folded under **More settings**; none apply until you set them. See [AI SRE](/docs/ai/ai-sre). |
 | **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
@@ -32,13 +32,14 @@ Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rule
 
 An incident template is a saved skeleton of an incident. Instead of retyping the same title, the same monitor list and the same on-call policy every time the payments cluster wobbles, you save it once and declare from it.
 
-Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a four-step wizard, with two more steps when your project has incident custom fields. Only the first two ask for anything you have to answer: from **Incident Details** on, **Create Incident Template** is the main button, and **Next** walks the optional steps.
+Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a four-step wizard, with two more steps when your project has incident custom fields. Only the first two ask for anything you have to answer: **Next** walks the optional steps after them, and **Create Incident Template** is on the last step.
 
 - **Template Info** — **Template Name** and **Template Description**. These name the template itself; they never appear on the incident.
-- **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** and **Initial Incident State**. **Initial Incident State** is optional and starts empty; its options are listed in state order. Leave it blank and incidents from this template land in the project's created state. Under **Advanced**, which says **Configured** while either is set:
+- **Incident Details** — **Title**, **Description** (Markdown) and **Incident Severity**. Under **More fields**, whose folded header names the three and shows each one that is set:
+  - **Initial Incident State** — the state incidents declared from the template start in. It starts empty, as on the declare form, and its options are listed in state order. Left empty, as its placeholder says, they start in the usual starting state: the project's created state, the one every new incident starts in. A template saved with a state keeps it.
   - **Owners** — the people and teams who own incidents declared from the template. **Add owner** opens one list of both, the same list as an incident's **Owners** page; each pick shows as a chip you can remove. An existing template shows them on an **Owners** card.
   - **Labels** — the labels incidents declared from the template start with.
-- **Resources Affected** — the monitors, hosts, clusters and services the incident should be attached to, plus **Limit to these status pages** and **Change Monitor Status to**. **Limit to these status pages** limits incidents declared from the template to some of the status pages that list their monitors — a `Region East outage` template can carry the East site pages. An existing template shows it on a **Status Page Scope** card, with **Edit Status Page Scope**. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Resources Affected** — as on the declare form: **Monitors**, then **Change Monitor Status to**, then **Other Affected Resources** for the hosts, clusters and services, with **Limit to these status pages** under **More fields**. A template always asks for **Change Monitor Status to**, monitors picked or not: it also applies to the monitors picked when an incident is declared from the template, where the declare form shows it as soon as the first monitor is picked. An existing template's **Affected Resources** card asks the same way. **Limit to these status pages** limits incidents declared from the template to some of the status pages that list their monitors — a `Region East outage` template can carry the East site pages. An existing template shows it on a **Status Page Scope** card, with **Edit Status Page Scope**. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
 - **Custom Fields on Create** — also only when your project has incident custom fields: which of them the **Details** step asks for when an incident is declared from this template, and which must be filled in. An existing template has a **Custom Fields on Create** card to change them. See [Custom fields on create](#custom-fields-on-create).
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
@@ -100,10 +101,10 @@ A field that is not listed follows its own settings, as with `Default`. A reques
 
 Note templates give responders canned text for incident updates, so a status page update at 3am is not written from scratch by someone half awake.
 
-Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). The card is titled **Public or Private Note Templates for Incidents** — one library serves both note types. The create form has two steps:
+Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). The card is titled **Public or Private Note Templates for Incidents** — one library serves both note types. The create form is one page:
 
-- **Template Info** — **Template Name** and **Template Description**, both required.
-- **Note Details** — the **Note** itself, in Markdown, required: the text a note starts with when the template is picked.
+- **Template Name** and **Template Description**, both required.
+- The **Note** itself, in Markdown, required: the text a note starts with when the template is picked.
 
 Like incident templates, rows are created and viewed rather than edited inline; open a template to change it.
 
@@ -130,18 +131,18 @@ Custom fields used to be written `{{customFields.<key>}}`; templates that still 
 
 The same list, button and `{{` come with the other templates that have variables: an SLA rule's note reminders, an incident or alert grouping rule's episode title and description, a monitor rule's incident and alert description and remediation notes, an SLO burn rate rule's templates and a status page's custom subscriber notification templates.
 
-Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** next to the **Public Note** field. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
+Note templates surface where you actually need them: the **Acknowledge Incident** and **Resolve Incident** confirmation dialogs both offer **Select Note Template** above the **Public Note** field, folded under **Add a public note**. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) for how public and private notes differ.
 
 ## Postmortem templates
 
 A postmortem template is the skeleton of the write-up you produce after an incident — your headings, your prompts, your standing questions — so every review in the project follows the same shape.
 
-Go to **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). The card is titled **Postmortem Templates**. The create form has two steps:
+Go to **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). The card is titled **Postmortem Templates**. The create form is one page:
 
-- **Template Info** — **Template Name** and **Template Description**, both required.
-- **Postmortem Details** — **Postmortem Template**, the body itself, in Markdown, required.
+- **Template Name** and **Template Description**, both required.
+- **Postmortem Template**, the body itself, in Markdown, required.
 
-You apply one from the incident, not from settings. Open an incident, choose **Postmortem** in its side menu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), and use **Apply Template**. That opens an **Apply Postmortem Template** dialog with a **Select Template** dropdown; picking one loads the template body into the **Postmortem Note** editor, where you edit it before saving. Incident episodes have the same **Postmortem** page and draw on the same template library.
+You apply one from the incident, not from settings. Open an incident, choose **Postmortem** in its side menu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), and use **Apply Template**. That opens an **Apply Postmortem Template** dialog with a **Select Template** dropdown; picking one loads the template body into the **Postmortem Note** editor, where you edit it before saving. Incident episodes have the same **Postmortem** page and draw on the same template library. **Apply Template** is shown only once the project has a postmortem template; with just one, it is already picked. The editor opens on the incident's postmortem as it stands, with the template as its note, so whether it is on the status page, when it was published and its attachments stay as they were.
 
 ## Custom fields
 
@@ -149,7 +150,7 @@ Custom fields let you carry your own metadata on every incident — an internal 
 
 Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). The page is titled **Incident Custom Fields** and lists the fields in their **Order**, each by its **Field Name** and **Field Type** alone. **Edit** on a field's row opens the rest of its settings.
 
-Creating a field asks for its **Field Name**, **Field Description** and **Field Type** on one page — and, for a dropdown type, its options, right under the type. A new field's values are typed in. Everything else is under **Advanced**, which starts collapsed whether you create a field or edit one, and says **Configured** while something in it is set. To make a field that copies its value from a monitor custom field instead, open the **More** menu (**⋯**) next to **Create Incident Custom Field** and choose **Create Mapped Custom Field** — see [Fields copied from a monitor](#fields-copied-from-a-monitor).
+Creating a field asks for its **Field Name**, **Field Description** and **Field Type** on one page — and, for a dropdown type, its options, right under the type. A new field's values are typed in. Everything else is under **More fields**, which starts folded whether you create a field or edit one; folded, its header names what is in it and shows what is set. To make a field that copies its value from a monitor custom field instead, open the **More** menu (**⋯**) next to **Create Incident Custom Field** and choose **Create Mapped Custom Field** — see [Fields copied from a monitor](#fields-copied-from-a-monitor).
 
 Each definition has:
 
@@ -158,10 +159,10 @@ Each definition has:
 - **Field Type** — required. This chooses how data is entered; the types are listed below. Dropdown types also need their options listed.
 - **Dropdown Options** — the values that appear in the dropdown, each with an optional color.
 - **Order** — where the field appears among the incident's custom fields: on the incident's **Custom Fields** page, in the **Details** step and in subscriber messages. There is no number to type in: drag a field by the handle at the start of its row to move it up or down, and a new field is added to the end. Dragging is off while a filter or search narrows the list.
-- **Show on Create** — under **Advanced**. Asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
-- **Required on Create** — under **Advanced**, offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
-- **Include in Subscriber Notifications** — under **Advanced**. Sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
-- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working. You never need to look it up: the editors that place it — a note template's **Note** and a status page's custom subscriber notification templates for incident events — list every field's variable under **Template variables**, by the field's name. A field's **Edit** form also shows it, read only, at the bottom of **Advanced**, with a button that copies it.
+- **Show on Create** — under **More fields**. Asks for the field in the **Details** step when an incident is declared from the dashboard (see [Declaring Incidents](/docs/incidents/declaring-incidents)). An incident template can give any field a starting value, shown on create or not, and can ask for a field or leave it out for the incidents declared from it — see [Custom fields on create](#custom-fields-on-create). [Forms](/docs/forms/building#custom-fields) do not follow it: a form asks only the fields added to it.
+- **Required on Create** — under **More fields**, offered once **Show on Create** is on. The **Details** step does not let you declare the incident until the field is filled in, and a **Boolean** field must be switched on. The dashboard is the only place this is checked; see [Required on Create is checked by the dashboard only](#required-on-create-is-checked-by-the-dashboard-only).
+- **Include in Subscriber Notifications** — under **More fields**. Sends the field and its value to status page subscribers with the incident's messages: the default email, Slack and Microsoft Teams messages and webhooks, but not SMS. Subscribers are usually outside your team, so only turn it on for fields that are safe to share. See [Incident custom fields in notifications](/docs/status-pages/subscribers#incident-custom-fields-in-notifications).
+- **Template Variable** — the key a template reaches the field by, `{{incident.customFields.<key>}}`, in note templates and custom subscriber notification templates. It is made from the field's name when the field is created — lowercase letters, digits and underscores, so `Expected Resolution` becomes `expected_resolution`, with `_2`, `_3` and so on added when another field already has the key — and it does not change when the field is renamed. Nobody sets it by hand: the API ignores a value sent for it. Templates written with the older `{{customFields.<key>}}` keep working. You never need to look it up: the editors that place it — a note template's **Note** and a status page's custom subscriber notification templates for incident events — list every field's variable under **Template variables**, by the field's name. A field's **Edit** form also shows it, read only, at the bottom of **More fields**, with a button that copies it.
 
 **Order**, **Show on Create**, **Required on Create**, **Include in Subscriber Notifications** and **Template Variable** exist on incident custom fields only. The custom fields of monitors, alerts, scheduled maintenance events and the other resources do not have them.
 
@@ -201,7 +202,7 @@ A custom field can take its value from a custom field of the incident's monitors
 
 The value is filled in when an incident is created with a monitor, and kept up to date when the monitor's value changes. When an incident's monitors hold different values, a single-value field is left as it is and a multi-select field gets all of them. Copying never clears a value: an incident without a monitor keeps whatever is typed on it, and clearing the monitor's value leaves the copies alone. The **Details** step does not ask for a copied field once the incident has a monitor.
 
-To copy an existing field's value from a monitor, change which monitor field it copies, or go back to typing it in, open **Edit** on the field's row and use **Map Value From** under **Advanced**. Alert and scheduled maintenance custom fields can copy from their monitors the same way.
+To copy an existing field's value from a monitor, change which monitor field it copies, or go back to typing it in, open **Edit** on the field's row and use **Map Value From** under **More fields**. Alert and scheduled maintenance custom fields can copy from their monitors the same way.
 
 ### Custom field values through the API
 
@@ -267,7 +268,7 @@ Alerts and scheduled maintenance events have the same feature, at **Alerts → S
 
 ### Ready-made measurements
 
-The form opens on **What do you want to measure?**. Pick one of these and its name, description and both moments are filled in, so you can create it right away; choose **Next** to see the moments first.
+The form opens on **What do you want to measure?**. Pick one of these and its name, description and both moments are filled in: **Next** shows the moments, and the measurement is created from that last step.
 
 | Where                 | Measurement              | Starts when                           | Ends when                         |
 | --------------------- | ------------------------ | ------------------------------------- | --------------------------------- |
@@ -301,13 +302,14 @@ Alerts start from **The alert is created** and have no postmortem; scheduled mai
 
 Reaching **acknowledged** or **resolved** follows whichever state plays that part, so it keeps working if you rename or replace the state. **A state you pick** is pinned to that one state.
 
-### Advanced options
+### More fields
 
-A few options most measurements never change are folded under **Advanced** at the end of the **Start and End** step, set to the defaults the API uses too. The header says **Configured** when one of them is changed.
+A few options most measurements never change are folded under **More fields** at the end of the **Start and End** step, set to the defaults the API uses too. Folded, its header names them and shows the ones that are changed.
 
 - **If the start happens more than once** and **If the end happens more than once** appear for a moment that reaches a state. A reopened incident can reach the same state again. **Use the first time** is the default and matches the built-in incident timings; **Use the last time** follows a reopened incident to its final pass.
 - **Show durations in** is the unit the measurement's charts use. **Automatic** is the default: it charts seconds, which charts show as seconds, minutes, hours or days as the numbers grow. **Minutes**, **Hours** or **Days** keep a chart in one unit. Every point is written in the unit you pick, and changing it rewrites the measurement's points in the new one.
 - **Chart summary** is how **View Chart** sums up many incidents: **Average** by default, or **Median**, the 90th, 95th or 99th percentile, **Longest** or **Shortest**.
+- **Show on incident pages** puts the measurement in the **Measurements** card on each incident's page (see below). It is on by default; turn it off for a measurement you only want to chart. Alerts and scheduled maintenance call it **Show on alert pages** and **Show on maintenance event pages**.
 
 Editing a measurement adds an **Enabled** switch: turn it off to stop measuring incidents. The numbers already recorded are kept.
 
@@ -323,6 +325,24 @@ Editing a measurement adds an **Enabled** switch: turn it off to stop measuring 
 Only **Recorded** values become chart points. A skipped moment writes nothing rather than a zero, so it cannot drag an average towards it.
 
 **Invalid** is the status worth watching. It is what a measurement says when the timeline it was worked out from is wrong — for example an end 17 minutes before its start. That is deliberately louder than a plausible-looking number nobody questions.
+
+### On each incident's page
+
+Each incident's page shows its own measurements in a **Measurements** card, right under **Incident Details**, in the order of the list on this settings page. Each one says what it measures — **Declared → Acknowledged** — and what it reads for this incident:
+
+| It reads                      | When                                                                                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| A duration, like **4 minutes** | Both moments happened (**Recorded**). It is in the measurement's unit: **Automatic** reads like the page's other timings, **1 hour, 5 minutes**, and **Hours** reads **1.5 hours**. |
+| **Running for 12 minutes**    | The clock has started and the end has not happened yet. It counts up while the page is open.                                    |
+| **Not started yet**           | The start has not happened yet, or is a time still ahead, like a maintenance event's scheduled start.                           |
+| **Not reached**               | The incident is resolved, and the moment the measurement waited for never came — an incident resolved without being acknowledged. |
+| **Not measured**              | A moment can never happen (**Not Applicable**), with the reason, like a skipped state.                                          |
+| **Ends before it starts**     | The recorded times disagree (**Invalid**), with how far apart they are.                                                         |
+| **Not worked out yet**        | OneUptime has not worked it out for this incident yet, as just after the measurement was created. |
+
+A measurement whose start or end you change keeps showing its old value on each incident until OneUptime has worked it out again, as its chart does. Right after a state change from the incident's header, the card reads the new values as soon as OneUptime has worked them out, usually at once.
+
+Alerts and scheduled maintenance events have the same card on their pages. For a maintenance event, **Not reached** comes once the event has ended. The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
 
 ### Impact Started At, and why it is blank
 
@@ -340,7 +360,7 @@ The **Starts At** field on a state timeline entry is editable. If an incident wa
 
 Choose **View Chart** on a measurement to open its chart in the metric explorer, over the past month, summed up its way. Each enabled measurement writes a metric named `oneuptime.incident.measurement.<key>`, which you can also add to any dashboard. Alerts use `oneuptime.alert.measurement.<key>` and scheduled maintenance uses `oneuptime.scheduled-maintenance.measurement.<key>`. The list's **Key** column, hidden by default, shows each measurement's key.
 
-Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources. Left out, the options under **Advanced** take the same defaults as in the dashboard: `unit` is `seconds` (or `minutes`, `hours`, `days`), `aggregation_type` is `Avg` (or `P50`, `P90`, `P95`, `P99`, `Max`, `Min`), and `start_state_occurrence` and `end_state_occurrence` are `First` (or `Last`).
+Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources. Left out, the options under **More fields** take the same defaults as in the dashboard: `unit` is `seconds` (or `minutes`, `hours`, `days`), `aggregation_type` is `Avg` (or `P50`, `P90`, `P95`, `P99`, `Max`, `Min`), and `start_state_occurrence` and `end_state_occurrence` are `First` (or `Last`). `show_on_incident_view` (`show_on_alert_view`, `show_on_scheduled_maintenance_view`) is `true`.
 
 The **key** is permanent because it is part of the metric name — changing it would orphan the series. Rename the measurement freely; the key stays.
 
@@ -367,9 +387,9 @@ Incident roles are the named jobs you assign people to during a response. Define
 
 A new project starts with one role, **Incident Commander**, the person in charge of the response. OneUptime fills it for you: when you declare an incident from the dashboard without picking anyone for the role, you become its Incident Commander, and an incident that still has none gets the first person who changes its state, unless they already hold another role on it. Incident Commander can be renamed, but not deleted, and it is always held by one person. Its **Delete** is locked, and says why.
 
-Add the other roles your team uses, such as Responder, Communications Lead or Scribe, with **Create Incident Role**: a name and a description, then an icon and a colour. A role is held by one person per incident unless you turn on **Allow Multiple Users**, under **Advanced** on the first step. Projects created by earlier versions of OneUptime also started with Responder, Communications Lead and Observer. They keep them until you delete them.
+Add the other roles your team uses, such as Responder, Communications Lead or Scribe, with **Create Incident Role**. The form is one page: a name and a description, then **More fields**, folded, with **Allow Multiple Users**, the role's icon and its colour. A new role's colour is already picked, one the roles in the list don't use yet, and the icon is optional, so you only open **More fields** to change them. A role is held by one person per incident unless you turn on **Allow Multiple Users**. Projects created by earlier versions of OneUptime also started with Responder, Communications Lead and Observer. They keep them until you delete them.
 
-Roles are definitions only. You assign people to them per incident — the declare wizard asks on its **On-Call & Roles** step, with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu.
+Roles are definitions only. You assign people to them per incident — the declare wizard asks on its **On-Call & Roles** step, with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu. A monitor's criteria and an incident grouping rule can pick people for them ahead of time. Every one of these forms asks with the same cards, one per role: a role tagged **Primary** is Incident Commander or another primary role, and a role that takes one person drops its picker once it has one. On an incident's **Roles** card, a role that takes several people offers **Add More**.
 
 ## Number prefixes
 
@@ -403,7 +423,7 @@ Linking alerts to an incident never changes their state on its own. Two project 
 - **Acknowledge Linked Alerts When Incident Is Acknowledged** — acknowledging the incident acknowledges every linked alert that is not acknowledged yet, which stops those alerts' on-call escalations.
 - **Resolve Linked Alerts When Incident Is Resolved** — resolving the incident resolves every linked alert that is not resolved yet, except an alert that is still linked to another incident that is not resolved.
 
-Both are on for new projects; a project created before they were on by default keeps the setting it had. Only Project Owners and Project Admins can change them, with the card's **Update** button. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
+Both are on for new projects; a project created before they were on by default keeps the setting it had. Each is a switch that saves as soon as you flip it. Only Project Owners and Project Admins can change them; for everyone else the switches are locked and say which permission they need. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
 
 ## Rules that run when an incident is created
 
@@ -445,9 +465,13 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 - **Grouping** — **Group incidents by**: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. Custom adds a **Group By** step with the five switches underneath the answers (monitor, severity, incident title, incident labels and monitor labels; labels group by their exact set). **Only group incidents that arrive close together** is on by default: an incident joins an episode only if it arrives within the time window of the episode's previous incident. Turned off, matching incidents keep joining the open episode until it is resolved. **Name** follows the answer until you type your own, and **Enabled** is on.
 - **Which Incidents** — conditions that narrow the rule down. Leave it empty to group every new incident.
 
-**Show advanced settings** adds three steps: **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes), **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels) and **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, the default team and user, and episode role assignments). A rule that already uses any of them opens with them shown. All three are optional, so a new rule can still be created from **Which Incidents**, and **Next** walks on to them. The alert form has no status page or episode role settings.
+**Show advanced settings** adds three steps: **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes), **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels) and **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, **Episode Owners**, and episode role assignments). A rule that already uses any of them opens with them shown. All three are optional: **Next** walks through them without asking for anything, and the rule is created from the last one. The alert form has no status page or episode role settings.
 
 The list's **Grouping** column says what each rule does — "One episode per monitor", "New incidents join while they arrive within 30 minutes of the last one" — with a note for each lifecycle setting that is on, for the on-call policies it runs and for showing episodes on status pages. **Match Criteria** shows which incidents it applies to, and **Status** whether it is on.
+
+**Episode Owners** is one picker for people and teams, opened with **Add owner**. Each one you pick becomes an owner of every episode the rule opens: listed on the episode's **Owners** page and notified like any other owner. Only your project's teams and members can be picked, and the API refuses a rule that names a team from another project or someone who is not a member. Someone who leaves the project later is skipped, and someone whose invitation is still pending becomes an owner of the episodes opened after they join. Owners apply to episodes the rule opens after you save; episodes it opened before keep the owners they have.
+
+Rules saved before the form asked for owners may still have a default team and user, which the form used to ask for as Default Assign To Team and Default Assign To User. Nothing in OneUptime showed that default assignee, so it made no one responsible. Editing such a rule shows a **Default assignee** line under **Episode Owners** that names them: **Add as owners** makes them owners of the episodes the rule opens from then on, and **Remove** drops the old setting. Either takes effect when you save. Until someone does, the rule keeps it: the API still returns it as `defaultAssignToUser` and `defaultAssignToTeam`, and each new episode still carries it as `assignedToUser` and `assignedToTeam` while it names a member and one of your project's teams, but it does not make anyone an owner or send anyone a notification.
 
 ## Incident on-call rules
 

@@ -20,8 +20,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * substitute's colour — and a block cannot say what it would have said without
  * the override. That leaves the reader of a correct calendar unable to tell a
  * substitution from an ordinary rotation, which is the complaint this card
- * answers: it names the person who was overridden, the person their alerts now
- * reach, the window, and whether the swap applies everywhere or to one policy.
+ * answers: it names the person who is away, the person covering - who their
+ * alerts now reach - the window, and whether the swap applies everywhere or
+ * to one policy. "Away" and "Covering" are the words the Add User Override
+ * form asks with ("Who is away?", "Who covers?").
  *
  * Rows come from OverridePresentation.buildOverrideSummaryRows, so this
  * component holds no wording of its own and stays a pure render of props.
@@ -120,7 +122,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           {getParty({
             userId: row.originalUserId,
             name: row.originalName,
-            caption: "Overridden",
+            caption: "Away",
             captionClassName: "text-gray-400",
           })}
 
@@ -133,7 +135,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           {getParty({
             userId: row.substituteUserId,
             name: row.substituteName,
-            caption: "Alerts go here",
+            caption: "Covering",
             captionClassName: "text-indigo-600",
           })}
 

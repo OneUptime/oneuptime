@@ -21,8 +21,8 @@ Global SSO, inkludert bryteren «Require SSO for Login» for hele instansen, er 
 2. **Opprett en leverandør**
 
    - Klikk **Opprett Global SSO**.
-   - For SAML: skriv inn et **Navn**, **Sign On URL** og **Issuer** fra identitetsleverandøren din, og lim inn **Offentlig sertifikat**. Velg metodene for **Signatur** og **Sammendrag** (la standardverdiene stå — `RSA-SHA256` / `SHA256` — hvis du er usikker).
-   - For OIDC: skriv inn **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (må inkludere `openid`) og kravnavnene for **email** / **name**.
+   - For SAML: skriv inn et **Navn**, **Sign On URL** og **Issuer** fra identitetsleverandøren din, og lim inn **Offentlig sertifikat**. Resten fylles ut under **More fields**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes leverandørens side.
+   - For OIDC: skriv inn et **Name**, **Issuer URL** og **Client ID** og **Client Secret** for appen du har registrert i IdP-en din. Du kan også lime inn discovery-URL-en til IdP-en din i **Issuer URL**. Resten fylles ut under **More fields**: **Discovery URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes leverandørens side.
 
 3. **Kopier OneUptime-URL-ene inn i identitetsleverandøren din**
 
@@ -39,7 +39,7 @@ Hvordan en global leverandør oppfører seg avhenger av om du knytter noen prosj
 
 - **Ingen prosjekter knyttet til (standard-alle / invitasjon-først):** Brukere kan logge inn med leverandøren og nå **ethvert prosjekt de allerede er medlem av**. Nye brukere opprettes **ikke** automatisk — en bruker må først inviteres til et prosjekt. Bruk dette for bedriftsomfattende SSO der medlemskap administreres et annet sted.
 
-- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Attached Projects** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
+- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Attached Projects** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
 
 Hvis du vil forhindre all automatisk kontoopprettelse selv når prosjekter er knyttet til, aktiver **Disable Sign Up with SSO** på leverandøren — brukere må da inviteres før de kan logge inn.
 

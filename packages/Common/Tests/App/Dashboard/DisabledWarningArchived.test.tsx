@@ -12,7 +12,7 @@ import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * "This monitor is disabled", on a monitor that is archived.
+ * "Monitoring is turned off", on a monitor that is archived.
  *
  * An archived monitor is not checked either, but the archived banner at the
  * top of its pages already says so and offers to unarchive it. Two banners
@@ -51,7 +51,7 @@ const OTHER_MONITOR_ID: ObjectID = new ObjectID(
 );
 
 const DISABLED_MESSAGE: string =
-  "We are not monitoring this monitor since it is disabled. To enable active monitoring, please go to Settings.";
+  "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.";
 
 function monitorWith(values: Partial<Monitor>): Monitor {
   const monitor: Monitor = new Monitor();
@@ -69,7 +69,7 @@ async function flush(): Promise<void> {
 }
 
 function bannerShown(): boolean {
-  return screen.queryByText("This monitor is disabled") !== null;
+  return screen.queryByText("Monitoring is turned off") !== null;
 }
 
 beforeEach(() => {

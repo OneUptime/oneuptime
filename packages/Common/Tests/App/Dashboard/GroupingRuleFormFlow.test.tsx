@@ -35,6 +35,14 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 
 const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
+
+// No rows: the dropdowns' and pickers' lists, unless a test serves some.
+const listNothing: () => Promise<unknown> = (): Promise<unknown> => {
+  return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
+};
+
+getListMock.mockImplementation(listNothing);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -49,13 +57,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       create: async (): Promise<{ data: unknown }> => {
         return { data: {} };
       },
-      getList: async (): Promise<{
-        data: Array<unknown>;
-        count: number;
-        skip: number;
-        limit: number;
-      }> => {
-        return { data: [], count: 0, skip: 0, limit: 0 };
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
       getCommonHeaders: (): Record<string, string> => {
         return {};
@@ -146,6 +149,12 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import IncidentGroupingRule from "../../../Models/DatabaseModels/IncidentGroupingRule";
 import AlertGroupingRule from "../../../Models/DatabaseModels/AlertGroupingRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import User from "../../../Models/DatabaseModels/User";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -280,11 +289,60 @@ async function clickSubmit(): Promise<void> {
   });
 }
 
+// The form's action: on the last step only.
+function querySubmitButton(): HTMLElement | null {
+  return within(dialog()).queryByTestId("modal-footer-submit-button");
+}
+
+// The plain Next every step but the last shows instead.
+function nextButton(): HTMLElement {
+  return within(dialog()).getByTestId("modal-footer-next-button");
+}
+
+// Presses Next: it checks the step on screen, then walks on.
+async function clickNext(): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(nextButton());
+  });
+}
+
+// Walks on with Next to the last step, where the action is, and presses it.
+async function walkOnAndSubmit(): Promise<void> {
+  for (let step: number = 0; step < 8 && !querySubmitButton(); step++) {
+    await clickNext();
+  }
+
+  await clickSubmit();
+}
+
 /*
- * Walks on with the one button that reads Next: the main button while a later
- * step still asks for something, the plain one beside the action once every
- * step left is optional.
+ * An edit form's step list opens any step: the last one, where Save Changes
+ * is, then Save Changes.
  */
+async function saveFromTheLastStep(): Promise<void> {
+  const titles: Array<string> = stepTitles();
+  const last: string = titles[titles.length - 1] as string;
+
+  if (activeStep() !== last) {
+    expect(querySubmitButton()).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(
+          within(dialog()).getByRole("navigation", { name: "Progress" }),
+        ).getByText(last),
+      );
+    });
+    await waitFor(() => {
+      expect(activeStep()).toBe(last);
+    });
+  }
+
+  expect(submitButton()).toHaveTextContent("Save Changes");
+  await clickSubmit();
+}
+
+// Walks on with the plain Next, to the step with this title.
 async function goToStep(title: string): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(within(dialog()).getByRole("button", { name: "Next" }));
@@ -380,7 +438,9 @@ describe("creating a grouping rule", () => {
       "aria-checked",
       "false",
     );
-    expect(submitButton()).toHaveTextContent("Next");
+    // The action is on the last step only: a plain Next here.
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
 
     await goToStep("Which Incidents");
     expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
@@ -564,7 +624,7 @@ describe("creating a grouping rule", () => {
       target: { value: "" },
     });
 
-    await clickSubmit();
+    await clickNext();
 
     await waitFor(() => {
       expect(screen.getByTestId("time-window-setting-error")).toHaveTextContent(
@@ -589,7 +649,7 @@ describe("creating a grouping rule", () => {
     await openIncidentCreateForm();
 
     fireEvent.change(nameInput(), { target: { value: "" } });
-    await clickSubmit();
+    await clickNext();
 
     await waitFor(() => {
       expect(
@@ -617,11 +677,9 @@ describe("creating a grouping rule", () => {
     });
 
     await goToStep("Which Incidents");
-    // Every advanced step is optional: the rule can be created from here.
-    expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
-    expect(
-      within(dialog()).getByTestId("modal-footer-next-button"),
-    ).toHaveTextContent("Next");
+    // Every advanced step is optional, but Create is on the last step only.
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
     await goToStep("Episode Lifecycle");
 
     expect(switchNamed("Reopen recently resolved episodes")).toHaveAttribute(
@@ -673,7 +731,7 @@ describe("creating a grouping rule", () => {
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
   });
 
-  test("with advanced settings shown, the rule is created from Which Incidents, the advanced steps at their defaults", async () => {
+  test("with advanced settings shown, Create waits for the last step, and the advanced steps keep their defaults", async () => {
     await openIncidentCreateForm();
 
     await act(async (): Promise<void> => {
@@ -684,22 +742,18 @@ describe("creating a grouping rule", () => {
       expect(stepTitles()).toContain("Episode Lifecycle");
     });
 
-    // Which Incidents draws the conditions builder: it has to be shown first.
-    expect(submitButton()).toHaveTextContent("Next");
-    expect(
-      within(dialog()).queryByTestId("modal-footer-next-button"),
-    ).not.toBeInTheDocument();
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
 
     await goToStep("Which Incidents");
 
-    await waitFor(() => {
-      expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
-    });
+    // Every step left is optional, and still the action waits for the last.
+    expect(querySubmitButton()).not.toBeInTheDocument();
 
-    await clickSubmit();
+    await walkOnAndSubmit();
     await waitForSave();
 
-    expect(activeStep()).toBe("Which Incidents");
+    expect(activeStep()).toBe("On-Call & Ownership");
     expect(submitted()["enableReopenWindow"]).not.toBe(true);
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
     expect(submitted()["enableInactivityTimeout"]).not.toBe(true);
@@ -802,7 +856,7 @@ describe("editing an existing grouping rule", () => {
     );
   }
 
-  test("a simple rule opens on its answer, with nothing else to walk through", async () => {
+  test("a simple rule opens on its answer, one step from Save Changes", async () => {
     await openIncidentEditForm(
       existingRule({
         groupByIncidentTitle: true,
@@ -821,7 +875,9 @@ describe("editing an existing grouping rule", () => {
       "aria-checked",
       "false",
     );
-    expect(submitButton()).toHaveTextContent("Save Changes");
+    // Save Changes is on Which Incidents, the last step: Next here.
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
   });
 
   test("a custom mix with lifecycle and paging opens with all of it showing", async () => {
@@ -884,7 +940,7 @@ describe("editing an existing grouping rule", () => {
       }),
     );
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -930,7 +986,7 @@ describe("editing an existing grouping rule", () => {
 
     expect(switchNamed("Enabled")).toHaveAttribute("aria-checked", "false");
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()["isEnabled"]).toBe(false);
@@ -946,7 +1002,7 @@ describe("editing an existing grouping rule", () => {
     );
 
     await pickMode("severity");
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -985,7 +1041,7 @@ describe("editing an existing grouping rule", () => {
     });
     expect(minutesInput("resolve-delay-setting")).toHaveValue(5);
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -1051,7 +1107,7 @@ describe("editing an existing grouping rule", () => {
       expect(switchNamed(name)).toHaveAttribute("aria-checked", "false");
     }
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -1096,7 +1152,7 @@ describe("editing an existing grouping rule", () => {
     });
     expect(minutesInput("reopen-window-setting")).toHaveValue(30);
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -1105,5 +1161,565 @@ describe("editing an existing grouping rule", () => {
         reopenWindowMinutes: 30,
       }),
     );
+  });
+});
+
+/*
+ * Who owns the episodes a rule opens. On-Call & Ownership asks with one
+ * people picker - Episode Owners - saved to the rule's episodeOwnerUsers
+ * and episodeOwnerTeams, which the engines make owners of every episode the
+ * rule opens. It replaced "Default Assign To Team" and "Default Assign To
+ * User", which filled an assignee no page ever showed. A rule saved with
+ * that pair gets a line under the owners that names it, with Add as owners
+ * and Remove; either one clears the pair when the rule is saved.
+ *
+ * A small directory answers the picker's and the line's lookups the way
+ * the API filters them: two people and two teams in the project.
+ */
+describe("who owns the episodes a grouping rule opens", () => {
+  const PROJECT_ID: string = "33333333-3333-4333-8333-333333333333";
+  const ADA: string = "0000000e-0000-4000-8000-000000000001";
+  const BOB: string = "0000000e-0000-4000-8000-000000000002";
+  const GONE_USER: string = "0000000e-0000-4000-8000-0000000000ff";
+  const PLATFORM: string = "0000000b-0000-4000-8000-000000000001";
+  const DATABASE: string = "0000000b-0000-4000-8000-000000000002";
+  const GONE_TEAM: string = "0000000b-0000-4000-8000-0000000000ff";
+
+  function directoryUser(id: string, name: string, email: string): User {
+    const user: User = new User();
+    user._id = id;
+    user.name = new Name(name);
+    user.email = new Email(email);
+    return user;
+  }
+
+  function directoryTeam(id: string, name: string): Team {
+    const team: Team = new Team();
+    team._id = id;
+    team.name = name;
+    return team;
+  }
+
+  const USERS: Array<User> = [
+    directoryUser(ADA, "Ada Lovelace", "ada@example.com"),
+    directoryUser(BOB, "Bob Stone", "bob@example.com"),
+  ];
+
+  const TEAMS: Array<Team> = [
+    directoryTeam(DATABASE, "Database"),
+    directoryTeam(PLATFORM, "Platform"),
+  ];
+
+  function serveDirectory(request: any): Promise<unknown> {
+    const query: any = request.query || {};
+    let rows: Array<unknown> = [];
+
+    if (request.modelType === TeamMember) {
+      rows = USERS.filter((user: User): boolean => {
+        return (
+          !(query.userId instanceof Includes) ||
+          (query.userId.values as Array<string>).includes(user._id as string)
+        );
+      }).map((user: User): TeamMember => {
+        const member: TeamMember = new TeamMember();
+        member.user = user;
+        return member;
+      });
+    }
+
+    if (request.modelType === Team) {
+      rows = TEAMS.filter((team: Team): boolean => {
+        return (
+          !(query._id instanceof Includes) ||
+          (query._id.values as Array<string>).includes(team._id as string)
+        );
+      });
+    }
+
+    return Promise.resolve({
+      data: rows,
+      count: rows.length,
+      skip: 0,
+      limit: rows.length,
+    });
+  }
+
+  beforeEach(() => {
+    cleanup();
+    getItemMock.mockReset();
+    createOrUpdateMock.mockReset();
+    createOrUpdateMock.mockResolvedValue({ data: {} });
+    getListMock.mockImplementation(serveDirectory);
+    window.history.replaceState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID}/incidents/settings/grouping-rules`,
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    getListMock.mockImplementation(listNothing);
+    window.history.replaceState({}, "", "/");
+  });
+
+  function readText(element: HTMLElement): string {
+    const copy: HTMLElement = element.cloneNode(true) as HTMLElement;
+
+    copy.querySelectorAll('[aria-hidden="true"]').forEach((hidden: Element) => {
+      hidden.remove();
+    });
+
+    return copy.textContent || "";
+  }
+
+  function chipNamesIn(container: HTMLElement): Array<string> {
+    return within(container)
+      .queryAllByTestId("people-chip")
+      .map((chip: HTMLElement): string => {
+        return readText(chip);
+      });
+  }
+
+  function ownersPicker(): HTMLElement {
+    const button: HTMLElement = within(dialog()).getByRole("button", {
+      name: "Add owner",
+    });
+
+    return button.closest('[role="group"]') as HTMLElement;
+  }
+
+  // Walks on with Next, as a person would, to the last step.
+  async function goToOnCallAndOwnership(): Promise<void> {
+    for (
+      let step: number = 0;
+      step < 8 && activeStep() !== "On-Call & Ownership";
+      step++
+    ) {
+      const before: string = activeStep();
+
+      await clickNext();
+
+      await waitFor(
+        () => {
+          expect(activeStep()).not.toBe(before);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+    }
+
+    expect(activeStep()).toBe("On-Call & Ownership");
+  }
+
+  // Opens the picker's list, picks each name in turn, and closes it again.
+  async function pickOwners(names: Array<string>): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Add owner" }),
+      );
+    });
+
+    const list: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owner",
+    });
+
+    await within(list).findAllByRole("option");
+
+    for (const name of names) {
+      const option: HTMLElement | undefined = within(list)
+        .getAllByRole("option")
+        .find((candidate: HTMLElement): boolean => {
+          return readText(candidate).startsWith(name);
+        });
+
+      if (!option) {
+        throw new Error(`No option named ${name}`);
+      }
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(option);
+      });
+    }
+
+    await act(async (): Promise<void> => {
+      fireEvent.mouseDown(document.body);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Add owner" }),
+      ).not.toBeInTheDocument();
+    });
+  }
+
+  function idsOf(value: unknown): Array<string> {
+    return ((value as Array<{ _id?: string }>) || []).map(
+      (item: { _id?: string }): string => {
+        return item._id || "";
+      },
+    );
+  }
+
+  function existingRule(
+    values: Partial<Record<keyof IncidentGroupingRule, unknown>>,
+  ): IncidentGroupingRule {
+    const rule: IncidentGroupingRule = new IncidentGroupingRule();
+    rule.id = RULE_ID;
+    rule.name = "Payments storms";
+    rule.isEnabled = true;
+    rule.groupByMonitor = true;
+    rule.enableTimeWindow = true;
+    rule.timeWindowMinutes = 30;
+    Object.assign(rule, values);
+    return rule;
+  }
+
+  async function openIncidentEditForm(
+    rule: IncidentGroupingRule,
+  ): Promise<void> {
+    getItemMock.mockResolvedValue(rule);
+
+    await openForm<IncidentGroupingRule>({
+      page: IncidentGroupingRulesPage,
+      modelType: IncidentGroupingRule,
+      singularName: "Incident Grouping Rule",
+      formType: FormType.Update,
+    });
+
+    await waitFor(
+      () => {
+        expect(nameInput()).toHaveValue("Payments storms");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  }
+
+  test("a new rule's On-Call & Ownership asks for Episode Owners with one picker, and no default assignee", async () => {
+    await openIncidentCreateForm();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Show advanced settings"));
+    });
+    await waitFor(() => {
+      expect(stepTitles()).toContain("On-Call & Ownership");
+    });
+
+    await goToOnCallAndOwnership();
+
+    expect(
+      within(dialog()).getByText(
+        "Added as owners of every episode this rule opens, and notified like any other owner.",
+      ),
+    ).toBeInTheDocument();
+    expect(ownersPicker()).toHaveAccessibleName(/Episode Owners/);
+    expect(chipNamesIn(ownersPicker())).toEqual([]);
+
+    for (const retired of [
+      "Default Assign To Team",
+      "Default Assign To User",
+      "Default Assignees",
+      "The team and user new episodes are assigned to by default. Both are optional.",
+      "Select Team",
+      "Select User",
+    ]) {
+      expect(within(dialog()).queryByText(retired)).not.toBeInTheDocument();
+    }
+
+    // A new rule has no old assignee to speak of.
+    expect(
+      screen.queryByTestId("legacy-default-assignee"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("owners picked on a new rule are saved as the rule's episode owners", async () => {
+    await openIncidentCreateForm();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Show advanced settings"));
+    });
+    await waitFor(() => {
+      expect(stepTitles()).toContain("On-Call & Ownership");
+    });
+
+    await goToOnCallAndOwnership();
+    await pickOwners(["Ada Lovelace", "Platform"]);
+
+    expect(chipNamesIn(ownersPicker())).toEqual([
+      "Ada Lovelace",
+      "PlatformTeam",
+    ]);
+
+    await clickSubmit();
+    await waitForSave();
+
+    expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([ADA]);
+    expect(idsOf(submitted()["episodeOwnerTeams"])).toEqual([PLATFORM]);
+    // Columns of the rule, not misc data, and never the old pair.
+    expect(submittedMiscData()).not.toHaveProperty("episodeOwnerUsers");
+    expect(submittedMiscData()).not.toHaveProperty("episodeOwnerTeams");
+    expect(submitted()["defaultAssignToUserId"]).toBeUndefined();
+    expect(submitted()["defaultAssignToTeamId"]).toBeUndefined();
+    expect(submittedMiscData()).not.toHaveProperty("episodeOwners");
+    expect(submittedMiscData()).not.toHaveProperty("legacyDefaultAssignee");
+  });
+
+  test("a rule with episode owners opens with them showing, and saves them back untouched", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        episodeOwnerUsers: [USERS[1]!],
+        episodeOwnerTeams: [TEAMS[0]!],
+      }),
+    );
+
+    // Owners are behind Show advanced settings, which the rule opens with.
+    expect(switchNamed("Show advanced settings")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await goToOnCallAndOwnership();
+
+    await waitFor(() => {
+      expect(chipNamesIn(ownersPicker())).toEqual([
+        "Bob Stone",
+        "DatabaseTeam",
+      ]);
+    });
+    expect(
+      screen.queryByTestId("legacy-default-assignee"),
+    ).not.toBeInTheDocument();
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([BOB]);
+    expect(idsOf(submitted()["episodeOwnerTeams"])).toEqual([DATABASE]);
+  });
+
+  test("a rule with an old default assignee names it under the owners, and saved untouched keeps it", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        defaultAssignToUserId: new ObjectID(BOB),
+        defaultAssignToTeamId: new ObjectID(DATABASE),
+      }),
+    );
+
+    // Nothing a rule does is hidden from the person editing it.
+    expect(switchNamed("Show advanced settings")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await goToOnCallAndOwnership();
+
+    const line: HTMLElement = await screen.findByTestId(
+      "legacy-default-assignee",
+    );
+
+    expect(line).toHaveAccessibleName("Default assignee");
+    expect(line).toHaveAccessibleDescription(
+      "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.",
+    );
+
+    await waitFor(() => {
+      expect(chipNamesIn(line)).toEqual(["Bob Stone", "DatabaseTeam"]);
+    });
+
+    // Under the owners picker, which is still empty.
+    expect(
+      ownersPicker().compareDocumentPosition(line) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(chipNamesIn(ownersPicker())).toEqual([]);
+
+    expect(
+      within(line).getByRole("button", { name: "Add as owners" }),
+    ).toBeEnabled();
+    expect(within(line).getByRole("button", { name: "Remove" })).toBeEnabled();
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    // Nobody decided anything: the rule keeps what it had.
+    expect(String(submitted()["defaultAssignToUserId"])).toBe(BOB);
+    expect(String(submitted()["defaultAssignToTeamId"])).toBe(DATABASE);
+    expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([]);
+  });
+
+  test("Add as owners moves the old default assignee into Episode Owners, and saving clears the old pair", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        defaultAssignToUserId: new ObjectID(BOB),
+        defaultAssignToTeamId: new ObjectID(DATABASE),
+        episodeOwnerUsers: [USERS[0]!],
+      }),
+    );
+
+    await goToOnCallAndOwnership();
+
+    const line: HTMLElement = await screen.findByTestId(
+      "legacy-default-assignee",
+    );
+
+    await waitFor(() => {
+      expect(
+        within(line).getByRole("button", { name: "Add as owners" }),
+      ).toBeEnabled();
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(line).getByRole("button", { name: "Add as owners" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("legacy-default-assignee"),
+      ).not.toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(chipNamesIn(ownersPicker())).toEqual([
+        "Ada Lovelace",
+        "Bob Stone",
+        "DatabaseTeam",
+      ]);
+    });
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([ADA, BOB]);
+    expect(idsOf(submitted()["episodeOwnerTeams"])).toEqual([DATABASE]);
+    expect(submitted()["defaultAssignToUserId"]).toBeNull();
+    expect(submitted()["defaultAssignToTeamId"]).toBeNull();
+  });
+
+  test("Remove lets the old default assignee go without making anyone an owner", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        defaultAssignToTeamId: new ObjectID(PLATFORM),
+      }),
+    );
+
+    await goToOnCallAndOwnership();
+
+    const line: HTMLElement = await screen.findByTestId(
+      "legacy-default-assignee",
+    );
+
+    await waitFor(() => {
+      expect(chipNamesIn(line)).toEqual(["PlatformTeam"]);
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(line).getByRole("button", { name: "Remove" }));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("legacy-default-assignee"),
+      ).not.toBeInTheDocument();
+    });
+    expect(chipNamesIn(ownersPicker())).toEqual([]);
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(submitted()["defaultAssignToTeamId"]).toBeNull();
+    expect(submitted()["defaultAssignToUserId"]).toBeNull();
+    expect(idsOf(submitted()["episodeOwnerTeams"])).toEqual([]);
+  });
+
+  test("someone who has left, or a deleted team, is named but cannot be made an owner", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        defaultAssignToUserId: new ObjectID(GONE_USER),
+        defaultAssignToTeamId: new ObjectID(GONE_TEAM),
+      }),
+    );
+
+    await goToOnCallAndOwnership();
+
+    const line: HTMLElement = await screen.findByTestId(
+      "legacy-default-assignee",
+    );
+
+    await waitFor(() => {
+      expect(chipNamesIn(line)).toEqual(["Unknown user", "Deleted teamTeam"]);
+    });
+
+    expect(
+      within(line).queryByRole("button", { name: "Add as owners" }),
+    ).not.toBeInTheDocument();
+    expect(within(line).getByRole("button", { name: "Remove" })).toBeEnabled();
+  });
+
+  test("Add as owners adds only the part of the old pair the project still has", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        defaultAssignToUserId: new ObjectID(GONE_USER),
+        defaultAssignToTeamId: new ObjectID(PLATFORM),
+      }),
+    );
+
+    await goToOnCallAndOwnership();
+
+    const line: HTMLElement = await screen.findByTestId(
+      "legacy-default-assignee",
+    );
+
+    await waitFor(() => {
+      expect(
+        within(line).getByRole("button", { name: "Add as owners" }),
+      ).toBeEnabled();
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(line).getByRole("button", { name: "Add as owners" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(chipNamesIn(ownersPicker())).toEqual(["PlatformTeam"]);
+    });
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(idsOf(submitted()["episodeOwnerTeams"])).toEqual([PLATFORM]);
+    expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([]);
+    expect(submitted()["defaultAssignToUserId"]).toBeNull();
+    expect(submitted()["defaultAssignToTeamId"]).toBeNull();
+  });
+
+  test("the alert form asks for its episodes' owners the same way", async () => {
+    await openForm<AlertGroupingRule>({
+      page: AlertGroupingRulesPage,
+      modelType: AlertGroupingRule,
+      singularName: "Alert Grouping Rule",
+      formType: FormType.Create,
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Show advanced settings"));
+    });
+    await waitFor(() => {
+      expect(stepTitles()).toContain("On-Call & Ownership");
+    });
+
+    await goToOnCallAndOwnership();
+    await pickOwners(["Bob Stone", "Database"]);
+
+    await clickSubmit();
+    await waitForSave();
+
+    expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([BOB]);
+    expect(idsOf(submitted()["episodeOwnerTeams"])).toEqual([DATABASE]);
+    expect(
+      within(dialog()).queryByText("Default Assign To Team"),
+    ).not.toBeInTheDocument();
   });
 });

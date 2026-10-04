@@ -97,7 +97,7 @@ Là où la gravité fait plus que décrire : dans **Incidents → Règles → R�
 
 Un incident change d'état de quatre façons :
 
-- **Les boutons d'en-tête.** Ouvrez un incident. Si son état courant précède l'état de prise en compte, vous obtenez **Acknowledge** et **Résoudre** ; s'il se situe entre les deux, vous obtenez **Résoudre**. Chacun ouvre une fenêtre de confirmation — **Acknowledge Incident** ou **Resolve Incident** — qui propose aussi **Sélectionner le modèle de note**, **Note publique** et **Notifier les abonnés de la page de statut**.
+- **Les boutons d'en-tête.** Ouvrez un incident. Si son état courant précède l'état de prise en compte, vous obtenez **Prendre en compte** et **Résoudre** ; s'il se situe entre les deux, vous obtenez **Résoudre**. Chacun ouvre une courte confirmation — **Prendre en compte l'incident** ou **Résoudre l'incident** — avec **Notifier les abonnés de la page de statut** et, repliés sous **Ajouter une note publique**, le champ facultatif **Note publique** et le sélecteur **Sélectionner le modèle de note** (si le projet a des modèles de notes). La prise en compte arrête aussi toute escalade d'astreinte de l'incident.
 - **La chronologie d'état.** Ajoutez une ligne à la main depuis la page **Chronologie d'état** de l'incident, avec **Statut de l'incident**, **Commence le** et **Notifier les abonnés de la page de statut**.
 - **En masse.** La liste des incidents dispose d'une action groupée **Modifier l'état** pour en déplacer plusieurs d'un coup.
 - **Automatiquement.** Un critère de moniteur avec **Résoudre automatiquement l'incident** activé résout son incident dès que le critère n'est plus satisfait, et l'API peut mettre à jour l'état via `/api/incident-state-timeline`.

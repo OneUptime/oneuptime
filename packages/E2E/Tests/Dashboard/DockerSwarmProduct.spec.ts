@@ -7,7 +7,7 @@ import {
   registerAndCreateProject,
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
 import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
@@ -126,11 +126,10 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
     await selectMonitorTypeCard({ page, cardValue: "Docker Swarm" });
 
     /*
-     * The submit button keeps the "Create Monitor" test id on every form
-     * step (BasicForm uses props.submitButtonText as the test id); on the
-     * first step it reads "Next" and advances to the criteria step.
+     * Monitor Info is not the last step: its one way on is a plain Next
+     * (Create Monitor is on the last step only), which opens the criteria.
      */
-    await page.getByTestId("Create Monitor").click();
+    await clickNext({ page });
 
     await expect(
       page.getByText("Docker Swarm Monitor Configuration"),

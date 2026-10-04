@@ -4,6 +4,7 @@ import { listScanRoots, listSourceFiles } from "../../ForeignHiddenRuleGuard";
 import {
   FormFacts,
   FormFieldFacts,
+  MIN_SCANNED_FORMS,
   countFieldRows,
   scanFormFiles,
 } from "../../Helpers/FormStepsScan";
@@ -19,7 +20,7 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormSectionConfigured,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
@@ -197,7 +198,7 @@ describe("the create form's fields", () => {
     expect(description.collapsibleSection).toBe(labels.collapsibleSection);
     expect(description.collapsibleSection!.id).toBe(ADVANCED_FORM_SECTION_ID);
     expect(description.collapsibleSection!.title).toBe(
-      ADVANCED_FORM_SECTION_TITLE,
+      MORE_FIELDS_SECTION_TITLE,
     );
     // Folded on Create, and says "Configured" rather than opening.
     expect(description.collapsibleSection!.openWhenConfigured).toBe(false);
@@ -247,10 +248,13 @@ describe("the project's forms", () => {
     files,
   });
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
   });
 
   const policyCreateForms: Array<FormFacts> = forms.filter(

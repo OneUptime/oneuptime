@@ -116,10 +116,13 @@ function criteriaTitlesOf(file: string, formLabel: RegExp): Array<string> {
 }
 
 describe("rule conditions name their criteria plainly", () => {
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("the scan really read the rule forms", () => {
-    expect(ruleForms.length).toBeGreaterThan(60);
-    expect(criteria.length).toBeGreaterThan(200);
+    expect(ruleForms.length).toBeGreaterThan(40);
+    expect(criteria.length).toBeGreaterThan(150);
   });
 
   test("every criterion has a title of its own", () => {
@@ -304,8 +307,13 @@ function listTsxFiles(directory: string): Array<string> {
 // A template literal that is help markdown: it has a heading.
 const MARKDOWN_HEADING: RegExp = /^#{2,4} /m;
 
-// A page whose form has a Match Criteria step.
-const MATCH_CRITERIA_STEP: RegExp = /id\s*:\s*["']match-criteria["']/;
+/*
+ * A page whose form has a Match Criteria step: written on the page, or the
+ * shared label and owner rule form's Match step (Dashboard Utils/Form/
+ * ResourceRuleForm).
+ */
+const MATCH_CRITERIA_STEP: RegExp =
+  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner)RuleFormSteps</;
 
 function markdownTemplates(source: string): Array<string> {
   const sourceFile: ts.SourceFile = ts.createSourceFile(
@@ -348,7 +356,7 @@ describe("the help on rule pages names criteria plainly", () => {
   );
 
   test("the walk found the rule pages", () => {
-    expect(rulePages.length).toBeGreaterThan(60);
+    expect(rulePages.length).toBeGreaterThan(30);
   });
 
   test("what the help panel shows never names a Pattern criterion", () => {

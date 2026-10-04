@@ -33,7 +33,7 @@ Een incidentsjabloon is een opgeslagen skelet van een incident. In plaats van el
 Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**. Er een aanmaken loopt via een wizard van vier stappen:
 
 - **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**. Die benoemen het sjabloon zelf; ze komen nooit op het incident terecht.
-- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht. Onder **Advanced**, dat **Configured** toont zolang een van beide is ingesteld: **Eigenaren** (mensen en teams, gekozen uit één lijst) en **Labels**.
+- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht. Onder **Meer velden**, waarvan de ingeklapte kop elk van beide toont zolang het is ingesteld: **Eigenaren** (mensen en teams, gekozen uit één lijst) en **Labels**.
 - **Getroffen middelen** — de monitoren, hosts, clusters en services waaraan het incident gekoppeld moet worden, plus **Change Monitor Status to**.
 - **Bereikbaarheid** — **Bereikbaarheidsbeleid**, het beleid dat wordt uitgevoerd zodra een incident uit dit sjabloon wordt gemeld.
 
@@ -58,25 +58,25 @@ Het belangrijkste is de samenvoegregel: **een sjabloon vult alleen een veld in d
 
 Notitiesjablonen geven responders kant-en-klare tekst voor incidentupdates, zodat een statuspagina-update om 03:00 uur niet vanaf nul wordt geschreven door iemand die half slaapt.
 
-Ga naar **Incidenten → Instellingen → Notitie-sjablonen** (`/dashboard/{projectId}/incidents/settings/note-templates`). De kaart heet **Openbare of privénotitiesjablonen voor incidenten** — één bibliotheek bedient beide notitietypen. Het aanmaakformulier heeft twee stappen:
+Ga naar **Incidenten → Instellingen → Notitie-sjablonen** (`/dashboard/{projectId}/incidents/settings/note-templates`). De kaart heet **Openbare of privénotitiesjablonen voor incidenten** — één bibliotheek bedient beide notitietypen. Het aanmaakformulier is één pagina:
 
-- **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
-- **Notitiedetails** — de notitietekst zelf, in Markdown, verplicht.
+- **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
+- De notitietekst zelf, in Markdown, verplicht.
 
 Net als bij incidentsjablonen worden rijen aangemaakt en bekeken in plaats van ter plekke bewerkt; open een sjabloon om het te wijzigen.
 
-Notitiesjablonen duiken op waar je ze echt nodig hebt: de bevestigingsdialogen **Acknowledge Incident** en **Resolve Incident** bieden allebei **Selecteer notitiesjabloon** naast het veld **Openbare notitie**. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed) voor het verschil tussen openbare en privénotities.
+Notitiesjablonen duiken op waar je ze echt nodig hebt: de bevestigingsdialogen **Incident bevestigen** en **Incident oplossen** bieden allebei **Selecteer notitiesjabloon** boven het veld **Openbare notitie**, ingeklapt onder **Openbare notitie toevoegen**. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed) voor het verschil tussen openbare en privénotities.
 
 ## Postmortemsjablonen
 
 Een postmortemsjabloon is het skelet van het verslag dat je na een incident schrijft — jouw kopjes, jouw aanwijzingen, jouw vaste vragen — zodat elke evaluatie in het project dezelfde vorm volgt.
 
-Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). De kaart heet **Postmortem-sjablonen**. Het aanmaakformulier heeft twee stappen:
+Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). De kaart heet **Postmortem-sjablonen**. Het aanmaakformulier is één pagina:
 
-- **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
-- **Postmortem-details** — **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
+- **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
+- **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
 
-Toepassen doe je vanaf het incident, niet vanuit de instellingen. Open een incident, kies **Postmortem** in het zijmenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) en gebruik **Sjabloon toepassen**. Dat opent de dialoog **Postmortemsjabloon toepassen** met een vervolgkeuzelijst **Selecteer sjabloon**; kies je er een, dan wordt de sjabloontekst in de editor **Postmortem-notitie** geladen, waar je hem bewerkt voordat je opslaat. Incident-episodes hebben dezelfde pagina **Postmortem** en putten uit dezelfde sjabloonbibliotheek.
+Toepassen doe je vanaf het incident, niet vanuit de instellingen. Open een incident, kies **Postmortem** in het zijmenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) en gebruik **Sjabloon toepassen**. Dat opent de dialoog **Postmortemsjabloon toepassen** met een vervolgkeuzelijst **Selecteer sjabloon**; kies je er een, dan wordt de sjabloontekst in de editor **Postmortem-notitie** geladen, waar je hem bewerkt voordat je opslaat. Incident-episodes hebben dezelfde pagina **Postmortem** en putten uit dezelfde sjabloonbibliotheek. **Sjabloon toepassen** verschijnt pas als het project een postmortemsjabloon heeft; is er maar één, dan is die al gekozen. De editor opent de postmortem van het incident zoals die is, met het sjabloon als notitie, dus of hij op de statuspagina staat, wanneer hij is gepubliceerd en de bijlagen blijven zoals ze waren.
 
 ## Aangepaste velden
 

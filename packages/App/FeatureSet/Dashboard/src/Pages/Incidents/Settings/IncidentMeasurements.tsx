@@ -6,10 +6,12 @@ import {
   getMeasurementMomentFormField,
   getMeasurementOccurrenceFormField,
   getMeasurementPresetFormField,
+  getMeasurementShowOnViewFormField,
   getMeasurementStateFormField,
   getMeasurementUnitFormField,
 } from "../../../Components/Measurement/MeasurementFormFields";
 import MeasurementSummaryElement from "../../../Components/Measurement/MeasurementSummaryElement";
+import { INCIDENT_EVENT_MEASUREMENTS } from "../../../Utils/Measurement/EventMeasurements";
 import { getMeasurementsHelpMarkdown } from "../../../Utils/Measurement/MeasurementHelp";
 import {
   INCIDENT_MEASUREMENT_FORM,
@@ -297,6 +299,13 @@ const IncidentMeasurementsPage: FunctionComponent<
           getMeasurementChartSummaryFormField<IncidentMeasurement>({
             stepId: "moments",
             description: COPY.chartSummaryDescription,
+            collapsibleSection: advancedSection,
+          }),
+          getMeasurementShowOnViewFormField<IncidentMeasurement>({
+            column: INCIDENT_EVENT_MEASUREMENTS.showOnViewColumn,
+            stepId: "moments",
+            title: COPY.showOnViewTitle,
+            description: COPY.showOnViewDescription,
             collapsibleSection: advancedSection,
           }),
         ]}

@@ -21,8 +21,8 @@ Global SSO, including the instance-wide "Require SSO for Login" toggle, is part 
 2. **Create a provider**
 
    - Click **Create Global SSO**.
-   - For SAML: enter a **Name**, the **Sign On URL** and **Issuer** from your identity provider, and paste the **Public Certificate**. Choose the **Signature** and **Digest** methods (leave the defaults — `RSA-SHA256` / `SHA256` — if you are unsure).
-   - For OIDC: enter the **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (must include `openid`), and the **email** / **name** claim names.
+   - For SAML: enter a **Name**, the **Sign On URL** and **Issuer** from your identity provider, and paste the **Public Certificate**. Everything else is filled in under **More fields**: the **Signature Method** (`RSA-SHA256`), the **Digest Method** (`SHA256`) and a description (`Sign in with` and the name). Change them only if your IdP needs it. Saving opens the provider's page.
+   - For OIDC: enter a **Name**, the **Issuer URL**, and the **Client ID** and **Client Secret** of the app you registered in your IdP. Pasting the IdP's discovery URL into **Issuer URL** works too. Everything else is filled in under **More fields**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description (`Sign in with` and the name). Change them only if your IdP needs it. Saving opens the provider's page.
 
 3. **Copy the OneUptime URLs into your identity provider**
 
@@ -39,7 +39,7 @@ How a global provider behaves depends on whether you attach any projects to it:
 
 - **No projects attached (default-all / invite-first):** Users can sign in with the provider and reach **any project they are already a member of**. New users are **not** created automatically — a user must be invited to a project first. Use this for company-wide SSO where memberships are managed elsewhere.
 
-- **Projects attached (auto-provisioning):** Open the provider and use the **Attached Projects** table to attach one or more projects, each with a set of default teams. Users who sign in are **auto-provisioned** into those projects and added to the default teams on first login. Add one project + teams at a time to build the list; to change an attachment, delete it and add it again.
+- **Projects attached (auto-provisioning):** Open the provider and use the **Attached Projects** table to attach one or more projects, each with a set of default teams. Users who sign in are **auto-provisioned** into those projects and added to the default teams on first login. A project you attach starts on its members team; pick other teams if newcomers should start with different access. Add one project + teams at a time to build the list; to change an attachment, delete it and add it again.
 
 If you want to prevent any automatic account creation even when projects are attached, enable **Disable Sign Up with SSO** on the provider — users must then be invited before they can sign in.
 
@@ -47,8 +47,8 @@ If you want to prevent any automatic account creation even when projects are att
 
 Configuring a global provider does not force anyone to use it; password login still works. To require SSO, use the **Require SSO for Login** controls:
 
-- **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global).
-- **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** toggle that forces SSO for every user across the instance. Master admins remain exempt so they cannot be locked out.
+- **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global). See [Requiring SSO for Your Project](/docs/identity/sso#requiring-sso-for-your-project).
+- **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.
 
 ## Related
 

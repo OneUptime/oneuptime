@@ -497,7 +497,7 @@ ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"
 | \`ebpf.features.*\` | Default | What it adds |
 |---|---|---|
 | \`httpMetrics\` | on | HTTP/gRPC request rate, errors and latency per service |
-| \`spanMetrics\` | on | Per-span request/response size and duration |
+| \`spanMetrics\` | on | Span call count and duration (\`traces.span.metrics.*\`) |
 | \`serviceGraph\` | on | Caller → callee edges; drives the service map |
 | \`networkMetrics\` | on | Pod-to-pod TCP/UDP flow counters |
 | \`networkInterZoneMetrics\` | off | Inter-zone network metrics (doubles their cardinality) |

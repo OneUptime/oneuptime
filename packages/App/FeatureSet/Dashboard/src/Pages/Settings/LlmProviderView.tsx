@@ -68,8 +68,6 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
         name="LLM Provider Details"
         cardProps={{
           title: "LLM Provider Details",
-          description:
-            "Here are more details for this LLM Provider configuration.",
           buttons: [
             {
               title: "Test",

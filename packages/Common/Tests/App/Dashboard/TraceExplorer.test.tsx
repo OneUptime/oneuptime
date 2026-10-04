@@ -1275,6 +1275,9 @@ describe("the span panel", () => {
     expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
       expect.objectContaining({ traceId: TRACE_ID, spanIds: ["update"] }),
     );
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 42 profile samples linked to this span.",
+    );
 
     fireEvent.click(row("auth"));
     await waitFor(() => {
@@ -1325,6 +1328,341 @@ describe("the span panel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not load this span.",
     );
+  });
+});
+
+/*
+ * OBI v0.14 links a Node.js request's CPU samples to its "processing" span or
+ * to the client call in flight, never to the SERVER span, so a span's Profile
+ * tab covers the span and the spans nested under it.
+ */
+describe("the span panel's Profile tab", () => {
+  // The presence probe counts the samples linked to the span ids it is sent.
+  function linkSamples(samplesBySpanId: (spanId: string) => number): void {
+    postMock.mockImplementation(async (args: PostArgs) => {
+      if (args.url.toString().includes("/telemetry/profiles/trace-presence")) {
+        const spanIds: Array<string> =
+          (args.data["spanIds"] as Array<string> | undefined) || [];
+        return new HTTPResponse(
+          200,
+          {
+            sampleCount: spanIds.reduce((total: number, spanId: string) => {
+              return total + samplesBySpanId(spanId);
+            }, 0),
+          },
+          {},
+        );
+      }
+      return new HTTPResponse(200, {}, {});
+    });
+  }
+
+  function linkSamplesTo(samples: Record<string, number>): void {
+    linkSamples((spanId: string): number => {
+      return samples[spanId] || 0;
+    });
+  }
+
+  function probedSpanIds(): Array<Array<string>> {
+    return postsTo("/telemetry/profiles/trace-presence").map(
+      (args: PostArgs) => {
+        return args.data["spanIds"] as Array<string>;
+      },
+    );
+  }
+
+  function lastProbedSpanIds(): Array<string> {
+    const probes: Array<Array<string>> = probedSpanIds();
+    return probes[probes.length - 1]!;
+  }
+
+  /*
+   *   GET /api/items/:id (server)
+   *   ├── in queue
+   *   └── processing
+   *       ├── SELECT postgres (client)
+   *       └── GET /ping (client)
+   */
+  function obiRequest(): Array<Span> {
+    return [
+      {
+        spanId: "server",
+        parentSpanId: "",
+        name: "GET /api/items/:id",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 20,
+        kind: SpanKind.Server,
+      },
+      {
+        spanId: "queue",
+        parentSpanId: "server",
+        name: "in queue",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 1,
+      },
+      {
+        spanId: "processing",
+        parentSpanId: "server",
+        name: "processing",
+        serviceId: GATEWAY,
+        startMs: 1,
+        durationMs: 19,
+      },
+      {
+        spanId: "select",
+        parentSpanId: "processing",
+        name: "SELECT postgres",
+        serviceId: GATEWAY,
+        startMs: 2,
+        durationMs: 3,
+        kind: SpanKind.Client,
+      },
+      {
+        spanId: "ping",
+        parentSpanId: "processing",
+        name: "GET /ping",
+        serviceId: GATEWAY,
+        startMs: 8,
+        durationMs: 10,
+        kind: SpanKind.Client,
+      },
+    ].map(makeSpan);
+  }
+
+  // GET /reindex (server) with 1,249 spans directly under it: three pages.
+  function wideRequest(): Array<Span> {
+    const definitions: Array<SpanDefinition> = [
+      {
+        spanId: "root",
+        parentSpanId: "",
+        name: "GET /reindex",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 1250,
+        kind: SpanKind.Server,
+      },
+    ];
+    for (let index: number = 1; index < 1250; index++) {
+      definitions.push({
+        spanId: `s${index}`,
+        parentSpanId: "root",
+        name: `item ${index}`,
+        serviceId: CHECKOUT,
+        startMs: index,
+        durationMs: 1,
+      });
+    }
+    return definitions.map(makeSpan);
+  }
+
+  test("a server span shows the samples linked to the spans under it", async () => {
+    setBackend({ traceSpans: obiRequest() });
+    linkSamplesTo({ processing: 30, ping: 4 });
+    await renderTrace();
+
+    fireEvent.click(row("server"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+      "34",
+    );
+    expect(probedSpanIds()).toContainEqual([
+      "server",
+      "queue",
+      "processing",
+      "select",
+      "ping",
+    ]);
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 34 profile samples linked to this span and the 4 spans nested under it.",
+    );
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        traceId: TRACE_ID,
+        spanIds: ["server", "queue", "processing", "select", "ping"],
+      }),
+    );
+  });
+
+  test("a span's tab leaves out its parent and siblings", async () => {
+    setBackend({ traceSpans: obiRequest() });
+    linkSamplesTo({ server: 5, queue: 2, ping: 4 });
+    await renderTrace();
+
+    fireEvent.click(row("processing"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent("4");
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: ["processing", "select", "ping"] }),
+    );
+
+    fireEvent.click(row("queue"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 2 profile samples linked to this span.",
+    );
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: ["queue"] }),
+    );
+  });
+
+  test("a search does not narrow a span's Profile tab", async () => {
+    setBackend({ traceSpans: obiRequest() });
+    linkSamplesTo({ processing: 30, ping: 4 });
+    await renderTrace();
+
+    fireEvent.change(screen.getByTestId("trace-search"), {
+      target: { value: "GET /api" },
+    });
+    expect(rows()).toEqual(["server"]);
+
+    fireEvent.click(row("server"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+
+    expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+      "34",
+    );
+    expect(lastProbedSpanIds()).toEqual([
+      "server",
+      "queue",
+      "processing",
+      "select",
+      "ping",
+    ]);
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: lastProbedSpanIds() }),
+    );
+  });
+
+  test("a huge subtree asks for the nearest spans, again as more spans load", async () => {
+    setBackend({ traceSpans: wideRequest() });
+    // One sample on every span under the root.
+    linkSamples((spanId: string): number => {
+      return spanId === "root" ? 0 : 1;
+    });
+    await renderTrace();
+
+    fireEvent.click(row("root"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "499",
+      );
+    });
+    expect(lastProbedSpanIds()).toHaveLength(500);
+
+    fireEvent.click(screen.getByTestId("trace-load-all"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "999",
+      );
+    });
+    const lastProbe: Array<string> = lastProbedSpanIds();
+    expect(lastProbe).toHaveLength(1000);
+    expect(lastProbe[0]).toBe("root");
+
+    fireEvent.click(screen.getByTestId("span-panel-tab-profile"));
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "Flame graph built from the 999 profile samples linked to this span and the nearest 999 of the 1,249 spans nested under it.",
+    );
+    expect(scopedFlamegraphProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ spanIds: lastProbe }),
+    );
+  });
+
+  test("an open Profile tab stays open while more spans load", async () => {
+    setBackend({ traceSpans: wideRequest() });
+    linkSamples((spanId: string): number => {
+      return spanId === "root" ? 0 : 1;
+    });
+    await renderTrace();
+
+    fireEvent.click(row("root"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-profile"));
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "the 499 spans nested under it",
+    );
+
+    // The tab keeps its count while it asks again, so it never closes.
+    fireEvent.click(screen.getByTestId("trace-load-all"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "999",
+      );
+    });
+    expect(screen.getByTestId("span-profile")).toHaveTextContent(
+      "the nearest 999 of the 1,249 spans nested under it",
+    );
+  });
+
+  test("a capped subtree asks again when a nearer span loads", async () => {
+    /*
+     *   GET /reindex (server)
+     *   ├── a, with 1,247 spans under it
+     *   └── b, loaded with the last page
+     */
+    const definitions: Array<SpanDefinition> = [
+      {
+        spanId: "root",
+        parentSpanId: "",
+        name: "GET /reindex",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 2000,
+        kind: SpanKind.Server,
+      },
+      {
+        spanId: "a",
+        parentSpanId: "root",
+        name: "a",
+        serviceId: GATEWAY,
+        startMs: 1,
+        durationMs: 1500,
+      },
+    ];
+    for (let index: number = 2; index < 1249; index++) {
+      definitions.push({
+        spanId: `g${index}`,
+        parentSpanId: "a",
+        name: `item ${index}`,
+        serviceId: CHECKOUT,
+        startMs: index,
+        durationMs: 1,
+      });
+    }
+    definitions.push({
+      spanId: "b",
+      parentSpanId: "root",
+      name: "b",
+      serviceId: GATEWAY,
+      startMs: 2,
+      durationMs: 1,
+    });
+    setBackend({ traceSpans: definitions.map(makeSpan) });
+    linkSamplesTo({ b: 7 });
+    await renderTrace();
+
+    fireEvent.click(row("root"));
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(lastProbedSpanIds()).toHaveLength(1000);
+    });
+    expect(
+      screen.queryByTestId("span-panel-tab-profile"),
+    ).not.toBeInTheDocument();
+
+    // b displaces a's farthest span: as many ids as before, but not the same.
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
+        "7",
+      );
+    });
+    expect(lastProbedSpanIds()).toHaveLength(1000);
+    expect(lastProbedSpanIds()).toContain("b");
   });
 });
 

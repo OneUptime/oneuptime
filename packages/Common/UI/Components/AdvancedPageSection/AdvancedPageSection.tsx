@@ -1,30 +1,41 @@
-import CollapsibleSection from "../CollapsibleSection/CollapsibleSection";
-import { ADVANCED_FORM_SECTION_TITLE } from "../Forms/Utils/AdvancedFormSection";
-import { Translator } from "../../Utils/TranslateTemplate";
-import useTranslator from "../../Utils/UseTranslator";
+import FoldedSection from "../FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "../FoldedSection/FoldedSectionItem";
+import {
+  MORE_SECTION_ICON,
+  MORE_SETTINGS_SECTION_TITLE,
+} from "../FoldedSection/FoldedSectionTitles";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * "Advanced" on a page: the cards most people never need, folded under one
- * header so the page shows what matters first. The page-level twin of a
- * form's Advanced section (Forms/Utils/AdvancedFormSection), and it behaves
- * the same way:
+ * "More settings" on a page: the cards most people never need, folded under
+ * one header so the page shows what matters first. The page-level twin of a
+ * form's "More fields" (Forms/Utils/AdvancedFormSection), drawn by the same
+ * FoldedSection, and it behaves the same way:
  *
  *   - it starts folded, every time the page opens;
- *   - its description says what is in it, folded or open, so a reader
- *     looking for block permissions finds them without opening every fold;
- *   - while folded it says "Configured" on its header when something in it
- *     is set (the page says when: an API key with block permissions), so
- *     folding never hides that a setting is in force;
+ *   - folded, its header names the cards in it (items) - "Block
+ *     Permissions", "Default Bar Color · Bar Color Rules · Languages" - and
+ *     draws the ones that are set as chips that say what they are set to
+ *     ("Block Permissions: 2"), so folding never hides a setting in force;
+ *   - a page can also say, folded, what its cards' defaults do (summary):
+ *     "Every incident is investigated, whatever its severity, and nothing
+ *     limits how much AI does.";
+ *   - its description says what the section is for, under the title once
+ *     it is open (and folded too, on a page that names no items);
  *   - the cards in it stay mounted while it is folded, so they load once and
- *     can report what they hold (which is how a page learns "Configured"),
+ *     can report what they hold (which is how a page learns what is set),
  *     but nothing in a folded section can be tabbed to or read out.
+ *
+ * It was called "Advanced". It is "More settings" now, for the reason
+ * FoldedSectionTitles gives: it says what is inside rather than who it is
+ * for, and it is not the "More options" of the ⋯ buttons on the cards in it.
  *
  * Put it after the cards people use and before Delete:
  *
  *   <AdvancedPageSection
  *     description="..."
- *     isConfigured={hasBlockPermissions}
+ *     items={[foldedSectionItem("Block Permissions", { isSet, value })]}
  *   >
  *     <BlockPermissionsTable ... />
  *   </AdvancedPageSection>
@@ -32,11 +43,24 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   /*
-   * What is in it, in one line under the title: shown while it is folded
-   * too, so nobody has to open it to find out.
+   * What the section holds, in one line: under its title once open, and
+   * folded too when the page names no items.
    */
   description?: string | undefined;
-  // Whether anything in it is set: the folded header then says "Configured".
+  /*
+   * Folded: the cards in it, by title, the set ones with what they are set
+   * to (foldedSectionItem).
+   */
+  items?: Array<FoldedSectionItem> | undefined;
+  /*
+   * Folded: what its cards are set to, or what their defaults do - one or
+   * more whole sentences, already translated or English.
+   */
+  summary?: string | ReactElement | undefined;
+  /*
+   * Whether anything in it is set, for a page that cannot say which card:
+   * folded, it then says "Configured" - unless a set item already says so.
+   */
   isConfigured?: boolean | undefined;
   children: ReactElement | Array<ReactElement>;
   dataTestId?: string | undefined;
@@ -44,27 +68,33 @@ export interface ComponentProps {
 
 export const ADVANCED_PAGE_SECTION_TEST_ID: string = "advanced-page-section";
 
+const CONFIGURED: string = translationKey("Configured");
+
 const AdvancedPageSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
+  const items: Array<FoldedSectionItem> = props.items || [];
+
+  const hasSetItem: boolean = items.some((item: FoldedSectionItem) => {
+    return item.isSet;
+  });
 
   return (
     <div
       className="mb-5"
       data-testid={props.dataTestId || ADVANCED_PAGE_SECTION_TEST_ID}
     >
-      <CollapsibleSection
-        title={ADVANCED_FORM_SECTION_TITLE}
+      <FoldedSection
+        title={MORE_SETTINGS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
         description={props.description}
-        collapsedDescription={props.description}
-        variant="card"
-        defaultCollapsed={true}
-        badge={
-          props.isConfigured
-            ? translator.translateText("Configured")
-            : undefined
+        items={items}
+        summary={
+          props.summary || (items.length === 0 ? props.description : undefined)
         }
+        badge={props.isConfigured && !hasSetItem ? CONFIGURED : undefined}
+        defaultCollapsed={true}
+        isElevated={true}
       >
         {/*
          * A card keeps a margin under it for the next card on the page.
@@ -74,7 +104,7 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
         <div className="space-y-5 [&_[data-testid=card]]:mb-0">
           {props.children}
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
     </div>
   );
 };

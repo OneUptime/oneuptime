@@ -681,6 +681,22 @@ categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
 
+### `agent-ebpf-e2e/`
+
+Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway
+KinD (or k3s) cluster, where OBI and the eBPF profiler load real eBPF
+programs, drives an instrumented Node.js app and checks what reaches a stand-in
+for OneUptime. It needs docker, kind, kubectl, helm and python3, and runs in
+its own workflow, "Kubernetes Agent eBPF E2E", when the chart changes. Its
+analyzer's unit tests need only python3 and run in "Ops Config Test" on every
+PR:
+
+```sh
+python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
+```
+
+See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
+
 ## Utils
 
 `Utils/DockerfileTemplate.js` renders a `Dockerfile.tpl` for production or

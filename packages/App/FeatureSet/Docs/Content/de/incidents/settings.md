@@ -60,25 +60,25 @@ Entscheidend ist die Zusammenführungsregel: **Eine Vorlage füllt nur ein Feld,
 
 Notiz-Vorlagen geben Respondern fertigen Text für Vorfall-Updates an die Hand, damit ein Statusseiten-Update um 3 Uhr nachts nicht von jemandem im Halbschlaf frei formuliert werden muss.
 
-Gehen Sie zu **Vorfälle → Einstellungen → Notiz-Vorlagen** (`/dashboard/{projectId}/incidents/settings/note-templates`). Die Karte heißt **Vorlagen für öffentliche oder private Notizen für Vorfälle** – eine Bibliothek bedient beide Notiztypen. Das Erstellungsformular hat zwei Schritte:
+Gehen Sie zu **Vorfälle → Einstellungen → Notiz-Vorlagen** (`/dashboard/{projectId}/incidents/settings/note-templates`). Die Karte heißt **Vorlagen für öffentliche oder private Notizen für Vorfälle** – eine Bibliothek bedient beide Notiztypen. Das Erstellungsformular ist eine Seite:
 
-- **Vorlageninformationen** – **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht.
-- **Notizdetails** – der Notiztext selbst, in Markdown, Pflichtfeld.
+- **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht.
+- Der Notiztext selbst, in Markdown, Pflichtfeld.
 
 Wie bei Vorfall-Vorlagen werden Zeilen angelegt und angesehen, nicht direkt in der Liste bearbeitet; öffnen Sie eine Vorlage, um sie zu ändern.
 
-Notiz-Vorlagen tauchen dort auf, wo Sie sie wirklich brauchen: Die Bestätigungsdialoge **Acknowledge Incident** und **Resolve Incident** bieten beide neben dem Feld **Öffentliche Notiz** die Auswahl **Notizvorlage auswählen**. Wie sich öffentliche und private Notizen unterscheiden, steht unter [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed).
+Notiz-Vorlagen tauchen dort auf, wo Sie sie wirklich brauchen: Die Bestätigungsdialoge **Vorfall bestätigen** und **Vorfall beheben** bieten beide über dem Feld **Öffentliche Notiz** die Auswahl **Notizvorlage auswählen**, eingeklappt unter **Öffentliche Notiz hinzufügen**. Wie sich öffentliche und private Notizen unterscheiden, steht unter [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed).
 
 ## Postmortem-Vorlagen
 
 Eine Postmortem-Vorlage ist das Gerüst der Aufarbeitung, die Sie nach einem Vorfall schreiben – Ihre Überschriften, Ihre Denkanstöße, Ihre Standardfragen –, damit jede Nachbetrachtung im Projekt derselben Form folgt.
 
-Gehen Sie zu **Vorfälle → Einstellungen → Postmortem-Vorlagen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Die Karte heißt **Postmortem-Vorlagen**. Das Erstellungsformular hat zwei Schritte:
+Gehen Sie zu **Vorfälle → Einstellungen → Postmortem-Vorlagen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Die Karte heißt **Postmortem-Vorlagen**. Das Erstellungsformular ist eine Seite:
 
-- **Vorlageninformationen** – **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht.
-- **Postmortem-Details** – **Postmortem-Vorlage**, der Text selbst, in Markdown, Pflichtfeld.
+- **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht.
+- **Postmortem-Vorlage**, der Text selbst, in Markdown, Pflichtfeld.
 
-Angewendet wird eine Vorlage vom Vorfall aus, nicht aus den Einstellungen. Öffnen Sie einen Vorfall, wählen Sie **Postmortem** in seinem Seitenmenü (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) und nutzen Sie **Vorlage anwenden**. Das öffnet den Dialog **Postmortem-Vorlage anwenden** mit dem Dropdown **Vorlage auswählen**; sobald Sie eine auswählen, lädt ihr Text in den Editor **Postmortem-Notiz**, wo Sie ihn vor dem Speichern bearbeiten. Vorfall-Episoden haben dieselbe Seite **Postmortem** und greifen auf dieselbe Vorlagenbibliothek zu.
+Angewendet wird eine Vorlage vom Vorfall aus, nicht aus den Einstellungen. Öffnen Sie einen Vorfall, wählen Sie **Postmortem** in seinem Seitenmenü (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) und nutzen Sie **Vorlage anwenden**. Das öffnet den Dialog **Postmortem-Vorlage anwenden** mit dem Dropdown **Vorlage auswählen**; sobald Sie eine auswählen, lädt ihr Text in den Editor **Postmortem-Notiz**, wo Sie ihn vor dem Speichern bearbeiten. Vorfall-Episoden haben dieselbe Seite **Postmortem** und greifen auf dieselbe Vorlagenbibliothek zu. **Vorlage anwenden** erscheint erst, wenn das Projekt eine Postmortem-Vorlage hat; gibt es nur eine, ist sie bereits ausgewählt. Der Editor öffnet das Postmortem des Vorfalls so, wie es ist, mit der Vorlage als Notiz – ob es auf der Statusseite steht, wann es veröffentlicht wurde und seine Anhänge bleiben unverändert.
 
 ## Benutzerdefinierte Felder
 

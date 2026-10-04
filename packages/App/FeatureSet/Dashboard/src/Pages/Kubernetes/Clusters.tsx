@@ -28,6 +28,11 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -128,9 +133,11 @@ const KubernetesClusters: FunctionComponent<
   }
 
   /*
-   * The create form asks for what a cluster cannot be created without: its
-   * name and the identifier its telemetry reports. The description and the
-   * labels fold under Advanced, so the form is three rows and has no steps.
+   * The create form asks for the one thing a cluster cannot be created
+   * without: the clusterName its kubernetes-agent reports. The display name
+   * follows it - a cluster added here is named like a discovered one - and
+   * folds under Advanced with the description and the labels, so the form
+   * is two rows (DiscoveredResourceFormFields).
    */
   const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
     getAdvancedFormSection<KubernetesCluster>();
@@ -179,26 +186,23 @@ const KubernetesClusters: FunctionComponent<
         }}
         showViewIdButton={true}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
+          getIdentityFormField<KubernetesCluster>({
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Cluster Name (clusterName)",
             placeholder: "production-us-east-1",
             description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-          },
+              "The clusterName you installed the kubernetes-agent Helm chart with, exactly. Telemetry is matched to this cluster by it.",
+          }),
+          getDisplayNameFormField<KubernetesCluster>({
+            getDefaultName:
+              getNameFromIdentityField<KubernetesCluster>("clusterIdentifier"),
+            placeholder: "Production US East",
+            description:
+              "Starts as the cluster name, the way discovered clusters are named. Type a name of your own to show it instead. Telemetry is still matched by the cluster name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -241,7 +245,7 @@ const KubernetesClusters: FunctionComponent<
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
+            title: "Cluster Name (clusterName)",
             type: FieldType.Text,
           },
           {

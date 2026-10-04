@@ -73,9 +73,11 @@ interface NextStep {
 }
 
 /*
- * The five pages this one hands off to, in the order somebody fixing a broken
+ * The two pages this one hands off to, in the order somebody fixing a broken
  * responder needs them: a method first, because a rule with nothing to point at
- * is not a rule, and then the four rule types.
+ * is not a rule, and then the rules - one page with a tab per kind (incidents,
+ * incident episodes, alerts, alert episodes), as in the member's own User
+ * Settings.
  */
 const NEXT_STEPS: Array<NextStep> = [
   {
@@ -97,73 +99,19 @@ const NEXT_STEPS: Array<NextStep> = [
     },
   },
   {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES,
-    title: "Incident on-call rules",
-    icon: IconProp.Alert,
+    pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
+    title: "On-call rules",
+    icon: IconProp.BellRinging,
     getDescription: (
       context: UserOnCallContextValue,
       translator: Translator,
     ): string => {
       return context.isSelf
         ? translator.translateTemplate(
-            "How you are notified when an incident is assigned to you.",
+            "How you are notified, for each severity, when an incident, an alert or one of their episodes is assigned to you.",
           )
         : translator.translateTemplate(
-            "How {{name}} is notified when an incident is assigned to them.",
-            { name: context.firstName },
-          );
-    },
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES,
-    title: "Incident episode on-call rules",
-    icon: IconProp.Squares,
-    getDescription: (
-      context: UserOnCallContextValue,
-      translator: Translator,
-    ): string => {
-      return context.isSelf
-        ? translator.translateTemplate(
-            "How you are notified when an incident episode is assigned to you.",
-          )
-        : translator.translateTemplate(
-            "How {{name}} is notified when an incident episode is assigned to them.",
-            { name: context.firstName },
-          );
-    },
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_ALERT_ON_CALL_RULES,
-    title: "Alert on-call rules",
-    icon: IconProp.ExclaimationCircle,
-    getDescription: (
-      context: UserOnCallContextValue,
-      translator: Translator,
-    ): string => {
-      return context.isSelf
-        ? translator.translateTemplate(
-            "How you are notified when an alert is assigned to you.",
-          )
-        : translator.translateTemplate(
-            "How {{name}} is notified when an alert is assigned to them.",
-            { name: context.firstName },
-          );
-    },
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES,
-    title: "Alert episode on-call rules",
-    icon: IconProp.Squares,
-    getDescription: (
-      context: UserOnCallContextValue,
-      translator: Translator,
-    ): string => {
-      return context.isSelf
-        ? translator.translateTemplate(
-            "How you are notified when an alert episode is assigned to you.",
-          )
-        : translator.translateTemplate(
-            "How {{name}} is notified when an alert episode is assigned to them.",
+            "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.",
             { name: context.firstName },
           );
     },

@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values`는 기존 구성(프리셋, 클러스터 이름, 필터)을 유지합니다. 그 위에 새로운 `--set` 재정의를 전달하세요.
 
+> **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 시계열은 같고, 이름만 OBI가 유지하는 이름으로 바뀝니다(이전 이름은 OBI에서 지원 중단됨). 이전 이름을 쓰는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못하므로 새 이름으로 옮기고, 이전 이름이 들어 있는 `filters.metrics` 항목도 수정하세요.
+
 ## 에이전트 제거
 
 ```bash
@@ -412,7 +414,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.*`         | 기본값 | 추가하는 항목                                              |
 | ------------------------- | ------ | ---------------------------------------------------------- |
 | `httpMetrics`             | on     | 서비스별 HTTP/gRPC RED 메트릭 (요청 속도, 지연 시간, 오류) |
-| `spanMetrics`             | on     | 스팬별 요청/응답 크기 및 지속 시간                         |
+| `spanMetrics`             | on     | 스팬 호출 수 및 지속 시간 (`traces.span.metrics.*`)        |
 | `serviceGraph`            | on     | 호출자 → 피호출자 엣지 메트릭, 서비스 맵을 구동            |
 | `networkMetrics`          | on     | 파드 간 TCP/UDP 흐름 카운터                                |
 | `networkInterZoneMetrics` | off    | 네트워크 메트릭의 영역 간 변형 (카디널리티가 두 배가 됨)   |
@@ -716,7 +718,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 메트릭이 나타나지 않음
 
 1. 먼저 거부된 수집 키를 배제하세요 — 가장 흔한 원인이며 에이전트 측에서는 놓치기 쉽습니다. 위의 [에이전트가 "Disconnected"로 표시됨](#에이전트가-disconnected로-표시됨)을 참조하세요(또는 진단 스크립트를 실행하세요).
-2. 클러스터 식별자가 `clusterName`으로 전달한 값과 일치하는지 확인하세요
+2. 클러스터의 **클러스터 이름(clusterName)**이 `clusterName`으로 전달한 값과 일치하는지 확인하세요. 클러스터의 **Settings** 페이지 **Cluster Details**에 있으며, 고치려면 **Edit Details**를 선택하고 **More fields**를 여세요
 3. RBAC 권한을 검증하세요: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. OTel 컬렉터 로그에서 내보내기 오류를 확인하세요
 

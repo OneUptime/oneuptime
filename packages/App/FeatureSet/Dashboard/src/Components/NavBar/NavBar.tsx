@@ -23,7 +23,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   const {
     navItems,
     moreMenuItems,
-    moreMenuCategoriesOpenByDefault,
+    moreMenuCategoriesAlwaysOpen,
     rightElement,
   }: DashboardNavigationItems = useDashboardNavigationItems();
 
@@ -46,10 +46,11 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       rightElement={rightElement}
       moreMenuItems={moreMenuItems}
       /*
-       * The menu opens on Essentials; every other category is one line until
-       * it is opened (on a phone too). Search still finds every product.
+       * The menu always opens on Essentials, which never fold; every other
+       * category is one line until it is opened (on a phone too). Search
+       * still finds every product.
        */
-      moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
+      moreMenuCategoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}
       moreMenuFooter={moreMenuFooter}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
       moreMenuNoResultsText={t("navbar.search.noResults")}

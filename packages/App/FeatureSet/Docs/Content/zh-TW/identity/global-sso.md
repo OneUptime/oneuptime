@@ -21,8 +21,8 @@ Global SSO（包括執行個體層級的「Require SSO for Login」開關）屬�
 2. **建立提供者**
 
    - 點選 **Create Global SSO**。
-   - 若使用 SAML：輸入 **Name**、來自您身分提供者的 **Sign On URL** 與 **Issuer**，並貼上 **Public Certificate**。選擇 **Signature** 與 **Digest** 方法（若不確定，請保留預設值 — `RSA-SHA256` / `SHA256`）。
-   - 若使用 OIDC：輸入 **Discovery URL**、**Issuer**、**Client ID**、**Client Secret**、**Scopes**（必須包含 `openid`），以及 **email** / **name** 宣告名稱。
+   - 若使用 SAML：輸入 **Name**、來自您身分提供者的 **Sign On URL** 與 **Issuer**，並貼上 **Public Certificate**。其餘內容會在 **More fields** 中自動填好：**Signature Method**（`RSA-SHA256`）、**Digest Method**（`SHA256`）以及描述（`Sign in with` 加名稱）。僅在您的 IdP 需要時才變更。儲存後會開啟該提供者的頁面。
+   - 若使用 OIDC：輸入 **Name**、**Issuer URL**，以及您在 IdP 中註冊之應用程式的 **Client ID** 與 **Client Secret**。也可以把 IdP 的探索 URL 直接貼到 **Issuer URL**。其餘內容會在 **More fields** 中自動填好：**Discovery URL**（簽發者後接 `/.well-known/openid-configuration`）、**Scopes**（`openid email profile`）、`email` 與 `name` 宣告名稱，以及描述（`Sign in with` 加名稱）。僅在您的 IdP 需要時才變更。儲存後會開啟該提供者的頁面。
 
 3. **將 OneUptime URL 複製到您的身分提供者**
 
@@ -39,7 +39,7 @@ Global SSO（包括執行個體層級的「Require SSO for Login」開關）屬�
 
 - **未附加任何專案（default-all／邀請優先）：** 使用者可以使用該提供者登入，並觸及**任何他們已是成員的專案**。新使用者**不會**自動建立 — 使用者必須先被邀請至某個專案。當成員資格於他處管理時，請將此用於全公司範圍的 SSO。
 
-- **已附加專案（自動佈建）：** 開啟該提供者，並使用 **Attached Projects** 表格附加一個或多個專案，每個專案皆搭配一組預設團隊。登入的使用者會在首次登入時被**自動佈建**至這些專案，並加入預設團隊。一次新增一個專案及團隊以建立清單；若要變更某項附加設定，請將其刪除後再重新新增。
+- **已附加專案（自動佈建）：** 開啟該提供者，並使用 **Attached Projects** 表格附加一個或多個專案，每個專案皆搭配一組預設團隊。登入的使用者會在首次登入時被**自動佈建**至這些專案，並加入預設團隊。附加的專案預設選取其成員團隊；如果新使用者應以不同的存取權限開始，請選擇其他團隊。一次新增一個專案及團隊以建立清單；若要變更某項附加設定，請將其刪除後再重新新增。
 
 若您希望即使在已附加專案的情況下也防止任何自動建立帳號，請在該提供者上啟用 **Disable Sign Up with SSO** — 屆時使用者必須先被邀請才能登入。
 

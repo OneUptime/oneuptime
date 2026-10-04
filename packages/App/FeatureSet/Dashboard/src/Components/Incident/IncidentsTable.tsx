@@ -84,6 +84,13 @@ import {
 } from "../../Utils/BulkStateChange";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Dictionary from "Common/Types/Dictionary";
+import {
+  CreateFromRecordAddress,
+  CreatedRecordKind,
+  getCreateFromRecordQuery,
+} from "../CreateFromRecord/CreateFromRecord";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -97,6 +104,12 @@ export interface ComponentProps {
   description?: string | undefined;
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
+  /*
+   * The record whose Incidents tab this is - a monitor, a host, a cluster:
+   * Declare Incident and Create from Template open the create page with it
+   * already picked (Components/CreateFromRecord).
+   */
+  createFrom?: CreateFromRecordAddress | undefined;
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -531,6 +544,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
   let cardbuttons: Array<CardButtonSchema> = [];
 
+  // The record this tab belongs to, in the create page's address.
+  const createQuery: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.Incident,
+    props.createFrom,
+  );
+
   if (!props.disableCreate) {
     /*
      * Both buttons route to the incident create page instead of the table's
@@ -557,9 +576,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           title: "Declare Incident",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENT_CREATE] as Route,
-              ),
+              RouteUtil.getPageRoute(PageMap.INCIDENT_CREATE, {
+                query: createQuery,
+              }),
             );
           },
           buttonStyle: ButtonStyleType.NORMAL,
@@ -1010,19 +1029,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       {incidentTemplates.length === 0 &&
         showIncidentTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Incident Templates`}
-            description={`No incident templates have been created yet. You can create these in Project Settings > Incident Templates.`}
-            submitButtonText={"Create Template"}
-            onSubmit={() => {
-              setShowIncidentTemplateModal(false);
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
-                ),
-              );
-            }}
-            closeButtonText={"Close"}
+          <NoTemplatesYetModal
+            title="No Incident Templates"
+            description="This project has no incident templates yet. Create them in Incidents → Settings → Incident Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+            )}
             onClose={() => {
               setShowIncidentTemplateModal(false);
             }}
@@ -1054,15 +1066,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
               "incidentTemplateId"
             ] as ObjectID;
 
-            // Navigate to declare incident page with the template id
+            // The declare page, filled in from the template.
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                new Route(
-                  (RouteMap[PageMap.INCIDENT_CREATE] as Route).toString(),
-                ).addQueryParams({
+              RouteUtil.getPageRoute(PageMap.INCIDENT_CREATE, {
+                query: {
+                  ...createQuery,
                   incidentTemplateId: incidentTemplateId.toString(),
-                }),
-              ),
+                },
+              }),
             );
           }}
           formProps={{

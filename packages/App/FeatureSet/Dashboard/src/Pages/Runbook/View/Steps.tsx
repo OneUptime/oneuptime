@@ -1270,30 +1270,25 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                   {...draggableProvided.draggableProps}
                                   className={`rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden border-l-4 ${meta.borderL}`}
                                 >
+                                  {/*
+                                   * The step's header: its drag handle, the
+                                   * button that opens and closes it, and its
+                                   * Delete button, side by side. The header
+                                   * used to be one role="button" holding the
+                                   * other two, which a screen reader reads as
+                                   * one control: the handle and Delete were
+                                   * lost inside it. The open/close button
+                                   * still answers a press anywhere on the
+                                   * header (its ::after covers the header),
+                                   * and the handle and Delete sit above that.
+                                   */}
                                   <div
-                                    className="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-expanded={!isCollapsed}
-                                    onClick={() => {
-                                      toggleCollapsed(stepId);
-                                    }}
-                                    onKeyDown={(e: React.KeyboardEvent) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        toggleCollapsed(stepId);
-                                      }
-                                    }}
+                                    data-testid="runbook-step-header"
+                                    className="relative flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
                                   >
                                     <div
                                       {...draggableProvided.dragHandleProps}
-                                      onClick={(e: React.MouseEvent) => {
-                                        e.stopPropagation();
-                                      }}
-                                      onKeyDown={(e: React.KeyboardEvent) => {
-                                        e.stopPropagation();
-                                      }}
-                                      className="flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
+                                      className="relative z-10 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
                                       aria-label={translator.translateText(
                                         "Drag to reorder step",
                                       )}
@@ -1306,52 +1301,59 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                         className="w-4 h-4"
                                       />
                                     </div>
-                                    <Icon
-                                      icon={
-                                        isCollapsed
-                                          ? IconProp.ChevronRight
-                                          : IconProp.ChevronDown
-                                      }
-                                      className="w-4 h-4 text-gray-500 flex-shrink-0"
-                                    />
-                                    <div
-                                      className={`flex-shrink-0 h-7 w-7 rounded-full ${meta.numberBg} text-white text-xs font-semibold flex items-center justify-center`}
-                                    >
-                                      {idx + 1}
-                                    </div>
-                                    <span
-                                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0`}
+                                    <button
+                                      type="button"
+                                      aria-expanded={!isCollapsed}
+                                      onClick={() => {
+                                        toggleCollapsed(stepId);
+                                      }}
+                                      className="flex min-w-0 flex-1 items-center gap-3 text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
                                     >
                                       <Icon
-                                        icon={meta.icon}
-                                        size={SizeProp.Smaller}
-                                        className={meta.iconColor}
+                                        icon={
+                                          isCollapsed
+                                            ? IconProp.ChevronRight
+                                            : IconProp.ChevronDown
+                                        }
+                                        className="w-4 h-4 text-gray-500 flex-shrink-0"
                                       />
-                                      {meta.shortLabel}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="text-sm font-semibold text-gray-900 truncate">
-                                        {step.title || meta.label}
+                                      <div
+                                        className={`flex-shrink-0 h-7 w-7 rounded-full ${meta.numberBg} text-white text-xs font-semibold flex items-center justify-center`}
+                                      >
+                                        {idx + 1}
                                       </div>
-                                      {isCollapsed && (
-                                        <div className="text-xs text-gray-500 truncate">
-                                          {summary}
+                                      <span
+                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0`}
+                                      >
+                                        <Icon
+                                          icon={meta.icon}
+                                          size={SizeProp.Smaller}
+                                          className={meta.iconColor}
+                                        />
+                                        {meta.shortLabel}
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-semibold text-gray-900 truncate">
+                                          {step.title || meta.label}
                                         </div>
-                                      )}
-                                    </div>
-                                    <div
-                                      className="flex-shrink-0 flex items-center gap-1"
-                                      onClick={(e: React.MouseEvent) => {
-                                        e.stopPropagation();
-                                      }}
-                                      onKeyDown={(e: React.KeyboardEvent) => {
-                                        e.stopPropagation();
-                                      }}
-                                    >
+                                        {isCollapsed && (
+                                          <div className="text-xs text-gray-500 truncate">
+                                            {summary}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </button>
+                                    <div className="relative z-10 flex-shrink-0 flex items-center gap-1">
                                       <Button
                                         icon={IconProp.Trash}
                                         buttonStyle={ButtonStyleType.ICON}
                                         buttonSize={ButtonSize.Small}
+                                        ariaLabel={translator.translateTemplate(
+                                          "Delete {{itemName}}",
+                                          {
+                                            itemName: step.title || meta.label,
+                                          },
+                                        )}
                                         onClick={() => {
                                           return remove(idx);
                                         }}

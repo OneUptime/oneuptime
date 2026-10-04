@@ -121,7 +121,7 @@ const MonitorGroupMonitors: FunctionComponent<
           },
         ]}
         title={"Monitors in Group"}
-        description="List of monitors that are added to this monitor group."
+        description="The monitors in this group. The group shows the worst status among them."
         noItemsMessage={"No monitors added to this monitor group."}
       />
 

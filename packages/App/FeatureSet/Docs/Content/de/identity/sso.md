@@ -27,13 +27,14 @@ Die SSO-Integration bietet folgende Vorteile:
    - Geben Sie die **Anmelde-URL** von Ihrem Identity Provider ein
    - Geben Sie den **Aussteller** (Entity ID) von Ihrem Identity Provider ein
    - Fügen Sie das **Öffentliche Zertifikat** von Ihrem Identity Provider ein
-   - Wählen Sie den **Signaturalgorithmus** (z. B. `RSA-SHA-256`)
-   - Wählen Sie den **Digest-Algorithmus** (z. B. `SHA256`)
+   - Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Personen, die sich zum ersten Mal anmelden, treten diesen Teams bei
+   - Alles andere wird unter **Weitere Felder** ausgefüllt: die **Signaturmethode** (`RSA-SHA256`), die **Digest-Methode** (`SHA256`) und eine Beschreibung („Sign in with“ und der Name). Ändern Sie sie nur, wenn Ihr Identity Provider es erfordert
 
 3. **OneUptime SSO-Metadaten abrufen**
-   - Klicken Sie nach dem Speichern auf die Schaltfläche **SSO-Konfiguration anzeigen**
+   - Nach dem Speichern öffnet sich der Dialog **SSO-Konfiguration**. Über die Schaltfläche **SSO-Konfiguration anzeigen** können Sie ihn erneut öffnen
    - Kopieren Sie den **Bezeichner (Entity ID)** — dieser wird in Ihrer IdP-Konfiguration benötigt
    - Kopieren Sie die **Antwort-URL (Assertion Consumer Service URL)** — diese wird in Ihrer IdP-Konfiguration benötigt
+   - Ein neuer Anbieter ist zunächst deaktiviert. Sobald Ihr IdP diese beiden Werte kennt, bearbeiten Sie den Anbieter und schalten Sie **Aktiviert** ein
 
 ## Keycloak SAML-Konfiguration
 
@@ -48,8 +49,7 @@ Keycloak ist eine beliebte Open-Source-Identitäts- und Zugriffsmanagementlösun
    - **Anmelde-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Aussteller**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Zertifikat**: Siehe Schritt 2 unten
-   - **Signaturalgorithmus**: `RSA-SHA-256`
-   - **Digest-Algorithmus**: `SHA256`
+   - **Signaturmethode** und **Digest-Methode**: bereits unter **Weitere Felder** gesetzt (`RSA-SHA256` und `SHA256`)
 4. Konfiguration speichern
 
 ### Schritt 4: Keycloak-Client-Einstellungen konfigurieren
@@ -124,7 +124,18 @@ OneUptime's SSO-Implementierung verwendet das SAML 2.0-Protokoll und sollte mit 
    - **Anmelde-URL** (SSO-Endpunkt)
    - **Aussteller** (Entity ID des IdP)
    - **Öffentliches Zertifikat** (X.509-Signierzertifikat)
-4. **Signaturalgorithmus** auf `RSA-SHA-256` und **Digest-Algorithmus** auf `SHA256` setzen
+4. **Signaturmethode** (`RSA-SHA256`) und **Digest-Methode** (`SHA256`) sind bereits unter **Weitere Felder** gesetzt; ändern Sie sie nur, wenn Ihr Identity Provider anders signiert
+
+## OpenID Connect (OIDC)
+
+Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Google Workspace, Okta, Microsoft Entra ID, Auth0 oder Keycloak.
+
+1. Registrieren Sie bei Ihrem Identity Provider eine App (einen OIDC-Client) und kopieren Sie deren **Aussteller-URL**, **Client-ID** und **Client-Secret**.
+2. Navigieren Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **OIDC** und klicken Sie auf **OIDC erstellen**.
+3. Geben Sie einen **Namen** (was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
+4. Im Schritt **Anmeldung** ist unter **Teams** bereits das Mitglieder-Team Ihres Projekts ausgewählt: Wer sich zum ersten Mal anmeldet, wird diesen Teams hinzugefügt. Alles andere wird unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung („Sign in with“ und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es erfordert.
+5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Tragen Sie sie bei den zulässigen Weiterleitungs-URIs Ihrer App ein. Ein neuer Anbieter ist zunächst deaktiviert; bearbeiten Sie ihn danach und schalten Sie **Aktiviert** ein.
+6. Melden Sie sich über den Link auf der Karte **OpenID Connect (OIDC) testen** mit dem Anbieter an, bevor Sie SSO für das Projekt verpflichtend machen.
 
 ## Hinweise zu SSO und Rollen
 

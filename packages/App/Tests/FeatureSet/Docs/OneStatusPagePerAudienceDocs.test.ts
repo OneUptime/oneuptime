@@ -30,6 +30,7 @@ import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/
 import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentSubscriberAudience from "Common/Types/StatusPage/IncidentSubscriberAudience";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -735,7 +736,7 @@ describe("One Status Page per Audience docs", () => {
     /*
      * The More step went: the notify box, and the audience under it, sit
      * right below the picker on Resources Affected, and Private Incident and
-     * Change Monitor Status to are folded under Advanced on their steps.
+     * Change Monitor Status to are folded under More fields on their steps.
      */
     it("puts the picker and the notify box with its audience on the declare form's Resources Affected step", () => {
       const source: string = readDashboardSource("Pages/Incidents/Create.tsx");
@@ -763,7 +764,7 @@ describe("One Status Page per Audience docs", () => {
         for (const name of [
           "Resources Affected",
           "Incident Details",
-          "Advanced",
+          MORE_FIELDS_SECTION_TITLE,
           "Labels",
           "Change Monitor Status to",
           "Private Incident",

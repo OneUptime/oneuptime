@@ -506,7 +506,7 @@ export async function getDeviceAttachment(
   for (const page of await Promise.all(pages)) {
     for (const endpoint of page) {
       const row: AttachmentEndpointRow = toEndpointRow(endpoint);
-      const key: string = row._id || `${row.macAddress} ${row.ipAddress}`;
+      const key: string = row._id || `${row.macAddress}\u0000${row.ipAddress}`;
 
       if (!rowsById.has(key)) {
         rowsById.set(key, row);

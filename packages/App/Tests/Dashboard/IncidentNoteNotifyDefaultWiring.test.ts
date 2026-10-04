@@ -9,12 +9,14 @@ import {
 
 /*
  * An incident declared without notifying status page subscribers starts every
- * new public note - on the feed, on the Public Notes tab, and on a state
- * change - with "Notify Status Page Subscribers" unticked. The flag has to be
- * seeded as a form value, not only as the checkbox's default: the form drops
- * a false default and the key is then left out of the request. A state
- * change has no incident fallback on the server, so its column default
- * (notify) would email every subscriber anyway.
+ * new public note - from the feed's "Add Public Note", on the Public Notes
+ * tab, and on a state change - with "Notify status page subscribers"
+ * unticked. The feed and the tab write the note with the same composer,
+ * which always sends the flag it shows. The state change is a form, where
+ * the flag has to be seeded as a form value, not only as the checkbox's
+ * default: the form drops a false default and the key is then left out of
+ * the request. A state change has no incident fallback on the server, so its
+ * column default (notify) would email every subscriber anyway.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -92,46 +94,38 @@ describe("incident view page", () => {
   });
 });
 
-interface ModalFormCase {
-  name: string;
-  file: Array<string>;
-  modal: RegExp;
-  flagKey: string;
-  notifyingDescription: string;
-}
-
-const MODAL_FORMS: Array<ModalFormCase> = [
-  {
-    name: "Incident feed public note",
-    file: ["Components", "Incident", "IncidentFeed.tsx"],
-    modal:
-      /\{showPublicNoteModal && \( <ModelFormModal modelType=\{IncidentPublicNote\}[\s\S]*?formType: FormType\.Create,/,
-    flagKey: "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
-    notifyingDescription:
-      "Should status page subscribers be notified when this note is posted?",
-  },
-  {
-    name: "Incident change state",
-    file: ["Components", "Incident", "ChangeState.tsx"],
-    modal:
-      /\{showModal && \( <ModelFormModal [^>]*?modelType=\{IncidentStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
-    flagKey: "shouldStatusPageSubscribersBeNotified",
-    notifyingDescription: "Notify subscribers of this state change.",
-  },
-];
-
-describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
-  const source: string = readSource(...form.file);
-  const modal: string = extract(source, form.modal);
+/*
+ * The state change dialog builds its body with the shared state change
+ * fields (EventView/StateChangeFormFields): the notify checkbox open, the
+ * public note folded under it. The checkbox is the builder's; what the
+ * incident decides is what it hands the builder.
+ */
+describe("Incident change state", () => {
+  const source: string = readSource(
+    "Components",
+    "Incident",
+    "ChangeState.tsx",
+  );
+  const modal: string = extract(
+    source,
+    /\{showModal && \( <ModelFormModal [^>]*?modelType=\{IncidentStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
+  );
+  const builder: string = readSource(
+    "Components",
+    "EventView",
+    "StateChangeFormFields.ts",
+  );
   const checkbox: string = extract(
-    modal,
-    new RegExp(
-      `\\{ field: \\{ ${form.flagKey}: true, \\}, fieldType: FormFieldSchemaType\\.Checkbox,[\\s\\S]*?\\}`,
-    ),
+    builder,
+    /\{ field: \{ shouldStatusPageSubscribersBeNotified: true, \} as SelectFormFields<TEntity>, fieldType: FormFieldSchemaType\.Checkbox,[\s\S]*?\}/,
   );
 
-  test("finds the modal form and its notify checkbox", () => {
+  test("finds the modal form and builds it with the shared state change fields", () => {
     expect(modal).not.toBe("");
+    expect(modal).toContain(
+      "fields: getStateChangeFormFields<IncidentStateTimeline>({",
+    );
+    expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
     expect(checkbox).not.toBe("");
     expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
   });
@@ -147,22 +141,70 @@ describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
 
   test("seeds the flag as an initial form value, not only as the checkbox default", () => {
     expect(modal).toMatch(
-      new RegExp(
-        `initialValues=\\{\\{ ${form.flagKey}: notifySubscribersByDefault,? \\}\\}`,
-      ),
+      /initialValues=\{\{ shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,? \}\}/,
     );
   });
 
-  test("starts the checkbox from the incident's default instead of hard-coding true", () => {
-    expect(checkbox).toContain("defaultValue: notifySubscribersByDefault,");
-    expect(checkbox).not.toContain("defaultValue: true");
-  });
-
-  test("explains an unticked default with the shared description", () => {
+  test("starts the checkbox from the incident's default and explains a quiet one", () => {
     expect(source).toContain(HELPER_IMPORT);
-    expect(checkbox).toContain(
-      `description: notifySubscribersByDefault ? "${form.notifyingDescription}" : ${QUIET_DESCRIPTION_REFERENCE},`,
+    expect(modal).toContain(
+      `notifySubscribers: { byDefault: notifySubscribersByDefault, quietDescription: ${QUIET_DESCRIPTION_REFERENCE}, },`,
     );
+  });
+
+  test("the shared checkbox starts where it is told, never hard-coded on", () => {
+    expect(checkbox).toContain(
+      "defaultValue: options.notifySubscribers.byDefault,",
+    );
+    expect(checkbox).not.toContain("defaultValue: true");
+    expect(checkbox).toContain(
+      'description: options.notifySubscribers.byDefault || !options.notifySubscribers.quietDescription ? "Notify subscribers of this state change." : options.notifySubscribers.quietDescription,',
+    );
+  });
+});
+
+/*
+ * The feed's "Add Public Note" is the Public Notes tab's composer in a
+ * dialog, given the incident's public note kind built from the default the
+ * overview page loaded.
+ */
+describe("incident feed public note", () => {
+  const source: string = readSource(
+    "Components",
+    "Incident",
+    "IncidentFeed.tsx",
+  );
+
+  test("accepts the default as an optional prop that falls back to notifying", () => {
+    expect(source).toContain(
+      "notifyStatusPageSubscribersByDefault?: boolean | undefined;",
+    );
+    expect(source).toContain(
+      "const notifySubscribersByDefault: boolean = props.notifyStatusPageSubscribersByDefault ?? true;",
+    );
+  });
+
+  test("builds the dialog's public note from the incident's kind, with that default", () => {
+    expect(source).toContain(
+      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "incident", publicNoteKind: getIncidentPublicNoteKind({ incidentId: props.incidentId, isNotifyingByDefault: notifySubscribersByDefault, }), privateNoteKind: getIncidentPrivateNoteKind({ incidentId: props.incidentId, }),',
+    );
+    expect(source).toContain("{noteActions.dialog}");
+    expect(source).toContain("...noteActions.menuItems,");
+  });
+
+  test("no longer builds its own note form", () => {
+    expect(source).not.toContain(
+      '"Common/Models/DatabaseModels/IncidentPublicNote"',
+    );
+    expect(source).not.toContain(
+      '"Common/Models/DatabaseModels/IncidentInternalNote"',
+    );
+    expect(source).not.toContain("<ModelFormModal modelType={Incident");
+    expect(source).not.toContain("initialValues=");
+    expect(source).not.toContain(
+      "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
+    );
+    expect(source).not.toContain(QUIET_DESCRIPTION_REFERENCE);
   });
 });
 
@@ -172,19 +214,22 @@ describePublicNotesTab({
   parentModel: "Incident",
   noteModel: "IncidentPublicNote",
   parentIdField: "incidentId",
+  kindFile: ["Components", "EventNotes", "NoteKinds", "IncidentNoteKinds.tsx"],
+  kindFunction: "getIncidentPublicNoteKind",
   parentFlag: "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
   resolveArgument: "incident",
   helperCall: "shouldNotifyForIncident",
   quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
   audienceSummary:
-    '( <SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-public-note-audience" />',
+    '( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-audience" />',
 });
 
 describeSharedPublicNoteWiring();
 
 /*
  * Dashboard strings are translated by looking the English text up in each
- * locale file, so every string these forms use must be in all of them.
+ * locale file, so every string these forms and the composer use must be in
+ * all of them.
  */
 describe("the notify checkbox descriptions are translated", () => {
   const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
@@ -195,8 +240,11 @@ describe("the notify checkbox descriptions are translated", () => {
   const FORM_STRINGS: Array<string> = [
     "Notify Status Page Subscribers",
     "Should status page subscribers be notified?",
-    "Should status page subscribers be notified when this note is posted?",
     "Notify subscribers of this state change.",
+    // The composer's, on the Public Notes tab and in the feed's dialog.
+    "Notify status page subscribers",
+    "Subscribers will be notified about this update as soon as you post it.",
+    "The update will appear on your status page without notifying subscribers.",
   ];
 
   const localeFiles: Array<string> = fs

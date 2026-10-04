@@ -28,7 +28,13 @@ import {
  *     every card's Edit and every other form dialog follows on its own;
  *   - the editor's toolbar never wraps: where a form is narrower than it
  *     - a page with a side menu, a phone - the buttons that do not fit go
- *     under its More formatting button (MarkdownToolbarLayout.ts).
+ *     under its More formatting button (MarkdownToolbarLayout.ts);
+ *   - an editor folded away in a collapsed section is not on screen until
+ *     the section is opened, so the dialog opens at its own width and grows
+ *     to the wide one when someone opens it to write - the optional note of
+ *     an Acknowledge or Resolve confirm. The dialogs learn which sections
+ *     are open from the sections themselves (Forms/Utils/OpenFormSections),
+ *     before anything is painted.
  *
  * This guard reads every form in the frontends (Tests/Helpers/FormStepsScan
  * finds them and their fields) and fails on what would undo that:
@@ -90,7 +96,7 @@ export const EDITORS_OUTSIDE_FORM_DIALOGS: Array<ListedEditor> = [
   {
     file: `${DASHBOARD}/Components/EventNotes/NoteComposer.tsx`,
     reason:
-      "The notes feed's composer, on the incident, alert, scheduled maintenance and episode note pages themselves: as wide as the feed, which is the page's main column. Its toolbar fits itself to that width and puts the rest under More formatting.",
+      "The notes feed's composer, on the incident, alert, scheduled maintenance and episode note pages themselves: as wide as the feed, which is the page's main column. Its toolbar fits itself to that width and puts the rest under More formatting. The overview feeds' Add Public Note / Add Private Note draw the same composer inside a ModalWidth.Large dialog (EventNoteComposer).",
   },
   {
     file: `${DASHBOARD}/Components/Form/Monitor/MonitorCriteriaIncidentForm.tsx`,
@@ -247,7 +253,8 @@ describe("forms with a Markdown editor", () => {
   // A broken walk must not pass by finding nothing.
   test("are really found, the maintainer's dialog among them", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(markdownForms.length).toBeGreaterThan(50);
+    // 58 in CI on 2026-10-03; see MIN_SCANNED_FORMS for why the floor is low.
+    expect(markdownForms.length).toBeGreaterThan(25);
 
     const noteTemplates: FormFacts | undefined = markdownForms.find(
       (form: FormFacts): boolean => {
@@ -260,7 +267,11 @@ describe("forms with a Markdown editor", () => {
     );
 
     expect(noteTemplates).toBeDefined();
-    expect(noteTemplates?.hasSteps).toBe(true);
+    /*
+     * It walked two steps then; it is one page of three rows now (short
+     * forms fit on one page, LongFormStepsGuard), and still wide.
+     */
+    expect(noteTemplates?.hasSteps).toBe(false);
     // It asks for no width: the rule makes its dialog wide.
     expect(
       attributeText(hostTagOf(noteTemplates!), "createEditModalWidth"),
@@ -432,6 +443,47 @@ describe("what makes them wide", () => {
       expect(source).toContain("getFormModalWidth({");
       expect(source).toContain("fields: props.formProps.fields");
     }
+  });
+
+  test("both form dialogs grow wide while a folded editor's section is open", () => {
+    for (const dialog of [
+      "packages/Common/UI/Components/ModelFormModal/ModelFormModal.tsx",
+      "packages/Common/UI/Components/FormModal/BasicFormModal.tsx",
+    ]) {
+      const source: string = read(dialog);
+
+      // The dialog keeps the record and sizes itself by it...
+      expect(source).toContain("useOpenFormSections()");
+      expect(source).toContain(
+        "openSectionIds: openFormSections.openSectionIds",
+      );
+      // ...which its form's sections report to.
+      expect(source).toContain("<OpenFormSectionsContext.Provider");
+      expect(source).toContain("value={openFormSections.reportSectionOpen}");
+    }
+
+    // Each folded section reports itself, before paint, by its id.
+    const section: string = read(
+      "packages/Common/UI/Components/Forms/CollapsibleFormSection.tsx",
+    );
+
+    expect(section).toMatch(/useContext\(\s*OpenFormSectionsContext,?\s*\)/);
+    expect(section).toContain("useLayoutEffect(() => {");
+    expect(section).toContain("isOpen: !isCollapsed,");
+    expect(read("packages/Common/UI/Components/Forms/BasicForm.tsx")).toContain(
+      "sectionId={section.id}",
+    );
+  });
+
+  test("a folded editor counts only while its section is open", () => {
+    const rule: string = read(
+      "packages/Common/UI/Components/Forms/Utils/FormModalWidth.ts",
+    );
+
+    expect(rule).toContain("if (field.collapsibleSection && openSectionIds) {");
+    expect(rule).toContain(
+      "return openSectionIds.includes(field.collapsibleSection.id);",
+    );
   });
 
   test("the rule's wide dialog is the Large one", () => {

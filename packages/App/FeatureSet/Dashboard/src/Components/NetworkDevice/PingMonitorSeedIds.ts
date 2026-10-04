@@ -99,7 +99,7 @@ export default class PingMonitorSeedIds {
     if (!onlineMonitorStatus?.id || !offlineMonitorStatus?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
         translateTemplate(
-          "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.",
+          "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Monitors → Settings → Monitor Status, then try again.",
         ),
       );
     }
@@ -107,7 +107,7 @@ export default class PingMonitorSeedIds {
     if (!incidentSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
         translateTemplate(
-          "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then try again.",
+          "This project needs at least one incident severity before Ping monitors can be created. Add one under Incidents → Settings → Incident Severity, then try again.",
         ),
       );
     }
@@ -115,7 +115,7 @@ export default class PingMonitorSeedIds {
     if (!alertSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
         translateTemplate(
-          "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then try again.",
+          "This project needs at least one alert severity before Ping monitors can be created. Add one under Alerts → Settings → Alert Severity, then try again.",
         ),
       );
     }

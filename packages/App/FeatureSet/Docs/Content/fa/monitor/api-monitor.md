@@ -71,7 +71,7 @@ https://api.example.com/health?nocache={{random}}
 - **PATCH**
 - **HEAD**
 
-### گزینه‌های پیشرفته
+### فیلدهای بیشتر
 
 #### هدرهای درخواست
 

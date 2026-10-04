@@ -59,7 +59,7 @@ Du kan også bruke `{{random}}` for en unik streng ved hver forespørsel:
 https://example.com/health?nocache={{random}}
 ```
 
-### Avanserte alternativer
+### Flere felt
 
 #### Følg ikke omdirigeringer
 

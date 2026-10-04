@@ -27,7 +27,7 @@ import Faker from "Common/Utils/Faker";
  *     two-step wizard whose primary button read "Next", so a user who changed
  *     a field on step one never saw a Save button. It is one page now - the
  *     name and description, with the logo, the auto-enable switch and the
- *     labels folded under Advanced - so Save Changes is the only way out.
+ *     labels folded under More fields - so Save Changes is the only way out.
  *     Test: toggle "enable monitoring automatically on new monitors" from the
  *     card, save, reload, and assert the card shows the new value.
  *
@@ -211,7 +211,7 @@ test.describe("Monitor probe selection", () => {
       .first();
     await destination.waitFor({ state: "visible", timeout: 30000 });
     await destination.fill("https://oneuptime.com");
-    // The steps left are optional: Next walks on to choose the probes.
+    // Criteria is not the last step: Next walks on to choose the probes.
     await clickNext({ page });
 
     // Step 3: probes + interval.
@@ -247,7 +247,7 @@ test.describe("Monitor probe selection", () => {
       .click();
 
     /*
-     * Probes & Interval is the last step: the labels fold under Advanced on
+     * Probes & Interval is the last step: the labels fold under More fields on
      * Monitor Info, so there is no Labels step to walk on to.
      */
     await expect(
@@ -318,7 +318,7 @@ test.describe("Monitor probe selection", () => {
 
     /*
      * One page, so the primary button is a real Save and there is no Next:
-     * the switch waits under Advanced with the logo and the labels.
+     * the switch waits under More fields with the logo and the labels.
      */
     const saveButton: Locator = page.getByRole("button", {
       name: /Save Changes/i,
@@ -328,7 +328,7 @@ test.describe("Monitor probe selection", () => {
 
     const advanced: Locator = page
       .getByTestId("modal")
-      .getByRole("button", { name: "Advanced", exact: true });
+      .getByRole("button", { name: "More fields", exact: true });
     await expect(advanced).toHaveAttribute("aria-expanded", "false");
     await advanced.click();
     await expect(saveButton).toBeVisible();
@@ -360,11 +360,15 @@ test.describe("Monitor probe selection", () => {
      * separate DOM subtrees.
      */
     await page.getByRole("button", { name: /Edit Probe/i }).click();
-    // Folded, the section says something in it is set.
+    // Folded, the section's header shows the switch as on.
     await expect(advanced).toHaveAttribute("aria-expanded", "false", {
       timeout: 30000,
     });
-    await expect(advanced).toContainText("Configured");
+    await expect(
+      advanced.locator(
+        "[data-testid='folded-section-item'][data-item-set='true']",
+      ),
+    ).toContainText(": On");
     await advanced.click();
     const reloadedToggle: Locator = page.getByRole("switch", {
       name: autoEnableToggleName,

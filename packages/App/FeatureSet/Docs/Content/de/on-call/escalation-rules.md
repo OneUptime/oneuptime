@@ -6,7 +6,7 @@ Eine Bereitschaftsrichtlinie alarmiert Personen in Stufen. Jede Eskalationsregel
 
 Wenn Sie auf der Seite **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie anlegen, fragt das Formular nach ihrem **Name** und **Wer wird zuerst alarmiert?**. Die Frage nutzt dieselbe Auswahl wie **Benachrichtigen**: Bereitschaftspläne, Teams und Personen, so viele Sie brauchen. Die Ausgewählten bilden die erste Eskalationsregel der Richtlinie, **Level 1**, die **30 Minuten** auf eine Bestätigung wartet, bevor die nächste Stufe alarmiert wird. Die neue Richtlinie öffnet sich danach auf ihrer Seite **Eskalationsregeln**, wo Sie weitere Stufen hinzufügen können.
 
-**Wer wird zuerst alarmiert?** ist optional. Bleibt die Frage leer, beginnt die Richtlinie ohne Eskalationsregeln: Sie alarmiert niemanden, bis Sie eine hinzufügen, und ihre Übersicht weist darauf hin. Beschreibung und Beschriftungen liegen unter **Erweitert**. Gefragt wird nur, wer Eskalationsregeln hinzufügen darf.
+**Wer wird zuerst alarmiert?** ist optional. Bleibt die Frage leer, beginnt die Richtlinie ohne Eskalationsregeln: Sie alarmiert niemanden, bis Sie eine hinzufügen, und ihre Übersicht weist darauf hin. Beschreibung und Beschriftungen liegen unter **Weitere Felder**. Gefragt wird nur, wer Eskalationsregeln hinzufügen darf.
 
 ## Eine Eskalationsregel hinzufügen
 
@@ -18,12 +18,12 @@ Wenn Sie auf der Seite **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie
   - Eine **Person** wird direkt alarmiert.
 - **Eskalieren nach (in Minuten)** — wie lange auf eine Bestätigung gewartet wird, bevor die nächste Stufe alarmiert wird. Der Wert beginnt bei **30 Minuten**; ändern Sie ihn so, wie es zur Stufe passt.
 
-Alles Weitere liegt unter **Erweitert**, eingeklappt, bis Sie es öffnen:
+Alles andere liegt unter **Weitere Felder**, eingeklappt, bis Sie es öffnen:
 
 - **Name** — optional. Eine Regel ohne Namen heißt nach ihrer Stufe: Die erste Regel einer Richtlinie ist **Level 1**, die zweite **Level 2** und so weiter. Das Namensfeld zeigt den Namen, den die Regel bekommt.
 - **Beschreibung** — optionale Notizen, etwa wen diese Stufe alarmiert und warum.
 
-Die Kopfzeile von **Erweitert** zeigt **Konfiguriert**, wenn die Regel eine Beschreibung oder einen eigenen Namen hat.
+Eingeklappt nennt die Kopfzeile von **Weitere Felder** die beiden und zeigt, welche davon die Regel hat: eine Beschreibung oder einen eigenen Namen.
 
 ## Wie die Stufen Personen alarmieren
 
@@ -31,9 +31,11 @@ Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** sei
 
 Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: wann jede Stufe alarmiert wird, wen sie alarmiert und was nach der letzten passiert. Eine Stufe, deren Empfänger nicht alle alarmiert werden können, sagt das auf ihrer Karte; klicken Sie auf die Markierung, um zu sehen, wer betroffen ist und warum.
 
+Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Bereitschaftsregeln**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Bereitschaftsregeln**.
+
 ## Regeln bearbeiten, umsortieren und löschen
 
-- **Regel bearbeiten** öffnet denselben einseitigen Dialog, ausgefüllt mit der Regel, wie sie ist: ihre Empfänger, ihre Wartezeit sowie Name und Beschreibung unter **Erweitert**. Fügen Sie Empfänger hinzu oder entfernen Sie sie und speichern Sie. Wird der Name geleert, bekommt die Regel wieder den Namen ihrer Stufe.
+- **Regel bearbeiten** öffnet denselben einseitigen Dialog, ausgefüllt mit der Regel, wie sie ist: ihre Empfänger, ihre Wartezeit sowie Name und Beschreibung unter **Weitere Felder**. Fügen Sie Empfänger hinzu oder entfernen Sie sie und speichern Sie. Wird der Name geleert, bekommt die Regel wieder den Namen ihrer Stufe.
 - **Nach oben verschieben** und **Nach unten verschieben** im **⋯**-Menü einer Regel ändern ihre Stufe. Eine Regel, die nach ihrer Stufe heißt, behält einen Namen, der zu ihrem Platz passt: Wenn **Level 3** an **Level 2** vorbei nach oben rückt, tauschen beide ihre Namen. Ein selbst gewählter Name wie **Manager** bleibt, wohin die Regel auch geht.
 - **Regel löschen** fragt zuerst nach und sagt, wen die Stufe alarmiert. Wird eine Stufe gelöscht, rücken die Stufen darunter nach oben, und Regeln, die nach ihrer Stufe heißen, werden passend umbenannt.
 

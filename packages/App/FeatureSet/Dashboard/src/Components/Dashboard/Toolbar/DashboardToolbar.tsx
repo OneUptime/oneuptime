@@ -82,6 +82,21 @@ export interface ComponentProps {
    * PermissionGate.
    */
   editDashboardDisabledReason?: string | undefined;
+  /*
+   * Opens the dashboard's Sharing page, where who can view it is one choice
+   * and the public link can be copied. Shown to everyone who can open the
+   * dashboard: someone who may not change who can view it still sees who
+   * can, and copies the link. Left out, the menu has no Share.
+   */
+  onShareClick?: (() => void) | undefined;
+  /*
+   * Whether the Add Widget dialog is open, when the page opens it too: an
+   * empty board has an Add Widget of its own (Canvas/BlankCanvas), which
+   * puts the board in edit mode with this dialog open. Left out, the
+   * toolbar keeps the dialog to itself.
+   */
+  isAddWidgetModalOpen?: boolean | undefined;
+  onAddWidgetModalOpenChange?: ((isOpen: boolean) => void) | undefined;
 }
 
 interface CountdownCircleProps {
@@ -316,8 +331,22 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
-  const [showAddWidgetModal, setShowAddWidgetModal] = useState<boolean>(false);
+  const [ownShowAddWidgetModal, setOwnShowAddWidgetModal] =
+    useState<boolean>(false);
   const [showVariablesModal, setShowVariablesModal] = useState<boolean>(false);
+
+  // The page's say when it has one (isAddWidgetModalOpen), else the toolbar's.
+  const showAddWidgetModal: boolean =
+    props.isAddWidgetModalOpen !== undefined
+      ? props.isAddWidgetModalOpen
+      : ownShowAddWidgetModal;
+
+  const setShowAddWidgetModal: (isOpen: boolean) => void = (
+    isOpen: boolean,
+  ): void => {
+    setOwnShowAddWidgetModal(isOpen);
+    props.onAddWidgetModalOpenChange?.(isOpen);
+  };
 
   const isSaving: boolean = props.isSaving;
 
@@ -430,7 +459,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
               </>
             )}
 
-            {/* More menu: Edit + Full Screen (always visible in view mode) */}
+            {/* More menu: Edit, Share and Full Screen (always visible in view mode) */}
             {!isEditMode && (
               <MoreMenu
                 menuIcon={IconProp.EllipsisHorizontal}
@@ -462,6 +491,16 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                         : props.editDashboardDisabledReason
                     }
                     onClick={props.onEditClick}
+                  />
+                ) : (
+                  <></>
+                )}
+                {props.onShareClick ? (
+                  <MoreMenuItem
+                    text={"Share"}
+                    icon={IconProp.Share}
+                    key={"share"}
+                    onClick={props.onShareClick}
                   />
                 ) : (
                   <></>

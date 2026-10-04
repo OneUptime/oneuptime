@@ -6,11 +6,11 @@ En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå:
 
 Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, utgjør den første eskaleringsregelen i retningslinjen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles. Den nye retningslinjen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
 
-**Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter retningslinjen uten eskaleringsregler: Den varsler ingen før du legger til en, og oversikten sier fra om det. Beskrivelsen og etikettene ligger under **Avansert**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.
+**Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter retningslinjen uten eskaleringsregler: Den varsler ingen før du legger til en, og oversikten sier fra om det. Beskrivelsen og etikettene ligger under **Flere felt**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.
 
 ## Legg til en eskaleringsregel
 
-Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Add Escalation Rule**. Dialogen er én kort side med to spørsmål:
+Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side med to spørsmål:
 
 - **Varsle** — hvem som varsles på dette nivået. Én velger dekker vaktplaner, team og personer: klikk på **Legg til mottaker**, søk og velg så mange du trenger. Minst én må med.
   - En **vaktplan** varsler den som har vakt når nivået kjører, ikke en fast person.
@@ -18,12 +18,12 @@ Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør s
   - En **person** varsles direkte.
 - **Eskaler etter (i minutter)** — hvor lenge det ventes på en bekreftelse før neste nivå varsles. Den starter på **30 minutter**; endre den slik at den passer nivået.
 
-Alt annet ligger under **Avansert**, sammenfoldet til du åpner det:
+Alt annet ligger under **Flere felt**, sammenfoldet til du åpner det:
 
 - **Navn** — valgfritt. En regel uten navn heter etter nivået sitt: den første regelen i en retningslinje er **Level 1**, den andre **Level 2** og så videre. Navnefeltet viser navnet regelen får.
 - **Beskrivelse** — valgfrie notater, for eksempel hvem dette nivået varsler og hvorfor.
 
-Overskriften på **Avansert** viser **Konfigurert** når regelen har en beskrivelse eller et navn du har valgt selv.
+Sammenslått nevner overskriften på **Flere felt** de to og viser dem regelen har: en beskrivelse eller et navn du har valgt selv.
 
 ## Slik varsler nivåene folk
 
@@ -31,9 +31,11 @@ Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottak
 
 Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert nivå varsles, hvem det varsler og hva som skjer etter det siste. Et nivå der ikke alle mottakerne kan varsles, sier fra om det på kortet sitt; klikk på merket for å se hvem og hvorfor.
 
+Hvordan hver person et nivå varsler blir nådd, bestemmer personens egne vaktregler: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder og et kort per alvorlighetsgrad som viser hvilken varselmetode som brukes og etter hvor lang tid. En prosjektadministrator kan se og endre et medlems regler under **Brukere** > medlemmet > **Vaktregler**.
+
 ## Rediger, omorganiser og slett regler
 
-- **Edit rule** åpner den samme dialogen på én side, fylt ut med regelen slik den er: mottakerne, ventetiden og navnet og beskrivelsen under **Avansert**. Legg til eller fjern mottakere og lagre. Tømmer du navnet, får regelen igjen nivåets navn.
+- **Edit rule** åpner den samme dialogen på én side, fylt ut med regelen slik den er: mottakerne, ventetiden og navnet og beskrivelsen under **Flere felt**. Legg til eller fjern mottakere og lagre. Tømmer du navnet, får regelen igjen nivåets navn.
 - **Move up** og **Move down** i en regels **⋯**-meny endrer nivået. En regel som heter etter nivået sitt, beholder et navn som passer plassen: når **Level 3** flyttes opp forbi **Level 2**, bytter de to navn. Et navn du har valgt selv, som **Managers**, forblir det samme uansett hvor regelen flyttes.
 - **Delete rule** spør først og forteller hvem nivået varsler. Sletter du et nivå, flyttes nivåene under det opp, og regler som heter etter nivået sitt, får nye navn som passer.
 

@@ -1,5 +1,6 @@
 import CommandPalette, {
   ComponentProps,
+  PALETTE_SEARCH_RESULT_LIMIT,
 } from "../../../../UI/Components/CommandPalette/CommandPalette";
 import { PaletteCommand } from "../../../../UI/Components/CommandPalette/Types";
 import { resetPageScrollLockForTesting } from "../../../../UI/Utils/PageScrollLock";
@@ -366,7 +367,7 @@ describe("CommandPalette", () => {
       ).toBeInTheDocument();
     });
 
-    test("ranks title-prefix above substring, keyword, category and subsequence", () => {
+    test("ranks title-prefix above word-start and keyword matches", () => {
       const rankedCommands: Array<PaletteCommand> = [
         makeCommand({ id: "sub-seq", title: "Man on wire", category: "E" }),
         makeCommand({
@@ -380,7 +381,7 @@ describe("CommandPalette", () => {
           category: "C",
           keywords: ["monitor"],
         }),
-        makeCommand({ id: "substr", title: "Create Monitor", category: "B" }),
+        makeCommand({ id: "by-word", title: "Create Monitor", category: "B" }),
         makeCommand({ id: "prefix", title: "Monitors", category: "A" }),
       ];
       renderPalette({ commands: rankedCommands });
@@ -395,13 +396,62 @@ describe("CommandPalette", () => {
           return option.getAttribute("data-testid");
         });
 
+      /*
+       * "Man on wire" holds m-o-n in order and "Stats" is listed under
+       * "Monitoring", but letters in order and a group's name are fallbacks
+       * for when nothing else matches: here three commands do.
+       */
       expect(optionIds).toEqual([
         "command-palette-option-prefix",
-        "command-palette-option-substr",
+        "command-palette-option-by-word",
         "command-palette-option-by-keyword",
-        "command-palette-option-by-category",
-        "command-palette-option-sub-seq",
       ]);
+    });
+
+    test("a group's name lists its commands when nothing else matches", () => {
+      renderPalette({
+        commands: [
+          makeCommand({ id: "stats", title: "Stats", category: "Monitoring" }),
+          makeCommand({
+            id: "uptime",
+            title: "Uptime",
+            category: "Monitoring",
+          }),
+          makeCommand({ id: "logs", title: "Logs", category: "Telemetry" }),
+        ],
+      });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: "monitoring" },
+      });
+
+      expect(
+        screen.getAllByRole("option").map((option: HTMLElement) => {
+          return option.getAttribute("data-testid");
+        }),
+      ).toEqual([
+        "command-palette-option-stats",
+        "command-palette-option-uptime",
+      ]);
+    });
+
+    test("letters in order find a command when nothing else matches", () => {
+      renderPalette({
+        commands: [
+          makeCommand({ id: "monitors", title: "Monitors", category: "A" }),
+          makeCommand({ id: "logs", title: "Logs", category: "B" }),
+        ],
+      });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: "mntr" },
+      });
+
+      expect(
+        screen.getAllByRole("option").map((option: HTMLElement) => {
+          return option.getAttribute("data-testid");
+        }),
+      ).toEqual(["command-palette-option-monitors"]);
     });
 
     test("wraps matching runs of the title in <mark>", () => {
@@ -431,6 +481,60 @@ describe("CommandPalette", () => {
         "No results found.",
       );
       expect(screen.queryAllByRole("option")).toHaveLength(0);
+    });
+
+    test("a query of only punctuation is a search that finds nothing", () => {
+      renderPalette();
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: "?" },
+      });
+
+      expect(screen.getByTestId("command-palette-empty")).toHaveTextContent(
+        "No results found.",
+      );
+      expect(screen.queryAllByRole("option")).toHaveLength(0);
+    });
+
+    test("lists the best fifty matches at most, the best first", () => {
+      const commands: Array<PaletteCommand> = [];
+
+      for (
+        let index: number = 1;
+        index <= PALETTE_SEARCH_RESULT_LIMIT + 10;
+        index++
+      ) {
+        commands.push(
+          makeCommand({
+            id: `settings-${index}`,
+            title: `Settings ${index}`,
+            category: "Pages",
+          }),
+        );
+      }
+
+      // The best match is listed last: it still comes first.
+      commands.push(
+        makeCommand({ id: "settings", title: "Settings", category: "Pages" }),
+      );
+
+      renderPalette({ commands });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: "settings" },
+      });
+
+      const options: Array<HTMLElement> = screen.getAllByRole("option");
+
+      expect(PALETTE_SEARCH_RESULT_LIMIT).toBe(50);
+      expect(options).toHaveLength(50);
+      expect(options[0]).toHaveAttribute(
+        "data-testid",
+        "command-palette-option-settings",
+      );
+      expect(
+        screen.getByTestId("command-palette-result-count"),
+      ).toHaveTextContent("50 results");
     });
   });
 
@@ -523,6 +627,238 @@ describe("CommandPalette", () => {
 
       expect(screen.queryByTestId("command-palette-section-recent")).toBeNull();
       expect(window.localStorage.length).toBe(0);
+    });
+  });
+
+  describe("pages: search-only commands with a breadcrumb", () => {
+    const pageCommands: Array<PaletteCommand> = [
+      makeCommand({
+        id: "go-monitors",
+        title: "Monitors",
+        description: "Uptime checks",
+        category: "Essentials",
+      }),
+      makeCommand({
+        id: "page-api-keys",
+        title: "API Keys",
+        category: "Pages",
+        breadcrumb: ["Project Settings", "Advanced"],
+        keywords: ["access token"],
+        isSearchOnly: true,
+      }),
+      makeCommand({
+        id: "page-incident-custom-fields",
+        title: "Custom Fields",
+        description: "Never shown: the breadcrumb takes its place",
+        category: "Pages",
+        breadcrumb: ["Incidents", "Settings"],
+        isSearchOnly: true,
+      }),
+      makeCommand({
+        id: "page-alert-custom-fields",
+        title: "Custom Fields",
+        category: "Pages",
+        breadcrumb: ["Alerts", "Settings"],
+        isSearchOnly: true,
+      }),
+      makeCommand({
+        id: "page-action-delete-project",
+        title: "Delete Project",
+        category: "Actions",
+        breadcrumb: ["Project Settings", "Danger Zone"],
+        isSearchOnly: true,
+      }),
+    ];
+
+    const optionIds: () => Array<string | null> = (): Array<string | null> => {
+      return screen.getAllByRole("option").map((option: HTMLElement) => {
+        return option.getAttribute("data-testid");
+      });
+    };
+
+    const type: (value: string) => void = (value: string): void => {
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value },
+      });
+    };
+
+    test("browsing lists the catalog without the search-only pages", () => {
+      renderPalette({ commands: pageCommands });
+
+      expect(optionIds()).toEqual(["command-palette-option-go-monitors"]);
+      expect(
+        screen.queryByTestId("command-palette-section-pages"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("searching finds a page, shown with where it lives", () => {
+      renderPalette({ commands: pageCommands });
+
+      type("api keys");
+
+      const row: HTMLElement = screen.getByTestId(
+        "command-palette-option-page-api-keys",
+      );
+      expect(optionIds()).toEqual(["command-palette-option-page-api-keys"]);
+      expect(
+        screen.getByTestId("command-palette-section-pages"),
+      ).toContainElement(row);
+
+      const breadcrumb: HTMLElement = screen.getByTestId(
+        "command-palette-option-page-api-keys-breadcrumb",
+      );
+      expect(breadcrumb).toHaveTextContent("Project Settings");
+      expect(breadcrumb).toHaveTextContent("Advanced");
+      // The arrow is drawn for the eye; a screen reader hears a comma.
+      const arrow: HTMLElement = breadcrumb.querySelector(
+        '[aria-hidden="true"]',
+      ) as HTMLElement;
+      expect(arrow).toHaveTextContent("›");
+      expect(breadcrumb.querySelector(".sr-only")).toHaveTextContent(",");
+    });
+
+    test("two pages with one title are told apart by their breadcrumbs", () => {
+      renderPalette({ commands: pageCommands });
+
+      type("custom fields");
+
+      expect(optionIds()).toEqual([
+        "command-palette-option-page-incident-custom-fields",
+        "command-palette-option-page-alert-custom-fields",
+      ]);
+      expect(
+        screen.getByTestId(
+          "command-palette-option-page-incident-custom-fields-breadcrumb",
+        ),
+      ).toHaveTextContent("Incidents");
+      expect(
+        screen.getByTestId(
+          "command-palette-option-page-alert-custom-fields-breadcrumb",
+        ),
+      ).toHaveTextContent("Alerts");
+      // The breadcrumb is shown instead of a description.
+      expect(
+        screen.getByTestId(
+          "command-palette-option-page-incident-custom-fields",
+        ),
+      ).not.toHaveTextContent("Never shown");
+    });
+
+    test("the breadcrumb narrows a search: 'incident custom fields' finds one page", () => {
+      renderPalette({ commands: pageCommands });
+
+      type("incident custom fields");
+
+      expect(optionIds()).toEqual([
+        "command-palette-option-page-incident-custom-fields",
+      ]);
+      // The word that matched the breadcrumb is marked there.
+      const marks: Array<string> = Array.from(
+        screen
+          .getByTestId(
+            "command-palette-option-page-incident-custom-fields-breadcrumb",
+          )
+          .querySelectorAll("mark"),
+      ).map((mark: Element): string => {
+        return mark.textContent || "";
+      });
+      expect(marks).toEqual(["Incident"]);
+    });
+
+    test("a search-only action is found by name and sits under Actions", () => {
+      renderPalette({ commands: pageCommands });
+
+      type("delete project");
+
+      expect(optionIds()).toEqual([
+        "command-palette-option-page-action-delete-project",
+      ]);
+      expect(
+        screen.getByTestId("command-palette-section-actions"),
+      ).toContainElement(
+        screen.getByTestId("command-palette-option-page-action-delete-project"),
+      );
+      expect(
+        screen.getByTestId(
+          "command-palette-option-page-action-delete-project-breadcrumb",
+        ),
+      ).toHaveTextContent("Danger Zone");
+    });
+
+    test("Enter opens the best match, and the page then shows under Recent", () => {
+      const onSelect: jest.Mock = jest.fn();
+      const commands: Array<PaletteCommand> = pageCommands.map(
+        (command: PaletteCommand): PaletteCommand => {
+          return command.id === "page-api-keys"
+            ? { ...command, onSelect }
+            : command;
+        },
+      );
+
+      const { unmount } = renderPalette({
+        commands,
+        recentStorageKey: RECENTS_KEY,
+      });
+
+      type("keys api");
+      fireEvent.keyDown(screen.getByTestId("command-palette-input"), {
+        key: "Enter",
+      });
+
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(
+        JSON.parse(window.localStorage.getItem(RECENTS_KEY) as string),
+      ).toEqual(["page-api-keys"]);
+
+      unmount();
+      renderPalette({ commands, recentStorageKey: RECENTS_KEY });
+
+      // Browsing: the page is not in the catalog, but it is a recent.
+      const recent: HTMLElement = screen.getByTestId(
+        "command-palette-section-recent",
+      );
+      expect(recent).toContainElement(
+        screen.getByTestId("command-palette-option-recent-page-api-keys"),
+      );
+      expect(
+        screen.getByTestId(
+          "command-palette-option-recent-page-api-keys-breadcrumb",
+        ),
+      ).toHaveTextContent("Advanced");
+      expect(
+        screen.queryByTestId("command-palette-option-page-api-keys"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("arrow keys walk the search results across sections in order", () => {
+      renderPalette({ commands: pageCommands });
+
+      type("project");
+      const input: HTMLElement = screen.getByTestId("command-palette-input");
+
+      // Two words of the breadcrumb are not needed: one word of a title is.
+      expect(optionIds()).toEqual([
+        "command-palette-option-page-action-delete-project",
+      ]);
+      expect(input).toHaveAttribute(
+        "aria-activedescendant",
+        "command-palette-option-page-action-delete-project",
+      );
+
+      type("settings custom");
+      expect(optionIds()).toEqual([
+        "command-palette-option-page-incident-custom-fields",
+        "command-palette-option-page-alert-custom-fields",
+      ]);
+
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      expect(input).toHaveAttribute(
+        "aria-activedescendant",
+        "command-palette-option-page-alert-custom-fields",
+      );
+      expect(
+        screen.getByTestId("command-palette-result-count"),
+      ).toHaveTextContent("2 results");
     });
   });
 

@@ -22,23 +22,23 @@ Kortets beskrivelse endrer seg med formen på siden din. Med grupper leser den a
 
 ## Å legge til en overvåking
 
-Velg gruppen ressursen skal havne i (eller **Top of page** for en rad uten gruppe), og klikk så **Legg til monitor**. Modalen heter **Add a monitor to {group}** og har to trinn: **Monitordetaljer** og **Avansert**.
-
-På **Monitordetaljer**:
+Velg gruppen ressursen skal havne i (eller **Top of page** for en rad uten gruppe), og klikk så **Legg til monitor**. Dialogen heter **Add a monitor to {group}**, og den er én side som bare spør om én ting — overvåkingen:
 
 - **Overvåking** — nedtrekkslisten over overvåkinger i prosjektet ditt, plassholder **Velg overvåking**. Påkrevd.
-- **Visningsnavn** — påkrevd. Dette er teksten de besøkende leser, og den lagres atskilt fra overvåkingens eget navn, så du kan gi den nytt navn her uten å røre overvåkingen.
-- **Beskrivelse** — valgfri markdown som vises under raden. Fint til én setning om hva tjenesten faktisk gjør.
+- **Visningsnavn** — teksten de besøkende leser. Den fylles ut med overvåkingens navn når du velger den, og følger med når du velger en annen overvåking, helt til du skriver et navn selv. Den lagres atskilt fra overvåkingens eget navn, så du kan gi den nytt navn her uten å røre overvåkingen.
+- **Flere felt** — slått sammen. Den rommer **Beskrivelse** (valgfri markdown som vises under raden, fint til én setning om hva tjenesten faktisk gjør) og [visningsvalgene](#visningsvalg-på-en-ressurs). Lar du den være lukket, får ressursen standardverdiene deres.
+
+Velg en overvåking, klikk **Legg til monitor**, og raden er på siden. I en rutenettgruppe spør dialogen også om raden og kolonnen overvåkingen skal stå i, over **Flere felt** — se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett).
 
 Har prosjektet ditt overvåkingsgrupper aktivert, ligger det en lenke under nedtrekkslisten som leser **Add a Monitor Group instead.** — klikk den, så byttes nedtrekkslisten **Overvåking** ut med en nedtrekksliste **Monitor Gruppe** (**Velg overvåkingsgruppe**). Lenken snur seg da til **Add a Monitor instead.** så du kan gå tilbake. Bruk en overvåkingsgruppe når du vil at én rad på siden skal representere flere sjekker rullet sammen.
 
 ### Å legge til flere om gangen
 
-**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den har de samme to trinnene, men det første er et flervalg **Monitorer** i stedet for én nedtrekksliste, og visningsvalgene du gjør på **Avansert**, gjelder hver eneste overvåking du plukket. Dette er den raskeste måten å så en ny side på.
+**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: et flervalg **Monitorer** i stedet for én nedtrekksliste, og under det den samme sammenslåtte **Flere felt**-seksjonen, der visningsvalgene gjelder hver eneste overvåking du plukket. Hver ressurs får visningsnavnet og beskrivelsen fra sin overvåking, og **Add Monitors** legger dem til — det finnes ingen trinn å gå gjennom. Dette er den raskeste måten å så en ny side på.
 
 ## Visningsvalg på en ressurs
 
-Trinnet **Avansert** er det samme i enkeltskjemaet og i bulkmodalen. Alt her gjelder per ressurs — to rader i samme gruppe kan settes opp helt ulikt.
+Seksjonen **Flere felt** er den samme i enkeltskjemaet og i bulkmodalen. Den starter sammenslått begge steder, og også i **Rediger ressurs**, der den sammenslåtte overskriften viser hva i den som ikke står på standardverdien. Alt her gjelder per ressurs — to rader i samme gruppe kan settes opp helt ulikt.
 
 | Felt                                                     | Formål                                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -48,7 +48,7 @@ Trinnet **Avansert** er det samme i enkeltskjemaet og i bulkmodalen. Alt her gje
 | **Velg presisjon for oppetid** (`uptimePercentPrecision`) | Dukker først opp når **Vis oppetid %** er på. Påkrevd, med én desimal som standard.                        |
 | **Vis statushistorikkdiagram** (`showStatusHistoryChart`) | På som standard. Viser stolpediagrammet med oppetidshistorikk dag for dag for ressursen.                    |
 
-**Visningsnavn** (`displayName`) og **Beskrivelse** (`displayDescription`) fra første trinn er også rene visningsfelt — de endrer aldri selve overvåkingen.
+**Visningsnavn** (`displayName`) og **Beskrivelse** (`displayDescription`) er også rene visningsfelt — de endrer aldri selve overvåkingen.
 
 ## Oppetidsprosenter og historikkdiagrammer
 
@@ -64,19 +64,18 @@ Fargene på stolpene i historikkdiagrammet, og hvilke overvåkingsstatuser som t
 
 ## Grupper
 
-Klikk **New Group** for å åpne **Create New Status Page Group**. Skjemaet har tre trinn: **Gruppedetaljer**, **Oppsett** og **Avansert**.
-
-**Gruppedetaljer**:
+Klikk **New Group** for å åpne **Create New Status Page Group**. Skjemaet er én side: to felt, og under dem to sammenslåtte seksjoner.
 
 - **Gruppenavn** (`name`) — påkrevd. Dette er seksjonsoverskriften de besøkende ser.
-- **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
-- **Parent Group** (`parentStatusPageGroupId`) — valgfritt. La den stå på **No parent group (top level)** for å holde gruppen på øverste nivå.
-- **Utvid på statusside som standard** (`isExpandedByDefault`) — om seksjonen starter åpen eller sammenslått for de besøkende.
+- **Parent Group** (`parentStatusPageGroupId`) — valgfritt. La den stå på **No parent group (top level)** for å holde gruppen på øverste nivå. **Add a sub group** fyller den ut for deg.
+- **Oppsett** — slått sammen, og overskriften sier **List** eller **Grid**. Den rommer **Visningsmodus** og aksene til et rutenett (se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
+- **Flere felt** — slått sammen. Den rommer resten og speiler ressursvalgene på gruppenivå:
+  - **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
+  - **Utvid på statusside som standard** (`isExpandedByDefault`) — på som standard: om seksjonen starter åpen eller sammenslått for de besøkende.
+  - **Vis gjeldende gruppestatus** (`showCurrentStatus`) — på som standard. Viser en status ved siden av gruppeoverskriften.
+  - **Vis oppetid %** (`showUptimePercent`) — av som standard, med **Velg presisjon for oppetid** som dukker opp så snart den er på.
 
-**Avansert** speiler ressursbryterne på gruppenivå:
-
-- **Vis gjeldende gruppestatus** (`showCurrentStatus`) — på som standard. Viser en status ved siden av gruppeoverskriften.
-- **Vis oppetid %** (`showUptimePercent`) — av som standard, med **Velg presisjon for oppetid** som dukker opp så snart den er på.
+De fleste grupper trenger bare et navn: skriv det, og klikk **Create Status Page Group**.
 
 Redigering fungerer likedan: **Edit Group** i rutetoppen, eller **Edit group** i radmenyen i navigatoren, åpner **Edit Status Page Group** med en knapp **Lagre endringer**.
 
@@ -96,7 +95,7 @@ Nesting gjør nytte for seg på store sider: en hostingleverandør med regioner 
 
 ## Listeoppsett mot rutenettoppsett
 
-Trinnet **Oppsett** setter **Visningsmodus** (`viewMode`) for gruppen, og det endrer hvordan gruppen vises offentlig.
+Seksjonen **Oppsett** i gruppeskjemaet setter **Visningsmodus** (`viewMode`) for gruppen, og det endrer hvordan gruppen vises offentlig.
 
 | Hvis du vil …                                                          | Velg                    |
 | ----------------------------------------------------------------------- | ---------------------- |
@@ -110,9 +109,9 @@ Velger du **Grid**, dukker fire felt til opp:
 - **Kolonneakseetikett** — kolonnedimensjonen, plassholder `Region`.
 - **Kolonneakseverdier** — lagt til med **Add Column** (plassholder `e.g. US-East`).
 
-Hver overvåking i en rutenettgruppe plasseres så i en celle, så bulkmodalen spør om raden og kolonnen ved siden av overvåkingene, med dine egne akseetiketter.
+Hver overvåking i en rutenettgruppe plasseres så i en celle, så **Legg til monitor** og bulkmodalen spør om raden og kolonnen ved siden av overvåkingen, med dine egne akseetiketter.
 
-**Sett opp aksene før du legger til overvåkinger.** En rutenettgruppe uten rader eller kolonner viser en gul melding om at det ikke finnes noe sted å plassere en overvåking før aksene finnes, med en knapp **Set up the grid** — og knappen **Legg til monitor** er trukket tilbake til du gjør det.
+**Sett opp aksene før du legger til overvåkinger.** En rutenettgruppe uten rader eller kolonner viser en gul melding om at det ikke finnes noe sted å plassere en overvåking før aksene finnes, med en knapp **Set up the grid** som åpner gruppens skjema på seksjonen **Oppsett** — og knappen **Legg til monitor** er trukket tilbake til du gjør det.
 
 ## Å bestemme rekkefølgen de besøkende ser
 

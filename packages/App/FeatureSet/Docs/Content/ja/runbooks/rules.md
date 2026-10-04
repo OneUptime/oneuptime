@@ -61,7 +61,7 @@ Runbooks:           [Capture pre-incident state]
 
 ## 無効化された Runbook
 
-ルールが `isEnabled = false` の Runbook を参照していると、ルールはマッチしてもその Runbook の実行はスキップされます。Runbook を再度有効化すれば動くようになります。
+ルールがオフの Runbook（Runbook の **Settings** ページで **Run this runbook** がオフ、`isEnabled = false`）を参照していると、ルールはマッチしてもその Runbook の実行はスキップされます。スイッチを再びオンにすれば動くようになります。
 
 ## ルールのテスト
 

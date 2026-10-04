@@ -1,13 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -335,15 +332,6 @@ function formatRelativeTime(timestamp: string): string {
     return timestamp;
   }
 }
-
-/*
- * The Cluster Details card's Edit asks for the name and the description,
- * and folds the cluster identifier and the labels under Advanced: the
- * identifier is set up once, to match the agent's clusterName, and changing
- * it unlinks the cluster from its agent. Three rows, so no steps.
- */
-const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
-  getAdvancedFormSection<KubernetesCluster>();
 
 const KubernetesClusterOverview: FunctionComponent<
   PageComponentProps
@@ -2945,51 +2933,25 @@ const KubernetesClusterOverview: FunctionComponent<
         })()
       )}
 
-      {/* Cluster Details */}
+      {/*
+       * Cluster Details: read here, edited in one place - the same card at
+       * the top of the cluster's Settings page (ResourceDetailsCard).
+       */}
       <CardModelDetail<KubernetesCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Kubernetes cluster.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        editButtonText="Edit Cluster"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production cluster running in US East",
-          },
-          {
-            field: {
-              clusterIdentifier: true,
-            },
-            title: "Cluster Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east-1",
-            description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<KubernetesCluster>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: KubernetesCluster,
@@ -3000,14 +2962,14 @@ const KubernetesClusterOverview: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Cluster Name",
+              title: "Display Name",
               fieldType: FieldType.Text,
             },
             {
               field: {
                 clusterIdentifier: true,
               },
-              title: "Cluster Identifier",
+              title: "Cluster Name (clusterName)",
               fieldType: FieldType.Text,
             },
             {

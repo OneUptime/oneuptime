@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import SetupGuideCard, {
   SetupGuideRenderContext,
@@ -59,6 +60,7 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.QueueList}
+      newKeyName={translationKey("Queues key")}
       optionsLabel="Which messaging system?"
       options={props.queue ? undefined : MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS}
       optionsLayout="pills"

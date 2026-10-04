@@ -15,7 +15,7 @@ For et projekt:
 1. Gå til **Project Settings > Notifications > Notification Settings**.
 2. Vælg **Create Twilio Config** under **Twilio Config**.
 3. Indtast et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio Primary Phone Number**. Du kan også indtaste kommaseparerede **Twilio Secondary Phone Numbers** til andre lande.
-4. Aktivér **Set as Project Default** for at bruge konfigurationen til SMS'er og opkald til projektmedlemmer, herunder vagtalarmer. Oprettelse af en konfiguration uden at aktivere denne indstilling vælger den ikke til disse notifikationer.
+4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS'er og opkald til projektmedlemmer, herunder vagtalarmer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. For enhver senere konfiguration er indstillingen slået fra: slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu, for at flytte disse beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
 5. Gem. Kun én konfiguration kan være projektets standard. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
 For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Settings > Call and SMS**, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemsnotifikationer bruger denne globale konfiguration, når projektet ikke har en standard. Hold Auth Token fortroligt.

@@ -19,44 +19,52 @@ Alle vier schrijven hetzelfde model, dus een incident dat door een sonde is geop
 
 ## Er een met de hand melden
 
-Open **Incidenten → Alle incidenten** en klik rechtsboven in de lijst **Incidenten** op **Incident melden**. Dat brengt je naar een kaart met de titel **Nieuw incident melden**, die het formulier over vijf stappen verdeelt: **Incidentdetails**, **Getroffen middelen**, **Incidentrollen**, **Bereikbaarheid** en **Meer**. De verzendknop aan het eind heet ook **Incident melden**.
+Open **Incidenten → Alle incidenten** en klik rechtsboven in de lijst **Incidenten** op **Incident melden**. Dan kom je op een kaart met de titel **Nieuw incident melden**, die het formulier over drie stappen verdeelt: **Incidentdetails**, **Getroffen middelen** en **Bereikbaarheid en rollen**, gevolgd door een overzicht om te controleren. Als je project bij het aanmaken naar een aantal van zijn aangepaste incidentvelden vraagt, komt er direct na **Getroffen middelen** een vierde stap, **Details**.
 
-Alleen de eerste stap heeft verplichte velden. Heb je haast, vul dan **Incidentdetails** in en verstuur — middelen koppelen, rollen toewijzen en bereikbaarheidsbeleid toevoegen kan daarna nog vanaf de eigen pagina's van het incident.
+Alleen de eerste stap heeft verplichte velden, plus elk aangepast veld dat je beheerders als **Verplicht bij aanmaken** hebben gemarkeerd. Resources koppelen, bereikbaarheidsbeleid toevoegen en rollen toewijzen kan ook achteraf, vanaf de pagina's van het incident zelf. Elke stap vóór het overzicht heeft een gewone knop **Volgende**, en **Incident melden** staat in het overzicht, de laatste stap.
+
+**Meer velden.** De opties die de meeste incidenten nooit nodig hebben, wachten ingeklapt onder een kop **Meer velden** aan het eind van hun stap; klik erop om ze te openen. Ingeklapt noemt de kop wat erin zit en toont elke ingestelde optie met haar waarde — ingesteld door een sjabloon bijvoorbeeld — en hij gaat vanzelf open als er iets in moet worden verbeterd. Het overzicht toont een ingeklapte optie alleen als die is ingesteld, behalve **Statuspagina-abonnees op de hoogte stellen**, die het altijd toont, met wie er bericht krijgt.
 
 ### Stap 1 — Incidentdetails
 
-- **Titel** — verplicht. De samenvatting van één regel die iedereen ziet in de lijst, in Slack en (als het incident zichtbaar is) op je statuspagina. Placeholder: `Incident Title`.
-- **Beschrijving** — optioneel, geschreven in Markdown. Dit is het veld dat op de statuspagina verschijnt, dus schrijf het voor klanten en niet voor je team. Je kunt het later aanpassen via **Beschrijving** in het zijmenu van het incident.
-- **Verklaard op** — verplicht in het formulier, standaard op nu. Vanaf dit tijdstempel wordt elke duur op het incident gemeten, dus zet het terug in de tijd als je iets vastlegt dat eerder begon.
-- **Ernst van incident** — verplicht. Een van de ernstniveaus die voor je project zijn ingesteld; nieuwe projecten krijgen **Critical Incident**, **Major Incident** en **Minor Incident**.
-- **Status incident** — optioneel. Laat het staan en het incident belandt in de status met de vlag `isCreatedState`, die nieuwe projecten aanmaken als **Identified**. Stel het alleen in wanneer je een incident vastlegt dat dat punt al voorbij was.
+- **Titel** — verplicht. De samenvatting van één regel die iedereen ziet in de lijst, in Slack en, als het incident zichtbaar is, op je statuspagina.
+- **Ernst van incident** — verplicht. Een van de ernstniveaus die voor je project zijn ingesteld.
+- **Beschrijving** — optioneel, in Markdown. Dit is wat de statuspagina toont, dus schrijf het voor klanten en niet voor je team.
+
+Onder **Meer velden**:
+
+- **Verklaard op** — begint op het moment dat je de pagina opende. Elke duur van het incident wordt hiervandaan gemeten; zet het terug om een incident vast te leggen dat eerder begon.
+- **Initiële status** — optioneel, en in het begin leeg. Leeg gelaten start het incident in de status met de vlag `isCreatedState`, of in de beginstatus van het sjabloon. Kies alleen een latere status om een incident vast te leggen dat al bevestigd of opgelost is.
+- **Labels** — optioneel. Labels groeperen verwante incidenten, en een team dat tot labels is beperkt, ziet alleen de incidenten met een van zijn labels.
+- **Privé-incident** — standaard uit (`isPrivate`). Een privé-incident is alleen zichtbaar voor zijn eigenaren, projectbeheerders en projecteigenaren, en is op elke statuspagina verborgen.
 
 **Als de statuskeuzelijst je dwarszit.** Draagt geen enkele status in je project de vlag `isCreatedState`, dan mislukt de aanmaakaanroep met de melding dat je vanuit de instellingen een aangemaakt-status moet toevoegen. Dat gebeurt normaal alleen in een project waarin flink aan de statussen is gesleuteld — zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
 
 ### Stap 2 — Getroffen middelen
 
-- **Getroffen middelen** — één zoekveld dat monitoren, hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services koppelt. Onder de motorkap zijn dat losse relaties op het incident (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` en meer), maar het formulier vouwt ze samen tot één kiezer.
-- **Change Monitor Status to** — optioneel. Kiest een monitorstatus die wordt toegepast op elke monitor die aan dit incident hangt, zodat het incident melden en de monitoren op verslechterd zetten één handeling is in plaats van twee.
+De monitoren komen eerst, apart: statuspagina's zien een incident via zijn monitoren, en de status waarnaar de monitoren gaan staat er direct onder.
+
+- **Monitoren** — een zoekveld dat de monitoren koppelt die het incident raakt (`monitors`). Een statuspagina toont het incident, en informeert haar abonnees, als ze een van deze monitoren vermeldt.
+- **Monitorstatus wijzigen naar** — optioneel, en pas zichtbaar zodra er minstens één monitor is gekozen. Zet elke monitor van het incident op een monitorstatus, zodat het incident melden en de monitoren als verstoord markeren één handeling is. De status van een sjabloon verschijnt zodra je een monitor kiest; zonder gekozen monitor wordt er geen status opgeslagen.
+- **Andere getroffen resources** — een tweede zoekveld voor al het andere dat het incident raakt: hosts, Kubernetes-clusters, Docker- en Podman-hosts, Proxmox-, Ceph- en Docker Swarm-clusters, vCenters, IoT-vloten, databases en services. Het zijn aparte relaties van het incident (`hosts`, `kubernetesClusters`, `services` en meer).
+
+De kaart **Getroffen resources** van het incident vraagt het op dezelfde manier als je die later bewerkt.
+
+Onder **Meer velden**:
+
+- **Beperken tot deze statuspagina's** — optioneel. Leeg gelaten verschijnt het incident op elke statuspagina die zijn monitoren vermeldt, en informeert het hun abonnees; met gekozen pagina's alleen op die pagina's daarvan. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
+- **Statuspagina-abonnees op de hoogte stellen** — selectievakje, standaard aan (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Eronder, en nog eens in het overzicht, toont het formulier welke statuspagina's bericht krijgen en hoeveel abonnees elk heeft; in het overzicht toont **Melding bekijken** de e-mail die ze krijgen. Zet het uit voor interne ruis die je toch wilt vastleggen.
 
 **Koppel monitoren, ook als het overbodig voelt.** De verbinding tussen een incident en een statuspagina loopt via de monitoren van het incident: een statuspagina toont een incident wanneer een van haar bronnen ook een monitor van het incident is. Een statuswijzigingsmelding aan abonnees wordt zonder meer overgeslagen wanneer er geen monitoren aan het incident hangen. Zie [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups).
 
-### Stap 3 — Incidentrollen
+### Stap 3 — Bereikbaarheid en rollen
 
-- **Incidentrollen toewijzen** — wijs teamleden toe aan de rollen die je project definieert. Sommige rollen accepteren meer dan één gebruiker.
-
-De rollen zelf stel je in onder **Incidenten → Instellingen → Incidentrollen**, waar je bepaalt welke rollen tijdens de respons kunnen worden toegewezen — Incident Commander, Responder, en wat jouw proces verder nodig heeft. Sla je deze stap over, dan wordt bij de eerste statuswijziging automatisch een Incident Commander aangewezen als nog niemand die rol heeft.
-
-### Stap 4 — Bereikbaarheid
-
-- **Bereikbaarheidsbeleid** — een meervoudige keuze van het bereikbaarheidsbeleid dat wordt uitgevoerd wanneer dit incident wordt aangemaakt. Dit komt overeen met `onCallDutyPolicies` op het incident.
+- **Bereikbaarheidsbeleid** — een meervoudige keuze van het bereikbaarheidsbeleid dat wordt uitgevoerd wanneer dit incident wordt aangemaakt (`onCallDutyPolicies`).
+- **Incidentrollen toewijzen** — wie welke rol neemt die je project definieert. Een rol gemarkeerd als **Primair** die je leeg laat, is van jou: je neemt hem wanneer het incident wordt gemeld.
 
 Dit is de enige plek waar bereikbaarheidsbeleid rechtstreeks aan een incident wordt gekoppeld. Ernstniveaus dragen geen bereikbaarheidsbeleid — ernst is een label, en het beïnvloedt paging alleen als *matchcriterium* binnen een bereikbaarheidsregel. Regels die je instelt onder **Incidenten → Regels → Bereikbaarheidsregels** leggen hun beleid bovenop wat je hier kiest; wat uiteindelijk draait is de ontdubbelde vereniging van beide.
 
-### Stap 5 — Meer
-
-- **Labels** — optioneel en een geavanceerde functie: teamleden met toegang tot deze labels zijn degenen die bij het incident kunnen.
-- **Statuspagina-abonnees op de hoogte stellen** — vinkje, standaard aan. Bepaalt of abonnees een e-mail krijgen over het aanmaken van het incident (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Zet het uit voor interne ruis die je toch wilt vastleggen.
-- **Privé-incident** — vinkje, standaard uit (`isPrivate`). Een privé-incident is alleen zichtbaar voor zijn eigenaargebruikers, de leden van zijn eigenaarsteams, projectbeheerders en projecteigenaren — en het blijft verborgen voor elke statuspagina, ongeacht welke andere instelling ook. De incidentenlijst markeert deze met een rode pil **Private**.
+De rollen zelf stel je in onder **Incidenten → Instellingen → Incidentrollen**. Een nieuw project heeft er één, Incident Commander; voeg daar toe wat je proces verder nodig heeft.
 
 De vlag **Should be visible on status page?** (`isVisibleOnStatusPage`) staat niet in de wizard; hij staat standaard aan. Wijzig hem achteraf via **Instellingen** in het zijmenu van het incident, waar hij **Zichtbaar op statuspagina** heet.
 
@@ -66,7 +74,7 @@ Meld je steeds hetzelfde soort incident — dezelfde titelvorm, dezelfde ernst, 
 
 Klik op **Maken op basis van sjabloon** (de omlijnde knop naast **Incident melden**) en er opent een dialoogvenster **Incident aanmaken op basis van sjabloon**, met een keuzelijst **Selecteer incidentsjabloon**. Kies een sjabloon en het aanmaakformulier opent vooringevuld; je kunt vóór het versturen nog alles wijzigen. Heeft je project nog geen sjablonen, dan krijg je in plaats daarvan een dialoogvenster **No Incident Templates**, met een knop **Create Template** die je naar **Incidenten → Instellingen → Incident-sjablonen** brengt.
 
-Sjablonen bouw je met een eigen zesstapswizard — **Sjablooninformatie**, **Incidentdetails**, **Getroffen middelen**, **Bereikbaarheid**, **Eigenaren**, **Labels** — met deze velden:
+Sjablonen bouw je met een eigen wizard — **Sjablooninformatie**, **Incidentdetails**, **Getroffen middelen**, **Bereikbaarheid** — plus stappen voor aangepaste velden als je project die heeft. Eigenaren en labels staan onder **Meer velden** aan het eind van **Incidentdetails**. **Getroffen middelen** vraagt zoals het meldformulier — **Monitoren**, dan **Monitorstatus wijzigen naar**, dan **Andere getroffen resources**, met **Beperken tot deze statuspagina's** onder **Meer velden** — alleen vraagt een sjabloon altijd om de monitorstatus: die geldt ook voor de monitoren die worden gekozen wanneer er een incident vanuit het sjabloon wordt gemeld. Dit zijn de velden:
 
 | Veld                         | Waarvoor                                                     |
 | ---------------------------- | ------------------------------------------------------------ |
@@ -76,11 +84,12 @@ Sjablonen bouw je met een eigen zesstapswizard — **Sjablooninformatie**, **Inc
 | **Beschrijving**             | Markdown-beschrijving die op het incident wordt ingevuld.    |
 | **Ernst van incident**       | Ernst die op het incident wordt vooringevuld.                |
 | **Initiële incidentstatus**  | De status waarin incidenten uit dit sjabloon starten.        |
-| **Getroffen middelen**       | Monitoren, hosts, clusters en services om te koppelen.       |
-| **Change Monitor Status to** | Monitorstatus die op de gekoppelde monitoren wordt gezet.    |
+| **Monitoren** | Monitoren om te koppelen. |
+| **Monitorstatus wijzigen naar** | Monitorstatus voor de monitoren van het incident, ook die bij het melden worden gekozen. |
+| **Andere getroffen resources** | Hosts, clusters en services om te koppelen. |
+| **Beperken tot deze statuspagina's** | Statuspagina's waartoe het incident is beperkt. |
 | **Bereikbaarheidsbeleid**    | Beleid dat draait wanneer het incident wordt aangemaakt.     |
-| **Eigenaar - Teams**         | Teams die incidenten uit dit sjabloon bezitten.              |
-| **Eigenaar - Gebruikers**    | Gebruikers die incidenten uit dit sjabloon bezitten.         |
+| **Eigenaren** | Personen en teams die eigenaar zijn van incidenten uit dit sjabloon, gekozen uit één lijst. |
 | **Labels**                   | Labels die op het incident worden gezet.                     |
 
 Een paar snelle regels:
@@ -100,7 +109,7 @@ Elk item heeft:
 - **Bereikbaarheid → Bereikbaarheidsbeleid** — beleid dat draait wanneer dit incident wordt aangemaakt.
 - **Incidentrollen** — teamleden vooraf aan rollen toewijzen.
 - **Eigendom & labels → Eigenaarsteams**, **Eigenaarsgebruikers**, **Labels**.
-- **Geavanceerde opties → Incident automatisch oplossen** (lost het incident automatisch op zodra de criteria niet meer matchen), **Incident weergeven op statuspagina**, **Privé-incident** en **Herstelnotities**.
+- **Meer velden → Incident automatisch oplossen** (lost het incident automatisch op zodra de criteria niet meer matchen), **Incident weergeven op statuspagina**, **Privé-incident** en **Herstelnotities**.
 
 Voor de volledige lijst met `{{variable}}`-placeholders die je in de titel, beschrijving en herstelnotities kunt gebruiken, zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 

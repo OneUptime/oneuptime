@@ -30,6 +30,11 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * The model tables are replaced by stand-ins that print the props that
  * matter, and the license request is answered per test. Billing is pinned in
  * every test: CI's config.env sets BILLING_ENABLED=true.
+ *
+ * Every request goes through API.fetch, and only one to the license route
+ * counts as asking for the license (mockLicenseFetch). The others - Settings
+ * > SCIM looking up the members team its new connections start on - get an
+ * empty list (mockServerFetch).
  */
 
 let billingEnabledForTest: boolean = false;
@@ -51,13 +56,23 @@ jest.mock("Common/UI/Config", () => {
 });
 
 const mockLicenseFetch: jest.Mock = jest.fn();
+const mockServerFetch: jest.Mock = jest.fn();
 
 jest.mock("Common/UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
       fetch: (...args: Array<unknown>): unknown => {
-        return mockLicenseFetch(...args);
+        const request: { url?: unknown } | undefined = args[0] as
+          | { url?: unknown }
+          | undefined;
+
+        // GET /api/global-config/license, whoever asks for it.
+        if (String(request?.url).includes("/global-config/license")) {
+          return mockLicenseFetch(...args);
+        }
+
+        return mockServerFetch(...args);
       },
       getFriendlyMessage: (): string => {
         return "";
@@ -122,8 +137,9 @@ jest.mock("Common/UI/Components/Tabs/Tabs", () => {
 import SettingsSCIMPage from "../../../Dashboard/Identity/Pages/Settings/SCIM";
 import StatusPageSCIMPage from "../../../Dashboard/Identity/Pages/StatusPages/SCIM";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -224,9 +240,38 @@ const expectEditable: (screenCase: ScreenCase) => void = (
   );
 };
 
+/*
+ * The canned answer to every request that is not the license request: an
+ * empty list for a list read (the team and team-permission reads behind the
+ * members team a new project connection starts on).
+ */
+const answerServer: (request: {
+  method: unknown;
+  url: { toString: () => string };
+}) => Promise<HTTPResponse<JSONObject | JSONArray>> = async (request: {
+  method: unknown;
+  url: { toString: () => string };
+}): Promise<HTTPResponse<JSONObject | JSONArray>> => {
+  const url: string = request.url.toString();
+
+  if (url.endsWith("/get-list")) {
+    return new HTTPResponse<JSONArray>(
+      200,
+      { data: [], count: 0, skip: 0, limit: 0 },
+      {},
+    );
+  }
+
+  throw new Error(
+    `The fake server has no answer for ${String(request.method)} ${url}`,
+  );
+};
+
 beforeEach(() => {
   billingEnabledForTest = false;
   mockLicenseFetch.mockReset();
+  mockServerFetch.mockReset();
+  mockServerFetch.mockImplementation(answerServer as never);
 });
 
 afterEach(() => {

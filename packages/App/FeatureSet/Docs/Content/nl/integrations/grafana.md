@@ -25,7 +25,7 @@ De webhook-payload van Grafana volgt de Alertmanager-vorm — `status`, een `ale
 
 1. Ga naar **Monitors → Monitor maken** en kies **Inkomend verzoek**. Open hem en klik op **Documentation** in het linkermenu om de URL te kopiëren.
 2. Open de **Criteria** van de monitor en zet **Filter Type** op `JavaScript Expression` en **Value** op `"{{requestBody.status}}" === "firing"`.
-3. Maak bij een match een incident aan, kies de **On-Call Policies** die opgeroepen moeten worden, en zet **Auto Resolve Incident** aan onder **Advanced Options**.
+3. Maak bij een match een incident aan, kies de **On-Call Policies** die opgeroepen moeten worden, en zet **Auto Resolve Incident** aan onder **More fields**.
 4. Zet onder **Settings** de optie **Group incidents and alerts by a payload field** aan en stel in:
 
    | Veld                               | Waarde                              |
@@ -89,7 +89,7 @@ Met **Optie 2** voeg je een tweede **Voorwaarden**-tak toe (`status == resolved`
 ## Probleemoplossing
 
 - **Er komt niets binnen** — bevestig dat Grafana de URL kan bereiken (controleer de serverlogs van Grafana) en, bij Optie 2, dat de workflow **Ingeschakeld** is. OneUptime beantwoordt elk inkomend verzoek met een lege `200` voordat het gevalideerd wordt, dus een `200` in Grafana's logs bevestigt niet dat de payload is geaccepteerd.
-- **Incidenten gaan open maar sluiten nooit** — controleer het herstelveld en de waarde op het criterium, en of **Auto Resolve Incident** aan staat onder de **Advanced Options** van het incident. De vergelijking is hoofdlettergevoelig.
+- **Incidenten gaan open maar sluiten nooit** — controleer het herstelveld en de waarde op het criterium, en of **Auto Resolve Incident** aan staat onder de **More fields** van het incident. De vergelijking is hoofdlettergevoelig.
 - **Slechts één incident voor een payload vol alerts** — je hebt gegroepeerd op een label dat binnen een melding niet varieert. Groepeer in plaats daarvan op `requestBody.alerts[*].fingerprint`.
 - **De incidenttekst toont ruwe `{{...}}`-placeholders** — het pad is niet omgezet, en niet-omgezette placeholders blijven staan in plaats van leeggemaakt te worden. Verwijs naar velden die in jouw alerting-versie bestaan; inspecteer de trigger-uitvoer op het tabblad **Logs** als je Optie 2 gebruikte.
 

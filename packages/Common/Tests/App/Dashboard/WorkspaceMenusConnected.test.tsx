@@ -437,8 +437,6 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
   const SECTIONS_WITHOUT_WORKSPACE: Array<string> = [
     "Get Started",
     "Alerts & Notifications",
-    "Incident On-Call",
-    "Alert On-Call",
     "On-Call Logs",
     "Incoming Call Policy",
     "Calendar",

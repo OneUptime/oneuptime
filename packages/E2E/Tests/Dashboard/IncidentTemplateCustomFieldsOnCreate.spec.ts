@@ -261,9 +261,8 @@ type IsOnStepFunction = (form: Locator, title?: string) => Promise<boolean>;
 /*
  * Whether a multi-step form shows the step with this title - or, with no
  * title, its last step - read from the form's own progress list, where the
- * step being filled in is marked aria-current. Not from the button's label:
- * in a modal that label follows the step a render later, so on the last
- * step it can still say "Next" - and pressing it then submits the form.
+ * step being filled in is marked aria-current, rather than inferred from
+ * which footer button is drawn.
  */
 const isOnStep: IsOnStepFunction = async (
   form: Locator,
@@ -287,10 +286,8 @@ type StepThroughFunction = (data: {
 }) => Promise<void>;
 
 /*
- * The one button of a multi-step form that reads Next: its main button
- * while a step still to come asks for something, and the plain one beside
- * the form's action once every step left is optional - when the main button
- * would create the record from the step on screen.
+ * A multi-step form's plain Next: every step but the last shows it, in place
+ * of the form's action, which is on the last step only.
  */
 type NextButtonFunction = (form: Locator) => Locator;
 
@@ -708,10 +705,11 @@ test.describe("Incident template Custom Fields on Create", () => {
 
     /*
      * The step after it (On-Call) is optional - the owners and the labels
-     * fold under Advanced on Incident Details - so the template could be
-     * created from here.
+     * fold under More fields on Incident Details - but Create Incident Template
+     * is on the last step only: Next here.
      */
-    await expect(submit).toHaveText("Create Incident Template");
+    await expect(submit).toHaveCount(0);
+    await expect(next).toBeVisible();
     await stepThrough({ form: wizard, next });
     expect(await isOnStep(wizard)).toBe(true);
     await expect(submit).toHaveText("Create Incident Template");
@@ -726,7 +724,12 @@ test.describe("Incident template Custom Fields on Create", () => {
       projectId: ctx.projectId,
       path: "/api/incident-templates",
       query: { templateName: wizardTemplateName },
-      select: { _id: true, customFieldSettings: true, customFields: true },
+      select: {
+        _id: true,
+        customFieldSettings: true,
+        customFields: true,
+        initialIncidentStateId: true,
+      },
     });
     expect(templates).toHaveLength(1);
     expect(templates[0]!["customFieldSettings"]).toEqual({
@@ -736,6 +739,12 @@ test.describe("Incident template Custom Fields on Create", () => {
     expect(JSON.stringify(templates[0]!["customFields"] || {})).not.toContain(
       "customFieldSettings",
     );
+    /*
+     * Nobody picked an Initial Incident State (it waits under More fields),
+     * so none was saved: the wizard used to save the first state by order.
+     * Its incidents start in the usual starting state.
+     */
+    expect(templates[0]!["initialIncidentStateId"] ?? null).toBeNull();
 
     // And the template's own page says so.
     await gotoProjectPage({
@@ -902,11 +911,11 @@ test.describe("Incident template Custom Fields on Create", () => {
     await expect(createForm).toContainText(TEMPLATE_REGION);
 
     /*
-     * Required is enforced: the step does not move on without Impact, and
-     * Declare Incident - on offer here, since every step after this one is
-     * optional - asks for it on this step instead of declaring.
+     * Required is enforced: the step does not move on without Impact. Every
+     * step after this one is optional, but Declare Incident is on the last
+     * step only - not here.
      */
-    await expect(declare).toHaveText("Declare Incident");
+    await expect(declare).toHaveCount(0);
     await next.click();
     const impact: Locator = createForm.getByLabel(FIELDS.impact.name, {
       exact: true,

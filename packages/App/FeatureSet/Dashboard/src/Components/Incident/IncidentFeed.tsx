@@ -14,12 +14,8 @@ import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
-import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import OneUptimeDate from "Common/Types/Date";
-import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
@@ -40,12 +36,19 @@ import {
   FeedItemMarkdown,
   getFeedItemMarkdown,
 } from "../../Utils/AIRootCauseFeedItem";
+import useFeedNoteActions, {
+  FeedNoteActions,
+} from "../EventNotes/useFeedNoteActions";
+import {
+  getIncidentPrivateNoteKind,
+  getIncidentPublicNoteKind,
+} from "../EventNotes/NoteKinds/IncidentNoteKinds";
 
 export interface ComponentProps {
   incidentId: ObjectID;
   refreshToken?: number | undefined;
   /*
-   * Where "Notify Status Page Subscribers" starts on a new public note.
+   * Where "Notify status page subscribers" starts on a new public note.
    * False when the incident was declared without notifying subscribers.
    */
   notifyStatusPageSubscribersByDefault?: boolean | undefined;
@@ -100,12 +103,6 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const notifySubscribersByDefault: boolean =
     props.notifyStatusPageSubscribersByDefault ?? true;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
-    React.useState<boolean>(false);
-
-  const [showPublicNoteModal, setShowPublicNoteModal] =
-    React.useState<boolean>(false);
-
-  const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
@@ -226,48 +223,55 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     mapItems: getFeedItemsFromIncidentFeeds,
   });
 
+  /*
+   * "Add Public Note" and "Add Private Note": the incident's Notes page
+   * composer, in a dialog.
+   */
+  const noteActions: FeedNoteActions = useFeedNoteActions({
+    keyPrefix: "incident",
+    publicNoteKind: getIncidentPublicNoteKind({
+      incidentId: props.incidentId,
+      isNotifyingByDefault: notifySubscribersByDefault,
+    }),
+    privateNoteKind: getIncidentPrivateNoteKind({
+      incidentId: props.incidentId,
+    }),
+    onPosted: () => {
+      refresh().catch((err: unknown) => {
+        setError(API.getFriendlyMessage(err as Exception));
+      });
+    },
+  });
+
   return (
     <FeedCard
       title={"Incident Feed"}
       description={
-        "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
+        "Everything that has happened to this incident: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}
       actions={
         <FeedActionsMenu key="incident-feed-actions-menu">
-          <MoreMenuItem
-            key="incident-action-run-runbook"
-            text="Execute Runbook"
-            icon={IconProp.Play}
-            onClick={() => {
-              setShowRunbookPickerModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="incident-action-execute-policy"
-            text="Execute On-Call Policy"
-            icon={IconProp.Call}
-            onClick={() => {
-              setShowOnCallPolicyModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="incident-action-public-note"
-            text="Add Public Note"
-            icon={IconProp.Team}
-            onClick={() => {
-              setShowPublicNoteModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="incident-action-private-note"
-            text="Add Private Note"
-            icon={IconProp.Lock}
-            onClick={() => {
-              setShowPrivateNoteModal(true);
-            }}
-          />
+          {[
+            <MoreMenuItem
+              key="incident-action-run-runbook"
+              text="Execute Runbook"
+              icon={IconProp.Play}
+              onClick={() => {
+                setShowRunbookPickerModal(true);
+              }}
+            />,
+            <MoreMenuItem
+              key="incident-action-execute-policy"
+              text="Execute On-Call Policy"
+              icon={IconProp.Call}
+              onClick={() => {
+                setShowOnCallPolicyModal(true);
+              }}
+            />,
+            ...noteActions.menuItems,
+          ]}
         </FeedActionsMenu>
       }
     >
@@ -341,97 +345,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {showPublicNoteModal && (
-          <ModelFormModal
-            modelType={IncidentPublicNote}
-            modalWidth={ModalWidth.Large}
-            name={"create-incident-public-note"}
-            title={"Add Public Note to this Incident"}
-            description={
-              "Add a public note to this incident. This note will be visible to all subscribers of this incident and will show up on the status page."
-            }
-            onClose={() => {
-              setShowPublicNoteModal(false);
-            }}
-            submitButtonText="Save"
-            /*
-             * Seeded as a value, not only as the field's default: the form
-             * drops a false default, and an unsent flag would fall back to
-             * notifying.
-             */
-            initialValues={{
-              shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
-                notifySubscribersByDefault,
-            }}
-            onBeforeCreate={async (model: IncidentPublicNote) => {
-              model.incidentId = props.incidentId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPublicNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Public Note",
-              },
-              name: "create-incident-state-timeline",
-              modelType: IncidentPublicNote,
-              id: "create-incident-state-timeline",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a public note about this state change to the status page.",
-                  title: "Public Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    attachments: true,
-                  },
-                  fieldType: FormFieldSchemaType.MultipleFiles,
-                  description:
-                    "Attach files that should be shared with subscribers on the status page.",
-                  title: "Attachments",
-                  required: false,
-                },
-                {
-                  field: {
-                    postedAt: true,
-                  },
-                  fieldType: FormFieldSchemaType.DateTime,
-                  description:
-                    "The date and time this note was posted. By default, it will be the current date and time.",
-                  title: "Posted At",
-                  required: true,
-                  getDefaultValue: () => {
-                    return OneUptimeDate.getCurrentDate();
-                  },
-                },
-                {
-                  field: {
-                    shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-                  },
-                  fieldType: FormFieldSchemaType.Checkbox,
-                  description: notifySubscribersByDefault
-                    ? "Should status page subscribers be notified when this note is posted?"
-                    : PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
-                  title: "Notify Status Page Subscribers",
-                  required: false,
-                  defaultValue: notifySubscribersByDefault,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
+        {noteActions.dialog}
 
         <RunbookPicker
           isOpen={showRunbookPickerModal}
@@ -445,64 +359,6 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           }}
           incidentId={props.incidentId}
         />
-
-        {showPrivateNoteModal && (
-          <ModelFormModal
-            modelType={IncidentInternalNote}
-            name={"create-incident-internal-note"}
-            modalWidth={ModalWidth.Large}
-            title={"Add Private Note to this Incident"}
-            description={
-              "Add a private note to this incident. This note will be visible only to the team members of this incident."
-            }
-            onClose={() => {
-              setShowPrivateNoteModal(false);
-            }}
-            submitButtonText="Save"
-            onBeforeCreate={async (model: IncidentInternalNote) => {
-              model.incidentId = props.incidentId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPrivateNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Private Note",
-              },
-              name: "create-incident-internal-note",
-              modelType: IncidentInternalNote,
-              id: "create-incident-internal-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a private note about this incident. This note will be visible only to the team members of this incident.",
-                  title: "Private Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    attachments: true,
-                  },
-                  fieldType: FormFieldSchemaType.MultipleFiles,
-                  description:
-                    "Attach files that should be visible to the incident response team.",
-                  title: "Attachments",
-                  required: false,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
       </div>
     </FeedCard>
   );

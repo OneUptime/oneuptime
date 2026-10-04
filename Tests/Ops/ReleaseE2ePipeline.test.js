@@ -521,3 +521,201 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
     ).toEqual(merges);
   });
 });
+
+/**
+ * Runs an actions/github-script step's script as the action does - the body
+ * of an async function of `github` and `context` - with each ${{ }}
+ * expression in it replaced from `expressions`. An expression with no value
+ * there throws, rather than reaching the script as literal text.
+ * `setTimeout`, if given, stands in for the global one the script waits on.
+ * @param {object} step
+ * @param {{github: object, context: object, expressions: Object<string, string>, setTimeout?: Function}} scope
+ * @returns {Promise<unknown>}
+ */
+function runGithubScript(
+  step,
+  { github, context, expressions, setTimeout = global.setTimeout },
+) {
+  const script = step.with.script.replace(
+    /\$\{\{\s*(.+?)\s*\}\}/g,
+    (match, expression) => {
+      if (!(expression in expressions)) {
+        throw new Error(`no value given for ${match}`);
+      }
+      return expressions[expression];
+    },
+  );
+  const AsyncFunction = Object.getPrototypeOf(async () => {
+    return undefined;
+  }).constructor;
+
+  return new AsyncFunction("github", "context", "setTimeout", script)(
+    github,
+    context,
+    setTimeout,
+  );
+}
+
+/*
+ * A draft release has no tag. GitHub cuts it when finalize-github-release
+ * publishes the draft, from the release's target_commitish, and a release
+ * created without one targets the default branch - so releases were tagged
+ * on master as it was at publish time, hours after the run started (14.0.12
+ * on a commit merged two minutes before it), and the tag and the release
+ * page's source archives were not the code the release was built from.
+ *
+ * Every step that can create the release names the run's commit:
+ * ncipollo/release-action as `commit` (it sends it when it updates a draft,
+ * too), softprops/action-gh-release as `target_commitish` - before
+ * publication it always creates a draft of its own, and keeps it if it
+ * cannot find draft-github-release's. The publish names the commit once
+ * more, so the tag is right whichever draft it publishes.
+ */
+describe(`${RELEASE}: the release is tagged on the commit the run built`, () => {
+  const workflow = readYaml(RELEASE);
+
+  function stepsUsing(action) {
+    return Object.entries(workflow.jobs).flatMap(([jobName, job]) => {
+      return (job.steps || [])
+        .filter((step) => {
+          return (step.uses || "").startsWith(`${action}@`);
+        })
+        .map((step) => {
+          return [`${jobName}: ${step.name || step.id}`, step];
+        });
+    });
+  }
+
+  const draftSteps = stepsUsing("ncipollo/release-action");
+  const uploadSteps = stepsUsing("softprops/action-gh-release");
+  const publish = (workflow.jobs["finalize-github-release"].steps || []).find(
+    (step) => {
+      return /^actions\/github-script@/.test(step.uses || "");
+    },
+  );
+
+  test("finds the steps that create, fill and publish the release (the checks below are not vacuous)", () => {
+    // The draft step is written out three times, as retries.
+    expect(draftSteps.length).toBeGreaterThanOrEqual(3);
+    // SBOMs, the infrastructure agent, and the Android and iOS apps.
+    expect(uploadSteps.length).toBeGreaterThanOrEqual(4);
+    expect(publish).toBeDefined();
+  });
+
+  test.each(draftSteps)(
+    "%s creates the draft with commit: ${{ github.sha }}",
+    (_label, step) => {
+      expect(step.with.commit).toBe("${{ github.sha }}");
+    },
+  );
+
+  test.each(uploadSteps)(
+    "%s passes target_commitish: ${{ github.sha }}, for a draft it creates",
+    (_label, step) => {
+      expect(step.with.target_commitish).toBe("${{ github.sha }}");
+    },
+  );
+
+  describe("finalize-github-release", () => {
+    const sha = "5a55eface9b1d6f0c2e8a4b7d3c9e1f2a6b8c0d4";
+
+    // Runs the publish script for 9.9.9, whose draft is release 42.
+    async function runPublish(updateRelease, waits = jest.fn()) {
+      const github = {
+        paginate: jest.fn().mockResolvedValue([
+          { id: 41, tag_name: "9.9.8", draft: false },
+          {
+            id: 42,
+            tag_name: "9.9.9",
+            draft: true,
+            target_commitish: "master",
+          },
+        ]),
+        rest: { repos: { listReleases: jest.fn(), updateRelease } },
+      };
+      const log = jest.spyOn(console, "log").mockImplementation(() => {
+        return undefined;
+      });
+
+      try {
+        await runGithubScript(publish, {
+          github,
+          context: { repo: { owner: "OneUptime", repo: "oneuptime" }, sha },
+          expressions: { "needs.read-version.outputs.major_minor": "9.9.9" },
+          // The back-off between attempts returns at once, recorded in
+          // `waits`, so a retry shows up as calls rather than minutes.
+          setTimeout: (resolve, ms) => {
+            waits(ms);
+            resolve();
+          },
+        });
+      } finally {
+        log.mockRestore();
+      }
+
+      expect(github.paginate).toHaveBeenCalledWith(
+        github.rest.repos.listReleases,
+        expect.objectContaining({ owner: "OneUptime", repo: "oneuptime" }),
+      );
+    }
+
+    test("publishes the draft with target_commitish set to the run's commit", async () => {
+      const updateRelease = jest.fn().mockResolvedValue({ data: {} });
+
+      await runPublish(updateRelease);
+
+      expect(updateRelease).toHaveBeenCalledTimes(1);
+      expect(updateRelease).toHaveBeenCalledWith(
+        expect.objectContaining({
+          release_id: 42,
+          draft: false,
+          target_commitish: sha,
+        }),
+      );
+    });
+
+    test("still retries a transient failure", async () => {
+      const unavailable = Object.assign(
+        new Error("No server is currently available to service your request."),
+        { status: 503 },
+      );
+      const updateRelease = jest
+        .fn()
+        .mockRejectedValueOnce(unavailable)
+        .mockResolvedValue({ data: {} });
+      const waits = jest.fn();
+
+      await runPublish(updateRelease, waits);
+
+      expect(updateRelease).toHaveBeenCalledTimes(2);
+      expect(waits).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The workflow token may not create a ref at a commit whose workflows
+     * differ from master's, so the publish is refused if master changed a
+     * workflow during the run. That is not transient: retrying it only
+     * waited out 150 seconds of back-off before failing with a bare 403.
+     */
+    test("stops at once when GitHub refuses to create the tag, and says how to publish by hand", async () => {
+      const refused = Object.assign(
+        new Error(
+          "Resource not accessible by integration - https://docs.github.com/rest/releases/releases#update-a-release",
+        ),
+        { status: 403 },
+      );
+      const updateRelease = jest.fn().mockRejectedValue(refused);
+      const waits = jest.fn();
+      const publishing = runPublish(updateRelease, waits);
+
+      await expect(publishing).rejects.toThrow(
+        `GitHub refused to create tag 9.9.9 at ${sha}`,
+      );
+      await expect(publishing).rejects.toThrow(
+        "Publish the draft for 9.9.9 from the Releases page",
+      );
+      expect(updateRelease).toHaveBeenCalledTimes(1);
+      expect(waits).not.toHaveBeenCalled();
+    });
+  });
+});

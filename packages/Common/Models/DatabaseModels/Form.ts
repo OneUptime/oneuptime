@@ -1,3 +1,4 @@
+import File from "./File";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -391,6 +392,131 @@ export default class Form extends BaseModel {
     create: PlanType.Free,
   })
   public ipWhitelist?: string = undefined;
+
+  /*
+   * The form's branding, set in the Build page's Branding section: a logo
+   * shown at the top of its public page in place of the OneUptime logo,
+   * what that logo says for screen readers, and the icon of the browser tab
+   * while the page is open. Files, uploaded as a status page's are, checked
+   * on every write by FormService (Types/Form/FormBranding: an image every
+   * browser draws, 1 MB at most).
+   *
+   * The public page gets them inside the form's own public read, never at
+   * an address of their own and never by a file's id, and the files stay
+   * private. Deleting a file only takes it off the form (SET NULL): a form,
+   * and its submissions, outlive their logo.
+   */
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "logoFileId",
+    type: TableColumnType.Entity,
+    modelType: File,
+    title: "Logo",
+    description:
+      "The image at the top of the form's public page, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
+  })
+  @ManyToOne(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "logoFileId" })
+  public logoFile?: File = undefined;
+
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Logo File ID",
+    description:
+      "ID of the file the form's public page shows as its logo: upload the image to /api/file first. Leave it empty to show the OneUptime logo.",
+    example: "b8e2c3d4-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public logoFileId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Logo Alt Text",
+    description:
+      "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.",
+    example: "Acme Inc.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public logoAltText?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "faviconFileId",
+    type: TableColumnType.Entity,
+    modelType: File,
+    title: "Favicon",
+    description:
+      "The icon in the browser tab while the form's public page is open, in place of the OneUptime favicon. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
+  })
+  @ManyToOne(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "faviconFileId" })
+  public faviconFile?: File = undefined;
+
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Favicon File ID",
+    description:
+      "ID of the file the form's public page shows as the browser tab's icon: upload the image to /api/file first. Leave it empty to show the OneUptime favicon.",
+    example: "c9f3d4e5-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public faviconFileId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],

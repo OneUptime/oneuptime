@@ -18,6 +18,18 @@ import User from "Common/UI/Utils/User";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import {
+  isAddingOffered,
+  isCodeResendOffered,
+  ProjectChannelState,
+  useProjectChannelState,
+} from "./ProjectNotificationChannels";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+  ProjectNotificationChannel,
+} from "./ProjectNotificationChannelsCopy";
 
 const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -37,6 +49,17 @@ const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
 
   const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
     useState<boolean>(false);
+
+  /*
+   * Numbers here are verified by text message, so the server refuses a new
+   * one (and a code sent again) while the project has SMS off. The list then
+   * offers no Add button: the panel at its top says so, with the SMS switch
+   * itself for those who may turn it on.
+   */
+  const channelState: ProjectChannelState = useProjectChannelState(
+    ProjectNotificationChannel.SMS,
+  );
+  const isChannelOff: boolean = channelState === ProjectChannelState.Off;
 
   useEffect(() => {
     setError("");
@@ -102,7 +125,11 @@ const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
                 return false;
               }
 
-              return true;
+              // The server refuses to send a code while SMS is off.
+              return isCodeResendOffered(
+                ProjectNotificationChannel.SMS,
+                channelState,
+              );
             },
             onClick: async (
               item: UserIncomingCallNumber,
@@ -125,14 +152,24 @@ const IncomingCallNumber: () => JSX.Element = (): ReactElement => {
         name="User Settings > Incoming Call Policy > Phone Numbers"
         isDeleteable={true}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={isAddingOffered(channelState)}
+        topContent={
+          <NotificationChannelOffPanel
+            list={ChannelGatedMethodList.IncomingCallNumber}
+            state={channelState}
+          />
+        }
         cardProps={{
           title: "Phone Numbers for Incoming Call Routing",
           description:
             "Manage Phone Numbers that will receive routed incoming calls for this project. Only one verified phone number is allowed per project.",
         }}
         noItemsMessage={
-          "No phone numbers found. Please add one to receive routed incoming calls."
+          isChannelOff
+            ? getChannelGatedMethodList(
+                ChannelGatedMethodList.IncomingCallNumber,
+              ).noItemsWhileOff
+            : "No phone numbers found. Please add one to receive routed incoming calls."
         }
         formFields={[
           {

@@ -17,14 +17,15 @@ Los monitores de trazas buscan y cuentan los spans que coinciden con filtros esp
 1. Ve a **Monitores** en el panel de OneUptime
 2. Haz clic en **Crear monitor**
 3. Selecciona **Trazas** como tipo de monitor
-4. Selecciona los servicios de telemetría a monitorear
-5. Configura los filtros de spans y los criterios según sea necesario
+4. Elige qué spans contar: el nombre del span, la ventana de tiempo y los estados de span
+5. Para limitarlos a servicios de telemetría, entidades de infraestructura o atributos, abre **Más campos** debajo de estos filtros
+6. Configura los criterios según sea necesario
 
 ## Opciones de configuración
 
 ### Servicios de telemetría
 
-Selecciona uno o más servicios desde los que monitorear trazas. Los servicios deben enviar trazas a OneUptime a través de OpenTelemetry.
+Selecciona en **Más campos** uno o más servicios desde los que monitorear trazas. Déjalo vacío para monitorear los spans de todos los servicios. Los servicios deben enviar trazas a OneUptime a través de OpenTelemetry.
 
 ### Filtros de spans
 

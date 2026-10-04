@@ -27,13 +27,14 @@ SSO-integratie biedt de volgende voordelen:
    - Voer de **Aanmeldings-URL** in van uw identiteitsprovider
    - Voer de **Uitgever** (Entiteit-ID) in van uw identiteitsprovider
    - Plak het **Openbaar certificaat** van uw identiteitsprovider
-   - Selecteer het **Handtekeningalgoritme** (bijv. `RSA-SHA-256`)
-   - Selecteer het **Digestalgoritme** (bijv. `SHA256`)
+   - In de stap **Aanmelden** begint **Teams** bij het ledenteam van uw project: mensen die zich voor het eerst aanmelden, worden lid van deze teams
+   - Al het andere wordt onder **Meer velden** ingevuld: de **Handtekeningmethode** (`RSA-SHA256`), de **Digest-methode** (`SHA256`) en een beschrijving ('Sign in with' en de naam). Wijzig ze alleen als uw identiteitsprovider dat vereist
 
 3. **OneUptime SSO-metagegevens ophalen**
-   - Klik na het opslaan op de knop **SSO-configuratie bekijken**
+   - Na het opslaan opent het venster **SSO Configuration**. U kunt het opnieuw openen met de knop **SSO-configuratie bekijken**
    - Kopieer de **Identifier (Entiteit-ID)** — dit is nodig in uw IdP-configuratie
    - Kopieer de **Reply URL (Assertion Consumer Service URL)** — dit is nodig in uw IdP-configuratie
+   - Een nieuwe provider staat eerst uit. Zodra uw IdP deze twee waarden heeft, bewerkt u de provider en zet u **Ingeschakeld** aan
 
 ## Keycloak SAML-configuratie
 
@@ -54,8 +55,7 @@ Keycloak is een populaire open-source oplossing voor identiteits- en toegangsbeh
    - **Aanmeldings-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Uitgever**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificaat**: Zie [Stap 2](#stap-2-het-keycloak-certificaat-ophalen) hieronder
-   - **Handtekeningalgoritme**: `RSA-SHA-256`
-   - **Digestalgoritme**: `SHA256`
+   - **Handtekeningmethode** en **Digest-methode**: al ingesteld onder **Meer velden** (`RSA-SHA256` en `SHA256`)
 4. Sla de configuratie op
 
 ### Stap 2: Het Keycloak-certificaat ophalen
@@ -121,8 +121,7 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
    - **Aanmeldings-URL**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
    - **Uitgever**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
    - **Certificaat**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
-   - **Handtekeningalgoritme**: `RSA-SHA-256`
-   - **Digestalgoritme**: `SHA256`
+   - **Handtekeningmethode** en **Digest-methode**: al ingesteld onder **Meer velden** (`RSA-SHA256` en `SHA256`)
 4. Klik op **SSO-configuratie bekijken** en kopieer de **Identifier (Entiteit-ID)** en **Reply URL (Assertion Consumer Service URL)** — u heeft deze nodig voor Entra ID
 
 ### Stap 2: Enterprise-toepassing aanmaken in Microsoft Entra ID
@@ -206,8 +205,7 @@ Okta is een veelgebruikt identiteitsplatform dat robuuste SAML SSO-mogelijkheden
    - **Aanmeldings-URL**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
    - **Uitgever**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
    - **Certificaat**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
-   - **Handtekeningalgoritme**: `RSA-SHA-256`
-   - **Digestalgoritme**: `SHA256`
+   - **Handtekeningmethode** en **Digest-methode**: al ingesteld onder **Meer velden** (`RSA-SHA256` en `SHA256`)
 4. Klik op **SSO-configuratie bekijken** en kopieer de **Identifier (Entiteit-ID)** en **Reply URL (Assertion Consumer Service URL)** — u heeft deze nodig voor Okta
 
 ### Stap 2: SAML-applicatie aanmaken in Okta
@@ -287,7 +285,18 @@ De SSO-implementatie van OneUptime gebruikt het SAML 2.0-protocol en zou moeten 
    - **Aanmeldings-URL** (SSO-eindpunt)
    - **Uitgever** (Entiteit-ID van de IdP)
    - **Openbaar certificaat** (X.509-handtekeningcertificaat)
-4. Stel het **Handtekeningalgoritme** in op `RSA-SHA-256` en het **Digestalgoritme** op `SHA256`
+4. De **Handtekeningmethode** (`RSA-SHA256`) en **Digest-methode** (`SHA256`) zijn al ingesteld onder **Meer velden**; wijzig ze alleen als uw identiteitsprovider anders ondertekent
+
+## OpenID Connect (OIDC)
+
+Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google Workspace, Okta, Microsoft Entra ID, Auth0 of Keycloak.
+
+1. Registreer een app (een OIDC-client) bij uw identiteitsprovider en kopieer de **Uitgever-URL**, **Client-ID** en **Client-secret**.
+2. Navigeer in OneUptime naar **Projectinstellingen** > **Beveiliging** > **OIDC** en klik op **OIDC aanmaken**.
+3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
+4. In de stap **Aanmelden** staat bij **Teams** al het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. Al het andere wordt onder **Meer velden** ingevuld: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vereist.
+5. Sla op. Het venster **OIDC Configuration** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit; bewerk hem daarna en zet **Ingeschakeld** aan.
+6. Gebruik de link op de kaart **Test OpenID Connect (OIDC)** om via de provider in te loggen voordat u SSO voor het project verplicht maakt.
 
 ## Opmerkingen over SSO en rollen
 

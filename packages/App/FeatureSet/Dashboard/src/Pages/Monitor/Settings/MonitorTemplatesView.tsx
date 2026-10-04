@@ -50,8 +50,8 @@ import {
   MonitorTemplateSyncFieldsSummary,
 } from "../../../Components/Form/Monitor/MonitorTemplateSyncFields";
 import MonitorStepsViewer from "../../../Components/Monitor/MonitorSteps/MonitorSteps";
-import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
+import MonitoringIntervalElement from "../../../Components/Monitor/MonitoringIntervalElement";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import React, {
@@ -984,23 +984,20 @@ const MonitorTemplatesView: FunctionComponent<
                 title: "Monitoring Interval",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
-                fetchDropdownOptions: () => {
-                  let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-                  if (
-                    monitorType === MonitorType.SyntheticMonitor ||
-                    monitorType === MonitorType.CustomJavaScriptCode ||
-                    monitorType === MonitorType.SSLCertificate
-                  ) {
-                    interval = interval.filter((option: DropdownOption) => {
-                      return (
-                        option.value !== "* * * * *" &&
-                        option.value !== "*/2 * * * *"
-                      );
-                    });
-                  }
-
-                  return Promise.resolve(interval);
+                /*
+                 * What Create Monitor offers the type, and the template's own
+                 * interval even when that is one the type is not offered, so
+                 * the dialog shows it rather than an empty dropdown.
+                 */
+                fetchDropdownOptions: (item: FormValues<MonitorTemplate>) => {
+                  return Promise.resolve(
+                    getMonitoringIntervalOptions({
+                      monitorType: monitorType,
+                      currentInterval: item?.monitoringInterval as
+                        | string
+                        | undefined,
+                    }),
+                  );
                 },
                 placeholder: "Select Monitoring Interval",
               },
@@ -1014,6 +1011,13 @@ const MonitorTemplatesView: FunctionComponent<
                 fieldType: FormFieldSchemaType.Number,
                 required: false,
                 placeholder: "e.g. 2",
+                /*
+                 * As on a monitor's own Probe Agreement card: zero would let
+                 * a linked monitor's status change with no probe agreeing.
+                 */
+                validation: {
+                  minValue: 1,
+                },
               },
             ]}
             modelDetailProps={{
@@ -1026,7 +1030,14 @@ const MonitorTemplatesView: FunctionComponent<
                     monitoringInterval: true,
                   },
                   title: "Monitoring Interval",
-                  fieldType: FieldType.Text,
+                  // "Every 5 Minutes", not the cron it is stored as.
+                  getElement: (item: MonitorTemplate): ReactElement => {
+                    return (
+                      <MonitoringIntervalElement
+                        monitoringInterval={item.monitoringInterval}
+                      />
+                    );
+                  },
                 },
                 {
                   field: {
@@ -1034,6 +1045,7 @@ const MonitorTemplatesView: FunctionComponent<
                   },
                   title: "Minimum Probe Agreement",
                   fieldType: FieldType.Number,
+                  placeholder: "All probes must agree",
                 },
               ],
               modelId: modelId,

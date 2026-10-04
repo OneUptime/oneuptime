@@ -9,19 +9,22 @@ import {
 
 /*
  * A scheduled maintenance event created without notifying status page
- * subscribers starts every new public note - on the feed and on the Public
- * Notes tab - with "Notify Status Page Subscribers" unticked. A state change
- * from the header starts from the state it moves the event to: ticked for an
- * event created with subscribers notified; for a quiet event, ticked only
- * when moving it to ongoing or ended while its "Event Ongoing" / "Event
+ * subscribers starts every new public note - from the feed's "Add Public
+ * Note" and on the Public Notes tab - with "Notify status page subscribers"
+ * unticked. Both write the note with the same composer, built from the
+ * event's public note kind, which always sends the flag it shows. A state
+ * change from the header starts from the state it moves the event to: ticked
+ * for an event created with subscribers notified; for a quiet event, ticked
+ * only when moving it to ongoing or ended while its "Event Ongoing" / "Event
  * Ended" setting is on, as the automatic change would have announced it.
  *
- * The flag has to be seeded as a form value, not only as the checkbox's
- * default: the form drops a false default and the key is then left out of
- * the request. A state change has no event fallback on the server, so an
- * unsent flag leaves the state change to its column default (notify) and
- * every subscriber is emailed about it anyway - while its public note, which
- * the server posts with Boolean(flag), goes out quiet.
+ * The state change is a form, where the flag has to be seeded as a form
+ * value, not only as the checkbox's default: the form drops a false default
+ * and the key is then left out of the request. A state change has no event
+ * fallback on the server, so an unsent flag leaves the state change to its
+ * column default (notify) and every subscriber is emailed about it anyway -
+ * while its public note, which the server posts with Boolean(flag), goes out
+ * quiet.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -152,92 +155,69 @@ describe("scheduled maintenance view page", () => {
   });
 });
 
-interface ModalFormCase {
-  name: string;
-  file: Array<string>;
-  modal: RegExp;
-  flagKey: string;
-  notifyingDescription: string;
-  helperImport: string;
-  // The optional prop the form's default comes from.
-  propDeclaration: string;
-  // How the component turns that prop into the checkbox's starting value.
-  derivation: string;
-}
-
-const MODAL_FORMS: Array<ModalFormCase> = [
-  {
-    name: "Scheduled maintenance feed public note",
-    file: [
-      "Components",
-      "ScheduledMaintenance",
-      "ScheduledMaintenanceFeed.tsx",
-    ],
-    modal:
-      /\{showPublicNoteModal && \( <ModelFormModal [^>]*?modelType=\{ScheduledMaintenancePublicNote\}[\s\S]*?formType: FormType\.Create,/,
-    flagKey: "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
-    notifyingDescription:
-      "Should status page subscribers be notified when this note is posted?",
-    helperImport: HELPER_IMPORT,
-    propDeclaration:
-      "notifyStatusPageSubscribersByDefault?: boolean | undefined;",
-    derivation:
-      "const notifySubscribersByDefault: boolean = props.notifyStatusPageSubscribersByDefault ?? true;",
-  },
-  {
-    name: "Scheduled maintenance change state",
-    file: ["Components", "ScheduledMaintenance", "ChangeState.tsx"],
-    modal:
-      /\{showModal && \( <ModelFormModal [^>]*?modelType=\{ScheduledMaintenanceStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
-    flagKey: "shouldStatusPageSubscribersBeNotified",
-    notifyingDescription: "Notify subscribers of this state change.",
-    helperImport: HELPER_WITH_STATE_CHANGE_SETTINGS_IMPORT,
-    propDeclaration:
-      "subscriberNotificationSettings?: | ScheduledMaintenanceStateChangeSubscriberNotificationSetting | undefined;",
-    derivation:
-      "const notifySubscribersByDefault: boolean = PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange( props.subscriberNotificationSettings, selectedScheduledMaintenanceState, );",
-  },
-];
-
-describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
-  const source: string = readSource(...form.file);
-  const modal: string = extract(source, form.modal);
+/*
+ * The state change dialog builds its body with the shared state change
+ * fields (EventView/StateChangeFormFields): the notify checkbox open, the
+ * public note folded under it. The checkbox is the builder's; what the
+ * event decides is what it hands the builder.
+ */
+describe("Scheduled maintenance change state", () => {
+  const source: string = readSource(
+    "Components",
+    "ScheduledMaintenance",
+    "ChangeState.tsx",
+  );
+  const modal: string = extract(
+    source,
+    /\{showModal && \( <ModelFormModal [^>]*?modelType=\{ScheduledMaintenanceStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
+  );
+  const builder: string = readSource(
+    "Components",
+    "EventView",
+    "StateChangeFormFields.ts",
+  );
   const checkbox: string = extract(
-    modal,
-    new RegExp(
-      `\\{ field: \\{ ${form.flagKey}: true, \\}, fieldType: FormFieldSchemaType\\.Checkbox,[\\s\\S]*?\\}`,
-    ),
+    builder,
+    /\{ field: \{ shouldStatusPageSubscribersBeNotified: true, \} as SelectFormFields<TEntity>, fieldType: FormFieldSchemaType\.Checkbox,[\s\S]*?\}/,
   );
 
-  test("finds the modal form and its notify checkbox", () => {
+  test("finds the modal form and builds it with the shared state change fields", () => {
     expect(modal).not.toBe("");
+    expect(modal).toContain(
+      "fields: getStateChangeFormFields<ScheduledMaintenanceStateTimeline>( {",
+    );
+    expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
     expect(checkbox).not.toBe("");
     expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
   });
 
   test("takes the default from an optional prop, through the shared rule", () => {
-    expect(source).toContain(form.propDeclaration);
-    expect(source).toContain(form.derivation);
+    expect(source).toContain(
+      "subscriberNotificationSettings?: | ScheduledMaintenanceStateChangeSubscriberNotificationSetting | undefined;",
+    );
+    expect(source).toContain(
+      "const notifySubscribersByDefault: boolean = PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange( props.subscriberNotificationSettings, selectedScheduledMaintenanceState, );",
+    );
   });
 
   test("seeds the flag as an initial form value, not only as the checkbox default", () => {
     expect(modal).toMatch(
-      new RegExp(
-        `initialValues=\\{\\{ ${form.flagKey}: notifySubscribersByDefault,? \\}\\}`,
-      ),
+      /initialValues=\{\{ shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,? \}\}/,
     );
   });
 
-  test("starts the checkbox from the event's default instead of hard-coding true", () => {
-    expect(checkbox).toContain("defaultValue: notifySubscribersByDefault,");
-    expect(checkbox).not.toContain("defaultValue: true");
+  test("starts the checkbox from the event's default and explains a quiet one", () => {
+    expect(source).toContain(HELPER_WITH_STATE_CHANGE_SETTINGS_IMPORT);
+    expect(modal).toContain(
+      `notifySubscribers: { byDefault: notifySubscribersByDefault, quietDescription: ${QUIET_DESCRIPTION_REFERENCE}, },`,
+    );
   });
 
-  test("explains an unticked default with the shared description", () => {
-    expect(source).toContain(form.helperImport);
+  test("the shared checkbox starts where it is told, never hard-coded on", () => {
     expect(checkbox).toContain(
-      `description: notifySubscribersByDefault ? "${form.notifyingDescription}" : ${QUIET_DESCRIPTION_REFERENCE},`,
+      "defaultValue: options.notifySubscribers.byDefault,",
     );
+    expect(checkbox).not.toContain("defaultValue: true");
   });
 });
 
@@ -313,13 +293,80 @@ describe("scheduled maintenance change state public note", () => {
   );
 
   test("offers a public note under the one notify checkbox", () => {
-    expect(modal).toContain("field: { publicNote: true, } as any,");
-    expect(modal.match(/fieldType: FormFieldSchemaType\.Checkbox,/g)).toEqual([
-      "fieldType: FormFieldSchemaType.Checkbox,",
+    const builder: string = readSource(
+      "Components",
+      "EventView",
+      "StateChangeFormFields.ts",
+    );
+
+    // A public note, and the notify checkbox the builder draws once.
+    expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
+    expect(modal.match(/notifySubscribers: \{/g)).toEqual([
+      "notifySubscribers: {",
     ]);
+    expect(modal).not.toContain("FormFieldSchemaType.Checkbox");
+    expect(builder.match(/fieldType: FormFieldSchemaType\.Checkbox,/g)).toEqual(
+      ["fieldType: FormFieldSchemaType.Checkbox,"],
+    );
     expect(modal).not.toContain(
       "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
     );
+    expect(builder).not.toContain(
+      "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
+    );
+  });
+});
+
+/*
+ * The feed's "Add Public Note" is the Public Notes tab's composer in a
+ * dialog, given the event's public note kind built from the default the
+ * overview page loaded.
+ */
+describe("scheduled maintenance feed public note", () => {
+  const source: string = readSource(
+    "Components",
+    "ScheduledMaintenance",
+    "ScheduledMaintenanceFeed.tsx",
+  );
+  const kinds: string = readSource(
+    "Components",
+    "EventNotes",
+    "NoteKinds",
+    "ScheduledMaintenanceNoteKinds.ts",
+  );
+
+  test("takes the default from an optional prop that falls back to notifying", () => {
+    expect(source).toContain(
+      "notifyStatusPageSubscribersByDefault?: boolean | undefined;",
+    );
+    expect(source).toContain(
+      "const notifySubscribersByDefault: boolean = props.notifyStatusPageSubscribersByDefault ?? true;",
+    );
+  });
+
+  test("builds the dialog's public note from the event's kind, with that default", () => {
+    expect(source).toContain(
+      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "scheduled-maintenance", publicNoteKind: getScheduledMaintenancePublicNoteKind({ scheduledMaintenanceId: props.scheduledMaintenanceId, isNotifyingByDefault: notifySubscribersByDefault, }), privateNoteKind: getScheduledMaintenancePrivateNoteKind({ scheduledMaintenanceId: props.scheduledMaintenanceId, }),',
+    );
+  });
+
+  test("explains an unticked default with the event's own description", () => {
+    expect(kinds).toContain(HELPER_IMPORT);
+    expect(kinds).toContain(
+      `subscriberNotifications: { isNotifyingByDefault: data.isNotifyingByDefault, quietDescription: ${QUIET_DESCRIPTION_REFERENCE}, },`,
+    );
+  });
+
+  test("no longer builds its own note form", () => {
+    expect(source).not.toContain(
+      '"Common/Models/DatabaseModels/ScheduledMaintenancePublicNote"',
+    );
+    expect(source).not.toContain(
+      '"Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote"',
+    );
+    expect(source).not.toContain("<ModelFormModal");
+    expect(source).not.toContain("initialValues=");
+    expect(source).not.toContain(QUIET_DESCRIPTION_REFERENCE);
   });
 });
 
@@ -329,6 +376,13 @@ describePublicNotesTab({
   parentModel: "ScheduledMaintenance",
   noteModel: "ScheduledMaintenancePublicNote",
   parentIdField: "scheduledMaintenanceId",
+  kindFile: [
+    "Components",
+    "EventNotes",
+    "NoteKinds",
+    "ScheduledMaintenanceNoteKinds.ts",
+  ],
+  kindFunction: "getScheduledMaintenancePublicNoteKind",
   parentFlag: "shouldStatusPageSubscribersBeNotifiedOnEventCreated",
   resolveArgument: "scheduledMaintenance",
   helperCall: "shouldNotifyForScheduledMaintenance",
@@ -386,8 +440,11 @@ describe("the notify checkbox descriptions are translated", () => {
   const FORM_STRINGS: Array<string> = [
     "Notify Status Page Subscribers",
     "Should status page subscribers be notified?",
-    "Should status page subscribers be notified when this note is posted?",
     "Notify subscribers of this state change.",
+    // The composer's, on the Public Notes tab and in the feed's dialog.
+    "Notify status page subscribers",
+    "Subscribers will be notified about this update as soon as you post it.",
+    "The update will appear on your status page without notifying subscribers.",
   ];
 
   const localeFiles: Array<string> = fs

@@ -160,7 +160,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getDefaultApiKeyExpiry } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm";
-import { API_KEY_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyAccess";
+import { ROLE_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import Route from "../../../Types/API/Route";
@@ -173,6 +173,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { getJestSpyOn } from "../../Spy";
+import {
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -270,7 +275,7 @@ async function waitForFormDefaults(modal: HTMLElement): Promise<void> {
     );
 
     const later: HTMLElement | null = within(modal).queryByTestId(
-      `card-select-option-${API_KEY_ACCESS_LATER}`,
+      `card-select-option-${ROLE_ACCESS_LATER}`,
     );
 
     if (later) {
@@ -330,7 +335,7 @@ function accessCardValues(modal: HTMLElement): Array<string> {
 }
 
 function advancedHeader(modal: HTMLElement): HTMLElement {
-  return within(modal).getByRole("button", { name: /^Advanced/ });
+  return within(modal).getByRole("button", { name: "More fields" });
 }
 
 async function submit(modal: HTMLElement): Promise<void> {
@@ -366,7 +371,7 @@ describe("the Create API Key form", () => {
     ).toBeInTheDocument();
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader(modal))).toEqual([]);
     expect(
       within(modal).getByPlaceholderText("API Key Description"),
     ).not.toBeVisible();
@@ -385,10 +390,10 @@ describe("the Create API Key form", () => {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
 
-    expect(accessCard(modal, API_KEY_ACCESS_LATER)).toHaveAttribute(
+    expect(accessCard(modal, ROLE_ACCESS_LATER)).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -417,7 +422,7 @@ describe("the Create API Key form", () => {
     );
   });
 
-  test("folded, Advanced says the key expires a year from today", async () => {
+  test("folded, More fields names what it holds and says the key expires a year from today", async () => {
     const modal: HTMLElement = await openCreateForm();
 
     const summary: HTMLElement = within(modal).getByTestId(
@@ -426,12 +431,15 @@ describe("the Create API Key form", () => {
 
     expect(summary).toHaveTextContent("The key expires a year from today.");
     // Read out with the header, and on screen while it is folded.
-    expect(advancedHeader(modal)).toHaveAttribute(
-      "aria-describedby",
+    expect(advancedHeader(modal).getAttribute("aria-describedby")).toContain(
       summary.id,
     );
     expect(summary).toBeVisible();
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(listedNames(advancedHeader(modal))).toEqual([
+      "Description",
+      "Expires",
+    ]);
+    expect(setChips(advancedHeader(modal))).toEqual([]);
   });
 
   test("a description typed under Advanced keeps the line: the expiry is still the default", async () => {
@@ -451,7 +459,7 @@ describe("the Create API Key form", () => {
     ).toHaveTextContent("The key expires a year from today.");
   });
 
-  test("another expiry date replaces the line with Configured", async () => {
+  test("another expiry date replaces the line with a chip of that date", async () => {
     const modal: HTMLElement = await openCreateForm();
 
     fireEvent.click(advancedHeader(modal));
@@ -461,7 +469,7 @@ describe("the Create API Key form", () => {
     fireEvent.click(advancedHeader(modal));
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader(modal)).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader(modal))).toBe(true);
     expect(
       within(modal).queryByTestId("collapsible-section-summary"),
     ).toBeNull();
@@ -564,7 +572,7 @@ describe("creating a key", () => {
 
     typeName(modal, "CI pipeline");
     fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
-    fireEvent.click(accessCard(modal, API_KEY_ACCESS_LATER));
+    fireEvent.click(accessCard(modal, ROLE_ACCESS_LATER));
 
     await submit(modal);
 
@@ -604,7 +612,7 @@ describe("creating a key", () => {
       "aria-checked",
       "false",
     );
-    expect(accessCard(secondModal, API_KEY_ACCESS_LATER)).toHaveAttribute(
+    expect(accessCard(secondModal, ROLE_ACCESS_LATER)).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -639,7 +647,7 @@ describe("creating a key", () => {
 
     // Folded again, the section says something in it is set.
     fireEvent.click(advancedHeader(modal));
-    expect(advancedHeader(modal)).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader(modal))).toBe(true);
 
     await submit(modal);
 
@@ -749,7 +757,7 @@ describe("who is asked what", () => {
 
     expect(accessCardValues(modal)).toEqual([
       Permission.ProjectAdmin,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
   });
 

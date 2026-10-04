@@ -1,6 +1,6 @@
 # Opret et dashboard
 
-For at oprette et dashboard åbner du **Dashboards → Create Dashboard**, giver det et navn og åbner det. Lærredet åbner i **Rediger**-tilstand, klar til at du begynder at tilføje widgets.
+For at oprette et dashboard åbner du **Dashboards → Create Dashboard** og vælger en skabelon eller **Blank Dashboard** for at starte fra bunden. En skabelon udfylder dashboardets navn for dig (nummereret, som "Kubernetes Dashboard 2", hvis projektet allerede har et); et tomt dashboard giver du selv et navn. Klik på **Create Dashboard**, og det nye dashboard åbner. Et tomt dashboard åbner på et tomt lærred med knappen **Tilføj widget** til den første widget.
 
 ## Lærredet
 
@@ -17,7 +17,7 @@ Det er samme dashboard i begge tilstande. Der er ikke noget separat "publicer"-s
 
 ## Tilføj en widget
 
-1. Klik på knappen **+** for at åbne widget-paletten.
+1. Klik på **Tilføj widget** for at åbne widget-paletten: på lærredet i et tomt dashboard eller i værktøjslinjen, mens du redigerer dashboardet.
 2. Vælg widget-typen. Se [Widgets](/docs/dashboards/widgets) for kataloget.
 3. Widget'en dukker op på lærredet.
 4. Klik på tandhjuls-ikonet på widget'en for at åbne dens indstillinger.

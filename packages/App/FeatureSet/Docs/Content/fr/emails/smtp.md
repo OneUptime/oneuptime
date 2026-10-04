@@ -6,7 +6,28 @@ OneUptime prend en charge l'envoi d'e-mails via des serveurs SMTP personnalisés
 - **OAuth 2.0** — Authentification moderne pour Microsoft 365 et Google Workspace
 - **Aucune** — Pour les serveurs relais ne nécessitant pas d'authentification
 
-Ce guide explique comment configurer l'authentification OAuth 2.0 pour Microsoft 365 et Google Workspace.
+La première section ci-dessous indique où se trouve chaque réglage. Le reste de ce guide traite de l'authentification OAuth 2.0 pour Microsoft 365 et Google Workspace.
+
+## Ajouter un serveur SMTP
+
+Ajoutez le serveur de messagerie d'un projet dans **Paramètres du projet > Notifications > Paramètres de notification**, dans la carte **Configurations SMTP personnalisées**. Sur une installation auto-hébergée, le serveur depuis lequel OneUptime envoie lui-même se règle dans **Admin Dashboard > Paramètres > E-mails**, dans la carte **Paramètres e-mail et SMTP personnalisés**. Les deux formulaires demandent la même chose, en deux étapes :
+
+1. **Serveur** : le **Nom** (configurations de projet uniquement), le **Nom d'hôte**, le **Port** (une nouvelle configuration commence sur `587`), le **Nom d'utilisateur** et le **Mot de passe**.
+2. **Expéditeur** : l'**E-mail de l'expéditeur** et le **Nom de l'expéditeur** dont proviennent vos e-mails.
+
+Tout le reste est replié sous **Plus de champs** à la fin de l'étape Serveur. Tant qu'il est replié, son en-tête indique comment les e-mails sont envoyés, par exemple « Les e-mails sont envoyés par SMTP, avec une connexion par nom d'utilisateur et mot de passe. TLS est obligatoire. »
+
+| Champ | Ce qu'il fait |
+| --- | --- |
+| **Transport** | `SMTP` (par défaut), ou `Microsoft Graph` pour un locataire Microsoft 365 dont SMTP AUTH est désactivé. Choisir Microsoft Graph masque le nom d'hôte, le port, le nom d'utilisateur et le mot de passe, et affiche les champs OAuth. |
+| **Exiger TLS** | Activé pour une nouvelle configuration de projet. Les e-mails ne sont envoyés que par une connexion chiffrée avec un certificat valide. Lorsque cette option est désactivée, les e-mails ne sont chiffrés que si le serveur le propose, et le certificat n'est pas vérifié. Le port 465 est toujours chiffré. |
+| **Type d'authentification** | `Username and Password` (par défaut), `OAuth`, ou `None` pour un relais sans connexion. |
+| **Champs OAuth** | Type de fournisseur, ID client, secret client, URL du jeton et portée, affichés dès que OAuth ou Microsoft Graph est choisi. |
+| **Description** | Une note pour votre équipe (configurations de projet uniquement). |
+
+**Microsoft Graph.** Ouvrez **Plus de champs**, réglez **Transport** sur `Microsoft Graph`, puis renseignez une application Azure disposant de l'autorisation d'application **Mail.Send** : son ID client et son secret client, l'URL du jeton `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` et la portée `https://graph.microsoft.com/.default`. Les e-mails partent de la boîte aux lettres de l'**E-mail de l'expéditeur**, qui doit être une boîte aux lettres sous licence de votre locataire.
+
+Une fois une configuration de projet enregistrée, **Envoyer un e-mail de test** sur sa ligne vérifie qu'elle fonctionne.
 
 ## Authentification OAuth 2.0
 
@@ -30,6 +51,8 @@ Lors de la configuration de SMTP avec l'authentification OAuth dans OneUptime, v
 | **Secret client**             | Secret client de votre fournisseur OAuth (pour Google : clé privée)                                                        |
 | **URL du jeton**              | URL du point de terminaison du jeton OAuth                                                                                 |
 | **Portée**                    | Portée(s) OAuth requise(s) pour l'accès SMTP                                                                               |
+
+Le **Type d'authentification** et les champs OAuth se trouvent sous **Plus de champs**, à l'étape Serveur du formulaire.
 
 ---
 
@@ -120,7 +143,7 @@ Dans OneUptime, créez ou modifiez une configuration SMTP avec ces paramètres :
 | URL du jeton              | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                                   |
 | Portée                    | `https://outlook.office365.com/.default`                                                            |
 | E-mail d'envoi            | Identique au nom d'utilisateur                                                                      |
-| Sécurisé (TLS)            | Activé                                                                                              |
+| Exiger TLS            | Activé                                                                                              |
 
 Remplacez `<tenant-id>` par votre ID d'annuaire (locataire) de l'étape 1.
 
@@ -202,7 +225,7 @@ Dans OneUptime, créez ou modifiez une configuration SMTP avec ces paramètres :
 | URL du jeton              | `https://oauth2.googleapis.com/token`                                                                                                      |
 | Portée                    | `https://mail.google.com/`                                                                                                                 |
 | E-mail d'envoi            | Identique au nom d'utilisateur                                                                                                             |
-| Sécurisé (TLS)            | Activé                                                                                                                                     |
+| Exiger TLS            | Activé                                                                                                                                     |
 
 **Important :** Pour Google (JWT Bearer), l'ID client est l'**e-mail du compte de service** (`client_email`), PAS le `client_id` numérique. Le compte de service usurpera l'identité de l'utilisateur spécifié dans le champ Nom d'utilisateur pour envoyer des e-mails.
 

@@ -89,8 +89,13 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceFeedService", () => {
   };
 });
 
+/*
+ * The job reads the resources an event affects through
+ * AffectedStatusPageResources, which asks findByMonitors - the lookup that
+ * also follows monitor groups.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return { __esModule: true, default: { findByMonitors: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
@@ -259,6 +264,15 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  fansOn,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -834,7 +848,7 @@ beforeEach(() => {
     ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
   ).mockResolvedValue(undefined as never);
 
-  mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
     resource(),
   ] as never);
 
@@ -1300,7 +1314,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "renders a template that uses every advertised variable with nothing left over ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         groupedResources() as never,
       );
 
@@ -1505,7 +1519,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "lists the affected resources on this status page, by group ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         groupedResources() as never,
       );
       useCustomTemplates({
@@ -1528,7 +1542,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
       ).toBe(GROUPED_RESOURCES_AFFECTED_TEXT);
 
       const select: JSONObject = queryArgs(
-        StatusPageResourceService.findAllBy,
+        StatusPageResourceService.findByMonitors,
       ).select;
       expect(select["statusPageGroupId"]).toBe(true);
       expect(select["statusPageGroup"]).toEqual({ name: true });
@@ -1539,7 +1553,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "lists the same resources in the default email (HTML) and the webhook (plain text) ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         groupedResources() as never,
       );
 
@@ -1567,7 +1581,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "renders no resources when the event affects none on this status page ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
         resource({
           statusPageId: OTHER_STATUS_PAGE_ID,
           displayName: "Billing API",
@@ -1591,7 +1605,9 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
 
   test("the default email has no resources when none are affected", async () => {
     createdNotes = [publicNote()];
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue([] as never);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      [] as never,
+    );
 
     await runJob(CREATED_JOB);
 
@@ -1641,7 +1657,7 @@ describe("ScheduledMaintenancePublicNote custom templates, in each channel's for
 
   function useChannelTemplates(trigger: TriggerCase): void {
     trigger.queue([publicNote()]);
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
     useCustomTemplates({
@@ -1924,7 +1940,7 @@ describe.each(TRIGGERS)(
       event.title = HOSTILE_TITLE;
       event.currentScheduledMaintenanceState!.name = HOSTILE_STATE;
       storedEvent = event;
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         hostileResources(STATUS_PAGE_ID) as never,
       );
     });
@@ -2020,6 +2036,114 @@ describe.each(TRIGGERS)(
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
       }
+    });
+  },
+);
+
+/*
+ * Subscribers who chose resources, on a page that shows the event's monitor
+ * through a monitor group. The job used to look resources up by monitorId
+ * alone, so whoever had picked the group heard that the event was scheduled,
+ * started and ended (those jobs follow groups), but never about its notes.
+ */
+describe.each(TRIGGERS)(
+  "ScheduledMaintenancePublicNote subscribers who picked a monitor group ($name)",
+  (trigger: TriggerCase) => {
+    function emailsSentTo(): Array<string> {
+      return sentMail().map((mail: JSONObject): string => {
+        return (mail["toEmail"] as Email).toString();
+      });
+    }
+
+    function givenSubscribers(subscribers: Array<StatusPageSubscriber>): void {
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue(subscribers as never);
+    }
+
+    beforeEach(() => {
+      trigger.queue([publicNote()]);
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        lettingSubscribersChooseResources(statusPage()),
+      ] as never);
+      decideWithTheRealSubscriberPreferences(
+        StatusPageSubscriberService.shouldSendNotification,
+      );
+    });
+
+    test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        page.affectedResources as never,
+      );
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+    });
+
+    test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        page.affectedResources as never,
+      );
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+    });
+
+    test("lists the group among the resources affected", async () => {
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID).affectedResources as never,
+      );
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.Group]));
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          resourcesAffected: "Checkout API, Payments",
+        }),
+      );
+    });
+
+    test("looks up the event's monitors with the lookup that follows monitor groups", async () => {
+      givenSubscribers(
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers,
+      );
+
+      await runJob(trigger.job);
+
+      expect(StatusPageResourceService.findByMonitors).toHaveBeenCalledTimes(1);
+
+      const lookup: {
+        monitorIds: Array<ObjectID>;
+        statusPageIds: Array<ObjectID>;
+      } = mock(StatusPageResourceService.findByMonitors).mock.calls[0]![0] as {
+        monitorIds: Array<ObjectID>;
+        statusPageIds: Array<ObjectID>;
+      };
+
+      expect(
+        lookup.monitorIds.map((monitorId: ObjectID): string => {
+          return monitorId.toString();
+        }),
+      ).toEqual([MONITOR_ID.toString()]);
+      // Only the pages the event is on.
+      expect(
+        lookup.statusPageIds.map((statusPageId: ObjectID): string => {
+          return statusPageId.toString();
+        }),
+      ).toEqual([STATUS_PAGE_ID.toString()]);
     });
   },
 );

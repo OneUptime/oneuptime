@@ -12,7 +12,7 @@ En statussida stöder fem kanaler. De och sidan där besökare anmäler sig styr
 
 - **Visa prenumerantsida** (`showSubscriberPageOnStatusPage`) — på som standard. Lägger posten **Prenumerera** i statussidans navigeringsrad, där besökare anmäler sig via kanalerna nedan.
 - **E-post** (`enableEmailSubscribers`) — på som standard. Allt annat är avslaget tills du slår på det.
-- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betalas varje SMS från projektets saldo för SMS och samtal, om inte sidan har en egen **Twilio-konfiguration**. För att slå på den måste även **Aktivera SMS-aviseringar** vara på för projektet, under **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betalas varje SMS från projektets saldo för SMS och samtal, om inte sidan har en egen **Twilio-konfiguration**. För att slå på den måste även **SMS** vara på för projektet, i kortet **Aviseringskanaler** under **Projektinställningar > Aviseringar > Aviseringsinställningar**.
 - **Slack** (`enableSlackSubscribers`) — av som standard.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
 - **Webhook** (`enableWebhookSubscribers`) — av som standard.
@@ -43,6 +43,8 @@ Som standard får en prenumerant allt som finns på sidan. Två växlar i kortet
 
 - **Tillåt prenumeranter att välja resurser** (`allowSubscribersToChooseResources`) — av som standard. Slår du på den får prenumerationsformuläret en växel **Prenumerera på alla resurser**; avmarkera den så dyker **Välj resurser att prenumerera på** upp, och besökaren kan plocka enskilda resurser.
 - **Tillåt prenumeranter att välja händelsetyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samma form: en växel **Prenumerera på alla händelsetyper**, och **Välj händelsetyper att prenumerera på** under den när den är avmarkerad.
+
+Med någon av dem påslagen är formuläret fortfarande en sida: De här valen ligger under **Inställningar**, hopfällt under vart uppdateringarna ska skickas. Hopfällt säger det på en rad vad besökaren får (alla uppdateringar från statussidan, tills något begränsas), så den som vill ha allt trycker bara på **Prenumerera**. Sidan **Uppdatera prenumeration** visar samma val utfällda.
 
 Händelsetyperna är `Incident`, `Announcement` och `Scheduled Event`.
 
@@ -82,7 +84,7 @@ Prenumeranter får höra om de tre händelsetyperna ovan, men varje källa har s
 
 ### Aviseringar om meddelanden
 
-Meddelandet självt bär **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), som i skapandeformuläret visas som kryssrutan **Meddela statussideprenumeranter** och är på som standard. Namnger meddelandet monitorer under **Påverkade övervakare (valfritt)** begränsas aviseringen till dem; lämnar du fältet tomt aviseras alla prenumeranter.
+Meddelandet självt bär **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), som i skapandeformuläret visas som kryssrutan **Meddela statussideprenumeranter** under **Schema och aviseringar** och är på som standard. Prenumeranterna får höra om det en gång, när meddelandet börjar visas, så valet görs när det skapas och en redigering ändrar det inte. Namnger meddelandet monitorer under **Berörda monitorer** begränsas aviseringen till dem; lämnar du fältet tomt aviseras alla prenumeranter.
 
 ### Schemalagda underhållshändelser
 
@@ -114,12 +116,14 @@ Anpassad SMTP är värd att fixa tidigt om ni har e-postprenumeranter: mejl som 
 
 Ett meddelande är en post på projektnivå (modellen `StatusPageAnnouncement`) som du sprider till en eller flera statussidor, valfritt begränsad till vissa monitorer, med ett fönster under vilket det visas.
 
-Du skapar ett från **Statussidor → Mer → Meddelanden**, eller från **Meddelanden** i en enskild statussidas vänstermeny. Skapandeformuläret är en guide i fyra steg:
+Du skapar ett från **Statussidor → Mer → Meddelanden**, eller från **Meddelanden** i en enskild statussidas vänstermeny. Skapat från en statussida är den sidan redan vald, så en rubrik och en beskrivning räcker, och **Skapa meddelande** tar dig tillbaka till sidans lista **Meddelanden** (eller till projektets lista, om du valde bort sidan på vägen). Skapandeformuläret har två steg och sedan en sammanfattning:
 
-1. **Grundläggande information** — **Meddelanderubrik** (obligatorisk, minst två tecken), **Beskrivning** (Markdown, valfri) och **Bilagor** för filer som ska finnas tillgängliga tillsammans med meddelandet på statussidan.
-2. **Statussidor** — **Visa meddelande på dessa statussidor**, ett obligatoriskt flerval. Ett meddelande kan rikta sig till flera sidor samtidigt.
-3. **Berörda resurser** — **Påverkade övervakare (valfritt)**. Väljer du ingen aviseras alla prenumeranter.
-4. **Schema och inställningar** — **Börja visa meddelande vid** (obligatoriskt, standard är nu), **Sluta visa meddelande vid** (valfritt) och **Meddela statussideprenumeranter** (på som standard).
+1. **Meddelande** — **Titel** (obligatorisk, minst två tecken) och **Beskrivning** (Markdown, obligatorisk: det är texten man läser på statussidan). **Bilagor** för filer som ska finnas tillgängliga tillsammans med meddelandet på statussidan ligger under **Fler fält**.
+2. **Statussidor** — **Visa meddelande på dessa statussidor**, ett obligatoriskt flerval (ett meddelande kan träffa flera sidor på en gång), och **Berörda monitorer**: väljer du ingen aviseras alla prenumeranter. När du har valt monitorer föreslår formuläret under valet av sidor de statussidor som visar dem: ”Statussidor som visar de berörda monitorerna:” följt av varje sidas namn. Klicka på ett namn för att lägga till sidan, eller på **Lägg till alla**; inget väljs åt dig. Under dem är **Schema och aviseringar** hopfällt till en rad som säger vad som kommer att hända: ”Visas nu och ligger kvar tills du avslutar det. Prenumeranter aviseras när det börjar visas.” Fäll ut den för att ändra **Börja visa meddelande vid** (som standard nu), **Sluta visa meddelande vid** (tomt: meddelandet ligger kvar tills du anger ett slut) eller **Meddela statussideprenumeranter** (på som standard). Raden följer dina svar. Slutet måste komma efter starten och, för ett nytt meddelande, fortfarande ligga i framtiden: ett meddelande som redan har slutat skulle aldrig visas.
+
+Sammanfattningen visar samma rad. **Skapa från mall** fyller i formuläret från en mall; skapat från en statussida behålls mallens egna statussidor bredvid den sidan.
+
+Meddelandets egen sida redigerar det i samma två steg. **Meddela prenumeranter om denna uppdatering** står under beskrivningen, och **Schema** rymmer start och slut. Att ange ett slut som har passerat är sättet att ta ner ett meddelande.
 
 Besökare läser meddelanden på `/announcements`, uppdelade i **Aktiva meddelanden** och **Tidigare meddelanden**, var och en stämplad med **Meddelat den**. Meddelanden som är aktiva just nu fästs dessutom högst upp på översiktssidan. När det inte finns något att visa står det *Inga meddelanden* på sidan, med noteringen att inga har publicerats hittills.
 
@@ -141,7 +145,7 @@ Om meddelanden syns över huvud taget ställs in i kortet **Vad din statussida v
 
 ## Meddelandemallar
 
-Publicerar du samma sorts notis om och om igen — en månatlig underhållsvarning, en återkommande försämring hos en tredje part — förbered den i förväg. **Statussidor → Inställningar → Meddelandemallar** lagrar modellen `StatusPageAnnouncementTemplate`, och dess formulär frågar efter **Mallnamn**, **Mallbeskrivning**, **Meddelanderubrik**, **Beskrivning**, **Visa meddelande på dessa statussidor**, **Påverkade övervakare (valfritt)** och **Avisera prenumeranter**, så att spridningen och aviseringsbeslutet fattas en gång istället för varje gång.
+Publicerar du samma sorts notis om och om igen — en månatlig underhållsvarning, en återkommande försämring hos en tredje part — förbered den i förväg. **Statussidor → Inställningar → Meddelandemallar** lagrar modellen `StatusPageAnnouncementTemplate`. Dess formulär går igenom **Mallinformation** (**Mallnamn**, **Mallbeskrivning**) och sedan meddelandets egna steg: **Meddelande** (**Titel**, **Beskrivning**) och **Statussidor** (**Visa meddelande på dessa statussidor**, **Berörda monitorer** och **Meddela statussideprenumeranter**, på som standard), så att spridningen och aviseringsbeslutet fattas en gång istället för varje gång. En mall har inget schema: ett meddelande som skapas från den visas från det att det skapas, om du inte ändrar det under **Schema och aviseringar**.
 
 ## Webhook-prenumeranter och SSRF-skydd
 

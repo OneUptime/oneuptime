@@ -57,7 +57,7 @@ Crea un nuevo monitor y elige **Consulta SQL** como tipo de monitor, luego compl
 - **Consulta SQL**: la consulta de solo lectura que se ejecutará (consulta Escribir la consulta).
 - **Usar SSL / TLS**: actívalo para conectarte mediante TLS. Cuando está activado, puedes desactivar **Verificar el certificado del servidor** si la base de datos usa un certificado autofirmado.
 
-### Opciones avanzadas
+### Más campos
 
 - **Tiempo de espera de conexión (ms)**: cuánto tiempo esperar para establecer una conexión. Predeterminado `10000`, máximo `30000`.
 - **Tiempo de espera de la instrucción (ms)**: el límite estricto de cuánto tiempo puede ejecutarse la consulta. Predeterminado `15000`, máximo `60000`.

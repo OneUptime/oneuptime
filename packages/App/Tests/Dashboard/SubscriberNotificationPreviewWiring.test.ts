@@ -391,27 +391,31 @@ describe("the dashboard is wired where the feature says", () => {
   });
 
   test("the public note composer offers it while notifying, with the note being written", () => {
-    const page: string = readSource(
-      "Pages",
-      "Incidents",
-      "View",
-      "PublicNote.tsx",
+    /*
+     * The incident's public note kind: the Public Notes page and the Incident
+     * Feed's "Add Public Note" dialog both read it.
+     */
+    const kind: string = readSource(
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentNoteKinds.tsx",
     );
 
-    expect(page).toContain("renderPreview: (draft: {");
-    expect(page).toContain(
-      "return getPublicNotePreviewRequest({ incidentId: modelId, note: draft.note, postedAt: draft.postedAt, });",
+    expect(kind).toContain("renderPreview: (draft: {");
+    expect(kind).toContain(
+      "return getPublicNotePreviewRequest({ incidentId: incidentId, note: draft.note, postedAt: draft.postedAt, });",
     );
-    expect(page).toContain(
+    expect(kind).toContain(
       "SubscriberNotificationPreviewCopy.previewButtonDisabledNoNote",
     );
 
     const notes: string = readSource(
       "Components",
       "EventNotes",
-      "EventNotes.tsx",
+      "EventNoteComposer.tsx",
     );
-    expect(notes).toContain("props.subscriberNotifications?.renderPreview");
+    expect(notes).toContain("kind.subscriberNotifications?.renderPreview");
 
     const composer: string = readSource(
       "Components",

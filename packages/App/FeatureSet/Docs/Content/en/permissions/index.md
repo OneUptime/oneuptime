@@ -34,7 +34,7 @@ A user account is global to the OneUptime instance — the same login works acro
 A user is "in" a project when they are a member of **at least one team** in it. There is no separate "add user to project" step: inviting somebody to a project invites them to a team.
 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
-- **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team.
+- **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. Things assigned to them by name, such as incident roles and resource ownership, stay assigned until you reassign them.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
@@ -57,7 +57,18 @@ The **Owners** and **Admin** teams are deliberately locked: their permissions ca
 
 Create as many additional teams as you like — "Frontend On-Call", "Support", "Read-Only Auditors" — and give each the permissions it needs.
 
-Where to find it: **Settings → Teams**. Open a team to reach **Members**, **Permissions** and **Block Permissions**.
+**Creating a team** asks for a name and its **Access**, what the team's members can do:
+
+| Access | What the team's members can do |
+| --- | --- |
+| Project Admin | Create, change and delete anything in the project, its settings included. Not billing, and not deleting the project. |
+| Project Member | Create, change and delete monitors, incidents, status pages and the project's other resources. |
+| Viewer | Read everything in the project, and change nothing. |
+| Choose permissions later | Nothing yet. Picked to start with. |
+
+The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. The description is under **More fields**. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions. If the role cannot be added, the team is still created and a notice above the list links to it.
+
+Where to find it: **Settings → Teams**. Open a team to reach **Members** and **Permissions**; **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many the team has.
 
 ## Permissions
 
@@ -89,6 +100,8 @@ Each team has two lists:
 
 - **Permissions** (allow) — what this team can do.
 - **Block Permissions** — what this team can never do, regardless of any allow entry.
+
+Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **More settings** at the bottom of the page.
 
 **Block always wins.** A block entry with no labels removes that capability outright for the team. A block entry with labels removes it only for resources carrying those labels — useful for "this team can edit monitors, except the ones labelled Production".
 
@@ -131,7 +144,7 @@ Labels are project-wide tags you attach to resources. They serve two purposes: f
 
 A label restriction is satisfied if the resource carries **at least one** of the labels on the permission. A resource with no labels at all matches no label-restricted permission.
 
-Where to find it: **Settings → Labels**.
+Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like.
 
 ## API keys
 
@@ -150,9 +163,9 @@ API keys are granted permissions directly, on the key itself — they do not bel
 | Viewer | Read everything in the project, and change nothing. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
-The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **Advanced**; a key expires a year from the day it is created unless you pick another date, and the folded section says so. The new key opens on its page, where you copy it.
+The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **More fields**; a key expires a year from the day it is created unless you pick another date, and the folded section says so. The new key opens on its page, where you copy it.
 
-On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **Advanced** at the bottom of the page, which says **Configured** while the key has any.
+On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
 
 Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.
 
@@ -175,11 +188,11 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 ## Recipes
 
-**A team that only watches.** Create the team, add the `Viewer` role, or the per-area `*Viewer` roles for just the areas they should see.
+**A team that only watches.** Create the team with **Viewer** under **Access**. For just some areas, pick **Choose permissions later** and add the per-area `*Viewer` roles they should see.
 
 **On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors it runs.
 
-**Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** for the sensitive capabilities, restricted to the `Production` label.
+**Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **More settings** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
 
 **A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 

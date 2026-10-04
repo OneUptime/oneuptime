@@ -22,23 +22,23 @@ Kortets beskrivning ändrar sig efter hur din sida ser ut. Med grupper står det
 
 ## Lägga till en monitor
 
-Välj gruppen resursen ska hamna i (eller **Top of page** för en grupplös rad) och klicka sedan på **Lägg till monitor**. Modalen heter **Add a monitor to {group}** och har två steg: **Monitordetaljer** och **Avancerad**.
-
-I **Monitordetaljer**:
+Välj gruppen resursen ska hamna i (eller **Top of page** för en grupplös rad) och klicka sedan på **Lägg till monitor**. Dialogen heter **Add a monitor to {group}** och är en enda sida som bara frågar efter en sak — monitorn:
 
 - **Övervakning** — rullgardinsmenyn med projektets monitorer, platshållare **Välj övervakning**. Obligatoriskt.
-- **Visningsnamn** — obligatoriskt. Det är texten besökarna läser, och den lagras separat från monitorns eget namn, så du kan döpa om den här utan att röra övervakningen.
-- **Beskrivning** — valfri markdown som visas under raden. Bra för en mening om vad tjänsten faktiskt gör.
+- **Visningsnamn** — texten besökarna läser. Den fylls i med monitorns namn när du väljer den, och följer med när du väljer en annan monitor, tills du skriver ett eget namn. Den lagras separat från monitorns eget namn, så du kan döpa om den här utan att röra övervakningen.
+- **Fler fält** — ihopfälld. Den rymmer **Beskrivning** (valfri markdown som visas under raden, bra för en mening om vad tjänsten faktiskt gör) och [visningsalternativen](#visningsalternativ-på-en-resurs). Lämnar du den stängd får resursen deras standardvärden.
+
+Välj en monitor, klicka på **Lägg till monitor**, och raden finns på sidan. I en rutnätsgrupp frågar dialogen också efter raden och kolumnen monitorn ska stå i, ovanför **Fler fält** — se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout).
 
 Har projektet monitorgrupper aktiverade står det **Add a Monitor Group instead.** i en länk under menyn — klicka på den så byts rullgardinsmenyn **Övervakning** mot en **Monitor Grupp**-meny (**Välj övervakningsgrupp**). Länken vänder sedan till **Add a Monitor instead.** så att du kan gå tillbaka. Använd en monitorgrupp när du vill att en rad på sidan ska representera flera kontroller sammanslagna.
 
 ### Lägga till flera på en gång
 
-**Add Multiple** (som också heter **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den har samma två steg, men det första är en flerval av **Monitorer** i stället för en enkel rullgardinsmeny, och visningsalternativen du väljer i **Avancerad** gäller varje monitor du valt. Det är snabbaste sättet att fylla en ny sida.
+**Add Multiple** (som också heter **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en enda sida: ett flerval av **Monitorer** i stället för en enkel rullgardinsmeny, och under det samma ihopfällda **Fler fält**-sektion, vars visningsalternativ gäller varje monitor du valt. Varje resurs tar sitt visningsnamn och sin beskrivning från sin monitor, och **Add Monitors** lägger till dem — det finns inga steg att gå igenom. Det är snabbaste sättet att fylla en ny sida.
 
 ## Visningsalternativ på en resurs
 
-Steget **Avancerad** ser likadant ut i formuläret för en enskild resurs som i massmodalen. Allt här gäller per resurs — två rader i samma grupp kan vara olika inställda.
+Sektionen **Fler fält** ser likadan ut i formuläret för en enskild resurs som i massmodalen. Den börjar ihopfälld i båda, och även i **Redigera resurs**, där dess ihopfällda rubrik visar vad i den som inte står på sitt standardvärde. Allt här gäller per resurs — två rader i samma grupp kan vara olika inställda.
 
 | Fält                                                     | Syfte                                                                                                     |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ Steget **Avancerad** ser likadant ut i formuläret för en enskild resurs som i 
 | **Välj precision för drifttid** (`uptimePercentPrecision`) | Dyker upp först när **Visa upptid %** är på. Obligatorisk, standard är en decimal.                       |
 | **Visa statushistorikdiagram** (`showStatusHistoryChart`) | På som standard. Visar stapeldiagrammet med drifttid dag för dag för resursen.                            |
 
-**Visningsnamn** (`displayName`) och **Beskrivning** (`displayDescription`) från det första steget är också rent visuella — de ändrar aldrig monitorn i sig.
+**Visningsnamn** (`displayName`) och **Beskrivning** (`displayDescription`) är också rent visuella — de ändrar aldrig monitorn i sig.
 
 ## Drifttidsprocent och historikdiagram
 
@@ -64,19 +64,18 @@ Färgerna på historikdiagrammets staplar, och vilka monitorstatusar som räknas
 
 ## Grupper
 
-Klicka på **New Group** för att öppna **Create New Status Page Group**. Formuläret har tre steg: **Gruppdetaljer**, **Layout** och **Avancerad**.
-
-**Gruppdetaljer**:
+Klicka på **New Group** för att öppna **Create New Status Page Group**. Formuläret är en enda sida: två fält, och under dem två ihopfällda sektioner.
 
 - **Gruppnamn** (`name`) — obligatoriskt. Det här är sektionsrubriken besökarna ser.
-- **Gruppbeskrivning** (`description`) — valfri markdown, visas under rubriken.
-- **Parent Group** (`parentStatusPageGroupId`) — valfri. Lämna den på **No parent group (top level)** för att hålla gruppen på översta nivån.
-- **Expandera på statussidan som standard** (`isExpandedByDefault`) — om sektionen börjar öppen eller ihopfälld för besökarna.
+- **Parent Group** (`parentStatusPageGroupId`) — valfri. Lämna den på **No parent group (top level)** för att hålla gruppen på översta nivån. **Add a sub group** fyller i den åt dig.
+- **Layout** — ihopfälld, och rubriken säger **List** eller **Grid**. Den rymmer **Visningsläge** och ett rutnäts axlar (se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout)), och den öppnas av sig själv för en rutnätsgrupp.
+- **Fler fält** — ihopfälld. Den rymmer resten och speglar resursalternativen på gruppnivå:
+  - **Gruppbeskrivning** (`description`) — valfri markdown, visas under rubriken.
+  - **Expandera på statussidan som standard** (`isExpandedByDefault`) — på som standard: om sektionen börjar öppen eller ihopfälld för besökarna.
+  - **Visa aktuell gruppstatus** (`showCurrentStatus`) — på som standard. Visar en status bredvid gruppens rubrik.
+  - **Visa upptid %** (`showUptimePercent`) — av som standard, med **Välj precision för drifttid** som dyker upp när den slås på.
 
-**Avancerad** speglar resursväxlarna på gruppnivå:
-
-- **Visa aktuell gruppstatus** (`showCurrentStatus`) — på som standard. Visar en status bredvid gruppens rubrik.
-- **Visa upptid %** (`showUptimePercent`) — av som standard, med **Välj precision för drifttid** som dyker upp när den slås på.
+De flesta grupper behöver bara ett namn: skriv det och klicka på **Create Status Page Group**.
 
 Redigering fungerar likadant: **Edit Group** i rutans rubrik, eller **Edit group** i navigatorns radmeny, öppnar **Edit Status Page Group** med en knapp **Spara ändringar**.
 
@@ -96,7 +95,7 @@ Nästling gör verklig nytta på stora sidor: en hostingleverantör med regioner
 
 ## Listlayout kontra rutnätslayout
 
-Steget **Layout** sätter **Visningsläge** (`viewMode`) för gruppen, och det ändrar hur gruppen renderas publikt.
+Sektionen **Layout** i gruppformuläret sätter **Visningsläge** (`viewMode`) för gruppen, och det ändrar hur gruppen renderas publikt.
 
 | Om du vill…                                                          | Välj                     |
 | -------------------------------------------------------------------- | ------------------------ |
@@ -110,9 +109,9 @@ Väljer du **Grid** dyker fyra fält till upp:
 - **Etikett för kolumnaxel** — kolumndimensionen, platshållare `Region`.
 - **Värden för kolumnaxel** — läggs till med **Add Column** (platshållare `e.g. US-East`).
 
-Varje monitor i en rutnätsgrupp placeras sedan i en cell, så massmodalen frågar efter rad och kolumn vid sidan av monitorerna, med dina egna axeletiketter.
+Varje monitor i en rutnätsgrupp placeras sedan i en cell, så **Lägg till monitor** och massmodalen frågar efter rad och kolumn vid sidan av monitorn, med dina egna axeletiketter.
 
-**Sätt upp axlarna innan du lägger till monitorer.** En rutnätsgrupp utan rader eller kolumner visar en gul notis om att det inte finns någonstans att lägga en monitor förrän axlarna finns, med en knapp **Set up the grid** — och knappen **Lägg till monitor** dras undan tills du gjort det.
+**Sätt upp axlarna innan du lägger till monitorer.** En rutnätsgrupp utan rader eller kolumner visar en gul notis om att det inte finns någonstans att lägga en monitor förrän axlarna finns, med en knapp **Set up the grid** som öppnar gruppens formulär vid sektionen **Layout** — och knappen **Lägg till monitor** dras undan tills du gjort det.
 
 ## Ordna det besökarna ser
 

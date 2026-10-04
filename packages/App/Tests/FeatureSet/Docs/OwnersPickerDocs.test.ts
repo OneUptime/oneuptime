@@ -32,6 +32,10 @@ const RETIRED_FIELD_NAMES: Array<string> = [
   "Incident Owner Teams",
   "Incident Owner Users",
   "Owners to Assign",
+  // Grouping rules: replaced by Episode Owners.
+  "Default Assign To Team",
+  "Default Assign To User",
+  "Default Assignees",
 ];
 
 function listMarkdown(directory: string): Array<string> {
@@ -85,11 +89,11 @@ describe("the docs on picking owners", () => {
 
   /*
    * The template's owners have no step of their own any more: they fold
-   * under Advanced at the end of Incident Details, beside the labels
+   * under More fields at the end of Incident Details, beside the labels
    * (labels-not-a-step), listed there as one field.
    */
   test.each(["en", "fa"])(
-    "%s: the incident template's owners are one Owners field, under Advanced on Incident Details",
+    "%s: the incident template's owners are one Owners field, under More fields on Incident Details",
     (language: string) => {
       const settings: string = read(language, "incidents/settings");
       const declaring: string = read(language, "incidents/declaring-incidents");
@@ -98,7 +102,7 @@ describe("the docs on picking owners", () => {
       expect(settings).toMatch(/^ {2}- \*\*Owners\*\* — /m);
       expect(settings).toContain("**Add owner**");
       expect(declaring).toMatch(
-        /\*\*Owners\*\*.{1,10}\*\*Labels\*\*.{1,40}\*\*Advanced\*\*/,
+        /\*\*Owners\*\*.{1,10}\*\*Labels\*\*.{1,40}\*\*More fields\*\*/,
       );
       // One row for owners in the template fields table.
       expect(declaring).toMatch(/^\| \*\*Owners\*\* +\|/m);
@@ -112,6 +116,49 @@ describe("the docs on picking owners", () => {
     expect(read("en", "slo/label-and-owner-rules")).toContain(
       "the **Owners** to add — people and teams, picked from one list with **Add owner**",
     );
+  });
+
+  /*
+   * Grouping rules used to set a default team and user that nothing showed.
+   * Their On-Call & Ownership step asks for Episode Owners instead, and an
+   * old rule's default assignee is a line under it with Add as owners and
+   * Remove.
+   */
+  test.each(["en", "fa"])(
+    "%s: grouping rules ask for Episode Owners, and say what became of the default assignee",
+    (language: string) => {
+      const settings: string = read(language, "incidents/settings");
+
+      expect(settings).toMatch(
+        /\*\*On-Call & Ownership\*\* \([^)]*\*\*Episode Owners\*\*/,
+      );
+      expect(settings).toContain("**Episode Owners**");
+      expect(settings).toContain("**Add owner**");
+      expect(settings).toContain("**Default assignee**");
+      expect(settings).toContain("**Add as owners**");
+      expect(settings).toContain("**Remove**");
+      // The API keeps its contract, and says so by the columns' names.
+      for (const column of [
+        "`defaultAssignToUser`",
+        "`defaultAssignToTeam`",
+        "`assignedToUser`",
+        "`assignedToTeam`",
+      ]) {
+        expect(settings).toContain(column);
+      }
+    },
+  );
+
+  test("en: the grouping rules' owners are notified, and only the project's people and teams", () => {
+    const settings: string = read("en", "incidents/settings");
+
+    expect(settings).toContain(
+      "becomes an owner of every episode the rule opens: listed on the episode's **Owners** page and notified like any other owner",
+    );
+    expect(settings).toContain(
+      "Only your project's teams and members can be picked",
+    );
+    expect(settings).not.toContain("the default team and user, and episode");
   });
 
   test("the Forms On Submit settings and table have one Owners field and row", () => {

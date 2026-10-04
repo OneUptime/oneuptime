@@ -126,7 +126,8 @@ const MonitorCriteria: FunctionComponent<
         editButtonText="Edit Monitoring Criteria"
         cardProps={{
           title: "Monitoring Criteria",
-          description: "Here is the criteria we use to monitor this resource.",
+          description:
+            "The conditions that decide this monitor's status, and the incidents and alerts it creates.",
           rightElement: monitorSteps ? (
             <MonitorTestForm
               monitorId={modelId}

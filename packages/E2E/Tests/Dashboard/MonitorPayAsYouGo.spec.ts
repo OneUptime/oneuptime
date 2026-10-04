@@ -253,9 +253,9 @@ test.describe("Monitor pay-as-you-go pricing", () => {
       form.getByRole("checkbox", { name: "I agree to these usage charges" }),
     ).toHaveCount(0);
     /*
-     * A Manual monitor asks nothing more: Monitor Info is its only step, so
-     * Create Monitor is on offer there with no Next, and its optional labels
-     * wait under Advanced on the same step.
+     * A Manual monitor asks nothing more: Monitor Info is its only step - its
+     * last - so Create Monitor is there with no Next, and its optional labels
+     * wait under More fields on the same step.
      */
     await expect(ctx.page.getByTestId("Create Monitor")).toHaveText(
       "Create Monitor",
@@ -263,7 +263,9 @@ test.describe("Monitor pay-as-you-go pricing", () => {
     await expect(
       form.getByRole("button", { name: "Next", exact: true }),
     ).toHaveCount(0);
-    await form.getByRole("button", { name: "Advanced", exact: true }).click();
+    await form
+      .getByRole("button", { name: "More fields", exact: true })
+      .click();
     await expect(
       ctx.page.getByRole("combobox", { name: /^Labels\b/ }),
     ).toBeVisible();

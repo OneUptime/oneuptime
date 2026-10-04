@@ -443,6 +443,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getDashboardBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/dashboards/:id/authentication-settings",
+    titles: ["Project", "Dashboards", "View Dashboard", "Sharing"],
+  },
+  {
+    getter: "getDashboardBreadcrumbs",
     pagePattern: "/dashboard/:projectId/dashboards/:id/branding",
     titles: ["Project", "Dashboards", "View Dashboard", "Branding"],
   },
@@ -1604,11 +1609,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getMonitorBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/monitors/:id/interval",
-    titles: ["Project", "Monitors", "View Monitor", "Interval"],
-  },
-  {
-    getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/:id/logs",
     titles: ["Project", "Monitors", "View Monitor", "Monitoring Logs"],
   },
@@ -1630,7 +1630,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/:id/probes",
-    titles: ["Project", "Monitors", "View Monitor", "Probes"],
+    titles: ["Project", "Monitors", "View Monitor", "Probes & Interval"],
   },
   {
     getter: "getMonitorBreadcrumbs",
@@ -2691,12 +2691,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getStatusPagesBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/status-pages/:id/authentication-settings",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Authentication Settings",
-    ],
+    titles: ["Project", "Status Pages", "View Status Page", "Access"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
@@ -2914,11 +2909,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getTeamsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/teams/:id/block-permissions",
-    titles: ["Project", "Teams", "View Team", "Block Permissions"],
-  },
-  {
-    getter: "getTeamsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/teams/:id/compliance",
     titles: ["Project", "Teams", "View Team", "Compliance"],
   },
@@ -3004,17 +2994,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getUserSettingsBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/user-settings/alert-episode-on-call-rules",
-    titles: ["Project", "User Settings", "Alert Episode On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/user-settings/alert-on-call-rules",
-    titles: ["Project", "User Settings", "Alert On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/calendar-feed",
     titles: ["Project", "User Settings", "Calendar Feed"],
   },
@@ -3022,17 +3001,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/email-preferences",
     titles: ["Project", "User Settings", "Email Preferences"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/user-settings/incident-episode-on-call-rules",
-    titles: ["Project", "User Settings", "Incident Episode On-Call Rules"],
-  },
-  {
-    getter: "getUserSettingsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/user-settings/incident-on-call-rules",
-    titles: ["Project", "User Settings", "Incident On-Call Rules"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",
@@ -3060,6 +3028,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/on-call-logs",
     titles: ["Project", "User Settings", "On-Call Logs"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/on-call-rules",
+    titles: ["Project", "User Settings", "On-Call Rules"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",

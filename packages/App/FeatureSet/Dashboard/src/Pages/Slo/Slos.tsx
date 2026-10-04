@@ -1,11 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import {
-  getSloFormFields,
-  SLO_CREATE_INITIAL_VALUES,
-  SLO_FORM_STEPS,
-} from "./SloFormFields";
+import { getSloFormFields, SLO_CREATE_INITIAL_VALUES } from "./SloFormFields";
 import SloStatusPill from "../../Components/Slo/SloStatusPill";
 import SloStatusSummaryCards from "../../Components/Slo/SloStatusSummaryCards";
 import {
@@ -578,12 +574,17 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           },
         ]}
-        formSteps={SLO_FORM_STEPS}
+        /*
+         * One page of three rows - the name, the target and a folded
+         * Advanced section - with no steps (SloFormFields.ts).
+         */
         formFields={getSloFormFields()}
         /*
-         * Seeds for the create modal only. The scalar values are the DB
-         * defaults for NOT NULL columns, so without them the user would have
-         * to fill in boxes whose answer is already the right one.
+         * Seeds for the create modal only. The window and the at-risk
+         * threshold are the DB defaults for NOT NULL columns, so without
+         * them the user would have to fill in boxes whose answer is already
+         * the right one; the target is the suggested 99.9, which people see
+         * and can change.
          *
          * Deliberately NOT the form fields' `defaultValue`: FormField falls
          * back to defaultValue whenever the current value is FALSY, which

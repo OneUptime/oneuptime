@@ -28,8 +28,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * collapsed Template variables list, and that list's footer) and the
  * Template Variables Reference are rendered for real:
  *
- *   - the note field of the incident note template forms - a new template's
- *     Note Details step, and a template's Edit Note Template dialog - where
+ *   - the note field of the incident note template forms - a new
+ *     template's one-page form, and a template's Edit Note Template dialog - where
  *     a yellow "Internal data" box sat under the placeholders;
  *   - the template body of the subscriber notification template forms, for
  *     every channel and every incident event, and a template's Template
@@ -417,7 +417,7 @@ function noteTemplateFormIsClean(noteField: FormFieldProps): void {
 }
 
 describe("the incident note template forms", () => {
-  test("a new template's Note Details step offers the variables and no warning", async () => {
+  test("a new template's note field offers the variables and no warning", async () => {
     await act(async (): Promise<void> => {
       render(
         <MemoryRouter>

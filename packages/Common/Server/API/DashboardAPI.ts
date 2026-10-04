@@ -22,6 +22,13 @@ import ObjectID from "../../Types/ObjectID";
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
 import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard/MasterPassword";
+import {
+  DashboardAccessState,
+  DashboardAccessSwitches,
+  isDashboardLockedWithoutPassword,
+  isDashboardMasterPasswordRequired,
+  isDashboardPublic,
+} from "../../Types/Dashboard/DashboardAccess";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -701,12 +708,24 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException("Dashboard not found");
           }
 
+          /*
+           * Whether the public link asks for the password, by the rule the
+           * server enforces (Types/Dashboard/DashboardAccess): the effective
+           * value, not the stored switch - a private dashboard's switch does
+           * nothing.
+           */
+          const accessSwitches: DashboardAccessSwitches = {
+            isPublicDashboard: dashboard.isPublicDashboard,
+            enableMasterPassword: dashboard.enableMasterPassword,
+          };
+
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
             description: dashboard.description || "",
-            isPublicDashboard: dashboard.isPublicDashboard || false,
-            enableMasterPassword: dashboard.enableMasterPassword || false,
+            isPublicDashboard: isDashboardPublic(accessSwitches),
+            enableMasterPassword:
+              isDashboardMasterPasswordRequired(accessSwitches),
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
             logoFile: DashboardAPI.getFileAsBase64JSONObject(
@@ -1547,13 +1566,23 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException("Dashboard not found");
           }
 
-          if (!dashboard.isPublicDashboard) {
+          // Who can view it, by the rule the Sharing page shows and writes.
+          const accessState: DashboardAccessState = {
+            isPublicDashboard: dashboard.isPublicDashboard,
+            enableMasterPassword: dashboard.enableMasterPassword,
+            hasMasterPassword: Boolean(dashboard.masterPassword),
+          };
+
+          if (!isDashboardPublic(accessState)) {
             throw new BadDataException(
               "This dashboard is not publicly accessible.",
             );
           }
 
-          if (!dashboard.enableMasterPassword || !dashboard.masterPassword) {
+          if (
+            !isDashboardMasterPasswordRequired(accessState) ||
+            isDashboardLockedWithoutPassword(accessState)
+          ) {
             throw new BadDataException(
               "Master password has not been configured for this dashboard.",
             );

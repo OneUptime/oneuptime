@@ -26,10 +26,9 @@ Projekt-SCIM giver identitetsudbydere mulighed for at administrere teammedlemmer
 
 2. **Konfigurer SCIM-indstillinger**
 
-   - Aktiver **Klargør brugere automatisk** for automatisk at tilføje brugere, når de tildeles i din IdP
-   - Aktiver **Fjern automatisk klargøring af brugere** for automatisk at fjerne brugere, når de fjernes i din IdP
-   - Vælg de **Standardteams**, som nye brugere skal tilføjes til
-   - Kopiér **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration
+   - Indtast et **Navn**. **Standardteams** starter med dit projekts medlemsteam: nye brugere tilføjes til disse teams
+   - Under **Flere felter** er **Klargør brugere automatisk** (tilføj brugere, når de tildeles i din IdP) og **Fjern automatisk klargøring af brugere** (fjern brugere, når de fjernes i din IdP) slået til, og **Aktivér push-grupper** er slået fra. Ændr dem der, hvis du har brug for det
+   - Gem. Dialogen med **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration åbnes med det samme
 
 3. **Konfigurer din identitetsudbyder**
    - Brug SCIM Base URL: `https://oneuptime.com/scim/v2/{scimId}`
@@ -75,9 +74,8 @@ Statusside-SCIM giver identitetsudbydere mulighed for at administrere abonnenter
 
 2. **Konfigurer SCIM-indstillinger**
 
-   - Aktiver **Klargør brugere automatisk** for automatisk at tilføje abonnenter, når de tildeles i din IdP
-   - Aktiver **Fjern automatisk klargøring af brugere** for automatisk at fjerne abonnenter, når de fjernes i din IdP
-   - Kopiér **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration
+   - Indtast et **Navn**. Under **Flere felter** er **Klargør brugere automatisk** (tilføj abonnenter, når de tildeles i din IdP) og **Fjern automatisk klargøring af brugere** (fjern abonnenter, når de fjernes i din IdP) slået til. Ændr dem der, hvis du har brug for det
+   - Gem. Dialogen med **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration åbnes med det samme
 
 3. **Konfigurer din identitetsudbyder**
    - Brug SCIM Base URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -122,13 +120,12 @@ Microsoft Entra ID leverer enterprise-grade identitetsstyring med robuste SCIM-k
 2. Naviger til **Projektindstillinger** > **Sikkerhed** > **SCIM**
 3. Klik på **Opret SCIM-konfiguration**
 4. Indtast et brugervenligt navn (f.eks. "Microsoft Entra ID Klargøring")
-5. Konfigurer følgende indstillinger:
-   - **Klargør brugere automatisk**: Aktiver for automatisk at oprette brugere
-   - **Fjern automatisk klargøring af brugere**: Aktiver for automatisk at fjerne brugere
-   - **Standardteams**: Vælg teams, som nye brugere skal tilføjes til
-   - **Aktivér push-grupper**: Aktiver, hvis du vil administrere teammedlemskab via Entra ID-grupper
+5. Kontrollér indstillingerne:
+   - **Standardteams**: starter med dit projekts medlemsteam; nye brugere tilføjes til disse teams
+   - **Klargør brugere automatisk** og **Fjern automatisk klargøring af brugere**: slået til, under **Flere felter**
+   - **Aktivér push-grupper**: under **Flere felter**; slå den til, hvis du vil administrere teammedlemskab via Entra ID-grupper
 6. Gem konfigurationen
-7. Kopiér **SCIM Base URL** og **Bearer Token** – du skal bruge dem til Entra ID
+7. Kopiér **SCIM Base URL** og **Bearer Token** fra dialogen, der åbnes – du skal bruge dem til Entra ID
 
 #### Trin 2: Opret enterprise-applikation i Microsoft Entra ID
 
@@ -224,13 +221,12 @@ Okta leverer fleksibel identitetsstyring med fremragende SCIM-understøttelse. F
 2. Naviger til **Projektindstillinger** > **Sikkerhed** > **SCIM**
 3. Klik på **Opret SCIM-konfiguration**
 4. Indtast et brugervenligt navn (f.eks. "Okta Klargøring")
-5. Konfigurer følgende indstillinger:
-   - **Klargør brugere automatisk**: Aktiver for automatisk at oprette brugere
-   - **Fjern automatisk klargøring af brugere**: Aktiver for automatisk at fjerne brugere
-   - **Standardteams**: Vælg teams, som nye brugere skal tilføjes til
-   - **Aktivér push-grupper**: Aktiver, hvis du vil administrere teammedlemskab via Okta-grupper
+5. Kontrollér indstillingerne:
+   - **Standardteams**: starter med dit projekts medlemsteam; nye brugere tilføjes til disse teams
+   - **Klargør brugere automatisk** og **Fjern automatisk klargøring af brugere**: slået til, under **Flere felter**
+   - **Aktivér push-grupper**: under **Flere felter**; slå den til, hvis du vil administrere teammedlemskab via Okta-grupper
 6. Gem konfigurationen
-7. Kopiér **SCIM Base URL** og **Bearer Token** – du skal bruge dem til Okta
+7. Kopiér **SCIM Base URL** og **Bearer Token** fra dialogen, der åbnes – du skal bruge dem til Okta
 
 #### Trin 2: Opret eller konfigurer Okta-applikation
 

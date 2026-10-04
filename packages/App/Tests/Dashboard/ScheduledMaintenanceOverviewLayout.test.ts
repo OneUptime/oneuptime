@@ -413,6 +413,18 @@ describe("scheduled maintenance overview: details card", () => {
 });
 
 describe("scheduled maintenance overview: affected resources", () => {
+  /*
+   * The card's Edit draws its fields from a module of their own, split as
+   * Create Scheduled Maintenance Event is: the monitors in a picker of their
+   * own, every other relation in a second one below it. The page selects
+   * and displays them.
+   */
+  const editFields: string = readSource(
+    "Components",
+    "ScheduledMaintenance",
+    "ScheduledMaintenanceAffectedResourcesFormFields.tsx",
+  );
+
   const RELATIONS: Array<{ relation: string; model: string; type: string }> = [
     { relation: "monitors", model: "Monitor", type: "Monitor" },
     { relation: "hosts", model: "Host", type: "Host" },
@@ -460,46 +472,56 @@ describe("scheduled maintenance overview: affected resources", () => {
       model: string;
       type: string;
     }) => {
-      // Offered by the picker (prettier may wrap the value in its braces).
-      expect(page).toContain(`"${type}",`);
-      expect(page).toMatch(
+      // Offered by one of the pickers (prettier may wrap the value in its braces).
+      expect(editFields).toContain(`"${type}"`);
+      expect(editFields).toMatch(
         new RegExp(
           `${relation}=\\{ ?values\\.${relation} as Array<${model}> ?\\}`,
         ),
       );
-      // Written back by the form's onChange, or the selection is dropped on save.
-      expect(page).toContain(`${relation}: payload.${relation},`);
+      // Written back by its picker's onChange, or the selection is dropped on save.
+      expect(editFields).toContain(`${relation}: payload.${relation},`);
       // Selected for display and shown.
       expect(page).toContain(`${relation}: { name: true, _id: true,`);
       expect(page).toMatch(
         new RegExp(`${relation}=\\{ ?item\\.${relation} \\|\\| \\[\\] ?\\}`),
       );
 
-      if (relation !== "monitors") {
+      // Monitors and hosts anchor the two pickers; the rest are registered.
+      if (relation !== "monitors" && relation !== "hosts") {
         // Registered so ModelForm loads and submits the relation.
-        expect(page).toContain(`field: { ${relation}: true },`);
+        expect(editFields).toContain(`field: { ${relation}: true },`);
       }
     },
   );
 
-  test("the picker's resource types list every relation, in the incident page's order plus network sites", () => {
+  test("the card's Edit draws the shared fields", () => {
     expect(page).toContain(
-      'resourceTypes={[ "Monitor", "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
+      "formFields={getScheduledMaintenanceAffectedResourcesFormFields()}",
+    );
+  });
+
+  test("the pickers' resource types list every relation, the monitors apart, in the incident page's order plus network sites", () => {
+    expect(editFields).toContain('resourceTypes={["Monitor"]}');
+    expect(editFields).toContain(
+      'resourceTypes={[ "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
     );
   });
 });
 
 describe("scheduled maintenance feed", () => {
-  test("fixes the note modal names and copy", () => {
-    expect(feed).not.toContain("scheduledMaintenancet");
-    expect(feed).not.toContain("create-scheduledMaintenance-internal-note");
-    expect(count(feed, '"create-scheduled-maintenance-public-note"')).toBe(3);
-    expect(count(feed, '"create-scheduled-maintenance-internal-note"')).toBe(3);
-    // The public note form no longer borrows the state timeline form's id.
-    expect(feed).not.toContain("create-scheduled-maintenance-state-timeline");
-    expect(feed).not.toContain(
-      "Post a public note about this state change to the status page.",
+  test("writes its notes in the event's Notes page composer, not a form of its own", () => {
+    expect(feed).toContain(
+      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "scheduled-maintenance",',
     );
+    expect(feed).toContain("{noteActions.dialog}");
+    // The old modal forms, their misspelt ids and borrowed copy are gone.
+    expect(feed).not.toContain("<ModelFormModal");
+    expect(feed).not.toContain("scheduledMaintenancet");
+    expect(feed).not.toContain("create-scheduled-maintenance-public-note");
+    expect(feed).not.toContain("create-scheduled-maintenance-internal-note");
+    expect(feed).not.toContain("create-scheduled-maintenance-state-timeline");
+    expect(feed).not.toContain("state change");
   });
 
   test("maps every feed event type to an icon through a typed record", () => {

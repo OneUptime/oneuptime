@@ -31,7 +31,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Workflow > Workflow Details"
         cardProps={{
           title: "Workflow Details",
-          description: "Here are more details for this workflow.",
         }}
         isEditable={true}
         formFields={[
@@ -42,7 +41,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Status Page Name",
+            placeholder: "Workflow Name",
             validation: {
               minLength: 2,
             },

@@ -47,7 +47,7 @@ Ouvrez **Tableaux de bord** dans la navigation de gauche.
 
 ## Construire un tableau de bord
 
-1. **Créez** — choisissez un nom. Le canevas s'ouvre vide.
+1. **Créez** — choisissez un modèle, ou **Blank Dashboard**. Un modèle remplit le nom et s'ouvre avec ses widgets ; un tableau de bord vide s'ouvre vide, avec **Ajouter un widget** sur son canevas.
 2. **Ajoutez des widgets** — choisissez un type de widget, configurez ses données, faites-le glisser à l'endroit voulu.
 3. **(Optionnel) Ajoutez des variables** — par exemple, une liste déroulante `service` afin que le même tableau de bord fonctionne pour chaque service.
 4. **Définissez la plage temporelle** — les valeurs par défaut conviennent ; ajustez plus tard.
@@ -58,7 +58,7 @@ Ouvrez **Tableaux de bord** dans la navigation de gauche.
 
 Objectif : une page d'astreinte pour le service checkout avec latence, taux d'erreur, incidents ouverts et un flux de journaux en direct.
 
-1. Créez un tableau de bord intitulé « Checkout on-call ».
+1. Créez un **Blank Dashboard** intitulé « Checkout on-call ».
 2. Ajoutez une variable `service`. Mettez-la par défaut à `checkout`.
 3. Ajoutez un widget **Graphique** avec la latence P95, filtré par la variable `service`.
 4. À côté, ajoutez un widget **Valeur** pour le taux d'erreur, avec un avertissement à 1 % et un seuil critique à 5 %.

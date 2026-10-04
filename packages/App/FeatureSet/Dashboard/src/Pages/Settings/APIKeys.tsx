@@ -3,25 +3,24 @@ import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
-  API_KEY_ACCESS_FIELD_KEY,
-  getApiKeyAccessOptionsForCurrentUser,
-  getApiKeyAccessRole,
-  giveApiKeyAccess,
-} from "../../Components/ApiKey/ApiKeyAccess";
+  ROLE_ACCESS_FIELD_KEY,
+  RoleAccessHolder,
+  getRoleAccessOptionsForCurrentUser,
+  getRoleAccessRole,
+  giveRoleAccess,
+} from "../../Components/Permission/RoleAccess";
+import RoleAccessNotice from "../../Components/Permission/RoleAccessNotice";
 import { getApiKeyCreateFormFields } from "../../Components/ApiKey/ApiKeyCreateForm";
 import Route from "Common/Types/API/Route";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import React, {
   Fragment,
@@ -44,8 +43,6 @@ interface AccessNotice {
 }
 
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const translator: Translator = useTranslator();
-
   /*
    * Name, Access and, folded under Advanced, the description and the expiry
    * date - a year from today (Components/ApiKey/ApiKeyCreateForm). Built
@@ -55,7 +52,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ModelField<ApiKey>
   > => {
     return getApiKeyCreateFormFields({
-      accessOptions: getApiKeyAccessOptionsForCurrentUser(),
+      accessOptions: getRoleAccessOptionsForCurrentUser(
+        RoleAccessHolder.ApiKey,
+      ),
     });
   }, []);
 
@@ -83,19 +82,11 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       {accessNotice && (
-        <Alert
-          type={AlertType.DANGER}
-          dataTestId="api-key-access-notice"
-          className="mb-5"
-          strongTitle={translator.translateTemplate(
-            "{{apiKeyName}} was created without access.",
-            { apiKeyName: accessNotice.apiKeyName },
-          )}
-          title={accessNotice.error}
-          textOnRight={translator.translateText(
-            "Open the key to give it a role",
-          )}
-          onClick={() => {
+        <RoleAccessNotice
+          holder={RoleAccessHolder.ApiKey}
+          name={accessNotice.apiKeyName}
+          error={accessNotice.error}
+          onOpen={() => {
             Navigation.navigate(getApiKeyRoute(accessNotice.apiKeyId));
           }}
           onClose={() => {
@@ -131,8 +122,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           _miscDataProps: JSONObject,
           formValues: JSONObject,
         ): Promise<ApiKey> => {
-          pendingAccessRole.current = getApiKeyAccessRole(
-            formValues[API_KEY_ACCESS_FIELD_KEY],
+          pendingAccessRole.current = getRoleAccessRole(
+            formValues[ROLE_ACCESS_FIELD_KEY],
           );
 
           return item;
@@ -152,8 +143,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           if (role && projectId) {
             try {
-              await giveApiKeyAccess({
-                apiKeyId: createdApiKey.id,
+              await giveRoleAccess({
+                holder: RoleAccessHolder.ApiKey,
+                holderId: createdApiKey.id,
                 projectId: projectId,
                 role: role,
               });

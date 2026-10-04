@@ -4,10 +4,11 @@ import path from "path";
 
 /*
  * Labels no longer have a wizard step of their own on any form: the shared
- * Labels field folds under Advanced at the end of the step that holds the
+ * Labels field folds under More fields at the end of the step that holds the
  * record's name (Dashboard Utils/Form/LabelsFormField.ts). The docs walk
- * some of those wizards step by step - the SLO create wizard, the incident
- * template wizard, Create Queue - and markdown is not compiled, so nothing
+ * some of those forms field by field - SLO create (one page since its steps
+ * went), the incident template wizard, Create Queue - and markdown is not
+ * compiled, so nothing
  * else notices when a page keeps sending readers to a Labels step that is
  * gone. The English pages and their Persian translations (the corpus kept in
  * step with them) are held to the forms here; the forms are read from
@@ -75,9 +76,21 @@ function sectionOf(markdown: string, heading: RegExp): string {
 const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 // The step tables and lists, as each language counts them.
-const SLO_STEP_COUNT: Record<string, string> = {
+const SLO_ONE_PAGE: Record<string, string> = {
+  en: "Fill in the one-page form:",
+  fa: "فرم یک‌صفحه‌ای را پر کنید:",
+};
+
+// What the SLO form's three steps used to be introduced with.
+const SLO_OLD_STEP_COUNT: Record<string, string> = {
   en: "Work through the three steps:",
   fa: "سه گام را پیش ببرید:",
+};
+
+// The labels, as the SLO page names them in its More fields row.
+const SLO_LABELS: Record<string, string> = {
+  en: "**labels**",
+  fa: "**برچسب‌های**",
 };
 
 const TEMPLATE_WIZARD: Record<string, string> = {
@@ -90,7 +103,7 @@ const DECLARING_TEMPLATE_WIZARD: Record<string, string> = {
   fa: "جادوگر چهارگامی",
 };
 
-describe("the forms whose Labels step folded under Advanced", () => {
+describe("the forms whose Labels step folded under More fields", () => {
   test("have no Labels step in source", () => {
     const sloFields: string = readSource("Pages/Slo/SloFormFields.ts");
     const templates: string = readSource(
@@ -109,24 +122,27 @@ describe("the forms whose Labels step folded under Advanced", () => {
 });
 
 describe.each(LANGUAGES)("the %s docs", (language: string) => {
-  test("walk the SLO wizard's three steps, with the labels under Advanced on Basic Info", () => {
+  test("describe the one-page SLO form, with the labels under More fields", () => {
     const page: string = read(language, "slo/introduction");
 
-    expect(page).toContain(SLO_STEP_COUNT[language]!);
-    // No row of the steps table for a Labels step.
+    expect(page).toContain(SLO_ONE_PAGE[language]!);
+    expect(page).not.toContain(SLO_OLD_STEP_COUNT[language]!);
+    // No row for a Labels step, nor for the steps the form had.
     expect(page).not.toMatch(/^\| \*\*Labels\*\* +\|/m);
+    expect(page).not.toMatch(/^\| \*\*Basic Info\*\* +\|/m);
+    expect(page).not.toMatch(/^\| \*\*Period\*\* +\|/m);
 
-    const basicInfo: string | undefined = page
+    const advanced: string | undefined = page
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith("| **Basic Info** |");
+        return line.startsWith("| **More fields** ");
       });
 
-    expect(basicInfo).toBeDefined();
-    expect(basicInfo).toContain("**Advanced**");
+    expect(advanced).toBeDefined();
+    expect(advanced).toContain(SLO_LABELS[language]!);
   });
 
-  test("walk the incident template wizard's four steps, with owners and labels under Advanced", () => {
+  test("walk the incident template wizard's four steps, with owners and labels under More fields", () => {
     const settings: string = read(language, "incidents/settings");
     const declaring: string = read(language, "incidents/declaring-incidents");
 
@@ -158,11 +174,11 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
   });
 });
 
-test("the queue docs put the labels under Advanced on Queue Info", () => {
+test("the queue docs put the labels under More fields on Queue Info", () => {
   const page: string = read("en", "telemetry/queues");
 
   expect(page).toContain(
-    "then for an optional name and description, with labels under **Advanced** (**Queue Info**)",
+    "then for an optional name and description, with labels under **More fields** (**Queue Info**)",
   );
   expect(page).not.toContain("and labels (**Labels**)");
 });

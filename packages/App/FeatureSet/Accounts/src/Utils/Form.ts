@@ -5,6 +5,13 @@ import { getRetryAfterSecondsFromError } from "./VerificationEmailResend";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import {
+  FORM_FAVICON_IMAGE,
+  FORM_LOGO_IMAGE,
+  PublicFormImage,
+  readFormLogoAltText,
+  readPublicFormImage,
+} from "Common/Types/Form/FormBranding";
 import { isFormFieldId } from "Common/Types/Form/FormField";
 import {
   PublicForm,
@@ -201,6 +208,11 @@ export type ReadPublicFormFunction = (data: unknown) => PublicForm;
  * The form GET /form/public/:shareKey described, as the page draws it.
  * Throws for a body that is not a form at all (a proxy's error page served
  * with a 200, say), which the page reports as a form it could not load.
+ *
+ * Its branding is read as carefully: a logo or favicon is drawn only when it
+ * is an allowed image type in real base64 of an allowed size
+ * (readPublicFormImage) - anything else is left out, and the page shows
+ * OneUptime's - and the logo's alt text only goes with a logo.
  */
 export const readPublicForm: ReadPublicFormFunction = (
   data: unknown,
@@ -233,6 +245,32 @@ export const readPublicForm: ReadPublicFormFunction = (
 
   if (typeof data["description"] === "string" && data["description"].trim()) {
     form.description = data["description"];
+  }
+
+  const logo: PublicFormImage | undefined = readPublicFormImage(
+    data["logo"],
+    FORM_LOGO_IMAGE,
+  );
+
+  if (logo) {
+    form.logo = logo;
+
+    const logoAltText: string | undefined = readFormLogoAltText(
+      data["logoAltText"],
+    );
+
+    if (logoAltText) {
+      form.logoAltText = logoAltText;
+    }
+  }
+
+  const favicon: PublicFormImage | undefined = readPublicFormImage(
+    data["favicon"],
+    FORM_FAVICON_IMAGE,
+  );
+
+  if (favicon) {
+    form.favicon = favicon;
   }
 
   return form;

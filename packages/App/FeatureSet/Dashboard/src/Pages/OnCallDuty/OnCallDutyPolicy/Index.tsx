@@ -27,7 +27,6 @@ const OnCallDutyPolicyView: FunctionComponent<
         name="On-Call Policy > On-Call Policy Details"
         cardProps={{
           title: "On-Call Policy Details",
-          description: "Here are more details for this on-call policy.",
         }}
         isEditable={true}
         formFields={[

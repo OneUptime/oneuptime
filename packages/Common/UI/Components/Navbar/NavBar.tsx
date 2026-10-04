@@ -53,14 +53,15 @@ export interface ComponentProps {
   rightElement?: NavItem;
   moreMenuItems?: MoreMenuItem[];
   /*
-   * The categories the products menu opens on. Every other category starts
-   * folded to one line (its name, how many products it holds and what they
-   * are called) until the user opens it; search still finds every product,
-   * and the category holding the current page opens by itself. Leave it
-   * unset to show every category open: a short menu has nothing to fold.
-   * See NavBarMenuCatalog.ts.
+   * The categories the products menu always shows open: it opens on them,
+   * and they never fold, whatever the browser remembers. Every other
+   * category starts folded to one line (its name, how many products it holds
+   * and what they are called) until the user opens it; search still finds
+   * every product, and the category holding the current page opens by
+   * itself. Leave it unset to show every category open: a short menu has
+   * nothing to fold. See NavBarMenuCatalog.ts.
    */
-  moreMenuCategoriesOpenByDefault?: Array<string> | undefined;
+  moreMenuCategoriesAlwaysOpen?: Array<string> | undefined;
   moreMenuTitle?: string; // Title for the more menu (default: "Products")
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
@@ -375,7 +376,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               <NavBarMobileMenu
                 items={props.items}
                 moreMenuItems={props.moreMenuItems || []}
-                categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
+                categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
                 rightElement={props.rightElement}
                 onNavigate={() => {
                   return setIsMobileMenuOpen(false);
@@ -539,7 +540,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         createPortal(
           <NavBarMenuModal
             items={props.moreMenuItems}
-            categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
+            categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             noResultsText={props.moreMenuNoResultsText}

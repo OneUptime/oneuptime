@@ -21,8 +21,8 @@ Global SSO, inklusive reglaget "Require SSO for Login" för hela instansen, ing�
 2. **Skapa en leverantör**
 
    - Klicka på **Create Global SSO**.
-   - För SAML: ange ett **Namn**, **Sign On URL** och **Issuer** från din identitetsleverantör, och klistra in **Public Certificate**. Välj **Signature**- och **Digest**-metoderna (behåll standardvärdena — `RSA-SHA256` / `SHA256` — om du är osäker).
-   - För OIDC: ange **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (måste inkludera `openid`), och claim-namnen för **email** / **name**.
+   - För SAML: ange ett **Namn**, **Sign On URL** och **Issuer** från din identitetsleverantör, och klistra in **Public Certificate**. Resten fylls i under **More fields**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) samt en beskrivning (`Sign in with` och namnet). Ändra dem bara om din IdP kräver det. När du sparar öppnas leverantörens sida.
+   - För OIDC: ange ett **Name**, **Issuer URL** samt **Client ID** och **Client Secret** för appen du har registrerat i din IdP. Du kan också klistra in din IdP:s discovery-URL i **Issuer URL**. Resten fylls i under **More fields**: **Discovery URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), claim-namnen `email` och `name` samt en beskrivning (`Sign in with` och namnet). Ändra dem bara om din IdP kräver det. När du sparar öppnas leverantörens sida.
 
 3. **Kopiera OneUptime-URL:erna till din identitetsleverantör**
 
@@ -39,7 +39,7 @@ Hur en global leverantör beter sig beror på om du ansluter några projekt till
 
 - **Inga projekt anslutna (default-all / invite-first):** Användare kan logga in med leverantören och nå **alla projekt de redan är medlemmar i**. Nya användare skapas **inte** automatiskt — en användare måste först bjudas in till ett projekt. Använd detta för företagsövergripande SSO där medlemskap hanteras på annat håll.
 
-- **Projekt anslutna (auto-provisionering):** Öppna leverantören och använd tabellen **Attached Projects** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **auto-provisioneras** in i dessa projekt och läggs till i standardteamen vid första inloggningen. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, radera den och lägg till den igen.
+- **Projekt anslutna (auto-provisionering):** Öppna leverantören och använd tabellen **Attached Projects** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **auto-provisioneras** in i dessa projekt och läggs till i standardteamen vid första inloggningen. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, radera den och lägg till den igen.
 
 Om du vill förhindra all automatisk kontoskapande även när projekt är anslutna, aktivera **Disable Sign Up with SSO** på leverantören — användare måste då bjudas in innan de kan logga in.
 

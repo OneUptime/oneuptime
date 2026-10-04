@@ -347,7 +347,13 @@ const Users: FunctionComponent<PageComponentProps> = (
             },
           ],
         }}
-        noItemsMessage="Please wait, we are refreshing the list of users for this project. Please try again in sometime."
+        /*
+         * No noItemsMessage: the table's own "No users yet.", then the card's
+         * description and Invite User. It said "Please wait, we are
+         * refreshing the list of users for this project. Please try again in
+         * sometime." - which nothing was doing - under the one list a project
+         * is never without, since its owners are on it.
+         */
         query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
         } as Query<TeamMember>)}

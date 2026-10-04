@@ -71,7 +71,7 @@ Si la página de estado informa sobre múltiples componentes, puedes especificar
 
 Cuando también se establece un grupo de componentes, el filtro de nombre de componente se aplica **dentro** de ese grupo, lo que te permite apuntar a un único componente dentro de un grupo más grande. Cuando no se especifica ningún filtro, se monitorean todos los componentes incluidos en el alcance.
 
-### Opciones avanzadas
+### Más campos
 
 #### Tiempo de espera
 

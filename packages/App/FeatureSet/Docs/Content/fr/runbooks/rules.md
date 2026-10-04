@@ -61,7 +61,7 @@ Vous voyez toutes les exécutions déclenchées par règle dans **Runbooks → E
 
 ## Runbooks désactivés
 
-Si une règle référence un runbook avec `isEnabled = false`, la règle correspond toujours mais l'exécution est ignorée. Réactivez le runbook pour reprendre.
+Si une règle référence un runbook désactivé (**Run this runbook** désactivé sur la page **Settings** du runbook, `isEnabled = false`), la règle correspond toujours mais l'exécution est ignorée. Réactivez l'interrupteur pour reprendre.
 
 ## Tester une règle
 

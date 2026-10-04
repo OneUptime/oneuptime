@@ -18,14 +18,15 @@ I monitor delle eccezioni contano e filtrano le eccezioni che corrispondono a cr
 1. Vai su **Monitor** nella Dashboard di OneUptime
 2. Clicca su **Crea monitor**
 3. Seleziona **Eccezioni** come tipo di monitor
-4. Seleziona i servizi di telemetria da monitorare
-5. Configura i filtri e i criteri delle eccezioni secondo necessità
+4. Scegli quali eccezioni contare: il messaggio, i tipi di eccezione, gli ambienti e l'intervallo di tempo
+5. Per limitarle a servizi di telemetria o entità dell'infrastruttura, o per contare anche le eccezioni risolte e archiviate, apri **Altri campi** sotto questi filtri
+6. Configura i criteri secondo necessità
 
 ## Opzioni di Configurazione
 
 ### Servizi di Telemetria
 
-Seleziona uno o più servizi da cui monitorare le eccezioni. I servizi devono inviare dati delle eccezioni a OneUptime tramite OpenTelemetry.
+Seleziona in **Altri campi** uno o più servizi da cui monitorare le eccezioni. Lascialo vuoto per monitorare le eccezioni di tutti i servizi. I servizi devono inviare dati delle eccezioni a OneUptime tramite OpenTelemetry.
 
 ### Filtri delle Eccezioni
 

@@ -56,7 +56,7 @@ Die Teams **Owners** und **Admin** sind bewusst gesperrt: Ihre Berechtigungen la
 
 Legen Sie beliebig viele weitere Teams an — „Frontend-Bereitschaft", „Support", „Nur-Lese-Prüfer" — und geben Sie jedem genau die Berechtigungen, die es braucht.
 
-Wo Sie es finden: **Einstellungen → Teams**. Öffnen Sie ein Team, um zu **Members**, **Permissions** und **Block Permissions** zu gelangen.
+Wo Sie es finden: **Einstellungen → Teams**. Öffnen Sie ein Team, um zu **Members** und **Permissions** zu gelangen; **Block Permissions** liegen unter **More settings** unten auf der Seite Permissions.
 
 ## Berechtigungen
 

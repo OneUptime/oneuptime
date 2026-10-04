@@ -1,6 +1,7 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
+import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -63,6 +64,25 @@ const ModelPage: <TBaseModel extends BaseModel>(
   const [loadedHeader, setLoadedHeader] = useState<LoadedModelHeader | null>(
     null,
   );
+
+  /*
+   * Bumped when a tab below saves this record's name or labels
+   * (ModelHeaderEvents) - a refresh like a refreshToken bump, for the
+   * layouts that do not pass one.
+   */
+  const [headerChangeCount, setHeaderChangeCount] = useState<number>(0);
+
+  useEffect(() => {
+    return subscribeToModelHeaderChanged({
+      modelType: props.modelType,
+      modelId: props.modelId,
+      onChanged: (): void => {
+        setHeaderChangeCount((count: number): number => {
+          return count + 1;
+        });
+      },
+    });
+  }, [modelIdString]);
 
   /*
    * Mirrors loadedHeader, so a read that finishes can see what is on screen
@@ -224,7 +244,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
     return () => {
       latestRequestRef.current++;
     };
-  }, [modelIdString, props.refreshToken]);
+  }, [modelIdString, props.refreshToken, headerChangeCount]);
 
   /*
    * Decided at render time, not in an effect: the very first render for a

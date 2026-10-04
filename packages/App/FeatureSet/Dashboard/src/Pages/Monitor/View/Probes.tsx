@@ -1,11 +1,18 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import MonitoringIntervalCard from "../../../Components/Monitor/MonitoringIntervalCard";
+import ProbeAgreementCard from "../../../Components/Monitor/ProbeAgreementCard";
+import ProbesAndIntervalCopy, {
+  NOT_CHECKED_BY_PROBES_TEST_ID,
+} from "../../../Components/Monitor/ProbesAndIntervalCopy";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -27,21 +34,37 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
 import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * A monitor's Probes & Interval page: how often it is checked, which probes
+ * check it, and how many of them must agree before its status changes, in
+ * that order - what Create Monitor asks on its "Probes & Interval" step, and
+ * the agreement that counts those probes right under them. The interval had
+ * a page of its own and the agreement a card on Settings; their old URL
+ * forwards here (see ProbesAndIntervalCopy).
+ *
+ * Only a monitor that probes check (MonitorTypeHelper.isProbableMonitor) has
+ * this page in its menu. Any other one, reached by its URL, is told why it
+ * has neither.
+ */
 const MonitorProbes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  /*
+   * Keyed on the id's string, not the ObjectID: a new ObjectID is read from
+   * the address on every render.
+   */
+  const modelIdString: string = modelId.toString();
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<ProbeMonitorResponse>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -50,73 +73,72 @@ const MonitorProbes: FunctionComponent<
 
   const [probes, setProbes] = useState<Array<Probe>>([]);
 
-  const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
-    // get item.
-    setIsLoading(true);
+  const [monitor, setMonitor] = useState<Monitor | null>(null);
 
+  /*
+   * Bumped by every read. The page stays mounted when the reader follows a
+   * link from one monitor's page to another's, so it reads again for the new
+   * id, and an answer for a monitor it has moved on from is dropped.
+   */
+  const readRef: MutableRefObject<number> = useRef<number>(0);
+
+  const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
+    const read: number = readRef.current + 1;
+    readRef.current = read;
+
+    setIsLoading(true);
+    setMonitor(null);
     setError("");
+
     try {
       const item: Monitor | null = await ModelAPI.getItem({
         modelType: Monitor,
         id: modelId,
         select: {
           monitorType: true,
+          monitoringInterval: true,
+          minimumProbeAgreement: true,
         },
       });
 
+      if (read !== readRef.current) {
+        return;
+      }
+
       if (!item) {
         setError(ExceptionMessages.MonitorNotFound);
-
+        setIsLoading(false);
         return;
       }
 
       const probes: Array<Probe> = await ProbeUtil.getAllProbes();
 
+      if (read !== readRef.current) {
+        return;
+      }
+
       setProbes(probes);
-      setMonitorType(item.monitorType);
+      setMonitor(item);
     } catch (err) {
+      if (read !== readRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err));
     }
     setIsLoading(false);
   };
 
-  const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
-    undefined,
-  );
+  const monitorType: MonitorType | undefined = monitor?.monitorType;
 
   useAsyncEffect(async () => {
-    // fetch the model
     await fetchItem();
-  }, []);
+  }, [modelIdString]);
 
-  const getPageContent: GetReactElementFunction = (): ReactElement => {
-    if (!monitorType || isLoading) {
-      return <ComponentLoader />;
-    }
-
-    if (error) {
-      return <ErrorMessage message={error} />;
-    }
-
-    if (monitorType === MonitorType.Manual) {
-      return (
-        <EmptyState
-          id="monitoring-probes-empty-state"
-          icon={IconProp.Signal}
-          title={"No Monitoring Probes for Manual Monitors"}
-          description={
-            <>
-              {translator.translateText(
-                "This is a manual monitor. It does not monitor anything and so, it cannot have monitoring probes set. You can have monitoring probes on other monitor types.",
-              )}
-            </>
-          }
-        />
-      );
-    }
-
+  const getProbesTable: GetReactElementFunction = (): ReactElement => {
     return (
       <ModelTable<MonitorProbe>
+        key={modelIdString}
         modelType={MonitorProbe}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -146,7 +168,7 @@ const MonitorProbes: FunctionComponent<
         cardProps={{
           title: "Probes",
           description:
-            "List of probes that help you monitor this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
+            "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
         }}
         noItemsMessage={
           "No probes found for this resource. However, you can add some probes to monitor this resource."
@@ -295,14 +317,67 @@ const MonitorProbes: FunctionComponent<
     );
   };
 
+  const getPageContent: GetReactElementFunction = (): ReactElement => {
+    /*
+     * The error first: a monitor that could not be read has no type, and
+     * waiting for one kept the loader up for good.
+     */
+    if (error) {
+      return <ErrorMessage message={error} />;
+    }
+
+    if (isLoading || !monitor || !monitorType) {
+      return <ComponentLoader />;
+    }
+
+    if (!MonitorTypeHelper.isProbableMonitor(monitorType)) {
+      const isManual: boolean = MonitorTypeHelper.isManualMonitor(monitorType);
+
+      return (
+        <EmptyState
+          id={NOT_CHECKED_BY_PROBES_TEST_ID}
+          icon={IconProp.Signal}
+          title={
+            isManual
+              ? ProbesAndIntervalCopy.manualMonitorTitle
+              : ProbesAndIntervalCopy.notCheckedByProbesTitle
+          }
+          description={
+            isManual
+              ? ProbesAndIntervalCopy.manualMonitorDescription
+              : ProbesAndIntervalCopy.notCheckedByProbesDescription
+          }
+        />
+      );
+    }
+
+    return (
+      <Fragment>
+        <MonitoringIntervalCard
+          key={`interval-${modelIdString}`}
+          monitorId={modelId}
+          monitorType={monitorType}
+          initialInterval={monitor.monitoringInterval}
+        />
+
+        {getProbesTable()}
+
+        <ProbeAgreementCard
+          key={`agreement-${modelIdString}`}
+          monitorId={modelId}
+          initialValue={monitor.minimumProbeAgreement}
+        />
+      </Fragment>
+    );
+  };
+
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
       {getPageContent()}
-      {showViewLogsModal && (
+      {showViewLogsModal && monitorType && (
         <Modal
           title={"Monitoring Summary"}
-          description="Here are the latest monitoring summary for this resource."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {
@@ -311,10 +386,7 @@ const MonitorProbes: FunctionComponent<
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SummaryInfo
-            monitorType={monitorType!}
-            probeMonitorResponses={logs}
-          />
+          <SummaryInfo monitorType={monitorType} probeMonitorResponses={logs} />
         </Modal>
       )}
     </Fragment>

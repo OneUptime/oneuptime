@@ -366,9 +366,9 @@ export class DomainRecordUtil {
        * and every EPP URL marks the end of the entry before it.
        */
       const pieces: Array<string> = segment
-        .replace(URL_PATTERN, " ")
-        .replace(/[()[\]]/g, " ")
-        .split(" ");
+        .replace(URL_PATTERN, "\u0000")
+        .replace(/[()[\]]/g, "\u0000")
+        .split("\u0000");
 
       for (const piece of pieces) {
         phrases.push(...DomainRecordUtil.splitStatusPiece(piece));

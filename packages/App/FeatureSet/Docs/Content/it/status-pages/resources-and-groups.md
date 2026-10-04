@@ -22,23 +22,23 @@ La descrizione della scheda cambia con la forma della tua pagina. Con dei gruppi
 
 ## Aggiungere un monitor
 
-Seleziona il gruppo in cui vuoi che la risorsa finisca (oppure **Top of page** per una riga senza gruppo), poi clicca **Aggiungi monitor**. La finestra si intitola **Add a monitor to {group}** e ha due passaggi: **Dettagli del monitor** e **Avanzato**.
-
-In **Dettagli del monitor**:
+Seleziona il gruppo in cui vuoi che la risorsa finisca (oppure **Top of page** per una riga senza gruppo), poi clicca **Aggiungi monitor**. La finestra si intitola **Add a monitor to {group}** ed è una sola pagina che chiede una cosa sola — il monitor:
 
 - **Monitor** — il menu a discesa dei monitor del tuo progetto, segnaposto **Seleziona monitor**. Obbligatorio.
-- **Nome visualizzato** — obbligatorio. È il testo che i visitatori leggono, ed è memorizzato separatamente dal nome del monitor, quindi puoi rinominarlo qui senza toccare il monitoraggio.
-- **Descrizione** — markdown facoltativo mostrato sotto la riga. Utile per una frase che spieghi che cosa fa davvero quel servizio.
+- **Nome visualizzato** — il testo che i visitatori leggono. Si compila con il nome del monitor appena lo scegli, e lo segue se ne scegli un altro, finché non scrivi un nome tuo. È memorizzato separatamente dal nome del monitor, quindi puoi rinominarlo qui senza toccare il monitoraggio.
+- **Altri campi** — chiuso. Contiene **Descrizione** (markdown facoltativo mostrato sotto la riga, utile per una frase che spieghi che cosa fa davvero quel servizio) e le [opzioni di visualizzazione](#le-opzioni-di-visualizzazione-di-una-risorsa). Se lo lasci chiuso, la risorsa riceve i loro valori predefiniti.
+
+Scegli un monitor, clicca **Aggiungi monitor** e la riga è sulla pagina. In un gruppo a griglia la finestra chiede anche, sopra **Altri campi**, la riga e la colonna in cui va il monitor — vedi [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia).
 
 Se il tuo progetto ha i gruppi di monitor abilitati, sotto il menu a discesa compare un link **Add a Monitor Group instead.** — cliccalo e il menu **Monitor** viene sostituito da un menu **Monitor Gruppo** (**Seleziona gruppo di monitor**). Il link si trasforma allora in **Add a Monitor instead.** così puoi tornare indietro. Usa un gruppo di monitor quando vuoi che una singola riga della pagina rappresenti più controlli messi insieme.
 
 ### Aggiungerne diversi in una volta
 
-**Add Multiple** (che nel menu **More actions** si chiama anche **Add multiple monitors**) apre **Add Multiple Monitors**. Ha gli stessi due passaggi, ma il primo è una selezione multipla **Monitor** invece di un singolo menu a discesa, e le opzioni di visualizzazione che scegli in **Avanzato** valgono per tutti i monitor selezionati. È il modo più veloce per popolare una pagina nuova.
+**Add Multiple** (che nel menu **More actions** si chiama anche **Add multiple monitors**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor** invece di un singolo menu a discesa, poi la stessa sezione chiusa **Altri campi**, le cui opzioni di visualizzazione valgono per tutti i monitor selezionati. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Add Monitors** li aggiunge — non ci sono passaggi da attraversare. È il modo più veloce per popolare una pagina nuova.
 
 ## Le opzioni di visualizzazione di una risorsa
 
-Il passaggio **Avanzato** è identico nel modulo di aggiunta singola e nella finestra di aggiunta multipla. Tutto qui è per singola risorsa — due righe nello stesso gruppo possono essere configurate in modo diverso.
+La sezione **Altri campi** è identica nel modulo di aggiunta singola e nella finestra di aggiunta multipla. Parte chiusa in entrambi, e anche in **Modifica risorsa**, dove la sua intestazione, da chiusa, mostra ciò che al suo interno non è al valore predefinito. Tutto qui è per singola risorsa — due righe nello stesso gruppo possono essere configurate in modo diverso.
 
 | Campo                                                    | A che serve                                                                                            |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ Il passaggio **Avanzato** è identico nel modulo di aggiunta singola e nella fin
 | **Seleziona precisione del tempo di attività** (`uptimePercentPrecision`)   | Compare solo quando **Mostra % di uptime** è attivo. Obbligatorio, predefinito a un decimale.                              |
 | **Mostra grafico cronologia stato** (`showStatusHistoryChart`) | Attivo per impostazione predefinita. Mostra il grafico a barre della cronologia di uptime giorno per giorno della risorsa.                     |
 
-Anche **Nome visualizzato** (`displayName`) e **Descrizione** (`displayDescription`) del primo passaggio riguardano solo la visualizzazione — non cambiano mai il monitor vero e proprio.
+Anche **Nome visualizzato** (`displayName`) e **Descrizione** (`displayDescription`) riguardano solo la visualizzazione — non cambiano mai il monitor vero e proprio.
 
 ## Percentuali di uptime e grafici cronologici
 
@@ -64,19 +64,18 @@ I colori delle barre del grafico cronologico, e quali stati del monitor contano 
 
 ## Gruppi
 
-Clicca **New Group** per aprire **Create New Status Page Group**. Il modulo ha tre passaggi: **Dettagli gruppo**, **Layout** e **Avanzato**.
-
-**Dettagli gruppo**:
+Clicca **New Group** per aprire **Create New Status Page Group**. È una sola pagina: due campi, poi due sezioni chiuse.
 
 - **Nome gruppo** (`name`) — obbligatorio. È il titolo di sezione che i visitatori vedono.
-- **Descrizione gruppo** (`description`) — markdown facoltativo, mostrato sotto il titolo.
-- **Parent Group** (`parentStatusPageGroupId`) — facoltativo. Lascialo su **No parent group (top level)** per tenere il gruppo al livello superiore.
-- **Espandi sulla pagina di stato per impostazione predefinita** (`isExpandedByDefault`) — se la sezione parte aperta o chiusa per i visitatori.
+- **Parent Group** (`parentStatusPageGroupId`) — facoltativo. Lascialo su **No parent group (top level)** per tenere il gruppo al livello superiore. **Add a sub group** lo compila per te.
+- **Layout** — chiuso, e la sua intestazione dice **List** o **Grid**. Contiene la **Modalità di visualizzazione** e gli assi di una griglia (vedi [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da solo su un gruppo a griglia.
+- **Altri campi** — chiuso. Contiene il resto e rispecchia le opzioni delle risorse a livello di gruppo:
+  - **Descrizione gruppo** (`description`) — markdown facoltativo, mostrato sotto il titolo.
+  - **Espandi sulla pagina di stato per impostazione predefinita** (`isExpandedByDefault`) — attivo per impostazione predefinita: se la sezione parte aperta o chiusa per i visitatori.
+  - **Mostra stato attuale del gruppo** (`showCurrentStatus`) — attivo per impostazione predefinita. Mostra uno stato accanto al titolo del gruppo.
+  - **Mostra % di uptime** (`showUptimePercent`) — disattivo per impostazione predefinita, con **Seleziona precisione del tempo di attività** che compare una volta attivato.
 
-**Avanzato** rispecchia gli interruttori delle risorse a livello di gruppo:
-
-- **Mostra stato attuale del gruppo** (`showCurrentStatus`) — attivo per impostazione predefinita. Mostra uno stato accanto al titolo del gruppo.
-- **Mostra % di uptime** (`showUptimePercent`) — disattivo per impostazione predefinita, con **Seleziona precisione del tempo di attività** che compare una volta attivato.
+Alla maggior parte dei gruppi basta un nome: scrivilo e clicca **Create Status Page Group**.
 
 La modifica funziona allo stesso modo: **Edit Group** nell'intestazione del riquadro, o **Edit group** nel menu della riga del navigatore, apre **Edit Status Page Group** con un pulsante **Salva modifiche**.
 
@@ -96,7 +95,7 @@ L'annidamento si ripaga sulle pagine grandi: un hosting provider con le regioni 
 
 ## Layout a elenco o a griglia
 
-Il passaggio **Layout** imposta la **Modalità di visualizzazione** (`viewMode`) del gruppo, e cambia il modo in cui il gruppo viene mostrato al pubblico.
+La sezione **Layout** del modulo del gruppo imposta la **Modalità di visualizzazione** (`viewMode`) del gruppo, e cambia il modo in cui il gruppo viene mostrato al pubblico.
 
 | Se vuoi…                                                     | Scegli                   |
 | ------------------------------------------------------------- | ---------------------- |
@@ -110,9 +109,9 @@ Scegli **Grid** e compaiono altri quattro campi:
 - **Etichetta dell'asse delle colonne** — la dimensione delle colonne, segnaposto `Region`.
 - **Valori dell'asse delle colonne** — aggiunti con **Add Column** (segnaposto `e.g. US-East`).
 
-Ogni monitor di un gruppo a griglia viene poi collocato in una cella, quindi la finestra di aggiunta multipla chiede la riga e la colonna insieme ai monitor, usando le etichette degli assi che hai scelto tu.
+Ogni monitor di un gruppo a griglia viene poi collocato in una cella, quindi **Aggiungi monitor** e la finestra di aggiunta multipla chiedono la riga e la colonna insieme al monitor, usando le etichette degli assi che hai scelto tu.
 
-**Prepara gli assi prima di aggiungere i monitor.** Un gruppo a griglia senza righe né colonne mostra un avviso ambra che dice che non c'è dove mettere un monitor finché gli assi non esistono, con un pulsante **Set up the grid** — e il pulsante **Aggiungi monitor** resta nascosto finché non lo fai.
+**Prepara gli assi prima di aggiungere i monitor.** Un gruppo a griglia senza righe né colonne mostra un avviso ambra che dice che non c'è dove mettere un monitor finché gli assi non esistono, con un pulsante **Set up the grid** che apre il modulo del gruppo sulla sua sezione **Layout** — e il pulsante **Aggiungi monitor** resta nascosto finché non lo fai.
 
 ## Ordinare ciò che i visitatori vedono
 

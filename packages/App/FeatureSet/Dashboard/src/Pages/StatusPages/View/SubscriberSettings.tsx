@@ -492,7 +492,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
         cardProps={{
           title: "Notification Templates",
           description:
-            "Link custom notification templates to this status page. You can create templates in Project Settings > Status Pages > Subscriber Templates.",
+            "Link custom notification templates to this status page. You can create templates in Status Pages → Settings → Subscriber Templates.",
         }}
         noItemsMessage={
           "No notification templates linked to this status page. Default templates will be used."
@@ -508,7 +508,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
             title: "Notification Template",
             description:
-              "Select a notification template to use for this status page. You can create templates in Project Settings > Status Pages > Subscriber Templates.",
+              "Select a notification template to use for this status page. You can create templates in Status Pages → Settings → Subscriber Templates.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: StatusPageSubscriberNotificationTemplate,

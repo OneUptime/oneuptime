@@ -37,9 +37,12 @@ interface NoticeLayout {
 
 /*
  * Exercises the notice inside the real ModelTable create modal, including
- * its shared form fields and the modal's scroll container. The Free project
- * has no payment method; these tests never submit an ingestion key or send
- * telemetry. Pricing stays visible without an acknowledgement control.
+ * its shared form fields and the modal's scroll container. On the Free plan
+ * the create form (Components/Telemetry/IngestionKeyForm) walks from its Key
+ * page to a Billing step with the pricing, which has to be shown before the
+ * key can be created. The Free project has no payment method; these tests
+ * never submit an ingestion key or send telemetry. Pricing stays visible
+ * without an acknowledgement control.
  *
  * cd packages/E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
  *   npx playwright test Tests/Dashboard/TelemetryPayAsYouGoNotice.spec.ts \
@@ -56,7 +59,6 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
   };
 
   const draftName: string = "Draft telemetry pricing key";
-  const draftDescription: string = "Review pricing before creating this key.";
 
   /*
    * The card's own Create button. These tests never create a key, so the
@@ -70,25 +72,22 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
   const advanceToBilling: () => Promise<void> = async (): Promise<void> => {
     const modal: Locator = ctx.page.getByTestId("modal");
     /*
-     * The one button that reads Next. Until the Billing step has been read
-     * it is the main button; once it has, the main button creates the key
-     * and a plain Next sits beside it - never a way past the pricing unread.
+     * The plain Next of the Key step. Billing is the last step, and Create
+     * Ingestion Key is on the last step only: never a way past the pricing
+     * unread.
      */
     const nextButton: Locator = modal.getByRole("button", {
       name: "Next",
       exact: true,
     });
-    await modal
-      .getByPlaceholder("Ingestion Key Name", { exact: true })
-      .fill(draftName);
-    await modal
-      .getByPlaceholder("Ingestion Key Description", { exact: true })
-      .fill(draftDescription);
-    await expect(nextButton).toHaveCount(1);
-    await nextButton.click();
+    // The key's own page: a name, already filled in, and Server picked.
     await expect(
       modal.getByTestId("card-select-option-Server"),
     ).toHaveAttribute("aria-checked", "true");
+    await modal
+      .getByPlaceholder("Ingestion Key Name", { exact: true })
+      .fill(draftName);
+    await expect(nextButton).toHaveCount(1);
     await nextButton.click();
     await expect(
       modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
@@ -295,10 +294,6 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     const name: Locator = modal.getByPlaceholder("Ingestion Key Name", {
       exact: true,
     });
-    const description: Locator = modal.getByPlaceholder(
-      "Ingestion Key Description",
-      { exact: true },
-    );
     const pricingLink: Locator = modal
       .getByRole("region", { name: "Telemetry pricing", exact: true })
       .getByRole("link", { name: "View pricing", exact: true });
@@ -331,10 +326,9 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
         await expect(modal).toBeVisible();
         await modal
           .getByRole("navigation", { name: "Progress" })
-          .getByText("Details", { exact: true })
+          .getByText("Key", { exact: true })
           .click();
         await expect(name).toHaveValue(draftName);
-        await expect(description).toHaveValue(draftDescription);
         await expect(modal.getByRole("checkbox")).toHaveCount(0);
         await advanceToBilling();
       } finally {
@@ -353,24 +347,21 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
 
     await createButton().click();
     await expect(modal).toBeVisible();
+    // A fresh draft: the name filled in again, nothing kept from before.
     await expect(
       modal.getByPlaceholder("Ingestion Key Name", { exact: true }),
-    ).toHaveValue("");
+    ).toHaveValue("Server key");
     await advanceToBilling();
     await expect(
       modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
     ).toBeVisible();
     await expect(modal.getByRole("checkbox")).toHaveCount(0);
-    /*
-     * The pricing read, only the summary is left: the key can be created
-     * from here, or the summary reviewed first.
-     */
+    // The pricing shown, Billing is the last step: it creates the key.
     await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
       "Create Ingestion Key",
     );
-    await expect(modal.getByTestId("modal-footer-next-button")).toHaveText(
-      "Next",
-    );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(0);
+    await expect(modal.getByText("Summary", { exact: true })).toHaveCount(0);
   });
 
   test("a fresh dialog cannot create a key before the pricing has been read", async () => {
@@ -384,17 +375,19 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
       .getByPlaceholder("Ingestion Key Name", { exact: true })
       .fill(draftName);
 
-    // Details and Key Type walk on: the Billing step is still to be read.
-    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+    // The Key page walks on: Billing, the last step, is still to be shown.
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveCount(
+      0,
+    );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveText(
       "Next",
     );
-    await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(0);
-    await modal.getByTestId("modal-footer-submit-button").click();
+    await modal.getByTestId("modal-footer-next-button").click();
     await expect(
-      modal.getByTestId("card-select-option-Server"),
-    ).toHaveAttribute("aria-checked", "true");
+      modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
+    ).toBeVisible();
     await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
-      "Next",
+      "Create Ingestion Key",
     );
     await modal.getByTestId("modal-footer-close-button").click();
   });

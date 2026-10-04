@@ -30,6 +30,7 @@ const PodmanDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Podman}
+      newKeyName={translationKey("Podman key")}
       optionsLabel="How do you want to run the agent?"
       options={PODMAN_INSTALL_METHODS}
       keyStepDescription={translationKey(

@@ -244,12 +244,12 @@ describe("the forms explain the method and the hostname the same way", () => {
     },
   ];
 
+  /*
+   * The device Overview no longer asks for the hostname: a device's details
+   * are edited in one place, its Settings page.
+   */
   const HOSTNAME_SURFACES: Array<{ name: string; parts: Array<string> }> = [
     ...REGISTRATION_SURFACES,
-    {
-      name: "the device Overview card",
-      parts: ["Pages", "NetworkDevice", "View", "Index.tsx"],
-    },
     {
       name: "the device Settings form",
       parts: ["Pages", "NetworkDevice", "View", "Settings.tsx"],

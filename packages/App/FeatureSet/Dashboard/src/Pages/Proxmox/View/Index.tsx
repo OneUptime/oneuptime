@@ -6,8 +6,7 @@ import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -2855,39 +2854,25 @@ const ProxmoxClusterOverview: FunctionComponent<
       {/* Top Resource Consumers */}
       {renderTopGuests()}
 
-      {/* Cluster Details */}
+      {/*
+       * Cluster Details: read here, edited in one place - the same card at
+       * the top of the cluster's Settings page (ResourceDetailsCard).
+       */}
       <CardModelDetail<ProxmoxCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Proxmox cluster.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        editButtonText="Edit Cluster"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "pve-production",
-            description:
-              "This should match the proxmox.cluster.name resource attribute reported by the Proxmox Agent.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production Proxmox cluster running in US East",
-          },
-          getLabelsFormField<ProxmoxCluster>(),
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: ProxmoxCluster,

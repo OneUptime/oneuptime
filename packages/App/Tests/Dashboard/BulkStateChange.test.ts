@@ -9,7 +9,9 @@ import {
   getBulkStateChangeNoteTemplateFieldKey,
   getBulkStateChangeSkipDecision,
   getNoteFromTemplate,
+  toBulkStateChangeNoteTemplate,
 } from "../../FeatureSet/Dashboard/src/Utils/BulkStateChange";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * The note a user writes in a bulk "Change State" modal rides along with each
@@ -191,5 +193,58 @@ describe("getBulkStateChangeSkipDecision", () => {
     expect(decision.skippedMessage).toBe(
       'Skipped: Already at "Unknown" (at or past "Unknown")',
     );
+  });
+});
+
+/*
+ * Every state change dialog - the single-event ones in the event headers
+ * and the bulk one - offers the project's note templates in the same
+ * picker, so a template row from the API is turned into the picker's
+ * option the same way everywhere.
+ */
+describe("a note template row as the picker offers it", () => {
+  test("keeps the template's id, name and note", () => {
+    expect(
+      toBulkStateChangeNoteTemplate({
+        id: new ObjectID("019acd20-1111-4111-8111-111111111111"),
+        templateName: "Mitigation started",
+        note: "We have started mitigating this.",
+      }),
+    ).toEqual({
+      id: "019acd20-1111-4111-8111-111111111111",
+      templateName: "Mitigation started",
+      note: "We have started mitigating this.",
+    });
+  });
+
+  test("never shows a missing name or note as undefined", () => {
+    expect(
+      toBulkStateChangeNoteTemplate({
+        id: new ObjectID("019acd20-2222-4222-8222-222222222222"),
+      }),
+    ).toEqual({
+      id: "019acd20-2222-4222-8222-222222222222",
+      templateName: "",
+      note: "",
+    });
+    expect(toBulkStateChangeNoteTemplate({ id: null })).toEqual({
+      id: "",
+      templateName: "",
+      note: "",
+    });
+  });
+
+  test("a converted template is found again by the id the picker hands back", () => {
+    const templates: Array<BulkStateChangeNoteTemplate> = [
+      toBulkStateChangeNoteTemplate({
+        id: new ObjectID("019acd20-3333-4333-8333-333333333333"),
+        templateName: "Resolved",
+        note: "All clear.",
+      }),
+    ];
+
+    expect(
+      getNoteFromTemplate(templates, "019acd20-3333-4333-8333-333333333333"),
+    ).toBe("All clear.");
   });
 });

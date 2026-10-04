@@ -6,7 +6,7 @@ An on-call policy pages people in levels. Each escalation rule is one level: who
 
 When you create an on-call policy on the **On-Call Policies** page, the form asks for its **Name** and **Who gets paged first?**. The question uses the same picker as **Notify**: on-call schedules, teams and people, as many as you need. Whoever you pick becomes the policy's first escalation rule, **Level 1**, which waits **30 minutes** for an acknowledgement before the next level is paged. The new policy then opens on its **Escalation Rules** page, where you can add more levels.
 
-**Who gets paged first?** is optional. Leave it empty and the policy starts without escalation rules: it pages nobody until you add one, and its overview says so. The description and the labels wait under **Advanced**. The question is asked only of people who may add escalation rules.
+**Who gets paged first?** is optional. Leave it empty and the policy starts without escalation rules: it pages nobody until you add one, and its overview says so. The description and the labels wait under **More fields**. The question is asked only of people who may add escalation rules.
 
 ## Adding an escalation rule
 
@@ -18,12 +18,12 @@ Open the on-call policy, choose **Escalation Rules** in its side menu and click 
   - A **person** is paged directly.
 - **Escalate after (in minutes)** — how long to wait for an acknowledgement before the next level is paged. It starts at **30 minutes**; change it to whatever suits the level.
 
-Everything else waits under **Advanced**, folded until you open it:
+Everything else waits under **More fields**, folded until you open it:
 
 - **Name** — optional. A rule you do not name is called after its level: the first rule of a policy is **Level 1**, the second **Level 2**, and so on. The name field shows the name the rule will get.
 - **Description** — optional notes, such as who this level pages and why.
 
-The header of **Advanced** says **Configured** when the rule has a description or a name of your own.
+Folded, the header of **More fields** names the two and shows the ones the rule has: a description, or a name of your own.
 
 ## How the levels page people
 
@@ -31,9 +31,11 @@ When an incident or alert reaches the policy, **Level 1** pages its responders s
 
 The summary at the top of the **Escalation Rules** page shows the whole ladder: when each level is paged, who it pages, and what happens after the last one. A level whose responders cannot all be paged says so on its card; click the label to see who and why.
 
+Each person a level pages is reached the way their own on-call rules say: **User Settings** > **On-Call Rules**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **On-Call Rules**.
+
 ## Editing, reordering and deleting rules
 
-- **Edit rule** opens the same one-page dialog, filled in with the rule as it is: its responders, its wait, and its name and description under **Advanced**. Add or remove responders and save. Clearing the name gives the rule its level's name again.
+- **Edit rule** opens the same one-page dialog, filled in with the rule as it is: its responders, its wait, and its name and description under **More fields**. Add or remove responders and save. Clearing the name gives the rule its level's name again.
 - **Move up** and **Move down** in a rule's **⋯** menu change its level. A rule named after its level keeps a name that matches its place: when **Level 3** moves up past **Level 2**, the two swap names. A name you chose, such as **Managers**, stays the same wherever the rule goes.
 - **Delete rule** asks first and says what the level pages. Deleting a level moves the levels below it up, and rules named after their level are renamed to match.
 

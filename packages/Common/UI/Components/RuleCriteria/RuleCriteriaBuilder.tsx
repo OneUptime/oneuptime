@@ -5,6 +5,7 @@ import RuleCriteria, {
   RuleCriteriaValue,
 } from "../../../Types/Rules/RuleCriteria";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "../../../Types/Filter/FilterConditionUtil";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useId } from "react";
 import useTranslateValue from "../../Utils/Translation";
@@ -76,8 +77,9 @@ export interface ComponentProps<TEntity> {
  * [Contains] [database]", "And [Monitor Labels] [Has any of] [Production]".
  *
  * - With fewer than two conditions there is nothing to combine, so "Match
- *   all / Match any" only appears once there is; every later row then starts
- *   with the word it picked ("And" / "Or").
+ *   all / Match any" only appears once there is (isFilterConditionNeeded,
+ *   the rule every form asking for a filter condition follows); every later
+ *   row then starts with the word it picked ("And" / "Or").
  * - "Add condition" starts the next row on a field no row uses yet.
  * - A row is one line on a wide screen and stacks on a narrow one, and its
  *   remove button is a quiet icon at the end rather than a red button below.
@@ -541,7 +543,7 @@ const RuleCriteriaBuilder: <TEntity>(
         </div>
       ) : (
         <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
-          {criteria.filters.length > 1 && (
+          {isFilterConditionNeeded(criteria.filters) && (
             <fieldset
               className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2"
               data-testid="rule-criteria-combine"

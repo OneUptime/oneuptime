@@ -86,7 +86,7 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
         cardProps={{
           title: "Status Timeline",
           description:
-            "Here is the status timeline for this Scheduled Maintenance",
+            "Each status this maintenance event has been in, when it began and how long it lasted.",
         }}
         noItemsMessage={
           "No status timeline created for this Scheduled Maintenance so far."

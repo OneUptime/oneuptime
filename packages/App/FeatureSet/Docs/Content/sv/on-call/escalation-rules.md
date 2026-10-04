@@ -6,11 +6,11 @@ En jourpolicy larmar personer i nivåer. Varje eskaleringsregel är ett nivå: v
 
 När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efter dess **Namn** och **Vem larmas först?**. Frågan använder samma väljare som **Avisera**: jourscheman, team och personer, så många du behöver. De du väljer blir policyns första eskaleringsregel, **Level 1**, som väntar **30 minuter** på en kvittering innan nästa nivå larmas. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
 
-**Vem larmas först?** är valfritt. Lämnar du det tomt startar policyn utan eskaleringsregler: den larmar ingen förrän du lägger till en, och dess översikt säger det. Beskrivningen och etiketterna finns under **Avancerad**. Frågan ställs bara till den som får lägga till eskaleringsregler.
+**Vem larmas först?** är valfritt. Lämnar du det tomt startar policyn utan eskaleringsregler: den larmar ingen förrän du lägger till en, och dess översikt säger det. Beskrivningen och etiketterna finns under **Fler fält**. Frågan ställs bara till den som får lägga till eskaleringsregler.
 
 ## Lägg till en eskaleringsregel
 
-Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Add Escalation Rule**. Dialogen är en kort sida med två frågor:
+Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida med två frågor:
 
 - **Avisera** — vem som larmas på den här nivån. En väljare omfattar jourscheman, team och personer: klicka på **Lägg till mottagare**, sök och välj så många du behöver. Minst en krävs.
   - Ett **jourschema** larmar den som har jour när nivån körs, inte en fast person.
@@ -18,12 +18,12 @@ När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efte
   - En **person** larmas direkt.
 - **Eskalera efter (i minuter)** — hur länge man väntar på en kvittering innan nästa nivå larmas. Den börjar på **30 minuter**; ändra den så att den passar nivån.
 
-Allt annat ligger under **Avancerad**, hopfällt tills du öppnar det:
+Allt annat ligger under **Fler fält**, hopfällt tills du öppnar det:
 
 - **Namn** — valfritt. En regel utan namn heter som sin nivå: den första regeln i en policy är **Level 1**, den andra **Level 2** och så vidare. Namnfältet visar namnet regeln får.
 - **Beskrivning** — valfria anteckningar, till exempel vem nivån larmar och varför.
 
-Rubriken för **Avancerad** visar **Konfigurerat** när regeln har en beskrivning eller ett eget namn.
+Ihopfälld nämner rubriken för **Fler fält** de två och visar dem som regeln har: en beskrivning eller ett eget namn.
 
 ## Så larmar nivåerna personer
 
@@ -31,9 +31,11 @@ När en incident eller ett larm når policyn larmar **Level 1** sina mottagare d
 
 Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå där inte alla mottagare kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför.
 
+Hur varje person som en nivå larmar nås bestäms av personens egna jourregler: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som används och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**.
+
 ## Redigera, ordna om och ta bort regler
 
-- **Edit rule** öppnar samma dialog på en sida, ifylld med regeln som den är: dess mottagare, dess väntetid och dess namn och beskrivning under **Avancerad**. Lägg till eller ta bort mottagare och spara. Tömmer du namnet får regeln sin nivås namn igen.
+- **Edit rule** öppnar samma dialog på en sida, ifylld med regeln som den är: dess mottagare, dess väntetid och dess namn och beskrivning under **Fler fält**. Lägg till eller ta bort mottagare och spara. Tömmer du namnet får regeln sin nivås namn igen.
 - **Move up** och **Move down** i en regels **⋯**-meny ändrar dess nivå. En regel som heter som sin nivå behåller ett namn som passar dess plats: när **Level 3** flyttas upp förbi **Level 2** byter de två namn. Ett namn du själv valt, som **Managers**, förblir detsamma vart regeln än flyttas.
 - **Delete rule** frågar först och berättar vem nivån larmar. Tar du bort en nivå flyttas nivåerna under den upp, och regler som heter som sin nivå byter namn så att de stämmer.
 

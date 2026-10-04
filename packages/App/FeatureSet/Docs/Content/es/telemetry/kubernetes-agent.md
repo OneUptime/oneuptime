@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` mantiene tu configuración existente (preset, nombre del clúster, filtros); pasa cualquier nueva anulación `--set` por encima de ella.
 
+> **Las métricas de span de eBPF tienen nombres nuevos.** `ebpf.features.spanMetrics` ahora envía `traces.span.metrics.calls` y `traces.span.metrics.duration` (segundos) en lugar de `traces_spanmetrics_calls_total` y `traces_spanmetrics_latency`: las mismas series, con los nombres que OBI mantiene (OBI marcó los antiguos como obsoletos). Un panel, gráfico o monitor de métricas sobre un nombre antiguo deja de recibir datos nuevos tras la actualización, sin ningún error: cámbialo al nombre nuevo y actualiza también las entradas de `filters.metrics` que mencionen un nombre antiguo.
+
 ## Desinstalar el agente
 
 ```bash
@@ -412,7 +414,7 @@ Todas activadas de forma predeterminada. Desactiva cualquiera con `--set ebpf.fe
 | `ebpf.features.*`         | Predeterminado | Qué agrega                                                                      |
 | ------------------------- | -------------- | ------------------------------------------------------------------------------- |
 | `httpMetrics`             | activado       | Métricas RED de HTTP/gRPC (tasa de solicitudes, latencia, errores) por servicio |
-| `spanMetrics`             | activado       | Tamaño de solicitud/respuesta y duración por span                               |
+| `spanMetrics`             | activado       | Número de llamadas y duración de los spans (`traces.span.metrics.*`)            |
 | `serviceGraph`            | activado       | Métricas de aristas de llamador → llamado; impulsa el mapa de servicios         |
 | `networkMetrics`          | activado       | Contadores de flujo TCP/UDP entre pods                                          |
 | `networkInterZoneMetrics` | desactivado    | Variante entre zonas de las métricas de red (duplica la cardinalidad)           |
@@ -716,7 +718,7 @@ La razón más común — especialmente después de una reinstalación — es un
 ### No aparecen métricas
 
 1. Primero descarta una clave de ingesta rechazada — es la causa más común y es fácil de pasar por alto desde el lado del agente. Consulta [El agente muestra "Disconnected"](#el-agente-muestra-disconnected) más arriba (o simplemente ejecuta el script de diagnóstico).
-2. Comprueba que el identificador del clúster coincida con el valor que pasaste como `clusterName`
+2. Comprueba que el **nombre del clúster (clusterName)** coincida con el valor que pasaste como `clusterName`. Está en la página **Settings** del clúster, en **Cluster Details**; para corregirlo, elige **Edit Details** y abre **More fields**
 3. Verifica los permisos de RBAC: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Revisa los logs del colector de OTel en busca de errores de exportación
 

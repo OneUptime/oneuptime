@@ -23,10 +23,14 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
+import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
@@ -52,8 +56,15 @@ jest.mock("react-i18next", () => {
  * nothing limits AI. Every row used to name a built-in default — "Default
  * (top two severity tiers)", "Default (30 minutes)", "Default (3)", "Default
  * (25)" — and every one of those quietly held AI back. Now an empty limit
- * reads as no limit, the form says so, and saving the form without touching
- * a limit writes none.
+ * reads as no limit, the folded Advanced section says so before anyone
+ * opens it, each card's form says so, and saving a form without touching a
+ * limit writes none.
+ *
+ * The limits are folded under Advanced, in three cards that each edit on
+ * one page: which signals are investigated (minimum severity, cooldown),
+ * investigation limits (how many at once, how long), and daily limits
+ * (tokens, fix pull requests). They used to be the Investigation and
+ * Limits steps of a three-step wizard, with the switches.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -77,7 +88,7 @@ interface LimitColumns {
 interface SettingsPageCase {
   name: string;
   path: string;
-  cardTitle: string;
+  kind: "alert" | "incident";
   render: (props: PageComponentProps) => React.ReactElement;
   enabledColumn: string;
   columns: LimitColumns;
@@ -87,13 +98,16 @@ interface SettingsPageCase {
     fixTaskLimit: string;
     timeLimit: string;
   };
+  cards: {
+    which: string;
+  };
 }
 
 const PAGES: Array<SettingsPageCase> = [
   {
     name: "Alerts",
     path: `/dashboard/${PROJECT_ID}/alerts/settings/ai`,
-    cardTitle: "Automatic Alert Investigation",
+    kind: "alert",
     render: (props: PageComponentProps): React.ReactElement => {
       return <AlertAISettings {...props} />;
     },
@@ -112,11 +126,14 @@ const PAGES: Array<SettingsPageCase> = [
       fixTaskLimit: "Daily Alert AI Fix Task Limit",
       timeLimit: "Alert Investigation Time Limit (Minutes)",
     },
+    cards: {
+      which: "Which alerts are investigated",
+    },
   },
   {
     name: "Incidents",
     path: `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
-    cardTitle: "Automatic Incident Investigation",
+    kind: "incident",
     render: (props: PageComponentProps): React.ReactElement => {
       return <IncidentAISettings {...props} />;
     },
@@ -135,11 +152,16 @@ const PAGES: Array<SettingsPageCase> = [
       fixTaskLimit: "Daily Incident AI Fix Task Limit",
       timeLimit: "Incident Investigation Time Limit (Minutes)",
     },
+    cards: {
+      which: "Which incidents are investigated",
+    },
   },
 ];
 
 const SEVERITY_TITLE: string = "Minimum Severity To Investigate";
 const COOLDOWN_TITLE: string = "Re-investigation Cooldown (Minutes)";
+const INVESTIGATION_LIMITS: string = "Investigation limits";
+const DAILY_LIMITS: string = "Daily limits";
 
 // What each built-in default used to be shown as. None may come back.
 const RETIRED_DEFAULT_WORDING: Array<RegExp> = [
@@ -187,10 +209,16 @@ async function findText(text: string | RegExp): Promise<HTMLElement> {
   return await screen.findByText(text, {}, { timeout: WAIT_TIMEOUT });
 }
 
-async function investigationCard(page: SettingsPageCase): Promise<HTMLElement> {
-  return (await findText(page.cardTitle)).closest(
-    '[data-testid="card"]',
-  ) as HTMLElement;
+function advancedHeader(): HTMLElement {
+  return screen.getByRole("button", { name: MORE_SETTINGS_SECTION_TITLE });
+}
+
+function openAdvanced(): void {
+  fireEvent.click(advancedHeader());
+}
+
+async function cardOf(title: string): Promise<HTMLElement> {
+  return (await findText(title)).closest('[data-testid="card"]') as HTMLElement;
 }
 
 // A detail row's title, as ModelDetail renders it.
@@ -220,30 +248,25 @@ async function waitForDetailValue(
   );
 }
 
-async function openEditForm(page: SettingsPageCase): Promise<HTMLElement> {
-  const card: HTMLElement = await investigationCard(page);
-  fireEvent.click(within(card).getByText("Update"));
-  return await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT });
-}
+// Open a card's one-page Edit form, once it has read the project.
+async function openEditForm(cardTitle: string): Promise<HTMLElement> {
+  const card: HTMLElement = await cardOf(cardTitle);
+  fireEvent.click(within(card).getByText("Edit"));
 
-function submitButton(dialog: HTMLElement): HTMLElement {
-  return within(dialog).getByTestId("modal-footer-submit-button");
-}
-
-/*
- * Move the multi-step form on to its next step. An edit form saves from
- * every step, so its primary button is Save; Next is the plain button
- * beside it.
- */
-async function nextStep(dialog: HTMLElement, stepTitle: string): Promise<void> {
-  fireEvent.click(
-    await within(dialog).findByTestId(
-      "modal-footer-next-button",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    ),
+  const dialog: HTMLElement = await screen.findByRole(
+    "dialog",
+    {},
+    { timeout: WAIT_TIMEOUT },
   );
-  await within(dialog).findByText(stepTitle, {}, { timeout: WAIT_TIMEOUT });
+
+  await waitFor(
+    () => {
+      expect(dialog.querySelectorAll("input").length).toBeGreaterThan(0);
+    },
+    { timeout: WAIT_TIMEOUT },
+  );
+
+  return dialog;
 }
 
 function placeholdersIn(dialog: HTMLElement): Array<string> {
@@ -288,6 +311,18 @@ beforeEach(() => {
     .mockImplementation(async (): Promise<never> => {
       return { data: {} } as never;
     });
+  // The project has a provider to use (a global one), so no notice shows.
+  jest.spyOn(API, "post").mockImplementation(async (): Promise<never> => {
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        isAIEnabledForProject: true,
+        defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+        providers: [],
+      },
+      {},
+    ) as unknown as never;
+  });
 });
 
 afterEach(() => {
@@ -312,6 +347,7 @@ describe.each(
   test("a project that set no limits reads as no limits on every row", async () => {
     project = projectWith({});
     openPage(page);
+    openAdvanced();
 
     await waitForDetailValue(SEVERITY_TITLE, "Every severity");
     await waitForDetailValue(COOLDOWN_TITLE, "No cooldown");
@@ -324,25 +360,40 @@ describe.each(
   test("no row or description names a built-in default", async () => {
     project = projectWith({});
     openPage(page);
+    openAdvanced();
 
-    const card: HTMLElement = await investigationCard(page);
     await waitForDetailValue(page.titles.fixTaskLimit, "No limit");
 
-    expectNoRetiredDefault(card.textContent || "");
+    expectNoRetiredDefault(document.body.textContent || "");
   });
 
-  test("the card says nothing is limited until a limit is set", async () => {
+  test("folded, Advanced says nothing is limited until a limit is set", async () => {
     project = projectWith({});
     openPage(page);
 
-    const card: HTMLElement = await investigationCard(page);
+    expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
 
-    expect(card.textContent || "").toContain(
-      "No limits apply until you set one below.",
+    await waitFor(
+      () => {
+        expect(
+          screen.getByTestId("collapsible-section-summary"),
+        ).toHaveTextContent(
+          `Every ${page.kind} is investigated, whatever its severity, and nothing limits how much OneUptime AI does.`,
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
     );
-    // Project Settings, not this product's own Settings section.
-    expect(card.textContent || "").toContain(
-      "Project Settings > AI > LLM Providers",
+  });
+
+  test("with a provider to use, the page no longer says one is required", async () => {
+    project = projectWith({});
+    openPage(page);
+    openAdvanced();
+
+    await waitForDetailValue(page.titles.fixTaskLimit, "No limit");
+
+    expect(document.body.textContent || "").not.toMatch(
+      /Requires an LLM provider/,
     );
   });
 
@@ -354,6 +405,7 @@ describe.each(
       [page.columns.fixTaskLimit]: 12,
     });
     openPage(page);
+    openAdvanced();
 
     await waitForDetailValue(COOLDOWN_TITLE, "45");
     await waitForDetailValue(page.titles.maxConcurrent, "40");
@@ -366,13 +418,14 @@ describe.each(
     );
   });
 
-  test("the edit form offers no default and says an empty limit means none", async () => {
+  test("each form offers no default and says an empty limit means none", async () => {
     project = projectWith({});
     openPage(page);
+    openAdvanced();
 
-    const dialog: HTMLElement = await openEditForm(page);
+    // What is investigated.
+    let dialog: HTMLElement = await openEditForm(page.cards.which);
 
-    // Step 1 — what is investigated.
     await waitFor(
       () => {
         expect(placeholdersIn(dialog)).toContain("No cooldown");
@@ -386,66 +439,70 @@ describe.each(
       /Leave empty for no cooldown, so every (alert|incident) is investigated\./,
     );
     expectNoRetiredDefault(dialog.textContent || "");
+    fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
 
-    // Step 2 — the limits.
-    await nextStep(dialog, page.titles.maxConcurrent);
-    expect(placeholdersIn(dialog)).toEqual([
-      "No limit",
-      "No time limit",
-      "No limit",
-    ]);
+    // How many at once, and for how long.
+    dialog = await openEditForm(INVESTIGATION_LIMITS);
+    expect(placeholdersIn(dialog)).toEqual(["No limit", "No time limit"]);
     expect(dialog.textContent || "").toMatch(
       /Leave empty for no limit — every (alert|incident) investigation starts right away\./,
     );
     expectNoRetiredDefault(dialog.textContent || "");
+    fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
 
-    // Step 3 — fix tasks.
-    await nextStep(dialog, page.titles.fixTaskLimit);
-    expect(placeholdersIn(dialog)).toEqual(["No limit"]);
+    // How much each day.
+    dialog = await openEditForm(DAILY_LIMITS);
+    expect(placeholdersIn(dialog)).toEqual(["No limit", "No limit"]);
     expect(dialog.textContent || "").toContain(
-      "Leave empty for no limit; set 0 to pause",
+      "Leave empty for no limit, or set 0 to pause",
     );
     expectNoRetiredDefault(dialog.textContent || "");
   });
 
   /*
-   * The form must not "helpfully" fill in a number. A limit that is saved is
-   * a limit that holds, and a project that only flipped a switch never asked
+   * A form must not "helpfully" fill in a number. A limit that is saved is
+   * a limit that holds, and a project that only opened a form never asked
    * for one.
    */
-  test("saving the form without touching a limit writes no limit", async () => {
-    project = projectWith({});
-    openPage(page);
+  test.each([
+    ["the investigated", "which"],
+    ["the investigation limits", INVESTIGATION_LIMITS],
+    ["the daily limits", DAILY_LIMITS],
+  ])(
+    "saving %s form without touching a limit writes no limit",
+    async (_card: string, cardTitle: string) => {
+      project = projectWith({});
+      openPage(page);
+      openAdvanced();
 
-    const dialog: HTMLElement = await openEditForm(page);
-    await waitFor(
-      () => {
-        expect(placeholdersIn(dialog)).toContain("No cooldown");
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-    await nextStep(dialog, page.titles.maxConcurrent);
-    await nextStep(dialog, page.titles.fixTaskLimit);
-    fireEvent.click(submitButton(dialog));
+      const dialog: HTMLElement = await openEditForm(
+        cardTitle === "which" ? page.cards.which : cardTitle,
+      );
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
 
-    await waitFor(
-      () => {
-        expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
+      await waitFor(
+        () => {
+          expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
 
-    const posted: Record<string, unknown> = (
-      createOrUpdateSpy.mock.calls[0]![0] as { model: Project }
-    ).model as unknown as Record<string, unknown>;
+      const posted: Record<string, unknown> = (
+        createOrUpdateSpy.mock.calls[0]![0] as { model: Project }
+      ).model as unknown as Record<string, unknown>;
 
-    for (const column of Object.values(page.columns)) {
-      expect({
-        column,
-        isANumber: typeof posted[column] === "number",
-      }).toEqual({ column, isANumber: false });
-    }
-    // The switch the project had on is still on.
-    expect(posted[page.enabledColumn]).toBe(true);
-  });
+      for (const column of Object.values(page.columns)) {
+        expect({
+          column,
+          isANumber: typeof posted[column] === "number",
+        }).toEqual({ column, isANumber: false });
+      }
+
+      /*
+       * The switch is not part of any limit's form, so saving a limit can
+       * never turn it off: it stays as the project has it.
+       */
+      expect(posted[page.enabledColumn]).toBeUndefined();
+    },
+  );
 });

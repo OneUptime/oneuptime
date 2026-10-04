@@ -53,7 +53,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Notification Timeline",
           description:
-            "Here are all the timeline events. This will help you to debug any notification issues that you may face.",
+            "Each notification sent to you, how it was sent and whether it was delivered. If one failed, its status message says why.",
         }}
         selectMoreFields={{
           statusMessage: true,

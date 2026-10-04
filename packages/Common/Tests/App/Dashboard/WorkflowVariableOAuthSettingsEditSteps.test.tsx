@@ -20,8 +20,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The OAuth 2.0 variable page's Edit Settings dialog. It used to be five
  * settings on one page; it now walks the create form's Provider, Credentials
  * and Advanced steps, so every setting is under the step it was entered on.
- * Like every stepped edit form, Save Changes is on every step and any step
- * can be opened from the step list.
+ * Like every stepped form, Save Changes is on the last step only, with a
+ * plain Next on the others; and like every stepped edit form, any step can
+ * be opened from the step list, so Save Changes is one click away.
  *
  * The production field list and steps, in the real CardModelDetail,
  * ModelFormModal, ModelForm and BasicForm; only the transport and the
@@ -268,10 +269,12 @@ describe("Edit Settings on an OAuth 2.0 variable's page", () => {
     expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
   });
 
-  test("offers Save Changes on every step, with Next beside it until the last", async () => {
+  test("offers a plain Next on every step but the last, and Save Changes on the last only", async () => {
     const user: UserEvent = await openEditDialog();
 
-    expect(saveButton()).toHaveTextContent("Save Changes");
+    expect(
+      within(dialog()).queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
     expect(
       within(dialog()).getByTestId("modal-footer-next-button"),
     ).toHaveTextContent("Next");
@@ -281,7 +284,9 @@ describe("Edit Settings on an OAuth 2.0 variable's page", () => {
       expect(activeStep()).toBe("Credentials");
     });
     expect(input(CLIENT_ID_PLACEHOLDER)).toHaveValue("client-id-123");
-    expect(saveButton()).toHaveTextContent("Save Changes");
+    expect(
+      within(dialog()).queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
 
     await user.click(within(dialog()).getByTestId("modal-footer-next-button"));
     await waitFor(() => {
@@ -328,6 +333,7 @@ describe("Edit Settings on an OAuth 2.0 variable's page", () => {
   test("saves only the five readable settings", async () => {
     const user: UserEvent = await openEditDialog();
 
+    await openStep(user, "Advanced");
     await user.click(saveButton());
 
     await waitFor(
@@ -359,7 +365,8 @@ describe("Edit Settings on an OAuth 2.0 variable's page", () => {
     fireEvent.change(input(TOKEN_URL_PLACEHOLDER), {
       target: { value: "https://{your-domain}/oauth/token" },
     });
-    await user.click(saveButton());
+    // Next checks the step on screen.
+    await user.click(within(dialog()).getByTestId("modal-footer-next-button"));
 
     expect(
       await within(dialog()).findByText(

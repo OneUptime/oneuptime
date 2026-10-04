@@ -13,14 +13,6 @@ import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
-import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
-import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import OneUptimeDate from "Common/Types/Date";
-import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
@@ -33,6 +25,13 @@ import {
   getFeedNoItemsMessage,
 } from "Common/UI/Components/Feed/FeedOptions";
 import RunbookPicker from "../Runbook/RunbookPicker";
+import useFeedNoteActions, {
+  FeedNoteActions,
+} from "../EventNotes/useFeedNoteActions";
+import {
+  getScheduledMaintenancePrivateNoteKind,
+  getScheduledMaintenancePublicNoteKind,
+} from "../EventNotes/NoteKinds/ScheduledMaintenanceNoteKinds";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
@@ -42,7 +41,7 @@ export interface ComponentProps {
    */
   refreshToken?: number | undefined;
   /*
-   * Where "Notify Status Page Subscribers" starts on a new public note.
+   * Where "Notify status page subscribers" starts on a new public note.
    * False when the event was created without notifying subscribers.
    */
   notifyStatusPageSubscribersByDefault?: boolean | undefined;
@@ -109,12 +108,6 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const notifySubscribersByDefault: boolean =
     props.notifyStatusPageSubscribersByDefault ?? true;
-
-  const [showPublicNoteModal, setShowPublicNoteModal] =
-    React.useState<boolean>(false);
-
-  const [showPrivateNoteModal, setShowPrivateNoteModal] =
-    React.useState<boolean>(false);
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
     React.useState<boolean>(false);
@@ -217,40 +210,47 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     mapItems: getFeedItemsFromScheduledMaintenanceFeeds,
   });
 
+  /*
+   * "Add Public Note" and "Add Private Note": the event's Notes page
+   * composer, in a dialog.
+   */
+  const noteActions: FeedNoteActions = useFeedNoteActions({
+    keyPrefix: "scheduled-maintenance",
+    publicNoteKind: getScheduledMaintenancePublicNoteKind({
+      scheduledMaintenanceId: props.scheduledMaintenanceId,
+      isNotifyingByDefault: notifySubscribersByDefault,
+    }),
+    privateNoteKind: getScheduledMaintenancePrivateNoteKind({
+      scheduledMaintenanceId: props.scheduledMaintenanceId,
+    }),
+    onPosted: () => {
+      refresh().catch((err: unknown) => {
+        setError(API.getFriendlyMessage(err as Exception));
+      });
+    },
+  });
+
   return (
     <FeedCard
       title={"Scheduled Maintenance Feed"}
       description={
-        "This is the timeline and feed for this scheduled maintenance. You can see all the updates and information about this scheduled maintenance here."
+        "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}
       actions={
         <FeedActionsMenu key="scheduled-maintenance-feed-actions-menu">
-          <MoreMenuItem
-            key="scheduled-maintenance-action-run-runbook"
-            text="Execute Runbook"
-            icon={IconProp.Play}
-            onClick={() => {
-              setShowRunbookPickerModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="scheduled-maintenance-action-public-note"
-            text="Add Public Note"
-            icon={IconProp.Team}
-            onClick={() => {
-              setShowPublicNoteModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="scheduled-maintenance-action-private-note"
-            text="Add Private Note"
-            icon={IconProp.Lock}
-            onClick={() => {
-              setShowPrivateNoteModal(true);
-            }}
-          />
+          {[
+            <MoreMenuItem
+              key="scheduled-maintenance-action-run-runbook"
+              text="Execute Runbook"
+              icon={IconProp.Play}
+              onClick={() => {
+                setShowRunbookPickerModal(true);
+              }}
+            />,
+            ...noteActions.menuItems,
+          ]}
         </FeedActionsMenu>
       }
     >
@@ -271,87 +271,8 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           />
         )}
         {loadMoreError && <ErrorMessage message={loadMoreError} />}
-        {showPublicNoteModal && (
-          <ModelFormModal
-            modalWidth={ModalWidth.Large}
-            modelType={ScheduledMaintenancePublicNote}
-            name={"create-scheduled-maintenance-public-note"}
-            title={"Add Public Note to this scheduled maintenance"}
-            description={
-              "Add a public note to this scheduled maintenance. This note will be visible to all subscribers of this scheduled maintenance and will show up on the status page."
-            }
-            onClose={() => {
-              setShowPublicNoteModal(false);
-            }}
-            submitButtonText="Save"
-            /*
-             * Seeded as a value, not only as the field's default: the form
-             * drops a false default, and an unsent flag would fall back to
-             * notifying.
-             */
-            initialValues={{
-              shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
-                notifySubscribersByDefault,
-            }}
-            onBeforeCreate={async (model: ScheduledMaintenancePublicNote) => {
-              model.scheduledMaintenanceId = props.scheduledMaintenanceId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPublicNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Public Note",
-              },
-              name: "create-scheduled-maintenance-public-note",
-              modelType: ScheduledMaintenancePublicNote,
-              id: "create-scheduled-maintenance-public-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Share an update about this scheduled maintenance. The note is shown on the status page.",
-                  title: "Public Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    postedAt: true,
-                  },
-                  fieldType: FormFieldSchemaType.DateTime,
-                  description:
-                    "The date and time this note was posted. By default, it will be the current date and time.",
-                  title: "Posted At",
-                  required: true,
-                  getDefaultValue: () => {
-                    return OneUptimeDate.getCurrentDate();
-                  },
-                },
-                {
-                  field: {
-                    shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-                  },
-                  fieldType: FormFieldSchemaType.Checkbox,
-                  description: notifySubscribersByDefault
-                    ? "Should status page subscribers be notified when this note is posted?"
-                    : PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
-                  title: "Notify Status Page Subscribers",
-                  required: false,
-                  defaultValue: notifySubscribersByDefault,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
+
+        {noteActions.dialog}
 
         <RunbookPicker
           isOpen={showRunbookPickerModal}
@@ -365,54 +286,6 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           }}
           scheduledMaintenanceId={props.scheduledMaintenanceId}
         />
-
-        {showPrivateNoteModal && (
-          <ModelFormModal
-            modalWidth={ModalWidth.Large}
-            modelType={ScheduledMaintenanceInternalNote}
-            name={"create-scheduled-maintenance-internal-note"}
-            title={"Add Private Note to this scheduled maintenance"}
-            description={
-              "Add a private note to this scheduled maintenance. This note will be visible only to the team members of this scheduled maintenance."
-            }
-            onClose={() => {
-              setShowPrivateNoteModal(false);
-            }}
-            submitButtonText="Save"
-            onBeforeCreate={async (model: ScheduledMaintenanceInternalNote) => {
-              model.scheduledMaintenanceId = props.scheduledMaintenanceId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPrivateNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Private Note",
-              },
-              name: "create-scheduled-maintenance-internal-note",
-              modelType: ScheduledMaintenanceInternalNote,
-              id: "create-scheduled-maintenance-internal-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a private note about this scheduled maintenance. This note will be visible only to the team members of this scheduled maintenance.",
-                  title: "Private Note",
-                  required: true,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
       </div>
     </FeedCard>
   );

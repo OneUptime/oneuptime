@@ -6,7 +6,28 @@ OneUptime supporta l'invio di email tramite server SMTP personalizzati con tre m
 - **OAuth 2.0** - Autenticazione moderna per Microsoft 365 e Google Workspace
 - **Nessuno** - Per server relay che non richiedono autenticazione
 
-Questa guida descrive come configurare l'autenticazione OAuth 2.0 per Microsoft 365 e Google Workspace.
+La prima sezione qui sotto mostra dove si trova ogni impostazione. Il resto della guida tratta l'autenticazione OAuth 2.0 per Microsoft 365 e Google Workspace.
+
+## Aggiungere un server SMTP
+
+Aggiungi il server di posta di un progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, nella scheda **Configurazioni SMTP personalizzate**. In un'installazione self-hosted, il server da cui invia OneUptime stesso si imposta in **Admin Dashboard > Impostazioni > Email**, nella scheda **Impostazioni e-mail e SMTP personalizzate**. Entrambi i moduli chiedono le stesse cose, in due passaggi:
+
+1. **Server**: il **Nome** (solo configurazioni di progetto), l'**Hostname**, la **Porta** (una nuova configurazione parte da `587`), il **Nome utente** e la **Password**.
+2. **Mittente**: l'**Email mittente** e il **Nome mittente** da cui arrivano le tue email.
+
+Tutto il resto è ripiegato in **Altri campi** alla fine del passaggio Server. Finché è ripiegato, la sua intestazione dice come viene inviata la posta, ad esempio "La posta viene inviata tramite SMTP, con accesso tramite nome utente e password. TLS è obbligatorio."
+
+| Campo                      | Cosa fa                                                                                                                                                                                                                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Trasporto**              | `SMTP` (predefinito), oppure `Microsoft Graph` per un tenant Microsoft 365 con SMTP AUTH disattivato. Scegliendo Microsoft Graph si nascondono hostname, porta, nome utente e password e compaiono i campi OAuth.                                                                      |
+| **Richiedi TLS**           | Attivo per una nuova configurazione di progetto. La posta viene inviata solo su una connessione cifrata con un certificato valido. Se l'opzione è disattivata, la posta viene cifrata solo se il server lo offre e il certificato non viene verificato. La porta 465 è sempre cifrata. |
+| **Tipo di autenticazione** | `Username and Password` (predefinito), `OAuth`, oppure `None` per un relay che non richiede accesso.                                                                                                                                                                                   |
+| **Campi OAuth**            | Tipo di provider, ID client, segreto client, URL del token e ambito, mostrati quando si sceglie OAuth o Microsoft Graph.                                                                                                                                                               |
+| **Descrizione**            | Una nota per il tuo team (solo configurazioni di progetto).                                                                                                                                                                                                                            |
+
+**Microsoft Graph.** Apri **Altri campi**, imposta **Trasporto** su `Microsoft Graph` e inserisci un'app Azure con l'autorizzazione dell'applicazione **Mail.Send**: il suo ID client e il suo segreto client, l'URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e l'ambito `https://graph.microsoft.com/.default`. La posta parte dalla casella dell'**Email mittente**, che deve essere una casella con licenza nel tuo tenant.
+
+Una volta salvata una configurazione di progetto, **Invia e-mail di prova** sulla sua riga verifica che funzioni.
 
 ## Autenticazione OAuth 2.0
 
@@ -30,6 +51,8 @@ Quando si configura SMTP con autenticazione OAuth in OneUptime, avrai bisogno di
 | **Client Secret**          | Client secret dal tuo provider OAuth (per Google: chiave privata)                          |
 | **Token URL**              | URL dell'endpoint token OAuth                                                              |
 | **Ambito**                 | Scope OAuth richiesti per l'accesso SMTP                                                   |
+
+Il **Tipo di autenticazione** e i campi OAuth sono in **Altri campi**, nel passaggio Server del modulo.
 
 ---
 
@@ -120,7 +143,7 @@ In OneUptime, crea o modifica una configurazione SMTP con queste impostazioni:
 | Token URL              | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`             |
 | Scope                  | `https://outlook.office365.com/.default`                                      |
 | Email Mittente         | Uguale al Nome utente                                                         |
-| Secure (TLS)           | Abilitato                                                                     |
+| Richiedi TLS           | Abilitato                                                                     |
 
 Sostituisci `<tenant-id>` con il tuo ID directory (tenant) dal Passo 1.
 
@@ -202,7 +225,7 @@ In OneUptime, crea o modifica una configurazione SMTP con queste impostazioni:
 | Token URL              | `https://oauth2.googleapis.com/token`                                                                                                               |
 | Scope                  | `https://mail.google.com/`                                                                                                                          |
 | Email Mittente         | Uguale al Nome utente                                                                                                                               |
-| Secure (TLS)           | Abilitato                                                                                                                                           |
+| Richiedi TLS           | Abilitato                                                                                                                                           |
 
 **Importante:** Per Google (JWT Bearer), il Client ID è l'**email dell'account di servizio** (`client_email`), NON il `client_id` numerico. L'account di servizio impersonerà l'utente specificato nel campo Nome utente per inviare email.
 

@@ -29,14 +29,16 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *      the start, and never before it); Owners and Labels folded under
  *      Advanced.
  *   2. Resources Affected - what it touches and who hears about it: the
- *      resources picker, Show event on these status pages, then Subscriber
- *      Notifications folded to the one line that says what happens ("...
- *      notified when it is scheduled, when it starts and when it ends"),
- *      and Change Monitor Status to folded under Advanced.
+ *      Monitors, Change Monitor Status to right under them once one is
+ *      picked, the Other Affected Resources, Show event on these status
+ *      pages, then Subscriber Notifications folded to the one line that
+ *      says what happens ("... notified when it is scheduled, when it
+ *      starts and when it ends").
  *
  * and the review step after them. Only the title has to be typed: every
- * other field has a default or is optional, so the form can be finished
- * from the first step (Forms/Utils/FinishFromAnyStep).
+ * other field has a default or is optional, so Next walks the other steps
+ * without asking for anything, and Create Scheduled Maintenance Event is on
+ * the review step, the last one (Forms/Utils/SteppedFormFooter).
  *
  * The scheduled maintenance template forms and the event's own edit card
  * put the fields they hold on the same steps - a template adds its name and

@@ -12,9 +12,9 @@ Consequences worth knowing before you pick names:
 
 - **Renaming `service.name` in your app creates a new application.** The old one keeps its history and goes *Disconnected*; the new one starts empty. There is no merge.
 - Use one `service.name` per deployable app, not per environment. Distinguish environments with a label (`oneuptime.label.env=production`) so both stay under one application with one history.
-- The **Name** shown in the dashboard is editable and starts out equal to the identifier. Editing the name never changes the identifier, so renaming for readability is safe.
+- The **Display Name** shown in the dashboard starts out equal to the identifier. Change it on the application's **Settings** page, in **Application Details** (**Edit Details**), where its description and labels are edited too. Editing it never changes the identifier, so renaming for readability is safe; the **App Name (service.name)** is shown there and cannot be changed.
 
-You can also create an application by hand from **Resources → Real User Monitoring → Create**, which is useful when you want owners, labels and session-replay settings configured *before* the first real user hits it. Set **App Identifier** to the `service.name` your app will report.
+You can also create an application by hand from **Resources → Real User Monitoring → Create**, which is useful when you want owners, labels and session-replay settings configured *before* the first real user hits it. The form asks for one thing, **App Name (service.name)**: the `service.name` your app will report, exactly. The application is named after it, the way a discovered one is; to show another name, open **More fields** and type a **Display Name** (the description and labels are there too). If the project already has an application with that `service.name` — discovered, added before, or archived — the form says so instead of creating a second one.
 
 ## Connection status
 
@@ -26,7 +26,7 @@ A *Disconnected* application is not an error state on its own. A low-traffic int
 
 Labels group applications and drive label-based access control. There are three ways one gets attached.
 
-**Manually** — on the create/edit form.
+**Manually** — on the create form, or later in **Application Details** on the application's **Settings** page (under **More fields**).
 
 **From telemetry.** Any resource attribute prefixed `oneuptime.label.` is promoted to a project label:
 
@@ -42,12 +42,14 @@ Labels also gate access: a team member restricted to a set of labels can only re
 
 ## Label rules
 
-_RUM → Settings → Label Rules_. A rule attaches labels to matching applications automatically.
+_RUM → Settings → Label Rules_. A rule attaches labels to matching applications automatically. Creating one takes two steps: **Match** (the conditions), then **Labels** (what it adds and its name).
 
 | Field | Behaviour |
 | --- | --- |
 | **Conditions** | What the rule matches. **Application Labels** checks the labels an application already carries (has any of, all of or none of the ones you pick); **Application Name** and **Application Description** compare its name and description - contains, equals, starts with, ends with, or a case-insensitive regex or `*` wildcard pattern. With two or more conditions, choose **Match all** or **Match any**. |
-| **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. |
+| **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. A rule has to add at least one. |
+| **Name** | Filled in from the labels you pick (_Add team:payments_) until you type a name of your own. |
+| **Description** | Optional, under **More fields**. |
 | **Enabled** | On for a new rule. Turn it off on the rule's edit form to pause the rule without deleting it. |
 
 Rules run **when an application is created** — including auto-discovery. They are not retroactive: adding a rule today does not relabel applications discovered last week. Set those by hand, or archive and let them be rediscovered.
@@ -56,9 +58,9 @@ A rule with no conditions matches everything, which is a legitimate way to say "
 
 ## Owner rules and ownership
 
-_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list.
+_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list. A rule has to add at least one owner, and its **Name** is filled in from them (_Add Payments as owners_) until you type a name of your own.
 
-Owners are the people responsible for an application; they are who notifications about it reach. **Notify Owners** controls whether being added by the rule sends a notification — turn it off for a bulk backfill you do not want to page anyone about.
+Owners are the people responsible for an application; they are who notifications about it reach. **Notify Owners** (under **More fields**, on by default) controls whether being added by the rule sends a notification — turn it off for a bulk backfill you do not want to page anyone about.
 
 Like label rules, owner rules apply at creation time only.
 
@@ -73,7 +75,7 @@ Open the application and choose **Settings** to configure both overrides.
 
 Retention overrides are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan and above on OneUptime Cloud. Without them, the application's telemetry follows the project's default retention. Session Replay retention (below) is in every edition.
 
-Session Replay recordings have their **own** retention on that Settings page and on the application's _Replay Policy_ page. Both controls update the same policy, which defaults to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
+Session Replay recordings have their **own** retention, set on the application's _Replay Policy_ page (**Edit Policy → Limits**). It defaults to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. The **Settings** page shows it with the other retention settings (_Session replays are kept for 7 days._), and its **Edit on Replay Policy** button opens the policy. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
 
 RUM is often the highest-volume telemetry in a project, because it scales with your users rather than with your servers. A shorter retention here, with a longer one on backend services, is a common and sensible configuration.
 

@@ -71,7 +71,7 @@ The probe needs a Microsoft ODBC Driver for SQL Server installed on the host run
 
 SQL Server must have an appropriate `MSSQLSvc` service principal name, the probe and domain controller clocks must be synchronized, and the probe must resolve/reach the SQL Server by the hostname covered by that service principal. Grant only the database permissions needed by the monitoring query to the trusted identity.
 
-### Advanced options
+### More fields
 
 - **Connection Timeout (ms)** — how long to wait to establish a connection. Default `10000`, maximum `30000`.
 - **Statement Timeout (ms)** — the hard cap on how long the query may run. Default `15000`, maximum `60000`.

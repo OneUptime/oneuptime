@@ -183,10 +183,10 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
 | **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                                 |
 | **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes.                |
 | **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default) — at least one must be on — and **add SLO owners as owners**.            |
-| **Alert**            | The alert’s **title** and **severity**, plus expandable sections for **Description**, **Ownership & Labels**, **On-Call** and **Advanced Options**. |
+| **Alert**            | The alert’s **title** and **severity**, plus expandable sections for **Description**, **Ownership & Labels**, **On-Call** and **More fields**. |
 | **Incident**         | The incident’s own **title**, **severity** and optional settings, grouped in the same way.                                                          |
 
-Description sections open automatically to show the prefilled text on new rules. Other sections open when they contain saved settings. **Advanced Options** contains auto-resolve, privacy and remediation notes.
+Description sections open automatically to show the prefilled text on new rules. The ownership and on-call sections open when they contain saved settings. **More fields** holds auto-resolve, privacy and remediation notes; it stays folded, and its header names them and shows the ones that are set.
 
 The alert and incident steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incidents.
 

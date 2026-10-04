@@ -21,8 +21,8 @@ Global SSO, herunder "Require SSO for Login"-kontakten for hele instansen, er en
 2. **Opret en udbyder**
 
    - Klik på **Opret Global SSO**.
-   - For SAML: indtast et **Navn**, **Sign On URL** og **Udsteder** (Issuer) fra din identitetsudbyder, og indsæt det **Offentlige certifikat**. Vælg metoderne for **Signatur** og **Digest** (behold standardværdierne — `RSA-SHA256` / `SHA256` — hvis du er i tvivl).
-   - For OIDC: indtast **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (skal indeholde `openid`) og claim-navnene for **email** / **name**.
+   - For SAML: indtast et **Navn**, **Sign On URL** og **Udsteder** (Issuer) fra din identitetsudbyder, og indsæt det **Offentlige certifikat**. Resten udfyldes under **More fields**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
+   - For OIDC: indtast et **Name**, **Issuer URL** samt **Client ID** og **Client Secret** for den app, du har registreret i din IdP. Du kan også indsætte din IdP's discovery-URL i **Issuer URL**. Resten udfyldes under **More fields**: **Discovery URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), claim-navnene `email` og `name` samt en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
 
 3. **Kopiér OneUptime-URL'erne ind i din identitetsudbyder**
 
@@ -39,7 +39,7 @@ Hvordan en global udbyder opfører sig, afhænger af, om du tilknytter projekter
 
 - **Ingen projekter tilknyttet (default-all / invite-first):** Brugere kan logge ind med udbyderen og nå **ethvert projekt, de allerede er medlem af**. Nye brugere oprettes **ikke** automatisk — en bruger skal først inviteres til et projekt. Brug dette til virksomhedsdækkende SSO, hvor medlemskaber administreres et andet sted.
 
-- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Attached Projects** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
+- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Attached Projects** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
 
 Hvis du vil forhindre enhver automatisk oprettelse af konti, selv når projekter er tilknyttet, skal du aktivere **Disable Sign Up with SSO** på udbyderen — brugere skal derefter inviteres, før de kan logge ind.
 

@@ -4,6 +4,7 @@ import InventoryLinkedResource from "../../../Components/Inventory/InventoryLink
 import {
   LinkedResource,
   buildLinkedResourceQuery,
+  getCreateFromRecordForLinkedResource,
 } from "../../../Components/Inventory/LinkedResource";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import ObjectID from "Common/Types/ObjectID";
@@ -29,6 +30,7 @@ const InventoryItemIncidents: FunctionComponent<
                   ...buildLinkedResourceQuery(resource),
                 } as Query<Incident>
               }
+              createFrom={getCreateFromRecordForLinkedResource(resource)}
             />
           );
         }}

@@ -51,7 +51,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         name="Probe Details"
         cardProps={{
           title: "Probe Details",
-          description: "Here are more details for this probe.",
         }}
         isEditable={true}
         /*
@@ -187,8 +186,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         name="Probe Status"
         cardProps={{
           title: "Probe Status",
-          description:
-            "Here is more details on the connection status for this probe.",
         }}
         isEditable={false}
         modelDetailProps={{

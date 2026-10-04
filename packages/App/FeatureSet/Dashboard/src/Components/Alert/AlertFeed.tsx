@@ -15,7 +15,6 @@ import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -37,6 +36,10 @@ import {
   FeedItemMarkdown,
   getFeedItemMarkdown,
 } from "../../Utils/AIRootCauseFeedItem";
+import useFeedNoteActions, {
+  FeedNoteActions,
+} from "../EventNotes/useFeedNoteActions";
+import { getAlertPrivateNoteKind } from "../EventNotes/NoteKinds/AlertNoteKinds";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -87,9 +90,6 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const alertIdString: string = props.alertId.toString();
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
-    React.useState<boolean>(false);
-
-  const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
 
   const [showRunbookPickerModal, setShowRunbookPickerModal] =
@@ -206,40 +206,46 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     mapItems: getFeedItemsFromAlertFeeds,
   });
 
+  // "Add Private Note": the alert's Notes page composer, in a dialog.
+  const noteActions: FeedNoteActions = useFeedNoteActions({
+    keyPrefix: "alert",
+    privateNoteKind: getAlertPrivateNoteKind({ alertId: props.alertId }),
+    onPosted: () => {
+      refresh().catch((err: unknown) => {
+        setError(API.getFriendlyMessage(err as Exception));
+      });
+    },
+  });
+
   return (
     <FeedCard
       title={"Alert Feed"}
       description={
-        "This is the timeline and feed for this alert. You can see all the updates and information about this alert here."
+        "Everything that has happened to this alert: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}
       actions={
         <FeedActionsMenu key="alert-feed-actions-menu">
-          <MoreMenuItem
-            key="alert-action-run-runbook"
-            text="Execute Runbook"
-            icon={IconProp.Play}
-            onClick={() => {
-              setShowRunbookPickerModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="alert-action-execute-policy"
-            text="Execute On-Call Policy"
-            icon={IconProp.Call}
-            onClick={() => {
-              setShowOnCallPolicyModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="alert-action-private-note"
-            text="Add Private Note"
-            icon={IconProp.Lock}
-            onClick={() => {
-              setShowPrivateNoteModal(true);
-            }}
-          />
+          {[
+            <MoreMenuItem
+              key="alert-action-run-runbook"
+              text="Execute Runbook"
+              icon={IconProp.Play}
+              onClick={() => {
+                setShowRunbookPickerModal(true);
+              }}
+            />,
+            <MoreMenuItem
+              key="alert-action-execute-policy"
+              text="Execute On-Call Policy"
+              icon={IconProp.Call}
+              onClick={() => {
+                setShowOnCallPolicyModal(true);
+              }}
+            />,
+            ...noteActions.menuItems,
+          ]}
         </FeedActionsMenu>
       }
     >
@@ -326,63 +332,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           alertId={props.alertId}
         />
 
-        {showPrivateNoteModal && (
-          <ModelFormModal
-            modalWidth={ModalWidth.Large}
-            modelType={AlertInternalNote}
-            name={"create-alert-internal-note"}
-            title={"Add Private Note to this Alert"}
-            description={
-              "Add a private note to this alert. This note will be visible only to the team members of this alert."
-            }
-            onClose={() => {
-              setShowPrivateNoteModal(false);
-            }}
-            submitButtonText="Save"
-            onBeforeCreate={async (model: AlertInternalNote) => {
-              model.alertId = props.alertId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPrivateNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Private Note",
-              },
-              name: "create-alert-internal-note",
-              modelType: AlertInternalNote,
-              id: "create-alert-internal-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a private note about this alert. This note will be visible only to the team members of this alert.",
-                  title: "Private Note",
-                  required: true,
-                },
-                {
-                  field: {
-                    attachments: true,
-                  },
-                  fieldType: FormFieldSchemaType.MultipleFiles,
-                  description:
-                    "Attach files that should be visible to the alert response team.",
-                  title: "Attachments",
-                  required: false,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
+        {noteActions.dialog}
       </div>
     </FeedCard>
   );

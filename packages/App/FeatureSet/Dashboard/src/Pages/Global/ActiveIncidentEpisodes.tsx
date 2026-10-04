@@ -83,7 +83,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
         cardProps={{
           title: "Active Incident Episodes",
           description:
-            "Here is a list of active incident episodes for all of the projects you are a part of.",
+            "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
         }}
         noItemsMessage="No active episodes. All episodes are resolved."
         emptyState={{ isAllClear: true }}

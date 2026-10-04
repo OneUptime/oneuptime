@@ -23,6 +23,29 @@ import path from "path";
  */
 const readsOnMount: number = 1;
 
+/*
+ * The Edit Policy dialog's steps, in order (formSteps in the Dashboard's
+ * Pages/Rum/View/SessionReplaySettings.tsx). A stepped dialog offers Save
+ * Changes on its last step only, with a plain Next on every other step
+ * (Common/UI/Components/Forms/Utils/SteppedFormFooter.ts), so saving walks
+ * this list to its end, and the dialog's step list must match it exactly.
+ *
+ * The walk used to be three Nexts. That reached the last of the four steps
+ * this was written against, and fell one short of Limits once Privacy was
+ * split into Masking and Consent & Identity - unnoticed while an edit dialog
+ * could still save from any step. A step added or removed now fails by name.
+ */
+const policyFormSteps: ReadonlyArray<string> = [
+  "Recording",
+  "Masking",
+  "Consent & Identity",
+  "Performance & Tracing",
+  "Limits",
+];
+
+// ButtonStyleType.PRIMARY's background, Tailwind's indigo-600.
+const primaryButtonBackground: string = "rgb(79, 70, 229)";
+
 const artifacts: string = path.resolve(
   __dirname,
   "../../../output/playwright/session-replay-ui",
@@ -44,6 +67,13 @@ interface SavedModel {
 interface FixtureState {
   getItemRequests: Array<GetItemRequest>;
   savedModels: Array<SavedModel>;
+}
+
+// What tells a primary button from a plain one, as the browser draws it.
+interface ButtonLook {
+  background: string;
+  text: string;
+  border: string;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -115,6 +145,19 @@ const expectPolicyFetchesStable: (
   await page.waitForTimeout(3000);
   expect(await policyFetchCount(page)).toBe(expected);
   await expect(policyCard(page).getByTestId("bar-loader")).toHaveCount(0);
+};
+
+const buttonLook: (button: Locator) => Promise<ButtonLook> = async (
+  button: Locator,
+): Promise<ButtonLook> => {
+  return button.evaluate((element: Element): ButtonLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      text: style.color,
+      border: style.borderTopColor,
+    };
+  });
 };
 
 const screenshot: (page: Page, name: string) => Promise<void> = async (
@@ -223,12 +266,59 @@ test("saving the policy reloads the card once", async ({
   await expect(modal).toBeVisible();
   const samplePercentage: Locator = modal.getByPlaceholder("100");
   await expect(samplePercentage).toHaveValue("100");
+
+  const progress: Locator = modal.getByRole("navigation", {
+    name: "Progress",
+  });
+  await expect(progress.getByRole("listitem")).toHaveText([...policyFormSteps]);
+  const currentStep: Locator = progress.locator("[aria-current='step']");
+  await expect(currentStep).toHaveText(policyFormSteps[0]!);
+
   await samplePercentage.fill("50");
 
-  for (let step: number = 0; step < 3; step++) {
-    await modal.getByRole("button", { name: "Next", exact: true }).click();
+  const footer: Locator = modal.getByTestId("modal-footer");
+  const next: Locator = footer.getByRole("button", {
+    name: "Next",
+    exact: true,
+  });
+  const cancel: Locator = footer.getByRole("button", {
+    name: "Cancel",
+    exact: true,
+  });
+  const save: Locator = modal.getByRole("button", {
+    name: "Save Changes",
+    exact: true,
+  });
+  expect((await buttonLook(cancel)).background).not.toBe(
+    primaryButtonBackground,
+  );
+
+  /*
+   * Every step before the last offers no Save Changes, only a Next drawn
+   * plain, like Cancel: Next commits nothing, so it never takes the primary
+   * colour. The pointer leaves the footer before each comparison: pressing
+   * Next leaves it there, the next step's Next is often drawn right under
+   * it, and a hovered button is a shade darker.
+   */
+  const lastStep: number = policyFormSteps.length - 1;
+  for (let step: number = 0; step < lastStep; step++) {
+    await expect(currentStep).toHaveText(policyFormSteps[step]!);
+    await expect(save).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await expect
+      .poll((): Promise<ButtonLook> => {
+        return buttonLook(next);
+      })
+      .toEqual(await buttonLook(cancel));
+    await next.click();
   }
-  await modal.getByRole("button", { name: "Save Changes" }).click();
+
+  // The last step: no Next, and Save Changes is the one primary button.
+  await expect(currentStep).toHaveText(policyFormSteps[lastStep]!);
+  await expect(next).toHaveCount(0);
+  await page.mouse.move(0, 0);
+  await expect(save).toHaveCSS("background-color", primaryButtonBackground);
+  await save.click();
   await expect(modal).toHaveCount(0);
 
   const saved: Array<SavedModel> = (await state(page)).savedModels;

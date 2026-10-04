@@ -71,7 +71,7 @@ Velg HTTP-metoden for forespørselen:
 - **PATCH**
 - **HEAD**
 
-### Avanserte alternativer
+### Flere felt
 
 #### Forespørselshoder
 

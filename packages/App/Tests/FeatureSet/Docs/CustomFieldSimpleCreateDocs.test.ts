@@ -5,7 +5,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
-import { ADVANCED_FORM_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -98,7 +98,7 @@ function boldText(markdown: string): Set<string> {
 
 describe("the incident custom field docs describe the simple form", () => {
   test.each(LANGUAGES)(
-    "%s: names the form's three fields, Advanced and Configured",
+    "%s: names the form's three fields, and More fields",
     (language: string) => {
       const names: Set<string> = boldText(
         sectionOf(
@@ -111,8 +111,7 @@ describe("the incident custom field docs describe the simple form", () => {
         "Field Name",
         "Field Description",
         "Field Type",
-        ADVANCED_FORM_SECTION_TITLE,
-        "Configured",
+        MORE_FIELDS_SECTION_TITLE,
         CustomFieldFormCopy.createMappedFieldTitle,
         "Create Incident Custom Field",
       ]) {
@@ -126,14 +125,16 @@ describe("the incident custom field docs describe the simple form", () => {
   );
 
   test.each(LANGUAGES)(
-    "%s: puts every incident setting under Advanced",
+    "%s: puts every incident setting under More fields",
     (language: string) => {
       const section: string = sectionOf(
         readSettingsPage(language),
         CUSTOM_FIELDS_SECTION[language] as string,
       );
       const under: string =
-        language === "en" ? "under **Advanced**" : "زیر **Advanced**";
+        language === "en"
+          ? `under **${MORE_FIELDS_SECTION_TITLE}**`
+          : `زیر **${MORE_FIELDS_SECTION_TITLE}**`;
 
       for (const setting of [
         IncidentCustomFieldSettingsCopy.showOnCreateTitle,
@@ -173,7 +174,7 @@ describe("the incident custom field docs describe the simple form", () => {
         "Field Name",
         "Field Description",
         CustomFieldFormCopy.mapValueFromTitle,
-        ADVANCED_FORM_SECTION_TITLE,
+        MORE_FIELDS_SECTION_TITLE,
         "Edit",
       ]) {
         expect({ language, name, named: names.has(name) }).toEqual({
@@ -229,7 +230,7 @@ describe("the incident custom field docs describe the simple form", () => {
  * Parameters left a wizard step of their own for a collapsed Advanced
  * section, and its docs say where they are now.
  */
-describe("the LLM provider docs say what is under Advanced", () => {
+describe("the LLM provider docs say what is under More fields", () => {
   test.each(LANGUAGES)("%s", (language: string) => {
     const markdown: string = fs.readFileSync(
       path.join(CONTENT_DIR, language, "ai", "llm-provider.md"),
@@ -239,7 +240,7 @@ describe("the LLM provider docs say what is under Advanced", () => {
     const bullet: string | undefined = markdown
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith(`- **${ADVANCED_FORM_SECTION_TITLE}**`);
+        return line.startsWith(`- **${MORE_FIELDS_SECTION_TITLE}**`);
       });
 
     expect(bullet).toBeDefined();

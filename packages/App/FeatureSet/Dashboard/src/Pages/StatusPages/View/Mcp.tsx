@@ -3,9 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Link from "Common/UI/Components/Link/Link";
@@ -14,8 +12,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+
+// The data-testid of the MCP Server switch.
+export const STATUS_PAGE_MCP_SERVER_SWITCH_TEST_ID: string =
+  "status-page-mcp-server-switch";
 
 const StatusPageMcp: FunctionComponent<
   PageComponentProps
@@ -30,51 +32,30 @@ const StatusPageMcp: FunctionComponent<
     { modelId },
   );
 
-  const authenticationSettingsRoute: Route = RouteUtil.populateRouteParams(
+  // Security -> Access: who can see the page.
+  const accessRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS] as Route,
     { modelId },
   );
 
   return (
     <Fragment>
-      <CardModelDetail<StatusPage>
-        name="Status Page > MCP Server"
-        cardProps={{
-          title: "MCP Server",
-          description:
-            "Control whether AI agents can read this status page over the OneUptime MCP server",
+      {/* One switch that saves when it is flipped. On by default. */}
+      <ModelSwitchCard<StatusPage>
+        modelType={StatusPage}
+        modelId={modelId}
+        column="enableMcpServer"
+        cardTitle={translationKey("MCP Server")}
+        cardDescription={translationKey(
+          "Control whether AI agents can read this status page over the OneUptime MCP server",
+        )}
+        title="Enable MCP Server"
+        getDescription={(): string => {
+          return translationKey(
+            "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
+          );
         }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableMcpServer: true,
-            },
-            title: "Enable MCP Server",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-mcp-server",
-          fields: [
-            {
-              field: {
-                enableMcpServer: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable MCP Server",
-              description:
-                "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
-            },
-          ],
-          modelId: modelId,
-        }}
+        dataTestId={STATUS_PAGE_MCP_SERVER_SWITCH_TEST_ID}
       />
 
       <Card
@@ -297,11 +278,8 @@ Is there any maintenance scheduled on ${statusPageId} this week?`}
                 template="This only affects the four unauthenticated tools above. Your status page website, its RSS feed, and its public JSON API keep working exactly as before, so turning this off does not make a public status page private. To restrict who can see the page itself, use {{authenticationSettingsLink}} instead."
                 slots={{
                   authenticationSettingsLink: (
-                    <Link
-                      to={authenticationSettingsRoute}
-                      className="underline"
-                    >
-                      {translator.translateText("Authentication Settings")}
+                    <Link to={accessRoute} className="underline">
+                      {translator.translateText("Access")}
                     </Link>
                   ),
                 }}

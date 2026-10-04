@@ -41,11 +41,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - two steps (Event, Resources Affected) and the review, the shape of
  *     Declare Incident;
  *   - Starts At is the next full hour, Ends At an hour later, so typing a
- *     title is all it takes - Create is the main button from the first step;
+ *     title is all it asks for - Next walks the rest, and Create is on the
+ *     review, the last step;
  *   - moving the start moves the end with it, and the end must come after
  *     the start;
- *   - Owners and Labels wait under Advanced on Event, Change Monitor Status
- *     to under Advanced on Resources Affected;
+ *   - Owners and Labels wait under Advanced on Event; Resources Affected
+ *     asks for the monitors apart from the other resources, with Change
+ *     Monitor Status to right under them once one is picked (covered in
+ *     ScheduledMaintenanceMonitorsApart.test.tsx);
  *   - the three subscriber switches and the reminders are folded to the one
  *     line that says what happens, that line follows the switches, and the
  *     review step shows it;
@@ -139,6 +142,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const NOW: Date = new Date("2026-10-03T09:20:00.000Z");
 const TEMPLATE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -315,6 +319,29 @@ function nextButton(): HTMLElement {
   return screen.getByRole("button", { name: inPageLanguage("Next") });
 }
 
+function queryCreateButton(): HTMLElement | null {
+  return screen.queryByRole("button", {
+    name: inPageLanguage("Create Scheduled Maintenance Event"),
+  });
+}
+
+/*
+ * Create Scheduled Maintenance Event is on the last step - the review -
+ * only: walks there with Next, then presses it.
+ */
+async function createFromTheReview(): Promise<void> {
+  for (let step: number = 0; step < 5 && !queryCreateButton(); step++) {
+    fireEvent.click(nextButton());
+    await act(async () => {});
+  }
+
+  await waitFor(() => {
+    expect(currentStepTitle()).toBe(inPageLanguage("Summary"));
+  });
+
+  fireEvent.click(createButton());
+}
+
 async function typeTitle(title: string): Promise<void> {
   fireEvent.change(titleInput(), { target: { value: title } });
   await act(async () => {});
@@ -470,7 +497,7 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(endsAtInput().value).toMatch(/^2026-10-03T12:00/);
 
     await typeTitle("Database upgrade");
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -480,14 +507,15 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(isoOf(createdModel().endsAt)).toBe("2026-10-03T06:30:00.000Z");
   });
 
-  test("asks for nothing but a title: Create is the main button from the first step", async () => {
+  test("asks for nothing but a title, and creates from the review, the last step", async () => {
     await renderPage();
 
-    expect(createButton()).toBeInTheDocument();
+    // Nothing else is required, and still Create waits for the last step.
+    expect(queryCreateButton()).toBeNull();
     expect(nextButton()).toBeInTheDocument();
 
     await typeTitle("Database upgrade");
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -515,10 +543,10 @@ describe("Create Scheduled Maintenance Event", () => {
     });
   });
 
-  test("still asks for the title when Create is pressed without one", async () => {
+  test("still asks for the title when Next is pressed without one", async () => {
     await renderPage();
 
-    fireEvent.click(createButton());
+    fireEvent.click(nextButton());
 
     expect(await screen.findByText("Title is required.")).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
@@ -547,7 +575,7 @@ describe("Create Scheduled Maintenance Event", () => {
     });
 
     await typeTitle("Database upgrade");
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -562,7 +590,7 @@ describe("Create Scheduled Maintenance Event", () => {
 
     fireEvent.change(endsAtInput(), { target: { value: "2026-10-03T09:00" } });
     await act(async () => {});
-    fireEvent.click(createButton());
+    fireEvent.click(nextButton());
 
     expect(
       await screen.findByText("Ends At must be after Starts At."),
@@ -574,10 +602,10 @@ describe("Create Scheduled Maintenance Event", () => {
   test("Event folds Owners and Labels under Advanced, at the end of the step", async () => {
     await renderPage();
 
-    const advanced: HTMLElement = sectionHeader("Advanced");
+    const advanced: HTMLElement = sectionHeader("More fields");
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
     expect(fieldLabelsIn(sectionBody(advanced))).toEqual(["Owners", "Labels"]);
 
     const labelsLabel: HTMLElement = within(sectionBody(advanced)).getByText(
@@ -593,7 +621,7 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(labelsLabel).toBeVisible();
   });
 
-  test("Resources Affected shows the status pages, one line about subscribers, and Advanced", async () => {
+  test("Resources Affected shows the monitors, the other resources, the status pages and one line about subscribers", async () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
@@ -623,20 +651,29 @@ describe("Create Scheduled Maintenance Event", () => {
       "Reminders before the event",
     ]);
 
-    // Change Monitor Status to is the one field folded under Advanced here.
-    const advanced: HTMLElement = sectionHeader("Advanced");
-
-    expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Configured")).toBeNull();
-    expect(fieldLabelsIn(sectionBody(advanced))).toEqual([
-      "Change Monitor Status to",
+    /*
+     * The step's fields, in order. Change Monitor Status to is not among
+     * them until a monitor is picked, and nothing is folded under More
+     * fields here any more.
+     */
+    expect(fieldLabelsIn(form())).toEqual([
+      "Monitors",
+      "Other Affected Resources",
+      "Show event on these status pages",
+      "When the event is scheduled",
+      "When the event starts",
+      "When the event ends",
+      "Reminders before the event",
     ]);
+    expect(
+      screen.queryByText("Change Monitor Status to", { exact: false }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "More fields" })).toBeNull();
+    expect(setChips()).toEqual([]);
 
-    fireEvent.click(advanced);
-
-    expect(sectionBody(advanced)).toBeVisible();
-    // Create stays the main button: nothing on the steps left is required.
-    expect(createButton()).toBeInTheDocument();
+    // Nothing on the step is required; Create is still on the review only.
+    expect(queryCreateButton()).toBeNull();
+    expect(nextButton()).toBeInTheDocument();
   });
 
   test("the subscriber line follows the switches, and the event is saved as they say", async () => {
@@ -674,9 +711,9 @@ describe("Create Scheduled Maintenance Event", () => {
       "Subscribers of the event's status pages are notified when it is scheduled and when it ends.",
     );
     // The line says what is set; no "Configured" badge repeats it.
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);

@@ -4,7 +4,7 @@ import AlertElement from "./Alert";
 import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Dictionary from "Common/Types/Dictionary";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
   ModalTableBulkDefaultActions,
@@ -83,6 +83,11 @@ import {
 } from "../../Utils/BulkStateChange";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  CreateFromRecordAddress,
+  CreatedRecordKind,
+  getCreateFromRecordQuery,
+} from "../CreateFromRecord/CreateFromRecord";
 
 export interface ComponentProps {
   query?: Query<Alert> | undefined;
@@ -94,9 +99,15 @@ export interface ComponentProps {
   emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
-  createInitialValues?: FormValues<Alert> | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   disableCreate?: boolean | undefined;
+  /*
+   * The record whose Alerts tab this is - a monitor, a host, a cluster:
+   * Create Alert opens the create page with it already picked
+   * (Components/CreateFromRecord). The table draws no create form of its
+   * own, so this replaces the create values it used to take and never used.
+   */
+  createFrom?: CreateFromRecordAddress | undefined;
 }
 
 const AlertsTable: FunctionComponent<ComponentProps> = (
@@ -104,8 +115,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
-  const [initialValuesForAlert, setInitialValuesForAlert] =
-    useState<JSONObject>({});
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
     useState<boolean>(false);
@@ -576,6 +585,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
   let cardbuttons: Array<CardButtonSchema> = [];
 
+  // The record this tab belongs to, in the create page's address.
+  const createQuery: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.Alert,
+    props.createFrom,
+  );
+
   if (!props.disableCreate) {
     /*
      * These route to a dedicated create page instead of the table's built in
@@ -589,9 +604,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           title: "Create Alert",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ALERT_CREATE] as Route,
-              ),
+              RouteUtil.getPageRoute(PageMap.ALERT_CREATE, {
+                query: createQuery,
+              }),
             );
           },
           buttonStyle: ButtonStyleType.NORMAL,
@@ -620,13 +635,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
-        onCreateEditModalClose={(): void => {
-          setInitialValuesForAlert({});
-        }}
         modelType={Alert}
         id="alerts-table"
         isDeleteable={false}
-        showCreateForm={Object.keys(initialValuesForAlert).length > 0}
         topContent={filterBar}
         emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
@@ -639,11 +650,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={false}
         isViewable={true}
-        createInitialValues={
-          Object.keys(initialValuesForAlert).length > 0
-            ? initialValuesForAlert
-            : props.createInitialValues
-        }
         cardProps={{
           title: props.title || "Alerts",
           buttons: cardbuttons,

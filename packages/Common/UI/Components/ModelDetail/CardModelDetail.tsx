@@ -9,7 +9,7 @@ import Card, {
   CardButtonSchema,
   ComponentProps as CardProps,
 } from "../Card/Card";
-import { FormType } from "../Forms/ModelForm";
+import { FormType, ModelFormOnBeforeUpdate } from "../Forms/ModelForm";
 import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
@@ -24,7 +24,13 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import React, {
+  ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   cardProps: CardProps;
@@ -41,6 +47,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   editModalDescription?: undefined | string;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
   formFields?: undefined | Fields<TBaseModel>;
+  /*
+   * Called with the model the Edit dialog is about to save, the misc data
+   * and every value the form holds (ModelForm's onBeforeUpdate): what it
+   * returns is what is saved. The incident's Affected Resources card leaves
+   * out a monitor status when no monitor is left to put in it.
+   */
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   className?: string | undefined;
   name: string;
   modelAPI?: typeof ModelAPI | undefined;
@@ -58,9 +71,6 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [cardButtons, setCardButtons] = useState<
-    Array<CardButtonSchema | ReactElement>
-  >([]);
   const [showModel, setShowModal] = useState<boolean>(false);
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
@@ -95,7 +105,16 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     setRefresher(!refresher);
   }, [props.refresher]);
 
-  useEffect(() => {
+  /*
+   * The header's buttons: the card's own (documentation, demo, Edit), then
+   * the page's. Worked out while rendering rather than kept in state, so a
+   * page button that comes and goes - Apply Template on the postmortem,
+   * shown once the project's templates have loaded and there is one - is
+   * drawn as soon as the page hands it over. Kept in state and refreshed
+   * only by the refresher, a button the page added after the first paint
+   * stayed missing until something else changed.
+   */
+  const cardButtons: Array<CardButtonSchema | ReactElement> = useMemo(() => {
     /*
      * This used to look at project permissions only, so a permission granted
      * globally did not count, and it read the raw updateRecordPermissions
@@ -172,16 +191,21 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       cardButtons = cardButtons.concat(...props.cardProps.buttons);
     }
 
-    setCardButtons(cardButtons);
+    return cardButtons;
     /*
      * props.refresher is the card's existing "something changed, look again"
      * signal. The permission snapshot arrives on an API response header, so a
-     * one-shot read at mount could permanently show the wrong state.
+     * one-shot read at mount could permanently show the wrong state. A page
+     * usually writes its buttons as a literal, so they are new on every
+     * render of the page, which looks again too.
      */
   }, [
     props.refresher,
     props.isEditable,
     props.editButtonText,
+    props.documentationLink,
+    props.videoLink,
+    props.cardProps.buttons,
     translator.language,
   ]);
 
@@ -213,6 +237,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             setShowModal(false);
           }}
           submitButtonText={`Save Changes`}
+          onBeforeUpdate={props.onBeforeUpdate}
           onSuccess={(item: TBaseModel) => {
             setShowModal(false);
             setRefresher(!refresher);

@@ -70,7 +70,7 @@ A client stays connected for as long as it is used. One that has not been used f
 
 ### Controlling Who Can Connect Clients
 
-Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team, go to **Block Permissions**, and add the **Authorize MCP Client** permission. Clients those members already connected stop working at once.
+Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team's **Permissions** page, open **More settings** at the bottom, and add the **Authorize MCP Client** permission under **Block Permissions**. Clients those members already connected stop working at once.
 
 If the project requires single sign-on, sign in to the project with SSO in your browser before you authorize a client. The client's connection lasts as long as that SSO sign-in does; when it lapses, connect the client again.
 
@@ -331,7 +331,7 @@ You can connect to the MCP server without an API key to access public tools:
 
 Public status page tools accept either a status page ID (UUID) or the status page domain name.
 
-Status page owners can turn off MCP access for an individual status page under **Status Page → Advanced Settings → MCP Server**. MCP access is enabled by default. When it is disabled, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed, and its public JSON API are unaffected, and the authenticated status page tools (`get_status_page`, `list_status_pages`, and so on) continue to work for the page's own project.
+Status page owners can turn off MCP access for an individual status page: switch off **Enable MCP Server** on **Status Pages → your page → AI → MCP**. The switch saves as soon as it is flipped. MCP access is enabled by default. When it is disabled, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed, and its public JSON API are unaffected, and the authenticated status page tools (`get_status_page`, `list_status_pages`, and so on) continue to work for the page's own project.
 
 ### Signing In (OAuth 2.1)
 

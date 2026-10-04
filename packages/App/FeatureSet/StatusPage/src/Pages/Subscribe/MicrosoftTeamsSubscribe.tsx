@@ -8,7 +8,7 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
 import {
   SubscribePageProps,
-  getSubscribeFormSteps,
+  getSubscribePreferenceFields,
 } from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -36,8 +36,6 @@ import React, {
 import { useTranslation } from "react-i18next";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export type ComponentProps = SubscribePageProps;
 
@@ -121,7 +119,6 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         microsoftTeamsWorkspaceName: true,
       },
       title: t("subscribe.microsoftTeams.workspaceName"),
-      stepId: "details",
       description: t("subscribe.microsoftTeams.workspaceNameDescription"),
       fieldType: FormFieldSchemaType.Text,
       required: true,
@@ -132,74 +129,13 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         microsoftTeamsIncomingWebhookUrl: true,
       },
       title: t("subscribe.microsoftTeams.webhookUrl"),
-      stepId: "details",
       description: t("subscribe.microsoftTeams.webhookUrlDescription"),
       fieldType: FormFieldSchemaType.URL,
       required: true,
       placeholder: t("subscribe.microsoftTeams.webhookUrlPlaceholder"),
     },
-  ];
-
-  if (props.allowSubscribersToChooseResources) {
-    fields.push({
-      field: {
-        isSubscribedToAllResources: true,
-      },
-      title: t("subscribe.resources.all"),
-      stepId: "preferences",
-      description: t("subscribe.resources.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageResources: true,
-      },
-      title: t("subscribe.resources.select"),
-      stepId: "preferences",
-      description: t("subscribe.resources.selectDescription"),
-      fieldType: FormFieldSchemaType.CategoryCheckbox,
-      required: false,
-      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllResources;
-      },
-    });
-  }
-
-  if (props.allowSubscribersToChooseEventTypes) {
-    fields.push({
-      field: {
-        isSubscribedToAllEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.all"),
-      stepId: "preferences",
-      description: t("subscribe.eventTypes.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.select"),
-      stepId: "preferences",
-      description: t("subscribe.eventTypes.selectDescription"),
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllEventTypes;
-      },
-    });
-  }
-
-  const formSteps: Array<FormStep<StatusPageSubscriber>> | undefined =
-    getSubscribeFormSteps({
+    // On a page that lets subscribers choose: Preferences, folded.
+    ...getSubscribePreferenceFields({
       allowSubscribersToChooseResources: Boolean(
         props.allowSubscribersToChooseResources,
       ),
@@ -209,7 +145,10 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       translate: (key: string): string => {
         return t(key);
       },
-    });
+      resourceOptions: categoryCheckboxOptionsAndCategories,
+      eventTypeOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+    }),
+  ];
 
   const getNewSubscriptionContentElement: GetReactElementFunction =
     (): ReactElement => {
@@ -219,7 +158,6 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           modelAPI={StatusPageModelAPI}
           id="microsoft-teams-form"
           name="Status Page > Microsoft Teams Subscribe"
-          steps={formSteps}
           fields={fields}
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),

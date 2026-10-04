@@ -12,8 +12,8 @@ import {
 
 /*
  * CREATE API KEY: what the form asks, what it starts with, and what Access
- * may offer (Dashboard/src/Components/ApiKey/ApiKeyCreateForm and
- * ApiKeyAccess):
+ * may offer (Dashboard/src/Components/ApiKey/ApiKeyCreateForm and the
+ * Access question it shares with Create Team, Components/Permission/RoleAccess):
  *
  *   - Name; Access (Project Admin, Project Member, Viewer, Choose
  *     permissions later - picked); and folded under Advanced the
@@ -64,15 +64,16 @@ jest.mock("../../../UI/Utils/Permission", () => {
 });
 
 import {
-  API_KEY_ACCESS_FIELD_KEY,
-  API_KEY_ACCESS_LATER,
   API_KEY_ACCESS_LATER_OPTION,
-  API_KEY_ACCESS_ROLES,
-  getApiKeyAccessOptions,
-  getApiKeyAccessOptionsForCurrentUser,
-  getApiKeyAccessRole,
-  giveApiKeyAccess,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyAccess";
+  ROLE_ACCESS_FIELD_KEY,
+  ROLE_ACCESS_LATER,
+  ROLE_ACCESS_ROLES,
+  RoleAccessHolder,
+  getRoleAccessOptions,
+  getRoleAccessOptionsForCurrentUser,
+  getRoleAccessRole,
+  giveRoleAccess,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
 import {
   API_KEY_DEFAULT_EXPIRY_SUMMARY,
   getApiKeyCreateFormFields,
@@ -91,7 +92,7 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormFieldValueSet,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -152,16 +153,17 @@ describe("the Access cards", () => {
   };
 
   test("are Project Admin, Project Member and Viewer, then Choose permissions later", () => {
-    const options: Array<CardSelectOption> = getApiKeyAccessOptions({
+    const options: Array<CardSelectOption> = getRoleAccessOptions({
+      holder: RoleAccessHolder.ApiKey,
       canGrant: anyRole,
-      canAddKeyPermissions: true,
+      canAddPermissions: true,
     });
 
     expect(values(options)).toEqual([
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
     expect(
       options.map((option: CardSelectOption): string => {
@@ -176,13 +178,14 @@ describe("the Access cards", () => {
   });
 
   test("never offer Project Owner: that is added on the key's page, on purpose", () => {
-    expect(API_KEY_ACCESS_ROLES).not.toContain(Permission.ProjectOwner);
+    expect(ROLE_ACCESS_ROLES).not.toContain(Permission.ProjectOwner);
   });
 
   test("say what the key can do, in plain words", () => {
-    const options: Array<CardSelectOption> = getApiKeyAccessOptions({
+    const options: Array<CardSelectOption> = getRoleAccessOptions({
+      holder: RoleAccessHolder.ApiKey,
       canGrant: anyRole,
-      canAddKeyPermissions: true,
+      canAddPermissions: true,
     });
 
     expect(options[0]!.description).toBe(
@@ -200,9 +203,10 @@ describe("the Access cards", () => {
   });
 
   test("show each role with the icon it has wherever roles are picked", () => {
-    const options: Array<CardSelectOption> = getApiKeyAccessOptions({
+    const options: Array<CardSelectOption> = getRoleAccessOptions({
+      holder: RoleAccessHolder.ApiKey,
       canGrant: anyRole,
-      canAddKeyPermissions: true,
+      canAddPermissions: true,
     });
 
     for (const option of options.slice(0, 3)) {
@@ -215,32 +219,35 @@ describe("the Access cards", () => {
   test("offer only the roles the user may hand on", () => {
     expect(
       values(
-        getApiKeyAccessOptions({
+        getRoleAccessOptions({
+          holder: RoleAccessHolder.ApiKey,
           canGrant: (permission: Permission): boolean => {
             return permission === Permission.ProjectAdmin;
           },
-          canAddKeyPermissions: true,
+          canAddPermissions: true,
         }),
       ),
-    ).toEqual([Permission.ProjectAdmin, API_KEY_ACCESS_LATER]);
+    ).toEqual([Permission.ProjectAdmin, ROLE_ACCESS_LATER]);
   });
 
   test("are not offered at all without the right to give a key permissions", () => {
     expect(
-      getApiKeyAccessOptions({
+      getRoleAccessOptions({
+        holder: RoleAccessHolder.ApiKey,
         canGrant: anyRole,
-        canAddKeyPermissions: false,
+        canAddPermissions: false,
       }),
     ).toEqual([]);
   });
 
   test("are not offered when no role may be handed on: there is nothing to choose", () => {
     expect(
-      getApiKeyAccessOptions({
+      getRoleAccessOptions({
+        holder: RoleAccessHolder.ApiKey,
         canGrant: (): boolean => {
           return false;
         },
-        canAddKeyPermissions: true,
+        canAddPermissions: true,
       }),
     ).toEqual([]);
   });
@@ -250,27 +257,30 @@ describe("the Access cards for the signed-in user", () => {
   test("a project owner gets every card", () => {
     holding([Permission.ProjectOwner]);
 
-    expect(values(getApiKeyAccessOptionsForCurrentUser())).toEqual([
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
+    ).toEqual([
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
   });
 
   test("a project admin gets the role they hold, as the server would allow", () => {
     holding([Permission.ProjectAdmin]);
 
-    expect(values(getApiKeyAccessOptionsForCurrentUser())).toEqual([
-      Permission.ProjectAdmin,
-      API_KEY_ACCESS_LATER,
-    ]);
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
+    ).toEqual([Permission.ProjectAdmin, ROLE_ACCESS_LATER]);
   });
 
   test("someone who may create keys but not give them permissions is not asked", () => {
     holding([Permission.CreateProjectApiKey, Permission.ReadProjectApiKey]);
 
-    expect(getApiKeyAccessOptionsForCurrentUser()).toEqual([]);
+    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)).toEqual(
+      [],
+    );
   });
 
   test("a permission editor who holds no role is not asked either", () => {
@@ -279,30 +289,34 @@ describe("the Access cards for the signed-in user", () => {
       Permission.CreateProjectApiKey,
     ]);
 
-    expect(getApiKeyAccessOptionsForCurrentUser()).toEqual([]);
+    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)).toEqual(
+      [],
+    );
   });
 
   test("a master admin gets every card", () => {
     isMasterAdminForTest = true;
 
-    expect(values(getApiKeyAccessOptionsForCurrentUser())).toEqual([
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
+    ).toEqual([
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
   });
 });
 
 describe("what a submitted Access value asks for", () => {
   test("each role card asks for its role", () => {
-    for (const role of API_KEY_ACCESS_ROLES) {
-      expect(getApiKeyAccessRole(role)).toBe(role);
+    for (const role of ROLE_ACCESS_ROLES) {
+      expect(getRoleAccessRole(role)).toBe(role);
     }
   });
 
   test("Choose permissions later asks for nothing", () => {
-    expect(getApiKeyAccessRole(API_KEY_ACCESS_LATER)).toBeNull();
+    expect(getRoleAccessRole(ROLE_ACCESS_LATER)).toBeNull();
   });
 
   test("anything the form never offered asks for nothing", () => {
@@ -315,7 +329,7 @@ describe("what a submitted Access value asks for", () => {
       ["ProjectAdmin"],
       { value: "ProjectAdmin" },
     ]) {
-      expect(getApiKeyAccessRole(value)).toBeNull();
+      expect(getRoleAccessRole(value)).toBeNull();
     }
   });
 });
@@ -334,8 +348,9 @@ describe("giving a new key its access", () => {
       },
     } as unknown as typeof ModelAPI;
 
-    await giveApiKeyAccess({
-      apiKeyId: API_KEY_ID,
+    await giveRoleAccess({
+      holder: RoleAccessHolder.ApiKey,
+      holderId: API_KEY_ID,
       projectId: PROJECT_ID,
       role: Permission.Viewer,
       modelAPI: modelAPI,
@@ -366,8 +381,9 @@ describe("giving a new key its access", () => {
     } as unknown as typeof ModelAPI;
 
     await expect(
-      giveApiKeyAccess({
-        apiKeyId: API_KEY_ID,
+      giveRoleAccess({
+        holder: RoleAccessHolder.ApiKey,
+        holderId: API_KEY_ID,
         projectId: PROJECT_ID,
         role: Permission.ProjectAdmin,
         modelAPI: modelAPI,
@@ -427,11 +443,12 @@ describe("the date a new key expires on", () => {
 });
 
 describe("the Create API Key form", () => {
-  const accessOptions: Array<CardSelectOption> = getApiKeyAccessOptions({
+  const accessOptions: Array<CardSelectOption> = getRoleAccessOptions({
+    holder: RoleAccessHolder.ApiKey,
     canGrant: (): boolean => {
       return true;
     },
-    canAddKeyPermissions: true,
+    canAddPermissions: true,
   });
 
   test("asks Name, Access, then the description and Expires", () => {
@@ -441,7 +458,7 @@ describe("the Create API Key form", () => {
 
     expect(fields.map(keyOf)).toEqual([
       "name",
-      API_KEY_ACCESS_FIELD_KEY,
+      ROLE_ACCESS_FIELD_KEY,
       "description",
       "expiresAt",
     ]);
@@ -466,7 +483,7 @@ describe("the Create API Key form", () => {
     expect(fields[3]!.collapsibleSection).toBe(section);
     expect(fields[2]!.collapsibleSection!.id).toBe(ADVANCED_FORM_SECTION_ID);
     expect(fields[2]!.collapsibleSection!.title).toBe(
-      ADVANCED_FORM_SECTION_TITLE,
+      MORE_FIELDS_SECTION_TITLE,
     );
     // Folded on create, saying "Configured" instead of opening.
     expect(fields[2]!.collapsibleSection!.openWhenConfigured).toBe(false);
@@ -490,7 +507,7 @@ describe("the Create API Key form", () => {
     expect(access.fieldType).toBe(FormFieldSchemaType.CardSelect);
     expect(access.cardSelectOptions).toBe(accessOptions);
     expect(access.cardSelectSingleColumn).toBe(true);
-    expect(access.defaultValue).toBe(API_KEY_ACCESS_LATER);
+    expect(access.defaultValue).toBe(ROLE_ACCESS_LATER);
     expect(access.required).toBe(true);
     expect(access.description).toBe(
       "What this key can do. You can change it on the key's page at any time.",
@@ -504,8 +521,8 @@ describe("the Create API Key form", () => {
 
     expect(access.formOnly).toBe(true);
     expect(access.field).toBeUndefined();
-    expect(access.overrideField).toEqual({ [API_KEY_ACCESS_FIELD_KEY]: true });
-    expect(new ApiKey().hasColumn(API_KEY_ACCESS_FIELD_KEY)).toBe(false);
+    expect(access.overrideField).toEqual({ [ROLE_ACCESS_FIELD_KEY]: true });
+    expect(new ApiKey().hasColumn(ROLE_ACCESS_FIELD_KEY)).toBe(false);
     // Shown although no column's permission covers it: the page decides.
     expect(access.showEvenIfPermissionDoesNotExist).toBe(true);
   });

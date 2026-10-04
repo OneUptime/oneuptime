@@ -21,8 +21,8 @@ Global SSO, einschließlich des instanzweiten Schalters „Require SSO for Login
 2. **Einen Provider erstellen**
 
    - Klicken Sie auf **Global SSO erstellen**.
-   - Für SAML: Geben Sie einen **Namen**, die **Anmelde-URL** und den **Aussteller** von Ihrem Identity Provider ein und fügen Sie das **Öffentliche Zertifikat** ein. Wählen Sie die **Signatur**- und **Digest**-Methoden (belassen Sie die Standardwerte — `RSA-SHA256` / `SHA256` —, wenn Sie unsicher sind).
-   - Für OIDC: Geben Sie die **Discovery-URL**, den **Aussteller**, die **Client-ID**, das **Client-Secret**, die **Geltungsbereiche** (müssen `openid` enthalten) sowie die Namen der **E-Mail**-/**Name**-Claims ein.
+   - Für SAML: Geben Sie einen **Namen**, die **Anmelde-URL** und den **Aussteller** von Ihrem Identity Provider ein und fügen Sie das **Öffentliche Zertifikat** ein. Alles andere wird unter **Weitere Felder** ausgefüllt: die **Signaturmethode** (`RSA-SHA256`), die **Digest-Methode** (`SHA256`) und eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es erfordert. Nach dem Speichern öffnet sich die Seite des Anbieters.
+   - Für OIDC: Geben Sie einen **Namen**, die **Aussteller-URL** sowie **Client-ID** und **Client-Secret** der App ein, die Sie bei Ihrem IdP registriert haben. Sie können auch die Discovery-URL Ihres IdP in **Aussteller-URL** einfügen. Alles andere wird unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es erfordert. Nach dem Speichern öffnet sich die Seite des Anbieters.
 
 3. **Die OneUptime-URLs in Ihren Identity Provider kopieren**
 
@@ -39,7 +39,7 @@ Wie sich ein globaler Provider verhält, hängt davon ab, ob Sie ihm Projekte zu
 
 - **Keine Projekte zugewiesen (Standard-alle / Einladung zuerst):** Benutzer können sich mit dem Provider anmelden und **jedes Projekt erreichen, in dem sie bereits Mitglied sind**. Neue Benutzer werden **nicht** automatisch erstellt — ein Benutzer muss zuerst in ein Projekt eingeladen werden. Verwenden Sie dies für unternehmensweites SSO, bei dem Mitgliedschaften an anderer Stelle verwaltet werden.
 
-- **Projekte zugewiesen (automatische Bereitstellung):** Öffnen Sie den Provider und verwenden Sie die Tabelle **Zugewiesene Projekte**, um ein oder mehrere Projekte zuzuweisen, jeweils mit einer Reihe von Standard-Teams. Benutzer, die sich anmelden, werden bei der ersten Anmeldung **automatisch bereitgestellt** in diese Projekte aufgenommen und den Standard-Teams hinzugefügt. Fügen Sie jeweils ein Projekt + Teams hinzu, um die Liste aufzubauen; um eine Zuweisung zu ändern, löschen Sie sie und fügen Sie sie erneut hinzu.
+- **Projekte zugewiesen (automatische Bereitstellung):** Öffnen Sie den Provider und verwenden Sie die Tabelle **Zugewiesene Projekte**, um ein oder mehrere Projekte zuzuweisen, jeweils mit einer Reihe von Standard-Teams. Benutzer, die sich anmelden, werden bei der ersten Anmeldung **automatisch bereitgestellt** in diese Projekte aufgenommen und den Standard-Teams hinzugefügt. Ein zugewiesenes Projekt beginnt mit seinem Mitglieder-Team; wählen Sie andere Teams, wenn neue Benutzer mit anderem Zugriff starten sollen. Fügen Sie jeweils ein Projekt + Teams hinzu, um die Liste aufzubauen; um eine Zuweisung zu ändern, löschen Sie sie und fügen Sie sie erneut hinzu.
 
 Wenn Sie jegliche automatische Kontoerstellung verhindern möchten, auch wenn Projekte zugewiesen sind, aktivieren Sie **Registrierung mit SSO deaktivieren** für den Provider — Benutzer müssen dann eingeladen werden, bevor sie sich anmelden können.
 

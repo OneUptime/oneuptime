@@ -12,7 +12,7 @@ Una página de estado admite cinco canales. Ellos y la página en la que se susc
 
 - **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado por defecto. Pone el elemento **Suscribirse** en la barra de navegación de la página de estado, donde los visitantes se suscriben por los canales de abajo.
 - **Correo electrónico** (`enableEmailSubscribers`) — activado por defecto. Todo lo demás está apagado hasta que tú lo enciendas.
-- **SMS** (`enableSmsSubscribers`) — apagado por defecto. En OneUptime Cloud cada SMS se paga con el saldo de SMS y llamadas del proyecto, salvo que la página tenga su propia **Configuración de Twilio**. Para encenderlo, el proyecto también necesita **Habilitar notificaciones por SMS** activado, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
+- **SMS** (`enableSmsSubscribers`) — apagado por defecto. En OneUptime Cloud cada SMS se paga con el saldo de SMS y llamadas del proyecto, salvo que la página tenga su propia **Configuración de Twilio**. Para encenderlo, el proyecto también necesita **SMS** activado en la tarjeta **Canales de notificación**, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
 - **Slack** (`enableSlackSubscribers`) — apagado por defecto.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — apagado por defecto.
 - **Webhook** (`enableWebhookSubscribers`) — apagado por defecto.
@@ -43,6 +43,8 @@ Por defecto un suscriptor recibe todo lo de la página. Dos interruptores de la 
 
 - **Permitir a los suscriptores elegir recursos** (`allowSubscribersToChooseResources`) — apagado por defecto. Actívalo y el formulario de suscripción gana un interruptor **Suscribirse a todos los recursos**; desmárcalo y aparece **Seleccionar recursos para suscribirse**, para que el visitante escoja recursos concretos.
 - **Permitir a los suscriptores elegir tipos de eventos** (`allowSubscribersToChooseEventTypes`) — apagado por defecto. Funciona igual: un interruptor **Suscribirse a todos los tipos de eventos** y, debajo, **Seleccionar tipos de eventos para suscribirse** cuando lo desmarcas.
+
+Con cualquiera de los dos activado, el formulario sigue siendo una sola página: estas opciones están en **Preferencias**, plegado bajo el campo de adónde enviar las actualizaciones. Plegado, dice en una línea lo que recibirá el visitante (todas las actualizaciones de la página de estado, mientras no acote nada), así que quien lo quiere todo solo pulsa **Suscribirse**. La página **Actualizar suscripción** muestra las mismas opciones desplegadas.
 
 Los tipos de evento son `Incident`, `Announcement` y `Scheduled Event`.
 
@@ -82,7 +84,7 @@ Los suscriptores reciben avisos de los tres tipos de evento de arriba, pero cada
 
 ### Notificaciones de anuncios
 
-El propio anuncio lleva **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), expuesto en el formulario de creación como la casilla **Notificar a suscriptores de la página de estado** y activado por defecto. Si el anuncio nombra monitores en **Monitores afectados (opcional)**, la notificación se limita a esos monitores; déjalo vacío y se avisa a todos los suscriptores.
+El propio anuncio lleva **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), expuesto en el formulario de creación como la casilla **Notificar a suscriptores de la página de estado** dentro de **Programación y notificaciones** y activado por defecto. Los suscriptores se enteran una sola vez, cuando el anuncio empieza a mostrarse, así que se decide al crearlo y una edición no lo cambia. Si el anuncio nombra monitores en **Monitores afectados**, la notificación se limita a esos monitores; déjalo vacío y se avisa a todos los suscriptores.
 
 ### Eventos de mantenimiento programado
 
@@ -114,12 +116,14 @@ Merece la pena configurar el SMTP personalizado pronto si tienes suscriptores po
 
 Un anuncio es un registro a nivel de proyecto (el modelo `StatusPageAnnouncement`) que repartes a una o varias páginas de estado, opcionalmente limitado a monitores concretos, con una ventana de tiempo durante la cual se muestra.
 
-Creas uno desde **Páginas de Estado → Más → Anuncios**, o desde **Anuncios** en el menú lateral de una página de estado concreta. El formulario de creación es un asistente de cuatro pasos:
+Creas uno desde **Páginas de Estado → Más → Anuncios**, o desde **Anuncios** en el menú lateral de una página de estado concreta. Creado desde una página de estado, esa página ya está elegida, así que basta con un título y una descripción, y **Crear anuncio** te devuelve a la lista **Anuncios** de esa página (o a la lista del proyecto, si la desmarcaste por el camino). El formulario de creación tiene dos pasos y luego un resumen:
 
-1. **Información básica** — **Título del anuncio** (obligatorio, al menos dos caracteres), **Descripción** (Markdown, opcional) y **Adjuntos** para los archivos que deban acompañar al anuncio en la página de estado.
-2. **Páginas de Estado** — **Mostrar anuncio en estas páginas de estado**, una selección múltiple obligatoria. Un mismo anuncio puede dirigirse a varias páginas a la vez.
-3. **Recursos afectados** — **Monitores afectados (opcional)**. Si no seleccionas ninguno, se avisa a todos los suscriptores.
-4. **Programación y ajustes** — **Comenzar a mostrar el anuncio en** (obligatorio, por defecto ahora mismo), **Dejar de mostrar el anuncio el** (opcional) y **Notificar a suscriptores de la página de estado** (activado por defecto).
+1. **Anuncio** — **Título** (obligatorio, al menos dos caracteres) y **Descripción** (Markdown, obligatoria: es el texto que se lee en la página de estado). Los **Adjuntos**, para los archivos que deban acompañar al anuncio en la página de estado, esperan en **Más campos**.
+2. **Páginas de estado** — **Mostrar anuncio en estas páginas de estado**, una selección múltiple obligatoria (un mismo anuncio puede dirigirse a varias páginas a la vez), y **Monitores afectados**: si no seleccionas ninguno, se avisa a todos los suscriptores. En cuanto eliges monitores, el formulario sugiere bajo la selección de páginas las páginas de estado que los muestran: «Páginas de estado que muestran los monitores afectados:» seguido del nombre de cada página. Haz clic en un nombre para añadir esa página, o en **Añadir todas**; nada se elige por ti. Debajo, **Programación y notificaciones** queda plegado en una línea que dice lo que va a pasar: «Se muestra ahora y sigue visible hasta que lo finalice. Se notifica a los suscriptores cuando empieza a mostrarse.» Despliégalo para cambiar **Comenzar a mostrar el anuncio en** (por defecto, ahora), **Dejar de mostrar el anuncio el** (vacío: el anuncio sigue visible hasta que fijes un fin) o **Notificar a suscriptores de la página de estado** (activado por defecto). La línea sigue tus respuestas. El fin tiene que ser posterior al inicio y, en un anuncio nuevo, estar aún por llegar: uno que ya terminó nunca se mostraría.
+
+El resumen muestra la misma línea. **Crear desde plantilla** rellena el formulario a partir de una plantilla; creado desde una página de estado, las páginas de estado de la plantilla se conservan junto a esa página.
+
+La página del propio anuncio lo edita con los mismos dos pasos. **Notificar a los suscriptores sobre esta actualización** está bajo la descripción, y **Programación** contiene el inicio y el fin. Poner un fin que ya pasó es la forma de retirar un anuncio.
 
 Los visitantes leen los anuncios en `/announcements`, divididos en **Anuncios activos** y **Anuncios pasados**, cada uno con su marca de **Anunciado el**. Los anuncios que están en vivo también se fijan arriba en la página de resumen. Cuando no hay nada que mostrar, la página dice *Sin anuncios* con la nota de que no se ha publicado ninguno hasta ahora.
 
@@ -141,7 +145,7 @@ Que los anuncios aparezcan siquiera se ajusta en la tarjeta **Lo que muestra su 
 
 ## Plantillas de anuncios
 
-Si publicas el mismo tipo de aviso una y otra vez — el recordatorio mensual de mantenimiento, una degradación recurrente de un tercero — déjalo preparado. **Páginas de Estado → Ajustes → Plantillas de Anuncios** guarda el modelo `StatusPageAnnouncementTemplate`, y su formulario pide **Nombre de la plantilla**, **Descripción de la plantilla**, **Título del anuncio**, **Descripción**, **Mostrar anuncio en estas páginas de estado**, **Monitores afectados (opcional)** y **Notificar a los suscriptores**, de modo que el reparto y la decisión de notificar se toman una vez y no cada vez.
+Si publicas el mismo tipo de aviso una y otra vez — el recordatorio mensual de mantenimiento, una degradación recurrente de un tercero — déjalo preparado. **Páginas de Estado → Ajustes → Plantillas de Anuncios** guarda el modelo `StatusPageAnnouncementTemplate`. Su formulario recorre **Información de la plantilla** (**Nombre de la plantilla**, **Descripción de la plantilla**) y después los pasos del propio anuncio: **Anuncio** (**Título**, **Descripción**) y **Páginas de estado** (**Mostrar anuncio en estas páginas de estado**, **Monitores afectados** y **Notificar a suscriptores de la página de estado**, activado por defecto), de modo que el reparto y la decisión de notificar se toman una vez y no cada vez. Una plantilla no tiene programación: un anuncio creado con ella se muestra desde que se crea, salvo que lo cambies en **Programación y notificaciones**.
 
 ## Suscriptores por webhook y protección contra SSRF
 

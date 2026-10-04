@@ -5,13 +5,15 @@ import {
   ReadinessDeliveryContext,
   ReadinessMethodWire,
   ResponderSourceValue,
+  SettingsPageLink,
   UserReadinessWire,
   getCoverageGaps,
-  getPageForRuleType,
   getRuleTypeLabel,
   getSelfAddressedConsequence,
+  getSettingsPageForRuleType,
   getVerifiedMethods,
 } from "../../OnCallPolicy/Readiness/ReadinessTypes";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 
@@ -111,6 +113,11 @@ export interface SetupStep {
    * worse than no link.
    */
   pageMap?: PageMap | undefined;
+  /**
+   * The query that opens `pageMap` the right way: the On-Call Rules page on
+   * the tab this step is about (`{ type: "alerts" }`).
+   */
+  pageQuery?: Dictionary<string> | undefined;
   /** The affordance line, e.g. "Add a notification method". */
   actionTitle: string;
 }
@@ -499,11 +506,12 @@ const buildReachabilitySteps: BuildStepsFunction = (
 };
 
 /*
- * Section 2 - one step per rule type, which is also one step per confusing page
- * in the side menu.
+ * Section 2 - one step per rule type, which is also one step per tab of the
+ * On-Call Rules page.
  *
- * These four pages are the ones people cannot tell apart, so each step says in
- * a sentence what its page is FOR before it says what is missing from it.
+ * These four kinds are the ones people cannot tell apart, so each step says in
+ * a sentence what its tab is FOR before it says what is missing from it, and
+ * opens the page on that tab.
  */
 const buildRuleSteps: BuildStepsFunction = (
   input: SetupChecklistInput,
@@ -549,6 +557,10 @@ const buildRuleSteps: BuildStepsFunction = (
             ? describeGapSeverities(gapsForType)
             : "";
 
+      const fixPage: SettingsPageLink = getSettingsPageForRuleType(
+        definition.ruleType,
+      );
+
       return {
         key: definition.key,
         title: definition.title,
@@ -558,7 +570,8 @@ const buildRuleSteps: BuildStepsFunction = (
         importance: SetupStepImportance.Required,
         icon: definition.icon,
         iconBackgroundClassName: definition.iconBackgroundClassName,
-        pageMap: getPageForRuleType(definition.ruleType),
+        pageMap: fixPage.page,
+        pageQuery: fixPage.query,
         actionTitle: "Set up these rules",
       };
     },

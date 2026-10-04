@@ -6,6 +6,7 @@ import {
   Browser,
   BrowserContext,
   BrowserContextOptions,
+  Locator,
   Page,
   expect,
   test,
@@ -367,17 +368,24 @@ test.describe("Dashboard lapse notices (lapsed stack)", () => {
     });
 
     /*
-     * The "Force SSO for Login" card, with its Edit Settings button: the
-     * requirement is enforced whatever the licence says, so an administrator
-     * must always be able to change it.
+     * The "Require SSO for Login" switch: the requirement is enforced
+     * whatever the licence says, so an administrator must always be able to
+     * change it. (It saves when flipped and asks first; this only looks.)
      */
     await expect(
       page.getByRole("heading", { name: "SSO Settings", exact: true }),
     ).toBeVisible({ timeout: 60000 });
 
+    const requireSso: Locator = page.getByRole("switch", {
+      name: "Require SSO for Login",
+      exact: true,
+    });
+
+    await expect(requireSso).toBeVisible({ timeout: 60000 });
+
     await expect(
-      page.getByRole("button", { name: "Edit Settings", exact: true }),
-      "A lapsed licence must not lock the Force SSO card: it has to stay editable.",
-    ).toBeEnabled({ timeout: 60000 });
+      requireSso,
+      "A lapsed licence must not lock the Require SSO switch: it has to stay changeable.",
+    ).not.toHaveAttribute("aria-disabled", "true", { timeout: 60000 });
   });
 });

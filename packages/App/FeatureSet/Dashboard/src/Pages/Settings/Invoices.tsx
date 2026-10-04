@@ -190,7 +190,8 @@ const Settings: FunctionComponent<ComponentProps> = (
           isViewable={false}
           cardProps={{
             title: "Invoices",
-            description: "Here is a list of invoices for this project.",
+            description:
+              "This project's invoices, as they are issued. Download one for your records, or pay one that is still open.",
           }}
           noItemsMessage={"No invoices so far."}
           query={{

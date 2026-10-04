@@ -326,7 +326,7 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(labelText("Description")).toContain("(Optional)");
   });
 
-  test("can be created from the Event step: every step after it is optional", async () => {
+  test("every step after Event is optional: Next walks them without asking, and Create Template is on the last", async () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
@@ -336,6 +336,21 @@ describe("Create Scheduled Maintenance Template", () => {
       target: { value: "Database maintenance" },
     });
     await act(async () => {});
+
+    // The action is on the last step only.
+    expect(
+      screen.queryByRole("button", { name: "Create Template" }),
+    ).not.toBeInTheDocument();
+
+    await goToNextStep("Resources Affected");
+    expect(
+      screen.queryByRole("button", { name: "Create Template" }),
+    ).not.toBeInTheDocument();
+
+    await goToNextStep("Recurring");
+    expect(
+      screen.queryByRole("button", { name: "Next" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
 
@@ -359,7 +374,7 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(Boolean(template.isRecurringEvent)).toBe(false);
   });
 
-  test("Event folds owners and labels under Advanced; Resources Affected folds the subscriber switches to a line", async () => {
+  test("Event folds owners and labels under Advanced; Resources Affected asks for the monitors apart and folds the subscriber switches to a line", async () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
@@ -370,7 +385,7 @@ describe("Create Scheduled Maintenance Template", () => {
     await act(async () => {});
 
     const eventAdvanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     expect(eventAdvanced).toHaveAttribute("aria-expanded", "false");
@@ -390,14 +405,21 @@ describe("Create Scheduled Maintenance Template", () => {
       "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
     );
 
-    const resourcesAdvanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
-    });
-
-    expect(resourcesAdvanced).toHaveAttribute("aria-expanded", "false");
-    expect(fieldLabelsIn(sectionBody(resourcesAdvanced))).toEqual([
+    /*
+     * The monitors, the status they change to - asked whether or not a
+     * monitor is picked, since a template's status also applies to the
+     * monitors picked when an event is scheduled from it - and the other
+     * resources. Nothing is folded under More fields on this step any more.
+     */
+    expect(fieldLabelsIn(form()).slice(0, 4)).toEqual([
+      "Monitors",
       "Change Monitor Status to",
+      "Other Affected Resources",
+      "Show event on these status pages",
     ]);
+    expect(
+      screen.queryByRole("button", { name: "More fields" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(notifications);
     fireEvent.click(

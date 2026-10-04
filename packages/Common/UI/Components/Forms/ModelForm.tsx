@@ -35,11 +35,14 @@ import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
   CreateFormColumnDefault,
+  getColorsInUse,
+  getCreateFormColorDefault,
   getCreateFormColumnDefault,
 } from "./Utils/CreateFormDefaults";
 import {
   getPeoplePickerValueKeys,
-  toPeoplePickerIds,
+  PeoplePickerFormValue,
+  toPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
@@ -70,6 +73,7 @@ import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 
@@ -159,9 +163,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   hideSubmitButton?: undefined | boolean;
   submitButtonStyleType?: ButtonStyleType | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
+  // Whether the step on screen is the last one (see BasicForm).
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
-  // Whether the form can be finished from the step on screen (see BasicForm).
-  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
   onLoadingChange?: undefined | ((isLoading: boolean) => void);
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
@@ -170,11 +173,28 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
+  /*
+   * An Update form that opens on a draft of some of its fields - a
+   * postmortem template, or a postmortem AI wrote - rather than on the
+   * record alone. The form still fetches the record, and these values are
+   * laid over it: every field the draft leaves out starts from what is
+   * stored. (doNotFetchExistingModel with initialValues starts those fields
+   * empty instead, and BasicForm sends an untouched switch as off, so saving
+   * a draft quietly turned the postmortem's status page switch off.)
+   */
+  draftValues?: FormValues<TBaseModel> | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
   // Any step can be opened from the step list (see BasicForm).
   allowAnyStepNavigation?: boolean | undefined;
+  /*
+   * Records of this model listed beside a Create form - the rows of the
+   * table it was opened from (ModelTable hands them over). A colour the form
+   * picks for a new record is one none of them uses yet
+   * (Utils/CreateFormDefaults, getCreateFormColorDefault).
+   */
+  existingItems?: Array<TBaseModel> | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -222,6 +242,19 @@ const ModelForm: <TBaseModel extends BaseModel>(
   > = useRef<Map<unknown, Dictionary<DropdownOptionsCacheEntry>>>(new Map());
 
   const fieldsRunGeneration: MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * The colour a Create form picked for each colour field, by form key. The
+   * fields are worked out again on every render of the page around the form,
+   * and the rows beside it can be fetched again while it is open: the pick is
+   * made once, so the colour the form shows - and that a folded section
+   * compares with - never changes under the user. One pick per record: a
+   * form never resets itself after a save, and every Create opens a form of
+   * its own (a table's dialog is unmounted when it closes).
+   */
+  const pickedColorDefaults: MutableRefObject<Dictionary<string>> = useRef<
+    Dictionary<string>
+  >({});
 
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
@@ -414,6 +447,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
     return fieldPermissions;
   };
 
+  type HasInitialValueFunction = (key: string) => boolean;
+
+  /*
+   * Whether the form starts with a value of its own for this key - empty
+   * included, as BasicForm reads it: it fills in a default only where the
+   * value is undefined.
+   */
+  const hasInitialValue: HasInitialValueFunction = (key: string): boolean => {
+    return (
+      (props.initialValues as Record<string, unknown> | undefined)?.[key] !==
+      undefined
+    );
+  };
+
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
     fieldsRunGeneration.current = fieldsRunGeneration.current + 1;
     const generation: number = fieldsRunGeneration.current;
@@ -487,17 +534,47 @@ const ModelForm: <TBaseModel extends BaseModel>(
            * the server stores for a field left out - unless the field or the
            * form's initial values say otherwise (Utils/CreateFormDefaults).
            * Without this a switch whose column defaults to on was drawn off
-           * and saved off. An Edit form shows the record as it is.
+           * and saved off. An Edit form shows the record as it is, but its
+           * folded sections still compare with the column's default, so a
+           * switch on because its column starts on is not shown as set.
            */
           const columnDefault: CreateFormColumnDefault | undefined =
+            getCreateFormColumnDefault(model, field);
+
+          /*
+           * A colour the record cannot be saved without, and whose column
+           * has no default, starts picked: one the records beside the form
+           * do not use yet. Not over a colour the form already starts with.
+           */
+          if (
+            props.formType === FormType.Create &&
+            columnDefault === undefined &&
+            pickedColorDefaults.current[effectiveFieldKey] === undefined &&
+            !hasInitialValue(effectiveFieldKey)
+          ) {
+            const colorDefault: string | undefined = getCreateFormColorDefault(
+              model,
+              field,
+              getColorsInUse(field, props.existingItems),
+            );
+
+            if (colorDefault) {
+              pickedColorDefaults.current[effectiveFieldKey] = colorDefault;
+            }
+          }
+
+          const createDefault: CreateFormColumnDefault | undefined =
             props.formType === FormType.Create
-              ? getCreateFormColumnDefault(model, field)
+              ? columnDefault ?? pickedColorDefaults.current[effectiveFieldKey]
               : undefined;
 
           fieldsToSet.push({
             ...field,
+            ...(createDefault !== undefined
+              ? { defaultValue: createDefault }
+              : {}),
             ...(columnDefault !== undefined
-              ? { defaultValue: columnDefault }
+              ? { columnDefaultValue: columnDefault }
               : {}),
             field: {
               [key]: true,
@@ -653,9 +730,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
   /*
    * What a dropdown's options depend on, and nothing else: the model, the
-   * two columns read off it, and the order it is listed in. The request below
-   * takes no query and no closure state, so two fields with the same four
-   * always get the same list back - which is what makes caching them safe.
+   * two columns read off it, the order it is listed in and the query that
+   * narrows it. The request below takes no closure state, so two fields with
+   * the same five always get the same list back - which is what makes
+   * caching them safe.
    */
   type GetCachedDropdownOptionsFunction = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
@@ -677,7 +755,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       })
       .join(",");
 
-    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}`;
+    const queryKey: string = JSON.stringify(dropdownModal.query || {});
+
+    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}|${queryKey}`;
   };
 
   const getCachedDropdownOptions: GetCachedDropdownOptionsFunction = (
@@ -807,7 +887,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
           const listResult: ListResult<BaseModel> =
             await modelAPI.getList<BaseModel>({
               modelType: field.dropdownModal.type,
-              query: {},
+              query: {
+                ...(field.dropdownModal.query || {}),
+              } as Query<BaseModel>,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: select,
@@ -1062,7 +1144,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
       /*
        * A people picker's values that are not columns of the model - a
        * template's ownerUsers and ownerTeams - are sent as misc data, as
-       * plain ids. Its columns are saved with the model.
+       * plain ids (one id, for a picker that takes a single pick). Its
+       * columns are saved with the model.
        */
       if (isPeoplePickerField(field) && field.peoplePicker) {
         for (const key of getPeoplePickerValueKeys(field.peoplePicker)) {
@@ -1070,8 +1153,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
             continue;
           }
 
-          if (values[key] !== undefined && values[key] !== null) {
-            result[key] = toPeoplePickerIds(values[key]);
+          if (values[key] === undefined || values[key] === null) {
+            continue;
+          }
+
+          const formValue: PeoplePickerFormValue = toPeoplePickerFormValue(
+            field.peoplePicker,
+            values[key],
+          );
+
+          if (formValue !== null) {
+            result[key] = formValue;
           }
         }
 
@@ -1181,6 +1273,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
             arr.push(baseModel);
           }
           valuesToSend[key] = arr;
+        }
+
+        /*
+         * A colour a Create form picked for a new record is held as text
+         * ("#6366f1"), where the picker holds a Color: it is sent as the
+         * Color it stands for, the same as one picked by hand.
+         */
+        if (
+          tableColumnMetadata &&
+          tableColumnMetadata.type === TableColumnType.Color &&
+          typeof valuesToSend[key] === Typeof.String &&
+          (valuesToSend[key] as string).trim()
+        ) {
+          valuesToSend[key] = new Color((valuesToSend[key] as string).trim());
         }
       }
 
@@ -1392,7 +1498,6 @@ const ModelForm: <TBaseModel extends BaseModel>(
         )}
         onFormStepChange={props.onFormStepChange}
         onIsLastFormStep={props.onIsLastFormStep}
-        onCanFinishFromCurrentStep={props.onCanFinishFromCurrentStep}
         fields={fields}
         steps={props.steps}
         onChange={(
@@ -1417,7 +1522,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
         hideSubmitButton={props.hideSubmitButton}
         formRef={props.formRef}
         initialValues={
-          (itemToEdit || props.initialValues) as
+          (itemToEdit && props.draftValues
+            ? { ...itemToEdit, ...props.draftValues }
+            : itemToEdit || props.initialValues) as
             | FormValues<TBaseModel>
             | undefined
         }

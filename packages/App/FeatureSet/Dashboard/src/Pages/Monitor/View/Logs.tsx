@@ -265,7 +265,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sortOrder={SortOrder.Descending}
         cardProps={{
           title: "Monitor Logs",
-          description: "Here are the latest logs for this resource.",
+          description:
+            "The result of every check of this monitor, newest first. View a summary to see what was checked and how the criteria judged it.",
         }}
         noItemsMessage={
           "No logs found for this resource. Please check back later."
@@ -481,7 +482,6 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {selectedLog && monitorType && (
         <Modal
           title={"Monitoring Summary"}
-          description={"Here is the summary of this monitor."}
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

@@ -123,6 +123,12 @@ interface UnhandledRequest {
   url?: string;
 }
 
+interface RecordedUpdate {
+  modelName: string;
+  id: string;
+  data: Record<string, unknown>;
+}
+
 interface FixtureState {
   now: string;
   scenario: Record<string, unknown>;
@@ -131,6 +137,7 @@ interface FixtureState {
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedAggregate>;
   apiRequests: Array<RecordedApiRequest>;
+  updates: Array<RecordedUpdate>;
   unhandled: Array<UnhandledRequest>;
 }
 
@@ -330,6 +337,60 @@ async function expectAbove(
   expect(upperBox.y + upperBox.height, message).toBeLessThanOrEqual(
     lowerBox.y + 1,
   );
+}
+
+/*
+ * Where a card header keeps what the card offers (Edit, Test Monitor, the
+ * probe picker, a link): at the header's right edge, and under the title
+ * only when it does not fit beside it - never under the description, never
+ * at the left, never centred. "Why are edit buttons not on the right?"
+ */
+async function expectHeaderActionsOnTheRight(
+  cardLocator: Locator,
+  label: string,
+  options?: { onTitleLine?: boolean | undefined } | undefined,
+): Promise<void> {
+  const header: Locator = cardLocator.getByTestId("card-header").first();
+  const title: Box = await documentBox(
+    header.getByTestId("card-details-heading"),
+  );
+  const actions: Box = await documentBox(
+    header.getByTestId("card-header-actions"),
+  );
+  const headerBox: Box = await documentBox(header);
+  const isOnTitleLine: boolean =
+    actions.y < title.y + title.height && actions.y + actions.height > title.y;
+
+  expect(
+    Math.abs(headerBox.x + headerBox.width - (actions.x + actions.width)),
+    `${label} ends at the header's right edge`,
+  ).toBeLessThanOrEqual(1);
+
+  if (isOnTitleLine) {
+    expect(actions.x, `${label} sits right of the title`).toBeGreaterThan(
+      title.x + 1,
+    );
+  } else {
+    expect(
+      actions.y,
+      `${label} is under the title when it is not beside it`,
+    ).toBeGreaterThanOrEqual(title.y + title.height - 1);
+  }
+
+  if (options?.onTitleLine !== undefined) {
+    expect(isOnTitleLine, `${label} on the title's line`).toBe(
+      options.onTitleLine,
+    );
+  }
+
+  // Never under the description: that comes after the actions, or beside them.
+  const description: Locator = header.getByTestId("card-description");
+  if ((await description.count()) > 0 && (await description.isVisible())) {
+    const descriptionBox: Box = await documentBox(description);
+    expect(actions.y, `${label} is not under the description`).toBeLessThan(
+      descriptionBox.y + 1,
+    );
+  }
 }
 
 function hero(page: Page): Locator {
@@ -670,6 +731,82 @@ test.describe("probe checks", () => {
     await screenshot(page, "monitor-overview-desktop");
   });
 
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't take
+   * space up top." The Details card used to end with a Created row - a
+   * label, a clock and the date - above the ID line. When the monitor was
+   * created is on that line now, after the ID.
+   */
+  test("the Details card says when the monitor was created on its ID line, not in a row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const details: Locator = card(sideColumn(page), "Details");
+    const labels: Array<string> = (
+      await details.locator("label").allInnerTexts()
+    )
+      .map((text: string): string => {
+        return text.trim();
+      })
+      .filter((text: string): boolean => {
+        return text.length > 0;
+      });
+
+    expect(labels).toEqual(["Name", "Description", "Labels", "Monitor Type"]);
+
+    const recordLine: Locator = details.getByTestId("detail-record-line");
+    const idLine: Locator = recordLine.getByTestId("detail-id-line");
+    const created: Locator = recordLine.getByTestId("detail-created-at");
+    const createdValue: Locator = created.getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(idLine.getByTestId("detail-id-label")).toHaveText("ID");
+    await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+      "Created",
+    );
+    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM GMT");
+    await expect(createdValue).toHaveAttribute(
+      "datetime",
+      "2026-03-02T09:30:00.000Z",
+    );
+
+    // After the ID on its line, or under it, whole, when the column is narrow.
+    const lineBox: Box = await documentBox(recordLine);
+    const idBox: Box = await documentBox(idLine);
+    const createdBox: Box = await documentBox(created);
+    if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+      expect(
+        Math.abs(
+          createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+        ),
+        "Created sits level with the ID",
+      ).toBeLessThanOrEqual(2);
+      expect(createdBox.x, "after the ID").toBeGreaterThan(
+        idBox.x + idBox.width,
+      );
+    } else {
+      expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+        idBox.y + idBox.height - 1,
+      );
+    }
+    await expectAbove(
+      details.locator("label").last(),
+      recordLine,
+      "the line ends the card",
+    );
+
+    // The time to the second, on hover.
+    await createdValue.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Mar 02 2026, 09:30:00 AM GMT",
+    );
+  });
+
   test("offline with open work", async ({ page }: { page: Page }) => {
     await openReady(page, { query: "state=offline" });
     await expectSettled(page);
@@ -832,11 +969,65 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-last-known")).toHaveText(
       "Last recorded status: Operational",
     );
+    // Turned back on in place, not on a trip to Settings.
+    await expect(
+      hero(page).getByRole("button", { name: "Turn monitoring on" }),
+    ).toBeEnabled();
     await expect(
       hero(page).getByRole("link", { name: "Open settings" }),
-    ).toHaveAttribute("href", `${monitorPath("api")}/settings`);
+    ).toHaveCount(0);
     // A paused monitor promises no next check.
     await expect(page.getByTestId("monitor-overview-cadence")).toHaveCount(0);
+  });
+
+  test("disabled: Turn monitoring on turns it back on, in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled" });
+
+    await expect(headline(page)).toHaveText("Monitoring is turned off");
+
+    await hero(page)
+      .getByRole("button", { name: "Turn monitoring on" })
+      .click();
+
+    // It writes the one column the Monitoring switch on Settings writes.
+    await expect
+      .poll(async (): Promise<Array<RecordedUpdate>> => {
+        return (await fixture(page)).updates;
+      })
+      .toEqual([
+        {
+          modelName: "Monitor",
+          id: monitorId("api"),
+          data: { disableActiveMonitoring: false },
+        },
+      ]);
+
+    // The page reads the monitor again: it is checked now.
+    await expect(page.getByTestId("monitor-overview-badge")).not.toHaveText(
+      "Disabled",
+    );
+    await expect(headline(page)).not.toHaveText("Monitoring is turned off");
+    await expect(
+      hero(page).getByRole("button", { name: "Turn monitoring on" }),
+    ).toHaveCount(0);
+  });
+
+  test("disabled, for a viewer: Turn monitoring on is locked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled&role=viewer" });
+
+    const button: Locator = hero(page).getByRole("button", {
+      name: "Turn monitoring on",
+    });
+    await expect(button).toBeDisabled();
+    expect((await fixture(page)).updates).toEqual([]);
   });
 
   test("maintenance", async ({ page }: { page: Page }) => {
@@ -2275,7 +2466,8 @@ test.describe("responsive", () => {
 
     /*
      * Cards with a row of controls keep their titles whole: the controls sit
-     * under the title rather than squeezing it to a word or two.
+     * under the title - at the card's right edge - rather than squeezing it
+     * to a word or two.
      */
     for (const heading of ["Response time", "Monitor Summary"]) {
       const withControls: Locator = card(page, heading);
@@ -2330,14 +2522,71 @@ test.describe("responsive", () => {
       summary.getByTestId("card-details-heading"),
     );
     const cardBox: Box = await documentBox(summary);
-    // The picker and Test Monitor sit on their own row under it.
+    /*
+     * The picker and Test Monitor are too wide to share the title's line,
+     * so they sit on their own line under it - at the card's right edge, and
+     * above the description, which runs under them across the card.
+     */
     expect(title.width).toBeGreaterThan(cardBox.width * 0.8);
+    await expectHeaderActionsOnTheRight(summary, "the probe picker", {
+      onTitleLine: false,
+    });
     await expectAbove(
-      summary.getByTestId("card-description"),
       summary.getByRole("combobox", { name: "Showing results from:" }),
-      "picker under the description",
+      summary.getByTestId("card-description"),
+      "picker above the description",
     );
   });
+
+  /*
+   * "Why are edit buttons not on the right?" Every card on the overview -
+   * Details' Edit, the summary's picker and Test Monitor, Probes' link, the
+   * uptime figure - keeps what it offers at its header's right edge, on a
+   * desktop and on a phone.
+   */
+  for (const type of [
+    "api",
+    "incoming-request",
+    "manual",
+  ] as Array<MonitorTypeKey>) {
+    for (const width of [1440, 1280, 390]) {
+      test(`a ${type} monitor keeps every card's actions at the right edge at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, { type });
+        await expectSettled(page);
+
+        const cards: Locator = page
+          .getByTestId("card")
+          .filter({ has: page.getByTestId("card-header-actions") })
+          .filter({ has: page.getByTestId("card-details-heading") });
+        const count: number = await cards.count();
+
+        expect(count, "cards with actions").toBeGreaterThan(0);
+
+        for (let index: number = 0; index < count; index++) {
+          const each: Locator = cards.nth(index);
+          const name: string = (
+            await each.getByTestId("card-details-heading").first().innerText()
+          ).trim();
+
+          await expectHeaderActionsOnTheRight(each, `${name} at ${width}px`);
+        }
+
+        // The details card's Edit stays on its title's line, even at 1280px.
+        if (width !== 390) {
+          await expectHeaderActionsOnTheRight(
+            card(sideColumn(page), "Details"),
+            `Details' Edit at ${width}px`,
+            { onTitleLine: true },
+          );
+        }
+      });
+    }
+  }
 
   test("dark theme", async ({ page }: { page: Page }) => {
     await openReady(page, { query: "theme=dark" });

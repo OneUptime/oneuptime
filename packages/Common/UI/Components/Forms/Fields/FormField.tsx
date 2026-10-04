@@ -8,6 +8,10 @@ import CheckboxElement, {
 import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
+import {
+  DropdownChange,
+  getDropdownChange,
+} from "../../Dropdown/DropdownChange";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
 import FilePicker from "../../FilePicker/FilePicker";
 import Input, { InputType } from "../../Input/Input";
@@ -44,8 +48,12 @@ import YamlEditor from "../../CodeEditor/YamlEditor";
 import PeoplePicker from "../../PeoplePicker/PeoplePicker";
 import {
   getPeoplePickerKinds,
+  PeoplePickerChange,
+  PeoplePickerFormValue,
   PeoplePickerValue,
+  readPeoplePickerExcludedValue,
   readPeoplePickerFormValue,
+  toPeoplePickerDropdownChange,
   toPeoplePickerFormValues,
 } from "../../PeoplePicker/PeoplePickerTypes";
 import InsertTemplateVariableButton from "../../TemplateVariables/InsertTemplateVariableButton";
@@ -110,9 +118,15 @@ const FormField: <T extends GenericObject>(
    */
   const fieldLabelId: string = `${fieldId}-label`;
 
-  type onChangeFunction = (value: JSONValue) => void;
+  type onChangeFunction = (
+    value: JSONValue,
+    change?: DropdownChange | undefined,
+  ) => void;
 
-  const onChange: onChangeFunction = (value: JSONValue): void => {
+  const onChange: onChangeFunction = (
+    value: JSONValue,
+    change?: DropdownChange | undefined,
+  ): void => {
     if (props.field.onChange) {
       props.field.onChange(
         value,
@@ -120,6 +134,7 @@ const FormField: <T extends GenericObject>(
         (newFormValues: FormValues<T>) => {
           props.setFormValues?.(newFormValues);
         },
+        change,
       );
     }
   };
@@ -631,8 +646,9 @@ const FormField: <T extends GenericObject>(
                 disabled={props.field.disabled}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
+                  change?: DropdownChange,
                 ) => {
-                  onChange(value);
+                  onChange(value, change);
                   props.setFieldValue(props.fieldName, value as JSONValue);
                 }}
                 onBlur={() => {
@@ -645,6 +661,7 @@ const FormField: <T extends GenericObject>(
                 modelType={props.field.dropdownModal.type}
                 labelField={props.field.dropdownModal.labelField}
                 valueField={props.field.dropdownModal.valueField}
+                query={props.field.dropdownModal.query}
                 onLabelsBulkAdded={props.field.onLabelsBulkAdded}
                 options={props.field.dropdownOptions || []}
                 placeholder={translatedPlaceholder || ""}
@@ -666,7 +683,25 @@ const FormField: <T extends GenericObject>(
                 onChange={async (
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
-                  onChange(value);
+                  /*
+                   * A fixed list holds every option, so what the pick
+                   * changed is read from it (an EntityDropdown reports its
+                   * own, above).
+                   */
+                  onChange(
+                    value,
+                    props.field.onChange
+                      ? getDropdownChange({
+                          options: props.field.dropdownOptions,
+                          value: value,
+                          previousValue: props.currentValues
+                            ? (props.currentValues as Record<string, unknown>)[
+                                props.fieldName
+                              ]
+                            : undefined,
+                        })
+                      : undefined,
+                  );
                   props.setFieldValue(props.fieldName, value);
                 }}
                 onBlur={async () => {
@@ -977,7 +1012,12 @@ const FormField: <T extends GenericObject>(
           {/*
            * One picker writing a form value per kind - owners are the
            * people in ownerUsers and the teams in ownerTeams - so each is
-           * written to the form on its own, as two dropdowns used to.
+           * written to the form on its own, as two dropdowns used to. A
+           * picker that takes one pick writes each kind's one id, or null:
+           * the kind not picked is cleared. Its search list leaves out what
+           * the form values its excludePicksOf names hold right now. The
+           * field's own onChange hears what was picked by name, as a
+           * dropdown's does (an owner rule is named after its owners).
            */}
           {props.field.fieldType === FormFieldSchemaType.PeoplePicker &&
             props.field.peoplePicker && (
@@ -987,21 +1027,22 @@ const FormField: <T extends GenericObject>(
                   props.field.peoplePicker,
                   props.currentValues,
                 )}
-                onChange={(value: PeoplePickerValue) => {
-                  const formValues: Record<
-                    string,
-                    Array<string>
-                  > = toPeoplePickerFormValues(
-                    props.field.peoplePicker!,
-                    value,
-                  );
+                onChange={(
+                  value: PeoplePickerValue,
+                  change?: PeoplePickerChange,
+                ) => {
+                  const formValues: Record<string, PeoplePickerFormValue> =
+                    toPeoplePickerFormValues(props.field.peoplePicker!, value);
 
-                  onChange(formValues);
+                  onChange(
+                    formValues,
+                    change ? toPeoplePickerDropdownChange(change) : undefined,
+                  );
 
                   for (const valueKey of Object.keys(formValues)) {
                     props.setFieldValue(
                       valueKey,
-                      formValues[valueKey] as Array<string>,
+                      formValues[valueKey] as PeoplePickerFormValue,
                     );
                   }
 
@@ -1013,6 +1054,11 @@ const FormField: <T extends GenericObject>(
                 addButtonText={props.field.peoplePicker.addButtonText}
                 searchPlaceholder={props.field.peoplePicker.searchPlaceholder}
                 emptyText={props.field.peoplePicker.emptyText}
+                isSinglePick={props.field.peoplePicker.isSinglePick}
+                excluded={readPeoplePickerExcludedValue(
+                  props.field.peoplePicker,
+                  props.currentValues,
+                )}
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaLabelledby={fieldLabelId}
@@ -1094,6 +1140,7 @@ const FormField: <T extends GenericObject>(
                     : []
               }
               isMultiFilePicker={isMultiFileField}
+              maxFileSizeInBytes={props.field.maxFileSizeInBytes}
               dataTestId={props.field.dataTestId}
               initialValue={
                 props.currentValues &&

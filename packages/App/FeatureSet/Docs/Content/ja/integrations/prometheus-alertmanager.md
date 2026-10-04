@@ -71,7 +71,7 @@ Alertmanager は `Content-Type: application/json` を送信します。OneUptime
 
 - _When filters match, change monitor status_ を有効にし、**Offline** (または Degraded) に設定します。
 - _When filters match, declare an incident_ を有効にします。**Title**、**Severity**、呼び出す **On-Call Policies** を設定します。
-- そのインシデントの **Advanced Options** で **Auto Resolve Incident** を有効にします。これがないと復旧通知は無視され、インシデントは永久に開いたままになります。
+- そのインシデントの **More fields** で **Auto Resolve Incident** を有効にします。これがないと復旧通知は無視され、インシデントは永久に開いたままになります。
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## トラブルシューティング
 
 - **何も届かない** — Alertmanager が URL に到達できることを確認し、そのログに配信エラーがないか確認します。OneUptime は何も検証する前に空の `200` をすべてのリクエストに返すため、`200` はペイロードが受理されたことを示しません。代わりにモニターのタイムラインを確認してください。
-- **インシデントは作成されるがクローズされない** — Alertmanager の `send_resolved: true`、条件の復旧フィールドと値 (比較は大文字と小文字を区別します)、インシデントの **Advanced Options** にある **Auto Resolve Incident** を確認します。より分かりにくい原因が 2 つあります。**Max incidents per request** より多くの異なるキーを含むペイロードでは、上限を超えたキーは復旧処理からも見えません。また、取り込み時の結合 (下記) で落とされたのが `resolved` 通知だった場合、Alertmanager は発火通知は繰り返しても解決通知は繰り返さないため、そのインシデントは永久に取り残されます。これらは手作業でクローズしてください。
+- **インシデントは作成されるがクローズされない** — Alertmanager の `send_resolved: true`、条件の復旧フィールドと値 (比較は大文字と小文字を区別します)、インシデントの **More fields** にある **Auto Resolve Incident** を確認します。より分かりにくい原因が 2 つあります。**Max incidents per request** より多くの異なるキーを含むペイロードでは、上限を超えたキーは復旧処理からも見えません。また、取り込み時の結合 (下記) で落とされたのが `resolved` 通知だった場合、Alertmanager は発火通知は繰り返しても解決通知は繰り返さないため、そのインシデントは永久に取り残されます。これらは手作業でクローズしてください。
 - **インシデントがまったく作成されず、モニターのステータスも変わらない** — グルーピングパスはリテラルの `requestBody.` で始まる必要があり、ワイルドカードとして働くのはパス中の最初の `[*]` だけです。どちらの誤りも警告なしに失敗します。
 - **インシデントの本文に生の `{{...}}` プレースホルダーが表示される** — パスが解決されず、OneUptime は未解決のプレースホルダーを空にせずそのまま残します。ルールによって設定されるアノテーションは異なるため、自分のルールで実際に存在するフィールド (`commonAnnotations` かアラート単位の `annotations` か) を参照してください。
 - **アラートが多数入ったペイロードでインシデントが 1 件しかできない** — 通知内で変化しないラベル、多くの場合ルートの `group_by` にも含まれるラベルでグループ化しています。代わりに `requestBody.alerts[*].fingerprint` でグループ化してください。

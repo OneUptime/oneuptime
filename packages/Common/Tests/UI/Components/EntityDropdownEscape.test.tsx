@@ -207,14 +207,14 @@ describe("Escape inside an open EntityDropdown in a modal closes only the menu",
 
     /*
      * And Tab moves on from the field, not from the top of the modal: the
-     * value button's own Clear button, then the next field.
+     * Clear button beside the value (never inside it), then the next field.
      */
     await user.tab();
-    expect(
-      within(getValueButton("Members")).getByRole("button", {
-        name: "Clear selection",
-      }),
-    ).toHaveFocus();
+    const clearButton: HTMLElement = screen.getByRole("button", {
+      name: "Clear selection",
+    });
+    expect(clearButton).toHaveFocus();
+    expect(getValueButton("Members").contains(clearButton)).toBe(false);
     await user.tab();
     expect(screen.getByRole("textbox", { name: "Next field" })).toHaveFocus();
     expect(harness.onClose).not.toHaveBeenCalled();

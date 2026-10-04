@@ -4,6 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -1636,7 +1637,16 @@ const CephClusterOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Ceph Cluster Details",
-          description: "Overview of this Ceph cluster.",
+          // Edited in one place: the same card on the cluster's Settings page.
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CEPH_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
         modelDetailProps={{
           modelType: CephCluster,

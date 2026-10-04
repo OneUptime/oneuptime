@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 21385,
-    "untranslated": 13880
+    "keys": 24715,
+    "untranslated": 16540
   },
   "sameAsEnglish": [
+    "1 week",
     "Label: {{name}}",
     "{{count}} product",
     "{{field}} is {{value}}"

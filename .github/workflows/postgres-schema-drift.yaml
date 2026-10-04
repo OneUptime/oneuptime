@@ -236,6 +236,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UserSignupIdTakeoverPostgres.test.ts --forceExit
 
+      # Clones the migrated Project table into an isolated schema: POST
+      # /api/project with a tenantid header must insert a new project and
+      # leave the one the header named as it was. Project's tenant column is
+      # its own id, so a create that carried the tenant's id would be an
+      # UPDATE of that project in place.
+      - name: Test project creation cannot overwrite the tenant project on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_TENANT_CREATE_TESTS: "true"
+          PROJECT_TENANT_CREATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_TENANT_CREATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_TENANT_CREATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ProjectCreateWithTenantHeaderPostgres.test.ts --forceExit
+
       # Clones the migrated Incident / Alert / Scheduled Maintenance reminder
       # rule tables (with their junctions, the trigger that encodes a
       # criteria-backed rule's enabled state, and the tables the reminder

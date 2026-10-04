@@ -15,7 +15,7 @@ import {
  * Advanced was the first section to fold away by default (see
  * AdvancedMenuSection.spec.ts). Every rarely used kind of section now folds
  * the same way, by its title: on a monitor's page that adds Configuration
- * (Criteria, Dependencies, Interval, Probes) and Developer. This checks, in a
+ * (Criteria, Dependencies, Probes & Interval) and Developer. This checks, in a
  * real browser against the offline fixture, what jsdom cannot: that a section
  * folded by its title is out of sight AND out of the keyboard's way, that it
  * opens from a click and from the keyboard, that its pages are reachable once
@@ -31,12 +31,15 @@ const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
 // The fixture's API monitor, "Checkout API".
 const MONITOR_PATH: string = `/dashboard/${PROJECT_ID}/monitors/70000000-0000-4000-8000-000000000001`;
 
-// Pages/Monitor/View/SideMenu.tsx: the Configuration section of an API monitor, in order.
+/*
+ * Pages/Monitor/View/SideMenu.tsx: the Configuration section of an API
+ * monitor, in order. Its probes, interval and probe agreement are one page,
+ * Probes & Interval; the old Interval page's URL only forwards there.
+ */
 const CONFIGURATION_PAGES: ReadonlyArray<{ title: string; path: string }> = [
   { title: "Criteria", path: "/criteria" },
   { title: "Dependencies", path: "/dependencies" },
-  { title: "Interval", path: "/interval" },
-  { title: "Probes", path: "/probes" },
+  { title: "Probes & Interval", path: "/probes" },
 ];
 
 const pageErrors: Map<Page, Array<string>> = new Map();

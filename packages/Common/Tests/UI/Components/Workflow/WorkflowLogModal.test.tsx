@@ -1008,9 +1008,14 @@ describe("WorkflowLogModal", () => {
       );
 
       expect(screen.getByText("Workflow Run")).toBeInTheDocument();
+      /*
+       * No filler line under the title: the Steps and Full Log tabs say what
+       * the run holds.
+       */
+      expect(screen.queryByTestId("modal-description")).toBeNull();
       expect(
-        screen.getByText("Here is what happened when this workflow ran."),
-      ).toBeInTheDocument();
+        screen.queryByText("Here is what happened when this workflow ran."),
+      ).toBeNull();
     });
 
     test("takes the caller's words when given them", () => {

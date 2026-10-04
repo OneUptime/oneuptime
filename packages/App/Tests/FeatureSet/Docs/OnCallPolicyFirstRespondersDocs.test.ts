@@ -5,6 +5,7 @@ import {
   getDefaultEscalationRuleName,
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { FIRST_RESPONDER_KEYS } from "Common/Types/OnCallDutyPolicy/FirstResponders";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -115,7 +116,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
     expect(section).toContain(`**${POLICIES_MENU_ENTRY}**`);
     expect(section).toContain("**Name**");
     expect(section).toContain("**Notify**");
-    expect(section).toContain("**Advanced**");
+    expect(section).toContain(`**${MORE_FIELDS_SECTION_TITLE}**`);
   });
 
   it("states the first rule the server makes: Level 1, waiting 30 minutes", () => {
@@ -185,7 +186,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
           "Name",
           "Notify",
           "Escalation Rules",
-          "Advanced",
+          MORE_FIELDS_SECTION_TITLE,
         ]) {
           expect({
             lang,

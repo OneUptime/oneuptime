@@ -242,16 +242,16 @@ describe("the binding is explained by the shared sentence, not a local one", () 
 });
 
 /*
- * The hostname is asked for on four surfaces, and two of them used to say
+ * The hostname is asked for on three surfaces, and two of them used to say
  * the probe "will poll it via SNMP" — false for a monitor-backed device, and
  * exactly the sentence that sends an operator looking for a probe the
- * device is designed never to have.
+ * device is designed never to have. (The device Overview no longer asks for
+ * it: a device's details are edited in one place, its Settings page.)
  */
 describe("the hostname is explained the same way on every surface", () => {
   const HOSTNAME_SURFACES: Array<string> = [
     "Pages/NetworkDevice/Devices.tsx",
     "Pages/NetworkDevice/View/Settings.tsx",
-    "Pages/NetworkDevice/View/Index.tsx",
     "Components/Topology/AddNeighborToMonitoringModal.tsx",
   ];
 

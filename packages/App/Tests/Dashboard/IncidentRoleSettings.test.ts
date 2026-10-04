@@ -83,14 +83,12 @@ const OTHER_LOCALES: Array<string> = [
 ];
 
 /*
- * Entries other pages share - column titles, step titles - some of them the
- * same word in some languages.
+ * Entries other pages share - column titles - some of them the same word in
+ * some languages.
  */
 const SHARED_WITH_OTHER_FEATURES: Array<string> = [
   "Name",
   "Description",
-  "Basic Info",
-  "Appearance",
   "Incident Roles",
 ];
 
@@ -370,7 +368,7 @@ describe("the page's wiring", () => {
     expect(select).toContain("isPrimaryRole: true");
   });
 
-  test("Allow Multiple Users is folded under the shared Advanced section", () => {
+  test("Allow Multiple Users is folded under the shared More fields section", () => {
     expect(PAGE_SOURCE).toContain("getAdvancedFormSection<IncidentRole>()");
 
     const field: string = PAGE_SOURCE.slice(
@@ -380,7 +378,55 @@ describe("the page's wiring", () => {
 
     expect(field).toContain("collapsibleSection: advancedSection");
     expect(field).toContain("canOfferAllowMultipleUsers(");
-    expect(field).toContain('stepId: "basic-info"');
+  });
+
+  /*
+   * The colour was the reason for a second step, "Appearance": it was
+   * required and started empty. A new role's colour is picked for it now
+   * (ModelForm, Forms/Utils/CreateFormDefaults) and the icon is optional, so
+   * both fold under More fields with the switch, and the form is one page.
+   */
+  test("is one page: the icon and the colour fold under More fields with the switch", () => {
+    expect(PAGE_SOURCE).not.toContain("formSteps=");
+    expect(PAGE_SOURCE).not.toContain("stepId:");
+
+    const formFields: string = PAGE_SOURCE.slice(
+      PAGE_SOURCE.indexOf("formFields={["),
+      PAGE_SOURCE.indexOf("showRefreshButton="),
+    );
+
+    const icon: string = formFields.slice(
+      formFields.indexOf("roleIcon: true,"),
+      formFields.indexOf("color: true,"),
+    );
+    const color: string = formFields.slice(formFields.indexOf("color: true,"));
+
+    for (const folded of [icon, color]) {
+      expect(folded).toContain("collapsibleSection: advancedSection");
+    }
+
+    // The colour is still asked for, but starts picked: no default of its own.
+    expect(color).toContain("FormFieldSchemaType.Color");
+    expect(color).toContain("required: true");
+    expect(color).not.toContain("defaultValue");
+    expect(icon).toContain("required: false");
+
+    // Name and description stay open.
+    const open: string = formFields.slice(0, formFields.indexOf("roleIcon"));
+
+    expect(
+      open.slice(0, open.indexOf("canAssignMultipleUsers: true,")),
+    ).not.toContain("collapsibleSection");
+  });
+
+  test("its words name no steps any more", () => {
+    expect(Object.keys(IncidentRoleSettingsCopy)).not.toContain(
+      "basicInfoStep",
+    );
+    expect(Object.keys(IncidentRoleSettingsCopy)).not.toContain(
+      "appearanceStep",
+    );
+    expect(STRINGS).not.toContain("Appearance");
   });
 
   test("locks Delete through the table's per-row lock", () => {
@@ -388,8 +434,8 @@ describe("the page's wiring", () => {
     expect(PAGE_SOURCE).toContain("getIncidentRoleDeleteLockedReason(role)");
   });
 
-  test("never adds a wizard step named Advanced", () => {
-    expect(PAGE_SOURCE).not.toMatch(/title:\s*"Advanced"/);
+  test("never adds a wizard step named Advanced or More", () => {
+    expect(PAGE_SOURCE).not.toMatch(/title:\s*"(?:Advanced|More)\b/);
   });
 });
 
@@ -405,7 +451,7 @@ describe("the docs", () => {
     );
     expect(section).toContain("can be renamed, but not deleted");
     expect(section).toContain("**Allow Multiple Users**");
-    expect(section).toContain("**Advanced**");
+    expect(section).toContain("**More fields**");
     expect(section).toContain("**Create Incident Role**");
     expect(section).not.toContain(
       "the card description gives Incident Commander and Responder as examples",
@@ -433,7 +479,7 @@ describe("the docs", () => {
 
     expect(section).toContain("**Incident Commander**");
     expect(section).toContain("**Allow Multiple Users**");
-    expect(section).toContain("**Advanced**");
+    expect(section).toContain("**More fields**");
     expect(section).toContain("**Create Incident Role**");
     expect(section).not.toContain(
       "توضیحات کارت فرمانده حادثه و پاسخ‌دهنده را به‌عنوان نمونه می‌آورد",

@@ -366,11 +366,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     createBy: CreateBy<TBaseModel>,
   ): Promise<OnCreate<TBaseModel>> {
     // Private method that runs before create.
-    const projectIdColumn: string | null = this.model.getTenantColumn();
-
-    if (projectIdColumn && createBy.props.tenantId) {
-      (createBy.data as any)[projectIdColumn] = createBy.props.tenantId;
-    }
+    this.stampTenantOnCreate(createBy.data, createBy.props);
 
     return await this.onBeforeCreate(createBy);
   }
@@ -721,6 +717,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<OnFind<TBaseModel>> {
     // A place holder method used for overriding.
     return Promise.resolve({ findBy, carryForward: null });
+  }
+
+  /*
+   * Runs on a create once the caller has passed the permission checks, just
+   * before the @UniqueColumnBy and @UniqueColumnsTogether checks, which
+   * refuse a clash with an existing row as "<Model> with the same <column>
+   * already exists.". Override it to refuse a clash in words of your own:
+   * the caller may create the row, so a refusal may say what exists (see
+   * DiscoveredResourceCreate.refuseClash). Skipped with ignoreHooks.
+   */
+  protected async onBeforeCreateUniqueCheck(
+    _createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
+  /*
+   * The same for an update: runs once the caller has passed the permission
+   * checks, with the query already narrowed to the rows they may write and
+   * before the data is serialized, so it may still adjust what is written.
+   * Unlike onBeforeUpdate - which runs before any check - a refusal here
+   * may say what exists (see DiscoveredResourceUpdate.checkMatchColumn).
+   * Skipped with ignoreHooks.
+   */
+  protected async onBeforeUpdateUniqueCheck(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
   }
 
   protected async onCreateSuccess(
@@ -1091,6 +1117,100 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     (data as Record<string, unknown>)[safetyPatternField] =
       RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
+  }
+
+  /*
+   * Whether this model's tenant column is its own primary key - true of
+   * Project alone (`@TenantColumn("_id")`). A project IS its tenant, so its
+   * reads, updates and deletes are scoped to the request's project by `_id`.
+   * A create is the exception: it mints a new tenant, and the request's
+   * tenant is some other project that already exists.
+   */
+  private isTenantColumnPrimaryKey(): boolean {
+    return this.model.getTenantColumn() === "_id";
+  }
+
+  /*
+   * Writes the request's tenant onto a row being created, so a create made in
+   * a project lands in that project whatever the payload said.
+   *
+   * Skipped for a model whose tenant column is its own primary key. There the
+   * stamp hands the new row the id of the project the request was made in,
+   * and save() takes an entity carrying an existing id as an UPDATE of that
+   * row: POST /api/project with a tenantid header answered 500 only because
+   * the stamped value was an ObjectID, which Postgres could not read as a
+   * uuid, instead of overwriting the project the header named.
+   *
+   * The tenant is ignored for that create, not refused. It names the project
+   * the caller is working in, which says nothing about a project that does
+   * not exist yet, and some callers cannot leave it off: an API key's or an
+   * MCP grant's tenant comes from the credential. Whether the caller may
+   * create a project at all is for the permission checks and ProjectService's
+   * hooks to answer. (The Dashboard sends no tenant for this create - see
+   * isMultiTenantRequest in ProjectPicker.)
+   */
+  private stampTenantOnCreate(
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const tenantColumn: string | null = this.model.getTenantColumn();
+
+    if (!tenantColumn || !props.tenantId || this.isTenantColumnPrimaryKey()) {
+      return;
+    }
+
+    data.setColumnValue(tenantColumn, props.tenantId);
+  }
+
+  /*
+   * The last check a create makes before save(), on the entity save() is
+   * actually handed. save() chooses between INSERT and UPDATE by that
+   * entity's primary key: one carrying the id of an existing row is loaded
+   * and UPDATEd in place, so a create that reaches it with an id rewrites a
+   * record nobody asked to change.
+   *
+   * create() refuses a caller-supplied id up front, but the hooks, the tenant
+   * stamp and the rest of the pipeline all write to the same entity after
+   * that check - the tenant stamp is how a new Project came to carry the id
+   * of the project the request was made in. So, once more, here:
+   *
+   *  - a non-root create may not carry an id, whatever put it there;
+   *  - no create, root included, of a model whose tenant column is its own
+   *    primary key may carry the request tenant's id. Root callers may
+   *    assign ids, but this one can only come from a generic tenant stamp -
+   *    workflow components create as root WITH a tenant, after
+   *    applyTenantColumn has written the tenant column - and it would make
+   *    the create an update of the caller's own project.
+   *
+   * The ids are compared as text, case-insensitively: the id may be an
+   * ObjectID or a plain string, and Postgres reads a uuid in either case.
+   */
+  private assertCreateWillInsert(
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const suppliedId: unknown = data._id;
+
+    if (!suppliedId) {
+      return;
+    }
+
+    if (!props.isRoot && !props.isMasterAdmin) {
+      throw new BadDataException(
+        `An id cannot be supplied when creating ${this.model.singularName}.`,
+      );
+    }
+
+    if (
+      this.isTenantColumnPrimaryKey() &&
+      props.tenantId &&
+      String(suppliedId).toLowerCase() ===
+        props.tenantId.toString().toLowerCase()
+    ) {
+      throw new BadDataException(
+        `A new ${this.model.singularName} cannot take the id of the ${this.model.singularName} this request is made in.`,
+      );
+    }
   }
 
   /*
@@ -1588,7 +1708,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * this guards every other non-root caller (custom routes, workflow
      * components) too. Root/internal seeding legitimately assigns ids and is
      * exempt. Only the top-level primary key is checked - nested relation
-     * `_id`s reference existing related rows and are fine.
+     * `_id`s reference existing related rows and are fine. Asked again just
+     * before save(), once the hooks and the tenant stamp have had their turn
+     * (assertCreateWillInsert).
      */
     if (
       !createBy.props.isRoot &&
@@ -1617,12 +1739,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     let data: TBaseModel = _createdBy.data;
 
-    // add tenantId if present.
-    const tenantColumnName: string | null = data.getTenantColumn();
-
-    if (tenantColumnName && _createdBy.props.tenantId) {
-      data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
-    }
+    // add tenantId if present, unless it is the row's own id. See the helper.
+    this.stampTenantOnCreate(data, _createdBy.props);
 
     /*
      * The tenant scalar has just been stamped to the request tenant, but the
@@ -1671,6 +1789,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     createBy.data = data;
 
+    // A service's own words for a clash, before the generic checks below.
+    if (!createBy.props.ignoreHooks) {
+      await this.onBeforeCreateUniqueCheck(createBy);
+    }
+
     // check uniqueColumns by:
     createBy = await this.checkUniqueColumnBy(createBy);
 
@@ -1681,6 +1804,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       createBy.data,
       createBy.props,
     )) as TBaseModel;
+
+    // Whatever has written to it since the top of create(), this must INSERT.
+    this.assertCreateWillInsert(createBy.data, createBy.props);
 
     try {
       createBy.data = await this.getRepository().save(createBy.data);
@@ -3530,6 +3656,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.data,
         beforeUpdateBy.props,
       );
+
+      // A service's own words for a clash, now the caller may make the write.
+      if (!updateBy.props.ignoreHooks) {
+        await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
+      }
 
       const data: PartialEntity<TBaseModel> =
         (await this.sanitizeCreateOrUpdate(

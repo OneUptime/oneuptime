@@ -22,23 +22,23 @@ A descrição do cartão muda conforme o formato da sua página. Com grupos, ela
 
 ## Adicionar um monitor
 
-Selecione o grupo em que o recurso deve entrar (ou **Top of page**, para uma linha sem grupo) e clique em **Adicionar monitor**. O modal se chama **Add a monitor to {group}** e tem dois passos: **Detalhes do monitor** e **Avançado**.
-
-Em **Detalhes do monitor**:
+Selecione o grupo em que o recurso deve entrar (ou **Top of page**, para uma linha sem grupo) e clique em **Adicionar monitor**. A janela se chama **Add a monitor to {group}** e é uma única página que pede uma coisa só — o monitor:
 
 - **Monitor** — o menu com os monitores do seu projeto, placeholder **Selecionar Monitor**. Obrigatório.
-- **Nome de exibição** — obrigatório. É o texto que os visitantes leem, e ele é guardado separadamente do nome do próprio monitor, então você pode renomeá-lo aqui sem mexer no monitoramento.
-- **Descrição** — markdown opcional, exibido abaixo da linha. Bom para uma frase explicando o que o serviço de fato faz.
+- **Nome de exibição** — o texto que os visitantes leem. Ele é preenchido com o nome do monitor quando você o escolhe, e acompanha se você escolher outro monitor, até você digitar um nome seu. Ele é guardado separadamente do nome do próprio monitor, então você pode renomeá-lo aqui sem mexer no monitoramento.
+- **Mais campos** — recolhido. Contém **Descrição** (markdown opcional, exibido abaixo da linha, bom para uma frase explicando o que o serviço de fato faz) e as [opções de exibição](#opções-de-exibição-de-um-recurso). Se você o deixar fechado, o recurso recebe os valores padrão delas.
+
+Escolha um monitor, clique em **Adicionar monitor** e a linha está na página. Em um grupo em grade, a janela também pede, acima de **Mais campos**, a linha e a coluna em que o monitor vai ficar — veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
 
 Se o seu projeto tem grupos de monitores habilitados, um link sob o menu diz **Add a Monitor Group instead.** — clique nele e o menu **Monitor** é trocado por um menu **Monitor Grupo** (**Selecionar Grupo de Monitores**). O link então vira **Add a Monitor instead.**, para você voltar atrás. Use um grupo de monitores quando quiser que uma linha da página represente várias verificações reunidas.
 
 ### Adicionar vários de uma vez
 
-**Add Multiple** (também **Add multiple monitors**, no menu **More actions**) abre **Add Multiple Monitors**. São os mesmos dois passos, só que o primeiro traz uma seleção múltipla de **Monitores** em vez de um menu único, e as opções de exibição escolhidas em **Avançado** valem para todos os monitores que você marcou. É a forma mais rápida de povoar uma página nova.
+**Add Multiple** (também **Add multiple monitors**, no menu **More actions**) abre **Add Multiple Monitors**. Também é uma única página: uma seleção múltipla de **Monitores** em vez de um menu único e, abaixo, a mesma seção recolhida **Mais campos**, cujas opções de exibição valem para todos os monitores que você marcou. Cada recurso pega o nome de exibição e a descrição do seu monitor, e **Add Monitors** os adiciona — não há passos a percorrer. É a forma mais rápida de povoar uma página nova.
 
 ## Opções de exibição de um recurso
 
-O passo **Avançado** é o mesmo no formulário de adição individual e no modal em massa. Tudo aqui vale por recurso — duas linhas do mesmo grupo podem estar configuradas de formas diferentes.
+A seção **Mais campos** é a mesma no formulário de adição individual e no modal em massa. Ela começa recolhida nos dois, e também em **Editar recurso**, onde o cabeçalho recolhido mostra o que nela não está no valor padrão. Tudo aqui vale por recurso — duas linhas do mesmo grupo podem estar configuradas de formas diferentes.
 
 | Campo                                                    | Para que serve                                                                                            |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ O passo **Avançado** é o mesmo no formulário de adição individual e no moda
 | **Selecionar Precisão de Disponibilidade** (`uptimePercentPrecision`)   | Só aparece depois que **Mostrar % de tempo de atividade** está ativado. Obrigatório, com uma casa decimal por padrão.                                    |
 | **Mostrar gráfico de histórico de status** (`showStatusHistoryChart`) | Ativado por padrão. Mostra o gráfico de barras com o histórico diário de disponibilidade do recurso.                     |
 
-**Nome de exibição** (`displayName`) e **Descrição** (`displayDescription`), do primeiro passo, também são só de exibição — nunca alteram o monitor em si.
+**Nome de exibição** (`displayName`) e **Descrição** (`displayDescription`) também são só de exibição — nunca alteram o monitor em si.
 
 ## Percentuais de disponibilidade e gráficos de histórico
 
@@ -64,19 +64,18 @@ As cores das barras do gráfico de histórico, e quais status de monitor contam 
 
 ## Grupos
 
-Clique em **New Group** para abrir **Create New Status Page Group**. O formulário tem três passos: **Detalhes do Grupo**, **Layout** e **Avançado**.
-
-**Detalhes do Grupo**:
+Clique em **New Group** para abrir **Create New Status Page Group**. É uma única página: dois campos e, abaixo, duas seções recolhidas.
 
 - **Nome do Grupo** (`name`) — obrigatório. É o título de seção que os visitantes veem.
-- **Descrição do Grupo** (`description`) — markdown opcional, exibido sob o título.
-- **Parent Group** (`parentStatusPageGroupId`) — opcional. Deixe em **No parent group (top level)** para manter o grupo no nível mais alto.
-- **Expandir na Página de status por padrão** (`isExpandedByDefault`) — se a seção começa aberta ou recolhida para os visitantes.
+- **Parent Group** (`parentStatusPageGroupId`) — opcional. Deixe em **No parent group (top level)** para manter o grupo no nível mais alto. **Add a sub group** o preenche para você.
+- **Layout** — recolhido, e o cabeçalho diz **List** ou **Grid**. Contém o **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinho em um grupo em grade.
+- **Mais campos** — recolhido. Contém o resto e espelha, no nível do grupo, as opções do recurso:
+  - **Descrição do Grupo** (`description`) — markdown opcional, exibido sob o título.
+  - **Expandir na Página de status por padrão** (`isExpandedByDefault`) — ativado por padrão: se a seção começa aberta ou recolhida para os visitantes.
+  - **Mostrar status atual do grupo** (`showCurrentStatus`) — ativado por padrão. Mostra um status ao lado do título do grupo.
+  - **Mostrar % de tempo de atividade** (`showUptimePercent`) — desativado por padrão, com **Selecionar Precisão de Disponibilidade** aparecendo assim que ele é ativado.
 
-**Avançado** espelha, no nível do grupo, as chaves do recurso:
-
-- **Mostrar status atual do grupo** (`showCurrentStatus`) — ativado por padrão. Mostra um status ao lado do título do grupo.
-- **Mostrar % de tempo de atividade** (`showUptimePercent`) — desativado por padrão, com **Selecionar Precisão de Disponibilidade** aparecendo assim que ele é ativado.
+A maioria dos grupos só precisa de um nome: digite-o e clique em **Create Status Page Group**.
 
 A edição funciona do mesmo jeito: **Edit Group**, no cabeçalho do painel, ou **Edit group**, no menu da linha no navegador, abre **Edit Status Page Group** com um botão **Salvar alterações**.
 
@@ -96,7 +95,7 @@ O aninhamento compensa em páginas grandes: um provedor de hospedagem com regiõ
 
 ## Layout em lista ou em grade
 
-O passo **Layout** define o **Modo de visualização** (`viewMode`) do grupo, e isso muda como o grupo é renderizado publicamente.
+A seção **Layout** do formulário do grupo define o **Modo de visualização** (`viewMode`) do grupo, e isso muda como o grupo é renderizado publicamente.
 
 | Se você quer…                                                     | Escolha                   |
 | ------------------------------------------------------------------- | ---------------------- |
@@ -110,9 +109,9 @@ Escolha **Grid** e mais quatro campos aparecem:
 - **Rótulo do eixo da coluna** — a dimensão das colunas, placeholder `Region`.
 - **Valores do eixo da coluna** — adicionados com **Add Column** (placeholder `e.g. US-East`).
 
-Cada monitor de um grupo em grade é então colocado em uma célula, de modo que o modal em massa pede a linha e a coluna junto com os monitores, usando os seus próprios rótulos de eixo.
+Cada monitor de um grupo em grade é então colocado em uma célula, de modo que **Adicionar monitor** e o modal em massa pedem a linha e a coluna junto com o monitor, usando os seus próprios rótulos de eixo.
 
-**Configure os eixos antes de adicionar monitores.** Um grupo em grade sem linhas nem colunas mostra um aviso âmbar dizendo que não há onde colocar um monitor enquanto os eixos não existirem, com um botão **Set up the grid** — e o botão **Adicionar monitor** fica indisponível até você fazer isso.
+**Configure os eixos antes de adicionar monitores.** Um grupo em grade sem linhas nem colunas mostra um aviso âmbar dizendo que não há onde colocar um monitor enquanto os eixos não existirem, com um botão **Set up the grid** que abre o formulário do grupo na seção **Layout** — e o botão **Adicionar monitor** fica indisponível até você fazer isso.
 
 ## Ordenar o que os visitantes veem
 

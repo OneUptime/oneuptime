@@ -83,7 +83,7 @@ Edit or add severities at **Incidents → Settings → Incident Severity**.
 
 Five routes lead to the same object:
 
-- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, three steps long: **Incident Details**, **Resources Affected**, **On-Call & Roles**. The first step asks for a title, a severity and a description, with what most incidents never need folded under **Advanced**. Only the first step asks for anything you have to answer, so you can declare from it; **Next** walks the rest. **Declare Incident** on a selection of alerts, or in one alert's header, opens the same wizard, prefilled from the alerts, links them to the new incident and, unless you untick the box, acknowledges them so they stop escalating — see [Linked Alerts](/docs/incidents/linked-alerts).
+- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, three steps long: **Incident Details**, **Resources Affected**, **On-Call & Roles**. The first step asks for a title, a severity and a description, with what most incidents never need folded under **More fields**. Only the first step asks for anything you have to answer: **Next** walks the rest, and **Declare Incident** is on the summary at the end. **Declare Incident** on a selection of alerts, or in one alert's header, opens the same wizard, prefilled from the alerts, links them to the new incident and, unless you untick the box, acknowledges them so they stop escalating — see [Linked Alerts](/docs/incidents/linked-alerts).
 - **From a template** — click **Create from Template** and pick a saved **Incident Template**. Templates prefill title, description, severity, initial state, resources, on-call policies, owners and labels.
 - **From a monitor** — a monitor criteria rule with the "declare an incident" toggle enabled creates the incident automatically the moment its filters match. Titles and descriptions there support `{{variable}}` templating.
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
@@ -129,17 +129,17 @@ The incidents list itself shows **Incident Number**, **Title**, **State**, **Sev
 
 Open an incident and you get a left side menu, grouped like this:
 
-- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**.
+- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**. When your project has [measurements](/docs/incidents/settings#measurements), a **Measurements** card under **Incident Details** says what each one reads for this incident: **12 minutes**, **Running for 5 minutes**, **Not reached**.
 - **State Timeline** — every state the incident has been in, with **Starts At**, **Ends At**, **Duration** and the subscriber notification status for each transition. **View Cause** and **View Logs** explain why each change happened.
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.
 - **Runbooks** — runbook executions attached to this incident.
-- **Postmortem** — the write-up, which you can optionally publish to the status page.
+- **Postmortem** — the write-up and its attachments, which you can optionally publish to the status page. **Edit Postmortem Note** asks for the note and attachments, then **Publish on Status Page**; only while that is on does it ask **Notify Subscribers** and **Postmortem Published At**, which turning publishing on sets to now. **Generate with AI** drafts the note for you, and **Apply Template** — shown once the project has a postmortem template — starts it from one.
 - **Linked Alerts** — the alerts linked to this incident, with each alert's current state, and who linked it and when. Alerts have a matching **Linked Incidents** page. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
 - **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed. The first two are under **Notifications**, which starts collapsed: click **Notifications** to show them. **Audit Logs** is under **Advanced**.
 - **Private Notes** and **Public Notes** — under the **Notes** section of the side menu.
-- **Custom Fields**, **Settings**, **Delete Incident** — under **Advanced**, which starts collapsed: click **Advanced** to show them. The **Settings** page holds **Visible on Status Page**, **Private Incident** and the **Reminders** card.
+- **Custom Fields**, **Settings**, **Delete Incident** — under **Advanced**, which starts collapsed: click **Advanced** to show them. The **Settings** page holds **Visible on Status Page** and **Private Incident**, and the **Reminders** card, whose **Send reminders** switch saves as soon as you flip it and shows when the next reminder goes out.
 
 [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) covers the collaboration pages in depth.
 

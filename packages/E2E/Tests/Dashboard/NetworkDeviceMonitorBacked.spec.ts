@@ -74,7 +74,9 @@ const UNROUTABLE_HOSTNAME: string = "192.0.2.10";
 
 /*
  * The devices card's own Create button: the first device is created from an
- * empty list, which offers the same button again under its message.
+ * empty list, which offers the same button again under its message. The
+ * create dialog's action, on its last step, reads the same: ModelTable
+ * draws both with translateCreateAction.
  */
 const CREATE_DEVICE_BUTTON_NAME: string = "Create Network Device";
 
@@ -265,11 +267,10 @@ const selectFirstOption: SelectFirstOptionFunction = async (data: {
  *
  * The form is a stepped ModelFormModal with THREE steps and no monitoring
  * question among them: Device Details -> Probe & Site -> SNMP (Optional).
- * The SNMP step is shown for every device and required by none, so the
- * footer's main button - which keeps the "modal-footer-submit-button" test
- * id on every step - reads "Next" on Device Details (the probe is still to
- * be picked) and "Save" from Probe & Site on, with a plain Next beside it
- * (modal-footer-next-button) that walks on to the SNMP step.
+ * The SNMP step is shown for every device and required by none, and it is
+ * the last step: Device Details and Probe & Site walk on with a plain Next
+ * (modal-footer-next-button), and the form's action, Create Network Device
+ * (modal-footer-submit-button), is on the SNMP step only.
  */
 type CreateDeviceFunction = (data: {
   page: Page;
@@ -314,8 +315,8 @@ const createDevice: CreateDeviceFunction = async (data: {
     .getByPlaceholder("10.0.0.1 or switch-01.example.com")
     .fill(UNROUTABLE_HOSTNAME);
 
-  await expect(footerButton).toHaveText("Next", { timeout: 30000 });
-  await footerButton.click();
+  await expect(footerButton).toHaveCount(0);
+  await page.getByTestId("modal-footer-next-button").click();
 
   /*
    * Step 2 - Probe & Site. The probe is REQUIRED here now: it is the thing
@@ -364,16 +365,22 @@ const createDevice: CreateDeviceFunction = async (data: {
     await expect(createPingMonitorCheckbox).toBeChecked();
   }
 
-  // Only the optional SNMP step is left: the device could be saved here.
-  await expect(footerButton).toHaveText("Save", { timeout: 30000 });
+  /*
+   * Only the optional SNMP step is left, and Create Network Device is on
+   * it, not here.
+   */
+  await expect(footerButton).toHaveCount(0);
   await page.getByTestId("modal-footer-next-button").click();
 
   /*
    * Step 3 - SNMP (Optional), left entirely empty. That is the whole point
    * of ping-first polling: no community string, no v3 user, and the device
-   * is still polled. It is the last step: "Save", and nothing to walk on to.
+   * is still polled. It is the last step: Create Network Device, and
+   * nothing to walk on to.
    */
-  await expect(footerButton).toHaveText("Save", { timeout: 30000 });
+  await expect(footerButton).toHaveText(CREATE_DEVICE_BUTTON_NAME, {
+    timeout: 30000,
+  });
   await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
   await footerButton.click();
 
@@ -535,6 +542,34 @@ test.describe.skip(
       await modal.waitFor({ state: "visible", timeout: 30000 });
 
       /*
+       * The dialog walks Device Details -> Address -> Monitoring, then SNMP
+       * Credentials for a probe-polled device like this one. Save Changes is
+       * on the last step only, with a plain Next on the others, and the
+       * monitoring method is on the Monitoring step: walk there with Next.
+       */
+      const progress: Locator = modal.getByRole("navigation", {
+        name: "Progress",
+      });
+      const currentStep: Locator = progress.locator("[aria-current='step']");
+      const nextButton: Locator = modal.getByTestId("modal-footer-next-button");
+      const footerButton: Locator = page.getByTestId(
+        "modal-footer-submit-button",
+      );
+
+      await expect(progress.getByRole("listitem")).toHaveText(
+        ["Device Details", "Address", "Monitoring", "SNMP Credentials"],
+        { timeout: 30000 },
+      );
+      for (const step of ["Device Details", "Address"]) {
+        await expect(currentStep).toHaveText(step);
+        await expect(footerButton).toHaveCount(0);
+        await nextButton.click();
+      }
+      await expect(currentStep).toHaveText("Monitoring", { timeout: 30000 });
+      // SNMP Credentials is still to come, so there is no Save Changes yet.
+      await expect(footerButton).toHaveCount(0);
+
+      /*
        * The choice the create form no longer offers, in the one place that
        * does. Both options are matched on their leading words rather than the
        * whole sentence: the labels are long on purpose (they have to say that
@@ -555,14 +590,20 @@ test.describe.skip(
        * optional everywhere - the point of this test is the honest copy for a
        * device that has the override and nothing bound.
        *
-       * Switching to the override also hides the SNMP step (nothing polls the
-       * device, so a community string has nothing to be used for), which is
-       * why "Device Details" is now the last step and the footer says Save.
+       * Switching to the override also hides the SNMP Credentials step
+       * (nothing polls the device, so a community string has nothing to be
+       * used for), so Monitoring is now the last step: its Next gives way
+       * to Save Changes.
        */
-      const footerButton: Locator = page.getByTestId(
-        "modal-footer-submit-button",
-      );
-      await expect(footerButton).toHaveText("Save", { timeout: 30000 });
+      await expect(progress.getByRole("listitem")).toHaveText([
+        "Device Details",
+        "Address",
+        "Monitoring",
+      ]);
+      await expect(nextButton).toHaveCount(0);
+      await expect(footerButton).toHaveText("Save Changes", {
+        timeout: 30000,
+      });
       await footerButton.click();
 
       await modal.waitFor({ state: "hidden", timeout: 60000 });

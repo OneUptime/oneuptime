@@ -123,6 +123,7 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
+import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
@@ -139,6 +140,12 @@ import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import StatusPagesListingMonitors, {
+  StatusPagesListingMonitorsResult,
+} from "../../Types/StatusPage/StatusPagesListingMonitors";
+import StatusPagesListingMonitorsBuilder, {
+  StatusPagesListingMonitorsRequest,
+} from "../Utils/StatusPage/StatusPagesListingMonitorsBuilder";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -953,6 +960,26 @@ export default class StatusPageAPI extends BaseAPI<
     );
 
     /*
+     * The status pages that list some monitors, for the status page pickers
+     * of scheduled maintenance events and announcements to suggest (see
+     * StatusPagesListingMonitors). It only reads, and only names pages and
+     * looks up monitors the caller can read. A POST because the monitors
+     * travel in the body.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/listing-monitors`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getStatusPagesListingMonitors(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Sends the status page's report to an address the caller chooses, so it
      * is gated like editing the status page: an authenticated member of the
      * project that owns it who could update this particular page.
@@ -1111,6 +1138,8 @@ export default class StatusPageAPI extends BaseAPI<
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             enableMasterPassword: true,
+            // Only to tell whether one is set; never sent (see below).
+            masterPassword: true,
             allowSubscribersToChooseResources: true,
             allowSubscribersToChooseEventTypes: true,
             requireSsoForLogin: true,
@@ -1177,6 +1206,25 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Not part of what the page renders.
           delete item.isArchived;
+
+          /*
+           * Whether the page asks visitors for the master password, by the
+           * rule the server enforces (Types/StatusPage/StatusPageAccess): not
+           * public, the switch on and a password set. The switch alone said
+           * yes on a private page with no password set, and the app sent
+           * every visitor - private users included - to a password prompt
+           * that could never let anyone in, while the server treated the
+           * page as a sign-in page.
+           */
+          item.enableMasterPassword = isStatusPageMasterPasswordRequired({
+            isPublicStatusPage: Boolean(item.isPublicStatusPage),
+            enableMasterPassword: item.enableMasterPassword,
+            hasMasterPassword: Boolean(item.masterPassword),
+          });
+
+          // The password's hash and salt never leave the server.
+          delete item.masterPassword;
+          delete item.masterPasswordSalt;
 
           if (!allowStatusPageCustomizations) {
             /*
@@ -2341,6 +2389,50 @@ export default class StatusPageAPI extends BaseAPI<
           next(err);
         }
       },
+    );
+  }
+
+  /*
+   * POST /status-page/listing-monitors: which of the caller's readable status
+   * pages list some monitors (StatusPagesListingMonitorsBuilder).
+   */
+  private async getStatusPagesListingMonitors(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    /*
+     * The answer is for one project, and the reads it is built from are
+     * bounded by the caller's permissions in that project, so the request is
+     * never treated as multi-tenant.
+     */
+    const props: DatabaseCommonInteractionProps = {
+      ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+      isMultiTenantRequest: false,
+    };
+
+    /*
+     * A member of the project, or one of its API keys. What either may see
+     * is then bounded by the monitor and status page reads below.
+     */
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+    const request: StatusPagesListingMonitorsRequest =
+      StatusPagesListingMonitorsBuilder.parseRequest({
+        body: req.body,
+        projectId: projectId,
+        props: props,
+      });
+
+    const result: StatusPagesListingMonitorsResult =
+      await StatusPagesListingMonitorsBuilder.build(request);
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      StatusPagesListingMonitors.toJSON(result),
     );
   }
 

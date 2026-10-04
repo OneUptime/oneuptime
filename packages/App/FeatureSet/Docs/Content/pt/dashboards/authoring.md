@@ -1,6 +1,6 @@
 # Criando um Painel
 
-Para criar um painel, abra **Painéis → Criar Painel**, dê um nome a ele e abra-o. O canvas abre no modo **Editar**, pronto para você começar a adicionar widgets.
+Para criar um painel, abra **Painéis → Criar Painel** e escolha um modelo, ou **Blank Dashboard** para começar do zero. Um modelo preenche o nome do painel para você (numerado, como "Kubernetes Dashboard 2", quando o projeto já tem um); um painel em branco, você mesmo nomeia. Clique em **Criar Painel** e o novo painel abre. Um painel em branco abre com o canvas vazio e um botão **Adicionar widget** para o primeiro widget.
 
 ## O canvas
 
@@ -17,7 +17,7 @@ O alternador no cabeçalho troca entre dois modos:
 
 ## Adicionando um widget
 
-1. Clique no botão **+** para abrir a paleta de widgets.
+1. Clique em **Adicionar widget** para abrir a paleta de widgets: no canvas de um painel vazio, ou na barra de ferramentas enquanto você edita o painel.
 2. Escolha o tipo de widget. Veja [Widgets](/docs/dashboards/widgets) para o catálogo.
 3. O widget aparece no canvas.
 4. Clique no ícone de engrenagem no widget para abrir suas configurações.

@@ -71,7 +71,7 @@ Alertmanager sender `Content-Type: application/json`, som OneUptime har brug for
 
 - Slå _When filters match, change monitor status_ til, og sæt den til **Offline** (eller Degraded).
 - Slå _When filters match, declare an incident_ til. Angiv **Title**, **Severity** og de **On-Call Policies**, der skal tilkaldes.
-- Under **Advanced Options** på den hændelse skal du slå **Auto Resolve Incident** til. Uden det ignoreres genopretningsnotifikationer, og hændelser står åbne for evigt.
+- Under **More fields** på den hændelse skal du slå **Auto Resolve Incident** til. Uden det ignoreres genopretningsnotifikationer, og hændelser står åbne for evigt.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Fejlfinding
 
 - **Der kommer intet frem** — bekræft at Alertmanager kan nå URL'en; tjek dens logfiler for leveringsfejl. OneUptime svarer på hver anmodning med et tomt `200`, før noget som helst valideres, så et `200` bekræfter ikke, at payloaden blev accepteret. Kig i stedet på monitorens tidslinje.
-- **Hændelser åbner, men lukker aldrig** — tjek `send_resolved: true` i Alertmanager, genopretningsfeltet og -værdien på kriteriet (sammenligningen skelner mellem store og små bogstaver) samt **Auto Resolve Incident** under hændelsens **Advanced Options**. To mere subtile årsager: en payload med flere unikke nøgler end **Max incidents per request** skjuler også dem ud over grænsen for genopretning; og hvis det netop er `resolved`-notifikationen, der bliver droppet af sammenlægning ved ingest (nedenfor), står hændelsen fast for altid, fordi Alertmanager gentager firing-notifikationer, men ikke resolved-notifikationer. Luk dem manuelt.
+- **Hændelser åbner, men lukker aldrig** — tjek `send_resolved: true` i Alertmanager, genopretningsfeltet og -værdien på kriteriet (sammenligningen skelner mellem store og små bogstaver) samt **Auto Resolve Incident** under hændelsens **More fields**. To mere subtile årsager: en payload med flere unikke nøgler end **Max incidents per request** skjuler også dem ud over grænsen for genopretning; og hvis det netop er `resolved`-notifikationen, der bliver droppet af sammenlægning ved ingest (nedenfor), står hændelsen fast for altid, fordi Alertmanager gentager firing-notifikationer, men ikke resolved-notifikationer. Luk dem manuelt.
 - **Slet ingen hændelser, og monitorstatus uændret** — grupperingsstien skal begynde med det bogstavelige `requestBody.`, og kun det første `[*]` i en sti er et jokertegn. Begge fejl fejler lydløst.
 - **Hændelsesteksten viser rå `{{...}}`-pladsholdere** — stien blev ikke opløst, og OneUptime lader uopløste pladsholdere stå i stedet for at tømme dem. Forskellige regler sætter forskellige annotationer, så referér til felter, der faktisk findes for dine regler (`commonAnnotations` kontra `annotations` per alarm).
 - **Kun én hændelse for en payload fuld af alarmer** — du grupperede efter en label, der ikke varierer inden for en notifikation, oftest en, der også står i din rutes `group_by`. Gruppér efter `requestBody.alerts[*].fingerprint` i stedet.

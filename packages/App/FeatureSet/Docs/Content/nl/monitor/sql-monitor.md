@@ -57,7 +57,7 @@ Maak een nieuwe monitor aan en kies **SQL Query** als het monitortype, en vul ve
 - **SQL-query** — de alleen-lezen query die moet worden uitgevoerd (zie De query schrijven).
 - **SSL/TLS gebruiken** — inschakelen om verbinding te maken via TLS. Wanneer ingeschakeld, kunt u **Servercertificaat verifiëren** uitschakelen als de database een zelfondertekend certificaat gebruikt.
 
-### Geavanceerde opties
+### Meer velden
 
 - **Verbindings-time-out (ms)** — hoe lang moet worden gewacht om een verbinding tot stand te brengen. Standaard `10000`, maximaal `30000`.
 - **Instructie-time-out (ms)** — de harde limiet voor hoe lang de query mag draaien. Standaard `15000`, maximaal `60000`.

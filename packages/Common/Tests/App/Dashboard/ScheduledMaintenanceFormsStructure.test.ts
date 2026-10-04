@@ -12,6 +12,7 @@ import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/Schedul
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   getFormSteps,
   getTemplateFormFields,
@@ -33,8 +34,14 @@ import {
  *
  * So a field is on the same step, folded the same way, in every form that
  * has it - Owners and Labels under Advanced on Event, the subscriber
- * switches in Subscriber Notifications, Change Monitor Status to under
- * Advanced last on Resources Affected - and no step exists for one field.
+ * switches in Subscriber Notifications - and no step exists for one field.
+ *
+ * Resources Affected asks for the monitors apart from every other resource,
+ * with Change Monitor Status to right under them and never folded, as
+ * Declare Incident does (#4354). The maintainer: "we also need to have
+ * monitors and other affected resources as seperate things (so change
+ * monitor sttate to makes more sense), only show that dropdown if any
+ * monitor is selected."
  *
  * labels-not-a-step and other later sweeps: these forms are already done;
  * keep them matching this, or change this on purpose.
@@ -55,7 +62,8 @@ const VIEW_FILE: string = `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/In
 const TEMPLATE_FILE: string = `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx`;
 const TEMPLATE_VIEW_FILE: string = `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplateView.tsx`;
 
-const ADVANCED: string = "Advanced";
+// The folded section of rarely needed fields, as getAdvancedFormSection titles it.
+const ADVANCED: string = MORE_FIELDS_SECTION_TITLE;
 const SUBSCRIBER_NOTIFICATIONS: string = "Subscriber Notifications";
 
 const NOTIFY_SWITCHES: Array<string> = [
@@ -89,12 +97,14 @@ const SECTION_CONSTANTS: Record<
     builtWith: "getAdvancedFormSection",
     files: [VIEW_FILE],
   },
-  affectedResourcesAdvancedSection: {
-    title: ADVANCED,
-    builtWith: "getAdvancedFormSection",
-    files: [TEMPLATE_VIEW_FILE],
-  },
 };
+
+// Resources Affected: the monitors, the status they change to, everything else.
+const RESOURCE_ROWS: Array<string> = [
+  "monitors",
+  "changeMonitorStatusTo",
+  "hosts",
+];
 
 /*
  * Which step of the event a step id stands for. The Edit forms call their
@@ -304,10 +314,9 @@ describe("the scheduled maintenance forms", () => {
         `${ADVANCED}: owners, labels`,
       ],
       "resources-affected": [
-        "monitors",
+        ...RESOURCE_ROWS,
         "statusPages",
         NOTIFY_SECTION_ROW,
-        `${ADVANCED}: changeMonitorStatusTo`,
       ],
     });
   });
@@ -361,10 +370,9 @@ describe("the scheduled maintenance forms", () => {
       "template-info": ["templateName", "templateDescription"],
       event: ["title", "description", `${ADVANCED}: owners, labels`],
       "resources-affected": [
-        "monitors",
+        ...RESOURCE_ROWS,
         "statusPages",
         NOTIFY_SECTION_ROW,
-        `${ADVANCED}: changeMonitorStatusTo`,
       ],
       recurring: [
         "isRecurringEvent",
@@ -396,15 +404,76 @@ describe("the scheduled maintenance forms", () => {
       NOTIFY_SECTION_ROW,
     ]);
 
-    // Its Affected Resources card folds the monitor status the same way.
+    // Its Affected Resources card asks for them as its create form does.
     const card: FormShape = shapeOfScannedForm(
       "the template's Affected Resources card",
       scannedForm(TEMPLATE_VIEW_FILE, "CardModelDetail: Affected Resources"),
     );
 
     expect(rowsByStep(card)).toEqual({
-      "": ["monitors", `${ADVANCED}: changeMonitorStatusTo`],
+      "": RESOURCE_ROWS,
     });
+  });
+
+  test("Resources Affected never folds the monitor status: it sits right under the monitors", () => {
+    for (const shape of [CREATE, TEMPLATE_CREATE]) {
+      const keys: Array<string> = shape.placements
+        .filter((placement: Placement): boolean => {
+          return placement.stepId === "resources-affected";
+        })
+        .map((placement: Placement): string => {
+          return placement.key;
+        });
+
+      expect(keys.slice(0, 3)).toEqual(RESOURCE_ROWS);
+
+      const status: Placement | undefined = shape.placements.find(
+        (placement: Placement): boolean => {
+          return placement.key === "changeMonitorStatusTo";
+        },
+      );
+
+      expect(`${shape.name}: ${status?.section}`).toBe(`${shape.name}: `);
+    }
+
+    // No More fields section is left on the step.
+    for (const shape of [CREATE, TEMPLATE_CREATE]) {
+      expect(
+        rowsByStep(shape)["resources-affected"]!.some((row: string) => {
+          return row.startsWith(`${ADVANCED}:`);
+        }),
+      ).toBe(false);
+    }
+
+    // The template view no longer builds a section for its card.
+    expect(readSource(TEMPLATE_VIEW_FILE)).not.toContain(
+      "getAdvancedFormSection",
+    );
+  });
+
+  test("Create asks for the monitor status only once a monitor is picked; a template always asks", () => {
+    const create: FormFacts = scannedForm(
+      CREATE_FILE,
+      "ModelForm: Create New Scheduled Maintenance Event",
+    );
+    const status: FormFieldFacts | undefined = create.fields.find(
+      (field: FormFieldFacts): boolean => {
+        return field.key === "changeMonitorStatusTo";
+      },
+    );
+
+    expect(status?.isConditional).toBe(true);
+
+    const templateStatus: ModelField<ScheduledMaintenanceTemplate> | undefined =
+      getTemplateFormFields({ isViewPage: false }).find(
+        (field: ModelField<ScheduledMaintenanceTemplate>): boolean => {
+          return Object.keys(field.field || {})[0] === "changeMonitorStatusTo";
+        },
+      );
+
+    expect(templateStatus).toBeDefined();
+    expect(templateStatus!.showIf).toBeUndefined();
+    expect(templateStatus!.collapsibleSection).toBeUndefined();
   });
 
   test("put a field on the same step, folded the same way, in every form that has it", () => {

@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` は既存の構成 (プリセット、クラスター名、フィルター) を保持します。新しい `--set` の上書きはその上に渡してください。
 
+> **eBPF のスパンメトリクスの名前が変わりました。** `ebpf.features.spanMetrics` は `traces_spanmetrics_calls_total` と `traces_spanmetrics_latency` の代わりに `traces.span.metrics.calls` と `traces.span.metrics.duration`(秒)を送信するようになりました。系列は同じで、名前だけが OBI の維持する名前に変わります(旧名は OBI で非推奨)。旧名を使うダッシュボード、チャート、メトリクスモニターは、アップグレード後はエラーも出ないまま新しいデータを受け取らなくなります。新しい名前に切り替え、旧名を含む `filters.metrics` のエントリも更新してください。
+
 ## エージェントのアンインストール
 
 ```bash
@@ -412,7 +414,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.*`         | デフォルト | 追加される内容                                                                 |
 | ------------------------- | ---------- | ------------------------------------------------------------------------------ |
 | `httpMetrics`             | 有効       | サービスごとの HTTP/gRPC RED メトリクス (リクエストレート、レイテンシ、エラー) |
-| `spanMetrics`             | 有効       | スパンごとのリクエスト/レスポンスサイズと所要時間                              |
+| `spanMetrics`             | 有効       | スパンの呼び出し数と所要時間 (`traces.span.metrics.*`)                         |
 | `serviceGraph`            | 有効       | 呼び出し元 → 呼び出し先のエッジメトリクス。サービスマップを駆動                |
 | `networkMetrics`          | 有効       | Pod 間の TCP/UDP フローカウンター                                              |
 | `networkInterZoneMetrics` | 無効       | ネットワークメトリクスのゾーン間バリアント (カーディナリティが倍増)            |
@@ -716,7 +718,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### メトリクスが表示されない
 
 1. まず取り込みキーの拒否を除外します — これは最も一般的な原因であり、エージェント側からは見落とされがちです。上記の [エージェントが "Disconnected" と表示される](#エージェントが-disconnected-と表示される) を参照してください (または単に診断スクリプトを実行してください)。
-2. クラスター識別子が `clusterName` として渡した値と一致することを確認します
+2. クラスターの **クラスター名 (clusterName)** が `clusterName` として渡した値と一致することを確認します。クラスターの **Settings** ページの **Cluster Details** に表示されています。修正するには **Edit Details** を選び、**More fields** を開きます
 3. RBAC 権限を検証します: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. OTel コレクターのログにエクスポートエラーがないか確認します
 

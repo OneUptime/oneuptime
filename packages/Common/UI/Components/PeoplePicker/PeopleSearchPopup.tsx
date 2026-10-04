@@ -37,7 +37,9 @@ import { createPortal } from "react-dom";
  * It stays open after a pick, so several can be picked in a row. In a form
  * ("toggle") a picked row shows a tick and picking it again takes it away;
  * on the Owners page ("add") a picked row is left out, because removing an
- * owner there is its own, confirmed, action.
+ * owner there is its own, confirmed, action. A field that takes one pick
+ * ("single") is a single choice: the picked row shows a tick, a pick
+ * replaces it, and the picker closes the list.
  *
  * Keyboard: typing searches, Up and Down move through the list, Enter picks,
  * Escape closes and hands focus back to the button that opened it.
@@ -47,13 +49,18 @@ export const PEOPLE_SEARCH_DEBOUNCE_MS: number = 250;
 export const PEOPLE_SEARCH_POPUP_WIDTH_PX: number = 320;
 export const PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX: number = 380;
 
-export type PeopleSearchSelectionMode = "toggle" | "add";
+export type PeopleSearchSelectionMode = "toggle" | "add" | "single";
 
 export interface ComponentProps {
   popup: AnchoredFieldPopup;
   kinds: Array<PeoplePickerKind>;
   // Keys (getPeoplePickerOptionKey) of what is picked already.
   selectedKeys: Set<string>;
+  /*
+   * Keys of rows the list never shows, whatever is searched: someone
+   * another field already holds (the person who is away, in "Who covers?").
+   */
+  excludedKeys?: Set<string> | undefined;
   selectionMode: PeopleSearchSelectionMode;
   /*
    * A row was picked. isPicked says whether it was picked already (in toggle
@@ -102,6 +109,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   const listboxId: string = `${baseId}-listbox`;
 
   const kindsSignature: string = props.kinds.join(",");
+
+  // How many records the list leaves out, whatever is searched.
+  const excludedCount: number = props.excludedKeys?.size || 0;
 
   // A fresh list each time it opens.
   useEffect(() => {
@@ -161,7 +171,11 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
           return getPeoplePickerKindDefinition(kind).search({
             projectId: projectId,
             searchText: debouncedSearch,
-            limit: PEOPLE_PICKER_SEARCH_LIMIT,
+            /*
+             * One more for each record left out below, so the list still
+             * offers as many as it would without them.
+             */
+            limit: PEOPLE_PICKER_SEARCH_LIMIT + excludedCount,
           });
         },
       ),
@@ -194,7 +208,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, debouncedSearch, kindsSignature]);
+  }, [isOpen, debouncedSearch, kindsSignature, excludedCount]);
 
   const groups: Array<RowGroup> = useMemo((): Array<RowGroup> => {
     return props.kinds
@@ -207,11 +221,15 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               return false;
             }
 
+            const key: string = getPeoplePickerOptionKey(row.kind, row.id);
+
+            if (props.excludedKeys?.has(key)) {
+              return false;
+            }
+
+            // Only the Owners page leaves out what is picked already.
             return (
-              props.selectionMode === "toggle" ||
-              !props.selectedKeys.has(
-                getPeoplePickerOptionKey(row.kind, row.id),
-              )
+              props.selectionMode !== "add" || !props.selectedKeys.has(key)
             );
           }),
         };
@@ -219,7 +237,13 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       .filter((group: RowGroup): boolean => {
         return group.rows.length > 0;
       });
-  }, [rows, kindsSignature, props.selectedKeys, props.selectionMode]);
+  }, [
+    rows,
+    kindsSignature,
+    props.selectedKeys,
+    props.excludedKeys,
+    props.selectionMode,
+  ]);
 
   const visibleRows: Array<PeoplePickerOption> = useMemo(() => {
     return groups.flatMap((group: RowGroup): Array<PeoplePickerOption> => {
@@ -453,7 +477,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                       id={getOptionId(row)}
                       role="option"
                       aria-selected={
-                        props.selectionMode === "toggle" ? isPicked : false
+                        props.selectionMode === "add" ? false : isPicked
                       }
                       aria-disabled={Boolean(pendingKey) || undefined}
                       data-testid="people-search-option"
@@ -502,6 +526,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                           icon={IconProp.Check}
                           className="h-4 w-4 flex-shrink-0 text-indigo-600"
                         />
+                      ) : props.selectionMode === "single" ? (
+                        // A single choice is made by picking: nothing to add.
+                        <></>
                       ) : (
                         <Icon
                           icon={IconProp.Add}

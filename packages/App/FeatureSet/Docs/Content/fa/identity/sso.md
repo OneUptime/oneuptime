@@ -27,13 +27,14 @@
    - **Sign On URL** را از ارائه‌دهنده هویت خود وارد کنید
    - **Issuer** (شناسه موجودیت) را از ارائه‌دهنده هویت خود وارد کنید
    - **Public Certificate** را از ارائه‌دهنده هویت خود بچسبانید
-   - **Signature Algorithm** را برگزینید (برای نمونه `RSA-SHA-256`)
-   - **Digest Algorithm** را برگزینید (برای نمونه `SHA256`)
+   - در گام **Sign-in**، **Teams** با تیم اعضای پروژه شما آغاز می‌شود: کسانی که برای نخستین بار وارد می‌شوند به این تیم‌ها می‌پیوندند
+   - بقیه زیر **More fields** پر می‌شود: **Signature Method** (`RSA-SHA256`)، **Digest Method** (`SHA256`) و یک توضیح («Sign in with» و نام). فقط اگر ارائه‌دهنده هویت شما لازم دارد آن‌ها را تغییر دهید
 
 3. **گرفتن فراداده SSO از OneUptime**
-   - پس از ذخیره، روی دکمه **View SSO Config** کلیک کنید
+   - با ذخیره کردن، پنجره **SSO Configuration** باز می‌شود. می‌توانید آن را دوباره با دکمه **View SSO Config** باز کنید
    - **Identifier (Entity ID)** را کپی کنید — این در پیکربندی IdP شما لازم است
    - **Reply URL (Assertion Consumer Service URL)** را کپی کنید — این در پیکربندی IdP شما لازم است
+   - ارائه‌دهنده تازه خاموش آغاز می‌شود. وقتی IdP شما این دو مقدار را دریافت کرد، ارائه‌دهنده را ویرایش کنید و **Enabled** را روشن کنید
 
 ## پیکربندی SAML در Keycloak
 
@@ -54,8 +55,7 @@
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Issuer**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificate**: [گام ۲](#گام-۲-گرفتن-گواهی-keycloak) پایین را ببینید
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** و **Digest Method**: از پیش زیر **More fields** تنظیم شده‌اند (`RSA-SHA256` و `SHA256`)
 4. پیکربندی را ذخیره کنید
 
 ### گام ۲: گرفتن گواهی Keycloak
@@ -121,8 +121,7 @@ MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
    - **Sign On URL**: این را در [گام ۳](#گام-۳-پیکربندی-sso-از-نوع-saml-در-entra-id) از Entra ID می‌گیرید
    - **Issuer**: این را در [گام ۳](#گام-۳-پیکربندی-sso-از-نوع-saml-در-entra-id) از Entra ID می‌گیرید
    - **Certificate**: این را در [گام ۳](#گام-۳-پیکربندی-sso-از-نوع-saml-در-entra-id) از Entra ID می‌گیرید
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** و **Digest Method**: از پیش زیر **More fields** تنظیم شده‌اند (`RSA-SHA256` و `SHA256`)
 4. روی **View SSO Config** کلیک کنید و **Identifier (Entity ID)** و **Reply URL (Assertion Consumer Service URL)** را کپی کنید — برای Entra ID لازمشان خواهید داشت
 
 ### گام ۲: ساخت برنامه سازمانی در Microsoft Entra ID
@@ -206,8 +205,7 @@ MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
    - **Sign On URL**: این را در [گام ۳](#گام-۳-کپی-کردن-فراداده-saml-از-okta-به-oneuptime) از Okta می‌گیرید
    - **Issuer**: این را در [گام ۳](#گام-۳-کپی-کردن-فراداده-saml-از-okta-به-oneuptime) از Okta می‌گیرید
    - **Certificate**: این را در [گام ۳](#گام-۳-کپی-کردن-فراداده-saml-از-okta-به-oneuptime) از Okta می‌گیرید
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** و **Digest Method**: از پیش زیر **More fields** تنظیم شده‌اند (`RSA-SHA256` و `SHA256`)
 4. روی **View SSO Config** کلیک کنید و **Identifier (Entity ID)** و **Reply URL (Assertion Consumer Service URL)** را کپی کنید — برای Okta لازمشان خواهید داشت
 
 ### گام ۲: ساخت برنامه SAML در Okta
@@ -287,7 +285,18 @@ MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
    - **Sign On URL** (نقطه پایانی SSO)
    - **Issuer** (شناسه موجودیت IdP)
    - **Public Certificate** (گواهی امضای X.509)
-4. مقدار **Signature Algorithm** را روی `RSA-SHA-256` و **Digest Algorithm** را روی `SHA256` بگذارید
+4. **Signature Method** (`RSA-SHA256`) و **Digest Method** (`SHA256`) از پیش زیر **More fields** تنظیم شده‌اند؛ فقط اگر ارائه‌دهنده هویت شما به شیوهٔ دیگری امضا می‌کند آن‌ها را تغییر دهید
+
+## OpenID Connect (OIDC)
+
+یک پروژه می‌تواند از طریق یک ارائه‌دهنده OpenID Connect هم وارد شود، مانند Google Workspace، Okta، Microsoft Entra ID، Auth0 یا Keycloak.
+
+1. یک برنامه (کلاینت OIDC) در ارائه‌دهنده هویت خود ثبت کنید و **Issuer URL**، **Client ID** و **Client Secret** آن را کپی کنید.
+2. در OneUptime به **Project Settings** > **Security** > **OIDC** بروید و روی **Create OIDC** کلیک کنید.
+3. یک **Name** (آنچه افراد در صفحه ورود می‌بینند)، **Issuer URL**، **Client ID** و **Client Secret** را وارد کنید. می‌توانید نشانی کشف ارائه‌دهنده را هم در **Issuer URL** جای‌گذاری کنید.
+4. در گام **Sign-in**، **Teams** از ابتدا روی تیم اعضای پروژه شما تنظیم شده است: کسانی که برای اولین بار وارد می‌شوند به این تیم‌ها می‌پیوندند. بقیه زیر **More fields** پر می‌شود: **Discovery URL** (صادرکننده به‌همراه `/.well-known/openid-configuration`)، **Scopes** (`openid email profile`)، نام ادعاهای `email` و `name` و یک توضیح («Sign in with» و نام). فقط اگر ارائه‌دهنده شما لازم دارد آن‌ها را تغییر دهید.
+5. ذخیره کنید. پنجره **OIDC Configuration** با **Redirect URI** باز می‌شود: آن را به Redirect URIهای مجاز برنامه خود اضافه کنید. ارائه‌دهنده تازه در ابتدا خاموش است؛ سپس آن را ویرایش کنید و **Enabled** را روشن کنید.
+6. پیش از اجباری کردن SSO برای پروژه، با پیوند کارت **Test OpenID Connect (OIDC)** از طریق ارائه‌دهنده وارد شوید.
 
 ## یادداشت‌هایی درباره SSO و نقش‌ها
 

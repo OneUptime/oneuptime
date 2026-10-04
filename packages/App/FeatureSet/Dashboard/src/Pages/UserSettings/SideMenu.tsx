@@ -38,10 +38,11 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
 
   /*
    * Get Started and Alerts & Notifications start open: the checklist that
-   * walks through everything below, and the three pages people come here
-   * for (how they are reached, about what, and how much email). Everything
-   * after them is set up once and folds down to its title, an index of what
-   * else can be set, until it is opened or one of its pages is the one open.
+   * walks through everything below, and the four pages people come here
+   * for (how they are reached, how they are paged when on call, about what,
+   * and how much email). Everything after them is set up once and folds down
+   * to its title, an index of what else can be set, until it is opened or one
+   * of its pages is the one open.
    */
   const sections: SideMenuSectionProps[] = [
     /*
@@ -76,6 +77,22 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Bell,
         },
+        /*
+         * Right after the methods, because a rule is which of those methods
+         * to try, and after how long, when you are paged on call. One page
+         * with a tab per kind (incidents, incident episodes, alerts, alert
+         * episodes): it was four pages in two sections of their own, and
+         * most people come here to change one delay.
+         */
+        {
+          link: {
+            title: "On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.BellRinging,
+        },
         {
           link: {
             title: "Notification Settings",
@@ -86,12 +103,11 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           icon: IconProp.Settings,
         },
         /*
-         * Last of the three, because it is the only one that answers "how
-         * much", and that question follows "on what channel" and "about
-         * what". Inside this section rather than in one of its own: the two
-         * controls it holds are email-volume controls, and a reader who has
-         * just set up their notifications is exactly the reader who needs to
-         * find them.
+         * Last, because it is the only one that answers "how much", and
+         * that question follows "on what channel" and "about what". Inside
+         * this section rather than in one of its own: the two controls it
+         * holds are email-volume controls, and a reader who has just set up
+         * their notifications is exactly the reader who needs to find them.
          */
         {
           link: {
@@ -101,58 +117,6 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
             ),
           },
           icon: IconProp.Envelope,
-        },
-      ],
-    },
-    {
-      title: "Incident On-Call",
-      defaultCollapsed: true,
-      items: [
-        {
-          link: {
-            title: "Incident On-Call Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Alert,
-        },
-        {
-          link: {
-            title: "Incident Episode On-Call Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Squares,
-        },
-      ],
-    },
-    {
-      title: "Alert On-Call",
-      defaultCollapsed: true,
-      items: [
-        {
-          link: {
-            title: "Alert On-Call Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.ExclaimationCircle,
-        },
-        {
-          link: {
-            title: "Alert Episode On-Call Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Squares,
         },
       ],
     },

@@ -12,7 +12,7 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
 - **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
-- **Three ways to make it private.** Private users, a master password, or SAML SSO / OIDC — plus an IP whitelist.
+- **Who can see it is one choice.** Anyone with the link, only people who sign in (private users, SAML SSO or OIDC), or anyone with the password — on the page's **Access** screen, with an optional IP allowlist under **More settings**.
 - **Subscribers get told automatically.** Email, SMS, Slack, Microsoft Teams and webhook subscribers can all follow a page, each channel behind its own toggle.
 
 ## Key terms
@@ -55,7 +55,7 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers.                                                                                          |
 | **Branding**          | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**.         |
-| **Security**          | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**.                                                                   |
+| **Security**          | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**.                                                             |
 | **AI**                | **MCP**.                                                                                                                                       |
 | **Developer**         | **Terraform**, **API**, **AI Assistants** — the page as code.                                                                                  |
 | **Advanced**          | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**.                            |
@@ -89,7 +89,7 @@ The overview is the page most visitors ever see. Top to bottom it renders:
 
 1. **Any live announcements** — announcements whose start time has passed and whose end time hasn't.
 2. **An overall status banner** — a single line summarizing whether all or only some resources are affected.
-3. **An overall uptime percent**, if you turned it on. Off by default.
+3. **An overall uptime percent**, if you turned it on: at the end of the overall status banner, while every resource is operational. Off by default.
 4. **The resource groups**, each with its resources, their current status, and their uptime history bars.
 5. **Active Incidents**.
 6. **Scheduled Maintenance Events**.
@@ -100,25 +100,28 @@ For what puts an incident on this page in the first place, and what takes it off
 
 ## Choosing what shows on the page
 
-What visitors see is set in one card: **What your status page shows**, on **Status Pages → your page → Advanced → Advanced Settings**. It has a row for each list the page can show, then **Uptime History** and the "Powered by OneUptime" line. There is no Edit button: a switch saves the moment you flip it, and a number of days when you leave its box or press Enter.
+What visitors see is set in one card: **What your status page shows**, on **Status Pages → your page → Advanced → Advanced Settings**. It has a row for each list the page can show, then **Uptime History** (with the overall uptime percent and which statuses count as downtime) and the "Powered by OneUptime" line. There is no Edit button: a switch saves the moment you flip it, a number of days when you leave its box or press Enter, and a pick from a list the moment you make it.
 
 - **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Under it, **Show the last … days** (`showIncidentHistoryInDays`, default 14) is how far back the incident list reaches, and **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) is off by default.
 - **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — also in the incidents row, off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. It also decides which incidents bring their episodes onto the page, so it stays when **Show Incidents** is off. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Show Episodes** (`showEpisodesOnStatusPage`) — on by default, with **Show the last … days** (`showEpisodeHistoryInDays`, default 14) and **Show Episode Labels** (`showEpisodeLabelsOnStatusPage`, off by default). Episodes are their own model with their own endpoints, not a view of incidents.
 - **Show Announcements** (`showAnnouncementsOnStatusPage`) — on by default, with **Show the last … days** (`showAnnouncementHistoryInDays`, default 14).
 - **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default, with **Show the last … days** (`showScheduledEventHistoryInDays`, default 14) and **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`, off by default).
-- **Uptime History** — **Show the last … days** (`showUptimeHistoryInDays`) is the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number.
+- **Uptime History** — everything about the page's uptime, in one row:
+  - **Show the last … days** (`showUptimeHistoryInDays`) is the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number, and so does the overall uptime percent.
+  - **Show Overall Uptime Percent** (`showOverallUptimePercentOnStatusPage`) — off by default. Turn it on and the overall status banner ends with one uptime percentage for the whole page, the average of its resources and groups, while everything is operational. While it is on, **Precision** (`overallUptimePercentPrecision`) picks how many decimals it shows: `99%`, `99.9%`, `99.99%` (the default) or `99.999%`. Each resource and group has its own precision.
+  - **Counts as downtime** (`downtimeMonitorStatuses`) — the monitor statuses whose time counts against every uptime percentage on the page: each resource's, each group's and the overall one. Each status is a chip in its own color. Add one from the list or take one off with its **×**, and the change is saved at once. A new status page starts with every status of the project that is not operational. At least one status stays: the last one can't be taken off, because with none every uptime on the page would read 100%.
 - **Show Powered By OneUptime Branding** — on by default, so the visitor footer reads "Powered by OneUptime". Turn it off to hide the line. The column stores it the other way round, as `hidePoweredByOneUptimeBranding`.
 
 **A list that is off** is gone from the page, with its item in the nav bar if it has one; its public endpoint refuses, and the page's subscribers are not notified about that kind of event. Its row then shows only its switch: how far back a hidden list goes, and whether it shows labels, change nothing.
 
-**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; hiding the "Powered by OneUptime" line needs **Scale**. The other history windows, **Uptime History** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own.
+**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own: a page whose overall uptime percent is already on can change its precision on any plan.
 
 Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
-Below the card are **Overall Uptime Percent** and **Downtime Monitor Statuses** (see [Uptime percent and downtime statuses](/docs/status-pages/branding-and-domains#uptime-percent-and-downtime-statuses)), then **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)).
+Below the card are **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)). The overall uptime percent and the downtime statuses used to be two cards of their own here, each behind an **Edit** button; they are rows of the card now.
 
-**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **Advanced** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
+**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
 
 ## Previewing before you go live
 
@@ -128,29 +131,33 @@ Behind the scenes, every public route has a preview twin under `/status-page/{st
 
 ## Restricting who can see the page
 
-Not every status page is for the public. All the controls sit under the **Security** section.
+Not every status page is for the public. Who can see a page is one choice, the first card on **Status Pages → your page → Security → Access**, **Who can see this status page**:
+
+- **Anyone with the link** — the page is public. Every new status page starts here.
+- **Only people who sign in** — visitors land on `/login` and sign in as a private user, or with your SSO or OIDC provider (see below). Under the choice, the card lists the sign-in set up for the page — how many private users it has, and whether SSO and OIDC are on, each linking to its screen — and, while it is the choice, says so when nobody can sign in yet.
+- **Anyone with the password** — visitors land on `/master-password` and unlock the page with one password you share with them. Nobody needs an account. Picking it asks for the password in the same dialog when the page has none; when it has one, you can keep it or type a new one. Afterwards **Change Password** under the choice replaces it. The password is stored as a hash and can't be shown again, and people who entered the old one can keep viewing the page for up to 7 days.
+
+Picking a choice asks you to confirm, saying what changes for visitors, and saves at once. There is no Edit button.
+
+**What it stores.** The choice is three columns, which the API and Terraform read and write as before: `isPublicStatusPage`, `enableMasterPassword` and `masterPassword`. Visitors are asked for the password only on a page that is not public, with `enableMasterPassword` on and a password set; a private page with the switch on but no password is a sign-in page. Picking **Anyone with the link** also turns `enableMasterPassword` off, since a public page never asks for it. The **Access** screen writes only the columns a choice changes.
+
+**Plans.** On OneUptime Cloud, making a page private, or public again, needs the **Growth** plan: on a lower plan those choices show the plan they need and can't be picked. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
 
 ### Private users
 
-Turn **Is Visible to Public** off on **Status Pages → your page → Security → Authentication Settings** (the `isPublicStatusPage` column). Visitors then land on `/login` and have to sign in.
-
 Add the people who may sign in on **Status Pages → your page → Security → Private Users**. There's an **Add in Bulk** action — paste a list of email addresses and each one gets an invitation email. Private users have their own forgot-password and reset-password flow, separate from your OneUptime project accounts.
 
-### Master password
-
-**Authentication Settings** also has a **Master Password** card with a **Require Master Password** toggle and the password itself. Visitors then hit `/master-password` and unlock the page with a single shared secret.
-
-**Master password and private users don't stack.** While the master password is on, private-user authentication is disabled, and the **Private Users** screen shows a banner telling you so.
+**Private users and the password don't stack.** While **Anyone with the password** is the choice, private users can't sign in — they enter the password too — and the **Private Users** screen says so, with a link back to **Access**.
 
 ### SSO and OIDC
 
-For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML (sign-on URL, issuer, x509 certificate, signature and digest methods) and **Status Pages → your page → Security → OIDC** configures OpenID Connect (discovery URL, issuer, client ID and secret, scopes, claim names). **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
+For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
-An **SSO Settings** card exposes **Force SSO for Login** (`requireSsoForLogin`, off by default). Test your SSO configuration before you turn it on — if it doesn't work you will lock yourself out of the status page.
+Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Test SSO with the link on that screen before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice.
 
-### IP whitelist
+### IP allowlist
 
-**Authentication Settings** carries an **IP Whitelist** card as well, backed by the `ipWhitelist` column, for pages that should only answer from known networks.
+Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan.
 
 ## The embeddable badge and the RSS feed
 

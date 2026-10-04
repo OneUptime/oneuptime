@@ -45,7 +45,7 @@ Konfigurieren Sie Ihre Monitor-URL mit einem Platzhalter:
 https://example.com/health?cb={{timestamp}}
 ```
 
-### Erweiterte Optionen
+### Weitere Felder
 
 #### Weiterleitungen nicht folgen
 

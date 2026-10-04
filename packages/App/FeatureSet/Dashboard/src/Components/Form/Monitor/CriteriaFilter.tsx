@@ -34,7 +34,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { getNoDataPolicyMoreFieldsItems } from "./MonitorMoreFields";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   DropdownOption,
@@ -1204,17 +1209,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
             <div className="mt-4">
-              <CollapsibleSection
-                title="Advanced"
-                variant="default"
-                defaultCollapsed={
-                  !criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
-                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ===
-                    NoDataPolicy.Ignore
-                }
-                headerClassName="text-xs text-gray-500"
+              {/*
+               * More fields, folded like every form's: what happens when the
+               * query returns no data. Its header shows the policy once it
+               * is not the default (Ignore).
+               */}
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                icon={MORE_SECTION_ICON}
+                items={getNoDataPolicyMoreFieldsItems(
+                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy,
+                )}
+                dataTestId="criteria-filter-more-fields"
               >
-                <div className="pl-6">
+                <div>
                   <FieldLabelElement
                     title="If No Data"
                     description="What should happen when the query returns no data points in the evaluation window?"
@@ -1253,7 +1261,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                   />
                 </div>
-              </CollapsibleSection>
+              </FoldedSection>
             </div>
           )}
 

@@ -21,7 +21,16 @@ export interface ComponentProps {
 const ModalFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.onClose && !props.onSubmit && !props.leftFooterElement) {
+  /*
+   * A stepped form's footer on a step that is not the last has no submit
+   * button - only its Next, the secondary button - so that counts too.
+   */
+  if (
+    !props.onClose &&
+    !props.onSubmit &&
+    !props.leftFooterElement &&
+    !props.secondaryButton
+  ) {
     return <></>;
   }
 

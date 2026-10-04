@@ -22,24 +22,40 @@ export interface CardButtonSchema {
 }
 
 /*
- * How the header shares its width.
+ * Where a card's actions go. Whatever the layout, what a card offers - Edit,
+ * Create, the ⋯ menu, a status badge, a picker - sits at the RIGHT edge of
+ * the header, on the title's line ("Why are edit buttons not on the right?").
+ * When it does not fit there it moves onto the next line, still at the right
+ * edge. It is never centred, and never put under the description at the
+ * left.
  *
- * "default" puts the actions to the right of the title on md and up, which
- * suits a full-width card. In a narrow column (the one-third sidebar of an
- * overview page) that squeezes the title and description into a column a
- * word or two wide beside the buttons, so "stacked" gives the title and
- * description the whole width and moves the actions onto their own row
- * underneath.
+ * How the header shares its width:
  *
- * "inline" keeps what is on the right beside the title at any width they
- * both fit in, phones included, and is for something small such as a status
- * badge. Below md the default layout always drops it under the title and
- * centres it, which suits a row of buttons but leaves a badge alone in the
- * middle of a phone's card; from md up it also holds it 12px short of the
- * card's right edge. Inline ends it at the edge the card's content ends at,
- * and when the two do not fit it goes under the title, at its left edge.
+ * "default" is for a card as wide as the page's content: the title and the
+ * description on the left, the actions beside them on the right, their top
+ * level with the title's. Below md the description is hidden, and the title
+ * and the actions share a line the way the stacked header's do.
+ *
+ * "stacked" is for a narrow column (the one-third sidebar of an overview
+ * page, or a card whose header holds a row of controls). Beside the actions
+ * the description would be squeezed into a column a word or two wide, so the
+ * title and the actions share the first line and the description runs under
+ * both, across the card's whole width.
  */
-export type CardHeaderLayout = "default" | "stacked" | "inline";
+export type CardHeaderLayout = "default" | "stacked";
+
+/*
+ * Every layout, for the tests that hold each of them to the rule above: a
+ * Record, so a layout added to the type cannot be left out of the list.
+ */
+const CARD_HEADER_LAYOUT_SET: Record<CardHeaderLayout, true> = {
+  default: true,
+  stacked: true,
+};
+
+export const CARD_HEADER_LAYOUTS: ReadonlyArray<CardHeaderLayout> = Object.keys(
+  CARD_HEADER_LAYOUT_SET,
+) as Array<CardHeaderLayout>;
 
 export interface ComponentProps {
   title?: string | ReactElement | undefined;
@@ -52,6 +68,56 @@ export interface ComponentProps {
   headerLayout?: CardHeaderLayout | undefined;
 }
 
+/*
+ * The header's class names, exported so the layout tests and the guard
+ * (Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx) read the same
+ * strings Card draws with.
+ */
+
+/*
+ * The actions: one row that wraps, at the right edge of the header. ml-auto
+ * keeps the row at the right edge when it has a line to itself, and
+ * justify-end keeps each of its own lines there when it wraps.
+ */
+export const CARD_HEADER_ACTIONS_CLASS_NAME: string =
+  "ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2";
+
+/*
+ * The title's share of the line it shares with the actions.
+ *
+ * On a phone the title keeps its whole width: the actions stay beside it
+ * while the two fit, and move to the next line, at the right edge, when they
+ * do not - the title is never broken to make room for them.
+ *
+ * In the stacked header from md up - the one-third column of an overview
+ * page, about 230px of header at 1280px - the title grows into whatever the
+ * actions leave, and keeps the line with them as long as they leave it at
+ * least half of it: "Affected Resources" breaks over two lines beside Edit
+ * rather than dropping Edit onto a line of its own. Actions wider than that
+ * - a probe picker and Test Monitor, or Assign and Refresh in that narrow
+ * column - move to the next line instead, so a title is never squeezed
+ * beside a row of controls.
+ *
+ * In the default header from md up the title and the description fill what
+ * the actions leave, on one line that does not wrap.
+ */
+export const CARD_HEADER_TITLE_BLOCK_CLASS_NAME: string = "min-w-0 md:flex-1";
+
+export const CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME: string =
+  "min-w-0 md:grow md:basis-1/2";
+
+/*
+ * Each action's own box. Button carries a left margin meant for a dialog's
+ * footer (md:ml-3 on a normal button, ml-1 on an outline one), which made
+ * the gaps between a card's buttons uneven - 18px between two normal
+ * buttons, 10px before the ⋯. The row's gap spaces them, so that margin is
+ * cleared on the action itself (a <button>, or the one element a button
+ * sits in: a disabled button's tooltip span, the ⋯ menu's wrapper) and never
+ * on the buttons inside a control, such as a picker or a dialog it opens.
+ */
+export const CARD_HEADER_ACTION_CLASS_NAME: string =
+  "flex items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
 const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -59,7 +125,7 @@ const Card: FunctionComponent<ComponentProps> = (
   const hasButtons: boolean = Boolean(
     props.buttons && props.buttons.length > 0,
   );
-  const noRightElementsOrButtons: boolean = !props.rightElement && !hasButtons;
+  const hasActions: boolean = Boolean(props.rightElement) || hasButtons;
   const isStacked: boolean = props.headerLayout === "stacked";
   const translatedTitle: string | ReactElement | undefined = translateValue(
     props.title,
@@ -71,7 +137,7 @@ const Card: FunctionComponent<ComponentProps> = (
     return (props.buttons || []).map(
       (button: CardButtonSchema | ReactElement, i: number) => {
         return (
-          <div key={i} className="flex items-center">
+          <div key={i} className={CARD_HEADER_ACTION_CLASS_NAME}>
             {React.isValidElement(button) ? button : null}
             {React.isValidElement(button) ? null : (
               <Button
@@ -104,7 +170,7 @@ const Card: FunctionComponent<ComponentProps> = (
       <h2
         data-testid="card-details-heading"
         id="card-details-heading"
-        className="text-lg font-semibold leading-6 text-gray-900"
+        className="text-lg font-semibold leading-6 text-gray-900 text-balance break-words"
       >
         {translatedTitle}
       </h2>
@@ -120,82 +186,79 @@ const Card: FunctionComponent<ComponentProps> = (
       </p>
     );
 
-  const titleAndDescription: ReactElement = (
-    <React.Fragment>
-      {titleElement}
-      {descriptionElement}
-    </React.Fragment>
-  );
+  const actionsElement: ReactElement | null = hasActions ? (
+    <div
+      data-testid="card-header-actions"
+      className={`${CARD_HEADER_ACTIONS_CLASS_NAME}${
+        isStacked ? "" : " md:flex-shrink-0"
+      }`}
+    >
+      {props.rightElement && (
+        <div className="flex items-center">{props.rightElement}</div>
+      )}
+      {hasButtons && renderButtons()}
+    </div>
+  ) : null;
 
   /*
-   * Button carries a left margin for the side-by-side header (ml-1 or
-   * md:ml-3, depending on its style). On a row of its own that margin only
-   * pushes the first button off the title's left edge, and the gap already
-   * spaces the rest, so it is cleared here.
+   * The title and the actions share one line that wraps: side by side while
+   * the actions leave the title its share, the actions on the next line - at
+   * the right edge - when they do not (see the title block's class above).
+   * On a phone the two are centred on each other; from md up their tops are
+   * level, as in the default header. The description is not on that line,
+   * so its length cannot push the actions off it: it runs under both, across
+   * the card's whole width.
    */
   const stackedHeader: ReactElement = (
     <div data-testid="card-header" data-header-layout="stacked">
-      <div className="w-full min-w-0">{titleAndDescription}</div>
-      {(props.rightElement || hasButtons) && (
+      {(titleElement || actionsElement) && (
         <div
-          data-testid="card-header-actions"
-          className="mt-3 flex flex-wrap items-center gap-2 [&_button]:ml-0 [&_button]:md:ml-0"
+          data-testid="card-header-title-row"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start"
         >
-          {props.rightElement && (
-            <div className="flex items-center">{props.rightElement}</div>
+          {titleElement && (
+            <div
+              data-testid="card-header-title-block"
+              className={
+                actionsElement
+                  ? CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME
+                  : "w-full min-w-0"
+              }
+            >
+              {titleElement}
+            </div>
           )}
-          {hasButtons && renderButtons()}
+          {actionsElement}
         </div>
       )}
-    </div>
-  );
-
-  /*
-   * The title and what is on the right share one row that wraps: beside
-   * each other while both fit, and the right element under the title, at
-   * its left edge, when they do not (a long badge on a phone). The title is
-   * never squeezed into two lines to make room. The description is not part
-   * of that row, so its length cannot push the right element off it.
-   */
-  const inlineHeader: ReactElement = (
-    <div data-testid="card-header" data-header-layout="inline">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        {titleElement}
-        {(props.rightElement || hasButtons) && (
-          <div
-            data-testid="card-header-actions"
-            className="flex flex-wrap items-center gap-2 [&_button]:ml-0 [&_button]:md:ml-0"
-          >
-            {props.rightElement && (
-              <div className="flex items-center">{props.rightElement}</div>
-            )}
-            {hasButtons && renderButtons()}
-          </div>
-        )}
-      </div>
       {descriptionElement}
     </div>
   );
 
+  /*
+   * From md up the title and the description are one block on the left, and
+   * the actions sit beside it at the right edge, their top level with the
+   * title's. Below md the description is hidden, so the title and the
+   * actions share a line the way the stacked header's do: centred on each
+   * other while they fit, the actions on the next line, at the right edge,
+   * when they do not.
+   */
   const defaultHeader: ReactElement = (
-    <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+    <div
+      data-testid="card-header"
+      data-header-layout="default"
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"
+    >
       <div
-        className={`${noRightElementsOrButtons ? "w-full" : "flex-1 min-w-0"}`}
+        data-testid="card-header-title-block"
+        className={
+          hasActions ? CARD_HEADER_TITLE_BLOCK_CLASS_NAME : "w-full min-w-0"
+        }
       >
-        {titleAndDescription}
+        {titleElement}
+        {descriptionElement}
       </div>
-      {(props.rightElement || hasButtons) && (
-        <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center">
-          {props.rightElement && (
-            <div className="mb-2 md:mb-0 md:mr-3">{props.rightElement}</div>
-          )}
-          {hasButtons && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {renderButtons()}
-            </div>
-          )}
-        </div>
-      )}
+      {actionsElement}
     </div>
   );
 
@@ -204,11 +267,7 @@ const Card: FunctionComponent<ComponentProps> = (
       <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
           <div className="py-6 px-5 md:px-6">
-            {isStacked
-              ? stackedHeader
-              : props.headerLayout === "inline"
-                ? inlineHeader
-                : defaultHeader}
+            {isStacked ? stackedHeader : defaultHeader}
 
             {props.children && (
               <div className={props.bodyClassName || "mt-4"}>

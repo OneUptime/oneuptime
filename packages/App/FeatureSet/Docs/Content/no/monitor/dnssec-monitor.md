@@ -30,7 +30,7 @@ DNSSEC-monitorer validerer hele tillitskjeden fra rotsonen og ned til ditt domen
 | Resolvere                   | Kommaseparert liste over validerende resolvere som skal spørres (f.eks. `1.1.1.1, 8.8.8.8, 9.9.9.9`)   | Ja      |
 | Sjekk navneserverkonsistens | Spør hver autoritative navneserver direkte og verifiserer at de returnerer det samme SOA-serienummeret | Nei     |
 
-### Avanserte innstillinger
+### Flere felt
 
 | Felt                            | Beskrivelse                                                                  | Standard |
 | ------------------------------- | ---------------------------------------------------------------------------- | -------- |

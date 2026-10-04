@@ -2,14 +2,30 @@ import Field, { FormFieldCollapsibleSection } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 import FormValues from "../Types/FormValues";
 import { getPeoplePickerValueKeys } from "../../PeoplePicker/PeoplePickerTypes";
+import Color from "../../../../Types/Color";
+import IconProp from "../../../../Types/Icon/IconProp";
+import {
+  MORE_FIELDS_SECTION_TITLE as FOLDED_MORE_FIELDS_TITLE,
+  MORE_SECTION_ICON,
+} from "../../FoldedSection/FoldedSectionTitles";
 
 /*
- * "Advanced" in a form: the options most people never need, folded under one
- * header so the form shows only what matters. The maintainer, on the Create
- * Custom Field form: "options like 'Show on create' and stuff ... should be
- * hidden in the advanced section of the page. There should be an advanced
- * section, which should be collapsed by default. You can expand it and click
- * on those options."
+ * "More fields" in a form: the options most people never need, folded under
+ * one header so the form shows only what matters. The maintainer, on the
+ * Create Custom Field form: "options like 'Show on create' and stuff ...
+ * should be hidden in the advanced section of the page. There should be an
+ * advanced section, which should be collapsed by default. You can expand it
+ * and click on those options." And later, on what it was called: "The
+ * advanced section in the form should be called something better - like
+ * 'more' or something as such ... show what things are inside it when
+ * collapsed (small summary of things)."
+ *
+ * So it is called "More fields": more of the same form's fields, nothing an
+ * expert has to unlock. Not "More options" - that is what the ⋯ button on
+ * every card and table row is called, so a fold of that name would share
+ * it with a menu. Its page-level twin, which folds settings cards, is "More
+ * settings" (AdvancedPageSection). The builder keeps its old name, so the
+ * forms that call it did not all have to change.
  *
  * How to use it. Build the section once and hand the same one to every field
  * that goes in it, written one after another at the end of the list (or of
@@ -22,30 +38,39 @@ import { getPeoplePickerValueKeys } from "../../PeoplePicker/PeoplePickerTypes";
  *     { ...anotherOption, collapsibleSection: advanced },
  *   ]
  *
- * What the user gets (BasicForm, CollapsibleFormSection):
+ * What the user gets (BasicForm, CollapsibleFormSection, FoldedSection):
  *   - the section starts folded, on Create and on Edit alike;
- *   - while folded it says "Configured" on its header when any field in it
- *     holds a value other than empty or its default, so an Edit form never
- *     hides that something is set;
+ *   - folded, its header lists the fields in it by name ("Declared At ·
+ *     Initial State · Labels · Private Incident") and draws each one that
+ *     holds a value other than empty or its default as a chip that says
+ *     what it is set to ("Labels: 2", "Private Incident: On") - so an Edit
+ *     form never hides that something is set, nor what;
+ *   - with getSummary, a sentence under that line says what its defaults
+ *     do ("The key expires a year from today.");
  *   - it opens by itself when a field in it fails validation;
  *   - folded fields keep their values, are skipped by Tab, and are still
  *     submitted.
  *
  * Works inside a stepped form too: give the fields the step's stepId as
  * well. Tests/Helpers/FormStepsScan counts a section as one row when it
- * judges whether a form or a step is too long, so options moved under
- * Advanced stop counting against the LongFormStepsGuard and
- * OverloadedFormStepsGuard limits.
+ * judges whether a form or a step is too long, so options moved under More
+ * fields stop counting against the LongFormStepsGuard and
+ * OverloadedFormStepsGuard limits. FoldedSectionsGuard keeps every fold of
+ * rarely needed options built here, under this one name.
  */
 
 export const ADVANCED_FORM_SECTION_ID: string = "advanced";
 
-export const ADVANCED_FORM_SECTION_TITLE: string = "Advanced";
+// What the section is called in every form (looked up when it is drawn).
+export const MORE_FIELDS_SECTION_TITLE: string = FOLDED_MORE_FIELDS_TITLE;
+
+// The icon in its header's tile: things to adjust.
+export const MORE_FIELDS_SECTION_ICON: IconProp = MORE_SECTION_ICON;
 
 export interface AdvancedFormSectionOptions<TEntity> {
   /*
-   * Only needed when one step has two Advanced sections that must not be
-   * merged; fields with the same id that are next to each other are one
+   * Only needed when one step has two More fields sections that must not
+   * be merged; fields with the same id that are next to each other are one
    * section.
    */
   id?: string | undefined;
@@ -53,15 +78,17 @@ export interface AdvancedFormSectionOptions<TEntity> {
   description?: string | undefined;
   /*
    * When "set" means something else than "any field in the section holds a
-   * value other than empty or its default".
+   * value other than empty or its default". While it says no, the folded
+   * header draws no field as set.
    */
   isConfigured?: ((values: FormValues<TEntity>) => boolean) | undefined;
   /*
-   * What a default folded in here will do, in plain words under the title
-   * while the section is folded (FormFieldCollapsibleSection.getSummary) -
-   * for a default people should know about without opening Advanced, such
-   * as "The key expires a year from today." Whole English sentences in
-   * translationKey(). Return nothing to fall back to the "Configured" badge.
+   * What a default folded in here will do, in plain words under the list of
+   * fields while the section is folded (FormFieldCollapsibleSection
+   * .getSummary) - for a default people should know about without opening
+   * the section, such as "The key expires a year from today." Whole English
+   * sentences in translationKey(). Return nothing when the chips of the set
+   * fields say all there is to say.
    */
   getSummary?:
     | ((values: FormValues<TEntity>) => Array<string> | undefined)
@@ -77,9 +104,12 @@ export const getAdvancedFormSection: GetAdvancedFormSectionFunction = <TEntity>(
 ): FormFieldCollapsibleSection<TEntity> => {
   const section: FormFieldCollapsibleSection<TEntity> = {
     id: options?.id || ADVANCED_FORM_SECTION_ID,
-    title: ADVANCED_FORM_SECTION_TITLE,
-    // Folded on Edit too: "Configured" on the header says something is set.
+    title: MORE_FIELDS_SECTION_TITLE,
+    // Folded on Edit too: the chips on its header say what is set.
     openWhenConfigured: false,
+    // Its title says nothing of what is in it, so its header lists it.
+    listFieldsWhileFolded: true,
+    icon: MORE_FIELDS_SECTION_ICON,
   };
 
   if (options?.description) {
@@ -116,9 +146,12 @@ type NormalizeValueFunction = (value: unknown) => unknown;
 
 /*
  * A dropdown can hold the option it was picked as ({ label, value }) rather
- * than its value; the value is what is compared.
+ * than its value; the value is what is compared. Exported for builders that
+ * read a form's values the same way (SmtpConfig/SmtpConfigFormFields).
  */
-const normalizeValue: NormalizeValueFunction = (value: unknown): unknown => {
+export const normalizeFormValue: NormalizeValueFunction = (
+  value: unknown,
+): unknown => {
   if (
     isPlainObject(value) &&
     Object.prototype.hasOwnProperty.call(value, "value") &&
@@ -129,6 +162,15 @@ const normalizeValue: NormalizeValueFunction = (value: unknown): unknown => {
 
   if (value instanceof Date) {
     return value.getTime();
+  }
+
+  /*
+   * A colour is held as the Color the picker gives or as the text a Create
+   * form starts with ("#6366f1", Utils/CreateFormDefaults): the same colour
+   * either way.
+   */
+  if (value instanceof Color) {
+    return value.toString().trim().toLowerCase();
   }
 
   return value;
@@ -169,7 +211,8 @@ export type IsFormFieldValueSetFunction = <TEntity>(
  * Whether a field holds something of the user's: a value other than empty
  * or the field's default. A switch is set when it is not in its default
  * position (off, unless its default is on); a people picker when anyone is
- * picked. What a folded section's "Configured" is worked out from.
+ * picked. Folded, such a field is a chip on its section's header
+ * (FoldedFormFields).
  */
 export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
   field: Field<TEntity>,
@@ -199,7 +242,25 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     return false;
   }
 
-  const value: unknown = normalizeValue(formValues[fieldName]);
+  // A default that follows other fields: the field says when it holds it.
+  if (field.isAtDefault && field.isAtDefault(values)) {
+    return false;
+  }
+
+  /*
+   * A colour field's text is a colour too: "#6366F1" typed into a default
+   * and the Color the picker hands back are the same colour.
+   */
+  const normalize: (raw: unknown) => unknown = (raw: unknown): unknown => {
+    const normalized: unknown = normalizeFormValue(raw);
+
+    return field.fieldType === FormFieldSchemaType.Color &&
+      typeof normalized === "string"
+      ? normalized.trim().toLowerCase()
+      : normalized;
+  };
+
+  const value: unknown = normalize(formValues[fieldName]);
 
   let defaultValue: unknown = field.defaultValue;
 
@@ -207,7 +268,15 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     defaultValue = field.getDefaultValue(values);
   }
 
-  defaultValue = normalizeValue(defaultValue);
+  /*
+   * No default of its own: its column's, which ModelForm hands an Edit form
+   * too - there the field does not start from it, the record does.
+   */
+  if (defaultValue === undefined) {
+    defaultValue = field.columnDefaultValue;
+  }
+
+  defaultValue = normalize(defaultValue);
 
   // Never touched: whatever it is, it is what the form starts with.
   if (value === undefined || value === null) {
@@ -242,8 +311,10 @@ export type IsFormSectionConfiguredFunction = <TEntity>(data: {
 }) => boolean;
 
 /**
- * Whether a folded section should say "Configured": what its own
- * isConfigured says, or - without one - whether any of its fields is set.
+ * Whether anything in a section is set: what its own isConfigured says, or -
+ * without one - whether any of its fields is set. A section that opens when
+ * configured opens on it; folded, a section that says no draws none of its
+ * fields as set.
  */
 export const isFormSectionConfigured: IsFormSectionConfiguredFunction = <
   TEntity,

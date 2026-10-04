@@ -680,7 +680,7 @@ describe("the summary card's header and empty states", () => {
     ).toBeNull();
   });
 
-  test("the description can be overridden, and defaults to the old copy", () => {
+  test("the description can be overridden, and defaults to what the card shows", () => {
     renderCard({
       description: "What each probe saw on its most recent check.",
     });
@@ -695,7 +695,7 @@ describe("the summary card's header and empty states", () => {
 
     renderCard({});
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "Here is how your monitor is performing at this moment.",
+      "The most recent check of this monitor, and how the criteria judged it.",
     );
   });
 });

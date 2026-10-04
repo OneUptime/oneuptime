@@ -354,7 +354,8 @@ export default class TraceRecordingRule extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
-    description: "Evaluation order when multiple rules exist.",
+    description:
+      "Not read when rules are evaluated: every enabled rule is evaluated each minute, on its own, whatever this holds. The dashboard lists rules by name.",
     defaultValue: 0,
   })
   @Column({

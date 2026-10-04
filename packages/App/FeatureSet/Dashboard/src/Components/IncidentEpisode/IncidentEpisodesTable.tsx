@@ -305,7 +305,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           buttons: cardbuttons,
           description:
             props.description ||
-            "Here is a list of incident episodes for this project.",
+            "Episodes group related incidents so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
         emptyState={props.emptyState}

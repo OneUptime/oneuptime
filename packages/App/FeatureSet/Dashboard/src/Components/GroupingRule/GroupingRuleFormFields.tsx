@@ -10,20 +10,29 @@ import {
   GroupingRuleKind,
   GroupingRuleValues,
   INACTIVITY_TIMEOUT_SETTING_FIELD_KEY,
+  LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+  LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN,
+  LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN,
+  LegacyDefaultAssignee,
+  LegacyDefaultAssigneeChange,
   REOPEN_WINDOW_SETTING_FIELD_KEY,
   RESOLVE_DELAY_SETTING_FIELD_KEY,
   SHOW_ADVANCED_SETTINGS_FIELD_KEY,
   TIME_WINDOW_SETTING_FIELD_KEY,
   getGroupingMode,
+  getLegacyDefaultAssignee,
   getMinutesSettingDisplay,
   getMinutesValidationError,
   getSelectedGroupingMode,
   getValuesForGroupingModeChange,
+  getValuesForLegacyDefaultAssigneeChange,
   hasAdvancedSettings,
   isGroupingMode,
+  isLegacyDefaultAssigneeChange,
 } from "../../Utils/GroupingRule/GroupingRuleSetup";
 import GroupingModeField from "./GroupingModeField";
 import { translateGroupingRuleText } from "./GroupingRuleTranslate";
+import LegacyDefaultAssigneeNote from "./LegacyDefaultAssigneeNote";
 import MinutesSettingField, {
   MinutesSettingValue,
 } from "./MinutesSettingField";
@@ -237,8 +246,6 @@ export const getGroupingModeFormField: <TModel extends BaseModel>(
     description: GROUPING_RULE_COPY.modeFieldDescription[kind],
     stepId: "grouping",
     fieldType: FormFieldSchemaType.CustomComponent,
-    // Writes only the answer picked; the form starts from the rule's own.
-    customElementCanBeSkipped: true,
     required: false,
     hideOptionalLabel: true,
     spanFullRow: true,
@@ -300,8 +307,6 @@ export const getTimeWindowFormField: <TModel extends BaseModel>(
     stepId: "grouping",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -370,8 +375,6 @@ export const getReopenWindowFormField: <TModel extends BaseModel>(
     stepId: "episode-lifecycle",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -412,8 +415,6 @@ export const getResolveDelayFormField: <TModel extends BaseModel>(
     stepId: "episode-lifecycle",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -454,8 +455,6 @@ export const getInactivityTimeoutFormField: <TModel extends BaseModel>(
     stepId: "episode-lifecycle",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -580,6 +579,98 @@ export const getGroupingRuleColumnFormFields: <
       required: false,
       showIf: (): boolean => {
         return false;
+      },
+    },
+  ];
+};
+
+/*
+ * A rule's old default assignee (see EPISODE_OWNERS_FIELD_KEY in
+ * GroupingRuleSetup). The form no longer asks for one, but a rule saved with
+ * it keeps it, so its two columns are registered - never drawn - for the
+ * edit form to read and, once somebody settles it, clear; and a line under
+ * Episode Owners names it, with Add as owners and Remove.
+ */
+export const getLegacyDefaultAssigneeFormFields: <
+  TModel extends BaseModel,
+>() => Array<ModelField<TModel>> = <TModel extends BaseModel>(): Array<
+  ModelField<TModel>
+> => {
+  return [
+    {
+      field: selectColumn<TModel>(LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN),
+      title: "Default Assign To Team ID",
+      stepId: "on-call-ownership",
+      fieldType: FormFieldSchemaType.ObjectID,
+      required: false,
+      showIf: (): boolean => {
+        return false;
+      },
+    },
+    {
+      field: selectColumn<TModel>(LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN),
+      title: "Default Assign To User ID",
+      stepId: "on-call-ownership",
+      fieldType: FormFieldSchemaType.ObjectID,
+      required: false,
+      showIf: (): boolean => {
+        return false;
+      },
+    },
+    {
+      overrideField: {
+        defaultAssignToUserId: true,
+      },
+      overrideFieldKey: LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+      formOnly: true,
+      title: GROUPING_RULE_COPY.legacyAssigneeTitle,
+      stepId: "on-call-ownership",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      customElementDrawsOwnLabel: true,
+      required: false,
+      spanFullRow: true,
+      dataTestId: "legacy-default-assignee-field",
+      // Only while the rule still has one: never on a new rule.
+      showIf: (values: FormValues<TModel>): boolean => {
+        return getLegacyDefaultAssignee(asValues(values)) !== null;
+      },
+      onChange: (
+        value: unknown,
+        currentValues: FormValues<TModel>,
+        setNewFormValues: (values: FormValues<TModel>) => void,
+      ): void => {
+        if (!isLegacyDefaultAssigneeChange(value)) {
+          return;
+        }
+
+        setNewFormValues({
+          ...currentValues,
+          ...getValuesForLegacyDefaultAssigneeChange({
+            values: asValues(currentValues),
+            change: value,
+          }),
+        } as FormValues<TModel>);
+      },
+      getCustomElement: (
+        values: FormValues<TModel>,
+        props: CustomElementProps,
+      ): ReactElement => {
+        const assignee: LegacyDefaultAssignee | null = getLegacyDefaultAssignee(
+          asValues(values),
+        );
+
+        if (!assignee) {
+          return <></>;
+        }
+
+        return (
+          <LegacyDefaultAssigneeNote
+            assignee={assignee}
+            onChange={(change: LegacyDefaultAssigneeChange): void => {
+              props.onChange?.(change);
+            }}
+          />
+        );
       },
     },
   ];

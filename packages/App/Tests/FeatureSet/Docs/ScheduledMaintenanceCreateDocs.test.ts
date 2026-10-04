@@ -103,13 +103,85 @@ describe("the scheduled maintenance create form in the docs", () => {
     expect(ENGLISH_GUIDE).toContain("the review step shows it too");
   });
 
-  test("puts the options the form folds under Advanced there", () => {
+  test("puts the options the form folds under More fields there", () => {
     expect(ENGLISH_GUIDE).toContain(
-      "**Change Monitor Status to** waits under **Advanced**",
+      "**Owners** and **Labels** wait under **More fields**",
     );
+  });
+
+  /*
+   * Resources Affected asks for the monitors apart from everything else,
+   * with Change Monitor Status to right under them once one is picked - it
+   * is no longer folded under More fields.
+   */
+  test("walks Resources Affected as the form draws it: the monitors, their status, then the other resources", () => {
+    for (const title of [
+      "Monitors",
+      "Change Monitor Status to",
+      "Other Affected Resources",
+    ]) {
+      expect(CREATE_FORM).toContain(`title: "${title}"`);
+    }
+
+    const step: string | undefined = ENGLISH_GUIDE.split("\n").find(
+      (line: string): boolean => {
+        return line.startsWith("2. **Resources Affected**");
+      },
+    );
+
+    expect(step).toBeDefined();
+
+    const monitorsAt: number = step!.indexOf("**Monitors**");
+    const statusAt: number = step!.indexOf("**Change Monitor Status to**");
+    const othersAt: number = step!.indexOf("**Other Affected Resources**");
+    const statusPagesAt: number = step!.indexOf(
+      "**Show event on these status pages**",
+    );
+
+    expect(monitorsAt).toBeGreaterThan(-1);
+    expect(statusAt).toBeGreaterThan(monitorsAt);
+    expect(othersAt).toBeGreaterThan(statusAt);
+    expect(statusPagesAt).toBeGreaterThan(othersAt);
+    expect(step).toContain("right under them once a monitor is picked");
+    expect(step).toContain("back to operational when it ends");
+    expect(step).not.toContain("**More fields**");
+
+    // A record's tab picks it among the other resources.
     expect(ENGLISH_GUIDE).toContain(
-      "**Owners** and **Labels** wait under **Advanced**",
+      "already picked under **Other Affected Resources**",
     );
+    // A template always asks for the status.
+    expect(ENGLISH_GUIDE).toContain(
+      "A template asks for **Change Monitor Status to** whether or not it names monitors",
+    );
+  });
+
+  test("no guide says the monitor status waits under More fields, or that sites have a picker of their own", () => {
+    const retired: Array<string> = [
+      "**Change Monitor Status to** waits under **More fields**",
+      "the event's **Resources Affected** picker",
+    ];
+    const problems: Array<string> = [];
+
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      for (const guide of [GUIDE, "monitor/network-sites.md"]) {
+        const file: string = path.join(CONTENT_DIR, language, guide);
+
+        if (!fs.existsSync(file)) {
+          continue;
+        }
+
+        const text: string = fs.readFileSync(file, "utf8");
+
+        for (const sentence of retired) {
+          if (text.includes(sentence)) {
+            problems.push(`${language}/${guide}: ${sentence}`);
+          }
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
   });
 
   test("no guide sends readers to the old form's steps or labels", () => {

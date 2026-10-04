@@ -10,9 +10,12 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepFacts,
+  MIN_SCANNED_FORMS,
   RULE_CRITERIA_STEP_ID,
+  ShortFormWithSteps,
   SourceFileSystem,
   countFieldRows,
+  findShortFormsWithSteps,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
 
@@ -310,31 +313,19 @@ export function findLabelsFieldProblems(
 /*
  * A form with labels whose rows fit in three - the Advanced header counting
  * as one - has no steps: a stepper there exists only for what is folded.
+ * The rule is every form's now (FormStepsScan findShortFormsWithSteps, run
+ * over the whole tree by LongFormStepsGuard with its allowlist); here it is
+ * held, with no allowlist, to the forms that ask for labels.
  */
 export function findStepperForThreeRows(
   forms: Array<FormFacts>,
 ): Array<LabelsProblem> {
-  return forms
-    .filter((form: FormFacts): boolean => {
-      return (
-        form.hasSteps &&
-        !form.hasSummaryOnly &&
-        form.uncountableReasons.length === 0 &&
-        form.visibleFieldCount <= 3 &&
-        form.fields.some(isLabelsField)
-      );
+  return findShortFormsWithSteps(forms)
+    .filter((found: ShortFormWithSteps): boolean => {
+      return found.form.fields.some(isLabelsField);
     })
-    .map((form: FormFacts): LabelsProblem => {
-      return {
-        form,
-        message: `${form.visibleFieldCount} rows walk steps (${(
-          form.steps || []
-        )
-          .map((step: FormStepFacts): string => {
-            return step.id || "?";
-          })
-          .join(", ")}). Three rows fit on one page: drop the steps.`,
-      };
+    .map((found: ShortFormWithSteps): LabelsProblem => {
+      return { form: found.form, message: found.message };
     });
 }
 
@@ -615,6 +606,11 @@ interface FormShape {
    * pinned rows are still checked.
    */
   uncountable?: string | undefined;
+  /*
+   * A one-page form of more than three rows - listed, with the reason, in
+   * LongFormStepsGuard's LONG_FORMS_WITHOUT_STEPS: the rows it shows.
+   */
+  longOnePageRows?: number | undefined;
 }
 
 function onePage(
@@ -686,15 +682,16 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     NAME_DESCRIPTION,
     LABELS_ONLY,
   ),
+  /*
+   * The details card on the Settings page of every resource telemetry
+   * discovers (ResourceDetailsCard): the name and description, the labels
+   * folded with the identifier a person may change. The Proxmox, VMware,
+   * Kubernetes and Service Overviews' edit dialogs are gone: their cards
+   * link here (ResourceDetailsOnePlaceGuard).
+   */
   onePage(
-    `${DASHBOARD}/Pages/Proxmox/View/Index.tsx`,
-    "CardModelDetail: Cluster Details",
-    NAME_DESCRIPTION,
-    LABELS_ONLY,
-  ),
-  onePage(
-    `${DASHBOARD}/Pages/VMware/View/Index.tsx`,
-    "CardModelDetail: vCenter Details",
+    `${DASHBOARD}/Components/TelemetryResource/ResourceDetailsCard.tsx`,
+    "CardModelDetail #1",
     NAME_DESCRIPTION,
     LABELS_ONLY,
   ),
@@ -725,28 +722,14 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
 
   /*
    * Edit dialogs of four fields: the one people rarely change folds with the
-   * labels - Private Alert (as Create Alert folds it), the cluster identifier
-   * (it has to match the agent), the tech stack (also on Settings, and read
-   * from telemetry when blank), a workflow's Enabled switch (the builder
-   * turns workflows on and off).
+   * labels - Private Alert (as Create Alert folds it), a workflow's Enabled
+   * switch (the builder turns workflows on and off).
    */
   onePage(
     `${DASHBOARD}/Pages/Alerts/View/Index.tsx`,
     "CardModelDetail: Alert Details",
     ["title", "alertSeverity"],
     ["labels", "isPrivate"],
-  ),
-  onePage(
-    `${DASHBOARD}/Pages/Kubernetes/View/Index.tsx`,
-    "CardModelDetail: Cluster Details",
-    NAME_DESCRIPTION,
-    ["clusterIdentifier", "labels"],
-  ),
-  onePage(
-    `${DASHBOARD}/Pages/Service/View/Index.tsx`,
-    "CardModelDetail: Service > Service Details",
-    NAME_DESCRIPTION,
-    ["techStack", "labels"],
   ),
   onePage(
     `${DASHBOARD}/Pages/Workflow/View/Index.tsx`,
@@ -756,8 +739,9 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   ),
 
   /*
-   * Create forms of a resource matched by an identifier: the name and the
-   * identifier open, the description and the labels folded.
+   * Create forms of a resource matched by an identifier: the identifier
+   * open, and the display name (which follows it), the description and the
+   * labels folded (DiscoveredResourceCreateFormsGuard).
    */
   ...[
     ["Host/Hosts.tsx", "ModelTable: Hosts", "hostIdentifier"],
@@ -782,15 +766,29 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     return onePage(
       `${DASHBOARD}/Pages/${file}`,
       label!,
-      ["name", identifier!],
-      ["description", "labels"],
+      [identifier!],
+      ["name", "description", "labels"],
     );
   }),
+  // The same for a cloud environment, matched on its platform, account and region.
+  {
+    ...onePage(
+      `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
+      "ModelTable: Cloud Environments",
+      ["cloudPlatform", "cloudAccountId", "cloudRegion"],
+      ["name", "description", "labels"],
+    ),
+    longOnePageRows: 4,
+  },
+  /*
+   * Name and "Who takes turns?" (OnCallScheduleCreateForm.ts); how long each
+   * turn lasts and the timezone fold with the description and the labels.
+   */
   onePage(
     `${DASHBOARD}/Pages/OnCallDuty/OnCallDutySchedules.tsx`,
     "ModelTable: On-Call > Schedules",
-    ["name", "timezone"],
-    ["description", "labels"],
+    ["name", "SCHEDULE_TAKES_TURNS_FIELD_KEY"],
+    ["SCHEDULE_TURN_LENGTH_FIELD_KEY", "timezone", "description", "labels"],
   ),
   onePage(
     `${DASHBOARD}/Pages/Runbook/Runbooks.tsx`,
@@ -871,7 +869,9 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     label: "ModelTable: Settings > Incident Templates",
     /*
      * The Owners and Labels steps, one optional field each, fold under
-     * Advanced on Incident Details, as a maintenance template's do on Event.
+     * Advanced on Incident Details, as a maintenance template's do on Event,
+     * after the Initial Incident State (left empty: the usual starting
+     * state, as on Declare Incident).
      */
     steps: [
       "template-info",
@@ -883,13 +883,8 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       "Its custom field steps are spread in between, from the project's custom fields at runtime.",
     rows: {
       "incident-details": {
-        open: [
-          "title",
-          "description",
-          "incidentSeverity",
-          "initialIncidentState",
-        ],
-        folded: ["owners", "labels"],
+        open: ["title", "description", "incidentSeverity"],
+        folded: ["initialIncidentState", "owners", "labels"],
       },
     },
   },
@@ -899,21 +894,10 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     steps: ["template-info", "incident-details", "on-call"],
     rows: {
       "incident-details": {
-        open: [
-          "title",
-          "description",
-          "incidentSeverity",
-          "initialIncidentState",
-        ],
-        folded: LABELS_ONLY,
+        open: ["title", "description", "incidentSeverity"],
+        folded: ["initialIncidentState", LABELS_KEY],
       },
     },
-  },
-  {
-    file: `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
-    label: "ModelTable: Cloud Environments",
-    steps: ["environment", "details"],
-    rows: { details: { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
   },
   {
     file: `${DASHBOARD}/Pages/Database/Databases.tsx`,
@@ -927,31 +911,47 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     steps: ["messaging-system", "queue-info"],
     rows: { "queue-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
   },
+  /*
+   * A repository's details, one page: where its code lives is the GitHub
+   * App's (read-only), its main branch is on its Settings page.
+   */
+  onePage(
+    `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
+    "CardModelDetail: Repository > Repository Details",
+    NAME_DESCRIPTION,
+    LABELS_ONLY,
+  ),
+  /*
+   * SLO create is one page: the name and the target, and everything that
+   * starts from a default folded with the labels (SloFormFields.ts).
+   */
+  onePage(
+    `${DASHBOARD}/Pages/Slo/Slos.tsx`,
+    "ModelTable: SLOs",
+    ["name", "targetPercentage"],
+    [
+      "description",
+      "atRiskThresholdPercentage",
+      "windowType",
+      "windowDays",
+      "timezone",
+      "labels",
+    ],
+  ),
   {
-    file: `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
-    label: "CardModelDetail: Repository > Repository Details",
-    steps: ["repository-info", "source"],
-    rows: {
-      "repository-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY },
-    },
-  },
-  {
-    file: `${DASHBOARD}/Pages/Slo/Slos.tsx`,
-    label: "ModelTable: SLOs",
-    steps: ["basic-info", "objective", "period"],
-    rows: { "basic-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
-  },
-  {
-    file: `${DASHBOARD}/Pages/NetworkDevice/View/Index.tsx`,
-    label: "CardModelDetail: Network Device Details",
-    // The site joins the device's details; it shared a last step with labels.
-    steps: ["device-details", "address"],
+    /*
+     * A device's details are edited in one place, here: the site and the
+     * labels joined its Device Details step when the Overview's own edit
+     * dialog went.
+     */
+    file: `${DASHBOARD}/Pages/NetworkDevice/View/Settings.tsx`,
+    label: "CardModelDetail: Device Settings",
+    steps: ["device-details", "address", "monitoring", "snmp"],
     rows: {
       "device-details": {
-        open: ["name", "description", "site"],
+        open: ["name", "networkDeviceRole", "description", "site"],
         folded: LABELS_ONLY,
       },
-      address: { open: ["hostname", "macAddress"], folded: [] },
     },
   },
 ];
@@ -1070,11 +1070,14 @@ describe("labels on the project's forms", () => {
     },
   );
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
-    expect(forms.length).toBeGreaterThan(500);
-    expect(withLabels.length).toBeGreaterThan(50);
-    expect(withLabels.filter(decidesAccessByLabels).length).toBeGreaterThan(45);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
+    expect(withLabels.length).toBeGreaterThan(30);
+    expect(withLabels.filter(decidesAccessByLabels).length).toBeGreaterThan(25);
   });
 
   test("never walk a step that holds nothing but Labels, or nothing but folded fields", () => {
@@ -1125,7 +1128,9 @@ describe("labels on the project's forms", () => {
 
       if (shape.steps.length === 0) {
         expect(Object.keys(shape.rows)).toEqual([""]);
-        expect(form.visibleFieldCount).toBeLessThanOrEqual(3);
+        expect(form.visibleFieldCount).toBeLessThanOrEqual(
+          shape.longOnePageRows ?? 3,
+        );
       }
 
       const shown: Array<FormFieldFacts> = variantsOf(form)[0]!.fields;

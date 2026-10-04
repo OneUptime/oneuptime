@@ -156,7 +156,7 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
     <FeedCard
       title={"On Call Duty Policy Feed"}
       description={
-        "This is the timeline and feed for this on call duty policy. You can see all the updates and information about this on call duty policy here."
+        "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}

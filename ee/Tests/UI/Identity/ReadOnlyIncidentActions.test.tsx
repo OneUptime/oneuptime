@@ -31,7 +31,9 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * core and never read-only, so the four single sign-on pages offer no
  * "Disable" row action and no notice, stay fully editable and never ask for
  * the license - checked here with an expired license, in the Enterprise
- * bundle.
+ * bundle. Settings > SSO's "Require SSO for Login" is the real switch, which
+ * reads the project and saves the moment it is flipped: it stays unlocked
+ * and saves without the license being asked for.
  *
  * The model tables are stand-ins that behave like the real ones where it
  * matters: they load rows from a fake server, show the page's row actions
@@ -39,6 +41,12 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * server applies accepted updates, so a reload shows what the server now
  * holds. Billing is pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true.
+ *
+ * The pages' own requests go through API.fetch, and only one to the license
+ * route counts as asking for the license (mockLicenseFetch). The others -
+ * the switches reading their project or status page, Settings > OIDC
+ * looking up the members team its new providers start on - get canned
+ * answers (mockServerFetch).
  */
 
 let billingEnabledForTest: boolean = false;
@@ -60,13 +68,23 @@ jest.mock("Common/UI/Config", () => {
 });
 
 const mockLicenseFetch: jest.Mock = jest.fn();
+const mockServerFetch: jest.Mock = jest.fn();
 
 jest.mock("Common/UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
       fetch: (...args: Array<unknown>): unknown => {
-        return mockLicenseFetch(...args);
+        const request: { url?: unknown } | undefined = args[0] as
+          | { url?: unknown }
+          | undefined;
+
+        // GET /api/global-config/license, whoever asks for it.
+        if (String(request?.url).includes("/global-config/license")) {
+          return mockLicenseFetch(...args);
+        }
+
+        return mockServerFetch(...args);
       },
       // The real message extraction: what an admin sees for a 402.
       getFriendlyMessage: (err: unknown): string => {
@@ -226,15 +244,26 @@ import SettingsOIDCPage from "@oneuptime/dashboard/Pages/Settings/OIDC";
 import StatusPageSSOPage from "@oneuptime/dashboard/Pages/StatusPages/View/SSO";
 import StatusPageOIDCPage from "@oneuptime/dashboard/Pages/StatusPages/View/OIDC";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import RequireSsoForLoginSwitchCopy, {
+  REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID,
+} from "@oneuptime/dashboard/Components/Project/RequireSsoForLoginSwitchCopy";
+import {
+  STATUS_PAGE_REQUIRE_SSO_SWITCH_TEST_ID,
+  StatusPageRequireSsoCopy,
+} from "@oneuptime/dashboard/Components/StatusPage/StatusPageAccessCopy";
+import Project from "Common/Models/DatabaseModels/Project";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionUtil from "Common/UI/Utils/Permission";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -294,13 +323,24 @@ const SCIM_CASES: Array<ScimCase> = [
   },
 ];
 
+/*
+ * A page's "Require SSO for Login" switch, which saves on flip: the
+ * project's on Settings > SSO, the status page's on its SSO page.
+ */
+interface RequireSsoSwitchCase {
+  testId: string;
+  modelType: ModelType;
+  id: string;
+  confirmTitle: string;
+}
+
 interface SsoCase {
   name: string;
   render: () => ReactElement;
   path: string;
   table: string;
   viewAction: string;
-  hasForceSsoCard: boolean;
+  requireSsoSwitch: RequireSsoSwitchCase | null;
 }
 
 const SSO_CASES: Array<SsoCase> = [
@@ -310,7 +350,12 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/settings/sso`,
     table: "sso-table",
     viewAction: "View SSO Config",
-    hasForceSsoCard: true,
+    requireSsoSwitch: {
+      testId: REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID,
+      modelType: Project,
+      id: PROJECT_ID,
+      confirmTitle: RequireSsoForLoginSwitchCopy.requireConfirmTitle,
+    },
   },
   {
     name: "Settings > OIDC",
@@ -318,7 +363,7 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/settings/oidc`,
     table: "oidc-table",
     viewAction: "View OIDC Config",
-    hasForceSsoCard: false,
+    requireSsoSwitch: null,
   },
   {
     name: "Status page > SSO",
@@ -326,7 +371,12 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
     table: "sso-table",
     viewAction: "View SSO Config",
-    hasForceSsoCard: true,
+    requireSsoSwitch: {
+      testId: STATUS_PAGE_REQUIRE_SSO_SWITCH_TEST_ID,
+      modelType: StatusPage,
+      id: STATUS_PAGE_ID,
+      confirmTitle: StatusPageRequireSsoCopy.confirmTitle,
+    },
   },
   {
     name: "Status page > OIDC",
@@ -334,7 +384,7 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
     table: "oidc-table",
     viewAction: "View OIDC Config",
-    hasForceSsoCard: false,
+    requireSsoSwitch: null,
   },
 ];
 
@@ -395,6 +445,50 @@ const fakeUpdateById: (request: {
   return new HTTPResponse<JSONObject>(200, {}, {});
 };
 
+/*
+ * The canned answer to every request that is not the license request: the
+ * project, for the "Require SSO for Login" switch's read of
+ * requireSsoForLogin, and an empty list for a list read (Settings > OIDC
+ * looks up the members team its new providers start on).
+ */
+const answerServer: (request: {
+  method: unknown;
+  url: { toString: () => string };
+}) => Promise<HTTPResponse<JSONObject | JSONArray>> = async (request: {
+  method: unknown;
+  url: { toString: () => string };
+}): Promise<HTTPResponse<JSONObject | JSONArray>> => {
+  const url: string = request.url.toString();
+
+  if (url.endsWith(`/project/${PROJECT_ID}/get-item`)) {
+    return new HTTPResponse<JSONObject>(
+      200,
+      { _id: PROJECT_ID, requireSsoForLogin: false },
+      {},
+    );
+  }
+
+  if (url.endsWith(`/status-page/${STATUS_PAGE_ID}/get-item`)) {
+    return new HTTPResponse<JSONObject>(
+      200,
+      { _id: STATUS_PAGE_ID, requireSsoForLogin: false },
+      {},
+    );
+  }
+
+  if (url.endsWith("/get-list")) {
+    return new HTTPResponse<JSONArray>(
+      200,
+      { data: [], count: 0, skip: 0, limit: 0 },
+      {},
+    );
+  }
+
+  throw new Error(
+    `The fake server has no answer for ${String(request.method)} ${url}`,
+  );
+};
+
 const answerLicense: (payload: JSONObject) => void = (
   payload: JSONObject,
 ): void => {
@@ -448,6 +542,8 @@ const settle: () => Promise<void> = async (): Promise<void> => {
 beforeEach(() => {
   billingEnabledForTest = false;
   mockLicenseFetch.mockReset();
+  mockServerFetch.mockReset();
+  mockServerFetch.mockImplementation(answerServer as never);
   updateCalls = [];
   serverFailure = null;
 
@@ -725,6 +821,10 @@ describe.each(SSO_CASES)(
   (ssoCase: SsoCase) => {
     test("no Disable action and no notice: the configuration stays fully editable, and the license is never asked for", async () => {
       answerLicense(READ_ONLY_LICENSE);
+      // A project owner, whom the Require SSO switch is unlocked for.
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.ProjectOwner]);
       mockTableRows[ssoCase.table] = [
         { _id: ENABLED_ROW_ID, name: "Okta", isEnabled: true },
         { _id: DISABLED_ROW_ID, name: "Old IdP", isEnabled: false },
@@ -754,10 +854,23 @@ describe.each(SSO_CASES)(
         ).toBeInTheDocument();
       }
 
-      if (ssoCase.hasForceSsoCard) {
-        expect(
-          screen.getByTestId("card-model-detail-SSO Settings"),
-        ).toHaveAttribute("data-editable", "true");
+      // No page keeps an Edit dialog for requiring SSO.
+      expect(
+        screen.queryByTestId("card-model-detail-SSO Settings"),
+      ).not.toBeInTheDocument();
+
+      /*
+       * The real "Require SSO for Login" switch: once it has read its
+       * project or status page, it is unlocked - an expired license has no
+       * say in it.
+       */
+      const requireSso: HTMLElement | null = ssoCase.requireSsoSwitch
+        ? await screen.findByTestId(ssoCase.requireSsoSwitch.testId)
+        : null;
+
+      if (requireSso) {
+        expect(requireSso).toHaveAttribute("aria-checked", "false");
+        expect(requireSso).not.toHaveAttribute("aria-disabled");
       }
 
       expect(
@@ -768,6 +881,27 @@ describe.each(SSO_CASES)(
       ).not.toBeInTheDocument();
       expect(mockLicenseFetch).not.toHaveBeenCalled();
       expect(updateCalls).toEqual([]);
+
+      if (requireSso && ssoCase.requireSsoSwitch) {
+        // And it saves: requiring SSO asks first, then sends that column.
+        fireEvent.click(requireSso);
+
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          ssoCase.requireSsoSwitch.confirmTitle,
+        );
+
+        await submit();
+
+        expect(updateCalls).toEqual([
+          {
+            modelType: ssoCase.requireSsoSwitch.modelType,
+            id: ssoCase.requireSsoSwitch.id,
+            data: { requireSsoForLogin: true },
+          },
+        ]);
+        expect(requireSso).toHaveAttribute("aria-checked", "true");
+        expect(mockLicenseFetch).not.toHaveBeenCalled();
+      }
     });
   },
 );

@@ -14,13 +14,14 @@ import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import {
+  EPISODE_OWNERS_FIELD_KEY,
+  EPISODE_OWNER_TEAMS_COLUMN,
+  EPISODE_OWNER_USERS_COLUMN,
   GROUPING_RULE_COPY,
   GROUPING_RULE_TEMPLATES,
   GroupingRuleKind,
@@ -33,6 +34,7 @@ import {
   getGroupingModeFormField,
   getGroupingRuleColumnFormFields,
   getInactivityTimeoutFormField,
+  getLegacyDefaultAssigneeFormFields,
   getReopenWindowFormField,
   getResolveDelayFormField,
   getShowAdvancedSettingsFormField,
@@ -625,15 +627,17 @@ const AlertGroupingRulesPage: FunctionComponent<
               "Labels to automatically attach to episodes created by this rule.",
             placeholder: "Select Labels (optional)",
           },
-          // On-call and ownership of the episodes this rule opens
+          /*
+           * On-call and ownership of the episodes this rule opens: fields
+           * that each say what they do, so the step needs no headings.
+           */
           {
             field: {
               onCallDutyPolicies: true,
             },
             title: "On-Call Duty Policies",
             stepId: "on-call-ownership",
-            sectionTitle: "Policies to Execute",
-            sectionDescription:
+            description:
               "On-call policies to fire when an episode is created by this rule.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
@@ -645,39 +649,23 @@ const AlertGroupingRulesPage: FunctionComponent<
             placeholder: "Select On-Call Policies",
             spanFullRow: true,
           },
-          {
-            field: {
-              defaultAssignToTeam: true,
-            },
-            title: "Default Assign To Team",
+          /*
+           * People and teams in one picker, saved to the rule's
+           * episodeOwnerUsers and episodeOwnerTeams: the engine makes them
+           * owners of every episode the rule opens. It replaced a Default
+           * Assign To Team and User pair that nothing ever showed; a rule
+           * that still has one gets a line about it just below.
+           */
+          getOwnersFormField<AlertGroupingRule>({
+            fieldKey: EPISODE_OWNERS_FIELD_KEY,
+            usersKey: EPISODE_OWNER_USERS_COLUMN,
+            teamsKey: EPISODE_OWNER_TEAMS_COLUMN,
+            title: GROUPING_RULE_COPY.episodeOwnersTitle,
+            description: GROUPING_RULE_COPY.episodeOwnersDescription,
             stepId: "on-call-ownership",
-            sectionTitle: "Default Assignees",
-            sectionDescription:
-              "The team and user new episodes are assigned to by default. Both are optional.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Team",
-          },
-          {
-            field: {
-              defaultAssignToUser: true,
-            },
-            title: "Default Assign To User",
-            stepId: "on-call-ownership",
-            fieldType: FormFieldSchemaType.Dropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select User",
-          },
+            spanFullRow: true,
+          }),
+          ...getLegacyDefaultAssigneeFormFields<AlertGroupingRule>(),
         ]}
         showRefreshButton={true}
       />

@@ -439,6 +439,43 @@ export const getMeasurementChartSummaryFormField: <
 };
 
 /*
+ * "Show on incident pages": whether each event's own page lists this
+ * measurement, in its Measurements card (EventMeasurementsCard). On, as the
+ * server has it, so a measurement shows where people look from day one;
+ * written out here as well, so an Edit form compares a stored value with
+ * the same default the Create form starts from.
+ */
+export const getMeasurementShowOnViewFormField: <
+  TModel extends BaseModel,
+>(options: {
+  // showOnIncidentView, showOnAlertView or showOnScheduledMaintenanceView.
+  column: string;
+  stepId: string;
+  title: string;
+  description: string;
+  collapsibleSection: FormFieldCollapsibleSection<TModel>;
+}) => ModelField<TModel> = <TModel extends BaseModel>(options: {
+  column: string;
+  stepId: string;
+  title: string;
+  description: string;
+  collapsibleSection: FormFieldCollapsibleSection<TModel>;
+}): ModelField<TModel> => {
+  return {
+    field: column<TModel>(options.column),
+    title: options.title,
+    description: options.description,
+    stepId: options.stepId,
+    collapsibleSection: options.collapsibleSection,
+    fieldType: FormFieldSchemaType.Toggle,
+    defaultValue: true,
+    required: false,
+    hideOptionalLabel: true,
+    dataTestId: "measurement-show-on-view",
+  };
+};
+
+/*
  * The columns the moments are saved in, registered so the form loads and
  * saves them; never shown. A new measurement starts where most do.
  */

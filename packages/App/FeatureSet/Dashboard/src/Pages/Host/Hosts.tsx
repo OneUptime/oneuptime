@@ -28,6 +28,11 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -301,9 +306,11 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   /*
-   * The create form asks for what a host cannot be created without: its
-   * name and the identifier its telemetry reports. The description and the
-   * labels fold under Advanced, so the form is three rows and has no steps.
+   * The create form asks for the one thing a host cannot be created
+   * without: the host.name its telemetry reports. The display name follows
+   * it - a host added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
    */
   const advancedSection: FormFieldCollapsibleSection<Host> =
     getAdvancedFormSection<Host>();
@@ -362,26 +369,22 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         showViewIdButton={true}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-host-1",
-          },
-          {
+          getIdentityFormField<Host>({
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Host Name (host.name)",
             placeholder: "host-prod-1",
             description:
-              "This should match the host.name attribute reported by the OTel collector.",
-          },
+              "Exactly as your OpenTelemetry Collector reports it. Telemetry is matched to this host by its host name.",
+          }),
+          getDisplayNameFormField<Host>({
+            getDefaultName: getNameFromIdentityField<Host>("hostIdentifier"),
+            placeholder: "Production web server",
+            description:
+              "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
@@ -408,7 +411,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
+            title: "Host Name (host.name)",
             type: FieldType.Text,
           },
           {

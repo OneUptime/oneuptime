@@ -29,15 +29,20 @@ interface SharedContext {
 }
 
 /*
- * Real form, real authentication and real persistence. A temporary project
- * isolates the keys and is deleted even when a test fails. No telemetry is
- * ingested. Billing-enabled runs use the shared Stripe test-mode fixture.
+ * Settings > Telemetry Ingestion Keys > Create, for real: real form, real
+ * authentication and real persistence. A Server key is one page - its name
+ * filled in, Server picked, the description folded under More fields - and
+ * the new key opens on its own page, where its secret is. A Browser key
+ * walks on to its allowed origins; the Free plan (billing-enabled runs) to
+ * the pricing, which has to be shown before the key can be created. A
+ * temporary project isolates the keys and is deleted even when a test
+ * fails. No telemetry is ingested.
  *
  * cd packages/E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
  *   npx playwright test Tests/Dashboard/TelemetryIngestionKeys.spec.ts \
  *   --project=chromium --retries=0
  */
-test.describe("Telemetry ingestion key creation wizard", () => {
+test.describe("Creating a telemetry ingestion key", () => {
   test.describe.configure({ mode: "serial" });
 
   const ctx: SharedContext = {
@@ -59,54 +64,67 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     return getCardButton(ctx.page, "Create Ingestion Key");
   };
 
-  // The dialog's main button: Next while it walks, then Create Ingestion Key.
+  /*
+   * The dialog's main button, Create Ingestion Key: on the last step only.
+   * Every other step shows a plain Next instead.
+   */
   const mainButton: () => Locator = (): Locator => {
     return modal().getByTestId("modal-footer-submit-button");
   };
 
-  /*
-   * The one button that reads Next: the main button while a step still to
-   * come asks for something (or, on the Free plan, the Billing step has not
-   * been read), and the plain one beside Create Ingestion Key once every
-   * step left is optional.
-   */
   const nextButton: () => Locator = (): Locator => {
-    return modal().getByRole("button", { name: "Next", exact: true });
+    return modal().getByTestId("modal-footer-next-button");
   };
 
+  // Walks on with the plain Next, the one way on from a step but the last.
   const next: () => Promise<void> = async (): Promise<void> => {
-    await expect(
-      modal().getByRole("button", { name: "Back", exact: true }),
-    ).toHaveCount(0);
-    await expect(nextButton()).toHaveCount(1);
-    await nextButton().click();
+    const button: Locator = modal().getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
+    await expect(button).toHaveCount(1);
+    await expect(mainButton()).toHaveCount(0);
+    await button.click();
   };
 
-  const fillDetails: (
-    name: string,
-    description?: string,
-  ) => Promise<void> = async (
-    name: string,
-    description?: string,
-  ): Promise<void> => {
-    await modal()
-      .getByPlaceholder("Ingestion Key Name", { exact: true })
-      .fill(name);
-    if (description) {
-      await modal()
-        .getByPlaceholder("Ingestion Key Description", { exact: true })
-        .fill(description);
-    }
+  /*
+   * The footer's one way on from a step: Next, or Create Ingestion Key on
+   * the last step. Both check the step on screen first.
+   */
+  const wayOn: (data: { isLastStep: boolean }) => Locator = (data: {
+    isLastStep: boolean;
+  }): Locator => {
+    return data.isLastStep ? mainButton() : nextButton();
+  };
+
+  const nameInput: () => Locator = (): Locator => {
+    return modal().getByPlaceholder("Ingestion Key Name", { exact: true });
+  };
+
+  const card: (keyType: "Server" | "Browser") => Locator = (
+    keyType: "Server" | "Browser",
+  ): Locator => {
+    return modal().getByTestId(`card-select-option-${keyType}`);
+  };
+
+  // The More fields header on the step on screen.
+  const advanced: () => Locator = (): Locator => {
+    return modal().getByRole("button", { name: "More fields", exact: true });
+  };
+
+  const progressList: () => Locator = (): Locator => {
+    return modal().getByRole("navigation", { name: "Progress" });
+  };
+
+  const activeStep: () => Locator = (): Locator => {
+    return modal().locator('[aria-current="step"]');
   };
 
   const returnToStep: (title: string) => Promise<void> = async (
     title: string,
   ): Promise<void> => {
-    await modal()
-      .getByRole("navigation", { name: "Progress" })
-      .getByText(title, { exact: true })
-      .click();
-    await expect(modal().locator('[aria-current="step"]')).toHaveText(title);
+    await progressList().getByText(title, { exact: true }).click();
+    await expect(activeStep()).toHaveText(title);
   };
 
   // The Allowed Origins code editor: a textarea named by the field's label.
@@ -116,9 +134,8 @@ test.describe("Telemetry ingestion key creation wizard", () => {
 
   /*
    * fill() replaces the document exactly - unbalanced brackets included,
-   * which is what the Browser Settings validation cases need - and fires
-   * the input event the form listens to. Focus then moves on, as a
-   * person's would.
+   * which is what the validation cases need - and fires the input event the
+   * form listens to. Focus then moves on, as a person's would.
    */
   const fillOrigins: (value: string) => Promise<void> = async (
     value: string,
@@ -126,23 +143,43 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(originsInput()).toBeVisible({ timeout: 30000 });
     await originsInput().fill(value);
     await expect(originsInput()).toHaveValue(value);
-    await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
+    // Focus moves on, as a person's would.
+    await modal().getByTestId("modal-title").click();
   };
 
-  const review: () => Promise<void> = async (): Promise<void> => {
+  const pickType: (keyType: "Server" | "Browser") => Promise<void> = async (
+    keyType: "Server" | "Browser",
+  ): Promise<void> => {
+    await card(keyType).click();
+    await expect(card(keyType)).toHaveAttribute("aria-checked", "true");
+  };
+
+  // From the Key step of a Browser key to its Browser Settings step.
+  const goToBrowserSettings: () => Promise<void> = async (): Promise<void> => {
+    await pickType("Browser");
+    // Key is not the last step now: Next, and no Create.
+    await expect(mainButton()).toHaveCount(0);
     await next();
+    await expect(activeStep()).toHaveText("Browser Settings");
+    await expect(originsInput()).toBeVisible();
+  };
+
+  /*
+   * On the Free plan, the pricing on the Billing step - the last one - is
+   * shown before the key can be created; elsewhere the step on screen is
+   * the last, and creates it.
+   */
+  const readyToCreate: () => Promise<void> = async (): Promise<void> => {
     if (IS_BILLING_ENABLED) {
+      await expect(mainButton()).toHaveCount(0);
+      await next();
       await expect(
         modal().getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();
+      await expect(activeStep()).toHaveText("Billing");
       await expect(modal().getByRole("checkbox")).toHaveCount(0);
-      await next();
     }
-    await expect(modal().locator('[aria-current="step"]')).toHaveText(
-      "Summary",
-    );
     await expect(mainButton()).toHaveText("Create Ingestion Key");
-    await expect(nextButton()).toHaveCount(0);
   };
 
   const fetchKeys: (name: string) => Promise<Array<StoredKey>> = async (
@@ -177,17 +214,27 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     return body.data;
   };
 
+  /*
+   * Creates the key and lands on its page, where the secret is, then reads
+   * back what was stored.
+   */
   const createAndRead: (name: string) => Promise<StoredKey> = async (
     name: string,
   ): Promise<StoredKey> => {
-    // Reaching Summary must not create a key as a side effect of Next.
+    // Nothing is created on the way here.
     expect(await fetchKeys(name)).toEqual([]);
     await expect(mainButton()).toHaveText("Create Ingestion Key");
     await mainButton().click();
     await expect(modal()).toBeHidden({ timeout: 30000 });
-    await expect(
-      ctx.page.getByRole("row").filter({ hasText: name }),
-    ).toBeVisible({ timeout: 30000 });
+    await expect(ctx.page).toHaveURL(
+      new RegExp(
+        `/dashboard/${ctx.projectId}/settings/telemetry-ingestion-keys/[a-f0-9-]+`,
+      ),
+      { timeout: 60000 },
+    );
+    await expect(ctx.page.locator('[role="hidden-text"]').first()).toBeVisible({
+      timeout: 60000,
+    });
     const keys: Array<StoredKey> = await fetchKeys(name);
     expect(keys).toHaveLength(1);
     return keys[0]!;
@@ -200,7 +247,7 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     });
     ctx.projectId = await registerAndCreateProject({
       page: ctx.page,
-      projectNamePrefix: "E2E Ingestion Key Wizard",
+      projectNamePrefix: "E2E Ingestion Key Form",
       preferredPlanName: "Free",
     });
     ctx.ingestionKeysUrl = URL.fromString(BASE_URL.toString())
@@ -218,7 +265,7 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     });
     await createButton().click();
     await expect(modal()).toBeVisible();
-    await expect(nextButton()).toBeVisible();
+    await expect(nameInput()).toHaveValue("Server key");
   });
 
   test.afterAll(async () => {
@@ -240,133 +287,129 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     }
   });
 
-  test("validates Details before showing Key Type and preserves fields when returning", async () => {
-    const name: Locator = modal().getByPlaceholder("Ingestion Key Name", {
-      exact: true,
-    });
-    const description: Locator = modal().getByPlaceholder(
-      "Ingestion Key Description",
-      { exact: true },
-    );
-    await expect(name).toBeVisible();
-    await expect(description).toBeVisible();
-    await expect(modal().getByTestId("card-select-option-Server")).toHaveCount(
-      0,
-    );
+  test("opens with the name filled in, Server picked and the description folded", async () => {
+    await expect(card("Server")).toHaveAttribute("aria-checked", "true");
+    await expect(card("Browser")).toHaveAttribute("aria-checked", "false");
+    await expect(advanced()).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      modal().getByPlaceholder("Ingestion Key Description", { exact: true }),
+    ).toBeHidden();
     await expect(
       modal().getByText("Allowed Origins", { exact: true }),
     ).toHaveCount(0);
     await expect(
-      modal().getByRole("region", { name: "Telemetry pricing" }),
+      modal().getByRole("button", { name: "Back", exact: true }),
     ).toHaveCount(0);
+    await expect(modal().getByText("Summary", { exact: true })).toHaveCount(0);
 
-    await next();
+    if (IS_BILLING_ENABLED) {
+      // The Free plan's pricing is a step of its own, still to be shown.
+      await expect(progressList().getByRole("listitem")).toHaveText([
+        "Key",
+        "Billing",
+      ]);
+      // Create is on the last step only: a plain Next here.
+      await expect(mainButton()).toHaveCount(0);
+      await expect(nextButton()).toHaveText("Next");
+    } else {
+      // One page: nothing to walk.
+      await expect(progressList()).toHaveCount(0);
+      await expect(mainButton()).toHaveText("Create Ingestion Key");
+    }
+
+    await modal().getByTestId("modal-footer-close-button").click();
+  });
+
+  test("refuses a missing or short name before anything is created", async () => {
+    // On the Free plan Key walks on to Billing; elsewhere it is the one page.
+    const keyStepWayOn: Locator = wayOn({ isLastStep: !IS_BILLING_ENABLED });
+
+    await nameInput().fill("");
+    await keyStepWayOn.click();
     await expect(
       modal().getByText("Name is required.", { exact: true }),
     ).toBeVisible();
-    await expect(name).toBeVisible();
-    await name.fill("x");
-    await next();
+
+    await nameInput().fill("x");
+    await keyStepWayOn.click();
     await expect(
       modal().getByText("Name cannot be less than 2 characters.", {
         exact: true,
       }),
     ).toBeVisible();
+    await expect(modal()).toBeVisible();
+    expect(await fetchKeys("x")).toEqual([]);
 
-    await fillDetails("Validated draft key", "Preserved across form steps.");
-    await next();
-    await expect(name).toHaveCount(0);
-    await expect(description).toHaveCount(0);
-    await expect(
-      modal().getByTestId("card-select-option-Server"),
-    ).toHaveAttribute("aria-checked", "true");
-    await returnToStep("Details");
-    await expect(name).toHaveValue("Validated draft key");
-    await expect(description).toHaveValue("Preserved across form steps.");
-    expect(await fetchKeys("Validated draft key")).toEqual([]);
+    await modal().getByTestId("modal-footer-close-button").click();
   });
 
-  test("offers Create Ingestion Key once every step left is optional, and not before the Free plan's Billing step is read", async () => {
-    const name: string = "Server key created early";
-    await fillDetails(name);
+  test("the name follows the type until a name of one's own is typed", async () => {
+    await pickType("Browser");
+    await expect(nameInput()).toHaveValue("Browser key");
+    await pickType("Server");
+    await expect(nameInput()).toHaveValue("Server key");
 
-    if (IS_BILLING_ENABLED) {
-      // The pricing on the Billing step is read before a key can be created.
-      await expect(mainButton()).toHaveText("Next");
-      await next();
-      await expect(mainButton()).toHaveText("Next");
-      await next();
-      await expect(
-        modal().getByRole("region", { name: "Telemetry pricing", exact: true }),
-      ).toBeVisible();
-    }
+    await nameInput().fill("Name of my own");
+    await pickType("Browser");
+    await expect(nameInput()).toHaveValue("Name of my own");
 
-    // Only optional steps are left: the main button creates the key.
-    await expect(mainButton()).toHaveText("Create Ingestion Key");
-    await expect(modal().getByTestId("modal-footer-next-button")).toHaveText(
-      "Next",
-    );
-    await expect(
-      modal().getByRole("button", { name: "Back", exact: true }),
-    ).toHaveCount(0);
-
-    const key: StoredKey = await createAndRead(name);
-    expect(key.keyType).toBe("Server");
+    await modal().getByTestId("modal-footer-close-button").click();
   });
 
-  test("creates a Server key only after the summary and keeps Description optional", async () => {
-    const name: string = "Server wizard key";
-    await fillDetails(name);
-    await next();
-    await expect(
-      modal().getByTestId("card-select-option-Server"),
-    ).toHaveAttribute("aria-checked", "true");
-    await expect(
-      modal().getByTestId("card-select-option-Browser"),
-    ).toHaveAttribute("aria-checked", "false");
-    await review();
-    await expect(modal().getByText(name, { exact: true })).toBeVisible();
-    await expect(modal().getByText("Server", { exact: true })).toBeVisible();
-    await expect(
-      modal().getByText("Allowed Origins", { exact: true }),
-    ).toHaveCount(0);
+  test("creates a Server key from the first page and opens it, where its secret is", async () => {
+    const name: string = "Server one-page key";
+    await nameInput().fill(name);
+    await readyToCreate();
 
     const key: StoredKey = await createAndRead(name);
     expect(key.name).toBe(name);
     expect(key.keyType).toBe("Server");
     expect(key.description || "").toBe("");
+    expect(key.allowedOrigins || []).toEqual([]);
   });
 
-  test("validates Browser origins, preserves its settings, and stores the reviewed values", async () => {
-    const name: string = "Browser wizard key";
+  test("a Browser key: origins checked on their own step, the pinned service under More fields, stored as entered", async () => {
+    const name: string = "Browser form key";
     const description: string = "Public telemetry for the storefront.";
     const origins: Array<string> = [
       "https://app.example.com",
       "https://*.example.org",
     ];
     const serviceName: string = "e2e-storefront-web";
-    await fillDetails(name, description);
-    await next();
 
-    // Exercise the radio group's keyboard activation as well as pointer use.
-    await modal().getByTestId("card-select-option-Server").focus();
+    // The type with the keyboard, as well as the pointer elsewhere.
+    await card("Server").focus();
     await ctx.page.keyboard.press("ArrowRight");
-    await expect(
-      modal().getByTestId("card-select-option-Browser"),
-    ).toBeFocused();
+    await expect(card("Browser")).toBeFocused();
     await ctx.page.keyboard.press("Space");
-    await expect(
-      modal().getByTestId("card-select-option-Browser"),
-    ).toHaveAttribute("aria-checked", "true");
-    await expect(
-      modal().getByText("Allowed Origins", { exact: true }),
-    ).toHaveCount(0);
+    await expect(card("Browser")).toHaveAttribute("aria-checked", "true");
+    await expect(nameInput()).toHaveValue("Browser key");
+    await nameInput().fill(name);
+    await advanced().click();
+    await modal()
+      .getByPlaceholder("Ingestion Key Description", { exact: true })
+      .fill(description);
+
+    await expect(progressList().getByRole("listitem")).toHaveText(
+      IS_BILLING_ENABLED
+        ? ["Key", "Browser Settings", "Billing"]
+        : ["Key", "Browser Settings"],
+    );
+    await expect(mainButton()).toHaveCount(0);
     await next();
+    await expect(activeStep()).toHaveText("Browser Settings");
+
+    // The pinned service name waits under this step's More fields.
     await expect(
       modal().getByPlaceholder("storefront-web", { exact: true }),
-    ).toBeVisible();
+    ).toBeHidden();
 
-    await next();
+    // On the Free plan Billing follows; elsewhere this is the last step.
+    const browserStepWayOn: Locator = wayOn({
+      isLastStep: !IS_BILLING_ENABLED,
+    });
+
+    await browserStepWayOn.click();
     await expect(
       modal().getByText("Allowed Origins is required.", { exact: true }),
     ).toBeVisible();
@@ -376,13 +419,11 @@ test.describe("Telemetry ingestion key creation wizard", () => {
       "   ",
     ]) {
       await fillOrigins(invalidJSON);
-      await next();
+      await browserStepWayOn.click();
       await expect(
         modal().getByText(/Allowed Origins is not valid JSON\./),
       ).toBeVisible();
-      await expect(modal().locator('[aria-current="step"]')).toHaveText(
-        "Browser Settings",
-      );
+      await expect(activeStep()).toHaveText("Browser Settings");
     }
     for (const invalidOrigins of [
       {
@@ -403,38 +444,33 @@ test.describe("Telemetry ingestion key creation wizard", () => {
       },
     ]) {
       await fillOrigins(invalidOrigins.value);
-      await next();
+      await browserStepWayOn.click();
       await expect(
         modal().getByText(invalidOrigins.error, { exact: true }),
       ).toBeVisible();
-      await expect(modal().locator('[aria-current="step"]')).toHaveText(
-        "Browser Settings",
-      );
-      await expect(
-        modal().getByPlaceholder("storefront-web", { exact: true }),
-      ).toBeVisible();
+      await expect(activeStep()).toHaveText("Browser Settings");
     }
+
     await fillOrigins(JSON.stringify(origins));
+    await advanced().click();
     await modal()
       .getByPlaceholder("storefront-web", { exact: true })
       .fill(serviceName);
-    await returnToStep("Key Type");
-    await expect(
-      modal().getByTestId("card-select-option-Browser"),
-    ).toHaveAttribute("aria-checked", "true");
-    await next();
-    await expect(
-      modal().getByPlaceholder("storefront-web", { exact: true }),
-    ).toHaveValue(serviceName);
-    await expect(originsInput()).toHaveValue(JSON.stringify(origins));
-    await review();
-    await expect(modal().getByText(name, { exact: true })).toBeVisible();
-    await expect(modal().getByText(description, { exact: true })).toBeVisible();
-    await expect(modal().getByText(serviceName, { exact: true })).toBeVisible();
-    await expect(
-      modal().getByText("Allowed Origins", { exact: true }),
-    ).toBeVisible();
 
+    /*
+     * Back on Key and forward again: everything is still there. Every step
+     * left is filled in now, and Key still shows Next, not Create: the key
+     * is created from the last step only.
+     */
+    await returnToStep("Key");
+    await expect(nameInput()).toHaveValue(name);
+    await expect(card("Browser")).toHaveAttribute("aria-checked", "true");
+    await expect(mainButton()).toHaveCount(0);
+    await next();
+    await expect(activeStep()).toHaveText("Browser Settings");
+    await expect(originsInput()).toHaveValue(JSON.stringify(origins));
+
+    await readyToCreate();
     const key: StoredKey = await createAndRead(name);
     expect(key).toMatchObject({
       name,
@@ -445,113 +481,84 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     });
   });
 
-  test("switching back to Server skips Browser Settings and removes them from the summary", async () => {
-    const name: string = "Changed to server wizard key";
-    await fillDetails(name, "Changed my mind before creating this key.");
-    await next();
-    await modal().getByTestId("card-select-option-Browser").click();
-    await next();
+  test("switching back to Server drops the Browser Settings step and its drafts", async () => {
+    const name: string = "Changed to server key";
+    await goToBrowserSettings();
     // An incomplete browser draft must not block the Server path.
     await fillOrigins('["unfinished');
+    await advanced().click();
     await modal()
       .getByPlaceholder("storefront-web", { exact: true })
       .fill("discarded-browser-service");
-    await returnToStep("Key Type");
-    await modal().getByTestId("card-select-option-Server").click();
-    await review();
-    await expect(
-      modal().getByText("Allowed Origins", { exact: true }),
-    ).toHaveCount(0);
-    await expect(
-      modal().getByText("Pinned Service Name", { exact: true }),
-    ).toHaveCount(0);
-    await expect(
-      modal().getByText("discarded-browser-service", { exact: true }),
-    ).toHaveCount(0);
+
+    await returnToStep("Key");
+    await pickType("Server");
+    await expect(nameInput()).toHaveValue("Server key");
+    if (IS_BILLING_ENABLED) {
+      await expect(progressList().getByRole("listitem")).toHaveText([
+        "Key",
+        "Billing",
+      ]);
+    } else {
+      await expect(progressList()).toHaveCount(0);
+    }
+    await nameInput().fill(name);
+    await readyToCreate();
+
     const key: StoredKey = await createAndRead(name);
     expect(key.keyType).toBe("Server");
+    expect(key.allowedOrigins || []).toEqual([]);
+    expect(key.pinnedServiceName || "").toBe("");
   });
 
-  test("cancelling a Browser draft reopens at Details with the default Server type", async () => {
-    const name: string = "Cancelled browser wizard key";
-    await fillDetails(name, "This draft must not be submitted.");
-    await next();
-    await modal().getByTestId("card-select-option-Browser").click();
-    await next();
+  test("a cancelled Browser draft reopens as a fresh Server key", async () => {
+    const name: string = "Cancelled browser key";
+    await nameInput().fill(name);
+    await goToBrowserSettings();
     await fillOrigins('["https://cancelled.example.com"]');
     await modal().getByTestId("modal-footer-close-button").click();
     await expect(modal()).toBeHidden();
     expect(await fetchKeys(name)).toEqual([]);
 
     await createButton().click();
-    await expect(
-      modal().getByPlaceholder("Ingestion Key Name", { exact: true }),
-    ).toHaveValue("");
-    await expect(
-      modal().getByPlaceholder("Ingestion Key Description", { exact: true }),
-    ).toHaveValue("");
-    await fillDetails("Fresh draft after cancel");
-    await next();
-    await expect(
-      modal().getByTestId("card-select-option-Server"),
-    ).toHaveAttribute("aria-checked", "true");
-    await expect(
-      modal().getByTestId("card-select-option-Browser"),
-    ).toHaveAttribute("aria-checked", "false");
+    await expect(nameInput()).toHaveValue("Server key");
+    await expect(card("Server")).toHaveAttribute("aria-checked", "true");
+    await expect(card("Browser")).toHaveAttribute("aria-checked", "false");
     await modal().getByTestId("modal-footer-close-button").click();
   });
 
-  test("shows mobile step progress without a Back button and reviews the entered values", async () => {
+  test("on a narrow screen: no Back button, and the step count follows the type", async () => {
     await ctx.page.setViewportSize({ width: 390, height: 844 });
-    const name: string = "Mobile browser draft";
-    const description: string = "Created from a narrow screen.";
-    const serviceName: string = "mobile-storefront-web";
-    const origin: string = "https://mobile.example.com";
-    const serverStepCount: number = IS_BILLING_ENABLED ? 4 : 3;
-    const browserStepCount: number = serverStepCount + 1;
     /*
      * The form's step indicator. It is not the modal's only live region: the
      * Allowed Origins code editor has its own status bar.
      */
-    const progress: Locator = modal()
+    const stepCount: Locator = modal()
       .getByRole("status")
       .filter({ hasText: /^Step \d+ of \d+/ });
     const backButton: Locator = modal().getByRole("button", {
       name: "Back",
       exact: true,
     });
+    const serverSteps: number = IS_BILLING_ENABLED ? 2 : 1;
+    const browserSteps: number = serverSteps + 1;
 
     await expect(backButton).toHaveCount(0);
-    await expect(progress).toBeVisible();
-    await expect(progress).toContainText(`Step 1 of ${serverStepCount}`);
-    await expect(progress).toContainText("Details");
-    await fillDetails(name, description);
-    await next();
-    await expect(backButton).toHaveCount(0);
-    await expect(progress).toContainText(`Step 2 of ${serverStepCount}`);
-    await expect(progress).toContainText("Key Type");
-    await modal().getByTestId("card-select-option-Browser").click();
-    await expect(progress).toContainText(`Step 2 of ${browserStepCount}`);
-    await next();
-    await expect(progress).toContainText(`Step 3 of ${browserStepCount}`);
-    await expect(progress).toContainText("Browser Settings");
-    await fillOrigins(JSON.stringify([origin]));
-    await modal()
-      .getByPlaceholder("storefront-web", { exact: true })
-      .fill(serviceName);
+    if (serverSteps === 1) {
+      // One page: no "Step 1 of 1".
+      await expect(stepCount).toHaveCount(0);
+    } else {
+      await expect(stepCount).toContainText(`Step 1 of ${serverSteps}`);
+    }
 
-    await review();
+    await pickType("Browser");
+    await expect(stepCount).toContainText(`Step 1 of ${browserSteps}`);
+    await expect(stepCount).toContainText("Key");
+    await next();
+    await expect(stepCount).toContainText(`Step 2 of ${browserSteps}`);
+    await expect(stepCount).toContainText("Browser Settings");
     await expect(backButton).toHaveCount(0);
-    await expect(progress).toContainText(
-      `Step ${browserStepCount} of ${browserStepCount}`,
-    );
-    await expect(progress).toContainText("Summary");
-    await expect(modal().getByText(name, { exact: true })).toBeVisible();
-    await expect(modal().getByText(description, { exact: true })).toBeVisible();
-    await expect(modal().getByText(serviceName, { exact: true })).toBeVisible();
-    await expect(modal().getByTestId("modal-content")).toContainText(origin);
-    await expect(mainButton()).toBeVisible();
-    expect(await fetchKeys(name)).toEqual([]);
+    await expect(originsInput()).toBeVisible();
     await modal().getByTestId("modal-footer-close-button").click();
   });
 });

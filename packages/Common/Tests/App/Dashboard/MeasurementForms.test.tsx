@@ -194,6 +194,11 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import {
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 type Page = FunctionComponent<PageComponentProps>;
 
@@ -228,6 +233,8 @@ interface PageCase {
   endStateRole: string;
   startState: string;
   endState: string;
+  // The switch that lists it on each event's page.
+  showOnView: { column: string; title: string };
   // A saved measurement: starts at Timeline Start, ends at a role.
   saved: {
     // What Timeline Start is: the same instant as another moment.
@@ -276,6 +283,10 @@ const PAGES: Array<PageCase> = [
     endStateRole: "endIncidentStateRole",
     startState: "startIncidentState",
     endState: "endIncidentState",
+    showOnView: {
+      column: "showOnIncidentView",
+      title: "Show on incident pages",
+    },
     saved: {
       startLabel: "The incident is declared",
       roleEndLabel: "The incident is resolved",
@@ -312,6 +323,7 @@ const PAGES: Array<PageCase> = [
     endStateRole: "endAlertStateRole",
     startState: "startAlertState",
     endState: "endAlertState",
+    showOnView: { column: "showOnAlertView", title: "Show on alert pages" },
     saved: {
       startLabel: "The alert is created",
       roleEndLabel: "The alert is resolved",
@@ -359,6 +371,10 @@ const PAGES: Array<PageCase> = [
     endStateRole: "endScheduledMaintenanceStateRole",
     startState: "startScheduledMaintenanceState",
     endState: "endScheduledMaintenanceState",
+    showOnView: {
+      column: "showOnScheduledMaintenanceView",
+      title: "Show on maintenance event pages",
+    },
     saved: {
       // Maintenance is created, then scheduled: Timeline Start is creation.
       startLabel: "The event is created in OneUptime",
@@ -442,7 +458,12 @@ function queryDropdownNamed(name: string): HTMLElement | null {
 }
 
 function advancedHeader(): HTMLElement {
-  return within(form()).getByRole("button", { name: /^Advanced/ });
+  return within(form()).getByRole("button", { name: "More fields" });
+}
+
+// The "Show on ... pages" switch, folded away under More fields or not.
+function showOnViewSwitch(title: string): HTMLElement {
+  return within(form()).getByRole("switch", { name: title, hidden: true });
 }
 
 function stateRow(
@@ -750,7 +771,7 @@ describe.each(PAGES)("$label - Create", (entry: PageCase) => {
     // Folded: present, but out of sight until opened.
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(dropdownNamed("Show durations in")).not.toBeVisible();
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
 
     await user.click(advancedHeader());
 
@@ -792,7 +813,7 @@ describe.each(PAGES)("$label - Create", (entry: PageCase) => {
 
     // Folded again, it still says something in it is set.
     await user.click(advancedHeader());
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     await clickCreate(user);
 
@@ -801,6 +822,81 @@ describe.each(PAGES)("$label - Create", (entry: PageCase) => {
     });
 
     expect(savedModel()["unit"]).toBe("hours");
+  });
+
+  /*
+   * The value of each measurement is on each event's own page, in its
+   * Measurements card, unless this is turned off: on, as the server has
+   * it, folded with the other options most measurements never change.
+   */
+  test("shows the measurement on each event's page by default, from a switch under More fields", async () => {
+    const user: UserEvent = await renderPage(entry.page, "create");
+
+    await user.click(
+      await within(form()).findByTestId(
+        `card-select-option-${entry.preset.id}`,
+      ),
+    );
+    await clickNext(user);
+    await within(form()).findByRole("combobox", { name: "Ends when" });
+
+    // Named while folded, and not set: on is what it is anyway.
+    expect(listedNames(advancedHeader())).toContain(entry.showOnView.title);
+    expect(setChips(advancedHeader())).toEqual([]);
+    expect(showOnViewSwitch(entry.showOnView.title)).not.toBeVisible();
+
+    await user.click(advancedHeader());
+
+    const toggle: HTMLElement = showOnViewSwitch(entry.showOnView.title);
+
+    expect(toggle).toBeVisible();
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    // It says where the measurement shows.
+    expect(
+      within(form()).getByText(/^Shown in the Measurements card on each /),
+    ).toBeVisible();
+
+    await clickCreate(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedModel()[entry.showOnView.column]).toBe(true);
+  });
+
+  test("turned off, the folded section says so, and it is saved off", async () => {
+    const user: UserEvent = await renderPage(entry.page, "create");
+
+    await user.click(
+      await within(form()).findByTestId(
+        `card-select-option-${entry.preset.id}`,
+      ),
+    );
+    await clickNext(user);
+    await within(form()).findByRole("combobox", { name: "Ends when" });
+    await user.click(advancedHeader());
+
+    await user.click(showOnViewSwitch(entry.showOnView.title));
+
+    expect(showOnViewSwitch(entry.showOnView.title)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+
+    // Folded again, it still says what is set, and to what.
+    await user.click(advancedHeader());
+    expect(setChips(advancedHeader())).toEqual([
+      `${entry.showOnView.title}: Off`,
+    ]);
+
+    await clickCreate(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedModel()[entry.showOnView.column]).toBe(false);
   });
 
   test("an end moved off a state drops the role it no longer has", async () => {
@@ -884,7 +980,7 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
     ).toHaveTextContent(entry.saved.roleEndLabel);
 
     // The last time counts: Advanced says something in it is set.
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     await user.click(advancedHeader());
 
@@ -897,6 +993,82 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
     ).toHaveTextContent("Use the last time");
   });
 
+  test("a measurement kept off event pages says so, folded, and stays off when saved", async () => {
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(entry.existing(), {
+          _id: RECORD_ID,
+          name: "Time to resolve, our way",
+          startAnchorType: "Timeline Start",
+          endAnchorType: "State Role Entered",
+          [entry.endStateRole]: entry.saved.role,
+          startStateOccurrence: "First",
+          endStateOccurrence: "First",
+          unit: "seconds",
+          aggregationType: "Avg",
+          isEnabled: true,
+          [entry.showOnView.column]: false,
+        }),
+      );
+    }) as never);
+
+    const user: UserEvent = await renderPage(entry.page, "edit");
+
+    await within(form()).findByRole("textbox", { name: /^Name/ });
+    await user.click(
+      await within(form()).findByTestId("modal-footer-next-button"),
+    );
+    await within(form()).findByRole("combobox", { name: "Ends when" });
+
+    expect(setChips(advancedHeader())).toEqual([
+      `${entry.showOnView.title}: Off`,
+    ]);
+
+    await user.click(
+      await within(form()).findByRole("button", { name: "Save Changes" }),
+    );
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedModel()[entry.showOnView.column]).toBe(false);
+  });
+
+  test("one shown on event pages, as most are, is not called out", async () => {
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(entry.existing(), {
+          _id: RECORD_ID,
+          name: "Time to resolve",
+          startAnchorType: "Timeline Start",
+          endAnchorType: "State Role Entered",
+          [entry.endStateRole]: entry.saved.role,
+          startStateOccurrence: "First",
+          endStateOccurrence: "First",
+          unit: "seconds",
+          aggregationType: "Avg",
+          isEnabled: true,
+          [entry.showOnView.column]: true,
+        }),
+      );
+    }) as never);
+
+    const user: UserEvent = await renderPage(entry.page, "edit");
+
+    await within(form()).findByRole("textbox", { name: /^Name/ });
+    await user.click(
+      await within(form()).findByTestId("modal-footer-next-button"),
+    );
+    await within(form()).findByRole("combobox", { name: "Ends when" });
+
+    expect(setChips(advancedHeader())).toEqual([]);
+    expect(showOnViewSwitch(entry.showOnView.title)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
   test("saving a rename leaves what it measures exactly as it was saved", async () => {
     const user: UserEvent = await renderPage(entry.page, "edit");
 
@@ -906,8 +1078,22 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
     await user.clear(name);
     await user.type(name, "Time to resolve");
 
+    /*
+     * Save Changes is on the last step only. Every step of an edit form is
+     * filled in already, so the step list opens the last one.
+     */
+    expect(
+      within(form()).queryByRole("button", { name: "Save Changes" }),
+    ).toBeNull();
+
+    const steps: Array<HTMLElement> = within(
+      within(form()).getByRole("navigation", { name: "Progress" }),
+    ).getAllByRole("listitem");
+
+    await user.click(steps[steps.length - 1] as HTMLElement);
+
     await user.click(
-      within(form()).getByRole("button", { name: "Save Changes" }),
+      await within(form()).findByRole("button", { name: "Save Changes" }),
     );
 
     await waitFor(() => {

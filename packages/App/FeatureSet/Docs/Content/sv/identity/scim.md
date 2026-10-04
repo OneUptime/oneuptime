@@ -26,10 +26,9 @@ Projekt-SCIM gör det möjligt för identitetsleverantörer att hantera teammedl
 
 2. **Konfigurera SCIM-inställningar**
 
-   - Aktivera **Etablera användare automatiskt** för att automatiskt lägga till användare när de tilldelas i din IdP
-   - Aktivera **Avetablera användare automatiskt** för att automatiskt ta bort användare när de tas bort i din IdP
-   - Välj de **Standardteam** som nya användare ska läggas till i
-   - Kopiera **SCIM bas-URL** och **Bearer-token** för din IdP-konfiguration
+   - Ange ett **Namn**. **Standardteam** börjar med projektets medlemsteam: nya användare läggs till i dessa team
+   - Under **Fler fält** är **Etablera användare automatiskt** (lägg till användare när de tilldelas i din IdP) och **Avetablera användare automatiskt** (ta bort användare när de tas bort i din IdP) påslagna, och **Aktivera push-grupper** är avstängt. Ändra dem där om det behövs
+   - Spara. Dialogrutan med **SCIM bas-URL** och **Bearer-token** för din IdP-konfiguration öppnas direkt
 
 3. **Konfigurera din identitetsleverantör**
    - Använd SCIM bas-URL:en: `https://oneuptime.com/scim/v2/{scimId}`
@@ -75,9 +74,8 @@ Statussida-SCIM gör det möjligt för identitetsleverantörer att hantera prenu
 
 2. **Konfigurera SCIM-inställningar**
 
-   - Aktivera **Etablera användare automatiskt** för att automatiskt lägga till prenumeranter när de tilldelas i din IdP
-   - Aktivera **Avetablera användare automatiskt** för att automatiskt ta bort prenumeranter när de tas bort i din IdP
-   - Kopiera **SCIM bas-URL** och **Bearer-token** för din IdP-konfiguration
+   - Ange ett **Namn**. Under **Fler fält** är **Etablera användare automatiskt** (lägg till prenumeranter när de tilldelas i din IdP) och **Avetablera användare automatiskt** (ta bort prenumeranter när de tas bort i din IdP) påslagna. Ändra dem där om det behövs
+   - Spara. Dialogrutan med **SCIM bas-URL** och **Bearer-token** för din IdP-konfiguration öppnas direkt
 
 3. **Konfigurera din identitetsleverantör**
    - Använd SCIM bas-URL:en: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -122,13 +120,12 @@ Microsoft Entra ID tillhandahåller enterprise-grade identitetshantering med rob
 2. Navigera till **Projektinställningar** > **Säkerhet** > **SCIM**
 3. Klicka på **Skapa SCIM-konfiguration**
 4. Ange ett beskrivande namn (t.ex. "Microsoft Entra ID Provisioning")
-5. Konfigurera följande alternativ:
-   - **Etablera användare automatiskt**: Aktivera för att automatiskt skapa användare
-   - **Avetablera användare automatiskt**: Aktivera för att automatiskt ta bort användare
-   - **Standardteam**: Välj team som nya användare ska läggas till i
-   - **Aktivera push-grupper**: Aktivera om du vill hantera teammedlemskap via Entra ID-grupper
+5. Kontrollera alternativen:
+   - **Standardteam**: börjar med projektets medlemsteam; nya användare läggs till i dessa team
+   - **Etablera användare automatiskt** och **Avetablera användare automatiskt**: påslagna, under **Fler fält**
+   - **Aktivera push-grupper**: under **Fler fält**; slå på det om du vill hantera teammedlemskap via Entra ID-grupper
 6. Spara konfigurationen
-7. Kopiera **SCIM bas-URL** och **Bearer-token** – du behöver dessa för Entra ID
+7. Kopiera **SCIM bas-URL** och **Bearer-token** från dialogrutan som öppnas – du behöver dessa för Entra ID
 
 #### Steg 2: Skapa Enterprise-program i Microsoft Entra ID
 
@@ -224,13 +221,12 @@ Okta tillhandahåller flexibel identitetshantering med utmärkt SCIM-stöd. Föl
 2. Navigera till **Projektinställningar** > **Säkerhet** > **SCIM**
 3. Klicka på **Skapa SCIM-konfiguration**
 4. Ange ett beskrivande namn (t.ex. "Okta Provisioning")
-5. Konfigurera följande alternativ:
-   - **Etablera användare automatiskt**: Aktivera för att automatiskt skapa användare
-   - **Avetablera användare automatiskt**: Aktivera för att automatiskt ta bort användare
-   - **Standardteam**: Välj team som nya användare ska läggas till i
-   - **Aktivera push-grupper**: Aktivera om du vill hantera teammedlemskap via Okta-grupper
+5. Kontrollera alternativen:
+   - **Standardteam**: börjar med projektets medlemsteam; nya användare läggs till i dessa team
+   - **Etablera användare automatiskt** och **Avetablera användare automatiskt**: påslagna, under **Fler fält**
+   - **Aktivera push-grupper**: under **Fler fält**; slå på det om du vill hantera teammedlemskap via Okta-grupper
 6. Spara konfigurationen
-7. Kopiera **SCIM bas-URL** och **Bearer-token** – du behöver dessa för Okta
+7. Kopiera **SCIM bas-URL** och **Bearer-token** från dialogrutan som öppnas – du behöver dessa för Okta
 
 #### Steg 2: Skapa eller konfigurera Okta-program
 

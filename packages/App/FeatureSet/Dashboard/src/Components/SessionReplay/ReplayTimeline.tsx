@@ -843,22 +843,6 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
   }, [updateHover]);
 
   /*
-   * Notice markers sit INSIDE the slider track, so without this a click on
-   * one would start the track's own gesture on pointerdown, commit a seek
-   * to the cursor on pointerup, and then seek AGAIN to marker - 1s on
-   * click: two seeks (each a possible Replayer rebuild) for one press. The
-   * button owns its pointer; the track never sees it.
-   */
-  const stopTrackGesture: (
-    event: React.PointerEvent<HTMLButtonElement>,
-  ) => void = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>): void => {
-      event.stopPropagation();
-    },
-    [],
-  );
-
-  /*
    * The WAI-ARIA slider keys, on the element itself, so they work whenever
    * the track has focus - including while the page-level shortcuts are
    * off. stopPropagation keeps the window listener from seeing the same
@@ -1068,43 +1052,54 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
               },
             )}
 
-            {/*
-             * Notice markers: a fidelity notice that says a stretch is
-             * unplayable, pinned to WHERE (finding 15), drawn as a small
-             * triangle on the top edge of the track.
-             */}
-            {trackMarkers.map((marker: ReplayTimelineMarker): ReactElement => {
-              return (
-                <button
-                  key={marker.id}
-                  type="button"
-                  data-testid="timeline-notice-marker"
-                  title={marker.title}
-                  aria-label={marker.title}
-                  className="absolute top-0 z-10 h-2.5 w-3 -translate-x-1/2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  style={{
-                    left: `${offsetToPercent(marker.offsetMs, durationMs)}%`,
-                  }}
-                  onPointerDown={stopTrackGesture}
-                  onPointerUp={stopTrackGesture}
-                  onClick={(): void => {
-                    handleMarkerActivate(marker);
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-500"
-                  />
-                </button>
-              );
-            })}
-
             <TimelinePlayhead
               playheadPercent={playheadPercent}
               hoverPercent={hoverPercent}
               ghostPercent={ghostPercent}
             />
           </div>
+
+          {/*
+           * Notice markers: a fidelity notice that says a stretch is
+           * unplayable, pinned to WHERE (finding 15), drawn as a small
+           * triangle on the top edge of the track. They lie over the track
+           * rather than inside it: the track is one control (a slider), so a
+           * screen reader would not offer a button drawn inside it, and a
+           * press on a marker would also have started the track's own seek.
+           * The layer lets every other press through to the track.
+           */}
+          {trackMarkers.length > 0 && (
+            <div
+              data-testid="timeline-notice-markers"
+              className="pointer-events-none absolute inset-0"
+            >
+              {trackMarkers.map(
+                (marker: ReplayTimelineMarker): ReactElement => {
+                  return (
+                    <button
+                      key={marker.id}
+                      type="button"
+                      data-testid="timeline-notice-marker"
+                      title={marker.title}
+                      aria-label={marker.title}
+                      className="pointer-events-auto absolute top-0 z-10 h-2.5 w-3 -translate-x-1/2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      style={{
+                        left: `${offsetToPercent(marker.offsetMs, durationMs)}%`,
+                      }}
+                      onClick={(): void => {
+                        handleMarkerActivate(marker);
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-500"
+                      />
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
         </div>
       </div>
 

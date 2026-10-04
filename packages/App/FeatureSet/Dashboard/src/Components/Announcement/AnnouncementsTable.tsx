@@ -23,7 +23,6 @@ import React, {
 } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -33,14 +32,46 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getAnnouncementCreateQueryParams } from "./AnnouncementForm";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<StatusPageAnnouncement> | undefined;
-  initialValues?: FormValues<StatusPageAnnouncement> | undefined;
+  /*
+   * The status page whose Announcements tab this is. Create (and Create
+   * from Template) open the create page with that page already picked, and
+   * the create page comes back here afterwards.
+   */
+  statusPageId?: ObjectID | undefined;
   title?: string;
   description?: string;
   disableCreate?: boolean | undefined;
 }
+
+/*
+ * The create page's address: the dedicated create page, with the status
+ * page this table belongs to and the template picked, when there are any.
+ */
+const getAnnouncementCreateRoute: (data: {
+  statusPageId?: ObjectID | undefined;
+  announcementTemplateId?: ObjectID | undefined;
+}) => Route = (data: {
+  statusPageId?: ObjectID | undefined;
+  announcementTemplateId?: ObjectID | undefined;
+}): Route => {
+  const route: Route = new Route(
+    (RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route).toString(),
+  );
+
+  const query: Record<string, string> = getAnnouncementCreateQueryParams({
+    statusPageId: data.statusPageId,
+    announcementTemplateId: data.announcementTemplateId,
+  });
+
+  return RouteUtil.populateRouteParams(
+    Object.keys(query).length > 0 ? route.addQueryParams(query) : route,
+  );
+};
 
 const AnnouncementTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -109,9 +140,9 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           title: "Create Announcement",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
-              ),
+              getAnnouncementCreateRoute({
+                statusPageId: props.statusPageId,
+              }),
             );
           },
           buttonStyle: ButtonStyleType.NORMAL,
@@ -136,7 +167,6 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         name="Status Page > Announcements"
         isViewable={true}
-        createInitialValues={props.initialValues}
         query={{
           ...(props.query || {}),
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -261,12 +291,16 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
       {announcementTemplates.length === 0 &&
         showAnnouncementTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Announcement Templates`}
-            description={`No announcement templates have been created yet. You can create these in Project Settings > Announcement Templates.`}
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              return setShowAnnouncementTemplateModal(false);
+          <NoTemplatesYetModal
+            title="No Announcement Templates"
+            description="This project has no announcement templates yet. Create them in Status Pages → Settings → Announcement Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+              ] as Route,
+            )}
+            onClose={() => {
+              setShowAnnouncementTemplateModal(false);
             }}
           />
         )}
@@ -296,15 +330,12 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
               "announcementTemplateId"
             ] as ObjectID;
 
-            // Navigate to announcement create page with the template id
+            // The create page, filled in from the template.
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                new Route(
-                  (RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route).toString(),
-                ).addQueryParams({
-                  announcementTemplateId: announcementTemplateId.toString(),
-                }),
-              ),
+              getAnnouncementCreateRoute({
+                statusPageId: props.statusPageId,
+                announcementTemplateId: announcementTemplateId,
+              }),
             );
           }}
           formProps={{

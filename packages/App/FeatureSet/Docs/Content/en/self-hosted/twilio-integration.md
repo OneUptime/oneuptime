@@ -15,7 +15,7 @@ For a project:
 1. Go to **Project Settings > Notifications > Notification Settings**.
 2. In **Twilio Config**, select **Create Twilio Config**.
 3. Enter a name, **Twilio Account SID**, **Twilio Auth Token**, and **Twilio Primary Phone Number**. Optionally enter comma-separated **Twilio Secondary Phone Numbers** for other countries.
-4. Enable **Set as Project Default** to use this configuration for the project's member SMS and calls, including on-call notifications. Creating a configuration without setting this switch does not select it for those notifications.
+4. **Set as Project Default** starts on for the project's first configuration, so the SMS and calls to the project's members, including on-call notifications, go through it as soon as you save. Turn it off if this account is only for status pages or incoming calls. A later configuration starts with the switch off: turn it on, or pick **Set as Project Default** from the configuration's row menu, to move those messages to it. An API request that leaves `isProjectDefault` out is treated the same way.
 5. Save. Only one configuration can be the project default. Status pages use the configuration explicitly assigned to each status page.
 
 For an installation-wide default, an administrator can instead open **Admin Dashboard > Settings > Call and SMS**, edit the Twilio credentials and phone numbers, and save. Member notifications use this global configuration when their project has no default. Keep the Auth Token confidential.

@@ -149,7 +149,7 @@ OBI 從擷取到的流量中提取數個訊號家族（signal family）。所有
 | 訊號                                    | 預設 | 它新增了什麼                                                                                                                   |
 | --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | 開啟 | 每個服務的 HTTP/gRPC RED 指標 — 請求速率、延遲長條圖、錯誤計數。                                                               |
-| `ebpf.features.spanMetrics`             | 開啟 | 以 span 屬性為鍵的指標：依路由/操作細分的請求大小、回應大小、持續時間。                                                        |
+| `ebpf.features.spanMetrics`             | 開啟 | Span 指標：依服務、路由/操作、span 類型與狀態統計的呼叫次數與持續時間 — `traces.span.metrics.calls`、`traces.span.metrics.duration`（秒）。 |
 | `ebpf.features.serviceGraph`            | 開啟 | 服務對服務的邊緣指標（呼叫端 → 被呼叫端的請求速率 + 延遲）。為服務地圖提供動力。                                               |
 | `ebpf.features.networkMetrics`          | 開啟 | 帶有 k8s 中繼資料的 pod 對 pod TCP/UDP 流量位元組與封包計數器。呈現每一對有通訊的 pod，包括那些執行 OBI 無法解析之協定的 pod。 |
 | `ebpf.features.networkInterZoneMetrics` | 關閉 | 網路指標的跨區域（inter-zone）變體。會使基數（cardinality）加倍；只有當您實際使用基於區域的排程時才值得啟用。                  |
@@ -340,6 +340,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 或更早版本** — 移除 `--reuse-values` 並明確傳入您原本的 `--set` 旗標（或 `-f values.yaml`）。對於您未覆寫的所有內容，新的 chart 預設值將會套用。
 >
 > 如果某個新功能的 pod（例如 `kubernetes-agent-profiling-*`）在升級後未出現，這幾乎一定就是原因。`helm get values <release>` 會顯示 Helm 實際擁有的內容 — 輸出中缺少的欄位代表這些欄位的預設值未被合併。
+
+> **eBPF span 指標已更名。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 與 `traces.span.metrics.duration`（秒），不再傳送 `traces_spanmetrics_calls_total` 與 `traces_spanmetrics_latency`：資料序列相同，只是改用 OBI 保留的名稱（舊名稱已被 OBI 棄用）。以舊名稱建立的儀表板、圖表或指標監測器在升級後將收不到新資料，也不會出現錯誤——請改用新名稱，並一併更新 `filters.metrics` 中引用舊名稱的項目。
 
 ## 解除安裝
 

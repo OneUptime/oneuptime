@@ -16,6 +16,10 @@ import PermissionGate, {
 import ProjectUtil from "../../Utils/Project";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
+import {
+  SteppedModalFooter,
+  getSteppedModalFooter,
+} from "../Forms/Utils/SteppedFormFooter";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import ProgressBar from "../ProgressBar/ProgressBar";
 import React, { ReactElement, useRef, useState } from "react";
@@ -422,6 +426,22 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
     );
   }
 
+  /*
+   * The file, then the preview, where Import is: Validate and preview only
+   * walks on to the preview, so it is drawn plain - the import's one primary
+   * button is on its last step (Forms/Utils/SteppedFormFooter).
+   */
+  const uploadFooter: SteppedModalFooter = getSteppedModalFooter({
+    hasSteps: true,
+    isOnLastStep: false,
+    onAction: undefined,
+    onNext: () => {
+      void validate();
+    },
+    nextButtonText: "Validate and preview",
+    isNextButtonDisabled: !fileText.trim() || isValidating || isReadingFile,
+  });
+
   return (
     <Modal
       title={translateNamedAction(translator, {
@@ -431,10 +451,9 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
       description="Upload or paste a label rule JSON export. Review the validated rules before creating them in this project."
       modalWidth={ModalWidth.Large}
       onClose={isValidating ? undefined : props.onClose}
-      onSubmit={validate}
-      submitButtonText="Validate and preview"
+      onSubmit={uploadFooter.onSubmit}
+      secondaryButton={uploadFooter.secondaryButton}
       isLoading={isValidating}
-      disableSubmitButton={!fileText.trim() || isValidating || isReadingFile}
       error={error || undefined}
     >
       <div className="space-y-5 py-4">

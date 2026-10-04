@@ -5,7 +5,7 @@ import { useState } from "react";
 
 /*
  * The products menu's catalog rules: which product is the page the user is
- * on, how products group into categories, and which categories start folded.
+ * on, how products group into categories, and which categories fold.
  *
  * Kept out of the components so the desktop products menu (NavBarMenuModal)
  * and the phone menu (NavBar) answer these questions the same way, and so the
@@ -66,7 +66,7 @@ export function groupItemsByCategory(
 }
 
 /*
- * Which categories start folded.
+ * Which categories fold.
  *
  * The maintainer asked to "reduce decision / choice paralysis as much as
  * possible: show people as few options as possible". The Dashboard's products
@@ -74,21 +74,28 @@ export function groupItemsByCategory(
  * two-line description, so someone looking for Incidents read past
  * Kubernetes, Proxmox and Ceph to find it.
  *
- * So a menu that names the categories it opens on (the Dashboard names
- * Essentials) folds every other category down to one line: its name, how
- * many products it holds and what they are called. One click, or Enter,
+ * So a menu that names the categories it always shows open (the Dashboard
+ * names Essentials) folds every other category down to one line: its name,
+ * how many products it holds and what they are called. One click, or Enter,
  * opens it. Nothing is removed: search ignores folding and finds every
  * product, and the category holding the page the user is on opens by itself,
  * so the menu always shows where they are.
  *
- * What someone opens or folds is remembered on their browser, so a team that
- * lives in Infrastructure does not open it again on every visit. A menu that
- * names no categories (the Admin Dashboard's six entries) shows every
- * category open, as before.
+ * The categories a menu names never fold. The maintainer asked to "always
+ * have Essentials expanded by default": they are the products a problem
+ * flows through, and the reason most people open the menu. So they sit under
+ * a plain heading, like Recent, with no chevron to fold them away, and no
+ * remembered choice hides them, not even a fold remembered from before this
+ * rule, when Essentials could still be folded.
+ *
+ * What someone opens or folds in the other categories is remembered on their
+ * browser, so a team that lives in Infrastructure does not open it again on
+ * every visit. A menu that names no categories (the Admin Dashboard's six
+ * entries) shows every category open, as before.
  */
 export interface CategoryFoldState {
-  // The categories the menu opens on. Every other one starts folded.
-  openByDefault: ReadonlyArray<string>;
+  // The categories that are always open. Every other one starts folded.
+  alwaysOpen: ReadonlyArray<string>;
   // The categories holding the page the user is on.
   holdingCurrentPage: ReadonlyArray<string>;
   // What this person opened or folded before, on this browser.
@@ -97,15 +104,28 @@ export interface CategoryFoldState {
   chosenNow: ReadonlyMap<string, boolean>;
 }
 
+// Whether a category folds at all: the ones that are always open never do.
+export function canCategoryFold(
+  category: string,
+  state: CategoryFoldState,
+): boolean {
+  return !state.alwaysOpen.includes(category);
+}
+
 /*
- * A choice made in this menu wins; then the page the user is on, which must
- * never be folded away when the menu opens; then what they chose last time;
- * then the menu's default.
+ * A category that is always open is open, whatever else. For every other
+ * one, a choice made in this menu wins; then the page the user is on, which
+ * must never be folded away when the menu opens; then what they chose last
+ * time; otherwise it is folded.
  */
 export function isCategoryOpen(
   category: string,
   state: CategoryFoldState,
 ): boolean {
+  if (!canCategoryFold(category, state)) {
+    return true;
+  }
+
   const chosenNow: boolean | undefined = state.chosenNow.get(category);
 
   if (chosenNow !== undefined) {
@@ -122,7 +142,7 @@ export function isCategoryOpen(
     return remembered;
   }
 
-  return state.openByDefault.includes(category);
+  return false;
 }
 
 /*
@@ -187,10 +207,19 @@ export function rememberCategoryFold(category: string, isOpen: boolean): void {
 }
 
 export interface CategoryFolds {
-  // False for a menu that names no categories to open on: nothing folds.
+  // False for a menu that names no categories to keep open: nothing folds.
   isEnabled: boolean;
+  /*
+   * Whether the category folds at all, so it gets a fold control. The
+   * categories the menu keeps open never do; nor does any category of a menu
+   * that folds nothing.
+   */
+  canFold: (category: string) => boolean;
   isOpen: (category: string) => boolean;
-  // Open a folded category, or fold an open one, and remember it.
+  /*
+   * Open a folded category, or fold an open one, and remember it. A category
+   * that cannot fold is left as it is, and nothing is remembered for it.
+   */
   toggle: (category: string) => void;
 }
 
@@ -201,9 +230,9 @@ export interface CategoryFolds {
  */
 export function useCategoryFolds(
   items: ReadonlyArray<MoreMenuItem>,
-  categoriesOpenByDefault: ReadonlyArray<string> | undefined,
+  categoriesAlwaysOpen: ReadonlyArray<string> | undefined,
 ): CategoryFolds {
-  const isEnabled: boolean = Boolean(categoriesOpenByDefault);
+  const isEnabled: boolean = Boolean(categoriesAlwaysOpen);
 
   const [remembered] = useState<Map<string, boolean>>(() => {
     return isEnabled ? readRememberedCategoryFolds() : new Map();
@@ -220,10 +249,16 @@ export function useCategoryFolds(
     .map(categoryOf);
 
   const state: CategoryFoldState = {
-    openByDefault: categoriesOpenByDefault || [],
+    alwaysOpen: categoriesAlwaysOpen || [],
     holdingCurrentPage,
     remembered,
     chosenNow,
+  };
+
+  const canFold: (category: string) => boolean = (
+    category: string,
+  ): boolean => {
+    return isEnabled && canCategoryFold(category, state);
   };
 
   const isOpen: (category: string) => boolean = (category: string): boolean => {
@@ -231,7 +266,7 @@ export function useCategoryFolds(
   };
 
   const toggle: (category: string) => void = (category: string): void => {
-    if (!isEnabled) {
+    if (!canFold(category)) {
       return;
     }
 
@@ -246,5 +281,5 @@ export function useCategoryFolds(
     rememberCategoryFold(category, nextIsOpen);
   };
 
-  return { isEnabled, isOpen, toggle };
+  return { isEnabled, canFold, isOpen, toggle };
 }

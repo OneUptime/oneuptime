@@ -178,10 +178,29 @@ describe("shared bulk change-state modal", () => {
     "BulkChangeStateModal.tsx",
   );
 
-  test("renders the note as an optional markdown textbox", () => {
-    expect(source).toContain("fieldType: FormFieldSchemaType.Markdown");
-    expect(source).toContain("title: props.noteTitle,");
-    expect(source).toContain("description: props.noteDescription,");
+  // The body every state change dialog shares: notify, then the folded note.
+  const stateChangeFields: string = readSource(
+    "Components",
+    "EventView",
+    "StateChangeFormFields.ts",
+  );
+
+  test("renders the note as an optional markdown textbox, through the shared state change fields", () => {
+    expect(source).toContain("...getStateChangeFormFields<JSONObject>({");
+    expect(source).toContain("noteType: data.noteType,");
+    expect(source).toContain("noteTitle: data.noteTitle,");
+    expect(source).toContain("noteDescription: data.noteDescription,");
+    expect(source).toContain("noteTemplates: data.noteTemplates,");
+
+    expect(stateChangeFields).toContain(
+      "fieldType: FormFieldSchemaType.Markdown,",
+    );
+    expect(stateChangeFields).toContain(
+      "title: options.noteTitle || STATE_CHANGE_NOTE_TITLES[options.noteType],",
+    );
+    expect(stateChangeFields).toContain(
+      "description: options.noteDescription,",
+    );
   });
 
   test("keeps the state picker required", () => {
@@ -190,11 +209,21 @@ describe("shared bulk change-state modal", () => {
   });
 
   test("shows the note template picker only when templates exist", () => {
-    expect(source).toContain("if (props.noteTemplates.length > 0) {");
+    expect(stateChangeFields).toContain(
+      "showIf: (): boolean => { return noteTemplates.length > 0; },",
+    );
   });
 
   test("adds the subscriber toggle only for events that have one", () => {
-    expect(source).toContain("if (props.showNotifyStatusPageSubscribers) {");
+    expect(source).toContain(
+      "notifySubscribers: data.showNotifyStatusPageSubscribers ? { byDefault: true } : undefined,",
+    );
+  });
+
+  test("is one page: the folded note no longer needs a step of its own", () => {
+    expect(source).not.toContain("steps:");
+    expect(source).not.toContain("FormStep");
+    expect(source).not.toContain("stepId");
   });
 
   test("submits the picked state as an ObjectID", () => {

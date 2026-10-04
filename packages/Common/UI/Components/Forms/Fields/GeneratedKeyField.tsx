@@ -290,11 +290,7 @@ export const getGeneratedKeyFormField: GetGeneratedKeyFormFieldFunction = <
     ...(options.dataTestId ? { dataTestId: options.dataTestId } : {}),
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    /*
-     * Writes a key only when one is typed; left alone, the server makes it
-     * from the name.
-     */
-    customElementCanBeSkipped: true,
+    // Left alone, the server makes the key from the name.
     required: false,
     hideOptionalLabel: true,
     // Made once, at create. A key that changes later is an Edit form field.

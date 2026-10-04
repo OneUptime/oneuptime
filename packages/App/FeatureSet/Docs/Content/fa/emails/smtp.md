@@ -6,7 +6,28 @@
 - **OAuth 2.0** — احراز هویت امروزی برای Microsoft 365 و Google Workspace
 - **هیچ** — برای کارسازهای رله که به احراز هویت نیاز ندارند
 
-این راهنما نحوه پیکربندی احراز هویت OAuth 2.0 برای Microsoft 365 و Google Workspace را پوشش می‌دهد.
+بخش اول زیر نشان می‌دهد هر تنظیم کجاست. بقیهٔ این راهنما دربارهٔ احراز هویت OAuth 2.0 برای Microsoft 365 و Google Workspace است.
+
+## افزودن سرور SMTP
+
+سرور ایمیل یک پروژه را در **Project Settings > Notifications > Notification Settings**، در کارت **Custom SMTP Configs** اضافه کنید. در نصب خودمیزبان، سروری که خود OneUptime از آن ایمیل می‌فرستد در **Admin Dashboard > Settings > Emails**، در کارت **Custom Email and SMTP Settings** تنظیم می‌شود. هر دو فرم همین موارد را در دو مرحله می‌پرسند:
+
+1. **Server**: **Name** (فقط پیکربندی‌های پروژه)، **Hostname**، **Port** (پیکربندی جدید با `587` شروع می‌شود)، **Username** و **Password**.
+2. **Sender**: **From Email** و **From Name** که ایمیل‌های شما از آن‌ها ارسال می‌شوند.
+
+بقیهٔ موارد در انتهای مرحلهٔ Server زیر **More fields** جمع شده‌اند. تا وقتی جمع شده است، عنوان آن می‌گوید ایمیل چگونه ارسال می‌شود، برای مثال «ایمیل از طریق SMTP ارسال می‌شود و ورود با نام کاربری و رمز عبور انجام می‌شود. TLS الزامی است.»
+
+| فیلد | کاری که انجام می‌دهد |
+| --- | --- |
+| **Transport** | `SMTP` (پیش‌فرض)، یا `Microsoft Graph` برای تننت Microsoft 365 که SMTP AUTH در آن خاموش است. با انتخاب Microsoft Graph، نام میزبان، پورت، نام کاربری و رمز عبور پنهان و فیلدهای OAuth نمایش داده می‌شوند. |
+| **Require TLS** | در پیکربندی جدید پروژه روشن است. ایمیل فقط از طریق اتصال رمزگذاری‌شده با گواهی معتبر ارسال می‌شود. وقتی این گزینه خاموش باشد، ایمیل فقط در صورتی رمزگذاری می‌شود که سرور آن را ارائه دهد و گواهی بررسی نمی‌شود. پورت ۴۶۵ همیشه رمزگذاری‌شده است. |
+| **Authentication Type** | `Username and Password` (پیش‌فرض)، `OAuth`، یا `None` برای رله‌ای که به ورود نیاز ندارد. |
+| **فیلدهای OAuth** | نوع ارائه‌دهنده، شناسهٔ کلاینت، رمز کلاینت، نشانی توکن و دامنه (scope)، که با انتخاب OAuth یا Microsoft Graph نمایش داده می‌شوند. |
+| **Description** | یادداشتی برای تیم شما (فقط پیکربندی‌های پروژه). |
+
+**Microsoft Graph.** **More fields** را باز کنید، **Transport** را روی `Microsoft Graph` بگذارید و یک برنامهٔ Azure با مجوز برنامهٔ **Mail.Send** را وارد کنید: شناسهٔ کلاینت و رمز کلاینت آن، نشانی توکن `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` و دامنهٔ `https://graph.microsoft.com/.default`. ایمیل از صندوق پستی **From Email** ارسال می‌شود که باید یک صندوق پستی دارای مجوز در تننت شما باشد.
+
+پس از ذخیرهٔ پیکربندی پروژه، **Send Test Email** در ردیف آن بررسی می‌کند که کار می‌کند.
 
 ## احراز هویت OAuth 2.0
 
@@ -30,6 +51,8 @@
 | **Client Secret** | راز کلاینت از ارائه‌دهنده OAuth شما (برای Google: کلید خصوصی) |
 | **Token URL** | نشانی نقطه پایانی توکن OAuth |
 | **Scope** | دامنه(های) لازم OAuth برای دسترسی SMTP |
+
+**Authentication Type** و فیلدهای OAuth در مرحلهٔ Server فرم، زیر **More fields** قرار دارند.
 
 ---
 
@@ -120,7 +143,7 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 | Token URL | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
 | Scope | `https://outlook.office365.com/.default` |
 | From Email | همان Username |
-| Secure (TLS) | فعال |
+| Require TLS | فعال |
 
 به‌جای `<tenant-id>` شناسه Directory (tenant) خود از گام ۱ را بگذارید.
 
@@ -202,7 +225,7 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 | Token URL | `https://oauth2.googleapis.com/token` |
 | Scope | `https://mail.google.com/` |
 | From Email | همان Username |
-| Secure (TLS) | فعال |
+| Require TLS | فعال |
 
 **مهم:** برای گوگل (JWT Bearer)، شناسه کلاینت همان **ایمیل حساب سرویس** (`client_email`) است، نه `client_id` عددی. حساب سرویس برای فرستادن ایمیل، نقش کاربر مشخص‌شده در فیلد Username را جعل می‌کند.
 

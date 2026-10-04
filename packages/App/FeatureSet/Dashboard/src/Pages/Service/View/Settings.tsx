@@ -8,6 +8,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Service from "Common/Models/DatabaseModels/Service";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -21,6 +22,22 @@ const ServiceSettings: FunctionComponent<
 
   return (
     <Fragment>
+      <ResourceDetailsCard<Service>
+        modelType={Service}
+        modelId={modelId}
+        id="service-details"
+        title="Service Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Name",
+          description:
+            "Must match the service.name your service's telemetry reports. Telemetry is matched to this service by it: change it in your OpenTelemetry setup too, or the next report creates a new service.",
+          placeholder: "checkout-api",
+        }}
+        descriptionField={{
+          placeholder: "Description",
+        }}
+      />
       <CardModelDetail
         name="Service Settings"
         cardProps={{
@@ -45,8 +62,13 @@ const ServiceSettings: FunctionComponent<
               techStack: true,
             },
             title: "Tech Stack",
+            /*
+             * Edited here only: the Overview's Service Details card is
+             * read-only. Optional - left blank, the language detected from
+             * the service's telemetry is shown instead.
+             */
             description:
-              "Tech stack used in the service. This will help other developers understand the service better.",
+              "Optional. The language or framework used to build this service. Leave blank to use the language detected from this service's telemetry.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             required: false,
             placeholder: "Tech Stack",

@@ -6,7 +6,28 @@ OneUptime 支持通过自定义 SMTP 服务器发送电子邮件，提供三种�
 - **OAuth 2.0** - 适用于 Microsoft 365 和 Google Workspace 的现代认证
 - **无** - 适用于不需要认证的中继服务器
 
-本指南介绍如何为 Microsoft 365 和 Google Workspace 配置 OAuth 2.0 认证。
+下面第一节说明每项设置的位置。本指南的其余部分介绍 Microsoft 365 和 Google Workspace 的 OAuth 2.0 认证。
+
+## 添加 SMTP 服务器
+
+在 **项目设置 > 通知 > 通知设置** 的 **自定义 SMTP 配置** 卡片中添加项目的邮件服务器。在自托管安装中，OneUptime 自身用于发信的服务器在 **Admin Dashboard > 设置 > 邮件** 的 **自定义电子邮件和 SMTP 设置** 卡片中设置。两个表单分两步询问相同的内容：
+
+1. **服务器**：**名称**（仅项目配置）、**主机名**、**端口**（新配置从 `587` 开始）、**用户名** 和 **密码**。
+2. **发件人**：您的邮件所用的 **发件人邮箱** 和 **发件人名称**。
+
+其余所有选项都折叠在服务器步骤末尾的 **更多字段** 中。折叠时，其标题会说明邮件的发送方式，例如：“通过 SMTP 发送邮件，使用用户名和密码登录。需要 TLS。”
+
+| 字段           | 作用                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **传输**       | `SMTP`（默认），或用于已关闭 SMTP AUTH 的 Microsoft 365 租户的 `Microsoft Graph`。选择 Microsoft Graph 会隐藏主机名、端口、用户名和密码，并显示 OAuth 字段。 |
+| **要求 TLS**   | 新项目配置中默认开启。邮件仅通过使用有效证书的加密连接发送。关闭后，仅在服务器支持时才加密邮件，且不检查证书。端口 465 始终加密。                            |
+| **认证类型**   | `Username and Password`（默认）、`OAuth`，或用于无需登录的中继的 `None`。                                                                                    |
+| **OAuth 字段** | 提供商类型、客户端 ID、客户端密钥、令牌 URL 和范围，在选择 OAuth 或 Microsoft Graph 后显示。                                                                 |
+| **描述**       | 给团队的备注（仅项目配置）。                                                                                                                                 |
+
+**Microsoft Graph。** 打开 **更多字段**，将 **传输** 设置为 `Microsoft Graph`，然后填写具有 **Mail.Send** 应用程序权限的 Azure 应用：其客户端 ID 和客户端密钥、令牌 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及范围 `https://graph.microsoft.com/.default`。邮件从 **发件人邮箱** 对应的邮箱发送，该邮箱必须是您租户中已授权的邮箱。
+
+保存项目配置后，可使用其所在行的 **发送测试电子邮件** 检查它是否正常工作。
 
 ## OAuth 2.0 认证
 
@@ -30,6 +51,8 @@ OAuth 2.0 为与邮件服务器进行认证提供了更安全的方式，尤其�
 | **客户端密钥**       | 来自您 OAuth 提供商的客户端密钥（Google 填写私钥）                        |
 | **Token URL**        | OAuth 令牌端点 URL                                                        |
 | **范围**             | SMTP 访问所需的 OAuth 范围                                                |
+
+**认证类型** 和 OAuth 字段位于表单服务器步骤的 **更多字段** 中。
 
 ---
 
@@ -120,7 +143,7 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 | Token URL        | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
 | Scope            | `https://outlook.office365.com/.default`                          |
 | 发件人邮箱       | 与用户名相同                                                      |
-| 安全（TLS）      | 已启用                                                            |
+| 要求 TLS         | 已启用                                                            |
 
 将 `<tenant-id>` 替换为第一步中的目录（租户）ID。
 
@@ -202,7 +225,7 @@ Google Workspace 需要一个具有域范围委派权限的**服务账号**，�
 | Token URL        | `https://oauth2.googleapis.com/token`                                                                            |
 | Scope            | `https://mail.google.com/`                                                                                       |
 | 发件人邮箱       | 与用户名相同                                                                                                     |
-| 安全（TLS）      | 已启用                                                                                                           |
+| 要求 TLS         | 已启用                                                                                                           |
 
 **重要提示：** 对于 Google（JWT Bearer），Client ID 是**服务账号邮箱**（`client_email`），而非数字 `client_id`。服务账号将模拟用户名字段中指定的用户来发送电子邮件。
 

@@ -26,39 +26,40 @@ The two note types look similar in the dashboard and behave very differently.
 
 ## Posting a public note
 
-Open **Notes → Public Notes** in the incident side menu and create a note. The card explains that what you write here shows up on the status page; the empty state reads that no public notes have been created for this incident so far.
+Open **Notes → Public Notes** in the incident side menu and write in the composer above the notes. It says who will read the note before you post it: **Public · Visible on your status page**. The same composer opens in a dialog from **Add Public Note** in the **Actions** menu of the incident feed (see [The incident feed](#the-incident-feed)), so a note is written the same way from either place.
 
-| Field                              | Purpose                                                                                                                                       |
+| Control                            | Purpose                                                                                                                                       |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Public Incident Note**           | The body, in Markdown. Required. The form reminds you the note is visible on your status page and links a cheatsheet.                         |
-| **Attachments**                    | Files shared with subscribers on the status page. Optional.                                                                                   |
-| **Notify Status Page Subscribers** | Checkbox. On by default, unless the incident was declared without notifying subscribers — then it starts off. Turn it off to publish quietly. |
-| **Posted At**                      | Required date and time, defaulting to now, shown in your current timezone.                                                                    |
+| The note                           | The body, in Markdown. Required.                                                                                                              |
+| **Templates**                      | Puts one of your note templates into the note, after what you have already typed. See [Note templates](#note-templates).                      |
+| **Draft with AI**                  | Drafts the note from the incident, for you to edit. See [Generating a note with AI](#generating-a-note-with-ai).                              |
+| **Attach**                         | Files shared with subscribers on the status page. Optional.                                                                                   |
+| **Posted now**                     | When the note says it was posted: the moment you post it, unless you choose an earlier time here, in your current timezone.                   |
+| **Notify status page subscribers** | Checkbox. On by default, unless the incident was declared without notifying subscribers — then it starts off. Turn it off to publish quietly. |
+
+**Post update** posts the note, and so does Ctrl+Enter (⌘+Enter on a Mac).
 
 **Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created; making an episode private does not affect it.
 
-**See who the note will reach.** While **Notify Status Page Subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+**See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 **See what they will get.** Under the same checkbox, **Preview notification** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
 
-**Posted At is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, set **Posted At** to when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
+**The posting time is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, choose **Posted now** and set when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
-Each note shows who wrote it, its **Posted At**, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
+Each note shows who wrote it, its posting time, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
 
 ## Posting a private note
 
-**Notes → Private Notes** is deliberately plainer. There are only two fields:
+**Notes → Private Notes** is deliberately plainer. It is the same composer, saying **Private · Only your team can see this**, with the note, **Templates**, **Draft with AI** and **Attach** for files meant for the incident response team. **Add Private Note** in the incident feed's **Actions** menu opens it in a dialog.
 
-- **Private Incident Note** — Markdown body, required. The form says outright that this is private to your team and is not visible on the status page.
-- **Attachments** — files meant for the incident response team.
-
-No **Posted At**, no subscriber checkbox — the note is stamped when it is created.
+No posting time, no subscriber checkbox — the note is stamped when it is created.
 
 Both kinds of note are written in the Markdown editor, which nests list items with **Indent** and **Outdent** — or Tab and Shift+Tab — and keeps the lists, links and formatting of what you paste from Word, Google Docs or another OneUptime page. Ctrl+Z takes back an indent or an outdent, and in visual mode the blocks and pastes the editor put in too, in order with your typing. A code block copied from a note pastes back as a code block, and a word copied out of one as inline code. See [Declaring an Incident](/docs/incidents/declaring-incidents#step-1-incident-details).
 
 ## Attachments on notes
 
-Both note types accept file attachments through an **Attachments** field, and both render an attachment list under the note body with a per-file **Download attachment** link.
+Both note types accept file attachments through the composer's **Attach** button, and both render an attachment list under the note body with a per-file **Download attachment** link.
 
 Where they diverge is who can fetch the file:
 
@@ -69,7 +70,7 @@ That makes attachments the same public/private decision as the note text. A cust
 
 ## Generating a note with AI
 
-Both note pages carry a **Generate with AI** button. It sends the incident to your project's AI provider and drops the generated Markdown into the note editor, where you edit it before saving — nothing is published automatically.
+The composer has a **Draft with AI** button, on both note pages and in the feed's **Add Public Note** and **Add Private Note** dialogs. It sends the incident to your project's AI provider and drops the generated Markdown into the note, where you edit it before posting — nothing is published automatically.
 
 - **Generate Public Note with AI** — described as analyzing the incident data to produce a customer-facing note. Templates include **Status Update** and **Resolution Notice**.
 - **Generate Private Note with AI** — produces an internal technical note instead. Templates include **Investigation Update** and **Technical Analysis**.
@@ -78,13 +79,13 @@ Behind the button, the dashboard posts to `/incident/generate-note-from-ai/{inci
 
 ## Note templates
 
-If your team writes the same three updates every outage, save them once. Both note pages have a **Create from Template** button that opens a **Create Note from Template** picker with a **Select Note Template** dropdown.
+If your team writes the same three updates every outage, save them once. The composer's **Templates** menu lists them, on both note pages and in the feed's note dialogs, and picking one puts it into the note.
 
 Templates are shared between public and private notes: a single template list serves both, and the same template can be inserted into either kind of note.
 
 Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{incident.customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings#note-templates) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written. Read the filled-in note before posting a public one: `{{incident.affectedStatusPages}}` names every status page the incident reaches, and the subscribers of all of them read it.
 
-You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form has a **Template Info** step (**Template Name** and **Template Description**, both required) and a **Note Details** step for the body. If you click **Create from Template** before creating any, OneUptime tells you none exist yet; note that the message points at Project Settings, but the page actually lives under **Incidents → Settings → Note Templates**.
+You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form is one page: **Template Name** and **Template Description**, both required, then the body. Before you have any, the **Templates** menu says so and links there.
 
 ## Posting notes from Slack or Microsoft Teams
 
@@ -142,8 +143,10 @@ The card header also has an **Actions** menu so you can act without leaving the 
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
 - **Execute On-Call Policy** — page a policy on demand.
-- **Add Public Note** — the same four fields as the Public Notes page, in a modal.
-- **Add Private Note** — note body and attachments only.
+- **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview notification** are all there. The note is posted now; to backdate it, choose **Posted now**.
+- **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
+
+Both are locked, naming the missing permission, for someone who may not write notes. After a note is posted the dialog closes and the feed shows it.
 
 Everything else is behind the **⋯** button next to it, the same **More options** button a table's card header has, so the header shows as few buttons as possible:
 

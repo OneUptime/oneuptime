@@ -1,4 +1,6 @@
 import ObjectID from "../../../Types/ObjectID";
+import type { DropdownOption } from "../Dropdown/Dropdown";
+import type { DropdownChange } from "../Dropdown/DropdownChange";
 
 /*
  * The people picker's plain data: what kinds of record it picks, how a pick
@@ -16,6 +18,18 @@ import ObjectID from "../../../Types/ObjectID";
  * PeoplePickerKinds.ts - search, look up by id, avatar - and every picker can
  * offer it. An escalation rule's Notify field offers on-call schedules,
  * teams and people in one list.
+ *
+ * A picker takes any number of picks, unless its field says it takes one
+ * (PeoplePickerFieldConfig.isSinglePick): an incoming call rule calls one
+ * on-call schedule or one person. A pick then replaces the last one, and
+ * each kind's form value holds that one id, or null, instead of a list - the
+ * shape of a record's own column for one related record (userId,
+ * onCallDutyPolicyScheduleId), which can then be the value key itself.
+ *
+ * Two pickers in one form can ask about two different people: a user
+ * override asks who is away and who covers. The second one's search list
+ * leaves out whoever the first one holds (PeoplePickerFieldConfig.
+ * excludePicksOf), so nobody is offered to cover for themselves.
  */
 
 export enum PeoplePickerKind {
@@ -47,6 +61,19 @@ export type PeoplePickerValue = Partial<
   Record<PeoplePickerKind, Array<string>>
 >;
 
+/*
+ * What a change picked, by name: the picks the picker holds now and the ones
+ * it held before, in the order it shows them. A form can then name
+ * something after the people and teams picked without a request of its own
+ * - an owner rule is named "Add Platform as owners". Only picks the picker
+ * can name are in it: one whose name is still being looked up, or that is no
+ * longer found, is left out rather than handed over by its id.
+ */
+export interface PeoplePickerChange {
+  selectedOptions: Array<PeoplePickerOption>;
+  previousOptions: Array<PeoplePickerOption>;
+}
+
 // A kind a form field offers, and the form value its picks are kept in.
 export interface PeoplePickerFieldKind {
   kind: PeoplePickerKind;
@@ -61,7 +88,26 @@ export interface PeoplePickerFieldConfig {
   searchPlaceholder?: string | undefined;
   // What the search list says when there is nothing to pick at all.
   emptyText?: string | undefined;
+  /*
+   * One pick at most, of any kind. Picking replaces what was picked and
+   * closes the list, and each kind's form value is one id, or null, rather
+   * than a list (PeoplePickerFormValue). Leave it out for any number.
+   */
+  isSinglePick?: boolean | undefined;
+  /*
+   * Other form values whose picks this picker's search list leaves out, as
+   * the form holds them now: a user override's "Who covers?" never offers
+   * the person who is away. Only the list - a pick already made is shown as
+   * it is, and the field's own validation says what is wrong with it.
+   */
+  excludePicksOf?: Array<PeoplePickerFieldKind> | undefined;
 }
+
+/*
+ * What a picker field writes to one kind's form value: the kind's ids, or,
+ * when the field takes a single pick, the one id or null.
+ */
+export type PeoplePickerFormValue = Array<string> | string | null;
 
 /*
  * One pick, as a key: the kind and the id. Ids are compared without case -
@@ -178,18 +224,88 @@ export const readPeoplePickerFormValue: (
   return result;
 };
 
+/*
+ * What a picker field's search list leaves out: the picks held now in the
+ * form values its excludePicksOf names, as ids per kind. Empty when it names
+ * none.
+ */
+export const readPeoplePickerExcludedValue: (
+  config: PeoplePickerFieldConfig,
+  formValues: unknown,
+) => PeoplePickerValue = (
+  config: PeoplePickerFieldConfig,
+  formValues: unknown,
+): PeoplePickerValue => {
+  const values: Record<string, unknown> =
+    formValues && typeof formValues === "object"
+      ? (formValues as Record<string, unknown>)
+      : {};
+
+  const result: PeoplePickerValue = {};
+
+  for (const entry of config.excludePicksOf || []) {
+    const ids: Array<string> = [...(result[entry.kind] || [])];
+
+    for (const id of toPeoplePickerIds(values[entry.valueKey])) {
+      if (!ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    result[entry.kind] = ids;
+  }
+
+  return result;
+};
+
+// A value's picks as keys (getPeoplePickerOptionKey), to look a row up in.
+export const getPeoplePickerValueKeySet: (
+  value: PeoplePickerValue | undefined,
+) => Set<string> = (value: PeoplePickerValue | undefined): Set<string> => {
+  const keys: Set<string> = new Set<string>();
+
+  for (const kind of Object.keys(value || {}) as Array<PeoplePickerKind>) {
+    for (const id of (value || {})[kind] || []) {
+      keys.add(getPeoplePickerOptionKey(kind, id));
+    }
+  }
+
+  return keys;
+};
+
+/*
+ * One kind's form value in the shape the field writes it: whatever a form
+ * holds (ids, ObjectIDs, related rows) as its list of ids, or - for a field
+ * that takes a single pick - its first id, or null when there is none.
+ */
+export const toPeoplePickerFormValue: (
+  config: PeoplePickerFieldConfig,
+  value: unknown,
+) => PeoplePickerFormValue = (
+  config: PeoplePickerFieldConfig,
+  value: unknown,
+): PeoplePickerFormValue => {
+  const ids: Array<string> = toPeoplePickerIds(value);
+
+  if (config.isSinglePick) {
+    return ids[0] || null;
+  }
+
+  return ids;
+};
+
 // The form values a picker field's picks are written to.
 export const toPeoplePickerFormValues: (
   config: PeoplePickerFieldConfig,
   value: PeoplePickerValue,
-) => Record<string, Array<string>> = (
+) => Record<string, PeoplePickerFormValue> = (
   config: PeoplePickerFieldConfig,
   value: PeoplePickerValue,
-): Record<string, Array<string>> => {
-  const result: Record<string, Array<string>> = {};
+): Record<string, PeoplePickerFormValue> => {
+  const result: Record<string, PeoplePickerFormValue> = {};
 
   for (const entry of config.kinds) {
-    result[entry.valueKey] = toPeoplePickerIds(value[entry.kind]);
+    result[entry.valueKey] = toPeoplePickerFormValue(config, value[entry.kind]);
   }
 
   return result;
@@ -224,6 +340,79 @@ export const addToPeoplePickerValue: (
   }
 
   return { ...value, [kind]: [...ids, id] };
+};
+
+/*
+ * The value of a picker that takes a single pick, once this one is picked:
+ * it alone, whatever kind was picked before.
+ */
+export const replacePeoplePickerValue: (
+  kind: PeoplePickerKind,
+  id: string,
+) => PeoplePickerValue = (
+  kind: PeoplePickerKind,
+  id: string,
+): PeoplePickerValue => {
+  return { [kind]: [id] };
+};
+
+/*
+ * The names of a value's picks, in the order the picker shows them: by kind,
+ * then as picked. A pick the picker cannot name yet (getOption has nothing)
+ * or no longer finds (isUnknown) is left out.
+ */
+export const getPeoplePickerNamedOptions: (data: {
+  kinds: Array<PeoplePickerKind>;
+  value: PeoplePickerValue;
+  getOption: (
+    kind: PeoplePickerKind,
+    id: string,
+  ) => PeoplePickerOption | undefined;
+}) => Array<PeoplePickerOption> = (data: {
+  kinds: Array<PeoplePickerKind>;
+  value: PeoplePickerValue;
+  getOption: (
+    kind: PeoplePickerKind,
+    id: string,
+  ) => PeoplePickerOption | undefined;
+}): Array<PeoplePickerOption> => {
+  const options: Array<PeoplePickerOption> = [];
+
+  for (const kind of data.kinds) {
+    for (const id of data.value[kind] || []) {
+      const option: PeoplePickerOption | undefined = data.getOption(kind, id);
+
+      if (option && !option.isUnknown && option.name) {
+        options.push(option);
+      }
+    }
+  }
+
+  return options;
+};
+
+/*
+ * A picker's change in the words a form field's onChange hears it in
+ * (Forms/Types/Field): each pick as an option labelled with its name, whose
+ * value is the pick's key (getPeoplePickerOptionKey), so a person and a team
+ * of one name stay two picks.
+ */
+export const toPeoplePickerDropdownChange: (
+  change: PeoplePickerChange,
+) => DropdownChange = (change: PeoplePickerChange): DropdownChange => {
+  const toDropdownOption: (option: PeoplePickerOption) => DropdownOption = (
+    option: PeoplePickerOption,
+  ): DropdownOption => {
+    return {
+      value: getPeoplePickerOptionKey(option.kind, option.id),
+      label: option.name,
+    };
+  };
+
+  return {
+    selectedOptions: change.selectedOptions.map(toDropdownOption),
+    previousOptions: change.previousOptions.map(toDropdownOption),
+  };
 };
 
 export const removeFromPeoplePickerValue: (

@@ -164,6 +164,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { getJestSpyOn } from "../../Spy";
+import {
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -335,7 +340,7 @@ function advancedSection(): HTMLElement {
 
 function advancedHeader(): HTMLElement {
   return within(advancedSection()).getByRole("button", {
-    name: /^Advanced/,
+    name: "More settings",
   });
 }
 
@@ -446,14 +451,10 @@ describe("the page", () => {
     await renderPage();
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
 
-    // Folded, it already says block permissions are in there.
-    expect(
-      within(advancedSection()).getByTestId("collapsible-section-summary"),
-    ).toHaveTextContent(
-      "Block permissions: what this key can never do, even when one of its roles or permissions allows it.",
-    );
+    // Folded, it already names block permissions, none of them yet.
+    expect(listedNames(advancedHeader())).toEqual(["Block Permissions"]);
 
     fireEvent.click(advancedHeader());
 
@@ -471,8 +472,9 @@ describe("the page", () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(advancedHeader()).toHaveTextContent("Configured");
+      expect(setChips(advancedHeader())).toEqual(["Block Permissions: 1"]);
     });
+    expect(hasSetChip(advancedHeader())).toBe(true);
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
   });
 });

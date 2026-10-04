@@ -25,7 +25,7 @@ Il payload webhook di Grafana segue la struttura di Alertmanager — `status`, u
 
 1. Vai su **Monitor → Crea monitor** e scegli **Richiesta in entrata**. Aprilo e fai clic su **Documentation** nel menu di sinistra per copiare l'URL.
 2. Apri i **Criteria** del monitor e imposta **Filter Type** su `JavaScript Expression` e **Value** su `"{{requestBody.status}}" === "firing"`.
-3. Dichiara un incidente alla corrispondenza, scegli le **On-Call Policies** da allertare e attiva **Auto Resolve Incident** sotto **Advanced Options**.
+3. Dichiara un incidente alla corrispondenza, scegli le **On-Call Policies** da allertare e attiva **Auto Resolve Incident** sotto **More fields**.
 4. Sotto **Settings**, attiva **Group incidents and alerts by a payload field** e imposta:
 
    | Campo                              | Valore                              |
@@ -89,7 +89,7 @@ Con l'**Opzione 2**, aggiungi un secondo ramo **Condizioni** (`status == resolve
 ## Risoluzione dei problemi
 
 - **Non arriva nulla** — verifica che Grafana riesca a raggiungere l'URL (controlla i log del server Grafana) e, per l'Opzione 2, che il workflow sia **Abilitato**. OneUptime risponde a ogni richiesta in entrata con un `200` vuoto prima di validarla, quindi un `200` nei log di Grafana non conferma che il payload sia stato accettato.
-- **Gli incidenti si aprono ma non si chiudono mai** — controlla il campo e il valore di ripristino nel criterio, e che **Auto Resolve Incident** sia attivo sotto le **Advanced Options** dell'incidente. Il confronto distingue maiuscole e minuscole.
+- **Gli incidenti si aprono ma non si chiudono mai** — controlla il campo e il valore di ripristino nel criterio, e che **Auto Resolve Incident** sia attivo sotto le **More fields** dell'incidente. Il confronto distingue maiuscole e minuscole.
 - **Un solo incidente per un payload pieno di allarmi** — hai raggruppato su una label che non varia all'interno di una notifica. Raggruppa invece su `requestBody.alerts[*].fingerprint`.
 - **Il testo dell'incidente mostra segnaposto `{{...}}` grezzi** — il percorso non si è risolto, e i segnaposto non risolti restano al loro posto anziché essere svuotati. Fai riferimento a campi che esistono per la tua versione di alerting; ispeziona l'output del trigger nella scheda **Log** se hai usato l'Opzione 2.
 

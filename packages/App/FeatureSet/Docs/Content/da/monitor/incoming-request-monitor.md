@@ -163,7 +163,7 @@ Stier skal begynde med det bogstavelige præfiks `requestBody.`. En sti uden det
 En webhook beskriver kun det, der er i den payload, så OneUptime løser aldrig en hændelse, fordi dens nøgle er holdt op med at optræde. En hændelse løses kun, når en payload udtrykkeligt siger, at den nøgle er genoprettet. To ting skal begge være opfyldt:
 
 1. **Field that signals recovery** og **Value that means recovered** er sat og matcher payloaden. Sammenligningen er nøjagtig og skelner mellem store og små bogstaver — `Resolved` matcher ikke `resolved`.
-2. Kriteriets hændelse har **Auto Resolve Incident** slået til, under **Advanced Options** i hændelsesformularen. Uden det ignoreres matchende genopretningshændelser, og hændelserne forbliver åbne. (Det samme gælder alarmer og **Auto Resolve Alert**.)
+2. Kriteriets hændelse har **Auto Resolve Incident** slået til, under **More fields** i hændelsesformularen. Uden det ignoreres matchende genopretningshændelser, og hændelserne forbliver åbne. (Det samme gælder alarmer og **Auto Resolve Alert**.)
 
 **Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over grænsen er også usynlige for genopretning, så i en payload med flere unikke nøgler end grænsen vil en alarm, der melder `resolved` ud over den, ikke lukke sin hændelse.
 

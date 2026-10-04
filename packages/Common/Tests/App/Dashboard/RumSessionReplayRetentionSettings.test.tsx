@@ -9,18 +9,18 @@ import {
 } from "@jest/globals";
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { SpyInstance } from "jest-mock";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { ReactElement } from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
-import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
+import { getEffectiveSessionReplayRetentionDays } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayRetention";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -28,17 +28,23 @@ import RouteMap, {
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import TelemetryRetentionConfig from "../../../Types/Telemetry/TelemetryRetentionConfig";
+import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Session Replay retention on a RUM application's Settings page, rendered on
- * its real route with the real CardModelDetail -> ModelForm -> BasicForm
- * stack. Only transport, permissions and the unrelated archive card are
- * replaced.
+ * its real route. Only transport, permissions and the unrelated archive card
+ * are replaced.
+ *
+ * Replay retention is edited in one place: the application's Replay Policy
+ * page (Edit Policy > Limits; its form is rendered in
+ * Common/Tests/UI/Rum/SessionReplaySettingsPolicyLoading.test.tsx). The
+ * Settings page used to be a second editor for the same column. It now says
+ * how long recordings are kept and its one button opens the Replay Policy.
  *
  * Session Replay retention is part of every edition, so this runs on the
  * Community Edition (the jest config resolves the Enterprise plugin to the
@@ -72,18 +78,7 @@ jest.mock("../../../UI/Config", () => {
 
 const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
-
-interface ItemReadObservation {
-  request: {
-    modelType: unknown;
-    id: ObjectID;
-    select?: Record<string, unknown> | undefined;
-  };
-  returnedModel: BaseModel;
-  returnedRetentionInDays: number | undefined;
-}
-
-const itemReadObservations: Array<ItemReadObservation> = [];
+const updateByIdMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -105,6 +100,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       createOrUpdate: (...args: Array<unknown>): unknown => {
         return createOrUpdateMock(...args);
+      },
+      updateById: (...args: Array<unknown>): unknown => {
+        return updateByIdMock(...args);
       },
     },
   };
@@ -169,68 +167,40 @@ jest.mock(
 const MODEL_ID: ObjectID = new ObjectID("22222222-0000-4000-8000-000000000001");
 const WAIT_TIMEOUT: number = 20000;
 
-interface TelemetryRetentionResourceModel extends BaseModel {
-  retainTelemetryDataForDays?: number | undefined;
-  telemetryRetentionConfig?: TelemetryRetentionConfig | undefined;
-}
+const SETTINGS_ROUTE: Route = RouteMap[
+  PageMap.RUM_APPLICATION_VIEW_SETTINGS
+] as Route;
 
-interface ResourceSettingsCase<
-  TModel extends
-    TelemetryRetentionResourceModel = TelemetryRetentionResourceModel,
-> {
-  name: string;
-  Page: FunctionComponent<PageComponentProps>;
-  modelType: { new (): TModel };
-  settingsKey: PageMap;
-  detailIdPrefix: string;
-  hasSessionReplayRetention: boolean;
-}
+let storedModel: RumApplication;
 
-const RESOURCES: Array<ResourceSettingsCase> = [
-  {
-    name: "RUM application",
-    Page: RumSettings,
-    modelType: RumApplication,
-    settingsKey: PageMap.RUM_APPLICATION_VIEW_SETTINGS,
-    detailIdPrefix: "rum-application",
-    hasSessionReplayRetention: true,
-  },
-];
-
-let storedModel: BaseModel;
-
-function resourcePath(resource: ResourceSettingsCase): string {
-  return RouteUtil.populateRouteParams(
-    RouteMap[resource.settingsKey] as Route,
-    { modelId: MODEL_ID },
-  ).toString();
-}
-
-function modelFor<TModel extends TelemetryRetentionResourceModel>(
-  resource: ResourceSettingsCase<TModel>,
-  data?: Partial<TModel>,
-): TModel {
-  const model: TModel = new resource.modelType();
+function applicationWith(data?: Partial<RumApplication>): RumApplication {
+  const model: RumApplication = new RumApplication();
   model.id = MODEL_ID;
   Object.assign(model, data || {});
   return model;
 }
 
-async function renderSettings<TModel extends TelemetryRetentionResourceModel>(
-  resource: ResourceSettingsCase<TModel>,
-  initialModel: TModel,
-): Promise<UserEvent> {
-  storedModel = initialModel;
-  const path: string = resourcePath(resource);
+function retentionCard(): HTMLElement {
+  return screen.getByTestId("session-replay-retention");
+}
+
+async function renderSettings(model: RumApplication): Promise<UserEvent> {
+  storedModel = model;
 
   render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter
+      initialEntries={[
+        RouteUtil.populateRouteParams(SETTINGS_ROUTE, {
+          modelId: MODEL_ID,
+        }).toString(),
+      ]}
+    >
       <Routes>
         <PageRoute
-          path={String(RouteMap[resource.settingsKey])}
+          path={String(SETTINGS_ROUTE)}
           element={
-            <resource.Page
-              pageRoute={RouteMap[resource.settingsKey] as Route}
+            <RumSettings
+              pageRoute={SETTINGS_ROUTE}
               currentProject={null}
               hasPaymentMethod={true}
             />
@@ -245,16 +215,19 @@ async function renderSettings<TModel extends TelemetryRetentionResourceModel>(
     { name: "Session Replay Retention" },
     { timeout: WAIT_TIMEOUT },
   );
+
+  return userEvent.setup({ delay: null });
+}
+
+async function expectLine(text: string): Promise<void> {
   await waitFor(
     () => {
       expect(
-        document.getElementById("rum-application-session-replay-retention"),
-      ).toBeInTheDocument();
+        within(retentionCard()).getByTestId("session-replay-retention-line"),
+      ).toHaveTextContent(text);
     },
     { timeout: WAIT_TIMEOUT },
   );
-
-  return userEvent.setup({ delay: null });
 }
 
 function callsSelecting(field: string): Array<Array<unknown>> {
@@ -266,96 +239,25 @@ function callsSelecting(field: string): Array<Array<unknown>> {
   });
 }
 
-function expectReadFor(resource: ResourceSettingsCase, field: string): void {
-  const calls: Array<Array<unknown>> = callsSelecting(field);
-  expect(calls.length).toBeGreaterThan(0);
-
-  for (const call of calls) {
-    const request: {
-      modelType: unknown;
-      id: ObjectID;
-    } = call[0] as {
-      modelType: unknown;
-      id: ObjectID;
-    };
-
-    expect(request.modelType).toBe(resource.modelType);
-    expect(request.id.toString()).toBe(MODEL_ID.toString());
-  }
-}
-
-function submittedModel<TModel extends BaseModel>(): TModel {
-  const request: { model: TModel } = createOrUpdateMock.mock.calls[0]?.[0] as {
-    model: TModel;
-  };
-  return request.model;
-}
-
-function editDialog(resource: ResourceSettingsCase): HTMLElement {
-  const singularName: string = new resource.modelType().singularName || "item";
-  return screen.getByRole("dialog", { name: `Edit ${singularName}` });
-}
-
-async function openEditor(
-  resource: ResourceSettingsCase,
-  user: UserEvent,
-  buttonName: string,
-): Promise<HTMLElement> {
-  await user.click(
-    await screen.findByRole(
-      "button",
-      { name: buttonName },
-      { timeout: WAIT_TIMEOUT },
-    ),
-  );
-
-  await waitFor(
-    () => {
-      expect(editDialog(resource)).toBeVisible();
-    },
-    { timeout: WAIT_TIMEOUT },
-  );
-
-  return editDialog(resource);
-}
-
 beforeEach(() => {
   getItemMock.mockReset();
   createOrUpdateMock.mockReset();
-  itemReadObservations.length = 0;
+  updateByIdMock.mockReset();
 
-  getItemMock.mockImplementation(
-    async (request: ItemReadObservation["request"]): Promise<BaseModel> => {
-      const returnedModel: BaseModel = storedModel;
-      itemReadObservations.push({
-        request,
-        returnedModel,
-        returnedRetentionInDays: (
-          returnedModel as TelemetryRetentionResourceModel
-        ).retainTelemetryDataForDays,
-      });
-      return returnedModel;
-    },
-  );
-
-  createOrUpdateMock.mockImplementation(
-    async (request: { model: BaseModel }): Promise<{ data: JSONObject }> => {
-      storedModel = request.model;
-      return { data: {} };
-    },
-  );
+  getItemMock.mockImplementation(async (): Promise<BaseModel> => {
+    return storedModel;
+  });
 });
 
 afterEach(() => {
   cleanup();
-  jest.clearAllMocks();
+  jest.restoreAllMocks();
 });
 
-describe("RUM session replay retention", () => {
+describe("RUM application Settings: session replay retention", () => {
   test("is on the Community Edition page, next to the retention overrides upsell", async () => {
-    const resource: ResourceSettingsCase = RESOURCES[0]!;
-
-    await renderSettings(resource, modelFor(resource));
+    await renderSettings(applicationWith({ sessionReplayRetentionInDays: 7 }));
+    await expectLine("Session replays are kept for 7 days.");
 
     expect(
       screen.getByRole("heading", { name: "Retention Overrides", level: 2 }),
@@ -365,103 +267,154 @@ describe("RUM session replay retention", () => {
     ).not.toBeInTheDocument();
     expect(callsSelecting("telemetryRetentionConfig")).toHaveLength(0);
     expect(callsSelecting("retainTelemetryDataForDays")).toHaveLength(0);
-    expectReadFor(resource, "sessionReplayRetentionInDays");
+    // Before the archive card.
+    expect(
+      retentionCard().compareDocumentPosition(
+        screen.getByTestId("archive-resource-card"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
-  const resource: ResourceSettingsCase<RumApplication> =
-    RESOURCES[0] as ResourceSettingsCase<RumApplication>;
+  test("reads only the retention column, of the routed application", async () => {
+    await renderSettings(applicationWith({ sessionReplayRetentionInDays: 14 }));
+    await expectLine("Session replays are kept for 14 days.");
 
-  test("defaults an unset policy to seven days and persists that default unchanged", async () => {
-    const user: UserEvent = await renderSettings(resource, modelFor(resource));
-    const detail: HTMLElement = document.getElementById(
-      "rum-application-session-replay-retention",
-    ) as HTMLElement;
-
-    expect(detail).toHaveTextContent("not set (defaults to 7 days)");
-
-    const dialog: HTMLElement = await openEditor(
-      resource,
-      user,
-      "Edit Replay Retention",
+    const reads: Array<Array<unknown>> = callsSelecting(
+      "sessionReplayRetentionInDays",
     );
 
-    expect(
-      await within(dialog).findByText(
-        "7 days (default)",
-        {},
-        { timeout: WAIT_TIMEOUT },
-      ),
-    ).toBeVisible();
+    expect(reads).toHaveLength(1);
 
-    await user.click(
-      within(dialog).getByRole("button", { name: "Save Changes" }),
-    );
+    const request: {
+      modelType: unknown;
+      id: ObjectID;
+      select: Record<string, unknown>;
+    } = reads[0]![0] as {
+      modelType: unknown;
+      id: ObjectID;
+      select: Record<string, unknown>;
+    };
 
-    await waitFor(
-      () => {
-        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-
-    const submitted: RumApplication = submittedModel<RumApplication>();
-    expect(submitted._id).toBe(MODEL_ID.toString());
-    expect(submitted.sessionReplayRetentionInDays).toBe(7);
-  });
-
-  test("offers exactly the supported windows and persists the selected policy", async () => {
-    const user: UserEvent = await renderSettings(
-      resource,
-      modelFor(resource, { sessionReplayRetentionInDays: 7 }),
-    );
-    const dialog: HTMLElement = await openEditor(
-      resource,
-      user,
-      "Edit Replay Retention",
-    );
-    const dropdown: HTMLElement = await within(dialog).findByRole(
-      "combobox",
-      {
-        name: /^Retain Session Replays For/,
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-
-    fireEvent.keyDown(dropdown, { key: "ArrowDown", code: "ArrowDown" });
-
-    const options: Array<HTMLElement> = await screen.findAllByRole("option");
-    expect(
-      options.map((option: HTMLElement): string => {
-        return option.textContent || "";
-      }),
-    ).toEqual(["1 day", "7 days (default)", "14 days", "30 days", "90 days"]);
-
-    await user.click(screen.getByRole("option", { name: "30 days" }));
-    await user.click(
-      within(dialog).getByRole("button", { name: "Save Changes" }),
-    );
-
-    await waitFor(
-      () => {
-        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-
-    const request: { modelType: unknown } = createOrUpdateMock.mock
-      .calls[0]?.[0] as { modelType: unknown };
-    const submitted: RumApplication = submittedModel<RumApplication>();
     expect(request.modelType).toBe(RumApplication);
-    expect(submitted._id).toBe(MODEL_ID.toString());
-    expect(submitted.sessionReplayRetentionInDays).toBe(30);
+    expect(request.id.toString()).toBe(MODEL_ID.toString());
+    expect(request.select).toEqual({ sessionReplayRetentionInDays: true });
+  });
+
+  test.each([
+    [1, "Session replays are kept for 1 day."],
+    [7, "Session replays are kept for 7 days."],
+    [30, "Session replays are kept for 30 days."],
+    [90, "Session replays are kept for 90 days."],
+  ])(
+    "a retention of %d reads as one sentence: %s",
+    async (days: number, sentence: string) => {
+      await renderSettings(
+        applicationWith({ sessionReplayRetentionInDays: days }),
+      );
+
+      await expectLine(sentence);
+    },
+  );
+
+  test("a row read without a value says the seven-day default the server keeps", async () => {
+    await renderSettings(applicationWith());
+
+    await expectLine("Session replays are kept for 7 days.");
+  });
+
+  test("is read-only: no edit dialog, no form and no write", async () => {
+    await renderSettings(applicationWith({ sessionReplayRetentionInDays: 7 }));
+    await expectLine("Session replays are kept for 7 days.");
+
+    expect(
+      screen.queryByRole("button", { name: "Edit Replay Retention" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Retain Session Replays For"),
+    ).not.toBeInTheDocument();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("its one button opens this application's Replay Policy, where retention is edited", async () => {
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    const user: UserEvent = await renderSettings(
+      applicationWith({ sessionReplayRetentionInDays: 7 }),
+    );
+    await expectLine("Session replays are kept for 7 days.");
+
+    await user.click(
+      screen.getByRole("button", { name: "Edit on Replay Policy" }),
+    );
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+
+    const target: Route | URL = navigate.mock.calls[0]![0];
+
+    expect(target.toString()).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS] as Route,
+        { modelId: MODEL_ID },
+      ).toString(),
+    );
+    expect(target.toString()).toContain(
+      `/rum/${MODEL_ID.toString()}/session-replay-settings`,
+    );
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("a failed read says why instead of a retention", async () => {
+    getItemMock.mockImplementation(async (): Promise<BaseModel> => {
+      throw new Error("You do not have permission to read this application.");
+    });
+
+    await renderSettings(applicationWith({ sessionReplayRetentionInDays: 7 }));
 
     await waitFor(
       () => {
-        expect(
-          document.getElementById("rum-application-session-replay-retention"),
-        ).toHaveTextContent("30 days");
+        expect(retentionCard()).toHaveTextContent(
+          "You do not have permission to read this application.",
+        );
       },
       { timeout: WAIT_TIMEOUT },
     );
+    expect(
+      screen.queryByTestId("session-replay-retention-line"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an application the read cannot find says so", async () => {
+    getItemMock.mockImplementation(async (): Promise<null> => {
+      return null;
+    });
+
+    await renderSettings(applicationWith({ sessionReplayRetentionInDays: 7 }));
+
+    await waitFor(
+      () => {
+        expect(retentionCard()).toHaveTextContent("RUM application not found.");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+});
+
+describe("getEffectiveSessionReplayRetentionDays", () => {
+  test("a stored value is the retention", () => {
+    expect(getEffectiveSessionReplayRetentionDays(1)).toBe(1);
+    expect(getEffectiveSessionReplayRetentionDays(90)).toBe(90);
+  });
+
+  test("no value is the seven-day default", () => {
+    expect(getEffectiveSessionReplayRetentionDays(undefined)).toBe(7);
+    expect(getEffectiveSessionReplayRetentionDays(null)).toBe(7);
+    expect(getEffectiveSessionReplayRetentionDays(0)).toBe(7);
   });
 });

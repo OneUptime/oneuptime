@@ -60,25 +60,25 @@ Det vigtige er sammenfletningsreglen: **en skabelon udfylder kun et felt, du har
 
 Noteskabeloner giver beredskabsfolkene færdig tekst til hændelsesopdateringer, så en statussideopdatering klokken tre om natten ikke skal skrives fra bunden af en, der er halvvågen.
 
-Gå til **Hændelser → Indstillinger → Noteskabeloner** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet hedder **Skabeloner til offentlige eller private noter for hændelser** — ét bibliotek dækker begge notetyper. Opret-formularen har to trin:
+Gå til **Hændelser → Indstillinger → Noteskabeloner** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet hedder **Skabeloner til offentlige eller private noter for hændelser** — ét bibliotek dækker begge notetyper. Opret-formularen er én side:
 
-- **Skabeloninformation** — **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævede.
-- **Notedetaljer** — selve noteteksten, i Markdown, påkrævet.
+- **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævede.
+- Selve noteteksten, i Markdown, påkrævet.
 
 Som med hændelsesskabeloner oprettes og åbnes rækker frem for at blive redigeret på listen; åbn en skabelon for at ændre den.
 
-Noteskabeloner dukker op dér, hvor du reelt har brug for dem: bekræftelsesdialogerne **Acknowledge Incident** og **Resolve Incident** tilbyder begge **Vælg noteskabelon** ved siden af feltet **Offentlig note**. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed) for forskellen på offentlige og private noter.
+Noteskabeloner dukker op dér, hvor du reelt har brug for dem: bekræftelsesdialogerne **Bekræft hændelse** og **Løs hændelse** tilbyder begge **Vælg noteskabelon** over feltet **Offentlig note**, foldet sammen under **Tilføj en offentlig note**. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed) for forskellen på offentlige og private noter.
 
 ## Postmortem-skabeloner
 
 En postmortem-skabelon er skelettet til den evaluering, du skriver efter en hændelse — dine overskrifter, dine spørgsmål, dine faste punkter — så hver gennemgang i projektet har den samme form.
 
-Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet hedder **Postmortem-skabeloner**. Opret-formularen har to trin:
+Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet hedder **Postmortem-skabeloner**. Opret-formularen er én side:
 
-- **Skabeloninformation** — **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævede.
-- **Postmortem-detaljer** — **Postmortem-skabelon**, altså selve teksten, i Markdown, påkrævet.
+- **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævede.
+- **Postmortem-skabelon**, altså selve teksten, i Markdown, påkrævet.
 
-Du anvender en skabelon fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner dialogen **Anvend postmortem-skabelon** med en **Vælg skabelon**-rulleliste; vælger du en, indlæses skabelonteksten i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme **Postmortem**-side og trækker på det samme skabelonbibliotek.
+Du anvender en skabelon fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner dialogen **Anvend postmortem-skabelon** med en **Vælg skabelon**-rulleliste; vælger du en, indlæses skabelonteksten i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme **Postmortem**-side og trækker på det samme skabelonbibliotek. **Anvend skabelon** vises først, når projektet har en postmortem-skabelon; er der kun én, er den allerede valgt. Editoren åbner hændelsens postmortem, som den er, med skabelonen som note, så om den er på statussiden, hvornår den blev offentliggjort, og dens vedhæftede filer forbliver uændrede.
 
 ## Brugerdefinerede felter
 

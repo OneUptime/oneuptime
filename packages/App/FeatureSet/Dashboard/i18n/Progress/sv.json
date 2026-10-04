@@ -1,7 +1,9 @@
 {
   "baseline": {
-    "keys": 21385,
-    "untranslated": 13795
+    "keys": 24715,
+    "untranslated": 16456
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "Precision"
+  ]
 }

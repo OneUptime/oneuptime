@@ -41,6 +41,7 @@ const changeStateMountMock: MockFunction = getJestMockFunction();
 const feedRenderMock: MockFunction = getJestMockFunction();
 const cardModelDetailRenderMock: MockFunction = getJestMockFunction();
 const customFieldsRenderMock: MockFunction = getJestMockFunction();
+const measurementsCardRenderMock: MockFunction = getJestMockFunction();
 
 // Which item each stubbed CardModelDetail renders its field elements against.
 const detailItemsByCardName: Record<string, unknown> = {};
@@ -133,6 +134,26 @@ jest.mock(
       default: (props: unknown): React.ReactElement => {
         customFieldsRenderMock(props);
         return React.createElement("div", { "data-testid": "custom-fields" });
+      },
+    };
+  },
+);
+
+/*
+ * The Measurements card reads its own rows; what the page decides is where
+ * it goes and what it is told: which event, whether it is over, and when to
+ * read again (EventMeasurementsCard.test.tsx covers the card itself).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Measurement/EventMeasurementsCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: unknown): React.ReactElement => {
+        measurementsCardRenderMock(props);
+        return React.createElement("div", {
+          "data-testid": "event-measurements-card",
+        });
       },
     };
   },
@@ -246,6 +267,8 @@ import ScheduledMaintenanceView from "../../../../App/FeatureSet/Dashboard/src/P
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import { SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/EventMeasurements";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
@@ -260,6 +283,11 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
 import Navigation from "../../../UI/Utils/Navigation";
+import StatusPageEventType from "../../../Types/StatusPage/StatusPageEventType";
+import {
+  RecordStatusPageSuggestions,
+  RecordStatusPageSuggestionsProps,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSuggestions";
 
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
@@ -349,6 +377,12 @@ function makeEvent(overrides?: {
   title?: string;
   statusPageNames?: Array<string>;
   createdBy?: User | null;
+  // In the project's completed state.
+  isCompleted?: boolean;
+  // In the project's ended state.
+  isEnded?: boolean;
+  // The id of the state it is in.
+  stateId?: string;
 }): ScheduledMaintenance {
   const now: number = Date.now();
   const event: ScheduledMaintenance = new ScheduledMaintenance();
@@ -374,6 +408,22 @@ function makeEvent(overrides?: {
     }
 
     event.createdByUser = user;
+  }
+
+  if (
+    overrides?.isCompleted !== undefined ||
+    overrides?.isEnded !== undefined ||
+    overrides?.stateId
+  ) {
+    const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+    state.isResolvedState = Boolean(overrides?.isCompleted);
+    state.isEndedState = Boolean(overrides?.isEnded);
+
+    if (overrides?.stateId) {
+      state._id = overrides.stateId;
+    }
+
+    event.currentScheduledMaintenanceState = state;
   }
 
   return event;
@@ -425,6 +475,7 @@ describe("Scheduled maintenance overview page", () => {
     feedRenderMock.mockReset();
     cardModelDetailRenderMock.mockReset();
     customFieldsRenderMock.mockReset();
+    measurementsCardRenderMock.mockReset();
 
     for (const key of Object.keys(detailItemsByCardName)) {
       delete detailItemsByCardName[key];
@@ -492,6 +543,12 @@ describe("Scheduled maintenance overview page", () => {
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
+        // Its state and whether it is completed, for the Measurements card.
+        currentScheduledMaintenanceState: {
+          _id: true,
+          isEndedState: true,
+          isResolvedState: true,
+        },
       });
     });
 
@@ -1115,6 +1172,203 @@ describe("Scheduled maintenance overview page", () => {
     });
   });
 
+  describe("measurements card", () => {
+    interface MeasurementsCardProps {
+      source: unknown;
+      eventId: ObjectID;
+      isEventOver: boolean;
+      refreshKey?: string;
+      headerLayout?: string;
+    }
+
+    const ONGOING_STATE_ID: string = "88888888-8888-4888-8888-888888888881";
+    const COMPLETED_STATE_ID: string = "88888888-8888-4888-8888-888888888882";
+
+    test("sits in the right column, under the details card and before the custom fields", async () => {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      const details: HTMLElement = screen.getByTestId(
+        "card-Scheduled Maintenance Details",
+      );
+      const measurements: HTMLElement = screen.getByTestId(
+        "event-measurements-card",
+      );
+      const customFields: HTMLElement = screen.getByTestId("custom-fields");
+      const feed: HTMLElement = screen.getByTestId("feed");
+
+      expect(
+        details.compareDocumentPosition(measurements) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        measurements.compareDocumentPosition(customFields) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      // The right column comes after the feed's.
+      expect(
+        feed.compareDocumentPosition(measurements) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("reads this event's maintenance measurements, in a stacked card", async () => {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      const props: MeasurementsCardProps = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      );
+
+      expect(props.source).toBe(SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS);
+      expect(props.eventId.toString()).toBe(EVENT_ID);
+      expect(props.headerLayout).toBe("stacked");
+    });
+
+    test.each([
+      { label: "a scheduled event", state: undefined, isOver: false },
+      {
+        label: "an event in a state that has not ended",
+        state: { isCompleted: false, isEnded: false },
+        isOver: false,
+      },
+      // The header's own "ended" kind: Ended, or Completed.
+      {
+        label: "an ended event",
+        state: { isEnded: true },
+        isOver: true,
+      },
+      {
+        label: "a completed event",
+        state: { isCompleted: true },
+        isOver: true,
+      },
+    ])(
+      "tells the card whether the event is over: $label",
+      async ({
+        state,
+        isOver,
+      }: {
+        state: { isCompleted?: boolean; isEnded?: boolean } | undefined;
+        isOver: boolean;
+      }) => {
+        getItemMock.mockResolvedValue(makeEvent(state || {}) as never);
+
+        await renderPage();
+
+        expect(
+          lastProps<MeasurementsCardProps>(measurementsCardRenderMock)
+            .isEventOver,
+        ).toBe(isOver);
+      },
+    );
+
+    test("reads again when the event moves to another state, and follows it once it is completed", async () => {
+      getItemMock
+        .mockResolvedValueOnce(
+          makeEvent({ isCompleted: false, stateId: ONGOING_STATE_ID }) as never,
+        )
+        .mockResolvedValueOnce(
+          makeEvent({
+            isCompleted: true,
+            stateId: COMPLETED_STATE_ID,
+          }) as never,
+        );
+
+      await renderPage();
+
+      const before: MeasurementsCardProps = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      );
+
+      expect(before.refreshKey).toContain(ONGOING_STATE_ID);
+      expect(before.isEventOver).toBe(false);
+
+      fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
+      await flush();
+
+      const after: MeasurementsCardProps = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      );
+
+      expect(after.refreshKey).toContain(COMPLETED_STATE_ID);
+      expect(after.refreshKey).not.toBe(before.refreshKey);
+      expect(after.isEventOver).toBe(true);
+    });
+
+    /*
+     * Measurements can start or end at the planned window ("started late
+     * by", "ran over by"); the server works them out again when it moves.
+     */
+    test("reads again when the planned window is moved, the state unchanged", async () => {
+      const event: ScheduledMaintenance = makeEvent({
+        isCompleted: false,
+        stateId: ONGOING_STATE_ID,
+      });
+      const rescheduled: ScheduledMaintenance = makeEvent({
+        isCompleted: false,
+        stateId: ONGOING_STATE_ID,
+      });
+      rescheduled.startsAt = new Date(event.startsAt!.getTime() + HOUR);
+      rescheduled.endsAt = new Date(event.endsAt!.getTime() + HOUR);
+
+      getItemMock
+        .mockResolvedValueOnce(event as never)
+        .mockResolvedValueOnce(rescheduled as never);
+
+      await renderPage();
+
+      const before: string | undefined = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      ).refreshKey;
+
+      await act(async () => {
+        (
+          cardProps("Scheduled Maintenance Details") as unknown as {
+            onSaveSuccess: () => void;
+          }
+        ).onSaveSuccess();
+      });
+      await flush();
+
+      const after: string | undefined = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      ).refreshKey;
+
+      expect(after).toContain(ONGOING_STATE_ID);
+      expect(after).not.toBe(before);
+    });
+
+    test("an edit that leaves the state and the window alone does not make it read again", async () => {
+      getItemMock.mockResolvedValue(
+        makeEvent({ isCompleted: false, stateId: ONGOING_STATE_ID }) as never,
+      );
+
+      await renderPage();
+
+      const before: string | undefined = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      ).refreshKey;
+
+      await act(async () => {
+        (
+          cardProps("Scheduled Maintenance Details") as unknown as {
+            onSaveSuccess: () => void;
+          }
+        ).onSaveSuccess();
+      });
+      await flush();
+
+      // The feed reads again; the measurements have nothing new to read.
+      expect(lastProps<FeedProps>(feedRenderMock).refreshToken).toBe(1);
+      expect(
+        lastProps<MeasurementsCardProps>(measurementsCardRenderMock).refreshKey,
+      ).toBe(before);
+    });
+  });
+
   describe("affected resources card", () => {
     const RELATIONS: Array<string> = [
       "monitors",
@@ -1132,21 +1386,35 @@ describe("Scheduled maintenance overview page", () => {
       "services",
     ];
 
-    test("offers every resource type the model supports", async () => {
+    /*
+     * Split as Create Scheduled Maintenance Event is: the monitors in a
+     * picker of their own, every other resource the model supports in a
+     * second one - together each relation once.
+     */
+    test("offers every resource type the model supports, the monitors apart", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
 
       await renderPage();
 
       const resources: CardProps = cardProps("Affected Resources");
-      const picker: React.ReactElement = resources.formFields[0]!
-        .getCustomElement!({}, {});
-      const pickerProps: Record<string, unknown> = picker.props as Record<
-        string,
-        unknown
-      >;
+      const pickerPropsOf: (index: number) => Record<string, unknown> = (
+        index: number,
+      ): Record<string, unknown> => {
+        const picker: React.ReactElement = resources.formFields[index]!
+          .getCustomElement!({}, {});
 
-      expect(pickerProps["resourceTypes"]).toEqual([
-        "Monitor",
+        return picker.props as Record<string, unknown>;
+      };
+
+      const monitors: Record<string, unknown> = pickerPropsOf(0);
+      const others: Record<string, unknown> = pickerPropsOf(1);
+
+      expect(Object.keys(resources.formFields[0]!.field)).toEqual(["monitors"]);
+      expect(monitors["resourceTypes"]).toEqual(["Monitor"]);
+      expect(monitors).toHaveProperty("monitors");
+
+      expect(Object.keys(resources.formFields[1]!.field)).toEqual(["hosts"]);
+      expect(others["resourceTypes"]).toEqual([
         "Host",
         "KubernetesCluster",
         "DockerHost",
@@ -1160,13 +1428,23 @@ describe("Scheduled maintenance overview page", () => {
         "NetworkSite",
         "Service",
       ]);
+      expect(others).not.toHaveProperty("monitors");
 
       for (const relation of RELATIONS) {
-        expect(pickerProps).toHaveProperty(relation);
+        if (relation !== "monitors") {
+          expect(others).toHaveProperty(relation);
+        }
       }
+
+      // No monitor status: an event's is chosen when it is created.
+      expect(
+        resources.formFields.map((field: DetailField): string => {
+          return Object.keys(field.field)[0]!;
+        }),
+      ).not.toContain("changeMonitorStatusTo");
     });
 
-    test("writes every relation back from the picker's payload", async () => {
+    test("each picker writes back its own relations from the payload, and only those", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
 
       await renderPage();
@@ -1179,24 +1457,41 @@ describe("Scheduled maintenance overview page", () => {
         payload[relation] = [`${relation}-id`];
       }
 
-      const setNewFormValues: MockFunction = getJestMockFunction();
+      const writtenBy: (
+        index: number,
+      ) => Promise<Record<string, unknown>> = async (
+        index: number,
+      ): Promise<Record<string, unknown>> => {
+        const setNewFormValues: MockFunction = getJestMockFunction();
 
-      cardProps("Affected Resources").formFields[0]!.onChange!(
-        payload,
-        { title: "kept" },
-        setNewFormValues,
-      );
-      await flush();
+        cardProps("Affected Resources").formFields[index]!.onChange!(
+          payload,
+          { title: "kept" },
+          setNewFormValues,
+        );
+        await flush();
 
-      expect(setNewFormValues).toHaveBeenCalledTimes(1);
+        expect(setNewFormValues).toHaveBeenCalledTimes(1);
 
-      const written: Record<string, unknown> =
-        setNewFormValues.mock.calls[0]![0];
+        return setNewFormValues.mock.calls[0]![0] as Record<string, unknown>;
+      };
 
-      expect(written["title"]).toBe("kept");
+      const byMonitors: Record<string, unknown> = await writtenBy(0);
+
+      expect(byMonitors).toEqual({
+        title: "kept",
+        monitors: ["monitors-id"],
+      });
+
+      const byOthers: Record<string, unknown> = await writtenBy(1);
+
+      expect(byOthers["title"]).toBe("kept");
+      expect(byOthers).not.toHaveProperty("monitors");
 
       for (const relation of RELATIONS) {
-        expect(written[relation]).toEqual([`${relation}-id`]);
+        if (relation !== "monitors") {
+          expect(byOthers[relation]).toEqual([`${relation}-id`]);
+        }
       }
     });
 
@@ -1257,6 +1552,11 @@ describe("Scheduled maintenance overview page", () => {
         currentValues: Record<string, unknown>,
         setNewFormValues: (values: Record<string, unknown>) => void,
       ) => void;
+      getFooterElement?: (
+        values: Record<string, unknown>,
+        error?: string,
+        footer?: { setValue: (value: unknown) => void },
+      ) => React.ReactElement | undefined;
     }
 
     interface EditCard {
@@ -1318,7 +1618,7 @@ describe("Scheduled maintenance overview page", () => {
         "title",
         "startsAt",
         "endsAt",
-        "Advanced: labels",
+        "More fields: labels",
       ]);
       expect(rowsOn(card, "status-pages")).toEqual([
         "statusPages",
@@ -1353,6 +1653,59 @@ describe("Scheduled maintenance overview page", () => {
 
         expect(columnAccess?.update || []).toEqual([]);
       }
+    });
+
+    /*
+     * The pages that show the event's monitors are suggested under its
+     * status page picker. This dialog does not hold the monitors (the
+     * Affected Resources card edits them), so they are read from the event
+     * - this event, the one the page is for.
+     */
+    test("suggests the status pages that show the event's monitors, read from the event", async () => {
+      const card: EditCard = await editCard();
+      const setValue: MockFunction = getJestMockFunction();
+
+      const footer: React.ReactElement | undefined = fieldOf(
+        card,
+        "statusPages",
+      ).getFooterElement!(
+        { statusPages: ["88888888-8888-4888-8888-888888888888"] },
+        undefined,
+        { setValue: setValue as unknown as (value: unknown) => void },
+      );
+
+      expect(footer).toBeDefined();
+      expect(footer!.type).toBe(RecordStatusPageSuggestions);
+
+      const props: RecordStatusPageSuggestionsProps = footer!
+        .props as RecordStatusPageSuggestionsProps;
+
+      expect(props.modelType).toBe(ScheduledMaintenance);
+      expect(props.modelId.toString()).toBe(EVENT_ID);
+      expect(props.eventType).toBe(StatusPageEventType.ScheduledEvent);
+      expect(props.statusPageIds).toEqual([
+        "88888888-8888-4888-8888-888888888888",
+      ]);
+
+      // A page picked from the suggestions goes to the picker's value.
+      props.onChange([
+        "88888888-8888-4888-8888-888888888888",
+        "99999999-9999-4999-8999-999999999999",
+      ]);
+
+      expect(setValue).toHaveBeenCalledWith([
+        "88888888-8888-4888-8888-888888888888",
+        "99999999-9999-4999-8999-999999999999",
+      ]);
+
+      // Nothing else on the dialog suggests anything.
+      expect(
+        card.formFields
+          .filter((field: EditField): boolean => {
+            return Boolean(field.getFooterElement);
+          })
+          .map(keyOf),
+      ).toEqual(["statusPages"]);
     });
 
     test("shows the event's own window: no default times on an Edit", async () => {

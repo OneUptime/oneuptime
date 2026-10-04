@@ -1,15 +1,11 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import Project from "Common/Models/DatabaseModels/Project";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -19,6 +15,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import SessionReplayAllowedCard from "../../../Components/SessionReplay/SessionReplayAllowedCard";
 
 /*
  * Project-level session replay controls, under Real User Monitoring >
@@ -27,7 +24,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  *   - the master switch, which is the control a data-protection owner
  *     reaches for and must be findable without knowing which application
  *     is at fault. It is never plan-gated: being able to stop recording
- *     your end users must not depend on a subscription.
+ *     your end users must not depend on a subscription. It saves the
+ *     moment it is flipped, and asks first only when it turns recording
+ *     on (SessionReplayAllowedCard).
  *   - a read-only roster so somebody auditing the project can see every
  *     application's policy and whether it is actually recording, and
  *     click through to change one.
@@ -38,6 +37,11 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * here as well, with an application picker that defaulted to the first
  * application alphabetically; a link from application B's empty list
  * landed on A's test. They are gone from here on purpose.
+ *
+ * The roster's description says so. A blue banner between the switch and
+ * the roster used to say it again on every visit; banners are for
+ * exceptions someone has to act on, so it went
+ * (App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
  */
 
 /*
@@ -73,49 +77,8 @@ const RumSessionReplaySettings: FunctionComponent<
   const translator: Translator = useTranslator();
   return (
     <Fragment>
-      <CardModelDetail<Project>
-        name="Session Replay Availability"
-        cardProps={{
-          title: "Session Replay for this Project",
-          description:
-            "Master switch for recording your end users' screens. While this is off, no application in this project can record and any chunk that arrives is refused at ingest. This control is never plan-gated.",
-        }}
-        isEditable={true}
-        editButtonText="Update"
-        formFields={[
-          {
-            field: {
-              isSessionReplayAllowed: true,
-            },
-            title: "Allow session replay in this project",
-            description:
-              "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "model-detail-project-session-replay",
-          fields: [
-            {
-              field: {
-                isSessionReplayAllowed: true,
-              },
-              title: "Allow session replay in this project",
-              placeholder: "Not allowed",
-              fieldType: FieldType.Boolean,
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
-      />
-
-      <Alert
-        type={AlertType.INFO}
-        dataTestId="project-replay-pointer"
-        strongTitle="Looking for the installation test, recording health or targeted capture?"
-        title="They live on each application's Replay Policy page (open an application below), so every check runs against the application you are actually setting up."
+      <SessionReplayAllowedCard
+        projectId={ProjectUtil.getCurrentProjectId()!}
       />
 
       <ModelTable<RumApplication>
@@ -143,7 +106,7 @@ const RumSessionReplaySettings: FunctionComponent<
         cardProps={{
           title: "Per-application Policy",
           description:
-            "Masking, consent, sampling and retention are configured on each application. This is a read-only roster - open an application to change its policy or test its installation.",
+            "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.",
         }}
         noItemsMessage="No RUM applications yet. Create one under Real User Monitoring first."
         filters={[

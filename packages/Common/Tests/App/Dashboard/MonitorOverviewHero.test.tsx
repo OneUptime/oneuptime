@@ -21,6 +21,17 @@ import {
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getJestSpyOn } from "../../Spy";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import {
+  MODEL_SWITCH_SAVED_EVENT,
+  ModelSwitchSaved,
+} from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
+import { TURN_MONITORING_ON_BUTTON_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitoringSwitchCopy";
 import MonitorOverviewHero, {
   ComponentProps,
   getMonitorOverviewIcon,
@@ -252,14 +263,25 @@ const BADGE_TONE_CLASS: Record<string, string> = {
   neutral: "text-gray-700",
 };
 
+let columnGate: PermissionGateResult = { isAllowed: true };
+
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
+
+  // Whether the reader may turn monitoring on (the column's update gate).
+  columnGate = { isAllowed: true };
+  getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
+    (): PermissionGateResult => {
+      return columnGate;
+    },
+  );
 });
 
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 interface RunStateCase {
@@ -274,6 +296,8 @@ interface RunStateCase {
   hasExplanation: boolean;
   lastKnown?: string | undefined;
   cta?: { text: string; page: PageMap } | undefined;
+  // A call to action done in place: the button's name.
+  ctaButton?: string | undefined;
 }
 
 const RUN_STATE_CASES: Array<RunStateCase> = [
@@ -319,7 +343,8 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     headline: "Monitoring is turned off",
     hasExplanation: true,
     lastKnown: "Last recorded status: Operational",
-    cta: { text: "Open settings", page: PageMap.MONITOR_VIEW_SETTINGS },
+    // Turned back on in place, not on a trip to Settings.
+    ctaButton: "Turn monitoring on",
   },
   {
     name: "2b paused by an incident",
@@ -611,10 +636,19 @@ describe("MonitorOverviewHero run states", () => {
       expect(screen.queryByTestId("monitor-overview-last-known")).toBeNull();
     }
 
-    if (testCase.cta) {
+    if (testCase.ctaButton) {
+      expect(
+        screen.getByRole("button", { name: testCase.ctaButton }),
+      ).toBeEnabled();
+      // The button is the call to action: no link beside it.
+      expect(screen.queryByRole("link", { name: "Open settings" })).toBeNull();
+    } else if (testCase.cta) {
       expect(
         screen.getByRole("link", { name: testCase.cta.text }),
       ).toHaveAttribute("href", routeFor(testCase.cta.page));
+      expect(
+        screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),
+      ).toBeNull();
     } else {
       for (const text of [
         "Open settings",
@@ -1165,5 +1199,212 @@ describe("MonitorOverviewHero layout", () => {
     renderHero({});
 
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+/*
+ * A monitor someone turned off: the hero's call to action turns it back on
+ * in place. It used to be an "Open settings" link to a Settings page where
+ * the reader had to find a switch called "Disable Active Monitoring", press
+ * Edit, turn it off and Save.
+ */
+describe("MonitorOverviewHero turns monitoring back on", () => {
+  const DISABLED_INPUT: Partial<MonitorOverviewPresentationInput> = {
+    pause: {
+      isDisabled: true,
+      byManualIncident: false,
+      byScheduledMaintenance: false,
+    },
+  };
+
+  let updateByIdMock: jest.SpyInstance<any, any>;
+
+  beforeEach(() => {
+    updateByIdMock = getJestSpyOn(ModelAPI, "updateById").mockImplementation(
+      async (): Promise<unknown> => {
+        return {};
+      },
+    );
+  });
+
+  const renderDisabled: (
+    overrides?: Partial<ComponentProps>,
+  ) => RenderResult = (overrides?: Partial<ComponentProps>): RenderResult => {
+    return renderHero({
+      presentation: presentationFor(MonitorType.API, DISABLED_INPUT),
+      ...overrides,
+    });
+  };
+
+  const flush: () => Promise<void> = async (): Promise<void> => {
+    await act(async () => {
+      for (let i: number = 0; i < 5; i++) {
+        await Promise.resolve();
+      }
+    });
+  };
+
+  test("pressing it turns monitoring on for this monitor, tells the page, and tells the screen", async () => {
+    const onMonitoringTurnedOn: MockFunction = getJestMockFunction();
+    const heard: Array<ModelSwitchSaved> = [];
+    const listener: (event: Event) => void = (event: Event): void => {
+      heard.push((event as CustomEvent).detail as ModelSwitchSaved);
+    };
+    window.addEventListener(MODEL_SWITCH_SAVED_EVENT, listener);
+
+    try {
+      renderDisabled({ onMonitoringTurnedOn });
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Turn monitoring on" }),
+      );
+      await flush();
+
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      const call: {
+        modelType: unknown;
+        id: ObjectID;
+        data: Record<string, unknown>;
+      } = updateByIdMock.mock.calls[0]![0];
+      expect(call.modelType).toBe(Monitor);
+      expect(call.id.toString()).toBe(MONITOR_ID.toString());
+      // Exactly the column the Monitoring switch writes, and nothing else.
+      expect(call.data).toEqual({ disableActiveMonitoring: false });
+
+      expect(onMonitoringTurnedOn).toHaveBeenCalledTimes(1);
+      expect(heard).toEqual([
+        {
+          tableName: "Monitor",
+          modelId: MONITOR_ID.toString(),
+          column: "disableActiveMonitoring",
+          value: false,
+          source: "",
+        },
+      ]);
+    } finally {
+      window.removeEventListener(MODEL_SWITCH_SAVED_EVENT, listener);
+    }
+  });
+
+  test("it saves once however fast it is pressed, and is busy while it saves", async () => {
+    let finish: () => void = (): void => {};
+    updateByIdMock.mockImplementation((): Promise<unknown> => {
+      return new Promise<unknown>((resolve: (value: unknown) => void) => {
+        finish = (): void => {
+          resolve({});
+        };
+      });
+    });
+
+    renderDisabled();
+
+    const button: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+    );
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await flush();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),
+    ).toBeDisabled();
+
+    await act(async () => {
+      finish();
+    });
+    await flush();
+
+    expect(
+      screen.getByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),
+    ).not.toBeDisabled();
+  });
+
+  test("a refused change says why, and the page is not told it worked", async () => {
+    const onMonitoringTurnedOn: MockFunction = getJestMockFunction();
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error("You do not have permission to update this Monitor.");
+    });
+
+    renderDisabled({ onMonitoringTurnedOn });
+
+    fireEvent.click(screen.getByRole("button", { name: "Turn monitoring on" }));
+    await flush();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "You do not have permission to update this Monitor.",
+    );
+    expect(onMonitoringTurnedOn).not.toHaveBeenCalled();
+    // Still there, to try again.
+    expect(
+      screen.getByRole("button", { name: "Turn monitoring on" }),
+    ).toBeEnabled();
+  });
+
+  test("someone who may not change it sees it locked, with why", () => {
+    columnGate = {
+      isAllowed: false,
+      disabledReason:
+        "You do not have permission to update this Monitor. You need one of these permissions: Project Owner.",
+    };
+
+    renderDisabled();
+
+    const button: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+    );
+    expect(button).toBeDisabled();
+
+    fireEvent.click(button);
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("while the permissions are still loading it offers nothing, rather than a lock it cannot explain", () => {
+    columnGate = { isAllowed: false };
+
+    renderDisabled();
+
+    expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open settings" })).toBeNull();
+  });
+
+  test("an archived monitor still points at its settings, and paused ones at their cause", () => {
+    renderHero({
+      presentation: presentationFor(MonitorType.API, {
+        pause: {
+          isArchived: true,
+          isDisabled: true,
+          byManualIncident: false,
+          byScheduledMaintenance: false,
+        },
+      }),
+    });
+
+    expect(screen.getByRole("link", { name: "Open settings" })).toHaveAttribute(
+      "href",
+      routeFor(PageMap.MONITOR_VIEW_SETTINGS),
+    );
+    expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
+    cleanup();
+
+    renderHero({
+      presentation: presentationFor(MonitorType.API, {
+        pause: {
+          isDisabled: false,
+          byManualIncident: true,
+          byScheduledMaintenance: false,
+        },
+      }),
+    });
+
+    expect(screen.getByRole("link", { name: "View incidents" })).toBeTruthy();
+    expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
+  });
+
+  test("a running monitor has no such button", () => {
+    renderHero({});
+
+    expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
+    expect(updateByIdMock).not.toHaveBeenCalled();
   });
 });

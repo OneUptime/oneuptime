@@ -26,10 +26,9 @@ Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUpt
 
 2. **SCIM-Einstellungen konfigurieren**
 
-   - Aktivieren Sie **Benutzer automatisch provisionieren**, um Benutzer automatisch hinzuzufügen, wenn sie im IdP zugewiesen werden
-   - Aktivieren Sie **Benutzer automatisch deprovisionieren**, um Benutzer automatisch zu entfernen, wenn sie im IdP nicht mehr zugewiesen sind
-   - Wählen Sie die **Standard-Teams**, denen neue Benutzer hinzugefügt werden sollen
-   - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
+   - Geben Sie einen **Namen** ein. **Standard-Teams** beginnen mit dem Mitglieder-Team Ihres Projekts: Neue Benutzer werden diesen Teams hinzugefügt
+   - Unter **Weitere Felder** sind **Benutzer automatisch provisionieren** (Benutzer hinzufügen, wenn sie im IdP zugewiesen werden) und **Benutzer automatisch deprovisionieren** (Benutzer entfernen, wenn sie im IdP nicht mehr zugewiesen sind) aktiviert und **Push-Gruppen aktivieren** deaktiviert. Ändern Sie sie dort bei Bedarf
+   - Speichern Sie. Der Dialog mit der **SCIM-Basis-URL** und dem **Bearer-Token** für Ihre IdP-Konfiguration öffnet sich sofort
 
 3. **Ihren Identity Provider konfigurieren**
    - Verwenden Sie die SCIM-Basis-URL: `https://oneuptime.com/scim/v2/{scimId}`
@@ -65,8 +64,8 @@ Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Se
 
 2. **SCIM-Einstellungen konfigurieren**
 
-   - Aktivieren Sie **Benutzer automatisch provisionieren** und **Benutzer automatisch deprovisionieren**
-   - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
+   - Geben Sie einen **Namen** ein. Unter **Weitere Felder** sind **Benutzer automatisch provisionieren** (private Benutzer hinzufügen, wenn sie im IdP zugewiesen werden) und **Benutzer automatisch deprovisionieren** (private Benutzer löschen, wenn sie im IdP nicht mehr zugewiesen sind) aktiviert. Ändern Sie sie dort bei Bedarf
+   - Speichern Sie. Der Dialog mit der **SCIM-Basis-URL** und dem **Bearer-Token** für Ihre IdP-Konfiguration öffnet sich sofort
 
 3. **Ihren Identity Provider konfigurieren**
    - Verwenden Sie die SCIM-Basis-URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`

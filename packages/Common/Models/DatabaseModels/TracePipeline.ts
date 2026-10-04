@@ -280,6 +280,7 @@ export default class TracePipeline extends BaseModel {
     title: "Enabled",
     description: "Whether this trace pipeline is active.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

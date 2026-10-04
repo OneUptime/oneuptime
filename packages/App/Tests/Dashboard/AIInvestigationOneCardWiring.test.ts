@@ -152,7 +152,12 @@ describe("the panel draws the one card", () => {
   test("the card is titled once and its pill is drawn once", () => {
     expect(count(PANEL, /title="AI Investigation"/g)).toBe(1);
     expect(count(PANEL, /<InvestigationStatusBadge /g)).toBe(1);
-    expect(PANEL).toContain('headerLayout="inline"');
+    /*
+     * The default header keeps the pill on the title's line at the card's
+     * right edge, a phone included; the "inline" layout that once did it is
+     * gone.
+     */
+    expect(PANEL).not.toContain("headerLayout=");
   });
 
   test("the not-started state is that card's body", () => {

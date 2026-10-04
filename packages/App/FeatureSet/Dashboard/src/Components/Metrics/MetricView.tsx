@@ -54,6 +54,10 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
+import {
+  getMetricResultsState,
+  MetricResultsState,
+} from "./Utils/MetricResultsState";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -205,6 +209,14 @@ interface MetricViewBodyProps {
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
   // Fired when a results fetch starts/finishes (drives host refresh UI).
   onIsFetchingResultsChange?: ((isFetching: boolean) => void) | undefined;
+  /*
+   * Told what the charts have to show each time that changes: Loading, then
+   * HasData, Empty (the queries came back without a single data point) or
+   * Error. A host that explains an empty view, such as a setup hint for a
+   * scrape that is off, shows it on Empty only: never while loading, and
+   * never on an error, when nobody knows whether there is data.
+   */
+  onResultsStateChange?: ((state: MetricResultsState) => void) | undefined;
 }
 
 /*
@@ -908,6 +920,34 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
       );
     },
   );
+
+  /*
+   * What the charts have to show, for a host that explains an empty view
+   * (see onResultsStateChange). Read from the same state the render below
+   * draws, so the host is never told "empty" while a loader, an error or a
+   * chart with data is on screen.
+   */
+  const resultsState: MetricResultsState = getMetricResultsState({
+    isCatalogLoading: isPageLoading,
+    catalogError: pageError,
+    isFetching: isMetricResultsLoading,
+    fetchError: metricResultsError,
+    hasFetchedOnce: hasFetchedResultsOnce,
+    hasAnySelectedMetric: hasAnySelectedMetric,
+    results: metricResults,
+  });
+
+  const onResultsStateChangeRef: React.MutableRefObject<
+    ((state: MetricResultsState) => void) | undefined
+  > = useRef<((state: MetricResultsState) => void) | undefined>(
+    props.onResultsStateChange,
+  );
+  onResultsStateChangeRef.current = props.onResultsStateChange;
+
+  // Once per change, whatever the host's callback identity does.
+  useEffect(() => {
+    onResultsStateChangeRef.current?.(resultsState);
+  }, [resultsState]);
 
   /*
    * The view's own "Reset zoom" goes in the heading row above the charts

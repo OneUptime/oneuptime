@@ -9,6 +9,7 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepFacts,
+  MIN_SCANNED_FORMS,
   SourceFileSystem,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
@@ -31,6 +32,10 @@ import {
  *     teams dropdown and a users dropdown can never come back as a pair;
  *   - no page lists owners as an "Owners (Teams)" and an "Owners (Users)"
  *     table;
+ *   - no form asks for one user plus one team as an assignee or owner - the
+ *     "Default Assign To Team" and "Default Assign To User" pair grouping
+ *     rules had, which filled an assignee nothing ever showed (now their
+ *     Episode Owners picker);
  *   - the old labels are gone from the source.
  *
  * The detector is pinned on inline snippets first, then run over the real
@@ -65,7 +70,30 @@ const RETIRED_LABELS: Array<string> = [
   "Alert Owner Users",
   "Incident Owner Teams",
   "Incident Owner Users",
+  // The grouping rules' assignee pair and its section.
+  "Default Assign To Team",
+  "Default Assign To User",
+  "Default Assignees",
 ];
+
+/*
+ * A form value holding ONE user or ONE team that somebody is assigned to or
+ * owns: defaultAssignToTeam, assignedToUserId, ownerTeam. Lists (ownerTeams,
+ * episodeOwnerUsers) are OWNER_LIST_KEY's.
+ */
+const SINGLE_ASSIGNEE_KEY: RegExp =
+  /^\w*?(?:[Aa]ssign|[Oo]wner)\w*?(User|Team)(?:Id)?$/;
+
+// The same, said by a written title: "Default Assign To Team", "Owner User".
+const ASSIGNEE_TITLE: RegExp = /\b(?:assign\w*|owner)\b/i;
+const TEAM_WORD: RegExp = /\bteam\b/i;
+const USER_WORD: RegExp = /\buser\b/i;
+
+type AssigneeKind = "User" | "Team";
+
+// The grouping rules' old pair, by key and by title.
+const OLD_PAIR_KEY: RegExp = /defaultAssignTo/;
+const OLD_PAIR_TITLE: RegExp = /Default Assign/i;
 
 // A table of one owner junction model: half of the old two-table owners.
 const OWNER_TABLE: RegExp = /<ModelTable<\s*\w+Owner(?:Team|User)\s*>/;
@@ -105,6 +133,77 @@ function findOwnerDropdowns(forms: Array<FormFacts>): Array<OwnerDropdown> {
 
 function describeDropdown(dropdown: OwnerDropdown): string {
   return `${dropdown.field.file}:${dropdown.field.line} ${dropdown.form.label} - "${dropdown.field.title}" (${dropdown.field.key}) is not the owners people picker`;
+}
+
+/*
+ * What one field asks for: one user, one team, or neither. Read off its key
+ * first, then off a written title that says assign or owner and names one
+ * of the two. A people picker, and a registration that is never shown, ask
+ * for nothing here.
+ */
+function singleAssigneeKind(field: FormFieldFacts): AssigneeKind | null {
+  if (field.isNeverShown || field.fieldType === PEOPLE_PICKER_FIELD_TYPE) {
+    return null;
+  }
+
+  const keyMatch: RegExpExecArray | null = SINGLE_ASSIGNEE_KEY.exec(field.key);
+
+  if (keyMatch) {
+    return keyMatch[1] as AssigneeKind;
+  }
+
+  for (const title of field.titleTexts || []) {
+    if (!ASSIGNEE_TITLE.test(title)) {
+      continue;
+    }
+
+    const saysTeam: boolean = TEAM_WORD.test(title);
+    const saysUser: boolean = USER_WORD.test(title);
+
+    if (saysTeam !== saysUser) {
+      return saysTeam ? "Team" : "User";
+    }
+  }
+
+  return null;
+}
+
+interface AssigneePair {
+  form: FormFacts;
+  team: FormFieldFacts;
+  user: FormFieldFacts;
+}
+
+/*
+ * Forms that ask who is responsible with two controls - one for a team, one
+ * for a user - where one people picker asks it once. A single person-or-team
+ * question on its own is left alone.
+ */
+function findAssigneePairs(forms: Array<FormFacts>): Array<AssigneePair> {
+  const found: Array<AssigneePair> = [];
+
+  for (const form of forms) {
+    const team: FormFieldFacts | undefined = form.fields.find(
+      (field: FormFieldFacts): boolean => {
+        return singleAssigneeKind(field) === "Team";
+      },
+    );
+    const user: FormFieldFacts | undefined = form.fields.find(
+      (field: FormFieldFacts): boolean => {
+        return singleAssigneeKind(field) === "User";
+      },
+    );
+
+    if (team && user) {
+      found.push({ form, team, user });
+    }
+  }
+
+  return found;
+}
+
+function describeAssigneePair(pair: AssigneePair): string {
+  return `${pair.form.file}:${pair.form.line} ${pair.form.label} - "${pair.team.title}" (${pair.team.key}) and "${pair.user.title}" (${pair.user.key}) ask for one team and one user: ask once, with the owners people picker (getOwnersFormField)`;
 }
 
 function peoplePickers(forms: Array<FormFacts>): Array<FormFieldFacts> {
@@ -275,6 +374,116 @@ describe("the owner dropdown detector", () => {
   });
 });
 
+const OWNERSHIP_STEPS: string = `[{ title: "Grouping", id: "grouping" }, { title: "On-Call & Ownership", id: "on-call-ownership" }]`;
+
+describe("the one-team-plus-one-user detector", () => {
+  test("finds the grouping rules' old Default Assign To pair", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelTable name="Settings > Incident Grouping Rules" formSteps={${OWNERSHIP_STEPS}} formFields={[
+          { field: { name: true }, title: "Name", stepId: "grouping", fieldType: FormFieldSchemaType.Text },
+          { field: { defaultAssignToTeam: true }, title: "Default Assign To Team", stepId: "on-call-ownership", sectionTitle: "Default Assignees", fieldType: FormFieldSchemaType.Dropdown, dropdownModal: { type: Team, labelField: "name", valueField: "_id" } },
+          { field: { defaultAssignToUser: true }, title: "Default Assign To User", stepId: "on-call-ownership", fieldType: FormFieldSchemaType.Dropdown, fetchDropdownOptions: async () => { return []; } },
+        ]} />;`,
+    });
+
+    const pairs: Array<AssigneePair> = findAssigneePairs([form]);
+
+    expect(
+      pairs.map((pair: AssigneePair): Array<string> => {
+        return [pair.team.key, pair.user.key];
+      }),
+    ).toEqual([["defaultAssignToTeam", "defaultAssignToUser"]]);
+    expect(describeAssigneePair(pairs[0]!)).toContain(
+      '"Default Assign To Team" (defaultAssignToTeam) and "Default Assign To User" (defaultAssignToUser) ask for one team and one user',
+    );
+  });
+
+  test("finds the pair written as ids, and as an owner instead of an assignee", () => {
+    const byIds: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelFormModal title="Assign" formProps={{ fields: [
+          { field: { assignedToTeamId: true }, title: "Team", fieldType: FormFieldSchemaType.Dropdown },
+          { field: { assignedToUserId: true }, title: "User", fieldType: FormFieldSchemaType.Dropdown },
+        ] }} />;`,
+    });
+    const asOwner: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <BasicFormModal title="Owner" formProps={{ fields: [
+          { field: { ownerTeam: true }, title: "Team", fieldType: FormFieldSchemaType.Dropdown },
+          { field: { ownerUserId: true }, title: "User", fieldType: FormFieldSchemaType.Dropdown },
+        ] }} />;`,
+    });
+
+    expect(findAssigneePairs([byIds, asOwner])).toHaveLength(2);
+  });
+
+  test("finds the pair by its titles when the keys do not say it", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelFormModal title="Routing" formProps={{ fields: [
+          { field: { teamId: true }, title: "Assign To Team", fieldType: FormFieldSchemaType.Dropdown },
+          { field: { userId: true }, title: "Assign To User", fieldType: FormFieldSchemaType.Dropdown },
+        ] }} />;`,
+    });
+
+    expect(
+      findAssigneePairs([form]).map((pair: AssigneePair): string => {
+        return `${pair.team.title} + ${pair.user.title}`;
+      }),
+    ).toEqual(["Assign To Team + Assign To User"]);
+  });
+
+  test("leaves the people picker that replaced the pair alone, and the registrations the form reads the old pair with", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import getOwnersFormField from "./OwnersFormField";
+        const Page = () => <ModelTable name="Settings > Incident Grouping Rules" formSteps={${OWNERSHIP_STEPS}} formFields={[
+          { field: { name: true }, title: "Name", stepId: "grouping", fieldType: FormFieldSchemaType.Text },
+          getOwnersFormField({ fieldKey: "episodeOwners", usersKey: "episodeOwnerUsers", teamsKey: "episodeOwnerTeams", title: "Episode Owners", stepId: "on-call-ownership" }),
+          { field: { defaultAssignToTeamId: true }, title: "Default Assign To Team ID", stepId: "on-call-ownership", fieldType: FormFieldSchemaType.ObjectID, showIf: () => { return false; } },
+          { field: { defaultAssignToUserId: true }, title: "Default Assign To User ID", stepId: "on-call-ownership", fieldType: FormFieldSchemaType.ObjectID, showIf: () => { return false; } },
+        ]} />;`,
+      "OwnersFormField.ts": OWNERS_HELPER,
+    });
+
+    expect(findAssigneePairs([form])).toEqual([]);
+    expect(findOwnerDropdowns([form])).toEqual([]);
+    expect(peoplePickers([form])[0]?.title).toBe("Episode Owners");
+  });
+
+  test("leaves one person question on its own alone, and a team and a user that are nobody's assignee", () => {
+    const onePerson: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelFormModal title="Assign" formProps={{ fields: [
+          { field: { title: true }, title: "Title", fieldType: FormFieldSchemaType.Text },
+          { field: { assignedToUserId: true }, title: "Assign To User", fieldType: FormFieldSchemaType.Dropdown },
+        ] }} />;`,
+    });
+    const membership: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelFormModal title="Add Member" formProps={{ fields: [
+          { field: { teamId: true }, title: "Team", fieldType: FormFieldSchemaType.Dropdown },
+          { field: { userId: true }, title: "User", fieldType: FormFieldSchemaType.Dropdown },
+        ] }} />;`,
+    });
+
+    expect(findAssigneePairs([onePerson, membership])).toEqual([]);
+  });
+
+  test("reads a key for one team or user, never a list", () => {
+    expect(SINGLE_ASSIGNEE_KEY.exec("defaultAssignToTeam")?.[1]).toBe("Team");
+    expect(SINGLE_ASSIGNEE_KEY.exec("defaultAssignToUserId")?.[1]).toBe("User");
+    expect(SINGLE_ASSIGNEE_KEY.exec("assignedToTeamId")?.[1]).toBe("Team");
+    expect(SINGLE_ASSIGNEE_KEY.exec("ownerUser")?.[1]).toBe("User");
+    expect(SINGLE_ASSIGNEE_KEY.test("episodeOwnerUsers")).toBe(false);
+    expect(SINGLE_ASSIGNEE_KEY.test("ownerTeams")).toBe(false);
+    expect(SINGLE_ASSIGNEE_KEY.test("ownerUserIds")).toBe(false);
+    expect(SINGLE_ASSIGNEE_KEY.test("teamId")).toBe(false);
+    expect(SINGLE_ASSIGNEE_KEY.test("userId")).toBe(false);
+  });
+});
+
 describe("the project's forms", () => {
   const files: Array<string> = listScanRoots(REPOSITORY_ROOT).flatMap(
     (root: string): Array<string> => {
@@ -287,21 +496,76 @@ describe("the project's forms", () => {
     files,
   });
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read, owner pickers included", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
     /*
      * 30 owner rule forms, the two templates, scheduling maintenance, alert
-     * episodes, the two owner pickers of a burn rate rule and the Forms On
-     * Submit settings.
+     * episodes, the two owner pickers of a burn rate rule, the Forms On
+     * Submit settings and the two grouping rules' Episode Owners.
      */
-    expect(peoplePickers(forms).length).toBeGreaterThanOrEqual(37);
+    expect(peoplePickers(forms).length).toBeGreaterThanOrEqual(39);
   });
 
   test("ask for owners only with the owners people picker", () => {
     expect(findOwnerDropdowns(forms).map(describeDropdown)).toEqual([]);
   });
+
+  test("never ask for one team plus one user as an assignee or owner", () => {
+    expect(findAssigneePairs(forms).map(describeAssigneePair)).toEqual([]);
+  });
+
+  /*
+   * Their On-Call & Ownership step asked "Default Assign To Team" and
+   * "Default Assign To User", which filled an assignee no page shows. It asks
+   * for the episodes' owners instead, with one picker, and reads the old
+   * pair only to say a rule still has it.
+   */
+  test.each([
+    ["Incidents/Settings/IncidentGroupingRules.tsx"],
+    ["Alerts/Settings/AlertGroupingRules.tsx"],
+  ])(
+    "the grouping rule form in %s asks for its episodes' owners with one picker, on On-Call & Ownership",
+    (file: string) => {
+      const form: FormFacts | undefined = forms.find(
+        (candidate: FormFacts): boolean => {
+          return (
+            candidate.file.endsWith(`Pages/${file}`) &&
+            candidate.host === "ModelTable"
+          );
+        },
+      );
+
+      expect(form).toBeDefined();
+
+      expect(
+        peoplePickers([form!]).map((field: FormFieldFacts): string => {
+          return `${field.title} on ${field.stepId}`;
+        }),
+      ).toEqual(["GROUPING_RULE_COPY.episodeOwnersTitle on on-call-ownership"]);
+
+      // Nothing on the form asks for the old pair any more.
+      expect(
+        form!.fields
+          .filter((field: FormFieldFacts): boolean => {
+            return (
+              !field.isNeverShown &&
+              (OLD_PAIR_KEY.test(field.key) ||
+                (field.titleTexts || []).some((title: string): boolean => {
+                  return OLD_PAIR_TITLE.test(title);
+                }))
+            );
+          })
+          .map((field: FormFieldFacts): string => {
+            return field.title;
+          }),
+      ).toEqual([]);
+    },
+  );
 
   test("every owner rule form asks for its owners with one picker, on its Owners step", () => {
     const ownerRulesLabel: RegExp = / Owner Rules$/;

@@ -1,0 +1,170 @@
+name: Kubernetes Agent eBPF E2E
+
+# Installs HelmChart/Public/kubernetes-agent with OBI (eBPF auto-
+# instrumentation) and the eBPF profiler on a real kernel, drives a Node.js 26
+# app, and checks what reaches a sink standing in for OneUptime. See
+# Tests/Ops/agent-ebpf-e2e/README.md (what it checks, how to run it locally),
+# run.sh (the run) and analyze.py (every check).
+#
+# Legs, same script:
+#   kind  -- the chart on a two-node KinD cluster, on amd64 (ubuntu-latest,
+#            GitHub's Azure kernel) and on arm64 (ubuntu-24.04-arm). KinD
+#            nodes are nested PID namespaces, where the chart's profiler
+#            misattributes samples (it resolves root-namespace PIDs through
+#            the node's /proc), so the sample -> span check uses a second
+#            profiler run.sh starts on the runner itself, with the chart's
+#            receiver settings, reading the node's traces_ctx_v1 pin.
+#   k3s   -- the chart on k3s installed on the runner: the chart's own
+#            profiler DaemonSet in the root PID namespace with the host's
+#            systemd-mounted bpffs, as on a real node.
+#
+# Path-filtered, so it must not be a required check: a pull request that does
+# not touch the chart never runs it.
+on:
+  pull_request:
+    paths:
+      - "HelmChart/Public/kubernetes-agent/**"
+      - "Tests/Ops/agent-ebpf-e2e/**"
+      - ".github/workflows/test.kubernetes-agent-ebpf-e2e.yaml"
+      - ".github/actions/free-disk-space/**"
+  push:
+    branches:
+      - master
+    paths:
+      - "HelmChart/Public/kubernetes-agent/**"
+      - "Tests/Ops/agent-ebpf-e2e/**"
+      - ".github/workflows/test.kubernetes-agent-ebpf-e2e.yaml"
+      - ".github/actions/free-disk-space/**"
+  # The runner image (and with it the kernel) changes under an unchanged
+  # chart; catch that before a customer's node does.
+  schedule:
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+    inputs:
+      obi_image:
+        description: "OBI image to try instead of the chart's ebpf.image (repo:tag)"
+        required: false
+        default: ""
+
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs
+# CI. It is also the group cancel-closed-pr-runs.yml joins to stop a pull
+# request's run when the pull request closes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: eBPF e2e (${{ matrix.platform }}, ${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: kind
+            runner: ubuntu-latest
+            experimental: false
+          # arm64 images on GitHub's arm64 runner (a real arm64 kernel, not
+          # Docker Desktop's VM).
+          - platform: kind
+            runner: ubuntu-24.04-arm
+            experimental: false
+          # Experimental until it has run green: this leg had never run
+          # before this workflow (it needs a throwaway Linux host), so a red
+          # run here does not fail the workflow. Make it blocking
+          # (experimental: false) once it has a green history.
+          - platform: k3s
+            runner: ubuntu-latest
+            experimental: true
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      E2E_PLATFORM: ${{ matrix.platform }}
+      E2E_OBI_IMAGE: ${{ inputs.obi_image }}
+    steps:
+      - uses: actions/checkout@v4
+      # ~2.3 GB of images (the profiler alone is 1 GB), loaded into two KinD
+      # nodes on top of that.
+      - uses: ./.github/actions/free-disk-space
+      # ubuntu-latest ships kind; the arm64 image may not. Install the same
+      # release where it is missing, verified against digests pinned here
+      # (kind-linux-<arch>.sha256sum of the v0.33.0 release).
+      - name: Install kind if missing
+        if: matrix.platform == 'kind'
+        run: |
+          set -euo pipefail
+          if command -v kind >/dev/null; then kind version; exit 0; fi
+          case "$(uname -m)" in
+            x86_64) arch=amd64; sha=aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d ;;
+            aarch64) arch=arm64; sha=20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2 ;;
+            *) echo "no pinned kind digest for $(uname -m)" >&2; exit 1 ;;
+          esac
+          curl -fsSL --retry 5 --retry-all-errors -o "$RUNNER_TEMP/kind" "https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-${arch}"
+          echo "${sha}  $RUNNER_TEMP/kind" | sha256sum -c -
+          sudo install -m 0755 "$RUNNER_TEMP/kind" /usr/local/bin/kind
+          kind version
+      # Both are on ubuntu-latest; installed the way the Helm chart tests do
+      # where an image lacks them (the arm64 one may).
+      - name: Install helm and kubectl if missing
+        run: |
+          set -euo pipefail
+          command -v helm >/dev/null || curl -fsSL --retry 5 https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          if ! command -v kubectl >/dev/null; then
+            arch="$(dpkg --print-architecture)"
+            ver="$(curl -fsSL --retry 5 https://dl.k8s.io/release/stable.txt)"
+            curl -fsSL --retry 5 -o "$RUNNER_TEMP/kubectl" "https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubectl"
+            sudo install -m 0755 "$RUNNER_TEMP/kubectl" /usr/local/bin/kubectl
+          fi
+      - name: Host facts
+        run: |
+          uname -a
+          ls -la /sys/kernel/btf/vmlinux
+          mount | grep -E ' /sys/fs/bpf | /sys/kernel/(tracing|debug) ' || true
+          nproc
+          free -g
+          df -h /
+          kind version || true
+          helm version --short
+          kubectl version --client
+      - name: Run the end-to-end test
+        env:
+          E2E_OUT: ${{ runner.temp }}/agent-ebpf-e2e
+        run: bash Tests/Ops/agent-ebpf-e2e/run.sh
+      # run.sh exits with analyze.py's status; this also fails a run that
+      # ended early without reaching the checks, or skipped one. Every switch
+      # is on here, so a SKIP is a check that did not run.
+      - name: Every check ran and none failed
+        env:
+          E2E_OUT: ${{ runner.temp }}/agent-ebpf-e2e
+        run: |
+          python3 - "$E2E_OUT/analysis.json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1]) as f:
+              checks = json.load(f)["checks"]
+          bad = [c["id"] + " " + c["status"] for c in checks if c["status"] in ("FAIL", "SKIP")]
+          print(len(checks), "checks; failed or skipped:", bad or "none")
+          sys.exit(1 if bad or len(checks) < 28 else 0)
+          PY
+      # Without the test cluster's admin kubeconfig: the cluster goes with the
+      # runner, but a public repository's artifact is no place for a
+      # credential.
+      - name: Upload captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-ebpf-e2e-${{ matrix.platform }}-${{ matrix.runner }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/agent-ebpf-e2e
+            !${{ runner.temp }}/agent-ebpf-e2e/kubeconfig
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Show how to run this locally
+        if: ${{ failure() }}
+        run: echo "Run 'bash Tests/Ops/agent-ebpf-e2e/run.sh' (needs docker, kind, helm, kubectl and python3; KEEP_CLUSTER=true keeps the cluster). analyze.py re-checks a downloaded capture directory without a cluster, with the arguments recorded in its analysis.json. See Tests/Ops/agent-ebpf-e2e/README.md."

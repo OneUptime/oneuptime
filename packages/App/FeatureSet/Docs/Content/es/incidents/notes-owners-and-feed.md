@@ -74,7 +74,7 @@ Si tu equipo escribe las mismas tres actualizaciones en cada interrupción, guá
 
 Las plantillas se comparten entre notas públicas y privadas: una sola lista de plantillas sirve a ambas, y la misma plantilla se puede insertar en cualquiera de los dos tipos de nota.
 
-Las gestionas en **Incidentes → Ajustes → Plantillas de Notas**: la tarjeta se titula **Public or Private Note Templates for Incidents** y su formulario tiene un paso **Información de la plantilla** (**Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios) y un paso **Detalles de la nota** para el cuerpo. Si haces clic en **Crear desde plantilla** antes de crear ninguna, OneUptime te dice que todavía no existe ninguna; ojo, porque el mensaje apunta a Ajustes del proyecto, pero la página vive en realidad en **Incidentes → Ajustes → Plantillas de Notas**.
+Las gestionas en **Incidentes → Ajustes → Plantillas de Notas**: la tarjeta se titula **Public or Private Note Templates for Incidents** y su formulario es una sola página: **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios, y luego el cuerpo. Si haces clic en **Crear desde plantilla** antes de crear ninguna, OneUptime te dice que todavía no existe ninguna; ojo, porque el mensaje apunta a Ajustes del proyecto, pero la página vive en realidad en **Incidentes → Ajustes → Plantillas de Notas**.
 
 ## Publicar notas desde Slack o Microsoft Teams
 
@@ -122,8 +122,8 @@ La cabecera de la tarjeta tiene además un menú **Acciones** para que puedas ac
 
 - **Execute Runbook** — inicia un [runbook](/docs/runbooks/index) contra este incidente.
 - **Ejecutar política de guardia** — avisa a una política bajo demanda.
-- **Add Public Note** — los mismos cuatro campos de la página de Notas Públicas, en un modal.
-- **Añadir nota privada** — solo cuerpo de la nota y adjuntos.
+- **Add Public Note** — el editor de la página de Notas Públicas, en un modal: escribe la nota y luego **Post update**. Plantillas, **Draft with AI**, adjuntos, **Notify status page subscribers** con a quién llegará y **Preview notification** están todos ahí. La nota se publica ahora; para darle una hora anterior, elige **Posted now**.
+- **Añadir nota privada** — el editor de la página de Notas Privadas, en un modal: escribe la nota y luego **Add note**.
 
 Todo lo demás está detrás del botón **⋯** de al lado, el mismo botón **Más opciones** que tiene la cabecera de tarjeta de una tabla, para que la cabecera muestre los menos botones posibles:
 

@@ -6,7 +6,28 @@ OneUptime understøtter afsendelse af e-mails via brugerdefinerede SMTP-servere 
 - **OAuth 2.0** – Moderne autentificering til Microsoft 365 og Google Workspace
 - **Ingen** – Til relayservere, der ikke kræver autentificering
 
-Denne guide beskriver, hvordan man konfigurerer OAuth 2.0-autentificering til Microsoft 365 og Google Workspace.
+Det første afsnit nedenfor viser, hvor hver indstilling findes. Resten af denne vejledning dækker OAuth 2.0-autentificering for Microsoft 365 og Google Workspace.
+
+## Tilføj en SMTP-server
+
+Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** i kortet **Brugerdefinerede SMTP-konfigurationer**. På en selvhostet installation indstilles den server, OneUptime selv sender fra, under **Admin Dashboard > Indstillinger > E-mails** i kortet **Tilpassede e-mail- og SMTP-indstillinger**. Begge formularer spørger om det samme i to trin:
+
+1. **Server**: **Navn** (kun projektkonfigurationer), **Værtsnavn**, **Port** (en ny konfiguration starter på `587`), **Brugernavn** og **Adgangskode**.
+2. **Afsender**: **E-mail fra** og **Fra-navn**, som dine e-mails kommer fra.
+
+Alt andet er foldet sammen under **Flere felter** sidst i trinnet Server. Mens det er foldet sammen, fortæller overskriften, hvordan mail sendes, for eksempel "Mail sendes via SMTP med login med brugernavn og adgangskode. TLS er påkrævet."
+
+| Felt | Hvad det gør |
+| --- | --- |
+| **Transport** | `SMTP` (standard) eller `Microsoft Graph` til en Microsoft 365-lejer, hvor SMTP AUTH er slået fra. Vælger du Microsoft Graph, skjules værtsnavn, port, brugernavn og adgangskode, og OAuth-felterne vises. |
+| **Kræv TLS** | Slået til for en ny projektkonfiguration. Mail sendes kun over en krypteret forbindelse med et gyldigt certifikat. Når dette er slået fra, krypteres mail kun, hvis serveren tilbyder det, og certifikatet kontrolleres ikke. Port 465 er altid krypteret. |
+| **Godkendelsestype** | `Username and Password` (standard), `OAuth` eller `None` til et relay, der ikke kræver login. |
+| **OAuth-felter** | Udbydertype, klient-id, klienthemmelighed, token-URL og scope, som vises, når OAuth eller Microsoft Graph er valgt. |
+| **Beskrivelse** | En note til dit team (kun projektkonfigurationer). |
+
+**Microsoft Graph.** Åbn **Flere felter**, sæt **Transport** til `Microsoft Graph`, og udfyld en Azure-app med programtilladelsen **Mail.Send**: dens klient-id og klienthemmelighed, token-URL'en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og scopet `https://graph.microsoft.com/.default`. Mail sendes fra postkassen i **E-mail fra**, som skal være en licenseret postkasse i din lejer.
+
+Når en projektkonfiguration er gemt, tjekker **Send test-e-mail** på dens række, at den virker.
 
 ## OAuth 2.0-autentificering
 
@@ -30,6 +51,8 @@ Når du konfigurerer SMTP med OAuth-autentificering i OneUptime, skal du bruge:
 | **Klienthemmelighed**    | Klienthemmelighed fra din OAuth-udbyder (til Google: privat nøgle)                   |
 | **Token URL**            | OAuth-tokenendpoint-URL                                                              |
 | **Omfang**               | Påkrævede OAuth-scope(s) til SMTP-adgang                                             |
+
+**Godkendelsestype** og OAuth-felterne findes under **Flere felter** i formularens trin Server.
 
 ---
 
@@ -120,7 +143,7 @@ I OneUptime skal du oprette eller redigere en SMTP-konfiguration med disse indst
 | Token URL            | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                  |
 | Scope                | `https://outlook.office365.com/.default`                                           |
 | Fra-e-mail           | Samme som brugernavn                                                               |
-| Sikker (TLS)         | Aktiveret                                                                          |
+| Kræv TLS         | Aktiveret                                                                          |
 
 Erstat `<tenant-id>` med dit mappe-ID (lejer) fra trin 1.
 
@@ -202,7 +225,7 @@ I OneUptime skal du oprette eller redigere en SMTP-konfiguration med disse indst
 | Token URL            | `https://oauth2.googleapis.com/token`                                                                                                               |
 | Scope                | `https://mail.google.com/`                                                                                                                          |
 | Fra-e-mail           | Samme som brugernavn                                                                                                                                |
-| Sikker (TLS)         | Aktiveret                                                                                                                                           |
+| Kræv TLS         | Aktiveret                                                                                                                                           |
 
 **Vigtigt:** Til Google (JWT Bearer) er klient-ID'et **tjenestekontoens e-mail** (`client_email`), IKKE det numeriske `client_id`. Tjenestekontoen vil repræsentere den bruger, der er angivet i brugernavnsfeltet, for at sende e-mails.
 

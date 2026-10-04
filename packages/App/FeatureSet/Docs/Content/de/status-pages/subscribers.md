@@ -12,7 +12,7 @@ Eine Statusseite unterstützt fünf Kanäle. Sie und die Seite, auf der sich Bes
 
 - **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an. Zeigt den Eintrag **Abonnieren** in der Navigationsleiste der Statusseite, über den sich Besucher über die Kanäle darunter anmelden.
 - **E-Mail** (`enableEmailSubscribers`) – standardmäßig an. Alles andere ist aus, bis Sie es einschalten.
-- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration**. Zum Einschalten muss für das Projekt außerdem **SMS-Benachrichtigungen aktivieren** an sein, unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
+- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration**. Zum Einschalten muss für das Projekt außerdem **SMS** an sein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
 - **Slack** (`enableSlackSubscribers`) – standardmäßig aus.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) – standardmäßig aus.
 - **Webhook** (`enableWebhookSubscribers`) – standardmäßig aus.
@@ -43,6 +43,8 @@ Standardmäßig bekommt ein Abonnent alles, was auf der Seite steht. Zwei Schalt
 
 - **Abonnenten erlauben, Ressourcen auszuwählen** (`allowSubscribersToChooseResources`) – standardmäßig aus. Schalten Sie es ein, bekommt das Abonnementformular einen Schalter **Alle Ressourcen abonnieren**; nehmen Sie den heraus, erscheint **Ressourcen zum Abonnieren auswählen**, und der Besucher kann einzelne Ressourcen anhaken.
 - **Abonnenten erlauben, Ereignistypen auszuwählen** (`allowSubscribersToChooseEventTypes`) – standardmäßig aus. Gleiche Form: ein Schalter **Alle Ereignistypen abonnieren**, und darunter **Ereignistypen zum Abonnieren auswählen**, sobald er nicht gesetzt ist.
+
+Ist einer der beiden Schalter an, bleibt das Formular eine Seite: Diese Auswahl steht unter **Einstellungen**, eingeklappt unter dem Feld, wohin Updates gehen. Eingeklappt sagt der Abschnitt in einer Zeile, was der Besucher erhält – bis er etwas eingrenzt, alle Updates der Statusseite –, sodass jemand, der alles möchte, einfach auf **Abonnieren** klickt. Die Seite **Abonnement aktualisieren** zeigt dieselbe Auswahl aufgeklappt.
 
 Die Ereignistypen sind `Incident`, `Announcement` und `Scheduled Event`.
 
@@ -82,7 +84,7 @@ Abonnenten hören von den drei Ereignistypen oben, aber jede Quelle hat ihren ei
 
 ### Benachrichtigungen zu Ankündigungen
 
-Die Ankündigung selbst trägt **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), im Erstellungsformular als Kontrollkästchen **Statusseiten-Abonnenten benachrichtigen** und standardmäßig an. Nennt die Ankündigung unter **Betroffene Monitore (Optional)** Monitore, ist die Benachrichtigung auf diese Monitore beschränkt; lassen Sie das Feld leer, werden alle Abonnenten benachrichtigt.
+Die Ankündigung selbst trägt **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), im Erstellungsformular als Kontrollkästchen **Statusseiten-Abonnenten benachrichtigen** unter **Zeitplan & Benachrichtigungen** und standardmäßig an. Abonnenten erfahren einmal davon, sobald die Ankündigung angezeigt wird; die Entscheidung fällt also beim Erstellen, eine Bearbeitung ändert sie nicht. Nennt die Ankündigung unter **Betroffene Monitore** Monitore, ist die Benachrichtigung auf diese Monitore beschränkt; lassen Sie das Feld leer, werden alle Abonnenten benachrichtigt.
 
 ### Geplante Wartungsereignisse
 
@@ -114,12 +116,14 @@ Eigenes SMTP lohnt sich früh, wenn Sie E-Mail-Abonnenten haben: Post von Ihrer 
 
 Eine Ankündigung ist ein Datensatz auf Projektebene (das Modell `StatusPageAnnouncement`), den Sie auf eine oder mehrere Statusseiten ausspielen, wahlweise auf bestimmte Monitore begrenzt und mit einem Zeitfenster, in dem er gezeigt wird.
 
-Sie legen eine über **Statusseiten → Mehr → Ankündigungen** an oder über **Ankündigungen** im Seitenmenü einer einzelnen Statusseite. Das Erstellungsformular ist ein Assistent mit vier Schritten:
+Sie legen eine über **Statusseiten → Mehr → Ankündigungen** an oder über **Ankündigungen** im Seitenmenü einer einzelnen Statusseite. Von einer Statusseite aus ist diese Seite bereits ausgewählt, sodass ein Titel und eine Beschreibung genügen, und **Ankündigung erstellen** bringt Sie zur Liste **Ankündigungen** dieser Seite zurück (oder zur Projektliste, wenn Sie die Seite unterwegs abgewählt haben). Das Erstellungsformular hat zwei Schritte und danach eine Übersicht:
 
-1. **Grundlegende Informationen** – **Ankündigungstitel** (Pflicht, mindestens zwei Zeichen), **Beschreibung** (Markdown, optional) und **Anhänge** für Dateien, die zusammen mit der Ankündigung auf der Statusseite verfügbar sein sollen.
-2. **Statusseiten** – **Ankündigung auf diesen Status-Seiten anzeigen**, eine Pflicht-Mehrfachauswahl. Eine Ankündigung kann mehrere Seiten auf einmal treffen.
-3. **Betroffene Ressourcen** – **Betroffene Monitore (Optional)**. Wählen Sie keinen aus, werden alle Abonnenten benachrichtigt.
-4. **Zeitplan & Einstellungen** – **Anzeige der Ankündigung beginnen ab** (Pflicht, Standard: jetzt), **Anzeige der Ankündigung beenden um** (optional) und **Statusseiten-Abonnenten benachrichtigen** (standardmäßig an).
+1. **Ankündigung** – **Titel** (Pflicht, mindestens zwei Zeichen) und **Beschreibung** (Markdown, Pflicht: der Text, den man auf der Statusseite liest). **Anhänge** für Dateien, die zusammen mit der Ankündigung auf der Statusseite verfügbar sein sollen, liegen unter **Weitere Felder**.
+2. **Statusseiten** – **Ankündigung auf diesen Status-Seiten anzeigen**, eine Pflicht-Mehrfachauswahl (eine Ankündigung kann mehrere Seiten auf einmal treffen), und **Betroffene Monitore**: Wählen Sie keinen aus, werden alle Abonnenten benachrichtigt. Sobald Monitore ausgewählt sind, schlägt das Formular unter der Statusseiten-Auswahl die Statusseiten vor, die sie zeigen: „Statusseiten, die die betroffenen Monitore zeigen:“ mit dem Namen jeder Seite. Ein Klick auf einen Namen fügt die Seite hinzu, **Alle hinzufügen** fügt alle hinzu; von selbst wird nichts ausgewählt. Darunter ist **Zeitplan & Benachrichtigungen** zu einer Zeile zusammengeklappt, die sagt, was passiert: „Wird sofort angezeigt und bleibt sichtbar, bis Sie sie beenden. Abonnenten werden benachrichtigt, sobald sie angezeigt wird.“ Klappen Sie den Abschnitt auf, um **Anzeige der Ankündigung beginnen ab** (Standard: jetzt), **Anzeige der Ankündigung beenden um** (leer: die Ankündigung bleibt sichtbar, bis Sie ein Ende festlegen) oder **Statusseiten-Abonnenten benachrichtigen** (standardmäßig an) zu ändern. Die Zeile folgt Ihren Angaben. Das Ende muss nach dem Beginn liegen und bei einer neuen Ankündigung noch in der Zukunft: Eine bereits beendete würde nie angezeigt.
+
+Die Übersicht zeigt dieselbe Zeile. **Aus Vorlage erstellen** füllt das Formular aus einer Vorlage; von einer Statusseite aus bleiben die Statusseiten der Vorlage neben dieser Seite erhalten.
+
+Die Seite der Ankündigung selbst bearbeitet sie in denselben zwei Schritten. **Abonnenten über diese Aktualisierung benachrichtigen** steht unter der Beschreibung, und **Zeitplan** enthält Beginn und Ende. Ein bereits vergangenes Ende zu setzen ist der Weg, eine Ankündigung abzunehmen.
 
 Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Aktive Ankündigungen** und **Vergangene Ankündigungen**, jede mit **Angekündigt am** datiert. Aktuell laufende Ankündigungen werden zusätzlich oben auf der Übersichtsseite angeheftet. Gibt es nichts zu zeigen, steht dort *Keine Ankündigungen* mit dem Hinweis, dass bisher keine veröffentlicht wurden.
 
@@ -141,7 +145,7 @@ Ob Ankündigungen überhaupt erscheinen, legen Sie in der Karte **Was Ihre Statu
 
 ## Ankündigungsvorlagen
 
-Wenn Sie dieselbe Art von Hinweis immer wieder veröffentlichen – die monatliche Wartungsankündigung, eine wiederkehrende Beeinträchtigung bei einem Drittanbieter –, legen Sie sie vor. **Statusseiten → Einstellungen → Ankündigungs-Vorlagen** speichert das Modell `StatusPageAnnouncementTemplate`, und sein Formular fragt nach **Vorlagenname**, **Vorlagenbeschreibung**, **Ankündigungstitel**, **Beschreibung**, **Ankündigung auf diesen Status-Seiten anzeigen**, **Betroffene Monitore (Optional)** und **Abonnenten benachrichtigen** – die Verteilung und die Benachrichtigungsentscheidung fallen also einmal statt jedes Mal.
+Wenn Sie dieselbe Art von Hinweis immer wieder veröffentlichen – die monatliche Wartungsankündigung, eine wiederkehrende Beeinträchtigung bei einem Drittanbieter –, legen Sie sie vor. **Statusseiten → Einstellungen → Ankündigungs-Vorlagen** speichert das Modell `StatusPageAnnouncementTemplate`. Sein Formular führt durch **Vorlageninformationen** (**Vorlagenname**, **Vorlagenbeschreibung**) und dann durch die Schritte der Ankündigung selbst: **Ankündigung** (**Titel**, **Beschreibung**) und **Statusseiten** (**Ankündigung auf diesen Status-Seiten anzeigen**, **Betroffene Monitore** und **Statusseiten-Abonnenten benachrichtigen**, standardmäßig an) – die Verteilung und die Benachrichtigungsentscheidung fallen also einmal statt jedes Mal. Eine Vorlage hat keinen Zeitplan: Eine daraus erstellte Ankündigung wird ab dem Erstellen angezeigt, sofern Sie das nicht unter **Zeitplan & Benachrichtigungen** ändern.
 
 ## Webhook-Abonnenten und SSRF-Schutz
 

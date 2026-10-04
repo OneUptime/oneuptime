@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import SetupGuideCard, {
   SetupGuideRenderContext,
@@ -33,6 +34,7 @@ const ServerlessDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Bolt}
+      newKeyName={translationKey("Serverless key")}
       optionsLabel="Where do your functions run?"
       options={SERVERLESS_PLATFORMS}
       initialOption={getServerlessPlatformForCloudPlatform(props.cloudPlatform)}

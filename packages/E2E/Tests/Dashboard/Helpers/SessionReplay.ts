@@ -851,7 +851,7 @@ const rumCardCreateButton: (page: Page) => Locator = (page: Page): Locator => {
 type CreateRumApplicationFunction = (data: {
   page: Page;
   projectId: string;
-  name: string;
+  // The service.name the application's telemetry reports.
   appIdentifier: string;
 }) => Promise<void>;
 
@@ -865,11 +865,14 @@ type CreateRumApplicationFunction = (data: {
  * way a RUM application could exist was auto-discovery from telemetry. Nothing
  * failed at build time and no unit test covered the form, which is why this
  * assertion lives at this level.
+ *
+ * The form asks for one thing, the App Name (service.name). The display name
+ * follows it, folded under More fields, so the application is named after its
+ * service.name exactly as a discovered one is.
  */
 export const createRumApplication: CreateRumApplicationFunction = async (data: {
   page: Page;
   projectId: string;
-  name: string;
   appIdentifier: string;
 }): Promise<void> => {
   const page: Page = data.page;
@@ -886,40 +889,36 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
   });
 
   await rumCardCreateButton(page).click();
-  await page.getByTestId("modal").waitFor({ state: "visible" });
 
-  await page
-    .locator("input[placeholder='storefront-web']")
-    .first()
-    .fill(data.name);
+  const modal: Locator = page.getByTestId("modal");
+
+  await modal.waitFor({ state: "visible" });
 
   /*
-   * The App Identifier input. It shares the placeholder with Name, so it is
-   * addressed by position — and its very presence is the regression this
-   * helper exists to catch: when the column was not creatable, this locator
-   * resolved to nothing.
+   * The App Name (service.name) input - the form's only open field. Its very
+   * presence is the regression this helper exists to catch: when the column
+   * was not creatable, this locator resolved to nothing.
    */
-  const identifierInput: Locator = page
-    .locator("input[placeholder='storefront-web']")
-    .nth(1);
+  const identifierInput: Locator = modal.getByPlaceholder("storefront-web", {
+    exact: true,
+  });
 
   await expect(
     identifierInput,
-    "The create form must render an App Identifier field - the server requires the column",
+    "The create form must render the App Name (service.name) field - the server requires the column",
   ).toBeVisible();
+  await expect(identifierInput).toHaveCount(1);
 
   await identifierInput.fill(data.appIdentifier);
 
   /*
-   * One page: the name and the identifier, with the description and the
-   * labels folded under Advanced (there is no Labels step to walk). The
+   * One page: the app name, with the display name, the description and the
+   * labels folded under More fields (there is no Labels step to walk). The
    * form's own submit - not one of the list's two Create buttons - creates
    * the application.
    */
-  const modal: Locator = page.getByTestId("modal");
-
   await expect(
-    modal.getByRole("button", { name: /^Advanced/ }),
+    modal.getByRole("button", { name: "More fields", exact: true }),
   ).toHaveAttribute("aria-expanded", "false");
   await expect(
     modal.getByRole("button", { name: "Next", exact: true }),
@@ -929,7 +928,8 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
   /* The modal closes only on a successful create. */
   await page.getByTestId("modal").waitFor({ state: "hidden", timeout: 60000 });
 
-  await expect(page.getByText(data.name).first()).toBeVisible({
+  // Named after its app name, as a discovered application is.
+  await expect(page.getByText(data.appIdentifier).first()).toBeVisible({
     timeout: 60000,
   });
 };
