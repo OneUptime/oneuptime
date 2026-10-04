@@ -1593,8 +1593,6 @@ const IncidentCreate: FunctionComponent<
                     "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  // The picker writes only what is picked: the form can be finished without it.
-                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     values: FormValues<Incident>,
                     elementProps: CustomElementProps,
@@ -2025,11 +2023,6 @@ const IncidentCreate: FunctionComponent<
                     "Who takes each role on this incident. You take any role marked Primary that you leave empty.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  /*
-                   * Writes only the roles someone fills in; with none, the
-                   * person declaring takes the primary roles (onSuccess).
-                   */
-                  customElementCanBeSkipped: true,
                   overrideFieldKey: "incidentRoles",
                   getCustomElement: (
                     _value: FormValues<Incident>,

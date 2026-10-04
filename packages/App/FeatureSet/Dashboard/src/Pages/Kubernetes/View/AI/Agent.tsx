@@ -161,6 +161,10 @@ import BasicForm, {
   BasicFormHandle,
 } from "Common/UI/Components/Forms/BasicForm";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  SteppedModalFooter,
+  getSteppedModalFooter,
+} from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -349,7 +353,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   } | null>(null);
   const formRef: MutableRefObject<any> = useRef<any>(null);
 
-  // Whether the form is on its last step: Next is offered until it is.
+  /*
+   * Whether the form is on its last step: Next is offered until it is, and
+   * Save only there (SteppedFormFooter).
+   */
   const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
   // Blocks a second save while one is in flight (double click, Enter + click).
   const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
@@ -879,6 +886,22 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     }
   }
 
+  /*
+   * Save on the last step only, after checking every step; a plain Next on
+   * the first. Every question here already holds the saved answer, and the
+   * step list opens either step, so Save is one click away from both.
+   */
+  const footer: SteppedModalFooter = getSteppedModalFooter({
+    hasSteps: Boolean(steps),
+    isOnLastStep: isOnLastFormStep,
+    onAction: () => {
+      (formRef.current as BasicFormHandle | null)?.submitAllSteps();
+    },
+    onNext: () => {
+      (formRef.current as BasicFormHandle | null)?.goToNextStep();
+    },
+  });
+
   return (
     <>
       <Modal
@@ -889,25 +912,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         isLoading={isSaving}
         disableSubmitButton={isLoading || !saved || isSaving}
         onClose={props.onClose}
-        onSubmit={() => {
-          /*
-           * Every question here already holds the saved answer, so Save
-           * saves from whichever step is on screen, after checking every
-           * step - an edit is never stranded behind a Next.
-           */
-          (formRef.current as BasicFormHandle | null)?.submitAllSteps();
-        }}
-        secondaryButton={
-          steps && !isOnLastFormStep
-            ? {
-                title: "Next",
-                dataTestId: "modal-footer-next-button",
-                onClick: () => {
-                  (formRef.current as BasicFormHandle | null)?.submitForm();
-                },
-              }
-            : undefined
-        }
+        onSubmit={footer.onSubmit}
+        secondaryButton={footer.secondaryButton}
       >
         <div className="space-y-4">
           {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}

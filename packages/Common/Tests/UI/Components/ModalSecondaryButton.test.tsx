@@ -8,9 +8,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Modal's secondaryButton: a plain button the footer draws between Cancel
- * and the submit button - the stepped edit form's Next, beside a Save that
- * works from any step. The submit button stays the dialog's one primary
- * action, so the secondary button is drawn plain, like Cancel.
+ * and the submit button - a stepped form's Next, on every step but the last
+ * (Forms/Utils/SteppedFormFooter.ts). Next commits nothing, and the submit
+ * button, on the last step, is the dialog's one primary action, so the
+ * secondary button is drawn plain, like Cancel.
  */
 
 const PLAIN_CLASS: string = "bg-white";

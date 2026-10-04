@@ -263,8 +263,6 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
-                // The picker writes only what is picked: the form can be finished without it.
-                customElementCanBeSkipped: true,
                 getCustomElement: (
                   values: FormValues<Alert>,
                   elementProps: CustomElementProps,
