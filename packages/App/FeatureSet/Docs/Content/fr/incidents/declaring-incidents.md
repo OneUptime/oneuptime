@@ -23,7 +23,7 @@ Ouvrez **Incidents → Tous les incidents** et cliquez sur **Déclarer un incide
 
 Seule la première étape comporte des champs obligatoires, ainsi que tout champ personnalisé que vos administrateurs ont marqué **Obligatoire à la création**. Vous pouvez aussi rattacher des ressources, ajouter des politiques d'astreinte et attribuer des rôles plus tard, depuis les pages de l'incident. Chaque étape avant le récapitulatif a un simple **Suivant**, et **Déclarer un incident** se trouve dans le récapitulatif, la dernière étape.
 
-**Avancé.** Les options dont la plupart des incidents n'ont jamais besoin attendent, repliées, sous un en-tête **Avancé** à la fin de leur étape ; cliquez dessus pour les ouvrir. Replié, l'en-tête affiche **Configuré** lorsque quelque chose y est défini — par un modèle, par exemple — et il s'ouvre de lui-même lorsque quelque chose doit y être corrigé. Le récapitulatif ne liste une option repliée que si elle est définie, sauf **Notifier les abonnés de la page de statut**, qu'il liste toujours, avec qui sera notifié.
+**Plus de champs.** Les options dont la plupart des incidents n'ont jamais besoin attendent, repliées, sous un en-tête **Plus de champs** à la fin de leur étape ; cliquez dessus pour les ouvrir. Replié, l'en-tête nomme ce qu'il contient et affiche chaque option définie avec sa valeur — définie par un modèle, par exemple — et il s'ouvre de lui-même lorsque quelque chose doit y être corrigé. Le récapitulatif ne liste une option repliée que si elle est définie, sauf **Notifier les abonnés de la page de statut**, qu'il liste toujours, avec qui sera notifié.
 
 ### Étape 1 — Détails de l'incident
 
@@ -31,7 +31,7 @@ Seule la première étape comporte des champs obligatoires, ainsi que tout champ
 - **Gravité de l'incident** — obligatoire. L'une des gravités configurées pour votre projet.
 - **Description** — facultative, rédigée en Markdown. C'est ce qu'affiche la page de statut : rédigez-la pour vos clients plutôt que pour votre équipe.
 
-Sous **Avancé** :
+Sous **Plus de champs** :
 
 - **Déclaré le** — commence au moment où vous avez ouvert la page. Toute durée de l'incident se mesure à partir de lui ; antidatez-le pour enregistrer un incident qui a commencé plus tôt.
 - **État initial** — facultatif, et vide au départ. Laissé vide, l'incident démarre dans l'état marqué `isCreatedState`, ou dans l'état initial du modèle. Ne choisissez un état ultérieur que pour enregistrer un incident déjà pris en compte ou résolu.
@@ -50,7 +50,7 @@ Les moniteurs viennent en premier, à part : les pages de statut voient un incid
 
 La carte **Ressources affectées** de l'incident pose les mêmes questions quand vous la modifiez plus tard.
 
-Sous **Avancé** :
+Sous **Plus de champs** :
 
 - **Limiter à ces pages de statut** — facultatif. Laissé vide, l'incident s'affiche sur toutes les pages de statut qui répertorient ses moniteurs, et prévient leurs abonnés ; avec des pages choisies, seulement sur celles-ci parmi elles. Voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience).
 - **Notifier les abonnés de la page de statut** — case à cocher, cochée par défaut (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). En dessous, puis à nouveau dans le récapitulatif, le formulaire indique quelles pages de statut seront prévenues et combien d'abonnés chacune compte ; dans le récapitulatif, **Aperçu de la notification** montre l'e-mail qu'ils recevront. Décochez-la pour le bruit interne que vous voulez tout de même consigner.
@@ -74,7 +74,7 @@ Si vous déclarez sans cesse la même forme d'incident — même schéma de titr
 
 Cliquez sur **Créer à partir d'un modèle** (le bouton en contour à côté de **Déclarer un incident**) : une fenêtre **Créer un incident à partir d'un modèle** s'ouvre, avec une liste déroulante **Sélectionner le modèle d'incident**. Choisissez un modèle et le formulaire de création s'ouvre prérempli ; vous pouvez encore tout changer avant de valider. Si votre projet n'a pas encore de modèles, vous obtenez à la place une fenêtre **No Incident Templates**, avec un bouton **Create Template** qui vous emmène dans **Incidents → Paramètres → Modèles d'incident**.
 
-Les modèles se construisent avec leur propre assistant — **Informations du modèle**, **Détails de l'incident**, **Ressources affectées**, **Astreinte** —, plus des étapes de champs personnalisés lorsque votre projet en a. Leurs propriétaires et leurs étiquettes sont sous **Avancé** à la fin de **Détails de l'incident**. **Ressources affectées** pose les questions comme le formulaire de déclaration — **Moniteurs**, puis **Changer le statut du moniteur en**, puis **Autres ressources affectées**, avec **Limiter à ces pages de statut** sous **Avancé** — sauf qu'un modèle demande toujours le statut des moniteurs : il s'applique aussi aux moniteurs choisis lorsqu'un incident est déclaré à partir de lui. Voici les champs :
+Les modèles se construisent avec leur propre assistant — **Informations du modèle**, **Détails de l'incident**, **Ressources affectées**, **Astreinte** —, plus des étapes de champs personnalisés lorsque votre projet en a. Leurs propriétaires et leurs étiquettes sont sous **Plus de champs** à la fin de **Détails de l'incident**. **Ressources affectées** pose les questions comme le formulaire de déclaration — **Moniteurs**, puis **Changer le statut du moniteur en**, puis **Autres ressources affectées**, avec **Limiter à ces pages de statut** sous **Plus de champs** — sauf qu'un modèle demande toujours le statut des moniteurs : il s'applique aussi aux moniteurs choisis lorsqu'un incident est déclaré à partir de lui. Voici les champs :
 
 | Champ                            | À quoi il sert                                                     |
 | -------------------------------- | ------------------------------------------------------------------ |
@@ -109,7 +109,7 @@ Chaque entrée comporte :
 - **Astreinte → Politiques d'astreinte** — les politiques exécutées à la création de cet incident.
 - **Rôles d'incident** — attribuez à l'avance des membres de l'équipe aux rôles.
 - **Propriété et étiquettes → Équipes propriétaires**, **Utilisateurs propriétaires**, **Étiquettes**.
-- **Options avancées → Résoudre automatiquement l'incident** (résout l'incident automatiquement quand les critères cessent de correspondre), **Afficher l'incident sur la page de statut**, **Incident privé** et **Notes de remédiation**.
+- **Plus de champs → Résoudre automatiquement l'incident** (résout l'incident automatiquement quand les critères cessent de correspondre), **Afficher l'incident sur la page de statut**, **Incident privé** et **Notes de remédiation**.
 
 Pour la liste complète des variables `{{variable}}` utilisables dans le titre, la description et les notes de remédiation, voyez [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
 

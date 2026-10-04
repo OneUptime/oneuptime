@@ -8,13 +8,13 @@ Når du oppretter en plan på siden **Vaktplaner**, spør skjemaet om **Navn** o
 
 **Hvem bytter på å ha vakt?** er valgfritt. Lar du det stå tomt, starter planen uten lag: den setter ingen på vakt før du legger til et lag på siden **Lag**. Spørsmålet stilles bare til dem som kan legge til lag.
 
-Alt annet ligger under **Avansert**, sammenfoldet til du åpner det:
+Alt annet ligger under **Flere felt**, sammenfoldet til du åpner det:
 
 - **Hver vakt varer**: **1 dag**, **1 uke**, **2 uker** eller **1 måned**, og **1 uke** med mindre du endrer det. Det spørres om så snart noen er valgt. Hver person har vakt så lenge, så tar den neste over, på det klokkeslettet planen ble opprettet.
 - **Tidssone**: tidssonen som overleveringstider og vakttimer gjelder i. Den starter på din egen.
 - **Beskrivelse** og **Etiketter**.
 
-Så lenge noen er valgt og ingenting under **Avansert** er endret, sier den sammenfoldede overskriften hva som vil skje: hver person har vakt i en uke, deretter tar den neste over.
+Så lenge noen er valgt og ingenting under **Flere felt** er endret, sier den sammenfoldede overskriften hva som vil skje: hver person har vakt i en uke, deretter tar den neste over.
 
 ## Lag
 

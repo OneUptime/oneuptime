@@ -212,7 +212,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
    * Incident Details - as a scheduled maintenance template folds its owners
    * and labels on its Event step - rather than walking two steps of one
    * optional field each. The status pages its incidents are limited to fold
-   * under Advanced at the end of Resources Affected, as on Declare Incident.
+   * under More fields at the end of Resources Affected, as on Declare
+   * Incident.
    */
   const advancedSection: FormFieldCollapsibleSection<IncidentTemplate> =
     getAdvancedFormSection<IncidentTemplate>();
@@ -548,7 +549,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
           },
           /*
-           * Advanced: the status pages incidents declared from this template
+           * More fields: the status pages incidents declared from this template
            * are limited to - a 'Region East outage' template can carry the
            * East site pages.
            */

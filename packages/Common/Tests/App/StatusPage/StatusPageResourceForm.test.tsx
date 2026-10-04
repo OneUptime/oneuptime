@@ -159,8 +159,14 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getByTextOutsideFoldedHeaders,
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 type PickFunction = (
   picked: Array<string>,
@@ -425,7 +431,7 @@ describe("the resource form's fields", () => {
       fields[2]!.collapsibleSection!;
 
     expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
-    expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
     // Folded on Edit too, saying "Configured" instead of opening.
     expect(section.openWhenConfigured).toBe(false);
 
@@ -674,14 +680,20 @@ describe("Add Monitor, as somebody fills it in", () => {
     expect(screen.queryByRole("navigation", { name: "Progress" })).toBeNull();
 
     const advanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByText("Tooltip")).not.toBeVisible();
-    expect(screen.getByText("Show Uptime %")).not.toBeVisible();
+    // Folded, its header names what it holds; the fields are hidden.
+    expect(listedNames(advanced)).toContain("Tooltip");
+    expect(
+      getByTextOutsideFoldedHeaders(document.body, "Tooltip"),
+    ).not.toBeVisible();
+    expect(
+      getByTextOutsideFoldedHeaders(document.body, "Show Uptime %"),
+    ).not.toBeVisible();
     // Untouched, nothing in it is set.
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
   });
 
   test("names the resource after the picked monitor, and follows the next pick", async () => {
@@ -774,14 +786,14 @@ describe("Add Monitor, as somebody fills it in", () => {
     await pickMonitor(user, "Checkout API");
 
     const advanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     await user.click(advanced);
     await user.click(screen.getByRole("switch", { name: /Show Uptime %/ }));
     await user.click(advanced);
 
-    expect(screen.getByText("Configured")).toBeVisible();
+    expect(hasSetChip()).toBe(true);
 
     await act(async (): Promise<void> => {
       fireEvent.click(screen.getByRole("button", { name: "Add Monitor" }));
@@ -843,11 +855,11 @@ describe("Edit resource", () => {
     await renderEdit();
 
     const advanced: HTMLElement = await screen.findByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Configured")).toBeVisible();
+      expect(hasSetChip()).toBe(true);
     });
     expect(advanced).toHaveAttribute("aria-expanded", "false");
   });
@@ -913,7 +925,7 @@ describe("Edit resource", () => {
 
     await renderEdit();
 
-    await screen.findByRole("button", { name: "Advanced" });
-    expect(screen.queryByText("Configured")).toBeNull();
+    await screen.findByRole("button", { name: "More fields" });
+    expect(setChips()).toEqual([]);
   });
 });

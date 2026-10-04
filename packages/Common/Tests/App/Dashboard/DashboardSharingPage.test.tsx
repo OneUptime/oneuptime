@@ -98,6 +98,11 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const DASHBOARD_ID: string = "44444444-4444-4444-8444-444444444444";
 const ALLOWLIST_CARD: string = "Dashboard > IP Allowlist";
@@ -258,14 +263,19 @@ describe("the page", () => {
 });
 
 describe("the folded Advanced section", () => {
-  test("is folded, and says what it is for", async () => {
+  test("is folded, and names what is in it", async () => {
     await renderPage();
 
     const toggle: HTMLElement = within(advancedSection()).getByRole("button", {
-      name: /Advanced/,
+      name: "More settings",
     });
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(listedNames(toggle)).toEqual(["IP Allowlist"]);
+
+    // Open, it says what it is for.
+    fireEvent.click(toggle);
+
     expect(advancedSection()).toHaveTextContent(
       DashboardSharingCopy.advancedDescription,
     );
@@ -278,7 +288,7 @@ describe("the folded Advanced section", () => {
     expect(advancedSection()).toHaveTextContent(
       DashboardSharingCopy.advancedSummaryOpen,
     );
-    expect(advancedSection()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedSection())).toEqual([]);
   });
 
   test("with an allowlist: it says so, folded, and says Configured", async () => {
@@ -288,21 +298,21 @@ describe("the folded Advanced section", () => {
     expect(advancedSection()).toHaveTextContent(
       DashboardSharingCopy.advancedSummaryConfigured,
     );
-    expect(advancedSection()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedSection())).toBe(true);
   });
 
   test("a list of blank lines is in force on the server, so it is Configured too", async () => {
     await renderPage();
     await loadAllowlist("\n  \n");
 
-    expect(advancedSection()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedSection())).toBe(true);
   });
 
   test("opens from its title", async () => {
     await renderPage();
 
     const toggle: HTMLElement = within(advancedSection()).getByRole("button", {
-      name: /Advanced/,
+      name: "More settings",
     });
 
     fireEvent.click(toggle);

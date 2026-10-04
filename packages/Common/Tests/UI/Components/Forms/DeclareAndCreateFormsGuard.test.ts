@@ -48,7 +48,7 @@ import {
  *     Change Monitor Status to sits right under them, asked only once a
  *     monitor is picked and never sent without one; the status pages an
  *     incident is limited to, and whether their subscribers are notified,
- *     wait under Advanced. The maintainer: "Limit to these status pages and
+ *     wait under More fields. The maintainer: "Limit to these status pages and
  *     notifiy subscribers should be in advanced. change monitor stattus
  *     page to should be outside of advanced", and "we also need to have
  *     monitors and other affected resources as seperate things (so change
@@ -717,7 +717,7 @@ describe("the monitors apart, and the status they change to right under them", (
     expect(strip).toBeLessThan(incident.indexOf("fields={[", hook));
   });
 
-  test("the status page limit and the notify switch wait under Advanced, and the switch is always on the review", () => {
+  test("the status page limit and the notify switch wait under More fields, and the switch is always on the review", () => {
     const pages: string = fieldObjectAround(
       incident,
       "field: { statusPages: true, }",

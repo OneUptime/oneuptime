@@ -317,10 +317,10 @@ const getAudienceSummary: GetAudienceSummaryFunction = (
 
 /*
  * A private incident shows on no status page, not even the ones it is
- * limited to. Said under Private Incident (in Advanced, on the first step)
- * and under the status page picker (in Advanced on the next): each says it
- * on its own step, so whichever of the two is set second says it where it
- * is set.
+ * limited to. Said under Private Incident (in More fields, on the first
+ * step) and under the status page picker (in More fields on the next):
+ * each says it on its own step, so whichever of the two is set second says
+ * it where it is set.
  */
 type GetPrivateScopeWarningFunction = (
   values: FormValues<Incident>,
@@ -347,18 +347,18 @@ const getPrivateScopeWarning: GetPrivateScopeWarningFunction = (
 /*
  * Declaring an incident asks for what it cannot be declared without - a
  * title and a severity - and the description its status page shows. The
- * options most declarations never touch are folded under one "Advanced"
+ * options most declarations never touch are folded under one "More fields"
  * header at the end of their step: when it was declared, the state it starts
  * in, its labels and whether it is private on Incident Details; the status
  * pages it is limited to and whether their subscribers are notified on
  * Resources Affected (the maintainer: "Limit to these status pages and
- * notify subscribers should be in advanced"). Folded, the header says
- * "Configured" when one of them holds something (a template's labels or
- * status pages, a private alert's privacy, notifying switched off), and it
- * opens by itself when one fails validation. The review step lists a folded
- * option only when it is set - except whether subscribers are notified,
- * which it always lists, with who that reaches and a preview of what they
- * will be sent.
+ * notify subscribers should be in advanced"). Folded, the header lists them
+ * by name and shows each one that holds something (a template's labels or
+ * status pages, a private alert's privacy, notifying switched off) with its
+ * value, and it opens by itself when one fails validation. The review step
+ * lists a folded option only when it is set - except whether subscribers
+ * are notified, which it always lists, with who that reaches and a preview
+ * of what they will be sent.
  */
 const advancedSection: FormFieldCollapsibleSection<Incident> =
   getAdvancedFormSection<Incident>();
@@ -1954,7 +1954,7 @@ const IncidentCreate: FunctionComponent<
                   },
                 },
                 /*
-                 * Advanced: the status pages this incident is limited to.
+                 * More fields: the status pages this incident is limited to.
                  * Left empty, it shows on and notifies every status page
                  * that lists its monitors, as always; picked, only those
                  * pages among them. The entity dropdown gives it a Labels
@@ -2040,7 +2040,7 @@ const IncidentCreate: FunctionComponent<
                   /*
                    * Folded, but always on the review: whether subscribers
                    * are emailed, who that reaches and what they will be
-                   * sent is the one Advanced default to read before
+                   * sent is the one folded default to read before
                    * declaring.
                    */
                   alwaysInSummary: true,

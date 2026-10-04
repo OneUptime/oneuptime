@@ -71,7 +71,7 @@ Wählen Sie die HTTP-Methode für die Anfrage:
 - **PATCH**
 - **HEAD**
 
-### Erweiterte Optionen
+### Weitere Felder
 
 #### Anfrage-Header
 

@@ -71,7 +71,7 @@ Open de **Criteria** van de monitor en bewerk het eerste criterium.
 
 - Zet _When filters match, change monitor status_ aan en stel het in op **Offline** (of Degraded).
 - Zet _When filters match, declare an incident_ aan. Stel de **Title**, de **Severity** en de **On-Call Policies** in die opgeroepen moeten worden.
-- Zet onder **Advanced Options** van dat incident **Auto Resolve Incident** aan. Zonder dit worden herstelmeldingen genegeerd en blijven incidenten voor altijd openstaan.
+- Zet onder **More fields** van dat incident **Auto Resolve Incident** aan. Zonder dit worden herstelmeldingen genegeerd en blijven incidenten voor altijd openstaan.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Probleemoplossing
 
 - **Er komt niets binnen** — bevestig dat Alertmanager de URL kan bereiken; controleer zijn logs op afleverfouten. OneUptime beantwoordt elk verzoek met een lege `200` voordat er iets gevalideerd wordt, dus een `200` bevestigt niet dat de payload is geaccepteerd. Kijk in plaats daarvan naar de tijdlijn van de monitor.
-- **Incidenten gaan open maar sluiten nooit** — controleer `send_resolved: true` in Alertmanager, het herstelveld en de waarde op het criterium (de vergelijking is hoofdlettergevoelig), en **Auto Resolve Incident** onder de **Advanced Options** van het incident. Twee subtielere oorzaken: een payload met meer unieke sleutels dan **Max incidents per request** verbergt de sleutels voorbij de limiet ook voor herstel; en als juist de `resolved`-melding degene is die door het samenvoegen bij ingest (hieronder) wordt weggelaten, blijft het incident permanent hangen, omdat Alertmanager firing-meldingen herhaalt maar resolved-meldingen niet. Sluit die met de hand.
+- **Incidenten gaan open maar sluiten nooit** — controleer `send_resolved: true` in Alertmanager, het herstelveld en de waarde op het criterium (de vergelijking is hoofdlettergevoelig), en **Auto Resolve Incident** onder de **More fields** van het incident. Twee subtielere oorzaken: een payload met meer unieke sleutels dan **Max incidents per request** verbergt de sleutels voorbij de limiet ook voor herstel; en als juist de `resolved`-melding degene is die door het samenvoegen bij ingest (hieronder) wordt weggelaten, blijft het incident permanent hangen, omdat Alertmanager firing-meldingen herhaalt maar resolved-meldingen niet. Sluit die met de hand.
 - **Helemaal geen incidenten, monitorstatus ongewijzigd** — het groeperingspad moet beginnen met het letterlijke `requestBody.`, en alleen de eerste `[*]` in een pad is een jokerteken. Beide fouten mislukken stilzwijgend.
 - **De incidenttekst toont ruwe `{{...}}`-placeholders** — het pad is niet omgezet, en OneUptime laat niet-omgezette placeholders staan in plaats van ze leeg te maken. Verschillende regels zetten verschillende annotaties, dus verwijs naar velden die voor jouw regels ook echt bestaan (`commonAnnotations` versus de `annotations` per alert).
 - **Slechts één incident voor een payload vol alerts** — je hebt gegroepeerd op een label dat binnen een melding niet varieert, meestal een label dat ook in de `group_by` van je route staat. Groepeer in plaats daarvan op `requestBody.alerts[*].fingerprint`.

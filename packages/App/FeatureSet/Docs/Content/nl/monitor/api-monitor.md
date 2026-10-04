@@ -71,7 +71,7 @@ Selecteer de HTTP-methode voor het verzoek:
 - **PATCH**
 - **HEAD**
 
-### Geavanceerde opties
+### Meer velden
 
 #### Verzoekheaders
 

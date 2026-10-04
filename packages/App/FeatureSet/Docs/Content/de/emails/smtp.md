@@ -15,7 +15,7 @@ Den Mailserver eines Projekts fügen Sie unter **Projekteinstellungen > Benachri
 1. **Server**: **Name** (nur bei Projektkonfigurationen), **Hostname**, **Port** (eine neue Konfiguration beginnt mit `587`), **Benutzername** und **Passwort**.
 2. **Absender**: **Absender-E-Mail** und **Absendername**, von denen Ihre E-Mails kommen.
 
-Alles andere ist am Ende des Schritts Server unter **Erweitert** eingeklappt. Im eingeklappten Zustand sagt die Überschrift, wie E-Mails gesendet werden, zum Beispiel „E-Mails werden über SMTP gesendet, mit Anmeldung per Benutzername und Passwort. TLS ist erforderlich."
+Alles andere ist am Ende des Schritts Server unter **Weitere Felder** eingeklappt. Im eingeklappten Zustand sagt die Überschrift, wie E-Mails gesendet werden, zum Beispiel „E-Mails werden über SMTP gesendet, mit Anmeldung per Benutzername und Passwort. TLS ist erforderlich."
 
 | Feld                      | Was es bewirkt                                                                                                                                                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Alles andere ist am Ende des Schritts Server unter **Erweitert** eingeklappt. Im
 | **OAuth-Felder**          | Anbietertyp, Client-ID, Client-Secret, Token-URL und Geltungsbereich; sie erscheinen, sobald OAuth oder Microsoft Graph gewählt ist.                                                                                                                                                    |
 | **Beschreibung**          | Eine Notiz für Ihr Team (nur bei Projektkonfigurationen).                                                                                                                                                                                                                               |
 
-**Microsoft Graph.** Öffnen Sie **Erweitert**, setzen Sie **Transport** auf `Microsoft Graph` und tragen Sie eine Azure-App mit der Anwendungsberechtigung **Mail.Send** ein: ihre Client-ID und ihr Client-Secret, die Token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` und den Geltungsbereich `https://graph.microsoft.com/.default`. E-Mails werden aus dem Postfach der **Absender-E-Mail** gesendet, das ein lizenziertes Postfach in Ihrem Mandanten sein muss.
+**Microsoft Graph.** Öffnen Sie **Weitere Felder**, setzen Sie **Transport** auf `Microsoft Graph` und tragen Sie eine Azure-App mit der Anwendungsberechtigung **Mail.Send** ein: ihre Client-ID und ihr Client-Secret, die Token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` und den Geltungsbereich `https://graph.microsoft.com/.default`. E-Mails werden aus dem Postfach der **Absender-E-Mail** gesendet, das ein lizenziertes Postfach in Ihrem Mandanten sein muss.
 
 Sobald eine Projektkonfiguration gespeichert ist, prüft **Test-E-Mail senden** in ihrer Zeile, ob sie funktioniert.
 
@@ -52,7 +52,7 @@ Bei der Konfiguration von SMTP mit OAuth-Authentifizierung in OneUptime benötig
 | **Token-URL**             | OAuth-Token-Endpunkt-URL                                                                |
 | **Geltungsbereich**       | Erforderliche OAuth-Bereiche für den SMTP-Zugriff                                       |
 
-**Authentifizierungstyp** und die OAuth-Felder finden Sie im Schritt Server des Formulars unter **Erweitert**.
+**Authentifizierungstyp** und die OAuth-Felder finden Sie im Schritt Server des Formulars unter **Weitere Felder**.
 
 ---
 

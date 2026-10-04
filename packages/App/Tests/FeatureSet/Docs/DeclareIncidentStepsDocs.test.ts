@@ -8,7 +8,7 @@ import path from "path";
  * naming every field. The wizard went from six steps (Incident Details,
  * Resources Affected, Incident Roles, On-Call, More and the summary) to
  * three and the summary, with what most incidents never need folded under
- * an Advanced section. Markdown is not compiled, so nothing else notices
+ * a More fields section. Markdown is not compiled, so nothing else notices
  * when the docs keep describing steps the form no longer has.
  *
  * The English page and its Persian translation (the one translated corpus
@@ -17,7 +17,7 @@ import path from "path";
  *
  *   - give the form's steps, in the form's order, by their on-screen titles;
  *   - have a section per step, and none for a step that is gone;
- *   - list, under each step's Advanced, exactly the fields the form folds
+ *   - list, under each step's More fields, exactly the fields the form folds
  *     there - and those fields nowhere else on the step;
  *   - list Resources Affected's open fields as the form asks them: the
  *     monitors, the status they change to, then the other resources;
@@ -55,10 +55,10 @@ const STEP_HEADING: Record<string, (index: number, title: string) => string> = {
   },
 };
 
-// "Under **Advanced**:" in each language: the line before a step's folded fields.
-const UNDER_ADVANCED: Record<string, string> = {
-  en: "Under **Advanced**:",
-  fa: "زیر **Advanced**:",
+// "Under **More fields**:" in each language: the line before a step's folded fields.
+const UNDER_MORE_FIELDS: Record<string, string> = {
+  en: "Under **More fields**:",
+  fa: "زیر **More fields**:",
 };
 
 // The declare wizard's old On-Call step, named in English or Persian.
@@ -165,7 +165,7 @@ function fieldObjects(): Array<FieldObject> {
 /*
  * Every field of the form with a written title: its title (the trailing
  * space some titles carry dropped), its step, and whether it is folded
- * under the Advanced section. Hidden registrations have an empty title.
+ * under the More fields section. Hidden registrations have an empty title.
  */
 function formFields(): Array<FormField> {
   const fields: Array<FormField> = [];
@@ -282,7 +282,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
   );
 
   it.each(LANGUAGES)(
-    "%s: a section per step, and the fields each one lists are the form's, the folded ones under Advanced",
+    "%s: a section per step, and the fields each one lists are the form's, the folded ones under More fields",
     (language: string) => {
       const markdown: string = readPage(DECLARING_PAGE, language);
       const fields: Array<FormField> = formFields();
@@ -297,13 +297,13 @@ describe("the Declare Incident docs follow the form's steps", () => {
             return field.stepId === stepIdOf(title);
           },
         );
-        const underAdvanced: number = section.indexOf(
-          UNDER_ADVANCED[language] as string,
+        const underMoreFields: number = section.indexOf(
+          UNDER_MORE_FIELDS[language] as string,
         );
         const open: string =
-          underAdvanced < 0 ? section : section.slice(0, underAdvanced);
+          underMoreFields < 0 ? section : section.slice(0, underMoreFields);
         const folded: string =
-          underAdvanced < 0 ? "" : section.slice(underAdvanced);
+          underMoreFields < 0 ? "" : section.slice(underMoreFields);
 
         const foldedTitles: Array<string> = stepFields
           .filter((field: FormField): boolean => {
@@ -381,12 +381,12 @@ describe("the Declare Incident docs follow the form's steps", () => {
         readPage(DECLARING_PAGE, language),
         STEP_HEADING[language]!(2, "Resources Affected"),
       );
-      const underAdvanced: number = section.indexOf(
-        UNDER_ADVANCED[language] as string,
+      const underMoreFields: number = section.indexOf(
+        UNDER_MORE_FIELDS[language] as string,
       );
 
-      expect(underAdvanced).toBeGreaterThan(-1);
-      expect(listedFields(section.slice(0, underAdvanced))).toEqual(
+      expect(underMoreFields).toBeGreaterThan(-1);
+      expect(listedFields(section.slice(0, underMoreFields))).toEqual(
         openOnTheForm,
       );
     },

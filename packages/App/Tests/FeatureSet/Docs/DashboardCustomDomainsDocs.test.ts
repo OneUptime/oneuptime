@@ -77,7 +77,7 @@ describe("Dashboard custom domains (English docs)", () => {
     ).toEqual(new Set(["15 minutes", "15 minute"]));
   });
 
-  it("describes adding a domain as one page, from verified domains, with the certificate under Advanced", () => {
+  it("describes adding a domain as one page, from verified domains, with the certificate under More fields", () => {
     const adding: string = section(
       "### Adding the domain",
       "### DNS Setup and Check now",
@@ -91,7 +91,7 @@ describe("Dashboard custom domains (English docs)", () => {
     );
     expect(adding).toContain("**Project Settings → Domains**");
     expect(adding).toContain(`**${CustomDomainCopy.domainFieldSideLink}**`);
-    expect(adding).toContain("**Advanced**");
+    expect(adding).toContain("**More fields**");
     expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**DNS Setup** opens");
   });

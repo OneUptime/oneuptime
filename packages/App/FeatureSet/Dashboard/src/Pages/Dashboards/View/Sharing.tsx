@@ -6,6 +6,7 @@ import DashboardSharingCopy, {
 } from "../../../Components/Dashboard/Sharing/DashboardSharingCopy";
 import IpAllowlistCopy, {
   getIpAllowlistEntries,
+  getIpAllowlistFoldedItem,
   getIpAllowlistProblem,
   IP_ALLOWLIST_COLUMN,
   isIpAllowlistInForce,
@@ -75,7 +76,7 @@ const DashboardSharing: FunctionComponent<
                   : DashboardSharingCopy.advancedSummaryOpen,
               )
         }
-        isConfigured={isIpAllowlistSet}
+        items={[getIpAllowlistFoldedItem(ipAllowlist)]}
         dataTestId={DASHBOARD_SHARING_ADVANCED_SECTION_TEST_ID}
       >
         <CardModelDetail<Dashboard>

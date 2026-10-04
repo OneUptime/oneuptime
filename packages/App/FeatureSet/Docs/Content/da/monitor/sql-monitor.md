@@ -57,7 +57,7 @@ Opret en ny monitor og vælg **SQL Query** som monitortype, og udfyld derefter f
 - **SQL-forespørgsel** — den skrivebeskyttede forespørgsel, der skal køres (se Skrivning af forespørgslen).
 - **Brug SSL/TLS** — aktivér for at forbinde over TLS. Når det er aktiveret, kan du slå **Verificer servercertifikat** fra, hvis databasen bruger et selvsigneret certifikat.
 
-### Avancerede indstillinger
+### Flere felter
 
 - **Forbindelsestimeout (ms)** — hvor længe der ventes på at etablere en forbindelse. Standard `10000`, maksimum `30000`.
 - **Sætningstimeout (ms)** — den hårde grænse for, hvor længe forespørgslen må køre. Standard `15000`, maksimum `60000`.

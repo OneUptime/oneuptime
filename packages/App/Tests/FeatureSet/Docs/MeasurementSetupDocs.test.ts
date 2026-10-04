@@ -14,9 +14,9 @@ import MeasurementAggregationType from "Common/Types/Measurement/MeasurementAggr
 /*
  * "Please make incident and alert measurements easier to understand. I have
  * no idea what these are." The measurement settings pages now explain
- * themselves - ready-made measurements, moments in plain words, Advanced
+ * themselves - ready-made measurements, moments in plain words, More fields
  * folded - and the docs must describe the same pages: the same ready-made
- * measurements, the same moments, what is under Advanced, and View Chart.
+ * measurements, the same moments, what is under More fields, and View Chart.
  *
  * The lists are read from the module the form is built from
  * (Common/Utils/Measurement/MeasurementMoments), so a measurement or a moment
@@ -108,9 +108,9 @@ describe("the English measurements docs", () => {
     }
   });
 
-  it("say what is under Advanced, and the defaults", () => {
+  it("say what is under More fields, and the defaults", () => {
     for (const text of [
-      "**Advanced**",
+      "**More fields**",
       "**If the start happens more than once**",
       "**If the end happens more than once**",
       "**Use the first time**",
@@ -118,10 +118,12 @@ describe("the English measurements docs", () => {
       "**Automatic**",
       "**Chart summary**",
       "**Average**",
-      "**Configured**",
+      "Folded, its header names them and shows the ones that are changed.",
     ]) {
       expect(section).toContain(text);
     }
+
+    expect(section).not.toContain("**Configured**");
   });
 
   it("give the API's values for the unit and the chart summary", () => {

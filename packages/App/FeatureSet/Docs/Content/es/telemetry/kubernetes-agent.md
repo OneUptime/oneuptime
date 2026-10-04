@@ -718,7 +718,7 @@ La razón más común — especialmente después de una reinstalación — es un
 ### No aparecen métricas
 
 1. Primero descarta una clave de ingesta rechazada — es la causa más común y es fácil de pasar por alto desde el lado del agente. Consulta [El agente muestra "Disconnected"](#el-agente-muestra-disconnected) más arriba (o simplemente ejecuta el script de diagnóstico).
-2. Comprueba que el **nombre del clúster (clusterName)** coincida con el valor que pasaste como `clusterName`. Está en la página **Settings** del clúster, en **Cluster Details**; para corregirlo, elige **Edit Details** y abre **Advanced**
+2. Comprueba que el **nombre del clúster (clusterName)** coincida con el valor que pasaste como `clusterName`. Está en la página **Settings** del clúster, en **Cluster Details**; para corregirlo, elige **Edit Details** y abre **More fields**
 3. Verifica los permisos de RBAC: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Revisa los logs del colector de OTel en busca de errores de exportación
 

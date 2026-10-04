@@ -120,6 +120,12 @@ import StatusPageMonitorRule from "../../../Models/DatabaseModels/StatusPageMoni
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  getByTextOutsideFoldedHeaders,
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "0198c8ec-2a1d-7f0c-9e75-384194161001",
@@ -244,7 +250,7 @@ type AdvancedHeaderFunction = (
 const advancedHeader: AdvancedHeaderFunction = async (
   view: ReturnType<typeof render>,
 ): Promise<HTMLElement> => {
-  return view.findByRole("button", { name: "Advanced" });
+  return view.findByRole("button", { name: "More fields" });
 };
 
 const callOrder: Array<string> = [];
@@ -294,16 +300,25 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     expect(view.queryByText("Display Name")).not.toBeInTheDocument();
     expect(view.queryByText("Description")).not.toBeInTheDocument();
 
-    // The display options are folded under Advanced, at their defaults.
+    // The display options are folded under More fields, at their defaults.
     const header: HTMLElement = await advancedHeader(view);
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(view.getByText("Tooltip")).not.toBeVisible();
-    expect(view.getByText("Show Current Resource Status")).not.toBeVisible();
-    expect(view.getByText("Show Uptime %")).not.toBeVisible();
-    expect(view.getByText("Show Status History Chart")).not.toBeVisible();
+
+    for (const title of [
+      "Tooltip",
+      "Show Current Resource Status",
+      "Show Uptime %",
+      "Show Status History Chart",
+    ]) {
+      // Named on the folded header; the field itself is hidden.
+      expect(
+        getByTextOutsideFoldedHeaders(view.container, title),
+      ).not.toBeVisible();
+    }
+    expect(listedNames(header)).toContain("Tooltip");
     // Nothing in it is set: its header says nothing.
-    expect(view.queryByText("Configured")).toBeNull();
+    expect(setChips(view.container)).toEqual([]);
   });
 
   test("has one button, Add Monitors, and no Next", async () => {
@@ -366,7 +381,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
 
     // Folded again, the header says something in it is set.
     fireEvent.click(header);
-    expect(view.getByText("Configured")).toBeVisible();
+    expect(hasSetChip(view.container)).toBe(true);
 
     await submit(view);
 

@@ -99,7 +99,7 @@ describe("Status Page Branding & Domains (English)", () => {
       "### Header links",
       "### Overview page description",
       "### Footer",
-      "### Advanced",
+      "### More settings",
     ]) {
       const at: number = page.indexOf(heading);
 
@@ -108,9 +108,9 @@ describe("Status Page Branding & Domains (English)", () => {
     }
   });
 
-  it("says what the folded Advanced section holds, and when it says Configured", () => {
+  it("says what the folded More settings section holds, and what its header shows folded", () => {
     const advanced: string = page.slice(
-      page.indexOf("### Advanced"),
+      page.indexOf("### More settings"),
       page.indexOf("## Uptime percent and downtime statuses"),
     );
 
@@ -123,7 +123,11 @@ describe("Status Page Branding & Domains (English)", () => {
       expect([card, advanced.includes(card)]).toEqual([card, true]);
     }
 
-    expect(advanced).toContain("**Configured**");
+    // Folded, its header names the four cards by the names the chips use.
+    expect(advanced).toContain(
+      "Folded, its header names its four cards — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with",
+    );
+    expect(advanced).not.toContain("**Configured**");
   });
 
   it("says search engine indexing saves when the switch is flipped, with no Edit button", () => {
@@ -222,9 +226,9 @@ describe("Status Page Branding & Domains (English)", () => {
     expect(page).toContain("now open the **Branding** page");
   });
 
-  it("says the only built-in colors are under Advanced on the Branding page", () => {
+  it("says the only built-in colors are under More settings on the Branding page", () => {
     expect(page).toContain(
-      "the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **Advanced** on the **Branding** page",
+      "the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page",
     );
   });
 });
@@ -257,7 +261,7 @@ describe("the rest of the English docs", () => {
     expect(row).not.toContain("**Essential Branding**");
     expect(row).not.toContain("**Header**");
     expect(overview).toContain(
-      "the **Default Bar Color** and the bar-color rules are under **Advanced** on **Status Pages → your page → Branding → Branding**",
+      "the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**",
     );
   });
 
@@ -294,7 +298,7 @@ describe("the rest of the English docs", () => {
       "in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**",
     );
     expect(resources).toContain(
-      "The colors of the history chart bars are set under **Advanced** on the **Branding** page",
+      "The colors of the history chart bars are set under **More settings** on the **Branding** page",
     );
   });
 });

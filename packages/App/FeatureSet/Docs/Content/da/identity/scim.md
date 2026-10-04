@@ -27,7 +27,7 @@ Projekt-SCIM giver identitetsudbydere mulighed for at administrere teammedlemmer
 2. **Konfigurer SCIM-indstillinger**
 
    - Indtast et **Navn**. **Standardteams** starter med dit projekts medlemsteam: nye brugere tilføjes til disse teams
-   - Under **Avanceret** er **Klargør brugere automatisk** (tilføj brugere, når de tildeles i din IdP) og **Fjern automatisk klargøring af brugere** (fjern brugere, når de fjernes i din IdP) slået til, og **Aktivér push-grupper** er slået fra. Ændr dem der, hvis du har brug for det
+   - Under **Flere felter** er **Klargør brugere automatisk** (tilføj brugere, når de tildeles i din IdP) og **Fjern automatisk klargøring af brugere** (fjern brugere, når de fjernes i din IdP) slået til, og **Aktivér push-grupper** er slået fra. Ændr dem der, hvis du har brug for det
    - Gem. Dialogen med **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration åbnes med det samme
 
 3. **Konfigurer din identitetsudbyder**
@@ -74,7 +74,7 @@ Statusside-SCIM giver identitetsudbydere mulighed for at administrere abonnenter
 
 2. **Konfigurer SCIM-indstillinger**
 
-   - Indtast et **Navn**. Under **Avanceret** er **Klargør brugere automatisk** (tilføj abonnenter, når de tildeles i din IdP) og **Fjern automatisk klargøring af brugere** (fjern abonnenter, når de fjernes i din IdP) slået til. Ændr dem der, hvis du har brug for det
+   - Indtast et **Navn**. Under **Flere felter** er **Klargør brugere automatisk** (tilføj abonnenter, når de tildeles i din IdP) og **Fjern automatisk klargøring af brugere** (fjern abonnenter, når de fjernes i din IdP) slået til. Ændr dem der, hvis du har brug for det
    - Gem. Dialogen med **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration åbnes med det samme
 
 3. **Konfigurer din identitetsudbyder**
@@ -122,8 +122,8 @@ Microsoft Entra ID leverer enterprise-grade identitetsstyring med robuste SCIM-k
 4. Indtast et brugervenligt navn (f.eks. "Microsoft Entra ID Klargøring")
 5. Kontrollér indstillingerne:
    - **Standardteams**: starter med dit projekts medlemsteam; nye brugere tilføjes til disse teams
-   - **Klargør brugere automatisk** og **Fjern automatisk klargøring af brugere**: slået til, under **Avanceret**
-   - **Aktivér push-grupper**: under **Avanceret**; slå den til, hvis du vil administrere teammedlemskab via Entra ID-grupper
+   - **Klargør brugere automatisk** og **Fjern automatisk klargøring af brugere**: slået til, under **Flere felter**
+   - **Aktivér push-grupper**: under **Flere felter**; slå den til, hvis du vil administrere teammedlemskab via Entra ID-grupper
 6. Gem konfigurationen
 7. Kopiér **SCIM Base URL** og **Bearer Token** fra dialogen, der åbnes – du skal bruge dem til Entra ID
 
@@ -223,8 +223,8 @@ Okta leverer fleksibel identitetsstyring med fremragende SCIM-understøttelse. F
 4. Indtast et brugervenligt navn (f.eks. "Okta Klargøring")
 5. Kontrollér indstillingerne:
    - **Standardteams**: starter med dit projekts medlemsteam; nye brugere tilføjes til disse teams
-   - **Klargør brugere automatisk** og **Fjern automatisk klargøring af brugere**: slået til, under **Avanceret**
-   - **Aktivér push-grupper**: under **Avanceret**; slå den til, hvis du vil administrere teammedlemskab via Okta-grupper
+   - **Klargør brugere automatisk** og **Fjern automatisk klargøring af brugere**: slået til, under **Flere felter**
+   - **Aktivér push-grupper**: under **Flere felter**; slå den til, hvis du vil administrere teammedlemskab via Okta-grupper
 6. Gem konfigurationen
 7. Kopiér **SCIM Base URL** og **Bearer Token** fra dialogen, der åbnes – du skal bruge dem til Okta
 

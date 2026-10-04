@@ -346,7 +346,8 @@ test("the create form validates the name, then adds the policy to the table", as
     exact: true,
   });
   const advanced: Locator = dialog.getByRole("button", {
-    name: /^Advanced/,
+    name: "More fields",
+    exact: true,
   });
   const labels: Locator = dialog.getByRole("combobox", {
     name: "Labels (Optional)",
@@ -354,7 +355,7 @@ test("the create form validates the name, then adds the policy to the table", as
 
   /*
    * One page: the name, the description, and the labels folded under
-   * Advanced. There is no Labels step to walk, so no Next.
+   * More fields. There is no Labels step to walk, so no Next.
    */
   await expect(
     dialog.getByRole("button", { name: "Next", exact: true }),

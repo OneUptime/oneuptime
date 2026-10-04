@@ -28,8 +28,8 @@ const SERVER: { timeout: number } = { timeout: 30000 };
  * saves, read back through the API: a new project has Incident Commander
  * alone; the table has no Multiple Users column; Incident Commander's Delete
  * is locked and its form has no Allow Multiple Users; a role added with
- * Allow Multiple Users (folded under Advanced) is saved with it, shows
- * "Configured" on its Edit, and can be deleted. Growth, because creating an
+ * Allow Multiple Users (folded under More fields) is saved with it, shows
+ * on its Edit's folded header, and can be deleted. Growth, because creating an
  * incident role is a Growth feature when billing is on.
  *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
@@ -108,7 +108,7 @@ const deleteProject: (page: Page, projectId: string) => Promise<void> = async (
 };
 
 test.describe("Incident roles", () => {
-  test("a new project has Incident Commander alone, and a role added with Allow Multiple Users under Advanced keeps it", async ({
+  test("a new project has Incident Commander alone, and a role added with Allow Multiple Users under More fields keeps it", async ({
     page,
   }: {
     page: Page;
@@ -124,7 +124,8 @@ test.describe("Incident roles", () => {
       const added: string = "E2E Observer";
       const modal: Locator = page.getByTestId("modal");
       const advancedHeader: Locator = modal.getByRole("button", {
-        name: /^Advanced/,
+        name: "More fields",
+        exact: true,
       });
       const multipleUsers: Locator = modal.getByRole("switch", {
         name: "Allow Multiple Users",
@@ -211,7 +212,7 @@ test.describe("Incident roles", () => {
         })
         .fill("Follows the incident without working on it.");
 
-      // Allow Multiple Users is folded under Advanced until it is opened.
+      // Allow Multiple Users is folded under More fields until it is opened.
       await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
       await expect(multipleUsers).toBeHidden();
       await advancedHeader.click();
@@ -263,14 +264,14 @@ test.describe("Incident roles", () => {
           },
         ]);
 
-      // Its Edit keeps the switch under Advanced, saying something is set.
+      // Its Edit keeps the switch folded, its header saying it is on.
       await rowOf(page, added).getByRole("button", { name: "Edit" }).click();
       await expect(modal).toBeVisible();
       await expect(
         modal.getByPlaceholder("Responder", { exact: true }),
       ).toHaveValue(added, SERVER);
       await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
-      await expect(advancedHeader).toContainText("Configured");
+      await expect(advancedHeader).toContainText("Allow Multiple Users: On");
       await modal.getByTestId("modal-footer-close-button").click();
       await expect(modal).toBeHidden();
 

@@ -8,13 +8,13 @@ Wenn Sie auf der Seite **Bereitschaftspläne** einen Plan anlegen, fragt das For
 
 **Wer wechselt sich ab?** ist optional. Bleibt die Frage leer, beginnt der Plan ohne Ebenen: Er setzt niemanden in Bereitschaft, bis Sie auf seiner Seite **Ebenen** eine Ebene hinzufügen. Gefragt wird nur, wer Ebenen hinzufügen darf.
 
-Alles andere liegt unter **Erweitert**, eingeklappt, bis Sie es öffnen:
+Alles andere liegt unter **Weitere Felder**, eingeklappt, bis Sie es öffnen:
 
 - **Jede Schicht dauert**: **1 Tag**, **1 Woche**, **2 Wochen** oder **1 Monat**, und **1 Woche**, solange Sie nichts ändern. Gefragt wird danach, sobald jemand ausgewählt ist. Jede Person hat so lange Bereitschaft, dann übernimmt die nächste, zu der Uhrzeit, zu der der Plan angelegt wurde.
 - **Zeitzone**: die Zeitzone, in der Übergabezeiten und Bereitschaftsstunden gelten. Sie beginnt mit Ihrer eigenen.
 - **Beschreibung** und **Beschriftungen**.
 
-Solange jemand ausgewählt ist und unter **Erweitert** nichts geändert ist, sagt die eingeklappte Überschrift, was geschehen wird: Jede Person ist eine Woche in Bereitschaft, dann übernimmt die nächste.
+Solange jemand ausgewählt ist und unter **Weitere Felder** nichts geändert ist, sagt die eingeklappte Überschrift, was geschehen wird: Jede Person ist eine Woche in Bereitschaft, dann übernimmt die nächste.
 
 ## Ebenen
 

@@ -163,7 +163,7 @@ Stier må begynne med det bokstavelige prefikset `requestBody.`. En sti uten det
 En webhook beskriver bare det som ligger i den nyttelasten, så OneUptime løser aldri en hendelse fordi nøkkelen dens har sluttet å dukke opp. En hendelse løses bare når en nyttelast uttrykkelig sier at den nøkkelen er gjenopprettet. To ting må begge være oppfylt:
 
 1. **Field that signals recovery** og **Value that means recovered** er satt og stemmer med nyttelasten. Sammenligningen er nøyaktig og skiller mellom store og små bokstaver — `Resolved` matcher ikke `resolved`.
-2. Kriteriets hendelse har **Auto Resolve Incident** slått på, under **Advanced Options** i hendelsesskjemaet. Uten det ignoreres matchende gjenopprettingshendelser, og hendelsene forblir åpne. (Det samme gjelder varsler og **Auto Resolve Alert**.)
+2. Kriteriets hendelse har **Auto Resolve Incident** slått på, under **More fields** i hendelsesskjemaet. Uten det ignoreres matchende gjenopprettingshendelser, og hendelsene forblir åpne. (Det samme gjelder varsler og **Auto Resolve Alert**.)
 
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi grensen er også usynlige for gjenoppretting, så i en nyttelast med flere unike nøkler enn grensen vil et varsel som melder `resolved` forbi den, ikke lukke hendelsen sin.
 

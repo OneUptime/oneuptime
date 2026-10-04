@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "खाते का पासवर्ड, या SMTP के लिए आपके प्रदाता द्वारा दी गई API कुंजी।",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "वह पता जिससे आपके ईमेल आते हैं। आपके सर्वर को इस पते से भेजने की अनुमति देनी होगी; Microsoft Graph के साथ, यह वह मेलबॉक्स है जो भेजता है।",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "आपके प्रदाता द्वारा दिया गया पोर्ट, आमतौर पर 587। पोर्ट 465 हमेशा एन्क्रिप्टेड होता है।",
-  "Port 465 is always encrypted, but the certificate is not checked.": "पोर्ट 465 हमेशा एन्क्रिप्टेड होता है, लेकिन प्रमाणपत्र की जाँच नहीं होती।"
+  "Port 465 is always encrypted, but the certificate is not checked.": "पोर्ट 465 हमेशा एन्क्रिप्टेड होता है, लेकिन प्रमाणपत्र की जाँच नहीं होती।",
+  "More fields": "और फ़ील्ड",
+  "More settings": "और सेटिंग्स",
+  "{{count}} more": "{{count}} और",
+  "{{count}} more_one": "{{count}} और",
+  "On": "चालू",
+  "Off": "बंद"
 }

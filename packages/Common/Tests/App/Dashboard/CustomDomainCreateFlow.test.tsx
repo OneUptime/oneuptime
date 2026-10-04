@@ -389,7 +389,7 @@ describe.each(PAGES)("adding $name custom domain", (page: PageCase) => {
     ).toBeInTheDocument();
 
     const advanced: HTMLElement = within(modal).getByRole("button", {
-      name: /^Advanced/,
+      name: "More fields",
     });
     expect(advanced).toHaveAttribute("aria-expanded", "false");
     expect(

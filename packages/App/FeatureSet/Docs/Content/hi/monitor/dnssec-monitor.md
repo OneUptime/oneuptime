@@ -30,7 +30,7 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 | Resolvers                    | query करने के लिए validating resolvers की comma-separated सूची (जैसे `1.1.1.1, 8.8.8.8, 9.9.9.9`)     | हाँ    |
 | Check Nameserver Consistency | प्रत्येक authoritative nameserver को सीधे query करें और verify करें कि वे एक ही SOA serial लौटाते हैं | नहीं   |
 
-### Advanced Settings
+### और फ़ील्ड
 
 | Field                           | विवरण                                                              | Default |
 | ------------------------------- | ------------------------------------------------------------------ | ------- |

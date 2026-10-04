@@ -125,7 +125,7 @@ ${presets}
 |--------|-----------------|
 ${moments}
 
-A few options most measurements never need are under **Advanced** on the second step: whether the first or the last time a state is reached counts (the first, unless you change it), the unit its charts use, and how **View Chart** sums up many ${words.things}.
+A few options most measurements never need are under **More fields** on the second step: whether the first or the last time a state is reached counts (the first, unless you change it), the unit its charts use, and how **View Chart** sums up many ${words.things}.
 
 ### Where the numbers show up
 

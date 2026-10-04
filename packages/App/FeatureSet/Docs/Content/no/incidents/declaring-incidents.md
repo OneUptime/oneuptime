@@ -23,7 +23,7 @@ Alle fire skriver til den samme modellen, så en hendelse åpnet av en sonde ser
 
 Bare det første trinnet har obligatoriske felt, i tillegg til alle egendefinerte felt administratorene har merket som **Påkrevd ved opprettelse**. Du kan også knytte til ressurser, legge til vaktpolicyer og tildele roller etterpå, fra hendelsens egne sider. Hvert trinn før sammendraget har en vanlig **Neste**, og **Erklær hendelse** ligger i sammendraget, det siste trinnet.
 
-**Avansert.** Innstillingene de fleste hendelser aldri trenger, venter sammenfoldet under overskriften **Avansert** på slutten av trinnet sitt; klikk på den for å åpne dem. Sammenfoldet viser overskriften **Konfigurert** når noe i den er satt — av en mal, for eksempel — og den åpner seg selv når noe i den må rettes. Sammendraget viser bare en sammenfoldet innstilling når den er satt, unntatt **Varsle statussideabonnenter**, som det alltid viser, med hvem som blir varslet.
+**Flere felt.** Innstillingene de fleste hendelser aldri trenger, venter sammenfoldet under overskriften **Flere felt** på slutten av trinnet sitt; klikk på den for å åpne dem. Sammenfoldet nevner overskriften hva den inneholder, og viser hver innstilling som er satt, med verdien — satt av en mal, for eksempel — og den åpner seg selv når noe i den må rettes. Sammendraget viser bare en sammenfoldet innstilling når den er satt, unntatt **Varsle statussideabonnenter**, som det alltid viser, med hvem som blir varslet.
 
 ### Trinn 1 — Hendelsesdetaljer
 
@@ -31,7 +31,7 @@ Bare det første trinnet har obligatoriske felt, i tillegg til alle egendefinert
 - **Hendelsesalvor** — påkrevd. En av alvorlighetsgradene som er konfigurert for prosjektet ditt.
 - **Beskrivelse** — valgfri, skrevet i Markdown. Det er dette statussiden viser, så skriv den for kundene og ikke for teamet ditt.
 
-Under **Avansert**:
+Under **Flere felt**:
 
 - **Erklært den** — starter i det øyeblikket du åpnet siden. All varighet på hendelsen måles herfra; tilbakedater den for å registrere en hendelse som begynte tidligere.
 - **Innledende tilstand** — valgfri, og tom til å begynne med. Står den tom, starter hendelsen i tilstanden med flagget `isCreatedState`, eller i malens innledende tilstand. Velg bare en senere tilstand for å registrere en hendelse som allerede er kvittert eller løst.
@@ -50,7 +50,7 @@ Monitorene kommer først, for seg selv: statussider ser en hendelse gjennom moni
 
 Hendelsens kort **Berørte ressurser** spør på samme måte når du redigerer det senere.
 
-Under **Avansert**:
+Under **Flere felt**:
 
 - **Begrens til disse statussidene** — valgfri. Står den tom, vises hendelsen på alle statussider som viser monitorene dens, og varsler abonnentene deres; med valgte sider bare på dem blant dem. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Varsle statussideabonnenter** — avkrysningsboks, på som standard (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under den, og igjen i sammendraget, viser skjemaet hvilke statussider som blir varslet og hvor mange abonnenter hver har; i sammendraget viser **Forhåndsvis varsel** e-posten de får. Slå den av for intern støy du likevel vil ha registrert.
@@ -74,7 +74,7 @@ Hvis du stadig erklærer den samme typen hendelse — samme tittelmønster, samm
 
 Klikk **Opprett fra mal** (omrissknappen ved siden av **Erklær hendelse**), så åpnes dialogen **Opprett hendelse fra mal** med en nedtrekksliste **Velg hendelsesmal**. Velg en mal, så åpnes opprettelsesskjemaet ferdig utfylt; du kan fortsatt endre hva som helst før du sender inn. Har prosjektet ditt ingen maler ennå, får du i stedet dialogen **No Incident Templates**, med en knapp **Create Template** som tar deg til **Hendelser → Innstillinger → Hendelsesmaler**.
 
-Maler bygges med sin egen veiviser — **Malinformasjon**, **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt** — pluss trinn for egendefinerte felt når prosjektet ditt har slike. Eiere og etiketter ligger under **Avansert** på slutten av **Hendelsesdetaljer**. **Berørte ressurser** spør som erklæringsskjemaet — **Monitorer**, så **Endre overvåkingsstatus til**, så **Andre berørte ressurser**, med **Begrens til disse statussidene** under **Avansert** — bortsett fra at en mal alltid spør etter overvåkingsstatus: den gjelder også monitorene som velges når en hendelse erklæres fra malen. Dette er feltene:
+Maler bygges med sin egen veiviser — **Malinformasjon**, **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt** — pluss trinn for egendefinerte felt når prosjektet ditt har slike. Eiere og etiketter ligger under **Flere felt** på slutten av **Hendelsesdetaljer**. **Berørte ressurser** spør som erklæringsskjemaet — **Monitorer**, så **Endre overvåkingsstatus til**, så **Andre berørte ressurser**, med **Begrens til disse statussidene** under **Flere felt** — bortsett fra at en mal alltid spør etter overvåkingsstatus: den gjelder også monitorene som velges når en hendelse erklæres fra malen. Dette er feltene:
 
 | Felt                             | Formål                                                 |
 | -------------------------------- | ------------------------------------------------------ |
@@ -109,7 +109,7 @@ Hver oppføring har:
 - **Vakt → Vaktretningslinjer** — policyer som kjøres når denne hendelsen opprettes.
 - **Hendelsesroller** — tildel teammedlemmer til roller på forhånd.
 - **Eierskap og etiketter → Eierteam**, **Eierbrukere**, **Etiketter**.
-- **Avanserte alternativer → Løs hendelse automatisk** (løser hendelsen automatisk når kriteriene slutter å slå til), **Vis hendelse på statussiden**, **Privat hendelse** og **Utbedringsnotater**.
+- **Flere felt → Løs hendelse automatisk** (løser hendelsen automatisk når kriteriene slutter å slå til), **Vis hendelse på statussiden**, **Privat hendelse** og **Utbedringsnotater**.
 
 For den fullstendige listen over `{{variable}}`-plassholdere du kan bruke i tittel, beskrivelse og utbedringsnotater, se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 

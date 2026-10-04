@@ -160,8 +160,8 @@ describe("a criteria is added with a name", () => {
   });
 });
 
-describe("the default monitor status is folded under Advanced", () => {
-  test("its field is inside the Advanced section", () => {
+describe("the default monitor status is folded under More fields", () => {
+  test("its field is inside the More fields section", () => {
     const labels: Array<string> = fieldLabels(
       criteriaSteps,
       "Default Monitor Status",
@@ -169,13 +169,15 @@ describe("the default monitor status is folded under Advanced", () => {
 
     expect(labels).toHaveLength(1);
 
-    const advancedAt: number = criteriaSteps.indexOf('title="Advanced"');
+    const advancedAt: number = criteriaSteps.indexOf(
+      "title={MORE_FIELDS_SECTION_TITLE}",
+    );
     const sectionOpenAt: number = criteriaSteps.lastIndexOf(
-      "<CollapsibleSection",
+      "<FoldedSection",
       advancedAt,
     );
     const sectionCloseAt: number = criteriaSteps.indexOf(
-      "</CollapsibleSection>",
+      "</FoldedSection>",
       advancedAt,
     );
     const labelAt: number = criteriaSteps.indexOf(labels[0]!);
@@ -187,7 +189,7 @@ describe("the default monitor status is folded under Advanced", () => {
 
   test("the folded header says which status the monitor falls back to", () => {
     expect(criteriaSteps).toContain('"When no criteria match: {{status}}"');
-    expect(criteriaSteps).toContain("badge={defaultMonitorStatusSummary}");
+    expect(criteriaSteps).toContain("summary={defaultMonitorStatusSummary}");
   });
 
   test("the divider that set the open field apart is gone", () => {

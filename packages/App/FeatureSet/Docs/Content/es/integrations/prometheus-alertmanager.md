@@ -71,7 +71,7 @@ Abre los **Criteria** del monitor y edita el primer criterio.
 
 - Activa _When filters match, change monitor status_ y ponlo en **Offline** (o Degraded).
 - Activa _When filters match, declare an incident_. Define el **Title**, la **Severity** y las **On-Call Policies** a las que avisar.
-- En **Advanced Options** de ese incidente, activa **Auto Resolve Incident**. Sin esto, las notificaciones de recuperación se ignoran y los incidentes quedan abiertos para siempre.
+- En **More fields** de ese incidente, activa **Auto Resolve Incident**. Sin esto, las notificaciones de recuperación se ignoran y los incidentes quedan abiertos para siempre.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Solución de problemas
 
 - **No llega nada** — confirma que Alertmanager puede alcanzar la URL; revisa sus registros por errores de entrega. OneUptime responde a cada solicitud con un `200` vacío antes de validar nada, así que un `200` no confirma que la carga útil se haya aceptado. Consulta la línea de tiempo del monitor en su lugar.
-- **Los incidentes se abren pero nunca se cierran** — revisa `send_resolved: true` en Alertmanager, el campo y el valor de recuperación en el criterio (la comparación distingue mayúsculas de minúsculas) y **Auto Resolve Incident** en las **Advanced Options** del incidente. Dos causas más sutiles: una carga útil con más claves distintas que **Max incidents per request** también oculta a la recuperación las que quedan más allá del límite; y si la notificación `resolved` es justo la que descarta la unificación en la ingesta (más abajo), el incidente queda varado para siempre, porque Alertmanager repite las notificaciones de activación pero no las de resolución. Cierra esas a mano.
+- **Los incidentes se abren pero nunca se cierran** — revisa `send_resolved: true` en Alertmanager, el campo y el valor de recuperación en el criterio (la comparación distingue mayúsculas de minúsculas) y **Auto Resolve Incident** en las **More fields** del incidente. Dos causas más sutiles: una carga útil con más claves distintas que **Max incidents per request** también oculta a la recuperación las que quedan más allá del límite; y si la notificación `resolved` es justo la que descarta la unificación en la ingesta (más abajo), el incidente queda varado para siempre, porque Alertmanager repite las notificaciones de activación pero no las de resolución. Cierra esas a mano.
 - **Ningún incidente en absoluto, y el estado del monitor sin cambios** — la ruta de agrupamiento debe empezar por el literal `requestBody.`, y solo el primer `[*]` de una ruta es un comodín. Ambos errores fallan en silencio.
 - **El texto del incidente muestra marcadores `{{...}}` en crudo** — la ruta no se resolvió, y OneUptime deja los marcadores sin resolver en su sitio en vez de vaciarlos. Distintas reglas definen distintas anotaciones, así que referencia campos que existan de verdad para tus reglas (`commonAnnotations` frente a las `annotations` de cada alerta).
 - **Un solo incidente para una carga útil llena de alertas** — agrupaste por una etiqueta que no varía dentro de una notificación, lo más habitual una que también está en el `group_by` de tu ruta. Agrupa por `requestBody.alerts[*].fingerprint` en su lugar.

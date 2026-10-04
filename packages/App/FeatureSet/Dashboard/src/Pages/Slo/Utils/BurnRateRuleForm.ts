@@ -18,6 +18,7 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import {
   translateTemplate,
@@ -389,10 +390,15 @@ const alertOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnR
     },
   };
 
+/*
+ * Auto-resolve, privacy and remediation notes: More fields, as on every form
+ * - folded on create and edit, its header naming the three and showing the
+ * ones chosen. A true auto-resolve is what a new rule starts with, so only
+ * turning it off counts.
+ */
 const alertAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
+  getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({
     id: "alert-advanced",
-    title: "Advanced Options",
     description: "Auto-resolve, privacy and remediation settings",
     isConfigured: (
       value: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -403,7 +409,7 @@ const alertAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBur
         Boolean(value.alertRemediationNotes)
       );
     },
-  };
+  });
 
 const incidentDescriptionSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
   {
@@ -451,9 +457,8 @@ const incidentOnCallSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBu
   };
 
 const incidentAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjectiveBurnRateRule> =
-  {
+  getAdvancedFormSection<ServiceLevelObjectiveBurnRateRule>({
     id: "incident-advanced",
-    title: "Advanced Options",
     description: "Auto-resolve, privacy and remediation settings",
     isConfigured: (
       value: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -464,7 +469,7 @@ const incidentAdvancedSection: FormFieldCollapsibleSection<ServiceLevelObjective
         Boolean(value.incidentRemediationNotes)
       );
     },
-  };
+  });
 
 /*
  * Hoisted out of the JSX so the wiring is assertable: every field has to

@@ -33,17 +33,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  *   - Declare Incident opens on Title, Incident Severity and Description;
  *     Declared At, Initial State, Labels and Private Incident wait, folded,
- *     under Advanced - which says nothing until something in it is set, and
- *     "Configured" when a template or a private alert set something;
+ *     under More fields - whose header names them, and shows the ones a
+ *     template or a private alert set, with their values;
  *   - three steps and the review, not six;
  *   - Declare Incident is on the review, the last step, only: the steps
  *     before it offer a plain Next, and nothing primary;
- *   - declared without opening Advanced, the incident is sent no state (the
+ *   - declared without opening More fields, the incident is sent no state (the
  *     server starts it in the project's starting state) and the moment the
  *     page opened as Declared At;
  *   - the review step leaves out the folded options nobody touched;
  *   - Create Alert opens on Title, Alert Severity and Description, with
- *     Initial State, Labels and Private Alert under Advanced, and asks for no
+ *     Initial State, Labels and Private Alert under More fields, and asks for no
  *     root cause or remediation notes.
  */
 
@@ -180,6 +180,11 @@ import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import {
+  getByTextOutsideFoldedHeaders,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 interface ListRequest {
   modelType: { new (): BaseModel };
@@ -256,16 +261,12 @@ async function renderPage(
 }
 
 function advancedHeader(): HTMLElement {
-  return screen.getByRole("button", { name: "Advanced" });
+  return screen.getByRole("button", { name: "More fields" });
 }
 
-// The badge sits beside the title in the header's heading row.
-function advancedBadge(): HTMLElement | null {
-  const heading: HTMLElement | null = advancedHeader().querySelector(
-    "[data-testid='collapsible-section-heading']",
-  );
-
-  return heading ? within(heading).queryByText("Configured") : null;
+// What the folded header shows as set: "Labels: 1".
+function advancedChips(): Array<string> {
+  return setChips(advancedHeader());
 }
 
 // The step list, as the form's progress navigation reads it.
@@ -325,7 +326,7 @@ afterEach(() => {
 });
 
 describe("Declare Incident", () => {
-  test("opens on Title, Incident Severity and Description, with the rest folded under Advanced", async () => {
+  test("opens on Title, Incident Severity and Description, with the rest folded under More fields", async () => {
     await renderPage(IncidentCreate, "/dashboard/incidents/create");
 
     expect(await screen.findByText("Title")).toBeVisible();
@@ -333,7 +334,15 @@ describe("Declare Incident", () => {
     expect(screen.getByText("Description")).toBeVisible();
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedBadge()).toBeNull();
+    expect(advancedChips()).toEqual([]);
+
+    // Folded, the header names the four; the fields themselves are hidden.
+    expect(listedNames(advancedHeader())).toEqual([
+      "Declared At",
+      "Initial State",
+      "Labels",
+      "Private Incident",
+    ]);
 
     for (const folded of [
       "Declared At",
@@ -341,7 +350,9 @@ describe("Declare Incident", () => {
       "Labels",
       "Private Incident",
     ]) {
-      expect(screen.getByText(folded)).not.toBeVisible();
+      expect(
+        getByTextOutsideFoldedHeaders(document.body, folded),
+      ).not.toBeVisible();
     }
   });
 
@@ -356,7 +367,7 @@ describe("Declare Incident", () => {
     ]);
   });
 
-  test("Advanced opens on the four options, and Declared At starts at the moment the page opened", async () => {
+  test("More fields opens on the four options, and Declared At starts at the moment the page opened", async () => {
     const user: UserEvent = await renderPage(
       IncidentCreate,
       "/dashboard/incidents/create",
@@ -382,9 +393,9 @@ describe("Declare Incident", () => {
       ),
     ).toBeVisible();
 
-    // The time it started with, and nothing set: folding it says nothing.
+    // The time it started with, and nothing set: folded, nothing is a chip.
     await user.click(advancedHeader());
-    expect(advancedBadge()).toBeNull();
+    expect(advancedChips()).toEqual([]);
   });
 
   test("the first step offers a plain Next, and Declare Incident is on the review, the last step, only", async () => {
@@ -428,7 +439,7 @@ describe("Declare Incident", () => {
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
-  test("declared without opening Advanced, it is sent no state and the moment the page opened", async () => {
+  test("declared without opening More fields, it is sent no state and the moment the page opened", async () => {
     const user: UserEvent = await renderPage(
       IncidentCreate,
       "/dashboard/incidents/create",
@@ -487,7 +498,7 @@ describe("Declare Incident", () => {
     ).toBe(false);
   });
 
-  test("declaring from a template that sets labels: Advanced says Configured, folded", async () => {
+  test("declaring from a template that sets labels: More fields shows them, folded", async () => {
     queryParams = { incidentTemplateId: TEMPLATE_ID };
 
     const template: IncidentTemplate = new IncidentTemplate();
@@ -505,7 +516,7 @@ describe("Declare Incident", () => {
     await screen.findByDisplayValue("Payments are failing");
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedBadge()).toBeInTheDocument();
+    expect(advancedChips()).toEqual(["Labels: 1"]);
   });
 
   test("the review step leaves out the folded options nobody touched", async () => {
@@ -551,7 +562,7 @@ describe("Declare Incident", () => {
 });
 
 describe("Create Alert", () => {
-  test("opens on Title, Alert Severity and Description, with the rest folded under Advanced", async () => {
+  test("opens on Title, Alert Severity and Description, with the rest folded under More fields", async () => {
     await renderPage(AlertCreate, "/dashboard/alerts/create");
 
     expect(await screen.findByText("Title")).toBeVisible();
@@ -559,10 +570,17 @@ describe("Create Alert", () => {
     expect(screen.getByText("Description")).toBeVisible();
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedBadge()).toBeNull();
+    expect(advancedChips()).toEqual([]);
+    expect(listedNames(advancedHeader())).toEqual([
+      "Initial State",
+      "Labels",
+      "Private Alert",
+    ]);
 
     for (const folded of ["Initial State", "Labels", "Private Alert"]) {
-      expect(screen.getByText(folded)).not.toBeVisible();
+      expect(
+        getByTextOutsideFoldedHeaders(document.body, folded),
+      ).not.toBeVisible();
     }
 
     // Written on the alert's own pages, once there is something to say.

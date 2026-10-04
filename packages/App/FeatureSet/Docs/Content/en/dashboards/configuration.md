@@ -48,7 +48,7 @@ Who can view a dashboard outside the project is one choice on its **Sharing** pa
 2. **Anyone with the link** — anyone who has the public link can see it, without signing in.
 3. **Anyone with the link and a password** — visitors enter a password before the dashboard appears.
 
-Under **Advanced** on the same page, the **IP Allowlist** (Scale plan) rejects requests to the public link from any IP address that is not on it. The most locked-down public setup is **Anyone with the link and a password** with an IP allowlist — useful for partner portals where you want both layers.
+Under **More settings** on the same page, the **IP Allowlist** (Scale plan) rejects requests to the public link from any IP address that is not on it. The most locked-down public setup is **Anyone with the link and a password** with an IP allowlist — useful for partner portals where you want both layers.
 
 ## Data retention
 

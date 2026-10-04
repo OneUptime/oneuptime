@@ -23,7 +23,7 @@ Alla fyra skriver samma modell, så en incident som öppnats av en probe ser exa
 
 Bara det första steget har obligatoriska fält, plus alla anpassade fält som dina administratörer har markerat som **Obligatoriskt vid skapande**. Du kan också bifoga resurser, lägga till jourpolicyer och tilldela roller efteråt, från incidentens egna sidor. Varje steg före sammanfattningen har en vanlig **Nästa**, och **Deklarera incident** finns i sammanfattningen, det sista steget.
 
-**Avancerad.** Alternativen som de flesta incidenter aldrig behöver väntar ihopfällda under rubriken **Avancerad** i slutet av sitt steg; klicka på den för att öppna dem. Ihopfälld visar rubriken **Konfigurerat** när något i den är satt — av en mall, till exempel — och den öppnas av sig själv när något i den behöver rättas. Sammanfattningen visar bara ett ihopfällt alternativ när det är satt, utom **Meddela statussideprenumeranter**, som den alltid visar, med vilka som meddelas.
+**Fler fält.** Alternativen som de flesta incidenter aldrig behöver väntar ihopfällda under rubriken **Fler fält** i slutet av sitt steg; klicka på den för att öppna dem. Ihopfälld nämner rubriken vad den innehåller och visar varje alternativ som är satt, med dess värde — satt av en mall, till exempel — och den öppnas av sig själv när något i den behöver rättas. Sammanfattningen visar bara ett ihopfällt alternativ när det är satt, utom **Meddela statussideprenumeranter**, som den alltid visar, med vilka som meddelas.
 
 ### Steg 1 — Incidentdetaljer
 
@@ -31,7 +31,7 @@ Bara det första steget har obligatoriska fält, plus alla anpassade fält som d
 - **Incidentallvar** — obligatoriskt. En av allvarlighetsgraderna som är konfigurerade för ditt projekt.
 - **Beskrivning** — valfri, skriven i Markdown. Det är detta statussidan visar, så skriv den för kunderna och inte för ditt team.
 
-Under **Avancerad**:
+Under **Fler fält**:
 
 - **Deklarerad den** — börjar i det ögonblick du öppnade sidan. All varaktighet för incidenten mäts härifrån; datera tillbaka den för att registrera en incident som började tidigare.
 - **Inledande tillstånd** — valfritt, och tomt från början. Lämnas det tomt startar incidenten i tillståndet med flaggan `isCreatedState`, eller i mallens inledande tillstånd. Välj bara ett senare tillstånd för att registrera en incident som redan är kvitterad eller löst.
@@ -50,7 +50,7 @@ Monitorerna kommer först, för sig: statussidor ser en incident genom dess moni
 
 Incidentens kort **Berörda resurser** frågar på samma sätt när du redigerar det senare.
 
-Under **Avancerad**:
+Under **Fler fält**:
 
 - **Begränsa till dessa statussidor** — valfritt. Lämnas det tomt visas incidenten på alla statussidor som listar dess monitorer, och meddelar deras prenumeranter; med valda sidor bara på dem bland dem. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
 - **Meddela statussideprenumeranter** — kryssruta, ikryssad som standard (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under den, och igen i sammanfattningen, visar formuläret vilka statussidor som meddelas och hur många prenumeranter var och en har; i sammanfattningen visar **Förhandsgranska avisering** e-postmeddelandet de får. Kryssa ur den för internt brus som du ändå vill registrera.
@@ -74,7 +74,7 @@ Om du gång på gång deklarerar samma sorts incident — samma titelmönster, s
 
 Klicka på **Skapa från mall** (konturknappen bredvid **Deklarera incident**) så öppnas dialogen **Skapa incident från mall**, med en rullgardin **Välj incidentmall**. Välj en mall så öppnas skapandeformuläret förifyllt; du kan fortfarande ändra vad som helst innan du skickar. Om ditt projekt inte har några mallar än får du i stället dialogen **No Incident Templates**, med en knapp **Create Template** som tar dig till **Incidenter → Inställningar → Incidentmallar**.
 
-Mallar byggs med en egen guide — **Mallinformation**, **Incidentdetaljer**, **Berörda resurser**, **Jour** — plus steg för anpassade fält när ditt projekt har sådana. Ägare och etiketter ligger under **Avancerad** i slutet av **Incidentdetaljer**. **Berörda resurser** frågar som deklarationsformuläret — **Monitorer**, sedan **Ändra övervakningsstatus till**, sedan **Andra påverkade resurser**, med **Begränsa till dessa statussidor** under **Avancerad** — förutom att en mall alltid frågar efter övervakningsstatus: den gäller även de monitorer som väljs när en incident deklareras från mallen. Det här är fälten:
+Mallar byggs med en egen guide — **Mallinformation**, **Incidentdetaljer**, **Berörda resurser**, **Jour** — plus steg för anpassade fält när ditt projekt har sådana. Ägare och etiketter ligger under **Fler fält** i slutet av **Incidentdetaljer**. **Berörda resurser** frågar som deklarationsformuläret — **Monitorer**, sedan **Ändra övervakningsstatus till**, sedan **Andra påverkade resurser**, med **Begränsa till dessa statussidor** under **Fler fält** — förutom att en mall alltid frågar efter övervakningsstatus: den gäller även de monitorer som väljs när en incident deklareras från mallen. Det här är fälten:
 
 | Fält                         | Syfte                                                     |
 | ---------------------------- | --------------------------------------------------------- |
@@ -109,7 +109,7 @@ Varje post har:
 - **Jour → Jourpolicyer** — policyer som körs när den här incidenten skapas.
 - **Incidentroller** — förtilldela teammedlemmar till roller.
 - **Ägarskap och etiketter → Ägarteam**, **Ägaranvändare**, **Etiketter**.
-- **Avancerade alternativ → Lös incident automatiskt** (löser incidenten automatiskt när kriterierna slutar matcha), **Visa incident på statussida**, **Privat incident** och **Åtgärdsanteckningar**.
+- **Fler fält → Lös incident automatiskt** (löser incidenten automatiskt när kriterierna slutar matcha), **Visa incident på statussida**, **Privat incident** och **Åtgärdsanteckningar**.
 
 För hela listan över `{{variable}}`-platshållare du kan använda i titel, beskrivning och åtgärdsanteckningar, se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating).
 

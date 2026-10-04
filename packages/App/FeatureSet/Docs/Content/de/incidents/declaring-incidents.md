@@ -23,7 +23,7 @@ Alle vier schreiben dasselbe Modell. Ein von einer Sonde eröffneter Vorfall sie
 
 Nur der erste Schritt hat Pflichtfelder, dazu jedes benutzerdefinierte Feld, das Ihre Administratoren als **Beim Erstellen erforderlich** markiert haben. Ressourcen anhängen, Bereitschaftsrichtlinien ergänzen und Rollen vergeben können Sie auch anschließend auf den Seiten des Vorfalls selbst. Jeder Schritt vor der Zusammenfassung hat ein einfaches **Weiter**, und **Vorfall melden** steht in der Zusammenfassung, dem letzten Schritt.
 
-**Erweitert.** Optionen, die die meisten Vorfälle nie brauchen, warten eingeklappt unter einer Überschrift **Erweitert** am Ende ihres Schritts; ein Klick darauf öffnet sie. Solange sie eingeklappt ist, zeigt die Überschrift **Konfiguriert**, wenn darin etwas gesetzt ist – etwa durch eine Vorlage –, und sie öffnet sich von selbst, wenn darin etwas korrigiert werden muss. Die Zusammenfassung führt eine eingeklappte Option nur auf, wenn sie gesetzt ist – außer **Statusseiten-Abonnenten benachrichtigen**, das sie immer aufführt, zusammen mit der Angabe, wer benachrichtigt wird.
+**Weitere Felder.** Optionen, die die meisten Vorfälle nie brauchen, warten eingeklappt unter einer Überschrift **Weitere Felder** am Ende ihres Schritts; ein Klick darauf öffnet sie. Solange sie eingeklappt ist, nennt die Überschrift, was darin steckt, und zeigt jede gesetzte Option mit ihrem Wert – gesetzt etwa durch eine Vorlage –, und sie öffnet sich von selbst, wenn darin etwas korrigiert werden muss. Die Zusammenfassung führt eine eingeklappte Option nur auf, wenn sie gesetzt ist – außer **Statusseiten-Abonnenten benachrichtigen**, das sie immer aufführt, zusammen mit der Angabe, wer benachrichtigt wird.
 
 ### Schritt 1 – Vorfalldetails
 
@@ -31,7 +31,7 @@ Nur der erste Schritt hat Pflichtfelder, dazu jedes benutzerdefinierte Feld, das
 - **Vorfallsschweregrad** – Pflichtfeld. Einer der für Ihr Projekt konfigurierten Schweregrade.
 - **Beschreibung** – optional, in Markdown geschrieben. Dieses Feld erscheint auf der Statusseite, schreiben Sie es also für Kunden und nicht für Ihr Team.
 
-Unter **Erweitert**:
+Unter **Weitere Felder**:
 
 - **Erklärt am** – beginnt mit dem Zeitpunkt, zu dem Sie die Seite geöffnet haben. Von ihm aus wird jede Dauer am Vorfall gemessen; datieren Sie ihn zurück, um einen Vorfall zu erfassen, der früher begonnen hat.
 - **Anfangsstatus** – optional und zunächst leer. Bleibt es leer, startet der Vorfall in dem Status mit dem Flag `isCreatedState` oder im Anfangsstatus der Vorlage. Wählen Sie einen späteren Status nur, um einen bereits bestätigten oder behobenen Vorfall zu erfassen.
@@ -50,7 +50,7 @@ Die Monitore kommen zuerst und für sich: Statusseiten sehen einen Vorfall über
 
 Die Karte **Betroffene Ressourcen** des Vorfalls fragt beim späteren Bearbeiten genauso.
 
-Unter **Erweitert**:
+Unter **Weitere Felder**:
 
 - **Auf diese Statusseiten beschränken** – optional. Bleibt es leer, erscheint der Vorfall auf jeder Statusseite, die seine Monitore auflistet, und benachrichtigt deren Abonnenten; mit ausgewählten Seiten nur auf diesen Seiten unter ihnen. Siehe [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Statusseiten-Abonnenten benachrichtigen** – Kontrollkästchen, standardmäßig aktiv (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Darunter und noch einmal in der Zusammenfassung zeigt das Formular, welche Statusseiten benachrichtigt werden und wie viele Abonnenten jede hat; in der Zusammenfassung zeigt **Benachrichtigung ansehen** die E-Mail, die sie erhalten. Schalten Sie es ab für internes Rauschen, das Sie trotzdem festhalten wollen.
@@ -74,7 +74,7 @@ Wenn Sie immer wieder denselben Zuschnitt von Vorfall melden – dasselbe Titelm
 
 Klicken Sie auf **Aus Vorlage erstellen** (die Umriss-Schaltfläche neben **Vorfall melden**), und ein Dialog **Vorfall aus Vorlage erstellen** öffnet sich, mit einem Dropdown **Vorfallvorlage auswählen**. Wählen Sie eine Vorlage, und das Erstellungsformular öffnet sich vorbelegt; vor dem Absenden können Sie noch alles ändern. Hat Ihr Projekt noch keine Vorlagen, erscheint stattdessen ein Dialog **No Incident Templates** mit einer Schaltfläche **Create Template**, die Sie zu **Vorfälle → Einstellungen → Vorfall-Vorlagen** bringt.
 
-Vorlagen entstehen in einem eigenen Assistenten – **Vorlageninformationen**, **Vorfalldetails**, **Betroffene Ressourcen**, **Bereitschaft** –, dazu Schritte für benutzerdefinierte Felder, wenn Ihr Projekt welche hat. Eigentümer und Beschriftungen stehen unter **Erweitert** am Ende von **Vorfalldetails**. **Betroffene Ressourcen** fragt wie das Meldeformular – **Monitore**, dann **Monitor-Status ändern in**, dann **Andere betroffene Ressourcen**, mit **Auf diese Statusseiten beschränken** unter **Erweitert** –, nur fragt eine Vorlage den Monitor-Status immer ab: Er gilt auch für die Monitore, die beim Melden eines Vorfalls aus der Vorlage ausgewählt werden. Das sind die Felder:
+Vorlagen entstehen in einem eigenen Assistenten – **Vorlageninformationen**, **Vorfalldetails**, **Betroffene Ressourcen**, **Bereitschaft** –, dazu Schritte für benutzerdefinierte Felder, wenn Ihr Projekt welche hat. Eigentümer und Beschriftungen stehen unter **Weitere Felder** am Ende von **Vorfalldetails**. **Betroffene Ressourcen** fragt wie das Meldeformular – **Monitore**, dann **Monitor-Status ändern in**, dann **Andere betroffene Ressourcen**, mit **Auf diese Statusseiten beschränken** unter **Weitere Felder** –, nur fragt eine Vorlage den Monitor-Status immer ab: Er gilt auch für die Monitore, die beim Melden eines Vorfalls aus der Vorlage ausgewählt werden. Das sind die Felder:
 
 | Feld                              | Zweck                                                            |
 | --------------------------------- | ------------------------------------------------------------------ |
@@ -109,7 +109,7 @@ Jeder Eintrag hat:
 - **Bereitschaft → Bereitschaftsrichtlinien** – Richtlinien, die beim Anlegen dieses Vorfalls ausgeführt werden.
 - **Vorfallsrollen** – Teammitglieder vorab Rollen zuweisen.
 - **Eigentümerschaft & Beschriftungen → Eigentümer-Teams**, **Eigentümer-Benutzer**, **Beschriftungen**.
-- **Erweiterte Optionen → Vorfall automatisch beheben** (behebt den Vorfall automatisch, sobald die Kriterien nicht mehr greifen), **Vorfall auf der Statusseite anzeigen**, **Privater Vorfall** und **Behebungs-Notizen**.
+- **Weitere Felder → Vorfall automatisch beheben** (behebt den Vorfall automatisch, sobald die Kriterien nicht mehr greifen), **Vorfall auf der Statusseite anzeigen**, **Privater Vorfall** und **Behebungs-Notizen**.
 
 Die vollständige Liste der `{{variable}}`-Platzhalter, die Sie in Titel, Beschreibung und Behebungs-Notizen verwenden können, steht unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 

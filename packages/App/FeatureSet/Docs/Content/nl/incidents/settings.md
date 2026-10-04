@@ -33,7 +33,7 @@ Een incidentsjabloon is een opgeslagen skelet van een incident. In plaats van el
 Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**. Er een aanmaken loopt via een wizard van vier stappen:
 
 - **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**. Die benoemen het sjabloon zelf; ze komen nooit op het incident terecht.
-- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht. Onder **Advanced**, dat **Configured** toont zolang een van beide is ingesteld: **Eigenaren** (mensen en teams, gekozen uit één lijst) en **Labels**.
+- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht. Onder **Meer velden**, waarvan de ingeklapte kop elk van beide toont zolang het is ingesteld: **Eigenaren** (mensen en teams, gekozen uit één lijst) en **Labels**.
 - **Getroffen middelen** — de monitoren, hosts, clusters en services waaraan het incident gekoppeld moet worden, plus **Change Monitor Status to**.
 - **Bereikbaarheid** — **Bereikbaarheidsbeleid**, het beleid dat wordt uitgevoerd zodra een incident uit dit sjabloon wordt gemeld.
 

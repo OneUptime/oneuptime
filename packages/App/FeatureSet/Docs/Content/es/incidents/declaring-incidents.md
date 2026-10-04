@@ -23,7 +23,7 @@ Abre **Incidentes → Todos los Incidentes** y haz clic en **Declarar incidente*
 
 Solo el primer paso tiene campos obligatorios, además de cualquier campo personalizado que tus administradores hayan marcado como **Obligatorio al crear**. También puedes adjuntar recursos, añadir políticas de guardia y asignar roles después, desde las propias páginas del incidente. Cada paso antes del resumen tiene un simple **Siguiente**, y **Declarar incidente** está en el resumen, el último paso.
 
-**Avanzado.** Las opciones que la mayoría de los incidentes nunca necesitan esperan plegadas bajo un encabezado **Avanzado** al final de su paso; haz clic en él para abrirlas. Mientras está plegado, el encabezado dice **Configurado** cuando algo dentro está definido —por una plantilla, por ejemplo— y se abre solo cuando algo dentro necesita corregirse. El resumen solo lista una opción plegada cuando está definida, salvo **Notificar a suscriptores de la página de estado**, que siempre lista, con a quién se notificará.
+**Más campos.** Las opciones que la mayoría de los incidentes nunca necesitan esperan plegadas bajo un encabezado **Más campos** al final de su paso; haz clic en él para abrirlas. Mientras está plegado, el encabezado nombra lo que contiene y muestra cada opción definida con su valor —definida por una plantilla, por ejemplo— y se abre solo cuando algo dentro necesita corregirse. El resumen solo lista una opción plegada cuando está definida, salvo **Notificar a suscriptores de la página de estado**, que siempre lista, con a quién se notificará.
 
 ### Paso 1 — Detalles del incidente
 
@@ -31,7 +31,7 @@ Solo el primer paso tiene campos obligatorios, además de cualquier campo person
 - **Gravedad del incidente** — obligatorio. Una de las severidades configuradas en tu proyecto.
 - **Descripción** — opcional, escrita en Markdown. Es lo que muestra la página de estado, así que redáctala para los clientes y no para tu equipo.
 
-Bajo **Avanzado**:
+Bajo **Más campos**:
 
 - **Declarado el** — empieza en el momento en que abriste la página. Toda duración del incidente se mide desde ahí, así que retrocédelo para registrar un incidente que empezó antes.
 - **Estado inicial** — opcional, y vacío al principio. Si lo dejas vacío, el incidente empieza en el estado marcado con `isCreatedState`, o en el estado inicial de la plantilla. Elige un estado posterior solo para registrar un incidente ya reconocido o resuelto.
@@ -50,7 +50,7 @@ Los monitores van primero, por separado: las páginas de estado ven un incidente
 
 La tarjeta **Recursos afectados** del incidente pregunta de la misma forma cuando la editas más tarde.
 
-Bajo **Avanzado**:
+Bajo **Más campos**:
 
 - **Limitar a estas páginas de estado** — opcional. Si lo dejas vacío, el incidente aparece en todas las páginas de estado que incluyen sus monitores, y avisa a sus suscriptores; con páginas elegidas, solo en esas de entre ellas. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
 - **Notificar a suscriptores de la página de estado** — casilla, activada de forma predeterminada (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Debajo, y de nuevo en el resumen, el formulario indica qué páginas de estado recibirán el aviso y cuántos suscriptores tiene cada una; en el resumen, **Vista previa de la notificación** muestra el correo que recibirán. Desactívala para el ruido interno que aun así quieras dejar registrado.
@@ -74,7 +74,7 @@ Si declaras una y otra vez el mismo tipo de incidente —el mismo patrón de tí
 
 Haz clic en **Crear desde plantilla** (el botón de contorno junto a **Declarar incidente**) y se abre un modal **Crear incidente a partir de plantilla**, con un desplegable **Seleccionar plantilla de incidente**. Elige una plantilla y el formulario de creación se abre relleno de antemano; puedes cambiar cualquier cosa antes de enviarlo. Si tu proyecto todavía no tiene plantillas, verás en su lugar un modal **No Incident Templates**, con un botón **Create Template** que te lleva a **Incidentes → Ajustes → Plantillas de Incidentes**.
 
-Las plantillas se construyen con su propio asistente —**Información de la plantilla**, **Detalles del incidente**, **Recursos afectados**, **De guardia**—, más pasos de campos personalizados cuando tu proyecto los tiene. Sus propietarios y etiquetas están bajo **Avanzado** al final de **Detalles del incidente**. **Recursos afectados** pregunta como el formulario de declaración —**Monitores**, luego **Cambiar el estado del monitor a**, luego **Otros recursos afectados**, con **Limitar a estas páginas de estado** bajo **Avanzado**—, salvo que una plantilla siempre pide el estado de los monitores: también se aplica a los monitores elegidos al declarar un incidente desde ella. Estos son los campos:
+Las plantillas se construyen con su propio asistente —**Información de la plantilla**, **Detalles del incidente**, **Recursos afectados**, **De guardia**—, más pasos de campos personalizados cuando tu proyecto los tiene. Sus propietarios y etiquetas están bajo **Más campos** al final de **Detalles del incidente**. **Recursos afectados** pregunta como el formulario de declaración —**Monitores**, luego **Cambiar el estado del monitor a**, luego **Otros recursos afectados**, con **Limitar a estas páginas de estado** bajo **Más campos**—, salvo que una plantilla siempre pide el estado de los monitores: también se aplica a los monitores elegidos al declarar un incidente desde ella. Estos son los campos:
 
 | Campo                              | Para qué sirve                                              |
 | ---------------------------------- | ----------------------------------------------------------- |
@@ -109,7 +109,7 @@ Cada entrada tiene:
 - **De guardia → Políticas de guardia** — políticas que se ejecutan al crearse este incidente.
 - **Roles de Incidente** — preasigna miembros del equipo a los roles.
 - **Propiedad y etiquetas → Equipos propietarios**, **Usuarios propietarios**, **Etiquetas**.
-- **Opciones avanzadas → Resolver incidente automáticamente** (resuelve el incidente en cuanto los criterios dejan de coincidir), **Mostrar incidente en la página de estado**, **Incidente privado** y **Notas de Remediación**.
+- **Más campos → Resolver incidente automáticamente** (resuelve el incidente en cuanto los criterios dejan de coincidir), **Mostrar incidente en la página de estado**, **Incidente privado** y **Notas de Remediación**.
 
 Para la lista completa de marcadores `{{variable}}` que puedes usar en el título, la descripción y las notas de remediación, consulta [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
 

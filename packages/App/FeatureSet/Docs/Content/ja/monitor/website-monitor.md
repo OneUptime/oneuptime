@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### 詳細オプション
+### その他の項目
 
 #### リダイレクトに従わない
 

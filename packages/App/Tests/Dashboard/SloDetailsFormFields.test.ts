@@ -91,7 +91,7 @@ describe("SLO details form fields", () => {
 
     expect(columnOf(labels)).toBe("labels");
     expect(labels.collapsibleSection?.id).toBe("advanced");
-    expect(labels.collapsibleSection?.title).toBe("Advanced");
+    expect(labels.collapsibleSection?.title).toBe("More fields");
     expect(labels.collapsibleSection?.getSummary).toBeUndefined();
     expect(labels.collapsibleSection).not.toBe(
       createLabels?.collapsibleSection,

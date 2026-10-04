@@ -39,7 +39,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Monitor Status to" right under them - only once a monitor is picked, and
  * starting from what it was handed (empty, or a template's status) - then
  * the other affected resources; the status page limit and the notify box
- * wait, folded, under Advanced. And what is declared is what the one picker
+ * wait, folded, under More fields. And what is declared is what the one picker
  * declared for the same picks: each pick in the column it always went to,
  * and no monitor status without a monitor for it to change.
  *
@@ -194,6 +194,11 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import {
+  getByTextOutsideFoldedHeaders,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 interface ModelRequest {
   modelType: { new (): BaseModel };
@@ -400,6 +405,11 @@ function otherResourcesPicker(): HTMLElement {
   return screen.getByRole("combobox", { name: /^Other Affected Resources/ });
 }
 
+// The step's fold of rarely needed options.
+function moreFieldsHeader(): HTMLElement {
+  return screen.getByRole("button", { name: "More fields" });
+}
+
 // The field a control belongs to: the label naming it, and what is under it.
 function fieldOf(control: HTMLElement): HTMLElement {
   const labelId: string | null = control.getAttribute("aria-labelledby");
@@ -596,11 +606,11 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     expect(isBefore(fieldOf(status), fieldOf(otherResourcesPicker()))).toBe(
       true,
     );
-    // Outside Advanced: on screen as soon as it is there.
+    // Outside More fields: on screen as soon as it is there.
     expect(status).toBeVisible();
-    expect(screen.getByRole("button", { name: "Advanced" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(listedNames(moreFieldsHeader())).not.toContain(
+      "Change Monitor Status to",
     );
     // It starts from nothing: no status is picked for the user.
     expect(status).toHaveValue("");
@@ -656,32 +666,67 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     expect(screen.queryByRole("option", { name: "Checkout API" })).toBeNull();
   });
 
-  test("Limit to these status pages and Notify Status Page Subscribers wait, folded, under Advanced at the end of the step", async () => {
+  test("Limit to these status pages and Notify Status Page Subscribers wait, folded, under More fields at the end of the step", async () => {
     const user: UserEvent = await renderPage();
 
     await openResourcesAffected(user);
 
-    const advanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
-    });
+    const moreFields: HTMLElement = moreFieldsHeader();
 
-    expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByText("Limit to these status pages")).not.toBeVisible();
+    expect(moreFields).toHaveAttribute("aria-expanded", "false");
+    // Folded, its header names the two, and only the two.
+    expect(listedNames(moreFields)).toEqual([
+      "Limit to these status pages",
+      "Notify Status Page Subscribers",
+    ]);
     expect(
-      screen.getByText("Notify Status Page Subscribers"),
+      getByTextOutsideFoldedHeaders(
+        document.body,
+        "Limit to these status pages",
+      ),
+    ).not.toBeVisible();
+    expect(
+      getByTextOutsideFoldedHeaders(
+        document.body,
+        "Notify Status Page Subscribers",
+      ),
     ).not.toBeVisible();
     // Last on the step.
-    expect(isBefore(fieldOf(otherResourcesPicker()), advanced)).toBe(true);
-    // Nothing set in it yet: it says nothing.
-    expect(within(advanced).queryByText("Configured")).toBeNull();
+    expect(isBefore(fieldOf(otherResourcesPicker()), moreFields)).toBe(true);
+    // Nothing set in it yet - notifying is on, as it starts: no chip.
+    expect(setChips(moreFields)).toEqual([]);
 
-    await user.click(advanced);
+    await user.click(moreFields);
 
     expect(screen.getByText("Limit to these status pages")).toBeVisible();
     // Folding it changed no default: subscribers are still notified.
     expect(
       screen.getByRole("checkbox", { name: /Notify Status Page Subscribers/ }),
     ).toBeChecked();
+  });
+
+  test("folded again, the header shows notifying switched off and the pages picked", async () => {
+    const user: UserEvent = await renderPage();
+
+    await openResourcesAffected(user);
+    await pickResource(user, monitorsPicker(), "Checkout API");
+
+    await user.click(moreFieldsHeader());
+    await pickOption(
+      user,
+      screen.getByRole("combobox", { name: /^Limit to these status pages/ }),
+      "Site 03",
+    );
+    await user.click(
+      screen.getByRole("checkbox", { name: /Notify Status Page Subscribers/ }),
+    );
+    await user.click(moreFieldsHeader());
+
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFieldsHeader())).toEqual([
+      "Limit to these status pages: 1",
+      "Notify Status Page Subscribers: Off",
+    ]);
   });
 });
 
@@ -705,7 +750,7 @@ describe("what is declared", () => {
     );
     await pickResource(user, otherResourcesPicker(), "web-01");
 
-    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.click(moreFieldsHeader());
     await pickOption(
       user,
       screen.getByRole("combobox", { name: /^Limit to these status pages/ }),

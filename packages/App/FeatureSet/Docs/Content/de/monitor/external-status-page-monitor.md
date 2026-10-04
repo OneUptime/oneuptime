@@ -71,7 +71,7 @@ Wenn die Status-Seite über mehrere Komponenten berichtet, können Sie optional 
 
 Wenn auch eine Komponentengruppe festgelegt ist, wird der Komponentenname-Filter **innerhalb** dieser Gruppe angewendet, sodass Sie eine einzelne Komponente innerhalb einer größeren Gruppe gezielt ansprechen können. Wenn keiner der Filter angegeben ist, werden alle Komponenten im Geltungsbereich überwacht.
 
-### Erweiterte Optionen
+### Weitere Felder
 
 #### Timeout
 

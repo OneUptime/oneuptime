@@ -135,6 +135,7 @@ import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/P
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { hasSetChip } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 /*
  * "Please also find similar issues across the project and fix them as well.
@@ -407,7 +408,7 @@ describe("Acknowledge on an incident", () => {
     // Folded again it keeps the note, and says something is in it.
     fireEvent.click(fold(dialog, "Add a public note"));
     expect(dialog).toHaveClass("sm:max-w-lg");
-    expect(fold(dialog, "Add a public note")).toHaveTextContent("Configured");
+    expect(hasSetChip(fold(dialog, "Add a public note"))).toBe(true);
 
     fireEvent.click(submitButton(dialog));
 

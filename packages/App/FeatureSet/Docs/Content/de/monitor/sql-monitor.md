@@ -57,7 +57,7 @@ Erstellen Sie einen neuen Monitor und wählen Sie **SQL-Abfrage** als Monitortyp
 - **SQL-Abfrage** — die auszuführende schreibgeschützte Abfrage (siehe Die Abfrage schreiben).
 - **SSL/TLS verwenden** — aktivieren, um die Verbindung über TLS herzustellen. Wenn diese Option aktiviert ist, können Sie **Serverzertifikat überprüfen** deaktivieren, falls die Datenbank ein selbstsigniertes Zertifikat verwendet.
 
-### Erweiterte Optionen
+### Weitere Felder
 
 - **Verbindungs-Timeout (ms)** — wie lange auf den Aufbau einer Verbindung gewartet wird. Standard `10000`, Maximum `30000`.
 - **Anweisungs-Timeout (ms)** — die harte Obergrenze dafür, wie lange die Abfrage laufen darf. Standard `15000`, Maximum `60000`.

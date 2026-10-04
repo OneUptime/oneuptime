@@ -6,7 +6,11 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
@@ -128,8 +132,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     React.useRef<boolean>(false);
 
   /*
-   * The "Advanced" section under the criteria, which holds the status the
-   * monitor falls back to when no criteria match. Folded: a new monitor
+   * The "More fields" section under the criteria, which holds the status
+   * the monitor falls back to when no criteria match. Folded: a new monitor
    * falls back to its operational status, and the header says which status
    * it is, so nobody has to open it to know.
    */
@@ -562,10 +566,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       ? new Color(defaultMonitorStatusOption.color).toString()
       : undefined;
 
-  // The header of the folded section: the status, with its colour.
+  // The line under the folded section's title: the status, in its colour.
   const defaultMonitorStatusSummary: ReactElement = (
     <span
-      className="inline-flex max-w-full items-center gap-1.5 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+      className="inline-flex max-w-full items-center gap-2"
       data-testid="monitor-default-status-summary"
     >
       {defaultMonitorStatusColor ? (
@@ -686,7 +690,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             /> */}
 
       {/*
-       * Rarely changed, so folded under Advanced: what the monitor shows
+       * Rarely changed, so folded under More fields: what the monitor shows
        * when none of the criteria above match. It used to sit open under
        * every criteria list as a required field, already filled in.
        *
@@ -694,16 +698,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
        * default monitor status" on the frame before they are fetched.
        */}
       {hasLoadedOptions ? (
-        <CollapsibleSection
-          title="Advanced"
-          variant="card"
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
           // The gap MonitorStep leaves between its own sections (space-y-6).
           className="mt-6"
           isCollapsed={isAdvancedCollapsed}
           onToggle={(isCollapsed: boolean) => {
             setIsAdvancedCollapsed(isCollapsed);
           }}
-          badge={defaultMonitorStatusSummary}
+          summary={defaultMonitorStatusSummary}
+          dataTestId="monitor-criteria-more-fields"
         >
           <div data-testid="monitor-default-status-field">
             <FieldLabelElement
@@ -734,7 +739,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       ) : (
         <></>
       )}

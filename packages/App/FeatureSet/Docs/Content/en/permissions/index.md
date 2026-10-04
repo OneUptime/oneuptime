@@ -66,9 +66,9 @@ Create as many additional teams as you like — "Frontend On-Call", "Support", "
 | Viewer | Read everything in the project, and change nothing. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
-The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. The description is under **Advanced**. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions. If the role cannot be added, the team is still created and a notice above the list links to it.
+The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. The description is under **More fields**. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions. If the role cannot be added, the team is still created and a notice above the list links to it.
 
-Where to find it: **Settings → Teams**. Open a team to reach **Members** and **Permissions**; **Block Permissions** are under **Advanced** at the bottom of the Permissions page, which says **Configured** while the team has any.
+Where to find it: **Settings → Teams**. Open a team to reach **Members** and **Permissions**; **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many the team has.
 
 ## Permissions
 
@@ -101,7 +101,7 @@ Each team has two lists:
 - **Permissions** (allow) — what this team can do.
 - **Block Permissions** — what this team can never do, regardless of any allow entry.
 
-Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **Advanced** at the bottom of the page.
+Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **More settings** at the bottom of the page.
 
 **Block always wins.** A block entry with no labels removes that capability outright for the team. A block entry with labels removes it only for resources carrying those labels — useful for "this team can edit monitors, except the ones labelled Production".
 
@@ -163,9 +163,9 @@ API keys are granted permissions directly, on the key itself — they do not bel
 | Viewer | Read everything in the project, and change nothing. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
-The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **Advanced**; a key expires a year from the day it is created unless you pick another date, and the folded section says so. The new key opens on its page, where you copy it.
+The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **More fields**; a key expires a year from the day it is created unless you pick another date, and the folded section says so. The new key opens on its page, where you copy it.
 
-On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **Advanced** at the bottom of the page, which says **Configured** while the key has any.
+On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
 
 Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.
 
@@ -192,7 +192,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors it runs.
 
-**Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **Advanced** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
+**Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **More settings** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
 
 **A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 

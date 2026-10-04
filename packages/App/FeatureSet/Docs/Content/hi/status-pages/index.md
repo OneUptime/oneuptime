@@ -142,7 +142,7 @@ card के नीचे एक card है जो स्थिति पृष�
 
 ### SSO और OIDC
 
-अगर निजी पेज को आपके identity provider से जोड़ना है, तो **स्थिति पृष्ठ → आपका पेज → सुरक्षा → SSO** पर SAML कॉन्फ़िगर होता है (आप sign-on URL, issuer और x509 प्रमाणपत्र दर्ज करते हैं, और signature और digest methods **उन्नत** में अपने आप भर जाते हैं) और **स्थिति पृष्ठ → आपका पेज → सुरक्षा → OIDC** पर OpenID Connect (आप issuer, client ID और secret दर्ज करते हैं, और discovery URL, scopes और claim नाम **उन्नत** में अपने आप भर जाते हैं)। **SCIM** निजी उपयोगकर्ताओं को IdP से अपने आप provision कर देता है। OneUptime Cloud पर इन तीनों के लिए Scale प्लान या उससे ऊपर चाहिए। सेल्फ़-होस्टेड installation पर SSO और OIDC हर संस्करण का हिस्सा हैं, और SCIM के लिए [Enterprise Edition](/docs/self-hosted/enterprise) चाहिए।
+अगर निजी पेज को आपके identity provider से जोड़ना है, तो **स्थिति पृष्ठ → आपका पेज → सुरक्षा → SSO** पर SAML कॉन्फ़िगर होता है (आप sign-on URL, issuer और x509 प्रमाणपत्र दर्ज करते हैं, और signature और digest methods **और फ़ील्ड** में अपने आप भर जाते हैं) और **स्थिति पृष्ठ → आपका पेज → सुरक्षा → OIDC** पर OpenID Connect (आप issuer, client ID और secret दर्ज करते हैं, और discovery URL, scopes और claim नाम **और फ़ील्ड** में अपने आप भर जाते हैं)। **SCIM** निजी उपयोगकर्ताओं को IdP से अपने आप provision कर देता है। OneUptime Cloud पर इन तीनों के लिए Scale प्लान या उससे ऊपर चाहिए। सेल्फ़-होस्टेड installation पर SSO और OIDC हर संस्करण का हिस्सा हैं, और SCIM के लिए [Enterprise Edition](/docs/self-hosted/enterprise) चाहिए।
 
 एक **SSO सेटिंग्स** card **लॉगिन के लिए SSO बाध्य करें** (`requireSsoForLogin`, डिफ़ॉल्ट रूप से off) सामने लाता है। इसे चालू करने से पहले अपना SSO configuration जाँच लीजिए — अगर वह काम नहीं करता तो आप खुद ही स्थिति पृष्ठ से बाहर बंद हो जाएँगे।
 

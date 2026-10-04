@@ -23,7 +23,7 @@ Abra **Incidentes → Todos os incidentes** e clique em **Declarar incidente** n
 
 Só a primeira etapa tem campos obrigatórios, além de qualquer campo personalizado que os administradores marcaram como **Obrigatório na criação**. Você também pode anexar recursos, adicionar políticas de plantão e atribuir funções depois, a partir das páginas do próprio incidente. Cada etapa antes do resumo tem um simples **Próximo**, e **Declarar incidente** fica no resumo, a última etapa.
 
-**Avançado.** As opções de que a maioria dos incidentes nunca precisa esperam recolhidas sob um cabeçalho **Avançado** no fim da sua etapa; clique nele para abri-las. Recolhido, o cabeçalho mostra **Configurado** quando algo nele está definido — por um modelo, por exemplo — e abre sozinho quando algo nele precisa de correção. O resumo só lista uma opção recolhida quando ela está definida, exceto **Notificar assinantes da página de status**, que ele sempre lista, com quem será notificado.
+**Mais campos.** As opções de que a maioria dos incidentes nunca precisa esperam recolhidas sob um cabeçalho **Mais campos** no fim da sua etapa; clique nele para abri-las. Recolhido, o cabeçalho nomeia o que contém e mostra cada opção definida com o seu valor — definida por um modelo, por exemplo — e abre sozinho quando algo nele precisa de correção. O resumo só lista uma opção recolhida quando ela está definida, exceto **Notificar assinantes da página de status**, que ele sempre lista, com quem será notificado.
 
 ### Etapa 1 — Detalhes do incidente
 
@@ -31,7 +31,7 @@ Só a primeira etapa tem campos obrigatórios, além de qualquer campo personali
 - **Severidade do incidente** — obrigatório. Uma das severidades configuradas no seu projeto.
 - **Descrição** — opcional, escrita em Markdown. É o que a página de status mostra, então escreva para os clientes e não para a sua equipe.
 
-Em **Avançado**:
+Em **Mais campos**:
 
 - **Declarado Em** — começa no momento em que você abriu a página. Toda duração do incidente é medida a partir dele; retroceda-o para registrar um incidente que começou antes.
 - **Estado Inicial** — opcional, e vazio no início. Deixado vazio, o incidente começa no estado marcado com `isCreatedState`, ou no estado inicial do modelo. Escolha um estado posterior só para registrar um incidente já reconhecido ou resolvido.
@@ -50,7 +50,7 @@ Os monitores vêm primeiro, à parte: as páginas de status enxergam um incident
 
 O cartão **Recursos afetados** do incidente pergunta do mesmo jeito quando você o edita depois.
 
-Em **Avançado**:
+Em **Mais campos**:
 
 - **Limitar a estas páginas de status** — opcional. Deixado vazio, o incidente aparece em todas as páginas de status que listam os seus monitores, e avisa os assinantes delas; com páginas escolhidas, só nessas entre elas. Veja [Uma página de status por público](/docs/status-pages/one-status-page-per-audience).
 - **Notificar assinantes da página de status** — caixa de seleção, marcada por padrão (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Abaixo dela, e de novo no resumo, o formulário mostra quais páginas de status serão avisadas e quantos assinantes cada uma tem; no resumo, **Pré-visualizar notificação** mostra o e-mail que eles vão receber. Desmarque-a para o ruído interno que você ainda quer registrar.
@@ -74,7 +74,7 @@ Se você vive declarando o mesmo formato de incidente — o mesmo padrão de tí
 
 Clique em **Criar a partir de modelo** (o botão contornado ao lado de **Declarar incidente**) e abre-se um modal **Criar incidente a partir de modelo**, com uma lista suspensa **Selecionar Modelo de Incidente**. Escolha um modelo e o formulário de criação abre pré-preenchido; você ainda pode mudar qualquer coisa antes de enviar. Se o seu projeto ainda não tiver modelos, você recebe um modal **No Incident Templates**, com um botão **Create Template** que leva a **Incidentes → Configurações → Modelos de incidentes**.
 
-Modelos são construídos com o seu próprio assistente — **Informações do modelo**, **Detalhes do incidente**, **Recursos afetados**, **Plantão** — mais etapas de campos personalizados quando o seu projeto os tem. Os donos e os rótulos ficam em **Avançado** no fim de **Detalhes do incidente**. **Recursos afetados** pergunta como o formulário de declaração — **Monitores**, depois **Alterar status do monitor para**, depois **Outros recursos afetados**, com **Limitar a estas páginas de status** em **Avançado** — exceto que um modelo sempre pede o status dos monitores: ele também vale para os monitores escolhidos quando um incidente é declarado a partir dele. Estes são os campos:
+Modelos são construídos com o seu próprio assistente — **Informações do modelo**, **Detalhes do incidente**, **Recursos afetados**, **Plantão** — mais etapas de campos personalizados quando o seu projeto os tem. Os donos e os rótulos ficam em **Mais campos** no fim de **Detalhes do incidente**. **Recursos afetados** pergunta como o formulário de declaração — **Monitores**, depois **Alterar status do monitor para**, depois **Outros recursos afetados**, com **Limitar a estas páginas de status** em **Mais campos** — exceto que um modelo sempre pede o status dos monitores: ele também vale para os monitores escolhidos quando um incidente é declarado a partir dele. Estes são os campos:
 
 | Campo                            | Para que serve                                                  |
 | -------------------------------- | ---------------------------------------------------------------- |
@@ -109,7 +109,7 @@ Cada entrada tem:
 - **Plantão → Políticas de plantão** — políticas executadas quando este incidente é criado.
 - **Funções de incidente** — pré-atribua membros da equipe a funções.
 - **Propriedade e rótulos → Equipes proprietárias**, **Usuários proprietários**, **Rótulos**.
-- **Opções avançadas → Resolver incidente automaticamente** (resolve o incidente automaticamente quando os critérios deixam de corresponder), **Mostrar incidente na página de status**, **Incidente privado** e **Notas de remediação**.
+- **Mais campos → Resolver incidente automaticamente** (resolve o incidente automaticamente quando os critérios deixam de corresponder), **Mostrar incidente na página de status**, **Incidente privado** e **Notas de remediação**.
 
 Para a lista completa de espaços reservados `{{variable}}` que você pode usar no título, na descrição e nas notas de remediação, veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating).
 

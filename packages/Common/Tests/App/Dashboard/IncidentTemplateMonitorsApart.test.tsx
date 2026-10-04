@@ -17,7 +17,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Incident does: its monitors in a picker of their own, then "Change Monitor
  * Status to" right under them, then the other resources - on its create
  * wizard and on its Affected Resources card alike. The status page limit
- * folds under Advanced at the end of the wizard's Resources Affected step.
+ * folds under More fields at the end of the wizard's Resources Affected step.
  *
  * Unlike an incident, a template asks for the status with no monitor picked
  * too: the status also applies to the monitors picked when an incident is
@@ -453,13 +453,13 @@ describe.each(TEMPLATE_FORMS)(
 );
 
 describe("An incident template's create wizard: the status page limit", () => {
-  test("folds under Advanced at the end of Resources Affected - the section its owners and labels fold into", async () => {
+  test("folds under More fields at the end of Resources Affected - the section its owners and labels fold into", async () => {
     const fields: Array<RecordedField> = await wizardFields();
     const pages: RecordedField = fieldNamed(fields, "statusPages");
 
     expect(pages.title).toBe(IncidentStatusPageScopeCopy.pickerTitle);
     expect(pages.stepId).toBe("resources-affected");
-    expect(pages.collapsibleSection?.title).toBe("Advanced");
+    expect(pages.collapsibleSection?.title).toBe("More fields");
 
     const labels: RecordedField = fieldNamed(fields, "labels");
 

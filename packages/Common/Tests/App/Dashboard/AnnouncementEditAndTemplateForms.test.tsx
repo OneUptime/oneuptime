@@ -380,7 +380,7 @@ describe("the announcement's details card Edit", () => {
     // Required, as the server requires it.
     expect(labelText("Description")).not.toContain("(Optional)");
 
-    const advanced: HTMLElement = sectionHeader("Advanced");
+    const advanced: HTMLElement = sectionHeader("More fields");
     const folded: Array<string> = fieldLabelsIn(sectionBody(advanced));
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
@@ -613,7 +613,7 @@ describe("an announcement template", () => {
     expect(labelText("Title")).not.toContain("(Optional)");
     expect(labelText("Description")).not.toContain("(Optional)");
     // A template holds no attachments, so it has no Advanced section.
-    expect(screen.queryByRole("button", { name: "Advanced" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "More fields" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 

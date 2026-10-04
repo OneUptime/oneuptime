@@ -6,6 +6,7 @@ import {
   MIN_INCOMING_CALL_RING_SECONDS,
 } from "Common/Types/IncomingCall/IncomingCallRingTime";
 import { getDefaultEscalationRuleName } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -17,7 +18,7 @@ import path from "path";
  * Adding an incoming call escalation rule is one step: Who to call (an
  * on-call schedule or one person - never a team, which a rule cannot call)
  * and Ring for (in seconds), with the name and the description under
- * Advanced. The page used to list an Order field, Teams and Users that the
+ * More fields. The page used to list an Order field, Teams and Users that the
  * form never had. Markdown is not compiled, so these tests read the sources
  * of truth - the form's module, the page, the ring time's limits and the
  * model's columns - and check each language's page tells the same story,
@@ -192,7 +193,7 @@ describe.each(LANGUAGES)("the %s page's Step 6", (lang: string) => {
       locale[RING_FOR],
       locale["Name"],
       locale["Description"],
-      locale["Advanced"],
+      locale[MORE_FIELDS_SECTION_TITLE],
     ]) {
       expect(step).toContain(`**${label}**`);
     }

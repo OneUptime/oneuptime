@@ -825,7 +825,7 @@ describe("FormSummary: folded sections", () => {
 });
 
 /*
- * Declare Incident folds "Notify Status Page Subscribers" under Advanced
+ * Declare Incident folds "Notify Status Page Subscribers" under More fields
  * ("Limit to these status pages and notifiy subscribers should be in
  * advanced" - the maintainer), but it starts ticked, and whether
  * subscribers are emailed is the one default to read before declaring: its
@@ -1001,7 +1001,7 @@ describe("FormSummary: a folded default to read before saving", () => {
       rows.map((row: Field<JSONObject>): string | undefined => {
         return row.title;
       }),
-    ).toEqual(["Monitors", "Advanced"]);
+    ).toEqual(["Monitors", "More fields"]);
   });
 });
 

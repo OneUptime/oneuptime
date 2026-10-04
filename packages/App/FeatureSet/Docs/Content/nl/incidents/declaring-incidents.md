@@ -23,7 +23,7 @@ Open **Incidenten → Alle incidenten** en klik rechtsboven in de lijst **Incide
 
 Alleen de eerste stap heeft verplichte velden, plus elk aangepast veld dat je beheerders als **Verplicht bij aanmaken** hebben gemarkeerd. Resources koppelen, bereikbaarheidsbeleid toevoegen en rollen toewijzen kan ook achteraf, vanaf de pagina's van het incident zelf. Elke stap vóór het overzicht heeft een gewone knop **Volgende**, en **Incident melden** staat in het overzicht, de laatste stap.
 
-**Geavanceerd.** De opties die de meeste incidenten nooit nodig hebben, wachten ingeklapt onder een kop **Geavanceerd** aan het eind van hun stap; klik erop om ze te openen. Ingeklapt toont de kop **Ingesteld** als er iets in is ingesteld — door een sjabloon bijvoorbeeld — en hij gaat vanzelf open als er iets in moet worden verbeterd. Het overzicht toont een ingeklapte optie alleen als die is ingesteld, behalve **Statuspagina-abonnees op de hoogte stellen**, die het altijd toont, met wie er bericht krijgt.
+**Meer velden.** De opties die de meeste incidenten nooit nodig hebben, wachten ingeklapt onder een kop **Meer velden** aan het eind van hun stap; klik erop om ze te openen. Ingeklapt noemt de kop wat erin zit en toont elke ingestelde optie met haar waarde — ingesteld door een sjabloon bijvoorbeeld — en hij gaat vanzelf open als er iets in moet worden verbeterd. Het overzicht toont een ingeklapte optie alleen als die is ingesteld, behalve **Statuspagina-abonnees op de hoogte stellen**, die het altijd toont, met wie er bericht krijgt.
 
 ### Stap 1 — Incidentdetails
 
@@ -31,7 +31,7 @@ Alleen de eerste stap heeft verplichte velden, plus elk aangepast veld dat je be
 - **Ernst van incident** — verplicht. Een van de ernstniveaus die voor je project zijn ingesteld.
 - **Beschrijving** — optioneel, in Markdown. Dit is wat de statuspagina toont, dus schrijf het voor klanten en niet voor je team.
 
-Onder **Geavanceerd**:
+Onder **Meer velden**:
 
 - **Verklaard op** — begint op het moment dat je de pagina opende. Elke duur van het incident wordt hiervandaan gemeten; zet het terug om een incident vast te leggen dat eerder begon.
 - **Initiële status** — optioneel, en in het begin leeg. Leeg gelaten start het incident in de status met de vlag `isCreatedState`, of in de beginstatus van het sjabloon. Kies alleen een latere status om een incident vast te leggen dat al bevestigd of opgelost is.
@@ -50,7 +50,7 @@ De monitoren komen eerst, apart: statuspagina's zien een incident via zijn monit
 
 De kaart **Getroffen resources** van het incident vraagt het op dezelfde manier als je die later bewerkt.
 
-Onder **Geavanceerd**:
+Onder **Meer velden**:
 
 - **Beperken tot deze statuspagina's** — optioneel. Leeg gelaten verschijnt het incident op elke statuspagina die zijn monitoren vermeldt, en informeert het hun abonnees; met gekozen pagina's alleen op die pagina's daarvan. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
 - **Statuspagina-abonnees op de hoogte stellen** — selectievakje, standaard aan (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Eronder, en nog eens in het overzicht, toont het formulier welke statuspagina's bericht krijgen en hoeveel abonnees elk heeft; in het overzicht toont **Melding bekijken** de e-mail die ze krijgen. Zet het uit voor interne ruis die je toch wilt vastleggen.
@@ -74,7 +74,7 @@ Meld je steeds hetzelfde soort incident — dezelfde titelvorm, dezelfde ernst, 
 
 Klik op **Maken op basis van sjabloon** (de omlijnde knop naast **Incident melden**) en er opent een dialoogvenster **Incident aanmaken op basis van sjabloon**, met een keuzelijst **Selecteer incidentsjabloon**. Kies een sjabloon en het aanmaakformulier opent vooringevuld; je kunt vóór het versturen nog alles wijzigen. Heeft je project nog geen sjablonen, dan krijg je in plaats daarvan een dialoogvenster **No Incident Templates**, met een knop **Create Template** die je naar **Incidenten → Instellingen → Incident-sjablonen** brengt.
 
-Sjablonen bouw je met een eigen wizard — **Sjablooninformatie**, **Incidentdetails**, **Getroffen middelen**, **Bereikbaarheid** — plus stappen voor aangepaste velden als je project die heeft. Eigenaren en labels staan onder **Geavanceerd** aan het eind van **Incidentdetails**. **Getroffen middelen** vraagt zoals het meldformulier — **Monitoren**, dan **Monitorstatus wijzigen naar**, dan **Andere getroffen resources**, met **Beperken tot deze statuspagina's** onder **Geavanceerd** — alleen vraagt een sjabloon altijd om de monitorstatus: die geldt ook voor de monitoren die worden gekozen wanneer er een incident vanuit het sjabloon wordt gemeld. Dit zijn de velden:
+Sjablonen bouw je met een eigen wizard — **Sjablooninformatie**, **Incidentdetails**, **Getroffen middelen**, **Bereikbaarheid** — plus stappen voor aangepaste velden als je project die heeft. Eigenaren en labels staan onder **Meer velden** aan het eind van **Incidentdetails**. **Getroffen middelen** vraagt zoals het meldformulier — **Monitoren**, dan **Monitorstatus wijzigen naar**, dan **Andere getroffen resources**, met **Beperken tot deze statuspagina's** onder **Meer velden** — alleen vraagt een sjabloon altijd om de monitorstatus: die geldt ook voor de monitoren die worden gekozen wanneer er een incident vanuit het sjabloon wordt gemeld. Dit zijn de velden:
 
 | Veld                         | Waarvoor                                                     |
 | ---------------------------- | ------------------------------------------------------------ |
@@ -109,7 +109,7 @@ Elk item heeft:
 - **Bereikbaarheid → Bereikbaarheidsbeleid** — beleid dat draait wanneer dit incident wordt aangemaakt.
 - **Incidentrollen** — teamleden vooraf aan rollen toewijzen.
 - **Eigendom & labels → Eigenaarsteams**, **Eigenaarsgebruikers**, **Labels**.
-- **Geavanceerde opties → Incident automatisch oplossen** (lost het incident automatisch op zodra de criteria niet meer matchen), **Incident weergeven op statuspagina**, **Privé-incident** en **Herstelnotities**.
+- **Meer velden → Incident automatisch oplossen** (lost het incident automatisch op zodra de criteria niet meer matchen), **Incident weergeven op statuspagina**, **Privé-incident** en **Herstelnotities**.
 
 Voor de volledige lijst met `{{variable}}`-placeholders die je in de titel, beschrijving en herstelnotities kunt gebruiken, zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 

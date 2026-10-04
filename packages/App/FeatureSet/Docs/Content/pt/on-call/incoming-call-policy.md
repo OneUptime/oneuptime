@@ -115,7 +115,7 @@ As regras de escalonamento decidem para quem ligar quando alguém disca o númer
 4. Preencha a regra. É um único passo:
    - **Para quem ligar**: um agendamento de plantão ou uma pessoa. Um agendamento faz tocar o telefone de quem estiver de plantão nele quando a chamada chegar. As pessoas são os membros do seu projeto.
    - **Tempo de toque (em segundos)**: por quanto tempo o telefone delas toca antes de a chamada passar para a próxima regra. Começa em 30 segundos, e o Twilio aceita de 5 a 600.
-   - **Nome** e **Descrição** são opcionais e ficam em **Avançado**. Uma regra sem nome aparece conforme sua posição na lista: **Level 1**, **Level 2**.
+   - **Nome** e **Descrição** são opcionais e ficam em **Mais campos**. Uma regra sem nome aparece conforme sua posição na lista: **Level 1**, **Level 2**.
 5. Salve-a e adicione uma regra para cada agendamento ou pessoa a tentar em seguida
 
 As regras são chamadas de cima para baixo na lista, e uma regra nova é adicionada ao final. Para mudar a ordem, arraste uma regra pela alça no canto superior esquerdo; pelo teclado, foque a alça, pressione Espaço, mova-a com as setas e pressione Espaço novamente.
@@ -159,7 +159,7 @@ Personalize as mensagens que os chamadores ouvem:
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Para quem ligar              | Um agendamento de plantão, que liga para quem estiver de plantão nele, ou uma pessoa. Cada regra liga para um deles                                    |
 | Tempo de toque (em segundos) | Por quanto tempo o telefone toca antes de a chamada passar para a próxima regra (padrão: 30; de 5 a 600)                                               |
-| Nome e Descrição             | Opcionais, em Avançado. Uma regra sem nome aparece como Level 1, Level 2 e assim por diante, conforme sua posição na lista                            |
+| Nome e Descrição             | Opcionais, em Mais campos. Uma regra sem nome aparece como Level 1, Level 2 e assim por diante, conforme sua posição na lista                            |
 | Ordem                        | A posição da regra na lista: as regras são chamadas de cima para baixo. Muda-se arrastando as regras; pela API, uma regra nova sem ordem vai para o final |
 
 Pela API, uma regra define `onCallDutyPolicyScheduleId` ou `userId` (um deles, nunca os dois) e `escalateAfterSeconds`: o tempo de toque, 30 quando omitido.

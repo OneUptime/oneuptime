@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "A senha da conta ou a chave de API que seu provedor fornece para SMTP.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "O endereço de onde seus e-mails vêm. Seu servidor precisa permitir o envio a partir dele; no Microsoft Graph, é a caixa de correio que envia.",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "A porta informada pelo seu provedor, geralmente 587. A porta 465 é sempre criptografada.",
-  "Port 465 is always encrypted, but the certificate is not checked.": "A porta 465 é sempre criptografada, mas o certificado não é verificado."
+  "Port 465 is always encrypted, but the certificate is not checked.": "A porta 465 é sempre criptografada, mas o certificado não é verificado.",
+  "More fields": "Mais campos",
+  "More settings": "Mais configurações",
+  "{{count}} more": "mais {{count}}",
+  "{{count}} more_one": "mais {{count}}",
+  "On": "Ativado",
+  "Off": "Desativado"
 }

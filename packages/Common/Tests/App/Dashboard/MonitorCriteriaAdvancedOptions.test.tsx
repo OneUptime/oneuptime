@@ -13,6 +13,12 @@ import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  getByTextOutsideFoldedHeaders,
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 /*
  * "Please always collapse the advanced section by default. Please do this for
@@ -105,14 +111,14 @@ function renderAlertForm(initialValue?: CriteriaAlert): void {
 }
 
 function advancedOptions(): HTMLElement {
-  return screen.getByRole("button", { name: "Advanced Options" });
+  return screen.getByRole("button", { name: "More fields" });
 }
 
 function advancedOptionsBody(): HTMLElement {
   const bodyId: string | null = advancedOptions().getAttribute("aria-controls");
 
   if (!bodyId) {
-    throw new Error("Advanced Options does not name the body it controls.");
+    throw new Error("More fields does not name the body it controls.");
   }
 
   return document.getElementById(bodyId)!;
@@ -182,32 +188,64 @@ describe("hasAlertAdvancedOptions", () => {
   );
 });
 
-describe("the incident's Advanced Options", () => {
-  test("starts collapsed on a new monitor's Offline rule, with no badge", () => {
+/*
+ * The incident's and the alert's More fields (once "Advanced Options"):
+ * folded on a new rule and on one being edited, like every More fields
+ * section. Folded, the header names the options inside, and shows each one
+ * the user chose as a chip with what it is set to - so the choice is never
+ * hidden, and the section does not open by itself to show it. Only a choice
+ * that differs from what a new rule starts with counts: every default rule
+ * turns auto-resolve on, so auto-resolve off is the choice.
+ */
+describe("the incident's More fields", () => {
+  test("starts folded on a new monitor's Offline rule, naming its options, none set", () => {
     renderIncidentForm(defaultOfflineRule().incident);
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
     expect(advancedOptionsBody()).toHaveClass("max-h-0", "invisible");
-    expect(advancedOptions()).not.toHaveTextContent("Configured");
+    expect(listedNames(advancedOptions())).toEqual([
+      "Auto Resolve Incident",
+      "Show Incident on Status Page",
+      "Private Incident",
+      "Remediation Notes",
+    ]);
+    expect(setChips(advancedOptions())).toEqual([]);
   });
 
-  test("starts collapsed on an incident added by hand", () => {
+  test("starts folded on an incident added by hand", () => {
     renderIncidentForm();
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
   });
 
   test.each([
-    ["auto-resolve was turned off", { autoResolveIncident: false }],
-    ["it has remediation notes", { remediationNotes: "Restart the pod." }],
-    ["it is private", { isPrivate: true }],
+    [
+      "auto-resolve was turned off",
+      { autoResolveIncident: false },
+      "Auto Resolve Incident: Off",
+    ],
+    [
+      "it has remediation notes",
+      { remediationNotes: "Restart the pod." },
+      "Remediation Notes",
+    ],
+    ["it is private", { isPrivate: true }, "Private Incident: On"],
+    [
+      "it is kept off status pages",
+      { showIncidentOnStatusPage: false },
+      "Show Incident on Status Page: Off",
+    ],
   ])(
-    "opens by itself when %s, so the choice is not hidden",
-    (_name: string, overrides: Partial<CriteriaIncident>) => {
+    "stays folded when %s, the choice a chip on its header",
+    (_name: string, overrides: Partial<CriteriaIncident>, chip: string) => {
       renderIncidentForm(incident(overrides));
 
-      expect(advancedOptions()).toHaveAttribute("aria-expanded", "true");
-      expect(advancedOptionsBody()).not.toHaveClass("invisible");
+      expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
+      expect(setChips(advancedOptions())).toEqual([chip]);
+      // The icon tile is tinted while something inside is set.
+      expect(
+        advancedOptions().querySelector("[data-testid='folded-section-icon']"),
+      ).toHaveClass("bg-indigo-50");
     },
   );
 
@@ -215,51 +253,63 @@ describe("the incident's Advanced Options", () => {
     renderIncidentForm(defaultOfflineRule().incident);
 
     // Mounted while folded, so a value typed earlier is not lost.
-    expect(screen.getByText("Auto Resolve Incident")).toBeInTheDocument();
+    expect(
+      getByTextOutsideFoldedHeaders(document.body, "Auto Resolve Incident"),
+    ).toBeInTheDocument();
 
     fireEvent.click(advancedOptions());
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "true");
     expect(advancedOptionsBody()).not.toHaveClass("invisible");
     expect(screen.getByText("Private Incident")).toBeInTheDocument();
+    // Open, the header lists nothing: the options say it themselves.
+    expect(listedNames(advancedOptions())).toEqual([]);
   });
 
-  test("badges a folded section that holds a choice", () => {
-    renderIncidentForm(incident({ isPrivate: true }));
+  test("shows what was chosen as a chip once folded again", () => {
+    renderIncidentForm(defaultOfflineRule().incident);
 
+    fireEvent.click(advancedOptions());
+    fireEvent.click(screen.getByText("Private Incident"));
     fireEvent.click(advancedOptions());
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedOptions()).toHaveTextContent("Configured");
+    expect(setChips(advancedOptions())).toEqual(["Private Incident: On"]);
   });
 });
 
-describe("the alert's Advanced Options", () => {
-  test("starts collapsed on a new monitor's Offline rule, with no badge", () => {
+describe("the alert's More fields", () => {
+  test("starts folded on a new monitor's Offline rule, naming its options, none set", () => {
     renderAlertForm(defaultOfflineRule().alert);
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
     expect(advancedOptionsBody()).toHaveClass("max-h-0", "invisible");
-    expect(advancedOptions()).not.toHaveTextContent("Configured");
+    expect(listedNames(advancedOptions())).toEqual([
+      "Auto Resolve Alert",
+      "Private Alert",
+      "Remediation Notes",
+    ]);
+    expect(setChips(advancedOptions())).toEqual([]);
   });
 
-  test("starts collapsed on an alert added by hand", () => {
+  test("starts folded on an alert added by hand", () => {
     renderAlertForm();
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("opens by itself when auto-resolve was turned off", () => {
+  test("stays folded when auto-resolve was turned off, the choice a chip", () => {
     renderAlertForm(alert({ autoResolveAlert: false }));
 
-    expect(advancedOptions()).toHaveAttribute("aria-expanded", "true");
+    expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(advancedOptions())).toEqual(["Auto Resolve Alert: Off"]);
   });
 
-  test("badges a folded section that holds a choice", () => {
+  test("shows remediation notes as set, without their text", () => {
     renderAlertForm(alert({ remediationNotes: "Check the queue." }));
 
-    fireEvent.click(advancedOptions());
-
-    expect(advancedOptions()).toHaveTextContent("Configured");
+    expect(setChips(advancedOptions())).toEqual(["Remediation Notes"]);
+    expect(hasSetChip(advancedOptions())).toBe(true);
+    expect(advancedOptions()).not.toHaveTextContent("Check the queue.");
   });
 });

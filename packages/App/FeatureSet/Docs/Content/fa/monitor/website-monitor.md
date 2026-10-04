@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### گزینه‌های پیشرفته
+### فیلدهای بیشتر
 
 #### تغییر مسیرها را دنبال نکن
 

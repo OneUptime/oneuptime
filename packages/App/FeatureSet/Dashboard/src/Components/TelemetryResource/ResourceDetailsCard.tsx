@@ -115,9 +115,10 @@ export function isResourceColumnEditable<TBaseModel extends BaseModel>(
 }
 
 /*
- * The identifier always holds a value, so "Configured" on the folded section
- * would always show. It says so only for labels, the one thing in there
- * people set by choice.
+ * The identifier always holds a value, so it would always show as set on the
+ * folded section. The section counts only labels as set, the one thing in
+ * there people set by choice, and the identifier says it is at its default
+ * (isAtDefault), so its header never calls it out.
  */
 const hasLabels: <TBaseModel>(values: FormValues<TBaseModel>) => boolean = <
   TBaseModel,
@@ -178,6 +179,10 @@ const ResourceDetailsCard: <TBaseModel extends BaseModel>(
             ? { placeholder: identity.placeholder }
             : {}),
           collapsibleSection: advancedSection,
+          // What telemetry reports, not a choice: never shown as set.
+          isAtDefault: (): boolean => {
+            return true;
+          },
         };
       },
     ),

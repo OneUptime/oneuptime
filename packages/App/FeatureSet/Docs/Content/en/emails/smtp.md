@@ -15,7 +15,7 @@ Add a project's mail server on **Project Settings > Notifications > Notification
 1. **Server**: the **Name** (project configs only), **Hostname**, **Port** (a new config starts on `587`), **Username** and **Password**.
 2. **Sender**: the **From Email** and **From Name** your emails come from.
 
-Everything else is folded under **Advanced** at the end of the Server step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required."
+Everything else is folded under **More fields** at the end of the Server step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required."
 
 | Field                   | What it does                                                                                                                                                                                                                              |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Everything else is folded under **Advanced** at the end of the Server step. Whil
 | **OAuth fields**        | Provider type, client ID, client secret, token URL and scope, shown once OAuth or Microsoft Graph is picked.                                                                                                                              |
 | **Description**         | A note for your team (project configs only).                                                                                                                                                                                              |
 
-**Microsoft Graph.** Open **Advanced**, set **Transport** to `Microsoft Graph`, and fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
+**Microsoft Graph.** Open **More fields**, set **Transport** to `Microsoft Graph`, and fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
 
 Once a project config is saved, **Send Test Email** on its row checks that it works.
 
@@ -52,7 +52,7 @@ When configuring SMTP with OAuth authentication in OneUptime, you'll need:
 | **Token URL**           | OAuth token endpoint URL                                                            |
 | **Scope**               | Required OAuth scope(s) for SMTP access                                             |
 
-**Authentication Type** and the OAuth fields are under **Advanced** on the form's Server step.
+**Authentication Type** and the OAuth fields are under **More fields** on the form's Server step.
 
 ---
 

@@ -23,7 +23,7 @@ Aprite **Incidenti → Tutti gli incidenti** e fate clic su **Dichiara incidente
 
 Solo il primo passaggio ha campi obbligatori, più ogni campo personalizzato che gli amministratori hanno segnato come **Obbligatorio alla creazione**. Risorse, policy di reperibilità e ruoli potete aggiungerli anche dopo, dalle pagine dell'incidente. Ogni passaggio prima del riepilogo ha un semplice **Avanti**, e **Dichiara incidente** è nel riepilogo, l'ultimo passaggio.
 
-**Avanzato.** Le opzioni che alla maggior parte degli incidenti non servono mai aspettano, chiuse, sotto un'intestazione **Avanzato** alla fine del loro passaggio; fate clic per aprirle. Da chiusa, l'intestazione dice **Configurato** quando qualcosa al suo interno è impostato — da un modello, per esempio — e si apre da sola quando qualcosa al suo interno va corretto. Il riepilogo elenca un'opzione chiusa solo quando è impostata, tranne **Notifica gli iscritti alla pagina di stato**, che elenca sempre, con chi verrà avvisato.
+**Altri campi.** Le opzioni che alla maggior parte degli incidenti non servono mai aspettano, chiuse, sotto un'intestazione **Altri campi** alla fine del loro passaggio; fate clic per aprirle. Da chiusa, l'intestazione nomina ciò che contiene e mostra ogni opzione impostata con il suo valore — impostata da un modello, per esempio — e si apre da sola quando qualcosa al suo interno va corretto. Il riepilogo elenca un'opzione chiusa solo quando è impostata, tranne **Notifica gli iscritti alla pagina di stato**, che elenca sempre, con chi verrà avvisato.
 
 ### Passaggio 1 — Dettagli dell'incidente
 
@@ -31,7 +31,7 @@ Solo il primo passaggio ha campi obbligatori, più ogni campo personalizzato che
 - **Gravità incidente** — obbligatorio. Una delle gravità configurate per il progetto.
 - **Descrizione** — facoltativa, scritta in Markdown. È ciò che mostra la pagina di stato, quindi scrivetela per i clienti e non per il team.
 
-Sotto **Avanzato**:
+Sotto **Altri campi**:
 
 - **Dichiarato il** — parte dal momento in cui avete aperto la pagina. Ogni durata dell'incidente si misura da qui: retrodatatelo per registrare un incidente iniziato prima.
 - **Stato iniziale** — facoltativo, e vuoto all'inizio. Lasciato vuoto, l'incidente parte nello stato con il flag `isCreatedState`, o nello stato iniziale del modello. Scegliete uno stato successivo solo per registrare un incidente già preso in carico o risolto.
@@ -50,7 +50,7 @@ I monitor vengono per primi, a parte: le pagine di stato vedono un incidente att
 
 La scheda **Risorse interessate** dell'incidente chiede allo stesso modo quando la modificate in seguito.
 
-Sotto **Avanzato**:
+Sotto **Altri campi**:
 
 - **Limita a queste pagine di stato** — facoltativo. Lasciato vuoto, l'incidente compare su ogni pagina di stato che elenca i suoi monitor, e ne avvisa gli iscritti; con pagine scelte, solo su quelle tra esse. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
 - **Notifica gli iscritti alla pagina di stato** — casella di controllo, attiva per impostazione predefinita (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Sotto di essa, e di nuovo nel riepilogo, il modulo mostra quali pagine di stato verranno avvisate e quanti iscritti ha ciascuna; nel riepilogo, **Anteprima della notifica** mostra l'email che riceveranno. Disattivatela per il rumore interno che volete comunque registrare.
@@ -74,7 +74,7 @@ Se dichiarate continuamente lo stesso tipo di incidente — stesso schema di tit
 
 Fate clic su **Crea da modello** (il pulsante con solo il contorno accanto a **Dichiara incidente**) e si apre una finestra **Crea incidente da modello**, con un menu a discesa **Seleziona modello di incidente**. Scegliete un modello e il modulo di creazione si apre già compilato; potete comunque cambiare qualsiasi cosa prima di inviare. Se il vostro progetto non ha ancora modelli, ottenete invece una finestra **No Incident Templates**, con un pulsante **Create Template** che vi porta in **Incidenti → Impostazioni → Modelli di incidenti**.
 
-I modelli si costruiscono con una procedura guidata dedicata — **Informazioni del modello**, **Dettagli dell'incidente**, **Risorse interessate**, **Reperibilità** — più passaggi per i campi personalizzati quando il progetto ne ha. Proprietari ed etichette sono sotto **Avanzato** alla fine di **Dettagli dell'incidente**. **Risorse interessate** chiede come il modulo di dichiarazione — **Monitor**, poi **Cambia lo stato del monitor in**, poi **Altre risorse interessate**, con **Limita a queste pagine di stato** sotto **Avanzato** — tranne che un modello chiede sempre lo stato dei monitor: vale anche per i monitor scelti quando si dichiara un incidente da esso. Questi sono i campi:
+I modelli si costruiscono con una procedura guidata dedicata — **Informazioni del modello**, **Dettagli dell'incidente**, **Risorse interessate**, **Reperibilità** — più passaggi per i campi personalizzati quando il progetto ne ha. Proprietari ed etichette sono sotto **Altri campi** alla fine di **Dettagli dell'incidente**. **Risorse interessate** chiede come il modulo di dichiarazione — **Monitor**, poi **Cambia lo stato del monitor in**, poi **Altre risorse interessate**, con **Limita a queste pagine di stato** sotto **Altri campi** — tranne che un modello chiede sempre lo stato dei monitor: vale anche per i monitor scelti quando si dichiara un incidente da esso. Questi sono i campi:
 
 | Campo                        | A cosa serve                                           |
 | ---------------------------- | ------------------------------------------------------ |
@@ -109,7 +109,7 @@ Ogni voce ha:
 - **Reperibilità → Policy di reperibilità** — le policy eseguite alla creazione di questo incidente.
 - **Ruoli incidente** — preassegnate membri del team ai ruoli.
 - **Ownership & Labels → Team proprietari**, **Utenti proprietari**, **Etichette**.
-- **Opzioni avanzate → Risoluzione automatica dell'incidente** (risolve l'incidente in automatico quando i criteri smettono di corrispondere), **Mostra incidente sulla pagina di stato**, **Incidente privato** e **Note di rimedio**.
+- **Altri campi → Risoluzione automatica dell'incidente** (risolve l'incidente in automatico quando i criteri smettono di corrispondere), **Mostra incidente sulla pagina di stato**, **Incidente privato** e **Note di rimedio**.
 
 Per l'elenco completo dei segnaposto `{{variable}}` utilizzabili in titolo, descrizione e note di rimedio, vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 

@@ -146,6 +146,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const NOW: Date = new Date("2026-10-03T09:20:00.000Z");
 const PROJECT_ID: string = "00000000-0000-4000-8000-000000000001";
@@ -605,7 +606,7 @@ describe("Create Announcement, from the project's Announcements list", () => {
     expect(labelText("Title")).not.toContain("(Optional)");
     expect(labelText("Description")).not.toContain("(Optional)");
 
-    const advanced: HTMLElement = sectionHeader("Advanced");
+    const advanced: HTMLElement = sectionHeader("More fields");
     // The picker inside draws a label of its own ("Upload files").
     const folded: Array<string> = fieldLabelsIn(sectionBody(advanced));
 
@@ -613,7 +614,7 @@ describe("Create Announcement, from the project's Announcements list", () => {
     expect(folded).toContain("Attachments");
     expect(folded).not.toContain("Title");
     expect(folded).not.toContain("Description");
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
   });
 
   test("will not walk on without a title and a description", async () => {
@@ -657,7 +658,7 @@ describe("Create Announcement, from the project's Announcements list", () => {
         hidden: true,
       }),
     ).not.toBeVisible();
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
   });
 
   test("starts now, with no end, telling the subscribers", async () => {
@@ -725,7 +726,7 @@ describe("Create Announcement, from the project's Announcements list", () => {
     expect(sectionLine()).toBe(
       `Shows from ${startsAt} and stays until you end it. ${ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY}`,
     );
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
   });
 
   test("creates it on the pages picked, with the defaults, and goes back to the project's list", async () => {

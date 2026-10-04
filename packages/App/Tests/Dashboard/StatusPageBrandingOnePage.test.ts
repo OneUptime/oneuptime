@@ -328,8 +328,9 @@ describe("the Branding page", () => {
     expect(advanced).toContain(
       "description={StatusPageBrandingCopy.advancedDescription}",
     );
+    // Folded, its header names the four cards, the changed ones as chips.
     expect(advanced).toContain(
-      "isConfigured={isBrandingAdvancedConfigured(advancedValues)}",
+      "items={getBrandingAdvancedItems(advancedValues)}",
     );
   });
 

@@ -29,7 +29,7 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Validation from "../../../UI/Components/Forms/Validation";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormSectionConfigured,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
@@ -236,7 +236,7 @@ describe("the add form", () => {
       name.collapsibleSection!;
 
     expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
-    expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
     expect(description.collapsibleSection).toBe(section);
     expect(description.required).toBe(false);
     expect(description.fieldType).toBe(FormFieldSchemaType.LongText);

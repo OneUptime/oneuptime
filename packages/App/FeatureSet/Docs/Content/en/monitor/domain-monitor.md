@@ -48,7 +48,7 @@ Internationalized domain names are accepted in either form: `münchen.de` is con
 | Domain Name   | The domain to monitor (e.g., `example.com`)         | Yes      |
 | Lookup Method | `Auto`, `RDAP`, or `WHOIS` — see **Lookup Methods** | Yes      |
 
-### Advanced Settings
+### More fields
 
 | Field        | Description                                                     | Default |
 | ------------ | --------------------------------------------------------------- | ------- |

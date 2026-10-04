@@ -824,7 +824,11 @@ describe("what the monitor docs say about criteria names", () => {
       );
       expect(page).toContain("A description is optional");
       expect(page).toContain(
-        "When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **Advanced**",
+        "When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **More fields**",
+      );
+      // Folded, that header names the status, so the docs say so.
+      expect(page).toContain(
+        "The folded **More fields** header shows which status that is.",
       );
     },
   );

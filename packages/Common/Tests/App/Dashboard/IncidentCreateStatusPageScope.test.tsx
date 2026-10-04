@@ -342,20 +342,20 @@ describe("the status page picker on the Create page", () => {
    * advanced" - the maintainer. Folded at the end of the resources step,
    * after the monitors and the other resources it narrows the reach of.
    */
-  test("sits in the resources step, folded under Advanced after the resources", async () => {
+  test("sits in the resources step, folded under More fields after the resources", async () => {
     await renderCreate();
 
     const picker: CapturedField = fieldFor("statusPages");
 
     expect(picker.stepId).toBe("resources-affected");
-    expect(picker.collapsibleSection?.title).toBe("Advanced");
+    expect(picker.collapsibleSection?.title).toBe("More fields");
     expect(indexOfField("statusPages")).toBe(indexOfField("hosts") + 1);
     expect(indexOfField("statusPages")).toBeGreaterThan(
       indexOfField("monitors"),
     );
   });
 
-  test("shares its Advanced section with the notify box, which comes right after it", async () => {
+  test("shares its More fields section with the notify box, which comes right after it", async () => {
     await renderCreate();
 
     const notify: CapturedField = fieldFor(
@@ -672,7 +672,7 @@ describe("warnings where the scope meets other fields", () => {
   );
 
   /*
-   * Private Incident sits under Advanced on Incident Details, and the pages
+   * Private Incident sits under More fields on Incident Details, and the pages
    * are picked on Resources Affected, the step after. Whichever is set
    * second says so where it is set: the picker warns too, on its own step.
    */
@@ -950,9 +950,9 @@ describe("the audience on the last step", () => {
     expect(field.description).toBe(
       "Should status page subscribers be notified when this incident is created?",
     );
-    // On Resources Affected, folded under Advanced with the pages it reaches.
+    // On Resources Affected, under More fields with the pages it reaches.
     expect(field.stepId).toBe("resources-affected");
-    expect(field.collapsibleSection?.title).toBe("Advanced");
+    expect(field.collapsibleSection?.title).toBe("More fields");
   });
 
   /*

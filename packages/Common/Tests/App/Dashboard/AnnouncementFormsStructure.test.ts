@@ -17,7 +17,7 @@ import SubscriberUpdateNotification from "../../../Types/StatusPage/SubscriberUp
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
-import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   AnnouncementFormKind,
   SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
@@ -71,7 +71,7 @@ const TEMPLATE_VIEW_FILE: string = `${DASHBOARD}/Pages/StatusPages/Settings/Stat
 const FIELDS_FILE: string = `${DASHBOARD}/Components/Announcement/AnnouncementFormFields.tsx`;
 const RULES_FILE: string = `${DASHBOARD}/Components/Announcement/AnnouncementForm.ts`;
 
-const ADVANCED: string = ADVANCED_FORM_SECTION_TITLE;
+const ADVANCED: string = MORE_FIELDS_SECTION_TITLE;
 const SCHEDULE_AND_NOTIFICATIONS: string =
   SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE;
 const SCHEDULE: string = SCHEDULE_SECTION_TITLE;

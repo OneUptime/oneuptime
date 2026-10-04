@@ -25,7 +25,7 @@ O payload do webhook do Grafana segue o formato do Alertmanager — `status`, um
 
 1. Vá para **Monitores → Criar monitor** e escolha **Requisição de entrada**. Abra-o e clique em **Documentation** no menu à esquerda para copiar a URL.
 2. Abra os **Criteria** do monitor e defina **Filter Type** como `JavaScript Expression` e **Value** como `"{{requestBody.status}}" === "firing"`.
-3. Declare um incidente na correspondência, escolha as **On-Call Policies** a acionar e ative **Auto Resolve Incident** em **Advanced Options**.
+3. Declare um incidente na correspondência, escolha as **On-Call Policies** a acionar e ative **Auto Resolve Incident** em **More fields**.
 4. Em **Settings**, ative **Group incidents and alerts by a payload field** e defina:
 
    | Campo                              | Valor                               |
@@ -89,7 +89,7 @@ Com a **Opção 2**, adicione um segundo ramo de **Condições** (`status == res
 ## Solução de problemas
 
 - **Nada chega** — confirme que o Grafana consegue alcançar a URL (verifique os logs do servidor do Grafana) e, na Opção 2, que o workflow está **Habilitado**. O OneUptime responde a toda requisição de entrada com um `200` vazio antes de validá-la, então um `200` nos logs do Grafana não confirma que o payload foi aceito.
-- **Os incidentes abrem mas nunca fecham** — verifique o campo e o valor de recuperação no critério, e se **Auto Resolve Incident** está ativado em **Advanced Options** do incidente. A comparação diferencia maiúsculas de minúsculas.
+- **Os incidentes abrem mas nunca fecham** — verifique o campo e o valor de recuperação no critério, e se **Auto Resolve Incident** está ativado em **More fields** do incidente. A comparação diferencia maiúsculas de minúsculas.
 - **Apenas um incidente para um payload cheio de alertas** — você agrupou por uma label que não varia dentro de uma notificação. Agrupe por `requestBody.alerts[*].fingerprint` em vez disso.
 - **O texto do incidente mostra marcadores `{{...}}` crus** — o caminho não resolveu, e marcadores não resolvidos ficam no lugar em vez de serem esvaziados. Referencie campos que existam na sua versão de alerting; inspecione a saída do gatilho na aba **Logs** se você usou a Opção 2.
 

@@ -12,7 +12,7 @@ import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { getCreateFormColumnDefault } from "../../../../UI/Components/Forms/Utils/CreateFormDefaults";
 import {
@@ -438,7 +438,7 @@ describe("both forms", () => {
       }
 
       expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
-      expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+      expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
       expect(section.openWhenConfigured).toBe(false);
 
       // Next to each other, at the end of the Server step.

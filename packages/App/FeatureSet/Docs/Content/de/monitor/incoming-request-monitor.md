@@ -163,7 +163,7 @@ Pfade müssen mit dem wörtlichen Präfix `requestBody.` beginnen. Ein Pfad ohne
 Ein Webhook beschreibt nur, was in dieser Payload steht, deshalb löst OneUptime einen Vorfall nie deshalb auf, weil sein Schlüssel nicht mehr auftaucht. Ein Vorfall wird nur aufgelöst, wenn eine Payload ausdrücklich sagt, dass dieser Schlüssel sich erholt hat. Zwei Dinge müssen zugleich zutreffen:
 
 1. **Field that signals recovery** und **Value that means recovered** sind gesetzt und passen zur Payload. Der Vergleich ist exakt und unterscheidet Groß-/Kleinschreibung – `Resolved` passt nicht auf `resolved`.
-2. Der Vorfall des Kriteriums hat **Auto Resolve Incident** aktiviert, unter **Advanced Options** im Vorfallsformular. Ohne das werden passende Wiederherstellungsereignisse ignoriert und die Vorfälle bleiben offen. (Dasselbe gilt für Warnmeldungen und **Auto Resolve Alert**.)
+2. Der Vorfall des Kriteriums hat **Auto Resolve Incident** aktiviert, unter **More fields** im Vorfallsformular. Ohne das werden passende Wiederherstellungsereignisse ignoriert und die Vorfälle bleiben offen. (Dasselbe gilt für Warnmeldungen und **Auto Resolve Alert**.)
 
 **Max incidents per request** begrenzt die Extraktion, nicht nur das Anlegen. Schlüssel jenseits der Grenze sind auch für die Wiederherstellung unsichtbar; in einer Payload mit mehr eindeutigen Schlüsseln als der Grenzwert schließt ein Alarm, der jenseits davon `resolved` meldet, seinen Vorfall nicht.
 

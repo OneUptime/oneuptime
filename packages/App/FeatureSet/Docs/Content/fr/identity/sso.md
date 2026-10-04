@@ -28,7 +28,7 @@ L'intégration SSO offre les avantages suivants :
    - Saisissez l'**Émetteur** (Entity ID) de votre fournisseur d'identité
    - Collez le **Certificat public** de votre fournisseur d'identité
    - À l'étape **Connexion**, **Équipes** commence par l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes
-   - Tout le reste est rempli sous **Avancé** : la **Méthode de signature** (`RSA-SHA256`), la **Méthode de hachage** (`SHA256`) et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur d'identité l'exige
+   - Tout le reste est rempli sous **Plus de champs** : la **Méthode de signature** (`RSA-SHA256`), la **Méthode de hachage** (`SHA256`) et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur d'identité l'exige
 
 3. **Obtenir les métadonnées SSO OneUptime**
    - L'enregistrement ouvre la boîte de dialogue **SSO Configuration**. Vous pouvez la rouvrir avec le bouton **Voir la configuration SSO**
@@ -55,7 +55,7 @@ Keycloak est une solution populaire de gestion des identités et des accès en o
    - **URL de connexion** : `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Émetteur** : `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificat** : Voir [Étape 2](#étape-2-obtenir-le-certificat-keycloak) ci-dessous
-   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Avancé** (`RSA-SHA256` et `SHA256`)
+   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Plus de champs** (`RSA-SHA256` et `SHA256`)
 4. Enregistrez la configuration
 
 ### Étape 2 : Obtenir le certificat Keycloak
@@ -121,7 +121,7 @@ Microsoft Entra ID est le service de gestion des identités et des accès basé 
    - **URL de connexion** : Vous l'obtiendrez depuis Entra ID à l'étape 3
    - **Émetteur** : Vous l'obtiendrez depuis Entra ID à l'étape 3
    - **Certificat** : Vous l'obtiendrez depuis Entra ID à l'étape 3
-   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Avancé** (`RSA-SHA256` et `SHA256`)
+   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Plus de champs** (`RSA-SHA256` et `SHA256`)
 4. Cliquez sur **Voir la configuration SSO** et copiez l'**Identifiant (Entity ID)** et l'**URL de réponse (URL du service consommateur d'assertion)** — vous en aurez besoin pour Entra ID
 
 ### Étape 2 : Créer une application d'entreprise dans Microsoft Entra ID
@@ -205,7 +205,7 @@ Okta est une plateforme d'identité largement utilisée qui offre des capacités
    - **URL de connexion** : Vous l'obtiendrez depuis Okta à l'étape 3
    - **Émetteur** : Vous l'obtiendrez depuis Okta à l'étape 3
    - **Certificat** : Vous l'obtiendrez depuis Okta à l'étape 3
-   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Avancé** (`RSA-SHA256` et `SHA256`)
+   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Plus de champs** (`RSA-SHA256` et `SHA256`)
 4. Cliquez sur **Voir la configuration SSO** et copiez l'**Identifiant (Entity ID)** et l'**URL de réponse (URL du service consommateur d'assertion)** — vous en aurez besoin pour Okta
 
 ### Étape 2 : Créer une application SAML dans Okta
@@ -285,7 +285,7 @@ L'implémentation SSO de OneUptime utilise le protocole SAML 2.0 et devrait fonc
    - **URL de connexion** (point de terminaison SSO)
    - **Émetteur** (Entity ID de l'IdP)
    - **Certificat public** (certificat de signature X.509)
-4. La **Méthode de signature** (`RSA-SHA256`) et la **Méthode de hachage** (`SHA256`) sont déjà définies sous **Avancé** ; ne les modifiez que si votre fournisseur d'identité signe autrement
+4. La **Méthode de signature** (`RSA-SHA256`) et la **Méthode de hachage** (`SHA256`) sont déjà définies sous **Plus de champs** ; ne les modifiez que si votre fournisseur d'identité signe autrement
 
 ## OpenID Connect (OIDC)
 
@@ -294,7 +294,7 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 1. Enregistrez une application (un client OIDC) auprès de votre fournisseur d'identité et copiez son **URL de l'émetteur**, son **ID client** et son **Secret client**.
 2. Dans OneUptime, naviguez vers **Paramètres du projet** > **Sécurité** > **OIDC** et cliquez sur **Créer : OIDC**.
 3. Saisissez un **Nom** (ce que les utilisateurs voient sur la page de connexion), l'**URL de l'émetteur**, l'**ID client** et le **Secret client**. Vous pouvez aussi coller l'URL de découverte du fournisseur dans **URL de l'émetteur**.
-4. À l'étape **Connexion**, **Équipes** part de l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est rempli sous **Avancé** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur l'exige.
+4. À l'étape **Connexion**, **Équipes** part de l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est rempli sous **Plus de champs** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur l'exige.
 5. Enregistrez. La boîte de dialogue **Configuration OIDC** s'ouvre avec le **Redirect URI** : ajoutez-le aux URI de redirection autorisées de votre application. Un nouveau fournisseur est d'abord désactivé ; modifiez-le ensuite et activez **Activé**.
 6. Utilisez le lien de la carte **Test OpenID Connect (OIDC)** pour vous connecter via le fournisseur avant de rendre le SSO obligatoire pour le projet.
 

@@ -21,8 +21,8 @@ Global SSO, включая переключатель «Require SSO for Login» 
 2. **Создайте поставщика**
 
    - Нажмите **Create Global SSO**.
-   - Для SAML: введите **Name**, **Sign On URL** и **Issuer** от вашего поставщика удостоверений и вставьте **Public Certificate**. Остальное заполняется в разделе **Advanced**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) и описание (`Sign in with` и название). Меняйте их, только если этого требует ваш IdP. После сохранения откроется страница провайдера.
-   - Для OIDC: введите **Name**, **Issuer URL**, а также **Client ID** и **Client Secret** приложения, зарегистрированного в вашем IdP. Можно также вставить в **Issuer URL** URL обнаружения вашего IdP. Остальное заполняется в разделе **Advanced**: **Discovery URL** (издатель, за которым следует `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), имена утверждений `email` и `name` и описание (`Sign in with` и название). Меняйте их, только если этого требует ваш IdP. После сохранения откроется страница провайдера.
+   - Для SAML: введите **Name**, **Sign On URL** и **Issuer** от вашего поставщика удостоверений и вставьте **Public Certificate**. Остальное заполняется в разделе **More fields**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) и описание (`Sign in with` и название). Меняйте их, только если этого требует ваш IdP. После сохранения откроется страница провайдера.
+   - Для OIDC: введите **Name**, **Issuer URL**, а также **Client ID** и **Client Secret** приложения, зарегистрированного в вашем IdP. Можно также вставить в **Issuer URL** URL обнаружения вашего IdP. Остальное заполняется в разделе **More fields**: **Discovery URL** (издатель, за которым следует `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), имена утверждений `email` и `name` и описание (`Sign in with` и название). Меняйте их, только если этого требует ваш IdP. После сохранения откроется страница провайдера.
 
 3. **Скопируйте URL OneUptime в вашего поставщика удостоверений**
 

@@ -58,13 +58,13 @@ An incident episode reaches a page when at least one of its incidents does. Its 
 
 ### When you declare it
 
-On **Incidents → All Incidents → Declare Incident**, the **Resources Affected** step has **Limit to these status pages** under **Advanced**, after the monitors and the other resources. Its placeholder, **Every status page that lists the monitors**, is what leaving it empty means. Pick pages by name, or open the picker's **Labels** tab and pick a label to add every page that carries it.
+On **Incidents → All Incidents → Declare Incident**, the **Resources Affected** step has **Limit to these status pages** under **More fields**, after the monitors and the other resources. Its placeholder, **Every status page that lists the monitors**, is what leaving it empty means. Pick pages by name, or open the picker's **Labels** tab and pick a label to add every page that carries it.
 
 The form warns you:
 
 - when a picked page lists none of the incident's monitors, or no monitor is attached at all. The incident will not show on that page or notify its subscribers;
 - when you also set **Change Monitor Status to**, right under the monitors on the same step. See [Monitor status is shared](#monitor-status-is-shared);
-- when you also tick **Private Incident**, under **Advanced** on the **Incident Details** step. Private incidents are hidden from all status pages, including the ones you picked.
+- when you also tick **Private Incident**, under **More fields** on the **Incident Details** step. Private incidents are hidden from all status pages, including the ones you picked.
 
 The **Details** step, right after **Resources Affected**, asks for the incident custom fields marked **Show on Create** (see [Declaring Incidents](/docs/incidents/declaring-incidents)). Its answers go to every page the incident reaches: custom field values belong to the incident, not to a status page.
 
@@ -72,7 +72,7 @@ The **Details** step, right after **Resources Affected**, asks for the incident 
 
 ### Who will be notified
 
-Under **Notify Status Page Subscribers**, right below the picker under **Advanced** on the **Resources Affected** step, and again on the summary before you submit, the form shows who the incident will reach:
+Under **Notify Status Page Subscribers**, right below the picker under **More fields** on the **Resources Affected** step, and again on the summary before you submit, the form shows who the incident will reach:
 
 > Will notify:
 >

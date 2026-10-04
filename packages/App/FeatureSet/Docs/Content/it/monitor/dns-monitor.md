@@ -45,7 +45,7 @@ I monitor DNS interrogano i server DNS per tipi di record specifici e valutano i
 | SRV            | Record di localizzazione del servizio         |
 | CAA            | Record di Certificate Authority Authorization |
 
-### Impostazioni Avanzate
+### Altri campi
 
 | Campo        | Descrizione                                                           | Predefinito |
 | ------------ | --------------------------------------------------------------------- | ----------- |

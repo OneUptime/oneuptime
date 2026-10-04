@@ -785,7 +785,7 @@ test.describe.skip("Queues Product", () => {
 
     /*
      * Two steps - Messaging System, then Queue Info (with the labels folded
-     * under Advanced at its end). Only the first asks for anything, but
+     * under More fields at its end). Only the first asks for anything, but
      * Create Queue is on the last step only: the first shows a plain Next.
      */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
@@ -802,7 +802,7 @@ test.describe.skip("Queues Product", () => {
       modal.getByPlaceholder("Order events", { exact: true }),
     ).toBeVisible({ timeout: 30000 });
     await expect(
-      modal.getByRole("button", { name: "Advanced", exact: true }),
+      modal.getByRole("button", { name: "More fields", exact: true }),
     ).toHaveAttribute("aria-expanded", "false");
     await expect(next).toHaveCount(0);
     await expect(submit).toHaveText("Create Queue");
@@ -950,7 +950,7 @@ test.describe.skip("Queues Product", () => {
         name: "Step 4: Check that this queue fills in",
       }),
     ).toBeVisible();
-    // How its telemetry finds it is folded under Advanced.
+    // How its telemetry finds it is folded under More fields.
     await page.getByTestId("setup-guide-advanced-toggle").click();
     await page
       .getByTestId("setup-guide-topic")

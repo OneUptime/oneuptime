@@ -31,7 +31,7 @@ interface SharedContext {
 /*
  * Settings > Telemetry Ingestion Keys > Create, for real: real form, real
  * authentication and real persistence. A Server key is one page - its name
- * filled in, Server picked, the description folded under Advanced - and
+ * filled in, Server picked, the description folded under More fields - and
  * the new key opens on its own page, where its secret is. A Browser key
  * walks on to its allowed origins; the Free plan (billing-enabled runs) to
  * the pricing, which has to be shown before the key can be created. A
@@ -107,9 +107,9 @@ test.describe("Creating a telemetry ingestion key", () => {
     return modal().getByTestId(`card-select-option-${keyType}`);
   };
 
-  // The Advanced header on the step on screen.
+  // The More fields header on the step on screen.
   const advanced: () => Locator = (): Locator => {
-    return modal().getByRole("button", { name: /^Advanced/ });
+    return modal().getByRole("button", { name: "More fields", exact: true });
   };
 
   const progressList: () => Locator = (): Locator => {
@@ -368,7 +368,7 @@ test.describe("Creating a telemetry ingestion key", () => {
     expect(key.allowedOrigins || []).toEqual([]);
   });
 
-  test("a Browser key: origins checked on their own step, the pinned service under Advanced, stored as entered", async () => {
+  test("a Browser key: origins checked on their own step, the pinned service under More fields, stored as entered", async () => {
     const name: string = "Browser form key";
     const description: string = "Public telemetry for the storefront.";
     const origins: Array<string> = [
@@ -399,7 +399,7 @@ test.describe("Creating a telemetry ingestion key", () => {
     await next();
     await expect(activeStep()).toHaveText("Browser Settings");
 
-    // The pinned service name waits under this step's Advanced.
+    // The pinned service name waits under this step's More fields.
     await expect(
       modal().getByPlaceholder("storefront-web", { exact: true }),
     ).toBeHidden();

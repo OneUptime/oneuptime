@@ -248,6 +248,15 @@ export const getSsoProviderDescriptionField: GetSsoProviderFoldedFieldFunction =
       placeholder: "Sign in with Okta",
       stepId: options.stepId,
       collapsibleSection: options.collapsibleSection,
+      // "Sign in with" and the name, followed as the name changes.
+      isAtDefault: (values: FormValues<TEntity>): boolean => {
+        return isDefaultSsoProviderDescription({
+          description: ssoFormValueAsText(
+            readSsoFormValue(values, "description"),
+          ),
+          name: ssoFormValueAsText(readSsoFormValue(values, "name")),
+        });
+      },
     };
   };
 

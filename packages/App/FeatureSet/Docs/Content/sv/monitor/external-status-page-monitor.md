@@ -71,7 +71,7 @@ Om statussidan rapporterar om flera komponenter kan du valfritt ange ett kompone
 
 När en komponentgrupp också är angiven tillämpas komponentnamnsfiltret **inom** den gruppen, vilket låter dig rikta in dig på en enskild komponent inuti en större grupp. När inget filter anges övervakas alla komponenter inom omfattningen.
 
-### Avancerade alternativ
+### Fler fält
 
 #### Timeout
 

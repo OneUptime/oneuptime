@@ -71,7 +71,7 @@ Selecione o método HTTP para a requisição:
 - **PATCH**
 - **HEAD**
 
-### Opções Avançadas
+### Mais campos
 
 #### Cabeçalhos de Requisição
 

@@ -169,7 +169,7 @@ A new rule is named after its pattern type ("Scrub email addresses") until you t
 | **Mask** | Partially hides the value, preserving structure | \`user@example.com\` → \`u***@***.com\` |
 | **Hash** | Replaces with a deterministic SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
 
-A new rule redacts, unless you pick another action under **Advanced**.
+A new rule redacts, unless you pick another action under **More fields**.
 
 > **Tip:** Use **Hash** when you need to correlate occurrences of the same value across logs without exposing the actual data. The same input always produces the same hash.
 
@@ -182,7 +182,7 @@ Each log entry has two parts that can contain sensitive data:
 - **Body**: The main log message text
 - **Attributes**: Key-value metadata attached to the log (e.g. \`user.email\`, \`client.ip\`)
 
-A new rule scrubs both; you can choose the body only or attributes only under **Advanced**. A **Sensitive Attribute Keys** rule always scrubs attribute values, since it matches attribute keys.
+A new rule scrubs both; you can choose the body only or attributes only under **More fields**. A **Sensitive Attribute Keys** rule always scrubs attribute values, since it matches attribute keys.
 
 ---
 

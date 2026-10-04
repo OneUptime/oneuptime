@@ -27,7 +27,7 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 2. **Configurar as Definições SCIM**
 
    - Insira um **Nome**. O campo **Equipes Padrão** começa com a equipe de membros do seu projeto: novos usuários são adicionados a essas equipes
-   - Em **Avançado**, **Provisionar usuários automaticamente** (adicionar usuários quando eles são atribuídos no seu IdP) e **Desprovisionar usuários automaticamente** (remover usuários quando eles são desatribuídos no seu IdP) estão ativados, e **Habilitar grupos de push** está desativado. Altere-os lá se precisar
+   - Em **Mais campos**, **Provisionar usuários automaticamente** (adicionar usuários quando eles são atribuídos no seu IdP) e **Desprovisionar usuários automaticamente** (remover usuários quando eles são desatribuídos no seu IdP) estão ativados, e **Habilitar grupos de push** está desativado. Altere-os lá se precisar
    - Salve. A caixa de diálogo com a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP é aberta imediatamente
 
 3. **Configurar Seu Provedor de Identidade**
@@ -74,7 +74,7 @@ O SCIM de Página de Status permite que provedores de identidade gerenciem assin
 
 2. **Configurar as Definições SCIM**
 
-   - Insira um **Nome**. Em **Avançado**, **Provisionar usuários automaticamente** (adicionar assinantes quando eles são atribuídos no seu IdP) e **Desprovisionar usuários automaticamente** (remover assinantes quando eles são desatribuídos no seu IdP) estão ativados. Altere-os lá se precisar
+   - Insira um **Nome**. Em **Mais campos**, **Provisionar usuários automaticamente** (adicionar assinantes quando eles são atribuídos no seu IdP) e **Desprovisionar usuários automaticamente** (remover assinantes quando eles são desatribuídos no seu IdP) estão ativados. Altere-os lá se precisar
    - Salve. A caixa de diálogo com a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP é aberta imediatamente
 
 3. **Configurar Seu Provedor de Identidade**
@@ -122,8 +122,8 @@ O Microsoft Entra ID fornece gerenciamento de identidade empresarial com recurso
 4. Insira um nome amigável (ex.: "Microsoft Entra ID Provisioning")
 5. Confira as opções:
    - **Equipes Padrão**: começa com a equipe de membros do seu projeto; novos usuários são adicionados a essas equipes
-   - **Provisionar usuários automaticamente** e **Desprovisionar usuários automaticamente**: ativados, em **Avançado**
-   - **Habilitar grupos de push**: em **Avançado**; ative se quiser gerenciar a adesão à equipe via grupos do Entra ID
+   - **Provisionar usuários automaticamente** e **Desprovisionar usuários automaticamente**: ativados, em **Mais campos**
+   - **Habilitar grupos de push**: em **Mais campos**; ative se quiser gerenciar a adesão à equipe via grupos do Entra ID
 6. Salve a configuração
 7. Copie a **SCIM Base URL** e o **Bearer Token** da caixa de diálogo que é aberta — você precisará desses para o Entra ID
 
@@ -223,8 +223,8 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 4. Insira um nome amigável (ex.: "Okta Provisioning")
 5. Confira as opções:
    - **Equipes Padrão**: começa com a equipe de membros do seu projeto; novos usuários são adicionados a essas equipes
-   - **Provisionar usuários automaticamente** e **Desprovisionar usuários automaticamente**: ativados, em **Avançado**
-   - **Habilitar grupos de push**: em **Avançado**; ative se quiser gerenciar a adesão à equipe via grupos do Okta
+   - **Provisionar usuários automaticamente** e **Desprovisionar usuários automaticamente**: ativados, em **Mais campos**
+   - **Habilitar grupos de push**: em **Mais campos**; ative se quiser gerenciar a adesão à equipe via grupos do Okta
 6. Salve a configuração
 7. Copie a **SCIM Base URL** e o **Bearer Token** da caixa de diálogo que é aberta — você precisará desses para o Okta
 

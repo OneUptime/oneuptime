@@ -357,8 +357,8 @@ test.describe("SLOs", () => {
     );
 
     /*
-     * One page of three rows: the name, the target and the folded Advanced
-     * section. There is no step list and no Next - the target was the only
+     * One page of three rows: the name, the target and the folded More
+     * fields section. There is no step list and no Next - the target was the only
      * thing without a default, and it comes prefilled - so the one button
      * creates. No Monitors field either: monitors are attached on the SLO's
      * Monitors page or by a monitor rule.
@@ -374,11 +374,13 @@ test.describe("SLOs", () => {
     ).toHaveCount(0);
 
     /*
-     * Advanced is folded, and says what its defaults do instead of hiding
-     * them: the window the target is measured over, and when it warns.
+     * More fields is folded, names what it holds, and says what its
+     * defaults do instead of hiding them: the window the target is measured
+     * over, and when it warns.
      */
     const advancedHeader: Locator = form.getByRole("button", {
-      name: /^Advanced/,
+      name: "More fields",
+      exact: true,
     });
     const labelsInput: Locator = form.getByRole("combobox", {
       name: "Labels (Optional)",
@@ -397,6 +399,10 @@ test.describe("SLOs", () => {
     await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
     await expect(form.getByTestId("collapsible-section-summary")).toHaveText(
       "Measured over a rolling 30-day window, and At Risk when less than 20% of the error budget is left.",
+    );
+    // What is inside, by name, on the folded header.
+    await expect(form.getByTestId("folded-section-contents")).toContainText(
+      "Description",
     );
     await expect(labelsInput).toBeHidden();
     await expect(descriptionInput).toBeHidden();
@@ -936,15 +942,17 @@ test.describe("SLOs", () => {
 
     /*
      * The details card is trimmed to what describes the SLO: name,
-     * description and labels (folded under Advanced, as on the create
-     * form). What it measures is edited on Settings, so the objective and
+     * description and labels (folded under More fields, as on the
+     * create form). What it measures is edited on Settings, so the objective and
      * period fields must not be offered here.
      */
     const labelsInput: Locator = modal.getByRole("combobox", {
       name: /^Labels\b/,
     });
     await expect(labelsInput).toBeHidden();
-    await modal.getByRole("button", { name: /^Advanced/ }).click();
+    await modal
+      .getByRole("button", { name: "More fields", exact: true })
+      .click();
     await expect(labelsInput).toBeVisible();
     await expect(modal.getByLabel("Target (%)")).toHaveCount(0);
     await expect(modal.getByLabel("Window (Days)")).toHaveCount(0);

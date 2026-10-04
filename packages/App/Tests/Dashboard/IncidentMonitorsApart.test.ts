@@ -435,7 +435,7 @@ describe("the incident's Affected Resources card", () => {
 });
 
 describe("an incident template's create wizard", () => {
-  test("folds the status pages it limits its incidents to under Advanced, at the end of Resources Affected", () => {
+  test("folds the status pages it limits its incidents to under More fields, at the end of Resources Affected", () => {
     const source: string = dense(
       "Pages/Incidents/Settings/IncidentTemplates.tsx",
     );

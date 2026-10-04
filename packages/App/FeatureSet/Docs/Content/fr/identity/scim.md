@@ -27,7 +27,7 @@ Le SCIM de projet permet aux fournisseurs d'identité de gérer les membres d'é
 2. **Configurer les paramètres SCIM**
 
    - Saisissez un **Nom**. Le champ **Équipes par défaut** commence par l'équipe des membres de votre projet : les nouveaux utilisateurs sont ajoutés à ces équipes
-   - Sous **Avancé**, **Provisionner automatiquement les utilisateurs** (ajouter les utilisateurs lorsqu'ils sont affectés dans votre IdP) et **Déprovisionner automatiquement les utilisateurs** (supprimer les utilisateurs lorsqu'ils sont désaffectés dans votre IdP) sont activés, et **Activer les groupes Push** est désactivé. Modifiez-les là si nécessaire
+   - Sous **Plus de champs**, **Provisionner automatiquement les utilisateurs** (ajouter les utilisateurs lorsqu'ils sont affectés dans votre IdP) et **Déprovisionner automatiquement les utilisateurs** (supprimer les utilisateurs lorsqu'ils sont désaffectés dans votre IdP) sont activés, et **Activer les groupes Push** est désactivé. Modifiez-les là si nécessaire
    - Enregistrez. La boîte de dialogue avec l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP s'ouvre aussitôt
 
 3. **Configurer votre fournisseur d'identité**
@@ -74,7 +74,7 @@ Le SCIM de page de statut permet aux fournisseurs d'identité de gérer les abon
 
 2. **Configurer les paramètres SCIM**
 
-   - Saisissez un **Nom**. Sous **Avancé**, **Provisionner automatiquement les utilisateurs** (ajouter les abonnés lorsqu'ils sont affectés dans votre IdP) et **Déprovisionner automatiquement les utilisateurs** (supprimer les abonnés lorsqu'ils sont désaffectés dans votre IdP) sont activés. Modifiez-les là si nécessaire
+   - Saisissez un **Nom**. Sous **Plus de champs**, **Provisionner automatiquement les utilisateurs** (ajouter les abonnés lorsqu'ils sont affectés dans votre IdP) et **Déprovisionner automatiquement les utilisateurs** (supprimer les abonnés lorsqu'ils sont désaffectés dans votre IdP) sont activés. Modifiez-les là si nécessaire
    - Enregistrez. La boîte de dialogue avec l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP s'ouvre aussitôt
 
 3. **Configurer votre fournisseur d'identité**
@@ -122,8 +122,8 @@ Microsoft Entra ID fournit une gestion des identités de niveau entreprise avec 
 4. Saisissez un nom convivial (par ex., « Provisionnement Microsoft Entra ID »)
 5. Vérifiez les options :
    - **Équipes par défaut** : commence par l'équipe des membres de votre projet ; les nouveaux utilisateurs sont ajoutés à ces équipes
-   - **Provisionner automatiquement les utilisateurs** et **Déprovisionner automatiquement les utilisateurs** : activés, sous **Avancé**
-   - **Activer les groupes Push** : sous **Avancé** ; activez-le si vous souhaitez gérer l'appartenance aux équipes via les groupes Entra ID
+   - **Provisionner automatiquement les utilisateurs** et **Déprovisionner automatiquement les utilisateurs** : activés, sous **Plus de champs**
+   - **Activer les groupes Push** : sous **Plus de champs** ; activez-le si vous souhaitez gérer l'appartenance aux équipes via les groupes Entra ID
 6. Enregistrez la configuration
 7. Copiez l'**URL de base SCIM** et le **Jeton Bearer** depuis la boîte de dialogue qui s'ouvre — vous en aurez besoin pour Entra ID
 
@@ -223,8 +223,8 @@ Okta fournit une gestion des identités flexible avec un excellent support SCIM.
 4. Saisissez un nom convivial (par ex., « Provisionnement Okta »)
 5. Vérifiez les options :
    - **Équipes par défaut** : commence par l'équipe des membres de votre projet ; les nouveaux utilisateurs sont ajoutés à ces équipes
-   - **Provisionner automatiquement les utilisateurs** et **Déprovisionner automatiquement les utilisateurs** : activés, sous **Avancé**
-   - **Activer les groupes Push** : sous **Avancé** ; activez-le si vous souhaitez gérer l'appartenance aux équipes via les groupes Okta
+   - **Provisionner automatiquement les utilisateurs** et **Déprovisionner automatiquement les utilisateurs** : activés, sous **Plus de champs**
+   - **Activer les groupes Push** : sous **Plus de champs** ; activez-le si vous souhaitez gérer l'appartenance aux équipes via les groupes Okta
 6. Enregistrez la configuration
 7. Copiez l'**URL de base SCIM** et le **Jeton Bearer** depuis la boîte de dialogue qui s'ouvre — vous en aurez besoin pour Okta
 
