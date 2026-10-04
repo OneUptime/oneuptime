@@ -31,7 +31,15 @@ import ts from "typescript";
  *   - an <Alert> (Common/UI/Components/Alerts/Alert) whose type is
  *     AlertType.INFO, or left out - INFO is the component's default;
  *   - an <AlertBanner> (Common/UI/Components/AlertBanner/AlertBanner) of
- *     type AlertBannerType.Info.
+ *     type AlertBannerType.Info;
+ *   - a hand-built one: a plain element (a <div>) tinted like an info Alert
+ *     (bg-blue-50, or the sky, indigo or cyan 50 next to it) that holds the
+ *     info glyph (<Icon icon={IconProp.Info}> or InformationCircle). The
+ *     Kubernetes Control Plane and Service Mesh pages each opened on one of
+ *     these, a Helm setup hint above charts that worked; they now say it in
+ *     place of the charts, only when the charts come back empty. A tinted
+ *     tile holding another icon, and a grey or amber note, are not info
+ *     banners.
  *
  * A banner is fine when the page shows it under a condition: `cond && …`,
  * `cond ? … : …`, `??` or `||`, a branch of an `if` or a `switch`, a loop or
@@ -64,12 +72,27 @@ const APPS: Array<string> = [
 const ALERT_MODULE_SUFFIX: string = "/Components/Alerts/Alert";
 const ALERT_BANNER_MODULE_SUFFIX: string =
   "/Components/AlertBanner/AlertBanner";
+const ICON_MODULE_SUFFIX: string = "/Components/Icon/Icon";
 
-// Cheap first pass: only files that import one of the two are parsed.
+/*
+ * Cheap first pass: only files that import one of the two components, or
+ * that hold both an info glyph and an info tint, are parsed.
+ */
 const MENTIONS_A_BANNER: RegExp = /Alerts\/Alert"|AlertBanner\/AlertBanner"/;
+const MENTIONS_INFO_GLYPH: RegExp = /\bIconProp\.(Info|InformationCircle)\b/;
+const MENTIONS_INFO_TINT: RegExp = /\bbg-(blue|sky|indigo|cyan)-50\b/;
 
 const INFO_ALERT_TYPE: RegExp = /\bAlertType\.INFO\b/;
 const INFO_BANNER_TYPE: RegExp = /\bAlertBannerType\.Info\b/;
+/*
+ * The surface of an info Alert (border-blue-200 bg-blue-50) and its near
+ * neighbours, opacity variants included (bg-indigo-50/60). A hover: or
+ * dark: variant is not the box's own colour.
+ */
+const INFO_TINT_CLASS: RegExp =
+  /(^|[\s"'`{(])bg-(blue|sky|indigo|cyan)-50(\/\d+)?(?=$|[\s"'`})])/;
+const INFO_GLYPH: RegExp = /\bIconProp\.(Info|InformationCircle)\b/;
+const INTRINSIC_TAG: RegExp = /^[a-z]/;
 const COMPONENT_NAME: RegExp = /^[A-Z]/;
 const WHITESPACE: RegExp = /\s+/g;
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
@@ -80,7 +103,8 @@ function stripComments(text: string): string {
   return text.replace(BLOCK_COMMENT, " ").replace(LINE_COMMENT, "$1");
 }
 
-type BannerComponent = "Alert" | "AlertBanner";
+// "HandBuilt": a tinted plain element holding the info glyph.
+type BannerComponent = "Alert" | "AlertBanner" | "HandBuilt";
 
 /*
  * When the banner shows: under a condition, decided wherever the function
@@ -257,13 +281,7 @@ function getBannerImports(source: ts.SourceFile): Map<string, BannerComponent> {
 function getTypeAttribute(
   attributes: ts.JsxAttributes,
 ): ts.JsxAttribute | undefined {
-  return attributes.properties.find(
-    (attribute: ts.JsxAttributeLike): attribute is ts.JsxAttribute => {
-      return (
-        ts.isJsxAttribute(attribute) && attribute.name.getText() === "type"
-      );
-    },
-  );
+  return getAttribute(attributes, "type");
 }
 
 function hasSpreadAttribute(attributes: ts.JsxAttributes): boolean {
@@ -294,6 +312,108 @@ function isInfo(
     : INFO_BANNER_TYPE.test(text);
 }
 
+// The names this file gives the Icon component's default export.
+function getIconImports(source: ts.SourceFile): Set<string> {
+  const names: Set<string> = new Set();
+
+  for (const statement of source.statements) {
+    if (
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.moduleSpecifier.text.endsWith(ICON_MODULE_SUFFIX) &&
+      statement.importClause?.name
+    ) {
+      names.add(statement.importClause.name.text);
+    }
+  }
+
+  return names;
+}
+
+function getAttribute(
+  attributes: ts.JsxAttributes,
+  name: string,
+): ts.JsxAttribute | undefined {
+  return attributes.properties.find(
+    (attribute: ts.JsxAttributeLike): attribute is ts.JsxAttribute => {
+      return ts.isJsxAttribute(attribute) && attribute.name.getText() === name;
+    },
+  );
+}
+
+// Whether `element` holds an <Icon> drawing the info glyph, at any depth.
+function holdsInfoGlyph(
+  element: ts.JsxElement,
+  iconNames: Set<string>,
+  source: ts.SourceFile,
+): boolean {
+  let found: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) &&
+      iconNames.has(node.tagName.getText(source))
+    ) {
+      const icon: ts.JsxAttribute | undefined = getAttribute(
+        node.attributes,
+        "icon",
+      );
+
+      if (
+        icon?.initializer &&
+        INFO_GLYPH.test(icon.initializer.getText(source))
+      ) {
+        found = true;
+        return;
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  for (const child of element.children) {
+    visit(child);
+  }
+
+  return found;
+}
+
+/*
+ * A plain element tinted like an info Alert that holds the info glyph: an
+ * info banner built by hand. A class that can be the tint (one side of a
+ * ternary) counts, as a type that can be INFO does for <Alert>.
+ */
+function isHandBuiltInfoBox(
+  element: ts.JsxElement,
+  iconNames: Set<string>,
+  source: ts.SourceFile,
+): boolean {
+  if (
+    iconNames.size === 0 ||
+    !INTRINSIC_TAG.test(element.openingElement.tagName.getText(source))
+  ) {
+    return false;
+  }
+
+  const className: ts.JsxAttribute | undefined = getAttribute(
+    element.openingElement.attributes,
+    "className",
+  );
+
+  if (
+    !className?.initializer ||
+    !INFO_TINT_CLASS.test(className.initializer.getText(source))
+  ) {
+    return false;
+  }
+
+  return holdsInfoGlyph(element, iconNames, source);
+}
+
 function findInfoBanners(file: string, text: string): Array<InfoBanner> {
   const source: ts.SourceFile = ts.createSourceFile(
     file,
@@ -303,11 +423,31 @@ function findInfoBanners(file: string, text: string): Array<InfoBanner> {
     ts.ScriptKind.TSX,
   );
   const bannerNames: Map<string, BannerComponent> = getBannerImports(source);
+  const iconNames: Set<string> = getIconImports(source);
   const banners: Array<InfoBanner> = [];
 
-  if (bannerNames.size === 0) {
+  if (bannerNames.size === 0 && iconNames.size === 0) {
     return banners;
   }
+
+  const record: (
+    node: ts.Node,
+    opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
+    component: BannerComponent,
+  ) => void = (
+    node: ts.Node,
+    opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
+    component: BannerComponent,
+  ): void => {
+    banners.push({
+      file: file,
+      line:
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+      component: component,
+      shownWhen: getShownWhen(node),
+      tag: opening.getText(source).replace(WHITESPACE, " ").slice(0, 160),
+    });
+  };
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     let opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement | null = null;
@@ -323,14 +463,14 @@ function findInfoBanners(file: string, text: string): Array<InfoBanner> {
       : undefined;
 
     if (opening && component && isInfo(component, opening.attributes, source)) {
-      banners.push({
-        file: file,
-        line:
-          source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-        component: component,
-        shownWhen: getShownWhen(node),
-        tag: opening.getText(source).replace(WHITESPACE, " ").slice(0, 160),
-      });
+      record(node, opening, component);
+    } else if (
+      ts.isJsxElement(node) &&
+      isHandBuiltInfoBox(node, iconNames, source)
+    ) {
+      record(node, node.openingElement, "HandBuilt");
+      // Everything inside it is the same banner.
+      return;
     }
 
     ts.forEachChild(node, visit);
@@ -373,9 +513,11 @@ const BANNERS: Array<InfoBanner> = PAGE_FILES.flatMap(
   (file: string): Array<InfoBanner> => {
     const text: string = fs.readFileSync(file, "utf8");
 
-    return MENTIONS_A_BANNER.test(text)
-      ? findInfoBanners(relative(file), text)
-      : [];
+    const mightHoldABanner: boolean =
+      MENTIONS_A_BANNER.test(text) ||
+      (MENTIONS_INFO_GLYPH.test(text) && MENTIONS_INFO_TINT.test(text));
+
+    return mightHoldABanner ? findInfoBanners(relative(file), text) : [];
   },
 );
 
@@ -617,6 +759,189 @@ const Page: FunctionComponent<PageComponentProps> = (): ReactElement => {
   });
 });
 
+// A page module with the Icon component imported, wrapped around `body`.
+function pageWithIcon(body: string): string {
+  return `
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+const Page: FunctionComponent<PageComponentProps> = (): ReactElement => {
+${body}
+};
+
+export default Page;
+`;
+}
+
+function bannersOf(text: string): Array<[BannerComponent, ShownWhen]> {
+  return findInfoBanners("Synthetic.tsx", text).map(
+    (banner: InfoBanner): [BannerComponent, ShownWhen] => {
+      return [banner.component, banner.shownWhen];
+    },
+  );
+}
+
+describe("the rule, on info banners built by hand", () => {
+  test("a blue box holding the info glyph is an info banner, and always on when the page always draws it", () => {
+    // The box the Kubernetes Control Plane page opened on, every time.
+    expect(
+      bannersOf(
+        pageWithIcon(`
+  return (
+    <Fragment>
+      <div className="mb-5 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <div className="flex-shrink-0 mt-0.5">
+          <Icon icon={IconProp.Info} className="h-5 w-5 text-blue-500" />
+        </div>
+        <p className="text-sm text-blue-800">Set a Helm value.</p>
+      </div>
+      <Tabs tabs={tabs} />
+    </Fragment>
+  );`),
+      ),
+    ).toEqual([["HandBuilt", "always"]]);
+  });
+
+  test("shown only when the list is empty, it is conditional", () => {
+    // Ceph's Cluster Log page: the hint shows while no rows have arrived.
+    expect(
+      bannersOf(
+        pageWithIcon(`
+  return (
+    <Fragment>
+      {rows.length === 0 && !hasActiveFilters && (
+        <div className="mb-5 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <Icon icon={IconProp.Info} className="h-5 w-5 text-blue-500" />
+          <p>Nothing logged yet.</p>
+        </div>
+      )}
+    </Fragment>
+  );`),
+      ),
+    ).toEqual([["HandBuilt", "condition"]]);
+  });
+
+  test("the sky, indigo and cyan tints, an opacity variant, a template class and InformationCircle count too", () => {
+    expect(
+      bannersOf(
+        pageWithIcon(`
+  return (
+    <Fragment>
+      <div className="rounded-lg bg-sky-50 p-3"><Icon icon={IconProp.Info} /></div>
+      <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3"><Icon icon={IconProp.InformationCircle} /></section>
+      <div className={\`rounded p-2 \${spacing} bg-cyan-50\`}><span><Icon icon={IconProp.Info} /></span></div>
+      <div className={isOn ? "bg-blue-50 p-2" : "bg-gray-50 p-2"}><Icon icon={IconProp.Info} /></div>
+    </Fragment>
+  );`),
+      ),
+    ).toEqual([
+      ["HandBuilt", "always"],
+      ["HandBuilt", "always"],
+      ["HandBuilt", "always"],
+      ["HandBuilt", "always"],
+    ]);
+  });
+
+  test("a box inside an info box is the same banner, counted once", () => {
+    expect(
+      bannersOf(
+        pageWithIcon(`
+  return (
+    <div className="bg-blue-50 p-4">
+      <div className="bg-blue-50/50 rounded p-1">
+        <Icon icon={IconProp.Info} />
+      </div>
+    </div>
+  );`),
+      ),
+    ).toEqual([["HandBuilt", "always"]]);
+  });
+
+  test("a tinted icon tile, a grey or amber note and a hover tint are not info banners", () => {
+    expect(
+      bannersOf(
+        pageWithIcon(`
+  return (
+    <Fragment>
+      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+        <Icon icon={IconProp.Kubernetes} className="h-4 w-4 text-blue-600" />
+      </div>
+      <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3">
+        <Icon icon={IconProp.InformationCircle} />
+        Flame graph: wider bars took longer.
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <Icon icon={IconProp.Info} />
+      </div>
+      <button className="rounded bg-white hover:bg-blue-50">
+        <Icon icon={IconProp.Info} />
+      </button>
+      <Card className="bg-blue-50">
+        <Icon icon={IconProp.Info} />
+      </Card>
+    </Fragment>
+  );`),
+      ),
+    ).toEqual([]);
+  });
+
+  test("the Icon is found by its import, under any name; without the import there is nothing to judge", () => {
+    expect(
+      bannersOf(`
+import Glyph from "Common/UI/Components/Icon/Icon";
+
+const Page: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return (
+    <div className="bg-blue-50 p-4">
+      <Glyph icon={IconProp.Info} />
+    </div>
+  );
+};
+`),
+    ).toEqual([["HandBuilt", "always"]]);
+
+    expect(
+      bannersOf(`
+const Page: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return (
+    <div className="bg-blue-50 p-4">
+      <Icon icon={IconProp.Info} />
+    </div>
+  );
+};
+`),
+    ).toEqual([]);
+  });
+
+  test("a hand-built box in a callback or a lower-case helper is judged where that runs", () => {
+    expect(
+      bannersOf(`
+import Icon from "Common/UI/Components/Icon/Icon";
+
+const renderHint = (): ReactElement => {
+  return (
+    <div className="bg-blue-50 p-4"><Icon icon={IconProp.Info} /></div>
+  );
+};
+
+const Page: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return (
+    <Fragment>
+      {hints.map((hint: string): ReactElement => {
+        return <div className="bg-blue-50 p-4"><Icon icon={IconProp.Info} />{hint}</div>;
+      })}
+    </Fragment>
+  );
+};
+`),
+    ).toEqual([
+      ["HandBuilt", "elsewhere"],
+      ["HandBuilt", "elsewhere"],
+    ]);
+  });
+});
+
 describe("every page of every app", () => {
   test("the scan reads the pages", () => {
     // About 1,100 Dashboard pages and 100 more in the other apps.
@@ -645,6 +970,8 @@ describe("every page of every app", () => {
       "Dashboard/src/Pages/NetworkDevice/Discovery.tsx",
       "Dashboard/src/Pages/Slo/View/Monitors.tsx",
       "AdminDashboard/src/Pages/Projects/View/Support.tsx",
+      // Hand-built: shown while the log is empty and unfiltered.
+      "Dashboard/src/Pages/Ceph/View/ClusterLog.tsx",
     ]) {
       const banners: Array<InfoBanner> = bannersIn(file);
 
@@ -703,6 +1030,55 @@ describe("the four pages this rule came from", () => {
     );
     expect(read("Database/View/Settings.tsx")).not.toContain(
       "Which telemetry this covers.",
+    );
+  });
+});
+
+describe("the Kubernetes pages whose setup hints were hand-built banners", () => {
+  const PAGES: Array<string> = [
+    "Dashboard/src/Pages/Kubernetes/View/ControlPlane.tsx",
+    "Dashboard/src/Pages/Kubernetes/View/ServiceMesh.tsx",
+  ];
+
+  test.each(PAGES)("%s has no info banner at all", (file: string): void => {
+    const text: string = fs.readFileSync(
+      path.join(FEATURE_SET_DIR, file),
+      "utf8",
+    );
+
+    expect(findInfoBanners(file, text).map(describeBanner)).toEqual([]);
+    expect(stripComments(text)).not.toMatch(INFO_TINT_CLASS);
+    expect(stripComments(text)).not.toMatch(INFO_GLYPH);
+  });
+
+  test.each(PAGES)(
+    "%s says how its metrics are collected in place of empty charts, not above them",
+    (file: string): void => {
+      const text: string = stripComments(
+        fs.readFileSync(path.join(FEATURE_SET_DIR, file), "utf8"),
+      );
+
+      expect(text).toContain("<EmbeddedMetricCardGroup");
+      expect(text).toContain("renderEmptyState=");
+      expect(text).toContain("<KubernetesMetricsSetupEmptyState");
+    },
+  );
+
+  test("their banners' sentences are not on the pages any more", () => {
+    const controlPlane: string = stripComments(
+      fs.readFileSync(path.join(FEATURE_SET_DIR, PAGES[0]!), "utf8"),
+    );
+    const serviceMesh: string = stripComments(
+      fs.readFileSync(path.join(FEATURE_SET_DIR, PAGES[1]!), "utf8"),
+    );
+
+    expect(controlPlane).not.toContain("Control Plane Metrics Configuration");
+    expect(controlPlane).not.toContain(
+      "CoreDNS metrics are available on all clusters",
+    );
+    expect(serviceMesh).not.toContain("Service Mesh Metrics Configuration");
+    expect(serviceMesh).not.toContain(
+      "Select the tab matching your provider below",
     );
   });
 });

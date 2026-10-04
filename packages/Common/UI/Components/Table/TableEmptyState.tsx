@@ -45,6 +45,12 @@ export interface TableEmptyStateAction {
   disabled?: boolean | undefined;
   // Why a disabled action is disabled, on hover.
   tooltip?: string | undefined;
+  /*
+   * The action is running (checking again, say): a spinner in place of its
+   * icon, and pressing it again does nothing. It stays focusable - a
+   * disabled button drops the keyboard focus of whoever just pressed it.
+   */
+  isLoading?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -54,6 +60,12 @@ export interface ComponentProps {
   kind: TableEmptyStateKind;
   title: string | ReactElement;
   description?: string | ReactElement | undefined;
+  /*
+   * Something the caller built itself, drawn between the description and
+   * the actions - the command that fills an empty chart, say. Left-aligned,
+   * and wider than the sentences above it.
+   */
+  body?: ReactElement | undefined;
   // Drawn on the illustration. Each kind has its own when this is not set.
   icon?: IconProp | undefined;
   actions?: Array<TableEmptyStateAction> | undefined;
@@ -181,6 +193,17 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {props.body ? (
+        <div
+          className="mt-5 w-full min-w-0 max-w-2xl text-left"
+          data-testid={`${testId}-body`}
+        >
+          {props.body}
+        </div>
+      ) : (
+        <></>
+      )}
+
       {hasActions ? (
         /*
          * A column on a phone, where each button takes the full width and
@@ -196,13 +219,24 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
               action.style === TableEmptyStateActionStyle.Link;
 
             return (
+              /*
+               * Keyed by what the action is, not by its words: an action
+               * whose title changes while it runs ("Check again" to
+               * "Checking…") stays the same button, and keeps the focus.
+               */
               <div
-                key={`${action.title}-${index}`}
+                key={action.dataTestId || `action-${index}`}
                 className={isLink ? "" : "w-full sm:w-auto"}
+                aria-busy={action.isLoading ? true : undefined}
               >
                 <Button
                   title={action.title}
-                  icon={action.icon}
+                  /*
+                   * A running action spins in place of its icon but is not
+                   * disabled: a disabled button would drop the focus of
+                   * whoever just pressed it. Pressing it again does nothing.
+                   */
+                  icon={action.isLoading ? IconProp.Spinner : action.icon}
                   buttonStyle={
                     isLink ? ButtonStyleType.LINK : ButtonStyleType.NORMAL
                   }
@@ -210,14 +244,14 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
                    * A locked button is dimmed, so it does not read as the
                    * way forward the note under it says it is not.
                    */
-                  className={
+                  className={`${
                     isLink ? "text-sm font-medium" : "disabled:opacity-60"
-                  }
+                  }${action.isLoading ? " cursor-wait [&_svg]:animate-spin" : ""}`}
                   disabled={action.disabled}
                   tooltip={action.tooltip}
                   dataTestId={action.dataTestId}
                   onClick={() => {
-                    if (action.disabled) {
+                    if (action.disabled || action.isLoading) {
                       return;
                     }
 
