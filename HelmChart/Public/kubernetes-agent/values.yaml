@@ -1168,10 +1168,22 @@ ebpf:
   #
   # The agent's collector drops OBI's http.server.* datapoints for GET on
   # port 9229 with one of those routes (`/*` only when answered 101). A
-  # datapoint carries no client address, so an app that serves its own
-  # WebSocket upgrades on port 9229 loses those datapoints too; set false if
-  # that is yours. Spans are not this switch's business: OneUptime drops the
-  # injection's traces itself on ingest, where the client address is known.
+  # datapoint carries no client address, so an app's own GET /json/list or
+  # /json/version on port 9229, and its own WebSocket upgrades there that
+  # OBI names `/*` (no route template), lose their datapoints too; set false
+  # if that is yours. Those route names are OBI's default naming
+  # (`routes.unmatched` heuristic): with another `routes.unmatched`, or a
+  # `routes.patterns` entry that matches those paths, some or all of the
+  # injection's datapoints are kept. Nothing is dropped with `nodejs.enabled`
+  # false, since OBI then never injects.
+  #
+  # Only the http.server.* request metrics are filtered. OBI's span metrics
+  # (`features.spanMetrics`) carry neither the port nor the HTTP status, so
+  # they still count a GET /json/list call per injection (and a GET
+  # /json/version for an app started with --inspect) and add the upgrade to
+  # the app's GET /*. Spans are not this switch's business: OneUptime drops
+  # the injection's traces itself on ingest, where the client address is
+  # known.
   dropNodeInspectorMetrics: true
 
   # Log ↔ trace correlation. OBI's log enricher attaches a uprobe to

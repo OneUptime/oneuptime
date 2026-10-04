@@ -85,6 +85,7 @@ tests:
   - it: stays on for a release upgraded with --reuse-values from values that predate it
     set:
       ebpf.dropNodeInspectorMetrics: null
+      ebpf.nodejs: null
     asserts:
       - template: templates/configmap-deployment.yaml
         matchRegex:
@@ -108,6 +109,21 @@ tests:
         matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n"
+
+  - it: does not exist when OBI's Node.js agent is off, since OBI then never injects it
+    set:
+      ebpf.nodejs.enabled: false
+      ebpf.dropNodeInspectorMetrics: true
+    asserts:
+      # All it could drop then is an app's own datapoints.
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-node-inspector"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n    logs:\\n"
 
   - it: is its own switch, apart from the database span filters
     set:

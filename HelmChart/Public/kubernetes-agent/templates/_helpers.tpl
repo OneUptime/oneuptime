@@ -378,11 +378,13 @@ resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentat
 {{/*
 Whether to drop OBI's HTTP server metrics for its own Node.js inspector
 requests in `filter/ebpf-node-inspector` (ebpf.dropNodeInspectorMetrics).
-Only with eBPF on (OBI is what sends them), and on unless explicitly set to
-false, for the same --reuse-values reason as the database switches above.
+Only with eBPF on (OBI is what sends them) and its Node.js agent on (with
+ebpf.nodejs.enabled=false OBI never injects, so the filter could only drop an
+app's own datapoints), and on unless explicitly set to false, for the same
+--reuse-values reason as the database switches above.
 */}}
 {{- define "kubernetes-agent.dropNodeInspectorMetrics" -}}
-{{- and (.Values.ebpf.enabled | default false) (ne (toString .Values.ebpf.dropNodeInspectorMetrics) "false") -}}
+{{- and (.Values.ebpf.enabled | default false) (ne (toString ((.Values.ebpf.nodejs | default dict).enabled)) "false") (ne (toString .Values.ebpf.dropNodeInspectorMetrics) "false") -}}
 {{- end -}}
 
 {{/*
@@ -396,10 +398,22 @@ inspector was already open) and the WebSocket upgrade that follows, on
   - telemetry.distro.name scopes it to OBI: the receiver also takes what
     applications push from their own SDKs.
   - A datapoint has no client address, so this cannot tell OBI's requests
-    from anyone else's GET of those routes on port 9229 — an app's own
-    WebSocket upgrades on 9229 lose their datapoints too. OneUptime drops
-    the matching spans on ingest, where the client address is known.
-  - http.route, not url.path: OBI's metrics carry only the route.
+    from anyone else's on port 9229: an app's own GET /json/list or
+    /json/version there, and its own WebSocket upgrades there that OBI names
+    /* (no route template), lose their datapoints too. OneUptime drops the
+    matching spans on ingest, where the client address is known.
+  - http.route, not url.path: OBI's metrics carry only the route. These are
+    the names OBI gives those requests with the default route naming
+    (ebpf.routes.unmatched heuristic); with another ebpf.routes.unmatched,
+    or an ebpf.routes.patterns entry that matches them, some or all of the
+    injection's datapoints are kept.
+  - Only http.server.*. OBI's span metrics (ebpf.features.spanMetrics) carry
+    neither the port nor the HTTP status, only the span name, so they still
+    count a GET /json/list call per injection (and a GET /json/version for
+    an app started with --inspect) and add the upgrade to the app's GET /*.
+    Dropping span.name "GET /json/list" would also drop a real DevTools
+    endpoint's (a headless Chrome or browserless service), so they are left
+    alone.
 */}}
 {{- define "kubernetes-agent.ebpfNodeInspectorMetricCondition" -}}
 resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and IsMatch(metric.name, "^http\\.server\\.") and attributes["server.port"] == 9229 and attributes["http.request.method"] == "GET" and (attributes["http.route"] == "/json/list" or attributes["http.route"] == "/json/version" or (attributes["http.route"] == "/*" and attributes["http.response.status_code"] == 101))

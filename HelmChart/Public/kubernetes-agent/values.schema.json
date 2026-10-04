@@ -892,7 +892,7 @@
         },
         "dropNodeInspectorMetrics": {
           "type": "boolean",
-          "description": "Drop the http.server.* datapoints OBI v0.14 records for its own Node.js agent injection: GET on port 9229 with route /json/list, /json/version, or /* answered 101. A datapoint has no client address, so an app's own WebSocket upgrades on port 9229 are dropped too. Only OBI's datapoints are considered; OneUptime drops the injection's spans on ingest."
+          "description": "Drop the http.server.* datapoints OBI v0.14 records for its own Node.js agent injection: GET on port 9229 with route /json/list, /json/version, or /* answered 101 (OBI's default route naming; nothing is dropped with ebpf.nodejs.enabled false). A datapoint has no client address, so an app's own GET /json/list or /json/version on port 9229, and its own WebSocket upgrades there that OBI names /*, are dropped too. Only OBI's http.server.* datapoints are considered: its span metrics still count the injection. OneUptime drops the injection's spans on ingest."
         },
         "logToTraceCorrelation": {
           "type": "boolean",
