@@ -6,7 +6,28 @@ OneUptime supports sending emails via custom SMTP servers with three authenticat
 - **OAuth 2.0** - Modern authentication for Microsoft 365 and Google Workspace
 - **None** - For relay servers that don't require authentication
 
-This guide covers how to configure OAuth 2.0 authentication for Microsoft 365 and Google Workspace.
+The first section below shows where each setting is. The rest of this guide covers OAuth 2.0 authentication for Microsoft 365 and Google Workspace.
+
+## Adding an SMTP Server
+
+Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps:
+
+1. **Server**: the **Name** (project configs only), **Hostname**, **Port** (a new config starts on `587`), **Username** and **Password**.
+2. **Sender**: the **From Email** and **From Name** your emails come from.
+
+Everything else is folded under **Advanced** at the end of the Server step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required."
+
+| Field                   | What it does                                                                                                                                                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Transport**           | `SMTP` (the default), or `Microsoft Graph` for a Microsoft 365 tenant that has SMTP AUTH turned off. Picking Microsoft Graph hides the hostname, port, username and password, and shows the OAuth fields.                                 |
+| **Require TLS**         | On for a new project config. Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted. |
+| **Authentication Type** | `Username and Password` (the default), `OAuth`, or `None` for a relay that needs no sign-in.                                                                                                                                              |
+| **OAuth fields**        | Provider type, client ID, client secret, token URL and scope, shown once OAuth or Microsoft Graph is picked.                                                                                                                              |
+| **Description**         | A note for your team (project configs only).                                                                                                                                                                                              |
+
+**Microsoft Graph.** Open **Advanced**, set **Transport** to `Microsoft Graph`, and fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
+
+Once a project config is saved, **Send Test Email** on its row checks that it works.
 
 ## OAuth 2.0 Authentication
 
@@ -30,6 +51,8 @@ When configuring SMTP with OAuth authentication in OneUptime, you'll need:
 | **Client Secret**       | Client secret from your OAuth provider (for Google: private key)                    |
 | **Token URL**           | OAuth token endpoint URL                                                            |
 | **Scope**               | Required OAuth scope(s) for SMTP access                                             |
+
+**Authentication Type** and the OAuth fields are under **Advanced** on the form's Server step.
 
 ---
 
@@ -120,7 +143,7 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 | Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`            |
 | Scope               | `https://outlook.office365.com/.default`                                     |
 | From Email          | Same as Username                                                             |
-| Secure (TLS)        | Enabled                                                                      |
+| Require TLS         | On                                                                           |
 
 Replace `<tenant-id>` with your Directory (tenant) ID from Step 1.
 
@@ -202,7 +225,7 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 | Token URL           | `https://oauth2.googleapis.com/token`                                                                                                          |
 | Scope               | `https://mail.google.com/`                                                                                                                     |
 | From Email          | Same as Username                                                                                                                               |
-| Secure (TLS)        | Enabled                                                                                                                                        |
+| Require TLS         | On                                                                                                                                             |
 
 **Important:** For Google (JWT Bearer), the Client ID is the **service account email** (`client_email`), NOT the numerical `client_id`. The service account will impersonate the user specified in the Username field to send emails.
 
