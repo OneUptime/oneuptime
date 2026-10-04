@@ -277,6 +277,14 @@ class Healthy(unittest.TestCase):
         rc, status, outp = run(Capture(host_profiler=True), after_write=tear)
         self.assertEqual(rc, 0, outp)
 
+    def test_profiles_are_counted_in_samples(self):
+        # a sample record holds one timestamp per occurrence: PR-3 counts the
+        # occurrences, also per cluster name, so the two numbers agree
+        rc, status, outp = run(Capture(host_profiler=True))
+        line = next(x for x in outp.splitlines() if x.strip().startswith('measured:') and '"exports"' in x)
+        measured = json.loads(line.split('measured:', 1)[1])
+        self.assertEqual(measured['clusterName'], {CLUSTER: measured['samples']}, outp)
+
 
 class EachFaultFailsItsCheck(unittest.TestCase):
     def assertOnlyFails(self, cap, expected, **kwargs):

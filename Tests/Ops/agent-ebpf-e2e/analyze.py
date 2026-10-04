@@ -418,8 +418,12 @@ def main():
         C.add('PR-2', not pin_fail, "the profiler shares OBI's traces_ctx_v1 pin (no pin/create failure)",
               pin_fail[:3], 'none')
         exports, samples = load_profiles(out)
-        nodes = collections.Counter(ra.get('k8s.node.name') for ra, _, _ in samples)
-        pcn = collections.Counter(ra.get('k8s.cluster.name') for ra, _, _ in samples)
+        # Counted in samples, like nsamples: a sample record carries one
+        # timestamp per occurrence.
+        nodes, pcn = collections.Counter(), collections.Counter()
+        for ra, n, _ in samples:
+            nodes[ra.get('k8s.node.name')] += n
+            pcn[ra.get('k8s.cluster.name')] += n
         nsamples = sum(n for _, n, _ in samples)
         R['profiles'] = {'exports': exports, 'samples': nsamples, 'byNode': dict(nodes), 'byClusterName': dict(pcn)}
         C.add('PR-3', exports >= 3 and nsamples > 0 and set(pcn) == {args.cluster_name},
