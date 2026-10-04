@@ -24876,5 +24876,10 @@
   "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "میزبان‌ها، خوشه‌ها، میزبان‌های کانتینر، پایگاه‌های داده، ناوگان‌های IoT، سایت‌های شبکه یا سرویس‌های تحت تأثیر این تعمیر و نگهداری زمان‌بندی‌شده را جستجو و پیوست کنید. پیوست کردن یک سایت شبکه همه سایت‌های زیر آن را پوشش می‌دهد.",
   "Search and attach the monitors affected by this scheduled maintenance.": "مانیتورهای تحت تأثیر این تعمیر و نگهداری زمان‌بندی‌شده را جستجو و پیوست کنید.",
   "Search and attach the monitors that events created from this template should pre-populate.": "مانیتورهایی را که رویدادهای ساخته‌شده از این قالب باید از پیش پر کنند جستجو و پیوست کنید.",
-  "When the event starts, its monitors change to this status, and back to operational when it ends.": "هنگام شروع رویداد، مانیتورهای آن به این وضعیت تغییر می‌کنند و پس از پایان آن به وضعیت عملیاتی برمی‌گردند."
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "هنگام شروع رویداد، مانیتورهای آن به این وضعیت تغییر می‌کنند و پس از پایان آن به وضعیت عملیاتی برمی‌گردند.",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "اینکه فیلترهای بالا چگونه ترکیب شوند. «همه» یعنی همه فیلترها باید مطابقت داشته باشند (AND). «هر» یعنی دست‌کم یک فیلتر باید مطابقت داشته باشد (OR).",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "برای قاعده‌ای که روی همه سرویس‌ها اعمال شود، خالی بگذارید. قواعد یک سرویس پیش از قواعد کل پروژه اجرا می‌شوند.",
+  "Only for one service": "فقط برای یک سرویس",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "این قاعده روی همه سرویس‌ها اعمال می‌شود و ظرف یک دقیقه پس از ذخیره شدن اثر می‌کند.",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "این قاعده هر دقیقه متریک خود را می‌نویسد و ظرف یک دقیقه پس از ذخیره شدن شروع می‌کند."
 }

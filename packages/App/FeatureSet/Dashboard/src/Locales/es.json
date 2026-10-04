@@ -24876,5 +24876,10 @@
   "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Busca y asocia hosts, clústeres, hosts de contenedores, bases de datos, flotas IoT, sitios de red o servicios afectados por este mantenimiento programado. Asociar un sitio de red abarca todos los sitios que dependen de él.",
   "Search and attach the monitors affected by this scheduled maintenance.": "Busca y asocia los monitores afectados por este mantenimiento programado.",
   "Search and attach the monitors that events created from this template should pre-populate.": "Busca y asocia los monitores con los que los eventos creados a partir de esta plantilla deben rellenarse previamente.",
-  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Cuando empieza el evento, sus monitores cambian a este estado, y vuelven a operativo cuando termina."
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Cuando empieza el evento, sus monitores cambian a este estado, y vuelven a operativo cuando termina.",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "Cómo combinar los filtros de arriba. 'Todos' requiere que coincidan todos los filtros (AND). 'Cualquiera' requiere que coincida al menos un filtro (OR).",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Déjalo vacío para una regla que se aplique a todos los servicios. Las reglas de un solo servicio se ejecutan antes que las de todo el proyecto.",
+  "Only for one service": "Solo para un servicio",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "La regla se aplica a todos los servicios y entra en vigor en el minuto siguiente a guardarla.",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "La regla escribe su métrica cada minuto, a partir del minuto siguiente a guardarla."
 }

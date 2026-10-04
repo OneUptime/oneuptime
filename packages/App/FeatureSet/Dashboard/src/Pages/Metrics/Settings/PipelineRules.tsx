@@ -2,7 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import {
+  getAdvancedFormSection,
+  normalizeFormValue,
+} from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -12,6 +19,7 @@ import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterConditionUtil,
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import MetricPipelineRuleFilters from "../../../Components/Metrics/PipelineRuleFilter/MetricPipelineRuleFilters";
 import Service from "Common/Models/DatabaseModels/Service";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -32,7 +40,7 @@ import {
 } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 interface PillConfig {
   label: string;
@@ -174,7 +182,7 @@ Add one or more **Filters** to decide which data points the rule fires on:
 - **Metric Name** — match on the metric name with conditions like Equal To, Contains, Starts With, Matches Regex, etc.
 - **Attribute** — match on a specific attribute key. Choose Is Present / Is Not Present / Is Empty / Is Not Empty for key-based checks, or Equal To / Contains / Matches Regex (etc.) to compare the attribute value.
 
-Use **Filter Condition** to decide how filters are combined:
+Once a rule has two or more filters, **Filter Condition** decides how they are combined (with one filter or none there is nothing to combine, so it is not asked):
 
 - **All** (AND) — the data point must match every filter.
 - **Any** (OR) — the data point matches if at least one filter matches.
@@ -183,9 +191,68 @@ If no filters are added, the rule applies to every metric data point.
 
 ### Scope
 
-- Leave **Service** empty for a project-wide rule that applies to all services.
-- Set **Service** to scope the rule to a single service. Service-scoped rules evaluate first.
+- A new rule applies to every service: it is a project-wide rule.
+- To scope a rule to a single service, open **More fields** on the Match step and pick it under **Only for one service**. Service-scoped rules evaluate first.
 `;
+
+/*
+ * CREATE A METRIC PIPELINE RULE: WHICH DATA POINTS, THEN WHAT HAPPENS TO
+ * THEM.
+ *
+ * It used to open on a "Basic Info" step - a name, a description, a service
+ * and an Enabled switch - and asked what the rule matches and does only on
+ * the two steps after it. Two steps now, both about the rule, as a log or
+ * trace drop filter walks them (Components/Telemetry/DropFilterForm):
+ *
+ *   - Match: the rule's name and its filters. Filter Condition (All / Any)
+ *     shows once there are two filters to combine (isFilterConditionNeeded,
+ *     the rule the conditions builder follows); until then it keeps its
+ *     default, All, which is what the rule is saved with. Then, folded under
+ *     More fields: the description, the one service the rule is limited to
+ *     (none: every service) and Enabled, on - the header says so in a
+ *     sentence while they are left alone.
+ *   - Action: what the rule does, and the one or two values that action
+ *     needs. The rule is created from here, the last step.
+ */
+
+// What the folded section says while everything in it is left alone.
+export const PIPELINE_RULE_DEFAULTS_SUMMARY: string = translationKey(
+  "The rule applies to every service, and takes effect within a minute of being saved.",
+);
+
+/**
+ * The sentence under the folded More fields header while its fields hold
+ * their defaults - no description, every service, on - or nothing once one
+ * is set: the header's chips then say what.
+ */
+export const getPipelineRuleAdvancedSummary: (
+  values: FormValues<MetricPipelineRule>,
+) => Array<string> | undefined = (
+  values: FormValues<MetricPipelineRule>,
+): Array<string> | undefined => {
+  const formValues: Record<string, unknown> = (values || {}) as Record<
+    string,
+    unknown
+  >;
+  const description: unknown = formValues["description"];
+  const service: unknown = normalizeFormValue(formValues["service"]);
+  const isEnabled: unknown = normalizeFormValue(formValues["isEnabled"]);
+
+  const hasDescription: boolean =
+    typeof description === "string" && description.trim().length > 0;
+  const hasService: boolean =
+    service !== undefined && service !== null && service !== "";
+  const isSwitchedOff: boolean = isEnabled === false;
+
+  return hasDescription || hasService || isSwitchedOff
+    ? undefined
+    : [PIPELINE_RULE_DEFAULTS_SUMMARY];
+};
+
+const pipelineRuleMoreFields: FormFieldCollapsibleSection<MetricPipelineRule> =
+  getAdvancedFormSection<MetricPipelineRule>({
+    getSummary: getPipelineRuleAdvancedSummary,
+  });
 
 const MetricPipelineRules: FunctionComponent<
   PageComponentProps
@@ -221,7 +288,6 @@ const MetricPipelineRules: FunctionComponent<
       }}
       noItemsMessage={"No metric pipeline rules found."}
       formSteps={[
-        { title: "Basic Info", id: "basic-info" },
         { title: "Match", id: "match" },
         { title: "Action", id: "action" },
       ]}
@@ -229,58 +295,11 @@ const MetricPipelineRules: FunctionComponent<
         {
           field: { name: true },
           title: "Name",
-          stepId: "basic-info",
+          stepId: "match",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. Drop noisy http.server.duration",
           validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this rule does and why it's needed.",
-        },
-        {
-          field: { service: true },
-          title: "Service (optional)",
-          stepId: "basic-info",
-          description:
-            "Scope this rule to a single service. Leave empty for a project-wide rule.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: false,
-          dropdownModal: {
-            type: Service,
-            labelField: "name",
-            valueField: "_id",
-          },
-        },
-        {
-          field: { ruleType: true },
-          title: "Rule Type",
-          description:
-            "Pick the action this rule will perform when a metric data point matches the criteria above.",
-          stepId: "action",
-          fieldType: FormFieldSchemaType.CardSelect,
-          required: true,
-          cardSelectOptions: ruleTypeCardOptions,
-          cardSelectSingleColumn: true,
-        },
-        {
-          field: { filterCondition: true },
-          title: "Filter Condition",
-          stepId: "match",
-          description:
-            "How to combine filters below. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).",
-          fieldType: FormFieldSchemaType.RadioButton,
-          required: true,
-          defaultValue: FilterCondition.All,
-          radioButtonOptions: [
-            { title: "All", value: FilterCondition.All },
-            { title: "Any", value: FilterCondition.Any },
-          ],
         },
         {
           field: { filters: true },
@@ -312,6 +331,73 @@ const MetricPipelineRules: FunctionComponent<
               />
             );
           },
+        },
+        /*
+         * Only once there are two filters to combine: with one or none, All
+         * and Any match the same data points. Hidden, it keeps its default
+         * (All), which the rule is saved with.
+         */
+        {
+          field: { filterCondition: true },
+          title: "Filter Condition",
+          stepId: "match",
+          description:
+            "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).",
+          fieldType: FormFieldSchemaType.RadioButton,
+          required: true,
+          defaultValue: FilterCondition.All,
+          radioButtonOptions: [
+            { title: "All", value: FilterCondition.All },
+            { title: "Any", value: FilterCondition.Any },
+          ],
+          showIf: (values: FormValues<MetricPipelineRule>): boolean => {
+            return isFilterConditionNeeded(values.filters);
+          },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "match",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule does and why it's needed.",
+          collapsibleSection: pipelineRuleMoreFields,
+        },
+        {
+          field: { service: true },
+          title: "Only for one service",
+          stepId: "match",
+          description:
+            "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          required: false,
+          dropdownModal: {
+            type: Service,
+            labelField: "name",
+            valueField: "_id",
+          },
+          collapsibleSection: pipelineRuleMoreFields,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          description: "Whether this rule is active.",
+          stepId: "match",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          defaultValue: true,
+          collapsibleSection: pipelineRuleMoreFields,
+        },
+        {
+          field: { ruleType: true },
+          title: "Rule Type",
+          description:
+            "Pick the action this rule will perform when a metric data point matches the criteria above.",
+          stepId: "action",
+          fieldType: FormFieldSchemaType.CardSelect,
+          required: true,
+          cardSelectOptions: ruleTypeCardOptions,
+          cardSelectSingleColumn: true,
         },
         {
           field: { renameFromKey: true },
@@ -386,15 +472,6 @@ const MetricPipelineRules: FunctionComponent<
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
             return values.ruleType === MetricPipelineRuleType.Sample;
           },
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          description: "Whether this rule is active.",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          defaultValue: true,
         },
       ]}
       showRefreshButton={true}
