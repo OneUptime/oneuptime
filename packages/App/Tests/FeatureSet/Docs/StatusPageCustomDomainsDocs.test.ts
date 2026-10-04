@@ -2,9 +2,9 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
-  STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
-  StatusPageCustomDomainCopy,
-} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
+  CUSTOM_DOMAIN_STATUS,
+  CustomDomainCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 
 /*
  * The English docs for status page custom domains, held to the flow they
@@ -83,7 +83,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(CUSTOM_DOMAINS).toContain("**Project Settings → Domains**");
     expect(PAGE).not.toContain("More → Project Settings → Custom Domains");
     expect(CUSTOM_DOMAINS).toContain(
-      `**${StatusPageCustomDomainCopy.domainFieldSideLink}**`,
+      `**${CustomDomainCopy.domainFieldSideLink}**`,
     );
   });
 
@@ -93,9 +93,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(adding).toContain("The dialog is one page");
     expect(adding).not.toMatch(/two steps|\*\*Basic\*\*|\*\*More\*\*/);
     expect(adding).toContain("**Advanced**");
-    expect(adding).toContain(
-      StatusPageCustomDomainCopy.advancedSummaryFreeCertificate,
-    );
+    expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**Upload Custom Certificate**");
     expect(adding).toContain("**DNS Setup** opens");
   });
@@ -113,7 +111,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(dnsSetup).toContain("`CNAME`");
     expect(dnsSetup).toContain("copy button");
     expect(dnsSetup).toContain("**Check now**");
-    expect(dnsSetup).toContain(StatusPageCustomDomainCopy.dnsSetupVerified);
+    expect(dnsSetup).toContain(CustomDomainCopy.dnsSetupVerified);
     expect(dnsSetup).toContain("ALIAS, ANAME or CNAME flattening");
   });
 
@@ -158,6 +156,23 @@ describe("Status page custom domains (English docs)", () => {
     );
   });
 
+  /*
+   * Dashboards -> a dashboard -> Custom Domains is under the dashboard's
+   * Branding section, and works the same way: the reissue paragraph says
+   * where, and sends readers to the dashboard guide.
+   */
+  it("sends readers to dashboard custom domains by their menu path", () => {
+    const reissue: string = section(
+      "## Reissuing a certificate",
+      "## Reading the domain Status column",
+    );
+
+    expect(reissue).toContain(
+      "**Dashboards → your dashboard → Branding → Custom Domains**",
+    );
+    expect(reissue).toContain("(/docs/dashboards/sharing#custom-domains)");
+  });
+
   it("reads the Status column exactly as the page writes it", () => {
     const table: string = section(
       "## Reading the domain Status column",
@@ -177,9 +192,7 @@ describe("Status page custom domains (English docs)", () => {
         return line.split("|")[1]!.trim();
       });
 
-    expect(rows.sort()).toEqual(
-      Object.values(STATUS_PAGE_CUSTOM_DOMAIN_STATUS).sort(),
-    );
+    expect(rows.sort()).toEqual(Object.values(CUSTOM_DOMAIN_STATUS).sort());
     expect(table).not.toContain("Action Required");
   });
 });

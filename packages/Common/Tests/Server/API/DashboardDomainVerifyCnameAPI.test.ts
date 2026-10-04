@@ -10,39 +10,36 @@ import {
 } from "@jest/globals";
 
 /*
- * The verify-cname and order-ssl routes of status page custom domains.
+ * The verify-cname and certificates routes of dashboard custom domains,
+ * held to what the status page routes are held to
+ * (StatusPageDomainVerifyCnameAPI.test.ts).
  *
  * verify-cname is the domain's Check now button. It used to verify the
- * record and stop there, and the free certificate waited for a separate
- * "Order Free SSL" button - or for the 15-minute order sweep, which placed
- * the order anyway. Now, once the record is found, it orders the
- * certificate straight away (StatusPageDomainService
- * .orderCertOnceCnameIsVerified) and answers with what happens to the
- * certificate next. What this pins:
+ * record and stop there - answering an empty body - while the free
+ * certificate waited for an "Order Free SSL" button or the 15-minute order
+ * sweep. Now, once the record is found, it orders the certificate straight
+ * away (DashboardDomainService.orderCertOnceCnameIsVerified) and answers
+ * with what happens to the certificate next. What this pins:
  *
  *   - the access check still uses the caller's own props, and a refused
  *     caller never reaches the CA;
  *   - a record that is not found orders nothing, and says which record to
  *     look for;
- *   - a record that is found orders through the shared order path, which
- *     keeps Check now and the sweeps from ordering one name twice
- *     (CustomDomainCertificateLifecycle.test.ts runs that end to
- *     end);
- *   - an order that fails does not turn a found record into an error.
- *
- * order-ssl has no button any more; it stays for API callers and orders the
- * same way: never twice for one name, and at most once per domain per
- * 15-minute window, the window Check now uses.
- *
- * Check now answers Issued only for a certificate that is in the table and
- * has not expired (review finding 6): isSslOrdered said Issued for a
- * certificate that had gone missing, and an expired row said it too.
+ *   - a record that is found orders through the shared order path - the
+ *     name's lock, one on-demand order per domain per window, counted
+ *     against the domain's own project (so the route reads projectId), never
+ *     for an uploaded certificate - which keeps Check now and the sweeps
+ *     from ordering one name twice (CustomDomainCertificateLifecycle.test.ts
+ *     runs that end to end, for both kinds);
+ *   - an order that fails does not turn a found record into an error;
+ *   - Issued only for a certificate that is in the table and has not
+ *     expired.
  *
  * The certificates route is what the Custom Domains page's Status column
  * reads: each domain's certificate expiry and last failed order.
  */
 
-const mockCNameRecord: string = "statuspage.example.com";
+let mockCNameRecord: string = "dashboards.example.com";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -58,16 +55,26 @@ jest.mock("../../../Server/Utils/Express", () => {
   };
 });
 
+/*
+ * A getter defined on the copy, not in an object literal: the compiled
+ * spread copies a literal's getter once, as a value.
+ */
 jest.mock("../../../Server/EnvironmentConfig", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/EnvironmentConfig",
-  ) as Record<string, unknown>;
-
-  return {
-    ...actual,
+  const mocked: Record<string, unknown> = {
+    ...(jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
     __esModule: true,
-    StatusPageCNameRecord: mockCNameRecord,
   };
+
+  Object.defineProperty(mocked, "DashboardCNameRecord", {
+    get: (): string => {
+      return mockCNameRecord;
+    },
+  });
+
+  return mocked;
 });
 
 jest.mock("../../../Server/Utils/Response", () => {
@@ -96,8 +103,10 @@ jest.mock("../../../Server/Utils/Logger", () => {
   };
 });
 
-import StatusPageDomainAPI from "../../../Server/API/StatusPageDomainAPI";
-import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
+import DashboardDomainAPI from "../../../Server/API/DashboardDomainAPI";
+import DashboardDomainService, {
+  Service as DashboardDomainServiceClass,
+} from "../../../Server/Services/DashboardDomainService";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import Response from "../../../Server/Utils/Response";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
@@ -105,9 +114,10 @@ import CertificateOrder, {
   CertificateOrderOutcome,
   CustomDomainCertificateState,
 } from "../../../Server/Utils/Greenlock/CertificateOrder";
+import { CertificateOrderLockHandle } from "../../../Server/Utils/Greenlock/CertificateOrderLock";
+import CustomDomainOrders from "../../../Server/Utils/Greenlock/CustomDomainOrders";
 import GreenlockUtil from "../../../Server/Utils/Greenlock/Greenlock";
 import AcmeCertificate from "../../../Models/DatabaseModels/AcmeCertificate";
-import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import OneUptimeDate from "../../../Types/Date";
 import {
   ExpressRequest,
@@ -129,20 +139,18 @@ const sendEmptySuccessResponseMock: MockedFn =
 const sendErrorResponseMock: MockedFn =
   Response.sendErrorResponse as unknown as MockedFn;
 
-const VERIFY_ROUTE: string = "/status-page-domain/verify-cname/:id";
-const ORDER_ROUTE: string = "/status-page-domain/order-ssl/:id";
+const VERIFY_ROUTE: string = "/dashboard-domain/verify-cname/:id";
 const CERTIFICATES_ROUTE: string =
-  "/status-page-domain/certificates/:statusPageId";
+  "/dashboard-domain/certificates/:dashboardId";
 
 type DomainRow = {
   _id: string;
   id: ObjectID;
   fullDomain: string;
+  projectId?: ObjectID;
   isCustomCertificate?: boolean;
   isSslOrdered?: boolean;
   isCnameVerified?: boolean;
-  isSslProvisioned?: boolean;
-  cnameVerificationToken?: string;
 };
 
 const callerProps: DatabaseCommonInteractionProps = {
@@ -156,7 +164,7 @@ function makeDomain(extra: Partial<DomainRow> = {}): DomainRow {
   return {
     _id: domainId.toString(),
     id: domainId,
-    fullDomain: "status.acme.com",
+    fullDomain: "dash.acme.com",
     isCustomCertificate: false,
     isSslOrdered: false,
     ...extra,
@@ -216,23 +224,23 @@ function setUp(data: {
 
   return {
     updateBy: jest
-      .spyOn(StatusPageDomainService, "updateBy")
+      .spyOn(DashboardDomainService, "updateBy")
       .mockResolvedValue(1 as never) as unknown as MockedFn,
     countBy: jest
-      .spyOn(StatusPageDomainService, "countBy")
+      .spyOn(DashboardDomainService, "countBy")
       .mockResolvedValue(
         new PositiveNumber(data.canSee === false ? 0 : 1),
       ) as unknown as MockedFn,
     findOneBy: jest
-      .spyOn(StatusPageDomainService, "findOneBy")
+      .spyOn(DashboardDomainService, "findOneBy")
       .mockResolvedValue(
         (data.domain === undefined ? makeDomain() : data.domain) as never,
       ) as unknown as MockedFn,
     isCnameValid: jest
-      .spyOn(StatusPageDomainService, "isCnameValid")
+      .spyOn(DashboardDomainService, "isCnameValid")
       .mockResolvedValue(data.cnameValid ?? true) as unknown as MockedFn,
     orderCertIfMissing: jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
+      .spyOn(DashboardDomainService, "orderCertIfMissing")
       .mockImplementation(
         (data.order ||
           (async (): Promise<CertificateOrderOutcome> => {
@@ -241,7 +249,7 @@ function setUp(data: {
       ) as unknown as MockedFn,
     // The order without the first-order checks: nothing here may call it.
     orderCert: jest
-      .spyOn(StatusPageDomainService, "orderCert")
+      .spyOn(DashboardDomainService, "orderCert")
       .mockResolvedValue(
         CertificateOrderOutcome.Ordered as never,
       ) as unknown as MockedFn,
@@ -280,13 +288,19 @@ function answered(): Record<string, unknown> {
   >;
 }
 
+function refusal(): Error {
+  expect(sendErrorResponseMock).toHaveBeenCalledTimes(1);
+  return sendErrorResponseMock.mock.calls[0]![2] as unknown as Error;
+}
+
 beforeAll(() => {
   mockRouter.routes.length = 0;
-  new StatusPageDomainAPI();
+  new DashboardDomainAPI();
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCNameRecord = "dashboards.example.com";
   domainId = ObjectID.generate();
 
   jest
@@ -300,6 +314,9 @@ beforeEach(() => {
   jest
     .spyOn(CertificateOrder, "recordOnDemandOrderFailure")
     .mockResolvedValue(undefined);
+  jest
+    .spyOn(CertificateOrder, "releaseOnDemandOrder")
+    .mockResolvedValue(undefined);
 
   // No certificate yet, unless a test says otherwise.
   withCertificate(null);
@@ -309,7 +326,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("verify-cname (Check now)", () => {
+describe("dashboard verify-cname (Check now)", () => {
   test("sits behind the user auth middleware", () => {
     expect(mockRouter.match("GET", VERIFY_ROUTE).middlewares).toContain(
       UserMiddleware.getUserMiddleware,
@@ -351,25 +368,39 @@ describe("verify-cname (Check now)", () => {
     expect(sendErrorResponseMock).toHaveBeenCalled();
   });
 
+  test("without DASHBOARD_CNAME_RECORD it is refused, before anything is read or ordered", async () => {
+    mockCNameRecord = "";
+    const spies: Spies = setUp({});
+
+    await callRoute(VERIFY_ROUTE);
+
+    expect(spies.countBy).not.toHaveBeenCalled();
+    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+    expect(refusal().message).toContain("Custom Domains not enabled");
+  });
+
   test("a record that is not found yet orders nothing, and says which record to look for", async () => {
     const spies: Spies = setUp({ cnameValid: false });
 
     await callRoute(VERIFY_ROUTE);
 
-    expect(spies.isCnameValid).toHaveBeenCalledWith("status.acme.com");
+    expect(spies.isCnameValid).toHaveBeenCalledWith("dash.acme.com");
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
     expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
 
-    const error: Error = sendErrorResponseMock.mock
-      .calls[0]![2] as unknown as Error;
+    const error: Error = refusal();
 
     expect(error).toBeInstanceOf(BadDataException);
-    expect(error.message).toContain("status.acme.com");
-    expect(error.message).toContain(mockCNameRecord);
+    expect(error.message).toContain("dash.acme.com");
+    expect(error.message).toContain("dashboards.example.com");
     expect(error.message).toContain("every 15 minutes");
   });
 
-  test("reads what decides the certificate's next step along with the domain", async () => {
+  /*
+   * Whose on-demand budget the order counts against is the domain's
+   * project: without projectId every project's clicks shared one budget.
+   */
+  test("reads what decides the certificate's next step, and whose on-demand orders it counts against", async () => {
     const spies: Spies = setUp({});
 
     await callRoute(VERIFY_ROUTE);
@@ -386,6 +417,7 @@ describe("verify-cname (Check now)", () => {
         fullDomain: true,
         isCustomCertificate: true,
         isSslOrdered: true,
+        projectId: true,
       }),
     );
   });
@@ -403,11 +435,10 @@ describe("verify-cname (Check now)", () => {
     expect(spies.orderCertIfMissing).toHaveBeenCalledTimes(1);
     expect(
       (spies.orderCertIfMissing.mock.calls[0]![0] as DomainRow).fullDomain,
-    ).toBe("status.acme.com");
+    ).toBe("dash.acme.com");
     /*
      * An order on demand, for a record the route found a moment ago - the
-     * order does not check it again (review finding 3) - and for an expired
-     * certificate too.
+     * order does not check it again - and for an expired certificate too.
      */
     expect(spies.orderCertIfMissing.mock.calls[0]![1]).toEqual({
       onDemand: true,
@@ -421,6 +452,8 @@ describe("verify-cname (Check now)", () => {
       certificateStatus: CustomDomainCertificateStatus.Issuing,
     });
     expect(sendErrorResponseMock).not.toHaveBeenCalled();
+    // It used to answer an empty body.
+    expect(sendEmptySuccessResponseMock).not.toHaveBeenCalled();
   });
 
   test("a domain that still had its certificate answers Issued", async () => {
@@ -437,7 +470,7 @@ describe("verify-cname (Check now)", () => {
     });
   });
 
-  test("an order already running for the name answers Issuing, without a second order", async () => {
+  test("an order already running for the name answers Issuing, without a second order, and gives the window back", async () => {
     setUp({
       order: async (): Promise<CertificateOrderOutcome> => {
         return CertificateOrderOutcome.NotOrderedNow;
@@ -449,6 +482,9 @@ describe("verify-cname (Check now)", () => {
     expect(answered()).toEqual({
       certificateStatus: CustomDomainCertificateStatus.Issuing,
     });
+    expect(CertificateOrder.releaseOnDemandOrder).toHaveBeenCalledWith(
+      "dash.acme.com",
+    );
   });
 
   test("a domain on an uploaded certificate orders nothing, and answers Uploaded", async () => {
@@ -459,6 +495,7 @@ describe("verify-cname (Check now)", () => {
     await callRoute(VERIFY_ROUTE);
 
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+    expect(CertificateOrder.claimOnDemandOrder).not.toHaveBeenCalled();
     expect(answered()).toEqual({
       certificateStatus: CustomDomainCertificateStatus.Uploaded,
     });
@@ -507,10 +544,6 @@ describe("verify-cname (Check now)", () => {
     });
   });
 
-  /*
-   * Regression (review finding 6): isSslOrdered alone answered Issued - for
-   * a certificate that had gone missing since, and Check now did nothing.
-   */
   test("a domain marked ordered whose certificate is gone orders one, and does not say Issued", async () => {
     const spies: Spies = setUp({
       domain: makeDomain({ isSslOrdered: true }),
@@ -525,11 +558,6 @@ describe("verify-cname (Check now)", () => {
     });
   });
 
-  /*
-   * Regression (review finding 6): an expired certificate row answered
-   * Issued - "already has its free SSL certificate" - while the domain
-   * served a dead one. Now Check now renews it, once per window.
-   */
   test("a domain whose certificate has expired is renewed now, and does not say Issued", async () => {
     const spies: Spies = setUp({
       domain: makeDomain({ isSslOrdered: true }),
@@ -547,14 +575,34 @@ describe("verify-cname (Check now)", () => {
     });
   });
 
+  test("within the window of a failed order it orders nothing, and shows why that order failed", async () => {
+    const spies: Spies = setUp({});
+
+    jest.spyOn(CertificateOrder, "claimOnDemandOrder").mockResolvedValue({
+      mayOrder: false,
+      lastError: "CAA record forbids letsencrypt.org.",
+    });
+
+    await callRoute(VERIFY_ROUTE);
+
+    expect(CertificateOrder.claimOnDemandOrder).toHaveBeenCalledWith(
+      "dash.acme.com",
+    );
+    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+    expect(answered()).toEqual({
+      certificateStatus: CustomDomainCertificateStatus.Failed,
+      certificateError: "CAA record forbids letsencrypt.org.",
+    });
+  });
+
   /*
    * The record was found; that is what Check now asked. A failed order is
-   * reported with it, and the sweeps order again.
+   * reported with it, remembered for the window, and the sweeps order again.
    */
-  test("an order that fails is reported, not turned into an error", async () => {
+  test("an order that fails is reported and remembered, not turned into an error", async () => {
     setUp({
       order: async (): Promise<CertificateOrderOutcome> => {
-        throw new BadDataException("Cname is not valid for domain");
+        throw new BadDataException("Unable to order certificate.");
       },
     });
 
@@ -564,8 +612,12 @@ describe("verify-cname (Check now)", () => {
     expect(sendErrorResponseMock).not.toHaveBeenCalled();
     expect(answered()).toEqual({
       certificateStatus: CustomDomainCertificateStatus.Failed,
-      certificateError: "Cname is not valid for domain",
+      certificateError: "Unable to order certificate.",
     });
+    expect(CertificateOrder.recordOnDemandOrderFailure).toHaveBeenCalledWith(
+      "dash.acme.com",
+      "Unable to order certificate.",
+    );
   });
 
   test("an unexpected error in an order is reported in plain words, not as its internals", async () => {
@@ -585,187 +637,22 @@ describe("verify-cname (Check now)", () => {
   });
 });
 
-describe("order-ssl (API callers)", () => {
-  test("still exists, behind the user auth middleware", () => {
-    expect(mockRouter.match("GET", ORDER_ROUTE).middlewares).toContain(
-      UserMiddleware.getUserMiddleware,
-    );
-  });
-
-  test("orders through orderCertIfMissing, so a name is never ordered twice", async () => {
-    const spies: Spies = setUp({
-      domain: makeDomain({
-        isCnameVerified: true,
-        cnameVerificationToken: "token",
-      }),
-    });
-
-    await callRoute(ORDER_ROUTE);
-
-    expect(spies.orderCertIfMissing).toHaveBeenCalledTimes(1);
-    expect(spies.orderCertIfMissing.mock.calls[0]![1]).toEqual({
-      onDemand: true,
-    });
-    expect(spies.orderCert).not.toHaveBeenCalled();
-    expect(sendEmptySuccessResponseMock).toHaveBeenCalled();
-  });
-
-  /*
-   * Regression (review finding 1): an order that fails leaves the domain
-   * unordered, so a script calling order-ssl in a loop placed an order on
-   * every call. It shares Check now's window now.
-   */
-  test("orders at most once per domain per window: within it, it refuses with the last order's error", async () => {
-    const spies: Spies = setUp({
-      domain: makeDomain({
-        isCnameVerified: true,
-        cnameVerificationToken: "token",
-      }),
-    });
-
-    const claim: MockedFn = jest
-      .spyOn(CertificateOrder, "claimOnDemandOrder")
-      .mockResolvedValue({
-        mayOrder: false,
-        lastError: "CAA record forbids letsencrypt.org.",
-      }) as unknown as MockedFn;
-
-    await callRoute(ORDER_ROUTE);
-
-    expect(claim).toHaveBeenCalledWith("status.acme.com");
-    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
-
-    const error: Error = sendErrorResponseMock.mock
-      .calls[0]![2] as unknown as Error;
-
-    expect(error).toBeInstanceOf(TooManyRequestsException);
-    expect(error.message).toContain("less than 15 minutes ago");
-    expect(error.message).toContain("CAA record forbids letsencrypt.org.");
-  });
-
-  test("an order that fails is remembered for the window, and reported", async () => {
-    setUp({
-      domain: makeDomain({
-        isCnameVerified: true,
-        cnameVerificationToken: "token",
-      }),
-      order: async (): Promise<CertificateOrderOutcome> => {
-        throw new BadDataException("Unable to order certificate.");
-      },
-    });
-
-    const { next } = await callRoute(ORDER_ROUTE);
-
-    expect(CertificateOrder.recordOnDemandOrderFailure).toHaveBeenCalledWith(
-      "status.acme.com",
-      "Unable to order certificate.",
-    );
-    expect(next).toHaveBeenCalledTimes(1);
-    expect(sendEmptySuccessResponseMock).not.toHaveBeenCalled();
-  });
-
-  test.each([
-    [CertificateOrderOutcome.NotOrderedNow, "being ordered right now"],
-    [CertificateOrderOutcome.LimitReached, "used up"],
-  ])(
-    "nothing ordered (%s) is not reported as a success, and gives the window back",
-    async (outcome: CertificateOrderOutcome, message: string) => {
-      setUp({
-        domain: makeDomain({
-          isCnameVerified: true,
-          cnameVerificationToken: "token",
-        }),
-        order: async (): Promise<CertificateOrderOutcome> => {
-          return outcome;
-        },
-      });
-
-      const release: MockedFn = jest
-        .spyOn(CertificateOrder, "releaseOnDemandOrder")
-        .mockResolvedValue(undefined) as unknown as MockedFn;
-
-      await callRoute(ORDER_ROUTE);
-
-      expect(sendEmptySuccessResponseMock).not.toHaveBeenCalled();
-
-      const error: Error = sendErrorResponseMock.mock
-        .calls[0]![2] as unknown as Error;
-
-      expect(error).toBeInstanceOf(TooManyRequestsException);
-      expect(error.message).toContain(message);
-
-      // Review: the retry it asks for must not meet "ordered less than 15 minutes ago".
-      expect(release).toHaveBeenCalledWith("status.acme.com");
-    },
-  );
-
-  test("reads whose on-demand orders the order counts against", async () => {
-    const spies: Spies = setUp({
-      domain: makeDomain({
-        isCnameVerified: true,
-        cnameVerificationToken: "token",
-      }),
-    });
-
-    await callRoute(ORDER_ROUTE);
-
-    expect(
-      (spies.findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> })
-        .select["projectId"],
-    ).toBe(true);
-  });
-
-  test("refuses a domain on an uploaded certificate, which the sweeps never order for either", async () => {
-    const spies: Spies = setUp({
-      domain: makeDomain({
-        isCnameVerified: true,
-        isCustomCertificate: true,
-        cnameVerificationToken: "token",
-      }),
-    });
-
-    await callRoute(ORDER_ROUTE);
-
-    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
-    expect(spies.orderCert).not.toHaveBeenCalled();
-
-    const error: Error = sendErrorResponseMock.mock
-      .calls[0]![2] as unknown as Error;
-
-    expect(error.message).toContain("uses a certificate you uploaded");
-  });
-
-  test("still refuses a domain whose CNAME is not verified, before any order", async () => {
-    const spies: Spies = setUp({
-      domain: makeDomain({
-        isCnameVerified: false,
-        cnameVerificationToken: "token",
-      }),
-    });
-
-    await callRoute(ORDER_ROUTE);
-
-    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
-    expect(sendErrorResponseMock).toHaveBeenCalled();
-  });
-});
-
-describe("certificates (the Status column)", () => {
+describe("dashboard certificates (the Status column)", () => {
   test("sits behind the user auth middleware", () => {
     expect(mockRouter.match("GET", CERTIFICATES_ROUTE).middlewares).toContain(
       UserMiddleware.getUserMiddleware,
     );
   });
 
-  test("reads the status page's domains with the caller's own props, and answers each one's certificate", async () => {
-    const statusPageId: ObjectID = ObjectID.generate();
+  test("reads the dashboard's domains with the caller's own props, and answers each one's certificate", async () => {
+    const dashboardId: ObjectID = ObjectID.generate();
     const failingId: ObjectID = ObjectID.generate();
     const issuedId: ObjectID = ObjectID.generate();
     const expiresAt: Date = new Date("2026-12-30T00:00:00.000Z");
     const failedAt: Date = new Date("2026-10-03T11:00:00.000Z");
 
     const findBy: MockedFn = jest
-      .spyOn(StatusPageDomainService, "findBy")
+      .spyOn(DashboardDomainService, "findBy")
       .mockResolvedValue([
         { id: failingId, fullDomain: "Failing.Acme.com" },
         { id: issuedId, fullDomain: "issued.acme.com" },
@@ -787,22 +674,21 @@ describe("certificates (the Status column)", () => {
       ) as unknown as MockedFn;
 
     await callRoute(CERTIFICATES_ROUTE, {
-      statusPageId: statusPageId.toString(),
+      dashboardId: dashboardId.toString(),
     });
 
     const findArgs: {
-      query: { statusPageId: ObjectID };
+      query: { dashboardId: ObjectID };
       select: Record<string, unknown>;
       props: unknown;
     } = findBy.mock.calls[0]![0] as {
-      query: { statusPageId: ObjectID };
+      query: { dashboardId: ObjectID };
       select: Record<string, unknown>;
       props: unknown;
     };
 
-    expect(findArgs.query.statusPageId.toString()).toBe(
-      statusPageId.toString(),
-    );
+    expect(Object.keys(findArgs.query)).toEqual(["dashboardId"]);
+    expect(findArgs.query.dashboardId.toString()).toBe(dashboardId.toString());
     expect(findArgs.props).toBe(callerProps);
     expect(findArgs.select).toEqual({ _id: true, fullDomain: true });
     expect(states).toHaveBeenCalledWith([
@@ -827,12 +713,12 @@ describe("certificates (the Status column)", () => {
 
   test("a malformed id is refused as bad data, and nothing is looked up", async () => {
     const findBy: MockedFn = jest.spyOn(
-      StatusPageDomainService,
+      DashboardDomainService,
       "findBy",
     ) as unknown as MockedFn;
 
     const { next } = await callRoute(CERTIFICATES_ROUTE, {
-      statusPageId: "not-a-uuid",
+      dashboardId: "not-a-uuid",
     });
 
     expect(next).not.toHaveBeenCalled();
@@ -846,7 +732,7 @@ describe("certificates (the Status column)", () => {
 
   test("a caller who may not read the domains gets the refusal, and nothing is looked up", async () => {
     jest
-      .spyOn(StatusPageDomainService, "findBy")
+      .spyOn(DashboardDomainService, "findBy")
       .mockRejectedValue(new BadDataException("Not allowed") as never);
     const states: MockedFn = jest.spyOn(
       CertificateOrder,
@@ -854,237 +740,182 @@ describe("certificates (the Status column)", () => {
     ) as unknown as MockedFn;
 
     const { next } = await callRoute(CERTIFICATES_ROUTE, {
-      statusPageId: ObjectID.generate().toString(),
+      dashboardId: ObjectID.generate().toString(),
     });
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(states).not.toHaveBeenCalled();
     expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
   });
+
+  test("a dashboard without domains answers an empty list", async () => {
+    jest.spyOn(DashboardDomainService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(CertificateOrder, "getCertificateStates")
+      .mockResolvedValue(new Map() as never);
+
+    await callRoute(CERTIFICATES_ROUTE, {
+      dashboardId: ObjectID.generate().toString(),
+    });
+
+    expect(answered()).toEqual({ domains: [] });
+  });
 });
 
-describe("StatusPageDomainService.orderCertOnceCnameIsVerified", () => {
-  test("answers Issuing once its wait is over, and the order carries on to finish", async () => {
-    let finishOrder: (
-      outcome: CertificateOrderOutcome,
-    ) => void = (): void => {};
-    let orderFinished: boolean = false;
-
-    jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
-      .mockImplementation((async (): Promise<CertificateOrderOutcome> => {
-        const outcome: CertificateOrderOutcome =
-          await new Promise<CertificateOrderOutcome>(
-            (resolve: (outcome: CertificateOrderOutcome) => void) => {
-              finishOrder = resolve;
-            },
-          );
-        orderFinished = true;
-        return outcome;
-      }) as never);
-
-    const startedAt: number = Date.now();
-
-    const result: { certificateStatus: CustomDomainCertificateStatus } =
-      await StatusPageDomainService.orderCertOnceCnameIsVerified(
-        makeDomain() as never,
-        { waitInMs: 20 },
-      );
-
-    expect(result.certificateStatus).toBe(
-      CustomDomainCertificateStatus.Issuing,
-    );
-    expect(Date.now() - startedAt).toBeLessThan(5000);
-    expect(orderFinished).toBe(false);
-
-    finishOrder(CertificateOrderOutcome.Ordered);
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, 0);
-    });
-
-    expect(orderFinished).toBe(true);
-  });
-
-  test("an order that fails after the wait is over is logged, not thrown at anyone", async () => {
-    let failOrder: (err: Error) => void = (): void => {};
-
-    jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
-      .mockImplementation(((): Promise<CertificateOrderOutcome> => {
-        return new Promise<CertificateOrderOutcome>(
-          (
-            _resolve: (outcome: CertificateOrderOutcome) => void,
-            reject: (err: Error) => void,
-          ) => {
-            failOrder = reject;
-          },
-        );
-      }) as never);
-
-    const unhandled: Array<unknown> = [];
-    const onUnhandled: (reason: unknown) => void = (reason: unknown): void => {
-      unhandled.push(reason);
-    };
-    process.on("unhandledRejection", onUnhandled);
-
-    try {
-      const result: { certificateStatus: CustomDomainCertificateStatus } =
-        await StatusPageDomainService.orderCertOnceCnameIsVerified(
-          makeDomain() as never,
-          { waitInMs: 10 },
-        );
-
-      expect(result.certificateStatus).toBe(
-        CustomDomainCertificateStatus.Issuing,
-      );
-
-      failOrder(new Error("CA refused the order"));
-
-      await new Promise<void>((resolve: () => void) => {
-        setTimeout(resolve, 20);
-      });
-
-      expect(unhandled).toEqual([]);
-    } finally {
-      process.off("unhandledRejection", onUnhandled);
-    }
-  });
-
-  /*
-   * Regression (review): a failed order leaves the domain unordered, so
-   * every click used to order again. One on-demand order per domain per
-   * window; within it, a click reports the last order's error.
-   */
-  test("a click within the window orders nothing and reports the last order's error", async () => {
-    const claim: MockedFn = jest
-      .spyOn(CertificateOrder, "claimOnDemandOrder")
+/*
+ * The service's own wiring of the shared steps: Check now hands in the
+ * dashboard table's own writes and first-order door, and that door orders
+ * for an expired certificate too when Check now asks it to.
+ */
+describe("DashboardDomainService, wired to the shared steps", () => {
+  test("Check now is the shared step, with this table's own write and first-order door", async () => {
+    const shared: MockedFn = jest
+      .spyOn(CustomDomainOrders, "orderOnceCnameIsVerified")
       .mockResolvedValue({
-        mayOrder: false,
-        lastError: "CAA record forbids letsencrypt.org",
+        certificateStatus: CustomDomainCertificateStatus.Issuing,
       }) as unknown as MockedFn;
-    const orderSpy: MockedFn = jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
+    const updateBy: MockedFn = jest
+      .spyOn(DashboardDomainService, "updateBy")
+      .mockResolvedValue(1 as never) as unknown as MockedFn;
+    const orderCertIfMissing: MockedFn = jest
+      .spyOn(DashboardDomainService, "orderCertIfMissing")
       .mockResolvedValue(
         CertificateOrderOutcome.Ordered as never,
       ) as unknown as MockedFn;
 
-    const result: {
-      certificateStatus: CustomDomainCertificateStatus;
-      certificateError?: string | undefined;
-    } = await StatusPageDomainService.orderCertOnceCnameIsVerified(
-      makeDomain() as never,
-    );
+    const domain: DomainRow = makeDomain();
 
-    expect(claim).toHaveBeenCalledWith("status.acme.com");
-    expect(orderSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      certificateStatus: CustomDomainCertificateStatus.Failed,
-      certificateError: "CAA record forbids letsencrypt.org",
+    await DashboardDomainService.orderCertOnceCnameIsVerified(domain as never, {
+      waitInMs: 1234,
+    });
+
+    const call: {
+      domain: unknown;
+      waitInMs: number;
+      recordAsOrdered: () => Promise<void>;
+      orderIfMissing: () => Promise<CertificateOrderOutcome>;
+    } = shared.mock.calls[0]![0] as {
+      domain: unknown;
+      waitInMs: number;
+      recordAsOrdered: () => Promise<void>;
+      orderIfMissing: () => Promise<CertificateOrderOutcome>;
+    };
+
+    expect(call.domain).toBe(domain);
+    expect(call.waitInMs).toBe(1234);
+
+    await call.recordAsOrdered();
+
+    expect(updateBy).toHaveBeenCalledTimes(1);
+    expect(
+      (updateBy.mock.calls[0]![0] as { data: Record<string, unknown> }).data,
+    ).toEqual({ isSslOrdered: true });
+
+    expect(await call.orderIfMissing()).toBe(CertificateOrderOutcome.Ordered);
+    expect(orderCertIfMissing).toHaveBeenCalledWith(domain, {
+      onDemand: true,
+      cnameVerifiedJustNow: true,
+      renewIfExpired: true,
     });
   });
 
-  test("a click within the window of an order that did not fail answers Issuing, without ordering", async () => {
-    jest
-      .spyOn(CertificateOrder, "claimOnDemandOrder")
-      .mockResolvedValue({ mayOrder: false });
-    const orderSpy: MockedFn = jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
-      .mockResolvedValue(
-        CertificateOrderOutcome.Ordered as never,
-      ) as unknown as MockedFn;
+  test("the Status column's certificates are the shared read", async () => {
+    const shared: MockedFn = jest
+      .spyOn(CustomDomainOrders, "getCertificates")
+      .mockResolvedValue([] as never) as unknown as MockedFn;
 
-    const result: { certificateStatus: CustomDomainCertificateStatus } =
-      await StatusPageDomainService.orderCertOnceCnameIsVerified(
-        makeDomain() as never,
-      );
+    const domains: Array<DomainRow> = [makeDomain()];
 
-    expect(orderSpy).not.toHaveBeenCalled();
-    expect(result.certificateStatus).toBe(
-      CustomDomainCertificateStatus.Issuing,
-    );
+    await DashboardDomainService.getCertificates(domains as never);
+
+    expect(shared).toHaveBeenCalledWith(domains);
   });
 
-  /*
-   * Review: an order that never happened - another order of the name
-   * running, the window's orders used up - kept the domain's window, so the
-   * next click within 15 minutes only said "Issuing" again.
-   */
   test.each([
-    [CertificateOrderOutcome.NotOrderedNow],
-    [CertificateOrderOutcome.LimitReached],
+    [true, true],
+    [undefined, undefined],
   ])(
-    "an order that was not placed (%s) answers Issuing, and gives the window back",
-    async (outcome: CertificateOrderOutcome) => {
-      const release: MockedFn = jest
-        .spyOn(CertificateOrder, "releaseOnDemandOrder")
-        .mockResolvedValue(undefined) as unknown as MockedFn;
-      jest
-        .spyOn(StatusPageDomainService, "orderCertIfMissing")
-        .mockResolvedValue(outcome as never);
+    "orderCertIfMissing passes renewIfExpired (%s) to the name's first-order door",
+    async (
+      renewIfExpired: boolean | undefined,
+      expected: boolean | undefined,
+    ) => {
+      const orderIfMissing: MockedFn = jest
+        .spyOn(CertificateOrder, "orderIfMissing")
+        .mockResolvedValue(
+          CertificateOrderOutcome.Ordered as never,
+        ) as unknown as MockedFn;
 
-      const result: { certificateStatus: CustomDomainCertificateStatus } =
-        await StatusPageDomainService.orderCertOnceCnameIsVerified(
-          makeDomain() as never,
-        );
-
-      expect(result.certificateStatus).toBe(
-        CustomDomainCertificateStatus.Issuing,
+      await DashboardDomainService.orderCertIfMissing(
+        makeDomain({ projectId: ObjectID.generate() }) as never,
+        { onDemand: true, renewIfExpired: renewIfExpired },
       );
-      expect(release).toHaveBeenCalledWith("status.acme.com");
+
+      const call: { domain: string; renewIfExpired?: boolean } = orderIfMissing
+        .mock.calls[0]![0] as { domain: string; renewIfExpired?: boolean };
+
+      expect(call.domain).toBe("dash.acme.com");
+      expect(call.renewIfExpired).toBe(expected);
     },
   );
 
-  test("an order that was placed keeps the window", async () => {
-    const release: MockedFn = jest
-      .spyOn(CertificateOrder, "releaseOnDemandOrder")
-      .mockResolvedValue(undefined) as unknown as MockedFn;
-    jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
-      .mockResolvedValue(CertificateOrderOutcome.Ordered as never);
+  test("an on-demand order counts against the domain's own project", async () => {
+    const projectId: ObjectID = ObjectID.generate();
 
-    await StatusPageDomainService.orderCertOnceCnameIsVerified(
-      makeDomain() as never,
+    jest
+      .spyOn(CertificateOrder, "orderIfMissing")
+      .mockImplementation((async (data: {
+        order: (
+          lock: CertificateOrderLockHandle,
+        ) => Promise<CertificateOrderOutcome>;
+      }): Promise<CertificateOrderOutcome> => {
+        return await data.order({} as CertificateOrderLockHandle);
+      }) as never);
+
+    const share: MockedFn = jest.spyOn(
+      CertificateOrder,
+      "getOrderShare",
+    ) as unknown as MockedFn;
+    const orderCert: MockedFn = jest
+      .spyOn(DashboardDomainService, "orderCert")
+      .mockResolvedValue(
+        CertificateOrderOutcome.Ordered as never,
+      ) as unknown as MockedFn;
+
+    await DashboardDomainService.orderCertIfMissing(
+      makeDomain({ projectId: projectId }) as never,
+      { onDemand: true, cnameVerifiedJustNow: true },
     );
 
-    expect(release).not.toHaveBeenCalled();
+    expect(share).toHaveBeenCalledWith({
+      sweep: undefined,
+      onDemand: { projectId: projectId.toString() },
+    });
+    expect(orderCert.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ cnameVerifiedJustNow: true }),
+    );
   });
 
-  test("a failed order is remembered for the rest of the window", async () => {
-    const record: MockedFn = jest
-      .spyOn(CertificateOrder, "recordOnDemandOrderFailure")
-      .mockResolvedValue(undefined) as unknown as MockedFn;
-    jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
-      .mockRejectedValue(
-        new BadDataException("Cname is not valid for domain") as never,
-      );
+  test("never orders for a domain on an uploaded certificate", async () => {
+    const orderIfMissing: MockedFn = jest.spyOn(
+      CertificateOrder,
+      "orderIfMissing",
+    ) as unknown as MockedFn;
 
-    await StatusPageDomainService.orderCertOnceCnameIsVerified(
-      makeDomain() as never,
-    );
+    await expect(
+      DashboardDomainService.orderCertIfMissing(
+        makeDomain({ isCustomCertificate: true }) as never,
+        { onDemand: true },
+      ),
+    ).rejects.toThrow("uses a certificate you uploaded");
 
-    expect(record).toHaveBeenCalledWith(
-      "status.acme.com",
-      "Cname is not valid for domain",
-    );
+    expect(orderIfMissing).not.toHaveBeenCalled();
   });
 
-  test("an order that finishes within the wait answers at once, without waiting it out", async () => {
-    jest
-      .spyOn(StatusPageDomainService, "orderCertIfMissing")
-      .mockResolvedValue(CertificateOrderOutcome.Ordered as never);
-
-    const startedAt: number = Date.now();
-
-    const result: { certificateStatus: CustomDomainCertificateStatus } =
-      await StatusPageDomainService.orderCertOnceCnameIsVerified(
-        makeDomain() as never,
-        { waitInMs: 60_000 },
-      );
-
-    expect(result.certificateStatus).toBe(
-      CustomDomainCertificateStatus.Issuing,
+  test("Check now and the sweeps keep the dashboard's own budget names and limits", () => {
+    expect(DashboardDomainServiceClass.SWEEP_ORDER_BUDGET).toBe(
+      "DashboardDomainSweeps",
     );
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(DashboardDomainServiceClass.ORDER_MAX_PER_RUN).toBe(5);
   });
 });

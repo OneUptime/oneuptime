@@ -1,13 +1,14 @@
 import CustomDomainVerification, {
   CustomDomainCertificateStatus,
   CustomDomainVerificationResult,
-} from "../../../Types/StatusPage/CustomDomainVerification";
+} from "../../../Types/CustomDomain/CustomDomainVerification";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * What a status page custom domain's verify-cname route answers once it has
- * found the record, and how the dashboard reads that answer back. Both ends
- * share this, so the dialog after Check now can never misread the server.
+ * What a custom domain's verify-cname route - a status page's or a
+ * dashboard's - answers once it has found the record, and how the Dashboard
+ * reads that answer back. Both ends share this, so the dialog after Check
+ * now can never misread the server.
  */
 
 describe("CustomDomainVerification", () => {

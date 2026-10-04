@@ -127,7 +127,8 @@ const JOBS: Array<JobSpec> = [
   {
     name: "DashboardCerts:VerifyCnameWhoseCnameisNotVerified",
     serviceMethod: mockVerifyCname,
-    timeoutInMinutes: 15,
+    // It orders the certificates of the domains it verifies, as the status page job does.
+    timeoutInMinutes: 30,
   },
   {
     name: "DashboardCerts:OrderSSL",

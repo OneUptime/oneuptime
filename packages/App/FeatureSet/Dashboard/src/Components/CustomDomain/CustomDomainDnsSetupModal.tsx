@@ -1,23 +1,24 @@
 import {
+  CUSTOM_DOMAIN_RECORD_TYPE,
+  CUSTOM_DOMAIN_VERIFIED_NEXT,
+  CustomDomainCopy,
   DNS_SETUP_TEST_IDS,
-  STATUS_PAGE_CUSTOM_DOMAIN_RECORD_TYPE,
-  STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT,
-  StatusPageCustomDomainCopy,
-} from "./StatusPageCustomDomainCopy";
-import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
+} from "./CustomDomainCopy";
+import { CustomDomainKind } from "./CustomDomainKinds";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import CustomDomainVerification, {
   CustomDomainCertificateStatus,
   CustomDomainVerificationResult,
-} from "Common/Types/StatusPage/CustomDomainVerification";
+} from "Common/Types/CustomDomain/CustomDomainVerification";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Modal from "Common/UI/Components/Modal/Modal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { APP_API_URL, StatusPageCNameRecord } from "Common/UI/Config";
+import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -26,7 +27,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * DNS Setup: the one thing only a custom domain's owner can do - add the
- * CNAME record - and a way to say it is done.
+ * CNAME record - and a way to say it is done. The same dialog for a status
+ * page's custom domains and a dashboard's.
  *
  * It opens by itself on a domain that was just added, and from the domain's
  * DNS Setup row action until the record is verified. The record is shown
@@ -37,9 +39,19 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * certificate next instead of closing on a guess.
  */
 
+// What the dialog reads of the domain's row.
+export interface CustomDomainDnsSetupDomain {
+  id?: ObjectID | null | undefined;
+  fullDomain?: string | undefined;
+  subdomain?: string | undefined;
+  isCustomCertificate?: boolean | undefined;
+  isCnameVerified?: boolean | undefined;
+}
+
 export interface ComponentProps {
-  // The domain: its id, fullDomain, subdomain and isCustomCertificate.
-  domain: StatusPageDomain;
+  // Whose domain: a status page's or a dashboard's.
+  kind: CustomDomainKind;
+  domain: CustomDomainDnsSetupDomain;
   // The domain's free certificate has expired: its renewals keep failing.
   hasExpiredCertificate?: boolean | undefined;
   onClose: () => void;
@@ -54,7 +66,7 @@ interface RecordRow {
   testId: string;
 }
 
-const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
+const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
@@ -64,6 +76,8 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   const [result, setResult] = useState<CustomDomainVerificationResult | null>(
     null,
   );
+
+  const cnameRecord: string = props.kind.getCnameRecord();
 
   const fullDomain: string = props.domain.fullDomain?.toString() || "";
 
@@ -78,12 +92,12 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
    * and says why.
    */
   const whatHappensNext: string = props.domain.isCustomCertificate
-    ? StatusPageCustomDomainCopy.dnsSetupWhatHappensNextUploaded
+    ? CustomDomainCopy.dnsSetupWhatHappensNextUploaded
     : props.domain.isCnameVerified
       ? props.hasExpiredCertificate
-        ? StatusPageCustomDomainCopy.dnsSetupVerifiedExpired
-        : StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued
-      : StatusPageCustomDomainCopy.dnsSetupWhatHappensNext;
+        ? CustomDomainCopy.dnsSetupVerifiedExpired
+        : CustomDomainCopy.dnsSetupVerifiedNotIssued
+      : CustomDomainCopy.dnsSetupWhatHappensNext;
 
   // The subdomain is empty for the domain itself ("@" when it was added).
   const isRootDomain: boolean =
@@ -98,7 +112,7 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get<JSONObject>({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/${new StatusPageDomain().crudApiPath}/verify-cname/${props.domain.id?.toString()}`,
+            `/${new props.kind.modelType().crudApiPath}/verify-cname/${props.domain.id?.toString()}`,
           ),
           data: {},
           headers: ModelAPI.getCommonHeaders(),
@@ -117,20 +131,22 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     setIsChecking(false);
   };
 
-  // An installation without a status page CNAME record cannot verify any.
-  if (!StatusPageCNameRecord) {
+  // An installation without this kind's CNAME record cannot verify any.
+  if (!cnameRecord) {
     return (
       <Modal
-        title={StatusPageCustomDomainCopy.dnsSetupTitle}
+        title={CustomDomainCopy.dnsSetupTitle}
         onClose={props.onClose}
-        closeButtonText={StatusPageCustomDomainCopy.dnsSetupClose}
+        closeButtonText={CustomDomainCopy.dnsSetupClose}
       >
         <p className="text-sm leading-6 text-gray-600">
           <TranslatedSentence
-            template={StatusPageCustomDomainCopy.dnsSetupNotEnabled}
+            template={props.kind.copy.dnsSetupNotEnabled}
             slots={{
               variable: (
-                <span className="font-semibold">STATUS_PAGE_CNAME_RECORD</span>
+                <span className="font-semibold">
+                  {props.kind.cnameRecordVariable}
+                </span>
               ),
             }}
           />
@@ -142,22 +158,18 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   if (result) {
     return (
       <Modal
-        title={StatusPageCustomDomainCopy.dnsSetupTitle}
+        title={CustomDomainCopy.dnsSetupTitle}
         onClose={props.onClose}
-        closeButtonText={StatusPageCustomDomainCopy.dnsSetupDone}
+        closeButtonText={CustomDomainCopy.dnsSetupDone}
       >
         <div className="space-y-4" data-testid={DNS_SETUP_TEST_IDS.verified}>
           <Alert
             type={AlertType.SUCCESS}
-            title={StatusPageCustomDomainCopy.dnsSetupVerified}
+            title={CustomDomainCopy.dnsSetupVerified}
           />
           <p className="text-sm leading-6 text-gray-600">
             <TranslatedSentence
-              template={
-                STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT[
-                  result.certificateStatus
-                ]
-              }
+              template={CUSTOM_DOMAIN_VERIFIED_NEXT[result.certificateStatus]}
               slots={{ domain: domainSlot }}
             />
           </p>
@@ -178,39 +190,39 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
 
   const records: Array<RecordRow> = [
     {
-      label: StatusPageCustomDomainCopy.dnsSetupRecordType,
-      value: STATUS_PAGE_CUSTOM_DOMAIN_RECORD_TYPE,
-      copyTitle: StatusPageCustomDomainCopy.dnsSetupCopyRecordType,
+      label: CustomDomainCopy.dnsSetupRecordType,
+      value: CUSTOM_DOMAIN_RECORD_TYPE,
+      copyTitle: CustomDomainCopy.dnsSetupCopyRecordType,
       testId: DNS_SETUP_TEST_IDS.recordType,
     },
     {
-      label: StatusPageCustomDomainCopy.dnsSetupRecordName,
+      label: CustomDomainCopy.dnsSetupRecordName,
       value: fullDomain,
-      copyTitle: StatusPageCustomDomainCopy.dnsSetupCopyRecordName,
+      copyTitle: CustomDomainCopy.dnsSetupCopyRecordName,
       testId: DNS_SETUP_TEST_IDS.recordName,
     },
     {
-      label: StatusPageCustomDomainCopy.dnsSetupRecordValue,
-      value: StatusPageCNameRecord,
-      copyTitle: StatusPageCustomDomainCopy.dnsSetupCopyRecordValue,
+      label: CustomDomainCopy.dnsSetupRecordValue,
+      value: cnameRecord,
+      copyTitle: CustomDomainCopy.dnsSetupCopyRecordValue,
       testId: DNS_SETUP_TEST_IDS.recordValue,
     },
   ];
 
   return (
     <Modal
-      title={StatusPageCustomDomainCopy.dnsSetupTitle}
+      title={CustomDomainCopy.dnsSetupTitle}
       onClose={props.onClose}
-      closeButtonText={StatusPageCustomDomainCopy.dnsSetupClose}
+      closeButtonText={CustomDomainCopy.dnsSetupClose}
       onSubmit={checkNow}
-      submitButtonText={StatusPageCustomDomainCopy.dnsSetupCheckNow}
+      submitButtonText={CustomDomainCopy.dnsSetupCheckNow}
       isLoading={isChecking}
       error={error}
     >
       <div className="space-y-4">
         <p className="text-sm leading-6 text-gray-600">
           <TranslatedSentence
-            template={StatusPageCustomDomainCopy.dnsSetupIntro}
+            template={props.kind.copy.dnsSetupIntro}
             slots={{ domain: domainSlot }}
           />
         </p>
@@ -254,9 +266,7 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
             className="text-sm leading-6 text-gray-600"
             data-testid={DNS_SETUP_TEST_IDS.rootDomainNote}
           >
-            {translator.translateText(
-              StatusPageCustomDomainCopy.dnsSetupRootDomain,
-            )}
+            {translator.translateText(CustomDomainCopy.dnsSetupRootDomain)}
           </p>
         ) : (
           <></>
@@ -273,4 +283,4 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default StatusPageDomainDnsSetupModal;
+export default CustomDomainDnsSetupModal;
