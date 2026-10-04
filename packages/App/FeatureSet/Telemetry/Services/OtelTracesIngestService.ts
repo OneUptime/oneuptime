@@ -7,6 +7,10 @@ import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import { normalizeObiReceivingSideMessagingSpanKind } from "../Utils/ObiReceivingSideMessagingSpan";
+import {
+  collectObiNodeInspectorRequestSpans,
+  isObiNodeInspectorSpan,
+} from "../Utils/ObiNodeInspectorSpan";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
@@ -342,6 +346,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        * host-scoped trace queries matching via the fast query path.
        */
       OtelIngestBaseService.normalizeHostNameAttributesInPlace(resourceSpans);
+
+      /*
+       * OBI v0.14 records its own requests to a Node.js app's inspector,
+       * made while injecting its agent, as that app's SERVER spans. Found
+       * before the span loop because OBI writes their "in queue" /
+       * "processing" children ahead of them, and dropped in it. See
+       * ObiNodeInspectorSpan.
+       */
+      const obiNodeInspectorRequestSpans: Set<string> =
+        collectObiNodeInspectorRequestSpans(resourceSpans);
+      let obiNodeInspectorSpansDropped: number = 0;
 
       const dbSpans: Array<JSONObject> = [];
       const dbExceptions: Array<JSONObject> = [];
@@ -745,6 +760,29 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       attributes: spanAttributes,
                     });
 
+                  /*
+                   * OBI's own Node.js inspector requests and their
+                   * sub-spans. Dropped before the evaluation row, so no drop
+                   * filter, scrub rule, pipeline or exception row sees them.
+                   */
+                  if (
+                    obiNodeInspectorRequestSpans.size > 0 &&
+                    isObiNodeInspectorSpan(
+                      {
+                        kind: spanKind,
+                        name: spanName,
+                        traceId: traceId,
+                        spanId: spanId,
+                        parentSpanId: wireParentSpanId,
+                        attributes: spanAttributes,
+                      },
+                      obiNodeInspectorRequestSpans,
+                    )
+                  ) {
+                    obiNodeInspectorSpansDropped++;
+                    continue;
+                  }
+
                   let spanEvents: Array<JSONObject> = [];
                   let hasException: boolean = false;
                   let rawSpanExceptions: Array<RawSpanExceptionEvent> = [];
@@ -998,8 +1036,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         }),
       ]);
 
+      if (obiNodeInspectorSpansDropped > 0) {
+        logger.debug(
+          `Dropped ${obiNodeInspectorSpansDropped} spans of OBI's Node.js inspector requests for project: ${projectId}`,
+        );
+      }
+
       if (totalSpansProcessed === 0) {
-        logger.warn("No valid spans were processed from the request");
+        // A request of nothing but OBI's inspector spans is not invalid.
+        if (obiNodeInspectorSpansDropped === 0) {
+          logger.warn("No valid spans were processed from the request");
+        }
         return;
       }
 

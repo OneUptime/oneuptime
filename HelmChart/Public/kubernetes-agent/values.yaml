@@ -1057,6 +1057,8 @@ ebpf:
   # outside the pod. Node itself prints that it was, so each app logs
   # "Debugger listening on ws://127.0.0.1:9229/…" and "Debugger attached." to
   # its stderr once, when OBI first finds it. That is this, not an intrusion.
+  # OBI v0.14 also records its own requests to the inspector as the app's;
+  # see dropNodeInspectorMetrics below.
   #
   # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
   # this off if your security policy forbids an inspector socket in your pods,
@@ -1155,6 +1157,34 @@ ebpf:
   # map as a remote endpoint rather than a database. Its metrics are
   # unaffected. Set false to keep these spans — and the one-span traces.
   dropUnlinkedDatabaseCalls: true
+
+  # Drop the HTTP metrics OBI records for its own Node.js agent injection
+  # (see `nodejs` above). OBI v0.14 starts tracing a Node.js process before
+  # it injects the agent, so its own requests to the app's inspector —
+  # GET /json/list (and GET /json/version when the inspector was already
+  # open) and the WebSocket upgrade that follows, from 127.0.0.1 to port
+  # 9229 — are counted as the app's: routes `/json/list`, `/json/version`
+  # and `/*` (status 101) show up in its http.server.* request metrics.
+  #
+  # The agent's collector drops OBI's http.server.* datapoints for GET on
+  # port 9229 with one of those routes (`/*` only when answered 101). A
+  # datapoint carries no client address, so an app's own GET /json/list or
+  # /json/version on port 9229, and its own WebSocket upgrades there that
+  # OBI names `/*` (no route template), lose their datapoints too; set false
+  # if that is yours. Those route names are OBI's default naming
+  # (`routes.unmatched` heuristic): with another `routes.unmatched`, or a
+  # `routes.patterns` entry that matches those paths, some or all of the
+  # injection's datapoints are kept. Nothing is dropped with `nodejs.enabled`
+  # false, since OBI then never injects.
+  #
+  # Only the http.server.* request metrics are filtered. OBI's span metrics
+  # (`features.spanMetrics`) carry neither the port nor the HTTP status, so
+  # they still count a GET /json/list call per injection (and a GET
+  # /json/version for an app started with --inspect) and add the upgrade to
+  # the app's GET /*. Spans are not this switch's business: OneUptime drops
+  # the injection's traces itself on ingest, where the client address is
+  # known.
+  dropNodeInspectorMetrics: true
 
   # Log ↔ trace correlation. OBI's log enricher attaches a uprobe to
   # the `write()` syscall in every instrumented process, looks up the
