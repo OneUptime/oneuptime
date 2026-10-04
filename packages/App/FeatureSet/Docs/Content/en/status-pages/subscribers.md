@@ -4,7 +4,7 @@ A status page is a place people go. Subscribers are the people who would rather 
 
 Announcements are the other half of the same job. A monitor can tell your visitors that checkout is returning 500s; no monitor can tell them that you are migrating databases on Saturday, that a third-party provider is having a bad day, or that the incident they read about yesterday is fully closed out. Announcements are the free-text channel for everything your checks cannot see, and they fan out to the same subscriber list.
 
-This page covers both: the five subscription channels and how visitors sign up, what subscribers can choose to hear about, the double opt-in and unsubscribe flows, and how announcements are written, scheduled and templated.
+This page covers both: the five subscription channels and how visitors sign up, what subscribers can choose to hear about, the double opt-in and unsubscribe flows, the email report subscribers can get every month, and how announcements are written, scheduled and templated.
 
 ## Subscription channels
 
@@ -251,6 +251,20 @@ A notification sent again is sent as things stand when it goes out: to the statu
 - **Every other notification** — a state change, a public note, a postmortem, and those of episodes, scheduled maintenance events and announcements — keeps no such record. **Retry** sends it again to every status page, including the subscribers who already got it.
 
 For an incident limited to specific status pages, one email or text message per person applies within each send, so a retry, which is a send of its own, can reach someone who got the first one. See [One email per person](/docs/status-pages/one-status-page-per-audience#one-email-per-person).
+
+## Email reports
+
+A status page can email its subscribers a report on a schedule: for each resource on the page, its uptime, its downtime and its incidents over a stretch of time. It is set in the **Email Reports** card at **Status Pages → your page → Advanced → Reports**.
+
+- **Send email reports** turns reports on and off, and saves as soon as you flip it. There is nothing to fill in either way.
+- **The first time reports are turned on**, the page gets a schedule: a report on the 1st of every month at 09:00, starting on the next 1st of the month, each covering the whole calendar month before it, so the report sent on 1 November covers October. 09:00 is in the report time zone, which is UTC unless you change it.
+- **While reports are on**, the card says when the next report goes out and the dates it covers, how often reports go out, what each one covers and the time zone. **Edit Schedule** changes them on one page: **How often**, and **First report on**, which every later report follows by how often you send them, at the same time of day. Under **More fields** are the **Report Timezone** and the **Reporting period**: the previous whole calendar period (a weekly report covers Monday to Sunday) or a rolling number of days that ends when the report is sent. The next report and its dates are worked out as you edit, before you save. If the card says **Not scheduled yet** while reports are on, save the schedule with **Edit Schedule**: that works out when the next report goes out.
+- **Turning reports off** keeps the schedule. Turned back on, reports go out on it again from its next date, so a page that was off for a month does not send the report it missed.
+- **Send Test Report**, under the card, emails a report to an address you give, so you can see what subscribers get, whether reports are on or not.
+
+Reports go to the page's email subscribers; SMS, Slack, Microsoft Teams and webhook subscribers do not get them. A **Subscriber Report** template linked to the page replaces the built-in email when the page has a **Custom SMTP Config** (see [Customizing notification templates](#customizing-notification-templates)). On OneUptime Cloud, reports need the **Growth** plan or above, and on a lower plan the switch has the plan's name beside it.
+
+**Through the API or Terraform**, turning `isReportEnabled` on without `reportStartDateTime` or `reportRecurringInterval` gives the page the same default schedule, instead of leaving reports on with nothing scheduled. A schedule you send with it is kept, and so is one the page already has. Send `reportRecurringInterval` without `reportStartDateTime` and the first report goes out at 09:00 at the start of the next period of that interval: the next day for a daily schedule, the next Monday for a weekly one, the 1st of next month for a monthly one and 1 January for a yearly one; an hourly schedule starts at the next full hour. The server works out `sendNextReportBy`, the time the next report goes out, and refuses a `reportStartDateTime` or `reportRecurringInterval` it cannot read.
 
 ## Customizing notification templates
 
