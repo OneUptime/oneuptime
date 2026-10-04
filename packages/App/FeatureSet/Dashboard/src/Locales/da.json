@@ -16922,7 +16922,7 @@
   "Status of the Telegram Message": "Status of the Telegram Message",
   "Status of the WhatsApp Message": "Status of the WhatsApp Message",
   "Status of the monitors will not be changed when this incident is created.": "Status of the monitors will not be changed when this incident is created.",
-  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Overvågningernes status ændres ikke, når denne planlagte vedligeholdelsesbegivenhed starter.",
   "Status page groups": "Status page groups",
   "Status page title is used.": "Status page title is used.",
   "Status pages": "Status pages",
@@ -24868,5 +24868,13 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Hændelser, der erklæres fra denne skabelon, starter i denne tilstand. Lad være tom for den sædvanlige starttilstand.",
   "The usual starting state": "Den sædvanlige starttilstand",
   "Their names could not be loaded.": "Deres navne kunne ikke indlæses.",
-  "Who takes each role on this incident.": "Hvem der påtager sig hver rolle i denne hændelse."
+  "Who takes each role on this incident.": "Hvem der påtager sig hver rolle i denne hændelse.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Begivenheder, der planlægges ud fra denne skabelon, sætter deres overvågninger til denne status, mens de er i gang – dem, der er valgt her, og dem, der vælges, når begivenheden planlægges.",
+  "No monitors affected by this scheduled maintenance event.": "Ingen overvågninger påvirket af denne planlagte vedligeholdelsesbegivenhed.",
+  "No other resources affected by this scheduled maintenance event.": "Ingen andre ressourcer påvirket af denne planlagte vedligeholdelsesbegivenhed.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Søg efter og tilknyt værter, Kubernetes-klynger, Docker-værter eller tjenester, som begivenheder oprettet ud fra denne skabelon skal forhåndsudfylde.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Søg efter og tilknyt værter, klynger, containerværter, databaser, IoT-flåder, netværkssteder eller tjenester, som denne planlagte vedligeholdelse påvirker. Når du tilknytter et netværkssted, er alle steder under det omfattet.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "Søg efter og tilknyt de overvågninger, som denne planlagte vedligeholdelse påvirker.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "Søg efter og tilknyt de overvågninger, som begivenheder oprettet ud fra denne skabelon skal forhåndsudfylde.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Når begivenheden starter, skifter dens overvågninger til denne status, og tilbage til i drift, når den slutter."
 }

@@ -24868,5 +24868,13 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Los incidentes declarados desde esta plantilla empiezan en este estado. Déjalo vacío para el estado inicial habitual.",
   "The usual starting state": "El estado inicial habitual",
   "Their names could not be loaded.": "No se pudieron cargar sus nombres.",
-  "Who takes each role on this incident.": "Quién asume cada rol en este incidente."
+  "Who takes each role on this incident.": "Quién asume cada rol en este incidente.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Los eventos programados desde esta plantilla cambian sus monitores a este estado mientras están en curso: los elegidos aquí y los que se elijan al programar el evento.",
+  "No monitors affected by this scheduled maintenance event.": "Este evento de mantenimiento programado no afecta a ningún monitor.",
+  "No other resources affected by this scheduled maintenance event.": "Este evento de mantenimiento programado no afecta a ningún otro recurso.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Busca y asocia hosts, clústeres de Kubernetes, hosts de Docker o servicios con los que los eventos creados a partir de esta plantilla deben rellenarse previamente.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Busca y asocia hosts, clústeres, hosts de contenedores, bases de datos, flotas IoT, sitios de red o servicios afectados por este mantenimiento programado. Asociar un sitio de red abarca todos los sitios que dependen de él.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "Busca y asocia los monitores afectados por este mantenimiento programado.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "Busca y asocia los monitores con los que los eventos creados a partir de esta plantilla deben rellenarse previamente.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Cuando empieza el evento, sus monitores cambian a este estado, y vuelven a operativo cuando termina."
 }

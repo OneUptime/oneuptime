@@ -1,17 +1,17 @@
 import { getIdsFromFormValue } from "./IncidentStatusPageScopeForm";
 
 /*
- * "Change Monitor Status to" on the incident forms: Declare Incident and the
- * Edit of an incident's Affected Resources card. The maintainer: "we also
- * need to have monitors and other affected resources as seperate things (so
- * change monitor state to makes more sense), only show that dropdown if any
- * monitor is selected."
+ * "Change Monitor Status to" on the incident forms - Declare Incident and the
+ * Edit of an incident's Affected Resources card - and on Create Scheduled
+ * Maintenance Event. The maintainer: "we also need to have monitors and
+ * other affected resources as seperate things (so change monitor state to
+ * makes more sense), only show that dropdown if any monitor is selected."
  *
  * So the monitors are picked on their own, the status sits right under
  * them, and it is asked only once a monitor is picked. Hidden, it keeps what
  * it holds - a template's status, or one picked before the last monitor was
  * removed - and shows it again with the next monitor; but it is never sent
- * without a monitor, so nothing stale reaches the incident.
+ * without a monitor, so nothing stale reaches the incident or the event.
  *
  * React-free, so App/Tests can check the rules directly.
  */
@@ -63,11 +63,11 @@ export interface ItemWithMonitorStatus {
 }
 
 /*
- * The incident a form is about to send, without a monitor status when the
- * form holds no monitor to put in it. Left out of the request, the column is
- * left as it is: empty on an incident being declared, and on an edit the
- * status the incident already had - the same as when the form sent that
- * status back unchanged. With a monitor, nothing is touched.
+ * The incident or maintenance event a form is about to send, without a
+ * monitor status when the form holds no monitor to put in it. Left out of
+ * the request, the column is left as it is: empty on a record being created,
+ * and on an edit the status the incident already had - the same as when the
+ * form sent that status back unchanged. With a monitor, nothing is touched.
  */
 export const omitMonitorStatusWithoutMonitors: <
   T extends ItemWithMonitorStatus,

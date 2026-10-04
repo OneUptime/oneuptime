@@ -16922,7 +16922,7 @@
   "Status of the Telegram Message": "Status of the Telegram Message",
   "Status of the WhatsApp Message": "Status of the WhatsApp Message",
   "Status of the monitors will not be changed when this incident is created.": "Status of the monitors will not be changed when this incident is created.",
-  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "此排定維護事件開始時，不會變更監測器的狀態。",
   "Status page groups": "Status page groups",
   "Status page title is used.": "Status page title is used.",
   "Status pages": "Status pages",
@@ -24868,5 +24868,13 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "從此範本宣告的事件以此狀態開始。留空則使用一般的初始狀態。",
   "The usual starting state": "一般的初始狀態",
   "Their names could not be loaded.": "無法載入他們的名稱。",
-  "Who takes each role on this incident.": "由誰擔任此事件的各個角色。"
+  "Who takes each role on this incident.": "由誰擔任此事件的各個角色。",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "從此範本排定的事件在進行期間會將其監測器的狀態變更為此狀態——包括此處選擇的監測器，以及排定事件時選擇的任何監測器。",
+  "No monitors affected by this scheduled maintenance event.": "沒有受此排定維護事件影響的監測器。",
+  "No other resources affected by this scheduled maintenance event.": "沒有受此排定維護事件影響的其他資源。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "搜尋並附加從此範本建立的事件應預先填入的主機、Kubernetes 叢集、Docker 主機或服務。",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "搜尋並附加受此排定維護影響的主機、叢集、容器主機、資料庫、IoT 裝置群、網路站點或服務。附加一個網路站點即涵蓋其下的所有站點。",
+  "Search and attach the monitors affected by this scheduled maintenance.": "搜尋並附加受此排定維護影響的監測器。",
+  "Search and attach the monitors that events created from this template should pre-populate.": "搜尋並附加從此範本建立的事件應預先填入的監測器。",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "事件開始時，其監測器會變更為此狀態，並在事件結束時恢復為運作中。"
 }

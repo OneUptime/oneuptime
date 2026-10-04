@@ -16922,7 +16922,7 @@
   "Status of the Telegram Message": "Status of the Telegram Message",
   "Status of the WhatsApp Message": "Status of the WhatsApp Message",
   "Status of the monitors will not be changed when this incident is created.": "Status of the monitors will not be changed when this incident is created.",
-  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "وضعیت مانیتورها هنگام شروع این رویداد تعمیر و نگهداری زمان‌بندی‌شده تغییر نمی‌کند.",
   "Status page groups": "Status page groups",
   "Status page title is used.": "Status page title is used.",
   "Status pages": "Status pages",
@@ -24868,5 +24868,13 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید.",
   "The usual starting state": "وضعیت آغازین معمول",
   "Their names could not be loaded.": "نام‌هایشان بارگیری نشد.",
-  "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد."
+  "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "رویدادهایی که از این قالب زمان‌بندی می‌شوند، تا زمانی که در جریان هستند وضعیت مانیتورهایشان را به این وضعیت تغییر می‌دهند - مانیتورهایی که اینجا انتخاب شده‌اند و هر مانیتوری که هنگام زمان‌بندی رویداد انتخاب شود.",
+  "No monitors affected by this scheduled maintenance event.": "هیچ مانیتوری تحت تأثیر این رویداد تعمیر و نگهداری زمان‌بندی‌شده نیست.",
+  "No other resources affected by this scheduled maintenance event.": "هیچ منبع دیگری تحت تأثیر این رویداد تعمیر و نگهداری زمان‌بندی‌شده نیست.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "میزبان‌ها، خوشه‌های Kubernetes، میزبان‌های Docker یا سرویس‌هایی را که رویدادهای ساخته‌شده از این قالب باید از پیش پر کنند جستجو و پیوست کنید.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "میزبان‌ها، خوشه‌ها، میزبان‌های کانتینر، پایگاه‌های داده، ناوگان‌های IoT، سایت‌های شبکه یا سرویس‌های تحت تأثیر این تعمیر و نگهداری زمان‌بندی‌شده را جستجو و پیوست کنید. پیوست کردن یک سایت شبکه همه سایت‌های زیر آن را پوشش می‌دهد.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "مانیتورهای تحت تأثیر این تعمیر و نگهداری زمان‌بندی‌شده را جستجو و پیوست کنید.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "مانیتورهایی را که رویدادهای ساخته‌شده از این قالب باید از پیش پر کنند جستجو و پیوست کنید.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "هنگام شروع رویداد، مانیتورهای آن به این وضعیت تغییر می‌کنند و پس از پایان آن به وضعیت عملیاتی برمی‌گردند."
 }
