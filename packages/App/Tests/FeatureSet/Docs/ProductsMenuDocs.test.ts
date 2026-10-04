@@ -4,11 +4,11 @@ import path from "path";
 
 /*
  * Getting Started tells a new user how to find their way around: the
- * products menu opens on the essentials and folds every other group to one
- * line. The page names the essentials and the folded groups, so it has to
- * name the ones the menu actually shows. These read the names from the
- * Dashboard's own English locale, the words on the screen, and fail when the
- * page and the menu drift apart.
+ * products menu always opens on the essentials, which never fold, and folds
+ * every other group to one line. The page names the essentials and the
+ * folded groups, so it has to name the ones the menu actually shows. These
+ * read the names from the Dashboard's own English locale, the words on the
+ * screen, and fail when the page and the menu drift apart.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..", "..");
@@ -111,7 +111,17 @@ describe("Getting Started explains the products menu", () => {
 
   test("the menu does open on Essentials alone", () => {
     expect(NAVIGATION_ITEMS.replace(/\s+/g, "")).toContain(
-      "constmoreMenuCategoriesOpenByDefault:Array<string>=[essentialsCategory];",
+      "constmoreMenuCategoriesAlwaysOpen:Array<string>=[essentialsCategory];",
     );
+  });
+
+  test("it says the essentials are always there, and what the menu remembers is the other groups", () => {
+    expect(SECTION).toContain("always opens on the essentials");
+    expect(SECTION).toContain("The essentials are never folded away.");
+    expect(SECTION).toContain(
+      "remembers, on your browser, which of the other groups you opened or folded",
+    );
+    // Nothing on the page tells people to fold the essentials.
+    expect(SECTION).not.toMatch(/fold(?:ing)? the essentials/i);
   });
 });

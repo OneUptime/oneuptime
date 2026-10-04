@@ -3,12 +3,14 @@ import { expect, Locator, Page, test } from "@playwright/test";
 /*
  * The products menu opens on the essentials instead of every product.
  *
- * The Dashboard's menu opens on its seven Essentials. Every other section is
- * folded to one line: its name, how many products it holds and what they are
- * called. A click anywhere on the line, or Enter on it, opens it; search
- * ignores folding; the section of the page the user is on opens by itself;
- * and what someone opens or folds is remembered on their browser. On a phone
- * the menu toggle lists the products the same way.
+ * The Dashboard's menu always opens on its seven Essentials, which never
+ * fold: a plain heading, with no chevron, and no remembered fold hides them.
+ * Every other section is folded to one line: its name, how many products it
+ * holds and what they are called. A click anywhere on the line, or Enter on
+ * it, opens it; search ignores folding; the section of the page the user is
+ * on opens by itself; and what someone opens or folds among those sections
+ * is remembered on their browser. On a phone the menu toggle lists the
+ * products the same way.
  *
  * These run the production menu and catalog in a real browser, where layout
  * is real: a folded line is one line, a click on its list of products hits
@@ -46,6 +48,14 @@ const sectionToggle: (page: Page, name: string) => Locator = (
   name: string,
 ): Locator => {
   return productsMenu(page).getByRole("button", { name, exact: true });
+};
+
+// The heading of a section, whether it folds (a button inside) or not.
+const sectionHeading: (page: Page, name: string) => Locator = (
+  page: Page,
+  name: string,
+): Locator => {
+  return productsMenu(page).getByRole("heading", { name, exact: true });
 };
 
 // The whole line of a section: the row its heading button sits in.
@@ -117,6 +127,13 @@ test.describe("the desktop products menu", () => {
     await expect(page.getByRole("option", { selected: true })).toContainText(
       "Monitors",
     );
+
+    // Essentials have a plain heading: nothing on screen folds them.
+    await expect(sectionHeading(page, "Essentials")).toBeVisible();
+    await expect(sectionToggle(page, "Essentials")).toHaveCount(0);
+    await expect(
+      productsMenu(page).locator("#navbar-menu-listbox button[aria-expanded]"),
+    ).toHaveCount(FOLDED_SECTIONS.length);
   });
 
   test("a click anywhere on a folded line opens it, and focus stays in the search box", async ({
@@ -236,8 +253,9 @@ test.describe("the desktop products menu", () => {
     page: Page;
   }) => {
     await sectionToggle(page, "Code").click();
-    await sectionToggle(page, "Essentials").click();
-    await expect(page.getByRole("option")).toHaveCount(1);
+    await sectionToggle(page, "Settings").click();
+    await sectionToggle(page, "Settings").click();
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length + 1);
 
     await openMenuAt(page, "/home");
 
@@ -245,12 +263,45 @@ test.describe("the desktop products menu", () => {
       "aria-expanded",
       "true",
     );
-    await expect(sectionToggle(page, "Essentials")).toHaveAttribute(
+    await expect(sectionToggle(page, "Settings")).toHaveAttribute(
       "aria-expanded",
       "false",
     );
-    await expect(page.getByRole("option")).toHaveCount(1);
-    await expect(page.getByRole("option")).toContainText("Tasks");
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length + 1);
+    await expect(page.getByRole("option").last()).toContainText("Tasks");
+  });
+
+  test("the essentials are open on every visit, even where a fold of them was remembered", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // What the menu stored when Essentials could still be folded.
+    await page.evaluate(() => {
+      window.localStorage.setItem(
+        "oneuptime-navbar-product-categories",
+        JSON.stringify({ Essentials: false, Code: true }),
+      );
+    });
+
+    await openMenuAt(page, "/home");
+
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length + 1);
+    for (const [index, title] of ESSENTIALS.entries()) {
+      await expect(page.getByRole("option").nth(index)).toContainText(title);
+    }
+    await expect(sectionToggle(page, "Code")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(page.getByRole("option", { selected: true })).toContainText(
+      "Monitors",
+    );
+
+    // A click on their heading changes nothing.
+    await sectionHeading(page, "Essentials").click();
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length + 1);
+    await expect(page.getByRole("dialog")).toHaveCount(1);
   });
 });
 
@@ -295,6 +346,13 @@ test("on a phone, the menu toggle lists the essentials and folds the other secti
     await expect(navLink(navbar, title)).toBeVisible();
   }
   await expect(navLink(navbar, "Kubernetes")).toHaveCount(0);
+  // Essentials sit under a plain heading that never folds.
+  await expect(
+    navbar.getByRole("heading", { name: "Essentials", exact: true }),
+  ).toBeVisible();
+  await expect(
+    navbar.getByRole("button", { name: "Essentials", exact: true }),
+  ).toHaveCount(0);
 
   const infrastructure: Locator = navbar.getByRole("button", {
     name: "Infrastructure",
