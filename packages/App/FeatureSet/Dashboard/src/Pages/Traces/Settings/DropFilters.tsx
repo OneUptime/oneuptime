@@ -1,8 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -12,13 +11,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
 import ProjectUtil from "Common/UI/Utils/Project";
-import FilterQueryBuilderField from "../../../Components/FilterQueryBuilder/FilterQueryBuilderField";
-import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
 import {
-  MAX_SAMPLE_PERCENTAGE,
-  MIN_SAMPLE_PERCENTAGE,
-} from "Common/Types/Telemetry/DropFilterSampling";
-import React, { FunctionComponent, ReactElement } from "react";
+  getDropFilterFormSteps,
+  getTraceDropFilterFormFields,
+} from "../../../Components/Telemetry/DropFilterForm";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -50,6 +47,24 @@ const TraceDropFilters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * Match (the name and the filter query), then Action (Drop picked, the
+   * percentage for Sample, and the description and Enabled folded under
+   * Advanced): Components/Telemetry/DropFilterForm, shared with Logs.
+   */
+  const formSteps: Array<FormStep<TraceDropFilter>> = useMemo((): Array<
+    FormStep<TraceDropFilter>
+  > => {
+    return getDropFilterFormSteps<TraceDropFilter>();
+  }, []);
+
+  const formFields: Array<ModelField<TraceDropFilter>> = useMemo((): Array<
+    ModelField<TraceDropFilter>
+  > => {
+    return getTraceDropFilterFormFields();
+  }, []);
+
   return (
     <ModelTable<TraceDropFilter>
       modelType={TraceDropFilter}
@@ -84,8 +99,12 @@ const TraceDropFilters: FunctionComponent<
         samplePercentage: true,
       }}
       viewPageRoute={Navigation.getCurrentRoute()}
+      /*
+       * Drop is the form's suggestion: the action has no server default (a
+       * filter created without one is refused). Enabled starts from its
+       * column default, on.
+       */
       createInitialValues={{
-        isEnabled: true,
         action: TraceDropFilterAction.Drop,
       }}
       onBeforeCreate={async (item: TraceDropFilter) => {
@@ -93,118 +112,10 @@ const TraceDropFilters: FunctionComponent<
         if (!item.action) {
           item.action = TraceDropFilterAction.Drop;
         }
-        if (item.isEnabled === undefined || item.isEnabled === null) {
-          item.isEnabled = true;
-        }
         return item;
       }}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Filter Conditions", id: "filter-conditions" },
-        { title: "Action", id: "action" },
-      ]}
-      formFields={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "e.g. Drop Healthcheck Spans",
-          validation: {
-            minLength: 2,
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Describe what this filter does.",
-        },
-        {
-          field: {
-            isEnabled: true,
-          },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: {
-            filterQuery: true,
-          },
-          title: "Filter Query",
-          stepId: "filter-conditions",
-          description:
-            "Which spans this filter applies to. Build rules with fields like span name, kind, status, service, or custom attributes.",
-          fieldType: FormFieldSchemaType.CustomComponent,
-          required: true,
-          getCustomElement: (
-            values: FormValues<TraceDropFilter>,
-            fieldProps: CustomElementProps,
-          ): ReactElement => {
-            return (
-              <FilterQueryBuilderField
-                initialValue={(values.filterQuery as string) || ""}
-                onChange={(value: string) => {
-                  if (fieldProps.onChange) {
-                    fieldProps.onChange(value);
-                  }
-                }}
-                error={fieldProps.error}
-                config={TraceFilterConfig}
-              />
-            );
-          },
-        },
-        {
-          field: {
-            action: true,
-          },
-          title: "Action",
-          stepId: "action",
-          description:
-            "Drop permanently discards matching spans. Sample keeps a percentage of them.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            { label: "Drop", value: "drop" },
-            { label: "Sample", value: "sample" },
-          ],
-        },
-        {
-          field: {
-            samplePercentage: true,
-          },
-          title: "Sample Percentage",
-          stepId: "action",
-          description:
-            "Required when Action is Sample. Percentage of matching spans to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
-          fieldType: FormFieldSchemaType.Number,
-          /*
-           * Required, but only while the Sample action is selected — the
-           * form skips validation for fields hidden by showIf. Leaving this
-           * optional let a sample filter be saved with no percentage, which
-           * the engine used to read as "throw away half".
-           */
-          required: true,
-          validation: {
-            minValue: MIN_SAMPLE_PERCENTAGE,
-            maxValue: MAX_SAMPLE_PERCENTAGE,
-          },
-          placeholder: "e.g. 10",
-          showIf: (values: FormValues<TraceDropFilter>): boolean => {
-            return values.action === "sample";
-          },
-        },
-      ]}
+      formSteps={formSteps}
+      formFields={formFields}
       showRefreshButton={true}
       searchableFields={["name", "description"]}
       showViewIdButton={true}

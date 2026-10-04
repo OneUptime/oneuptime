@@ -74,7 +74,7 @@ So the sequence is: turn the toggles on per resource, then set the window once f
 
 Groups have their own copies of these toggles — see below — so a group can show a rolled-up percentage while the individual monitors inside it stay quiet, or the other way round.
 
-The colors of the history chart bars are set under **Advanced** on the **Branding** page, and which monitor statuses count as "down" in the **Downtime Monitor Statuses** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
+The colors of the history chart bars are set under **Advanced** on the **Branding** page, and which monitor statuses count as "down" in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
 ## Groups
 

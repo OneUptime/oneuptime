@@ -12,13 +12,13 @@ import React, { ReactElement } from "react";
 
 /*
  * A status page's Advanced -> Advanced Settings page, wired: the one "What
- * your status page shows" card for this page, then the Overall Uptime
- * Percent and Downtime Monitor Statuses cards, then its JSON export, then
+ * your status page shows" card for this page, then its JSON export, then
  * Archive, last. It used to be six cards with an Edit dialog each before the
- * Archive card, and the JSON export lived on a page no menu linked to. The
- * two uptime cards came from Branding's Overview Page screen when the
- * Branding section became one page: they are about what the page shows, not
- * how it looks.
+ * Archive card, and the JSON export lived on a page no menu linked to. Two
+ * more cards with an Edit dialog - Overall Uptime Percent and Downtime
+ * Monitor Statuses, from Branding's Overview Page screen - sat under the
+ * card until they became rows of its uptime row, where the number of days
+ * the uptime covers already was.
  *
  * The cards are recorded rather than drawn (each has a suite of its own);
  * what matters here is what the page hands them, in what order, and that
@@ -26,11 +26,6 @@ import React, { ReactElement } from "react";
  */
 
 type Recorded = { name: string; props: Record<string, unknown> };
-
-// The two cards with an Edit dialog, by their analytics names.
-const OVERALL_UPTIME_CARD: string = "Status Page > Settings";
-const DOWNTIME_STATUSES_CARD: string =
-  "Status Page > Branding > Downtime Monitor Statuses";
 
 const recorded: Array<Recorded> = [];
 
@@ -132,26 +127,8 @@ function propsOf(name: string): Record<string, unknown> {
   return card!.props;
 }
 
-function detailCard(name: string): Record<string, unknown> {
-  const card: Recorded | undefined = recorded.find((entry: Recorded) => {
-    return entry.name === "card-model-detail" && entry.props["name"] === name;
-  });
-
-  expect([name, Boolean(card)]).toEqual([name, true]);
-
-  return card!.props;
-}
-
-function formColumns(props: Record<string, unknown>): Array<string> {
-  return (props["formFields"] as Array<{ field: Record<string, unknown> }>).map(
-    (field: { field: Record<string, unknown> }): string => {
-      return Object.keys(field.field)[0] || "";
-    },
-  );
-}
-
 describe("Advanced Settings", () => {
-  test("is what the page shows, the uptime % and downtime statuses, its export, then Archive, in that order", async () => {
+  test("is what the page shows, its export, then Archive, in that order", async () => {
     await renderPage();
 
     expect(
@@ -160,13 +137,7 @@ describe("Advanced Settings", () => {
         .map((element: HTMLElement): string | null => {
           return element.getAttribute("data-card");
         }),
-    ).toEqual([
-      "display-settings",
-      `card-model-detail: ${OVERALL_UPTIME_CARD}`,
-      `card-model-detail: ${DOWNTIME_STATUSES_CARD}`,
-      "export",
-      "archive",
-    ]);
+    ).toEqual(["display-settings", "export", "archive"]);
   });
 
   test("the What your status page shows card is for this status page", async () => {
@@ -211,61 +182,34 @@ describe("Advanced Settings", () => {
     );
   });
 
-  test("the only cards with an Edit dialog are the two that came from Branding's Overview Page", async () => {
+  /*
+   * The overall uptime % and the downtime statuses are rows of the card's
+   * uptime row (its own suite draws them): no card here opens a dialog, so
+   * no card holds a column the project's plan may not change beside one it
+   * may.
+   */
+  test("has no card with an Edit dialog", async () => {
+    await renderPage();
+
+    expect(
+      recorded.filter((entry: Recorded) => {
+        return entry.name === "card-model-detail";
+      }),
+    ).toEqual([]);
+    expect(screen.queryByRole("button", { name: /edit/i })).toBeNull();
+  });
+
+  test("the card it hands the status page to is the only one about what the page shows", async () => {
     await renderPage();
 
     expect(
       recorded
-        .filter((entry: Recorded) => {
-          return entry.name === "card-model-detail";
+        .map((entry: Recorded): string => {
+          return entry.name;
         })
-        .map((entry: Recorded): unknown => {
-          return entry.props["name"];
+        .filter((name: string): boolean => {
+          return name === "display-settings";
         }),
-    ).toEqual([OVERALL_UPTIME_CARD, DOWNTIME_STATUSES_CARD]);
-  });
-
-  test("Overall Uptime Percent: whether the page shows it, and to how many decimals, for this page", async () => {
-    await renderPage();
-
-    const props: Record<string, unknown> = detailCard(OVERALL_UPTIME_CARD);
-
-    expect((props["cardProps"] as Record<string, unknown>)["title"]).toBe(
-      "Overall Uptime Percent",
-    );
-    expect(formColumns(props)).toEqual([
-      "showOverallUptimePercentOnStatusPage",
-      "overallUptimePercentPrecision",
-    ]);
-
-    const detail: Record<string, unknown> = props["modelDetailProps"] as Record<
-      string,
-      unknown
-    >;
-
-    expect(detail["modelType"]).toBe(StatusPage);
-    expect((detail["modelId"] as ObjectID).toString()).toBe(STATUS_PAGE_ID);
-  });
-
-  test("Downtime Monitor Statuses: which statuses count against uptime, for this page", async () => {
-    await renderPage();
-
-    const props: Record<string, unknown> = detailCard(DOWNTIME_STATUSES_CARD);
-
-    expect((props["cardProps"] as Record<string, unknown>)["title"]).toBe(
-      "Downtime Monitor Statuses",
-    );
-    expect(props["editButtonText"]).toBe("Edit Statuses");
-    expect(formColumns(props)).toEqual(["downtimeMonitorStatuses"]);
-
-    const detail: Record<string, unknown> = props["modelDetailProps"] as Record<
-      string,
-      unknown
-    >;
-
-    expect(detail["modelType"]).toBe(StatusPage);
-    expect((detail["modelId"] as ObjectID).toString()).toBe(STATUS_PAGE_ID);
-    // Its own id: it was "default-bar-color", the bar color card's, beside it.
-    expect(detail["id"]).toBe("downtime-monitor-statuses");
+    ).toHaveLength(1);
   });
 });
