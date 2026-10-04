@@ -4,9 +4,7 @@ import Recurring from "Common/Types/Events/Recurring";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageReportPeriodType from "Common/Types/StatusPage/StatusPageReportPeriodType";
-import StatusPageReportScheduleUtil, {
-  StatusPageReportScheduleWrite,
-} from "Common/Utils/StatusPage/ReportSchedule";
+import { StatusPageReportScheduleWrite } from "Common/Utils/StatusPage/ReportSchedule";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -35,10 +33,13 @@ import React, {
 } from "react";
 import { getReportScheduleFormFields } from "./StatusPageReportScheduleForm";
 import {
+  getReportCardSelect,
   getReportPeriodDates,
   getReportScheduleDraft,
+  getReportSwitchDescription,
   getReportScheduleFacts,
   getShownReportColumns,
+  pickReportColumns,
   REPORT_FREQUENCY_COPY,
   REPORT_SCHEDULE_FORM_ID,
   REPORT_SCHEDULE_FORM_NAME,
@@ -74,17 +75,6 @@ export interface ComponentProps {
   statusPageId: ObjectID;
 }
 
-// The columns the card reads.
-const REPORT_SELECT: Record<string, true> = {
-  isReportEnabled: true,
-  reportStartDateTime: true,
-  reportRecurringInterval: true,
-  reportTimezone: true,
-  reportPeriodType: true,
-  reportDataInDays: true,
-  sendNextReportBy: true,
-};
-
 interface ReadOptions {
   /*
    * A read after a save: the card stays on screen while it runs, and a
@@ -93,21 +83,6 @@ interface ReadOptions {
    */
   isQuiet?: boolean | undefined;
 }
-
-// The page's report columns, as the card reads them.
-const toColumns: (page: StatusPage) => ReportScheduleColumns = (
-  page: StatusPage,
-): ReportScheduleColumns => {
-  return {
-    isReportEnabled: page.isReportEnabled,
-    reportStartDateTime: page.reportStartDateTime,
-    reportRecurringInterval: page.reportRecurringInterval,
-    reportTimezone: page.reportTimezone,
-    reportPeriodType: page.reportPeriodType,
-    reportDataInDays: page.reportDataInDays,
-    sendNextReportBy: page.sendNextReportBy,
-  };
-};
 
 interface ScheduleLinesProps {
   columns: ReportScheduleColumns;
@@ -263,7 +238,7 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
       const item: StatusPage | null = await ModelAPI.getItem<StatusPage>({
         modelType: StatusPage,
         id: props.statusPageId,
-        select: REPORT_SELECT,
+        select: getReportCardSelect(),
       });
 
       if (read !== readRef.current) {
@@ -276,7 +251,7 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
           setError("Item not found");
         }
       } else {
-        setPage(toColumns(item));
+        setPage(pickReportColumns(item as unknown as Record<string, unknown>));
 
         // A quiet read follows a save: the switch already shows where it is.
         if (!isQuiet) {
@@ -353,8 +328,6 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const hasSchedule: boolean = StatusPageReportScheduleUtil.hasSchedule(page);
-
     return (
       /*
        * A full-bleed row, ruled like the card's own header rule, as on the
@@ -375,13 +348,10 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
             initialValue={page.isReportEnabled === true}
             title={StatusPageReportsCopy.switchTitle}
             getDescription={(switchIsOn: boolean): string => {
-              if (switchIsOn) {
-                return StatusPageReportsCopy.switchOnDescription;
-              }
-
-              return hasSchedule
-                ? StatusPageReportsCopy.switchOffWithScheduleDescription
-                : StatusPageReportsCopy.switchOffDescription;
+              return getReportSwitchDescription({
+                page: page,
+                isOn: switchIsOn,
+              });
             }}
             onChange={(switchIsOn: boolean): void => {
               setIsOn(switchIsOn);

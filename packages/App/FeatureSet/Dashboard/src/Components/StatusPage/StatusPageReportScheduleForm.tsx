@@ -18,6 +18,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import {
   getReportPeriodDates,
   getReportScheduleFacts,
+  pickReportColumns,
   REPORT_PERIOD_TYPE_OPTIONS,
   REPORT_SCHEDULE_PREVIEW_TEST_ID,
   ReportScheduleColumns,
@@ -50,26 +51,7 @@ const fromFormValues: (
 ) => ReportScheduleColumns = (
   values: FormValues<StatusPage>,
 ): ReportScheduleColumns => {
-  const formValues: Record<string, unknown> = (values || {}) as Record<
-    string,
-    unknown
-  >;
-
-  return {
-    reportRecurringInterval: formValues[
-      "reportRecurringInterval"
-    ] as ReportScheduleColumns["reportRecurringInterval"],
-    reportStartDateTime: formValues["reportStartDateTime"] as
-      | Date
-      | string
-      | undefined,
-    reportTimezone: formValues["reportTimezone"] as string | undefined,
-    reportPeriodType: formValues["reportPeriodType"] as string | undefined,
-    reportDataInDays: formValues["reportDataInDays"] as
-      | number
-      | string
-      | undefined,
-  };
+  return pickReportColumns(values as unknown as Record<string, unknown>);
 };
 
 export interface ReportSchedulePreviewProps {

@@ -430,6 +430,34 @@ describe("a page whose reports are off", () => {
     );
   });
 
+  test("a page that keeps only how often says the same: switching on keeps it, and only the start is filled in", async () => {
+    stored = {
+      ...stored,
+      reportRecurringInterval: every(EventInterval.Week, 1),
+    };
+
+    await renderCard();
+
+    expect(switchRow()).toHaveTextContent(
+      StatusPageReportsCopy.switchOffWithScheduleDescription,
+    );
+    expect(switchRow()).not.toHaveTextContent("on the 1st of every month");
+
+    await press();
+
+    await waitFor(() => {
+      expect(schedule()).not.toBeNull();
+    });
+
+    // Weekly from the next Monday, 5 Oct 2026, at 09:00.
+    expect(scheduleLines()[StatusPageReportsCopy.howOftenTitle]).toBe(
+      "Every week",
+    );
+    expect(scheduleLines()[StatusPageReportsCopy.nextReportTitle]).toContain(
+      shownDate("2026-10-05T09:00:00.000Z"),
+    );
+  });
+
   test("reads the page once, for the report columns only", async () => {
     await renderCard();
 
@@ -784,6 +812,47 @@ describe("Edit Schedule", () => {
       expect(getItemMock.mock.calls.length).toBeGreaterThanOrEqual(3);
     });
     expect(updates()).toEqual([]);
+  });
+
+  test("a page on with a schedule the server never scheduled says it is not scheduled, and saving the schedule schedules it", async () => {
+    /*
+     * Created through the API with reports on before the server worked out
+     * the first send on create: the report worker, which sends only on
+     * sendNextReportBy, never sends it.
+     */
+    stored = {
+      isReportEnabled: true,
+      reportStartDateTime: OneUptimeDate.fromString("2026-11-01T09:00:00.000Z"),
+      reportRecurringInterval: every(EventInterval.Month, 1),
+      reportTimezone: Timezone.UTC,
+      reportPeriodType: StatusPageReportPeriodType.PreviousCalendarPeriod,
+      reportDataInDays: 30,
+    };
+
+    await renderCard();
+
+    expect(scheduleLines()[StatusPageReportsCopy.nextReportTitle]).toBe(
+      StatusPageReportsCopy.notScheduled,
+    );
+
+    const dialog: HTMLElement = await openScheduleDialog();
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Save Changes" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    // The server worked the first send out on save; the card reads it.
+    await waitFor(() => {
+      expect(scheduleLines()[StatusPageReportsCopy.nextReportTitle]).toContain(
+        shownDate("2026-11-01T09:00:00.000Z"),
+      );
+    });
   });
 
   test("a page on without a whole schedule says so, and the dialog starts from the default one", async () => {

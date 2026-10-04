@@ -6,7 +6,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useMemo,
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
@@ -39,9 +38,12 @@ const StatusPageReports: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [showModal, setShowModal] = useState<boolean>(false);
-  const modelId: ObjectID = useMemo((): ObjectID => {
-    return Navigation.getLastParamAsObjectID(1);
-  }, []);
+  /*
+   * Read on every render: the router keeps this page mounted when only the
+   * status page in the URL changes (Back and Forward between two pages'
+   * Reports), and the card and the test report must follow it.
+   */
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);

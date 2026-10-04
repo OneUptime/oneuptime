@@ -10,10 +10,14 @@ import StatusPageReportPeriodType from "Common/Types/StatusPage/StatusPageReport
 import Timezone from "Common/Types/Timezone";
 import { StatusPageReportScheduleWrite } from "Common/Utils/StatusPage/ReportSchedule";
 import {
+  getReportCardSelect,
   getReportPeriodDates,
   getReportScheduleDraft,
   getReportScheduleFacts,
+  getReportSwitchDescription,
   getShownReportColumns,
+  pickReportColumns,
+  REPORT_CARD_COLUMNS,
   REPORT_FREQUENCY_COPY,
   REPORT_PERIOD_TYPE_OPTIONS,
   REPORT_SCHEDULE_COLUMNS,
@@ -215,8 +219,11 @@ describe("one place", () => {
    * (report.reportTimezone) on the subscriber template pages.
    */
   const OWNED: Record<string, Array<string>> = {
+    // The copy's column lists, and the card's switch and first read.
     isReportEnabled: [COPY_FILE, CARD_FILE],
-    reportStartDateTime: [COPY_FILE, CARD_FILE, FORM_FILE],
+    // The copy's column lists, and the dialog's field.
+    reportStartDateTime: [COPY_FILE, FORM_FILE],
+    // The same, and the card's permission check for Edit Schedule.
     reportRecurringInterval: [COPY_FILE, CARD_FILE, FORM_FILE],
   };
 
@@ -308,6 +315,29 @@ describe("the schedule dialog", () => {
     expect(form.match(/collapsibleSection: MORE_FIELDS/g)).toHaveLength(3);
   });
 
+  test("the card reads, and the preview reads the form, through the copy's one list of columns", () => {
+    expect(card).toContain("select: getReportCardSelect(),");
+    expect(card).toContain("pickReportColumns(");
+    expect(form).toContain("pickReportColumns(");
+
+    expect(REPORT_CARD_COLUMNS).toEqual([
+      REPORT_SWITCH_COLUMN,
+      ...REPORT_SCHEDULE_COLUMNS,
+      "sendNextReportBy",
+    ]);
+    expect(Object.keys(getReportCardSelect())).toEqual([
+      ...REPORT_CARD_COLUMNS,
+    ]);
+    expect(
+      pickReportColumns({
+        isReportEnabled: true,
+        reportTimezone: Timezone.UTC,
+        name: "Acme Status",
+        pageTitle: "Acme",
+      }),
+    ).toEqual({ isReportEnabled: true, reportTimezone: Timezone.UTC });
+  });
+
   test("is offered only while reports are on", () => {
     expect(card).toMatch(
       /const buttons: Array<CardButtonSchema> = page && isOn &&/,
@@ -362,6 +392,7 @@ describe("what the card shows", () => {
         reportTimezone: Timezone.UTC,
         reportPeriodType: StatusPageReportPeriodType.Rolling,
         reportDataInDays: 7,
+        sendNextReportBy: OneUptimeDate.fromString("2026-10-05T09:00:00.000Z"),
       },
       now: NOW,
     });
@@ -370,6 +401,23 @@ describe("what the card shows", () => {
     expect(getReportPeriodDates(facts.period!)).toBe(
       "Sep 28, 2026 - Oct 5, 2026",
     );
+  });
+
+  test("a saved page the server has scheduled nothing for shows no next report, whatever its schedule says", () => {
+    const facts: ReportScheduleFacts = getReportScheduleFacts({
+      columns: {
+        isReportEnabled: true,
+        reportStartDateTime: OneUptimeDate.fromString(
+          "2026-10-05T09:00:00.000Z",
+        ),
+        reportRecurringInterval: every(EventInterval.Week, 1),
+        reportTimezone: Timezone.UTC,
+      },
+      now: NOW,
+    });
+
+    expect(facts.nextSendAt).toBeUndefined();
+    expect(facts.period).toBeUndefined();
   });
 
   test("a draft is worked out from its schedule, not from a send time the server has not worked out yet", () => {
@@ -428,6 +476,34 @@ describe("what the card shows", () => {
           },
         },
       ]);
+    }
+  });
+
+  test("the switch says what switching on will do: the default for a page that never had a schedule, its own for one that keeps any part of one", () => {
+    expect(getReportSwitchDescription({ page: {}, isOn: true })).toBe(
+      StatusPageReportsCopy.switchOnDescription,
+    );
+    expect(getReportSwitchDescription({ page: {}, isOn: false })).toBe(
+      StatusPageReportsCopy.switchOffDescription,
+    );
+
+    for (const page of [
+      { reportRecurringInterval: every(EventInterval.Week, 1) },
+      {
+        reportStartDateTime: OneUptimeDate.fromString(
+          "2026-10-05T09:00:00.000Z",
+        ),
+      },
+      {
+        reportStartDateTime: OneUptimeDate.fromString(
+          "2026-10-05T09:00:00.000Z",
+        ),
+        reportRecurringInterval: every(EventInterval.Month, 1),
+      },
+    ] as Array<ReportScheduleColumns>) {
+      expect(getReportSwitchDescription({ page: page, isOn: false })).toBe(
+        StatusPageReportsCopy.switchOffWithScheduleDescription,
+      );
     }
   });
 

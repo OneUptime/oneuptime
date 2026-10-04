@@ -47,7 +47,7 @@ export type ReportSwitchColumn = "isReportEnabled";
 
 export const REPORT_SWITCH_COLUMN: ReportSwitchColumn = "isReportEnabled";
 
-// The columns the card reads, and the schedule dialog writes.
+// The schedule's columns: what the schedule dialog writes.
 export const REPORT_SCHEDULE_COLUMNS: ReadonlyArray<string> = [
   "reportRecurringInterval",
   "reportStartDateTime",
@@ -55,6 +55,48 @@ export const REPORT_SCHEDULE_COLUMNS: ReadonlyArray<string> = [
   "reportPeriodType",
   "reportDataInDays",
 ];
+
+/*
+ * The columns the card reads: the switch, the schedule, and when the server
+ * has the next report going out (sendNextReportBy, which only it writes).
+ */
+export const REPORT_CARD_COLUMNS: ReadonlyArray<string> = [
+  REPORT_SWITCH_COLUMN,
+  ...REPORT_SCHEDULE_COLUMNS,
+  "sendNextReportBy",
+];
+
+// The card's read of a status page: its columns, and nothing else.
+export const getReportCardSelect: () => Record<string, true> = (): Record<
+  string,
+  true
+> => {
+  return Object.fromEntries(
+    REPORT_CARD_COLUMNS.map((column: string): [string, true] => {
+      return [column, true];
+    }),
+  );
+};
+
+/*
+ * The report columns a page, or a form's values, hold - by the one list
+ * above, so the card, its lines and the dialog's preview read the same ones.
+ */
+export const pickReportColumns: (
+  values: Record<string, unknown> | null | undefined,
+) => ReportScheduleColumns = (
+  values: Record<string, unknown> | null | undefined,
+): ReportScheduleColumns => {
+  const picked: Record<string, unknown> = {};
+
+  for (const column of REPORT_CARD_COLUMNS) {
+    if (values && values[column] !== undefined) {
+      picked[column] = values[column];
+    }
+  }
+
+  return picked as ReportScheduleColumns;
+};
 
 export const StatusPageReportsCopy: {
   cardTitle: string;
@@ -353,6 +395,35 @@ export const getReportScheduleDraft: (
   }
 
   return draft;
+};
+
+/*
+ * The sentence under the switch. Off, it says what switching on will do: a
+ * page that never had a schedule gets the default one, a page that keeps any
+ * part of one from before goes on with it (the server only fills in what is
+ * missing).
+ */
+export const getReportSwitchDescription: (data: {
+  page: ReportScheduleColumns;
+  isOn: boolean;
+}) => string = (data: {
+  page: ReportScheduleColumns;
+  isOn: boolean;
+}): string => {
+  if (data.isOn) {
+    return StatusPageReportsCopy.switchOnDescription;
+  }
+
+  const hasSchedulePart: boolean = Boolean(
+    StatusPageReportScheduleUtil.toDate(data.page.reportStartDateTime) ||
+      StatusPageReportScheduleUtil.toRecurring(
+        data.page.reportRecurringInterval,
+      ),
+  );
+
+  return hasSchedulePart
+    ? StatusPageReportsCopy.switchOffWithScheduleDescription
+    : StatusPageReportsCopy.switchOffDescription;
 };
 
 // The period choices of the schedule dialog, in English.

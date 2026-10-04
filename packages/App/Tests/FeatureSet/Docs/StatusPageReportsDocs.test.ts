@@ -108,6 +108,25 @@ describe("Subscribers & Announcements (English): Email reports", () => {
     expect(section).toContain("`sendNextReportBy`");
   });
 
+  it("says when the first report goes out for an interval sent without a start, and that an unreadable schedule is refused", () => {
+    expect(section).toContain(
+      "Send `reportRecurringInterval` without `reportStartDateTime` and the first report goes out at 09:00 at the start of the next period of that interval",
+    );
+    expect(section).toContain("the next Monday for a weekly one");
+    expect(section).toContain(
+      "an hourly schedule starts at the next full hour",
+    );
+    expect(section).toContain(
+      "refuses a `reportStartDateTime` or `reportRecurringInterval` it cannot read",
+    );
+  });
+
+  it("says what to do when the card says the reports are not scheduled", () => {
+    expect(section).toContain(
+      `If the card says **${StatusPageReportsCopy.notScheduled.split(".")[0]}** while reports are on, save the schedule with **${StatusPageReportsCopy.editScheduleButton}**`,
+    );
+  });
+
   it("links only to sections the page has", () => {
     const anchors: Array<string> = Array.from(
       section.matchAll(/\]\(#([a-z0-9-]+)\)/g),

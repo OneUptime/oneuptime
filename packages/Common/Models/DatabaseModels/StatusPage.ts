@@ -2732,7 +2732,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Date,
     title: "Report Start Date Time",
     description:
-      "When the first report goes out. Every later one follows it by the recurring interval, at the same time of day. Left out when reports are turned on, it is the next 1st of the month at 09:00 in the report timezone.",
+      "When the first report goes out. Every later one follows it by the recurring interval, at the same time of day. Left out when reports are turned on, it is 09:00 in the report timezone at the start of the next period of the interval: the next 1st of the month for a monthly schedule (the default), the next Monday for a weekly one, the next day for a daily one and the next 1 January for a yearly one. An hourly schedule starts at the next full hour.",
   })
   @Column({
     type: ColumnType.Date,

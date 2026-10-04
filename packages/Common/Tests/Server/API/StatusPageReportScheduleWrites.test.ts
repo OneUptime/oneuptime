@@ -430,6 +430,24 @@ describe("switching reports on", () => {
   });
 });
 
+describe("switching reports on with only how often", () => {
+  test("a daily schedule's first report is tomorrow at 09:00, not the 1st of next month", async () => {
+    expect(
+      await put({
+        isReportEnabled: true,
+        reportRecurringInterval: every(EventInterval.Day, 1).toJSON(),
+      }),
+    ).toBe("saved");
+
+    expect(onlyWrite()).toEqual({
+      isReportEnabled: true,
+      reportRecurringInterval: "1 Day",
+      reportStartDateTime: "2026-10-05T09:00:00.000Z",
+      sendNextReportBy: "2026-10-05T09:00:00.000Z",
+    });
+  });
+});
+
 describe("switching reports off", () => {
   test("writes the switch alone, with no schedule", async () => {
     stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = true;
@@ -556,10 +574,11 @@ describe("a schedule that cannot be read", () => {
     stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = true;
     writes = [];
 
+    // Weekly: the next Monday at 09:00 (4 Oct 2026 is a Sunday).
     expect(await refusal({ reportStartDateTime: null })).toBe("saved");
     expect(onlyWrite()).toEqual({
-      reportStartDateTime: "2026-11-01T09:00:00.000Z",
-      sendNextReportBy: "2026-11-01T09:00:00.000Z",
+      reportStartDateTime: "2026-10-05T09:00:00.000Z",
+      sendNextReportBy: "2026-10-05T09:00:00.000Z",
     });
   });
 });

@@ -189,6 +189,73 @@ describe("the default first report: the next 1st of the month at 09:00", () => {
     ).toBe("2026-11-01T17:00:00.000Z");
   });
 
+  test("for a daily schedule is the next 09:00, today's while it is still ahead", () => {
+    const daily: (now: string, timezone?: unknown) => string = (
+      now: string,
+      timezone?: unknown,
+    ): string => {
+      return StatusPageReportScheduleUtil.getDefaultFirstReportDate({
+        timezone: timezone,
+        after: at(now),
+        intervalType: EventInterval.Day,
+      }).toISOString();
+    };
+
+    expect(daily("2026-10-04T08:00:00.000Z")).toBe("2026-10-04T09:00:00.000Z");
+    expect(daily(NOW)).toBe("2026-10-05T09:00:00.000Z");
+    expect(daily("2026-12-31T10:00:00.000Z")).toBe("2027-01-01T09:00:00.000Z");
+    // 09:00 in Kolkata is 03:30 UTC.
+    expect(daily(NOW, Timezone.AsiaKolkata)).toBe("2026-10-05T03:30:00.000Z");
+  });
+
+  test("for a weekly schedule is the next Monday at 09:00, so it covers Monday to Sunday", () => {
+    const weekly: (now: string) => string = (now: string): string => {
+      return StatusPageReportScheduleUtil.getDefaultFirstReportDate({
+        timezone: Timezone.UTC,
+        after: at(now),
+        intervalType: EventInterval.Week,
+      }).toISOString();
+    };
+
+    // Sunday 4 Oct: Monday the 5th.
+    expect(weekly(NOW)).toBe("2026-10-05T09:00:00.000Z");
+    // Monday the 5th before 09:00: that morning.
+    expect(weekly("2026-10-05T08:00:00.000Z")).toBe("2026-10-05T09:00:00.000Z");
+    // Monday the 5th after 09:00: the Monday after.
+    expect(weekly("2026-10-05T09:30:00.000Z")).toBe("2026-10-12T09:00:00.000Z");
+  });
+
+  test("for a yearly schedule is the next 1 January at 09:00", () => {
+    expect(
+      StatusPageReportScheduleUtil.getDefaultFirstReportDate({
+        timezone: Timezone.UTC,
+        after: at(NOW),
+        intervalType: EventInterval.Year,
+      }).toISOString(),
+    ).toBe("2027-01-01T09:00:00.000Z");
+  });
+
+  test("for an hourly schedule is the next full hour on the clock there", () => {
+    const hourly: (now: string, timezone?: unknown) => string = (
+      now: string,
+      timezone?: unknown,
+    ): string => {
+      return StatusPageReportScheduleUtil.getDefaultFirstReportDate({
+        timezone: timezone,
+        after: at(now),
+        intervalType: EventInterval.Hour,
+      }).toISOString();
+    };
+
+    expect(hourly("2026-10-04T12:20:00.000Z")).toBe("2026-10-04T13:00:00.000Z");
+    // On the hour: the next one.
+    expect(hourly("2026-10-04T12:00:00.000Z")).toBe("2026-10-04T13:00:00.000Z");
+    // Kolkata's full hours fall on half past in UTC.
+    expect(hourly("2026-10-04T12:20:00.000Z", Timezone.AsiaKolkata)).toBe(
+      "2026-10-04T12:30:00.000Z",
+    );
+  });
+
   test("falls back to UTC for a timezone it does not know, or none", () => {
     expect(firstDefault(NOW, "Not/A_Timezone")).toBe(
       "2026-11-01T09:00:00.000Z",
@@ -318,10 +385,21 @@ describe("the next report a saved page shows", () => {
     expect(iso(next.sendAt)).toBe("2026-12-01T09:00:00.000Z");
   });
 
-  test("is worked out from the schedule when the server has none yet", () => {
+  test("is not there while the server has worked out no time: the report worker sends only on that time", () => {
+    /*
+     * Pages created through the API with reports on, before the server
+     * worked the time out on create: a schedule, but nothing the worker
+     * would ever send on.
+     */
     expect(
-      iso(StatusPageReportScheduleUtil.getNextSend(page, at(NOW)).sendAt),
-    ).toBe("2026-11-01T09:00:00.000Z");
+      StatusPageReportScheduleUtil.getNextSend(page, at(NOW)).sendAt,
+    ).toBeUndefined();
+    expect(
+      StatusPageReportScheduleUtil.getNextSend(
+        { ...page, sendNextReportBy: null },
+        at(NOW),
+      ).sendAt,
+    ).toBeUndefined();
   });
 
   test("is not there without a schedule, and is read in the page's timezone", () => {
@@ -453,10 +531,34 @@ describe("what a write has to carry", () => {
         now: now,
       });
 
+    // 4 Oct 2026 is a Sunday: a weekly schedule starts on Monday the 5th.
     expect(describeWrite(withIntervalOnly)).toEqual({
-      reportStartDateTime: "2026-11-01T09:00:00.000Z",
-      sendNextReportBy: "2026-11-01T09:00:00.000Z",
+      reportStartDateTime: "2026-10-05T09:00:00.000Z",
+      sendNextReportBy: "2026-10-05T09:00:00.000Z",
     });
+  });
+
+  test("an interval sent without a start starts at the next period of that interval, not the 1st of next month", () => {
+    const start: (intervalType: EventInterval) => string | undefined = (
+      intervalType: EventInterval,
+    ): string | undefined => {
+      return iso(
+        StatusPageReportScheduleUtil.getScheduleWrite({
+          write: {
+            isReportEnabled: true,
+            reportRecurringInterval: every(intervalType, 1),
+          },
+          stored: {},
+          now: now,
+        }).reportStartDateTime,
+      );
+    };
+
+    expect(start(EventInterval.Hour)).toBe("2026-10-04T13:00:00.000Z");
+    expect(start(EventInterval.Day)).toBe("2026-10-05T09:00:00.000Z");
+    expect(start(EventInterval.Week)).toBe("2026-10-05T09:00:00.000Z");
+    expect(start(EventInterval.Month)).toBe("2026-11-01T09:00:00.000Z");
+    expect(start(EventInterval.Year)).toBe("2027-01-01T09:00:00.000Z");
   });
 
   test("switching reports off needs nothing, with or without a schedule", () => {
@@ -541,9 +643,10 @@ describe("what a write has to carry", () => {
         now: now,
       });
 
+    // Weekly: the next Monday at 09:00.
     expect(describeWrite(write)).toEqual({
-      reportStartDateTime: "2026-11-01T09:00:00.000Z",
-      sendNextReportBy: "2026-11-01T09:00:00.000Z",
+      reportStartDateTime: "2026-10-05T09:00:00.000Z",
+      sendNextReportBy: "2026-10-05T09:00:00.000Z",
     });
   });
 
