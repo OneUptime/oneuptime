@@ -16923,7 +16923,7 @@
   "Status of the Telegram Message": "Status of the Telegram Message",
   "Status of the WhatsApp Message": "Status of the WhatsApp Message",
   "Status of the monitors will not be changed when this incident is created.": "Status of the monitors will not be changed when this incident is created.",
-  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "此计划维护事件开始时，不会更改监视器的状态。",
   "Status page groups": "Status page groups",
   "Status page title is used.": "Status page title is used.",
   "Status pages": "Status pages",
@@ -24864,5 +24864,13 @@
   "Types: {{types}}. Max {{size}} each.": "类型：{{types}}。每个文件最大 {{size}}。",
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "从此模板宣布的事件以此状态开始。留空则使用通常的初始状态。",
   "The usual starting state": "通常的初始状态",
-  "Who takes each role on this incident.": "由谁担任此事件的各个角色。"
+  "Who takes each role on this incident.": "由谁担任此事件的各个角色。",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "从此模板计划的事件在进行期间会将其监视器的状态更改为此状态——包括此处选择的监视器，以及计划事件时选择的任何监视器。",
+  "No monitors affected by this scheduled maintenance event.": "没有受此计划维护事件影响的监视器。",
+  "No other resources affected by this scheduled maintenance event.": "没有受此计划维护事件影响的其他资源。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "搜索并关联从此模板创建的事件应预填充的主机、Kubernetes 集群、Docker 主机或服务。",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "搜索并关联受此计划维护影响的主机、集群、容器主机、数据库、IoT 设备群、网络站点或服务。关联一个网络站点即涵盖其下的所有站点。",
+  "Search and attach the monitors affected by this scheduled maintenance.": "搜索并关联受此计划维护影响的监视器。",
+  "Search and attach the monitors that events created from this template should pre-populate.": "搜索并关联从此模板创建的事件应预填充的监视器。",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "事件开始时，其监视器会更改为此状态，并在事件结束时恢复为运行正常。"
 }

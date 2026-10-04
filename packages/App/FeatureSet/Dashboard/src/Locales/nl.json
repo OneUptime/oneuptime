@@ -16923,7 +16923,7 @@
   "Status of the Telegram Message": "Status of the Telegram Message",
   "Status of the WhatsApp Message": "Status of the WhatsApp Message",
   "Status of the monitors will not be changed when this incident is created.": "Status of the monitors will not be changed when this incident is created.",
-  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "De status van de monitoren wordt niet gewijzigd wanneer deze geplande onderhoudsgebeurtenis begint.",
   "Status page groups": "Status page groups",
   "Status page title is used.": "Status page title is used.",
   "Status pages": "Status pages",
@@ -24864,5 +24864,13 @@
   "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Maximaal {{size}} per bestand.",
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidenten die vanuit deze sjabloon worden gemeld, beginnen in deze status. Laat leeg voor de gebruikelijke beginstatus.",
   "The usual starting state": "De gebruikelijke beginstatus",
-  "Who takes each role on this incident.": "Wie welke rol op zich neemt bij dit incident."
+  "Who takes each role on this incident.": "Wie welke rol op zich neemt bij dit incident.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Gebeurtenissen die vanuit dit sjabloon worden gepland, zetten hun monitoren op deze status zolang ze lopen: de monitoren die hier zijn gekozen en alle die bij het plannen van de gebeurtenis worden gekozen.",
+  "No monitors affected by this scheduled maintenance event.": "Geen monitoren getroffen door deze geplande onderhoudsgebeurtenis.",
+  "No other resources affected by this scheduled maintenance event.": "Geen andere resources getroffen door deze geplande onderhoudsgebeurtenis.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Zoek en koppel hosts, Kubernetes-clusters, Docker-hosts of services die gebeurtenissen die vanuit dit sjabloon zijn aangemaakt vooraf moeten invullen.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Zoek en koppel hosts, clusters, containerhosts, databases, IoT-vloten, netwerklocaties of services die door dit geplande onderhoud worden getroffen. Het koppelen van een netwerklocatie omvat elke locatie eronder.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "Zoek en koppel de monitoren die door dit geplande onderhoud worden getroffen.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "Zoek en koppel de monitoren die gebeurtenissen die vanuit dit sjabloon zijn aangemaakt vooraf moeten invullen.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Wanneer de gebeurtenis begint, gaan de monitoren naar deze status, en terug naar operationeel wanneer ze eindigt."
 }

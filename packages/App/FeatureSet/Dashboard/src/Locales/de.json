@@ -24864,5 +24864,13 @@
   "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Je höchstens {{size}}.",
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Aus dieser Vorlage gemeldete Vorfälle beginnen in diesem Status. Leer lassen für den üblichen Anfangsstatus.",
   "The usual starting state": "Der übliche Anfangsstatus",
-  "Who takes each role on this incident.": "Wer welche Rolle in diesem Vorfall übernimmt."
+  "Who takes each role on this incident.": "Wer welche Rolle in diesem Vorfall übernimmt.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Aus dieser Vorlage geplante Ereignisse setzen ihre Monitore auf diesen Status, solange sie laufen – die hier ausgewählten und alle, die beim Planen des Ereignisses ausgewählt werden.",
+  "No monitors affected by this scheduled maintenance event.": "Keine Monitore von diesem geplanten Wartungsereignis betroffen.",
+  "No other resources affected by this scheduled maintenance event.": "Keine weiteren Ressourcen von diesem geplanten Wartungsereignis betroffen.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Suchen und verknüpfen Sie Hosts, Kubernetes-Cluster, Docker-Hosts oder Dienste, die aus dieser Vorlage erstellte Ereignisse vorab ausfüllen sollen.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Hosts, Cluster, Container-Hosts, Datenbanken, IoT-Flotten, Netzwerkstandorte oder Dienste suchen und anhängen, die von dieser geplanten Wartung betroffen sind. Das Anhängen eines Netzwerkstandorts umfasst jeden Standort darunter.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "Monitore suchen und anhängen, die von dieser geplanten Wartung betroffen sind.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "Suchen und verknüpfen Sie die Monitore, die aus dieser Vorlage erstellte Ereignisse vorab ausfüllen sollen.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Wenn das Ereignis beginnt, wechseln seine Monitore in diesen Status und nach seinem Ende zurück auf betriebsbereit."
 }

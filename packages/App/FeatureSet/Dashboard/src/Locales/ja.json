@@ -24864,5 +24864,13 @@
   "Types: {{types}}. Max {{size}} each.": "種類: {{types}}。各ファイル最大 {{size}}。",
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "このテンプレートから宣言されたインシデントは、この状態から始まります。空欄のままにすると通常の開始状態になります。",
   "The usual starting state": "通常の開始状態",
-  "Who takes each role on this incident.": "このインシデントで各ロールを誰が担当するか。"
+  "Who takes each role on this incident.": "このインシデントで各ロールを誰が担当するか。",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "このテンプレートからスケジュールされたイベントは、進行中の間、モニターのステータスをこのステータスに変更します。ここで選択したモニターと、イベントのスケジュール時に選択したモニターが対象です。",
+  "No monitors affected by this scheduled maintenance event.": "この定期メンテナンスイベントの影響を受けるモニターはありません。",
+  "No other resources affected by this scheduled maintenance event.": "この定期メンテナンスイベントの影響を受ける他のリソースはありません。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "このテンプレートから作成されたイベントに事前入力すべきホスト、Kubernetes クラスター、Docker ホスト、またはサービスを検索して添付します。",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "この定期メンテナンスの影響を受けるホスト、クラスター、コンテナホスト、データベース、IoT フリート、ネットワークサイト、サービスを検索して割り当てます。ネットワークサイトを割り当てると、その下のすべてのサイトが対象になります。",
+  "Search and attach the monitors affected by this scheduled maintenance.": "この定期メンテナンスの影響を受けるモニターを検索して割り当てます。",
+  "Search and attach the monitors that events created from this template should pre-populate.": "このテンプレートから作成されたイベントに事前入力すべきモニターを検索して添付します。",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "イベントが始まるとモニターはこのステータスに変わり、終了すると稼働中に戻ります。"
 }

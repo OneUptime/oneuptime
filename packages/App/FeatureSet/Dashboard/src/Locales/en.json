@@ -24864,5 +24864,13 @@
   "Types: {{types}}. Max {{size}} each.": "Types: {{types}}. Max {{size}} each.",
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",
   "The usual starting state": "The usual starting state",
-  "Who takes each role on this incident.": "Who takes each role on this incident."
+  "Who takes each role on this incident.": "Who takes each role on this incident.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.",
+  "No monitors affected by this scheduled maintenance event.": "No monitors affected by this scheduled maintenance event.",
+  "No other resources affected by this scheduled maintenance event.": "No other resources affected by this scheduled maintenance event.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "Search and attach the monitors affected by this scheduled maintenance.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "Search and attach the monitors that events created from this template should pre-populate.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "When the event starts, its monitors change to this status, and back to operational when it ends."
 }

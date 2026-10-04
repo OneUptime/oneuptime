@@ -16923,7 +16923,7 @@
   "Status of the Telegram Message": "Status of the Telegram Message",
   "Status of the WhatsApp Message": "Status of the WhatsApp Message",
   "Status of the monitors will not be changed when this incident is created.": "Status of the monitors will not be changed when this incident is created.",
-  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+  "Status of the monitors will not be changed when this scheduled maintenance event starts.": "Le statut des moniteurs ne sera pas modifié au début de cet événement de maintenance planifiée.",
   "Status page groups": "Status page groups",
   "Status page title is used.": "Status page title is used.",
   "Status pages": "Status pages",
@@ -24864,5 +24864,13 @@
   "Types: {{types}}. Max {{size}} each.": "Types : {{types}}. {{size}} maximum chacun.",
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Les incidents déclarés à partir de ce modèle commencent dans cet état. Laissez vide pour l'état de départ habituel.",
   "The usual starting state": "L'état de départ habituel",
-  "Who takes each role on this incident.": "Qui assume chaque rôle sur cet incident."
+  "Who takes each role on this incident.": "Qui assume chaque rôle sur cet incident.",
+  "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Les événements planifiés à partir de ce modèle passent leurs moniteurs à ce statut tant qu'ils sont en cours – ceux choisis ici et tous ceux choisis lors de la planification de l'événement.",
+  "No monitors affected by this scheduled maintenance event.": "Aucun moniteur concerné par cet événement de maintenance planifiée.",
+  "No other resources affected by this scheduled maintenance event.": "Aucune autre ressource concernée par cet événement de maintenance planifiée.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Recherchez et associez les hôtes, clusters Kubernetes, hôtes Docker ou services que les événements créés à partir de ce modèle doivent préremplir.",
+  "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Recherchez et associez les hôtes, clusters, hôtes de conteneurs, bases de données, flottes IoT, sites réseau ou services concernés par cette maintenance planifiée. Associer un site réseau couvre tous les sites qui en dépendent.",
+  "Search and attach the monitors affected by this scheduled maintenance.": "Recherchez et associez les moniteurs concernés par cette maintenance planifiée.",
+  "Search and attach the monitors that events created from this template should pre-populate.": "Recherchez et associez les moniteurs que les événements créés à partir de ce modèle doivent préremplir.",
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Au début de l'événement, ses moniteurs passent à ce statut, puis redeviennent opérationnels à sa fin."
 }
