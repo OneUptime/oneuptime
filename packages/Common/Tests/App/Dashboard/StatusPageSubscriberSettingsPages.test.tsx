@@ -621,27 +621,14 @@ describe("Subscriber Settings", () => {
 describe("Advanced Settings", () => {
   /*
    * What the page shows is one card of its own now ("What your status page
-   * shows", drawn for real here). The only detail cards with an Edit dialog
-   * are the overall uptime % and the downtime statuses, which came from
-   * Branding's Overview Page screen; neither is about subscribers.
+   * shows", drawn for real here), the overall uptime % and the downtime
+   * statuses included: no detail card with an Edit dialog is left on the
+   * page, and nothing on it is about subscribers.
    */
   test("no card shows or edits Show Subscriber Page or a subscriber channel", async () => {
     await renderPage(<StatusPageSettings {...PAGE_PROPS} />);
 
-    expect(
-      recordedDetailCards.map((card: Record<string, unknown>): unknown => {
-        return card["name"];
-      }),
-    ).toEqual([
-      "Status Page > Settings",
-      "Status Page > Branding > Downtime Monitor Statuses",
-    ]);
-
-    for (const card of recordedDetailCards) {
-      for (const column of SUBSCRIPTION_SWITCH_COLUMNS) {
-        expect(columnsOfCard(card)).not.toContain(column);
-      }
-    }
+    expect(recordedDetailCards).toEqual([]);
 
     await waitFor(() => {
       expect(

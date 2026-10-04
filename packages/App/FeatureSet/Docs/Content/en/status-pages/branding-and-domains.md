@@ -14,7 +14,7 @@ Open a status page, and the side menu's **Branding** section has three items:
 | **Custom Domains**         | Your own domain, its DNS record, and its free SSL certificate.                                                                                                                                                                      |
 | **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript.                                                                                                                                                                            |
 
-Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the **Overall Uptime Percent**, which **Downtime Monitor Statuses** count against uptime, and the "Powered by OneUptime" line.
+Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the overall uptime percent, which monitor statuses count against uptime, and the "Powered by OneUptime" line. All three are rows of the **What your status page shows** card there.
 
 Branding used to be split across separate **Essential Branding**, **Header**, **Footer**, **Overview Page** and **Languages** screens. Their old addresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` and `{id}/languages`) now open the **Branding** page, so old bookmarks and links still work.
 
@@ -60,7 +60,7 @@ The last section of the page is folded, because few people ever change what is i
 - **Default Bar Color of the History Chart** — **Edit Default Bar Color** opens the **Default Bar Color** picker. Every new status page starts with green. With bar color rules, it is also the color of a day no rule matches. A day the page has no data for is always drawn grey.
 - **Rules for Bar Colors of History Chart** — an ordered, drag-sortable table of rules. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table columns read `When Uptime Percent >=` and `Then, Bar Color is`. Order matters, so arrange them the way you want them evaluated. With no rules, each day's bar takes the color of the lowest monitor status of that day.
 
-How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is the **Downtime Monitor Statuses** card on the same screen.
+How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is **Counts as downtime**, in the same row of that card.
 
 **Languages.** The **Languages** card is about the language switcher visitors get in the page footer. **Edit Languages** opens two fields:
 
@@ -75,10 +75,12 @@ Use it when: the page is internal-only or still being set up. Turn **Allow Searc
 
 ## Uptime percent and downtime statuses
 
-The **Overall Uptime Percent** and **Downtime Monitor Statuses** cards are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), under the **What your status page shows** card:
+Both are in the **Uptime History** row of the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`). There is no **Edit** button: each saves the moment you change it.
 
-- **Overall Uptime Percent** — **Edit Settings** opens the **Show Overall Uptime Percent** toggle and a **Select Uptime Precision** dropdown, which defaults to two decimals (`99.99% (Two Decimal)`). On OneUptime Cloud, showing the overall uptime percent needs the **Scale** plan.
-- **Downtime Monitor Statuses** — **Edit Statuses** opens a multi-select described as "These monitor statuses are considered as down". This is how you decide whether, say, a degraded status counts against uptime on this page.
+- **Show Overall Uptime Percent** — a switch, off by default. While it is on, **Precision** beside it picks how many decimals the percentage shows: `99%`, `99.9%`, `99.99%` (the default) or `99.999%`. On OneUptime Cloud, turning the percentage on needs the **Scale** plan; its precision can be changed on every plan.
+- **Counts as downtime** — the monitor statuses, as colored chips, whose time counts against uptime on this page. This is how you decide whether, say, a degraded status counts against uptime on this page. At least one status stays picked.
+
+They used to be two cards of their own, **Overall Uptime Percent** and **Downtime Monitor Statuses**, each behind an **Edit** button. See [Choosing what shows on the page](/docs/status-pages/index#choosing-what-shows-on-the-page) for the rest of the card.
 
 ## Custom HTML, CSS and JavaScript
 

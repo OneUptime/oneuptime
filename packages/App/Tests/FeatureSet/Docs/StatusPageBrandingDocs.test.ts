@@ -2,6 +2,10 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "Common/Types/StatusPage/StatusPageLanguage";
+import StatusPageDisplaySettingsCopy, {
+  DISPLAY_SECTIONS,
+  DisplaySectionDefinition,
+} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 
 /*
  * A status page's branding is one Branding page now, where it was five
@@ -166,6 +170,45 @@ describe("Status Page Branding & Domains (English)", () => {
     );
   });
 
+  /*
+   * The overall uptime % and the downtime statuses were two cards with an
+   * Edit button each; they are rows of the "What your status page shows"
+   * card's uptime row now, named here as the card names them.
+   */
+  it("describes the overall uptime % and the downtime statuses as rows of the card, with no Edit dialog", () => {
+    const section: string = page.slice(
+      page.indexOf("## Uptime percent and downtime statuses"),
+      page.indexOf("## Custom HTML, CSS and JavaScript"),
+    );
+
+    const uptime: DisplaySectionDefinition = DISPLAY_SECTIONS.find(
+      (candidate: DisplaySectionDefinition) => {
+        return candidate.id === "uptime-history";
+      },
+    )!;
+
+    for (const name of [
+      StatusPageDisplaySettingsCopy.cardTitle,
+      StatusPageDisplaySettingsCopy.uptimeTitle,
+      uptime.options[0]!.title,
+      StatusPageDisplaySettingsCopy.precisionLabel,
+      StatusPageDisplaySettingsCopy.downtimeLabel,
+    ]) {
+      expect([name, section.includes(`**${name}**`)]).toEqual([name, true]);
+    }
+
+    expect(section).toContain("There is no **Edit** button");
+
+    for (const gone of [
+      "**Edit Statuses** opens",
+      "**Edit Settings** opens",
+      "**Select Uptime Precision**",
+      "These monitor statuses are considered as down",
+    ]) {
+      expect([gone, section.includes(gone)]).toEqual([gone, false]);
+    }
+  });
+
   it("tells readers the old screens' addresses open the Branding page", () => {
     for (const oldPath of [
       "`{id}/header-style`",
@@ -218,12 +261,38 @@ describe("the rest of the English docs", () => {
     );
   });
 
+  it("the status pages overview puts the overall uptime % and the downtime statuses in the card's uptime row", () => {
+    const overview: string = readPage("en/status-pages/index.md");
+
+    expect(overview).toContain(
+      "**Show Overall Uptime Percent** (`showOverallUptimePercentOnStatusPage`)",
+    );
+    expect(overview).toContain(
+      "**Precision** (`overallUptimePercentPrecision`)",
+    );
+    expect(overview).toContain(
+      "**Counts as downtime** (`downtimeMonitorStatuses`)",
+    );
+    expect(overview).not.toContain(
+      "Below the card are **Overall Uptime Percent** and **Downtime Monitor Statuses**",
+    );
+
+    // Its precision saves on every plan, the switch needs Scale.
+    expect(overview).toContain(
+      'showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**',
+    );
+  });
+
   it("resources and groups no longer send readers to an Overview Page screen", () => {
     const resources: string = readPage(
       "en/status-pages/resources-and-groups.md",
     );
 
     expect(resources).not.toContain("**Overview Page** branding screen");
+    expect(resources).not.toContain("**Downtime Monitor Statuses** card");
+    expect(resources).toContain(
+      "in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**",
+    );
     expect(resources).toContain(
       "The colors of the history chart bars are set under **Advanced** on the **Branding** page",
     );
