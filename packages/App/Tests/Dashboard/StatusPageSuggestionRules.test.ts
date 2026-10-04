@@ -333,9 +333,9 @@ describe("the suggestions' words", () => {
         );
 
         for (const placeholder of english.match(/\{\{\w+\}\}/g) || []) {
-          expect(`${locale} ${key}: ${translation!.includes(placeholder)}`).toBe(
-            `${locale} ${key}: true`,
-          );
+          expect(
+            `${locale} ${key}: ${translation!.includes(placeholder)}`,
+          ).toBe(`${locale} ${key}: true`);
         }
       }
     }

@@ -261,7 +261,9 @@ beforeEach(() => {
       );
     },
   );
-  jest.spyOn(MonitorService, "findBy").mockImplementation(monitorFindBy as never);
+  jest
+    .spyOn(MonitorService, "findBy")
+    .mockImplementation(monitorFindBy as never);
 
   findByMonitors = getJestMockFunction();
   findByMonitors.mockImplementation(
@@ -433,9 +435,16 @@ describe("StatusPagesListingMonitorsBuilder.build", () => {
         Array<{ query: JSONObject; props: DatabaseCommonInteractionProps }>
       >
     )
-      .map((call: Array<{ query: JSONObject; props: DatabaseCommonInteractionProps }>) => {
-        return call[0]!;
-      })
+      .map(
+        (
+          call: Array<{
+            query: JSONObject;
+            props: DatabaseCommonInteractionProps;
+          }>,
+        ) => {
+          return call[0]!;
+        },
+      )
       .find((findBy: { props: DatabaseCommonInteractionProps }): boolean => {
         return Boolean(findBy.props.isRoot);
       });
@@ -706,9 +715,7 @@ describe("StatusPagesListingMonitorsBuilder.parseRequest", () => {
 
     expect(() => {
       return parse({ monitorIds: [...ids, API_MONITOR] });
-    }).toThrow(
-      new BadDataException("monitorIds can list at most 1000 IDs."),
-    );
+    }).toThrow(new BadDataException("monitorIds can list at most 1000 IDs."));
   });
 
   test("refuses a kind of event it does not suggest pages for", () => {

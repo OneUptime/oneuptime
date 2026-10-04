@@ -262,19 +262,55 @@ const STATUS_PAGES: Array<Row> = [
 ];
 
 const STATUS_PAGE_RESOURCES: Array<Row> = [
-  { _id: "e0000000-0000-4000-8000-000000000001", statusPageId: PUBLIC_PAGE, monitorId: API_MONITOR },
-  { _id: "e0000000-0000-4000-8000-000000000002", statusPageId: PUBLIC_PAGE, monitorId: DB_MONITOR },
-  { _id: "e0000000-0000-4000-8000-000000000003", statusPageId: EU_PAGE, monitorId: API_MONITOR },
-  { _id: "e0000000-0000-4000-8000-000000000004", statusPageId: PLATFORM_PAGE, monitorGroupId: CACHE_GROUP },
-  { _id: "e0000000-0000-4000-8000-000000000005", statusPageId: ARCHIVED_PAGE, monitorId: API_MONITOR },
-  { _id: "e0000000-0000-4000-8000-000000000006", statusPageId: INCIDENTS_ONLY_PAGE, monitorId: API_MONITOR },
+  {
+    _id: "e0000000-0000-4000-8000-000000000001",
+    statusPageId: PUBLIC_PAGE,
+    monitorId: API_MONITOR,
+  },
+  {
+    _id: "e0000000-0000-4000-8000-000000000002",
+    statusPageId: PUBLIC_PAGE,
+    monitorId: DB_MONITOR,
+  },
+  {
+    _id: "e0000000-0000-4000-8000-000000000003",
+    statusPageId: EU_PAGE,
+    monitorId: API_MONITOR,
+  },
+  {
+    _id: "e0000000-0000-4000-8000-000000000004",
+    statusPageId: PLATFORM_PAGE,
+    monitorGroupId: CACHE_GROUP,
+  },
+  {
+    _id: "e0000000-0000-4000-8000-000000000005",
+    statusPageId: ARCHIVED_PAGE,
+    monitorId: API_MONITOR,
+  },
+  {
+    _id: "e0000000-0000-4000-8000-000000000006",
+    statusPageId: INCIDENTS_ONLY_PAGE,
+    monitorId: API_MONITOR,
+  },
   // Another project's page pointing at A's monitor: never named in A.
-  { _id: "e0000000-0000-4000-8000-000000000007", statusPageId: B_PAGE, monitorId: API_MONITOR },
+  {
+    _id: "e0000000-0000-4000-8000-000000000007",
+    statusPageId: B_PAGE,
+    monitorId: API_MONITOR,
+  },
 ];
 
 const MONITOR_GROUP_RESOURCES: Array<Row> = [
-  { _id: "f0000000-0000-4000-8000-000000000001", monitorGroupId: CACHE_GROUP, monitorId: CACHE_MONITOR },
+  {
+    _id: "f0000000-0000-4000-8000-000000000001",
+    monitorGroupId: CACHE_GROUP,
+    monitorId: CACHE_MONITOR,
+  },
 ];
+
+// The SQL QueryHelper.any/in and equalTo write, for a column called "col".
+const RAW_IN_LIST: RegExp = /^\(col IN \(:\.\.\.\w+\)\)$/;
+const RAW_EQUALS: RegExp = /^\(col = :\w+\)$/;
 
 /*
  * Whether a query condition admits `value`. Understands exactly the shapes
@@ -316,7 +352,7 @@ function conditionAdmits(condition: unknown, value: string): boolean {
           return false;
         }
 
-        if (!/^\(col IN \(:\.\.\.\w+\)\)$/.test(sql) && !/^\(col = :\w+\)$/.test(sql)) {
+        if (!RAW_IN_LIST.test(sql) && !RAW_EQUALS.test(sql)) {
           throw new Error(`Unexpected raw condition in test fake: ${sql}`);
         }
 
@@ -875,9 +911,7 @@ describe("POST /status-page/listing-monitors", () => {
       expect(namesIn(result)).toEqual(["Acme Public", "EU Status"]);
 
       // The resource lookup was asked about the API monitor alone.
-      const lookedUp: Array<string> = (
-        queriesAsked["StatusPageResource"] || []
-      )
+      const lookedUp: Array<string> = (queriesAsked["StatusPageResource"] || [])
         .filter((where: Dictionary<unknown>): boolean => {
           return where["monitorId"] !== undefined;
         })
@@ -897,7 +931,9 @@ describe("POST /status-page/listing-monitors", () => {
 
     it("a caller who cannot read status pages hears of none", async () => {
       expect(
-        namesIn(await send({ userId: MONITORS_ONLY_IN_A, tenantId: PROJECT_A })),
+        namesIn(
+          await send({ userId: MONITORS_ONLY_IN_A, tenantId: PROJECT_A }),
+        ),
       ).toEqual([]);
     });
 

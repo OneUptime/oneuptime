@@ -50,6 +50,12 @@ const SUGGESTING_PICKERS: Record<string, number> = {
   "Components/Announcement/AnnouncementFormFields.tsx": 2,
 };
 
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
+// A footer built by getStatusPageSuggestionsFooter<Model>(...).
+const SUGGESTIONS_FOOTER: RegExp =
+  /^getStatusPageSuggestionsFooter\s*<\s*\w+\s*>\s*\(/;
+
 interface Picker {
   file: string;
   line: number;
@@ -64,7 +70,7 @@ function listSourceFiles(dir: string): Array<string> {
 
     if (entry.isDirectory()) {
       files.push(...listSourceFiles(full));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(full);
     }
   }
@@ -166,10 +172,7 @@ const PICKERS: Array<Picker> = listSourceFiles(DASHBOARD_SRC).flatMap(
 );
 
 function isSuggesting(picker: Picker): boolean {
-  return Boolean(
-    picker.footer &&
-      /^getStatusPageSuggestionsFooter\s*<\s*\w+\s*>\s*\(/.test(picker.footer),
-  );
+  return Boolean(picker.footer && SUGGESTIONS_FOOTER.test(picker.footer));
 }
 
 describe("status page pickers suggest the pages that show the affected monitors", () => {
@@ -183,7 +186,10 @@ describe("status page pickers suggest the pages that show the affected monitors"
     ).sort();
 
     expect(files).toEqual(
-      [...Object.keys(SUGGESTING_PICKERS), ...Object.keys(DOES_NOT_SUGGEST)].sort(),
+      [
+        ...Object.keys(SUGGESTING_PICKERS),
+        ...Object.keys(DOES_NOT_SUGGEST),
+      ].sort(),
     );
   });
 

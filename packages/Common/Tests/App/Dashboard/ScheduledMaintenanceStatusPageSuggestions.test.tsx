@@ -219,9 +219,7 @@ async function renderPage(): Promise<void> {
   await screen.findByRole("navigation", { name: "Progress" });
   // The defaults land once the form has its fields.
   await waitFor(() => {
-    expect(
-      form().querySelector("input[type='datetime-local']"),
-    ).not.toBeNull();
+    expect(form().querySelector("input[type='datetime-local']")).not.toBeNull();
   });
   await act(async () => {
     await new Promise((resolve: (value: unknown) => void) => {
@@ -342,12 +340,12 @@ describe("Create Scheduled Maintenance Event suggests the status pages that show
     ).toBeInTheDocument();
 
     // Asked about this monitor, for a maintenance event, with the tenant header.
-    const request: Record<string, unknown> = postMock.mock.calls[0]![0] as Record<
-      string,
-      unknown
-    >;
+    const request: Record<string, unknown> = postMock.mock
+      .calls[0]![0] as Record<string, unknown>;
 
-    expect(String(request["url"])).toContain(StatusPagesListingMonitors.apiPath);
+    expect(String(request["url"])).toContain(
+      StatusPagesListingMonitors.apiPath,
+    );
     expect(request["data"]).toEqual({
       monitorIds: [MONITOR_ID],
       eventType: StatusPageEventType.ScheduledEvent,
@@ -384,9 +382,9 @@ describe("Create Scheduled Maintenance Event suggests the status pages that show
       await screen.findByRole("button", { name: "Remove Acme Public Status" }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("status-page-suggestions-line")).toBeNull();
-    expect(screen.getByTestId("status-page-suggestions-status")).toHaveTextContent(
-      "Added Acme Public Status to the status pages.",
-    );
+    expect(
+      screen.getByTestId("status-page-suggestions-status"),
+    ).toHaveTextContent("Added Acme Public Status to the status pages.");
 
     fireEvent.click(createButton());
 
@@ -452,8 +450,8 @@ describe("the scheduled maintenance template forms suggest the same way", () => 
 
     expect(footer!.type).toBe(StatusPageSuggestions);
 
-    const props: StatusPageSuggestionsProps =
-      footer!.props as StatusPageSuggestionsProps;
+    const props: StatusPageSuggestionsProps = footer!
+      .props as StatusPageSuggestionsProps;
 
     expect(props.monitorIds).toEqual([MONITOR_ID]);
     expect(props.eventType).toBe(StatusPageEventType.ScheduledEvent);
@@ -475,8 +473,8 @@ describe("the scheduled maintenance template forms suggest the same way", () => 
 
     expect(footer!.type).toBe(RecordStatusPageSuggestions);
 
-    const props: RecordStatusPageSuggestionsProps =
-      footer!.props as RecordStatusPageSuggestionsProps;
+    const props: RecordStatusPageSuggestionsProps = footer!
+      .props as RecordStatusPageSuggestionsProps;
 
     expect(props.modelType).toBe(ScheduledMaintenanceTemplate);
     expect(props.modelId.toString()).toBe(TEMPLATE_ID);

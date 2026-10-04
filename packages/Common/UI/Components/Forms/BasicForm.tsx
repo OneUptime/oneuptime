@@ -529,7 +529,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       field: Field<T>,
       fieldName: string,
       value: JSONValue,
-    ) => void = (field: Field<T>, fieldName: string, value: JSONValue): void => {
+    ) => void = (
+      field: Field<T>,
+      fieldName: string,
+      value: JSONValue,
+    ): void => {
       if (field.onChange) {
         field.onChange(
           value,

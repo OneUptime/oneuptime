@@ -150,11 +150,9 @@ export const getAnnouncementFormFields: (
       },
       required: true,
       placeholder: "Select Status Pages",
-      getFooterElement: getStatusPageSuggestionsFooter<StatusPageAnnouncement>(
-        {
-          eventType: StatusPageEventType.Announcement,
-        },
-      ),
+      getFooterElement: getStatusPageSuggestionsFooter<StatusPageAnnouncement>({
+        eventType: StatusPageEventType.Announcement,
+      }),
       getSummaryElement: (
         item: FormValues<StatusPageAnnouncement>,
       ): ReactElement => {

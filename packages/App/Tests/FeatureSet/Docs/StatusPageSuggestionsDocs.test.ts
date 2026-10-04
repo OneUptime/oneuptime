@@ -78,7 +78,9 @@ describe("the status page suggestions in the docs", () => {
 
     // It comes after the create form's steps, in the maintenance section.
     expect(ENGLISH_GUIDE.indexOf("**Which status pages?**")).toBeGreaterThan(
-      ENGLISH_GUIDE.indexOf("**Create Scheduled Maintenance Event** walks two steps"),
+      ENGLISH_GUIDE.indexOf(
+        "**Create Scheduled Maintenance Event** walks two steps",
+      ),
     );
     expect(ENGLISH_GUIDE.indexOf("**Which status pages?**")).toBeLessThan(
       ENGLISH_GUIDE.indexOf("## Announcements"),

@@ -32,7 +32,9 @@ describe("StatusPagesListingMonitors", () => {
     ]);
 
     expect(
-      StatusPagesListingMonitors.isEventType(StatusPageEventType.ScheduledEvent),
+      StatusPagesListingMonitors.isEventType(
+        StatusPageEventType.ScheduledEvent,
+      ),
     ).toBe(true);
     expect(
       StatusPagesListingMonitors.isEventType(StatusPageEventType.Announcement),

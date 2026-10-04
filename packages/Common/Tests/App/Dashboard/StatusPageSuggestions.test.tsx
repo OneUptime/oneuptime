@@ -435,9 +435,11 @@ describe("StatusPageSuggestions: it suggests, and never picks by itself", () => 
     let answerFirst: (value: HTTPResponse<JSONObject>) => void = () => {};
 
     postMock.mockImplementationOnce(() => {
-      return new Promise((resolve: (value: HTTPResponse<JSONObject>) => void) => {
-        answerFirst = resolve;
-      });
+      return new Promise(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          answerFirst = resolve;
+        },
+      );
     });
     postMock.mockResolvedValueOnce(
       ok([{ statusPageId: EU_PAGE, name: "EU Status" }]),
@@ -476,7 +478,9 @@ describe("StatusPageSuggestions: adding", () => {
       <Harness monitorIds={[MONITOR_A]} initialStatusPageIds={[STATUS_PAGE]} />,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Add EU Status" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add EU Status" }),
+    );
 
     expect(changes).toEqual([[STATUS_PAGE, EU_PAGE]]);
     expect(suggestionNames()).toEqual(["Acme Public"]);
@@ -501,10 +505,7 @@ describe("StatusPageSuggestions: adding", () => {
 
   test("keyboard focus moves on to the next suggestion, then to where the line was", async () => {
     postMock.mockResolvedValue(
-      ok([
-        ...LISTING,
-        { statusPageId: STATUS_PAGE, name: "Status Three" },
-      ]),
+      ok([...LISTING, { statusPageId: STATUS_PAGE, name: "Status Three" }]),
     );
 
     render(<Harness monitorIds={[MONITOR_A]} />);
@@ -612,10 +613,8 @@ describe("RecordStatusPageSuggestions: an Edit form that does not hold the monit
       expect(suggestionNames()).toEqual(["Acme Public"]);
     });
 
-    const read: Record<string, unknown> = getItemMock.mock.calls[0]![0] as Record<
-      string,
-      unknown
-    >;
+    const read: Record<string, unknown> = getItemMock.mock
+      .calls[0]![0] as Record<string, unknown>;
 
     expect(read["modelType"]).toBe(ScheduledMaintenance);
     expect((read["id"] as ObjectID).toString()).toBe(EVENT_ID);

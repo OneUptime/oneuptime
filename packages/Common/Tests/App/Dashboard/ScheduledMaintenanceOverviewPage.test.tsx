@@ -1387,8 +1387,8 @@ describe("Scheduled maintenance overview page", () => {
       expect(footer).toBeDefined();
       expect(footer!.type).toBe(RecordStatusPageSuggestions);
 
-      const props: RecordStatusPageSuggestionsProps =
-        footer!.props as RecordStatusPageSuggestionsProps;
+      const props: RecordStatusPageSuggestionsProps = footer!
+        .props as RecordStatusPageSuggestionsProps;
 
       expect(props.modelType).toBe(ScheduledMaintenance);
       expect(props.modelId.toString()).toBe(EVENT_ID);

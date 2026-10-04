@@ -332,8 +332,8 @@ describe("every announcement form suggests the status pages that show its monito
 
       expect(footer!.type).toBe(StatusPageSuggestions);
 
-      const props: StatusPageSuggestionsProps =
-        footer!.props as StatusPageSuggestionsProps;
+      const props: StatusPageSuggestionsProps = footer!
+        .props as StatusPageSuggestionsProps;
 
       expect(props.eventType).toBe(StatusPageEventType.Announcement);
       expect(props.monitorIds).toEqual([MONITOR_ID]);
@@ -377,10 +377,8 @@ describe("Create Announcement from a template that names a monitor", () => {
       }),
     ).toContainElement(add);
 
-    const request: Record<string, unknown> = postMock.mock.calls[0]![0] as Record<
-      string,
-      unknown
-    >;
+    const request: Record<string, unknown> = postMock.mock
+      .calls[0]![0] as Record<string, unknown>;
 
     expect(request["data"]).toEqual({
       monitorIds: [MONITOR_ID],

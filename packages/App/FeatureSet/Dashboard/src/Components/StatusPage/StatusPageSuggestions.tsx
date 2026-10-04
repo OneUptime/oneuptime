@@ -331,7 +331,11 @@ export const getStatusPageSuggestionsFooter: <TEntity>(
   error?: string,
   footer?: FieldFooterProps,
 ) => ReactElement | undefined) => {
-  return (
+  const getFooterElement: (
+    values: FormValues<TEntity>,
+    error?: string,
+    footer?: FieldFooterProps,
+  ) => ReactElement | undefined = (
     values: FormValues<TEntity>,
     _error?: string,
     footer?: FieldFooterProps,
@@ -373,4 +377,6 @@ export const getStatusPageSuggestionsFooter: <TEntity>(
       />
     );
   };
+
+  return getFooterElement;
 };
