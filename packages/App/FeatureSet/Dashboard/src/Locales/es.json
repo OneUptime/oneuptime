@@ -24583,6 +24583,7 @@
   "Share Publicly": "Compartir públicamente",
   "Stop asking for the password?": "¿Dejar de pedir la contraseña?",
   "Add the on-call schedules or people to call when someone dials this number.": "Añade las programaciones de guardia o las personas a las que llamar cuando alguien marque este número.",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "Añade este registro en tu proveedor de DNS para que {{domain}} apunte a tu panel.",
   "An on-call schedule rings whoever is on call in it when the call comes in.": "Una programación de guardia hace sonar el teléfono de quien esté de guardia cuando llega la llamada.",
   "Choose an on-call schedule or a person to call.": "Elige una programación de guardia o una persona a la que llamar.",
   "Choose who to call": "Elegir a quién llamar",
@@ -24592,6 +24593,7 @@
   "Ring for": "Duración del timbre",
   "Ring for (in seconds)": "Duración del timbre (en segundos)",
   "Search schedules or people...": "Buscar programaciones o personas...",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "Sirve este panel en tu propio dominio. Apunta el registro CNAME de cada dominio a {{cnameRecord}}, y nosotros emitimos su certificado SSL y lo renovamos por ti.",
   "Who to call": "A quién llamar",
   "{{count}} seconds": "{{count}} segundos",
   "{{count}} seconds_one": "{{count}} segundo"

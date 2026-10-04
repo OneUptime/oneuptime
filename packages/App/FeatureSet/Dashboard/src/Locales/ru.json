@@ -24583,6 +24583,7 @@
   "Share Publicly": "Открыть общий доступ",
   "Stop asking for the password?": "Больше не запрашивать пароль?",
   "Add the on-call schedules or people to call when someone dials this number.": "Добавьте расписания дежурств или людей, которым звонить, когда кто-то набирает этот номер.",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "Добавьте эту запись у вашего DNS-провайдера, чтобы {{domain}} указывал на вашу панель.",
   "An on-call schedule rings whoever is on call in it when the call comes in.": "Расписание дежурств звонит тому, кто дежурит в момент звонка.",
   "Choose an on-call schedule or a person to call.": "Выберите расписание дежурств или человека, которому звонить.",
   "Choose who to call": "Выбрать, кому звонить",
@@ -24592,6 +24593,7 @@
   "Ring for": "Длительность вызова",
   "Ring for (in seconds)": "Длительность вызова (в секундах)",
   "Search schedules or people...": "Поиск расписаний или людей...",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "Разместите эту панель на своём домене. Направьте CNAME-запись каждого домена на {{cnameRecord}}, а мы выпустим для него SSL-сертификат и будем его продлевать.",
   "Who to call": "Кому звонить",
   "{{count}} seconds": "{{count}} сек.",
   "{{count}} seconds_one": "{{count}} секунда"

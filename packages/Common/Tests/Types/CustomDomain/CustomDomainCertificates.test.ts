@@ -1,13 +1,14 @@
 import CustomDomainCertificates, {
   CustomDomainCertificate,
-} from "../../../Types/StatusPage/CustomDomainCertificates";
+} from "../../../Types/CustomDomain/CustomDomainCertificates";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * What the certificates route answers for a status page's custom domains -
- * each one's certificate expiry and last failed order - and how the Custom
- * Domains page reads it back for its Status column. Both ends share this.
+ * What the certificates route answers for a status page's or a dashboard's
+ * custom domains - each one's certificate expiry and last failed order - and
+ * how the Custom Domains page reads it back for its Status column. Both ends
+ * share this.
  */
 
 const EXPIRES_AT: Date = new Date("2026-12-30T00:00:00.000Z");

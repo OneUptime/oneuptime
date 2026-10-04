@@ -24583,6 +24583,7 @@
   "Share Publicly": "公開分享",
   "Stop asking for the password?": "不再要求輸入密碼嗎？",
   "Add the on-call schedules or people to call when someone dials this number.": "新增有人撥打此號碼時要呼叫的待命排程或人員。",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "請在您的 DNS 供應商處新增此記錄，讓 {{domain}} 指向您的儀表板。",
   "An on-call schedule rings whoever is on call in it when the call comes in.": "待命排程會在來電時呼叫當時待命的人。",
   "Choose an on-call schedule or a person to call.": "請選擇要呼叫的待命排程或人員。",
   "Choose who to call": "選擇呼叫對象",
@@ -24592,6 +24593,7 @@
   "Ring for": "響鈴時長",
   "Ring for (in seconds)": "響鈴時長（秒）",
   "Search schedules or people...": "搜尋排程或人員...",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "在您自己的網域上提供此儀表板。將每個網域的 CNAME 記錄指向 {{cnameRecord}}，我們就會為其核發 SSL 憑證並為您續約。",
   "Who to call": "呼叫對象",
   "{{count}} seconds": "{{count}} 秒",
   "{{count}} seconds_one": "{{count}} 秒"

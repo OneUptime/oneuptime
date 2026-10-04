@@ -24583,6 +24583,7 @@
   "Share Publicly": "공개로 공유",
   "Stop asking for the password?": "더 이상 비밀번호를 요청하지 않으시겠습니까?",
   "Add the on-call schedules or people to call when someone dials this number.": "누군가 이 번호로 전화할 때 호출할 온콜 스케줄이나 사람을 추가하세요.",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "{{domain}}이(가) 대시보드를 가리키도록 DNS 공급자에서 이 레코드를 추가하세요.",
   "An on-call schedule rings whoever is on call in it when the call comes in.": "온콜 스케줄은 전화가 왔을 때 온콜 중인 사람에게 전화를 겁니다.",
   "Choose an on-call schedule or a person to call.": "전화할 온콜 스케줄이나 사람을 선택하세요.",
   "Choose who to call": "전화할 대상 선택",
@@ -24592,6 +24593,7 @@
   "Ring for": "벨 울림 시간",
   "Ring for (in seconds)": "벨 울림 시간(초)",
   "Search schedules or people...": "스케줄 또는 사람 검색...",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "이 대시보드를 자체 도메인에서 제공하세요. 각 도메인의 CNAME 레코드를 {{cnameRecord}}(으)로 지정하면 SSL 인증서를 발급하고 자동으로 갱신해 드립니다.",
   "Who to call": "전화할 대상",
   "{{count}} seconds": "{{count}}초",
   "{{count}} seconds_one": "{{count}}초"

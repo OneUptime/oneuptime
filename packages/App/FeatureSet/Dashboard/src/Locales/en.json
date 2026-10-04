@@ -24583,6 +24583,7 @@
   "Share Publicly": "Share Publicly",
   "Stop asking for the password?": "Stop asking for the password?",
   "Add the on-call schedules or people to call when someone dials this number.": "Add the on-call schedules or people to call when someone dials this number.",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "Add this record at your DNS provider to point {{domain}} to your dashboard.",
   "An on-call schedule rings whoever is on call in it when the call comes in.": "An on-call schedule rings whoever is on call in it when the call comes in.",
   "Choose an on-call schedule or a person to call.": "Choose an on-call schedule or a person to call.",
   "Choose who to call": "Choose who to call",
@@ -24592,6 +24593,7 @@
   "Ring for": "Ring for",
   "Ring for (in seconds)": "Ring for (in seconds)",
   "Search schedules or people...": "Search schedules or people...",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
   "Who to call": "Who to call",
   "{{count}} seconds": "{{count}} seconds",
   "{{count}} seconds_one": "{{count}} second"

@@ -30,7 +30,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * No database, no network and no CA: the service's reads and writes, the
  * certificate table, the probes and the order are spied on. How the orders
  * of Check now and of the sweeps stay apart is in
- * StatusPageCustomDomainCertificateLifecycle.test.ts, end to end.
+ * CustomDomainCertificateLifecycle.test.ts, end to end.
  */
 
 type DomainRow = {

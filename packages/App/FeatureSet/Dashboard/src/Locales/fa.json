@@ -24583,6 +24583,7 @@
   "Share Publicly": "اشتراک‌گذاری عمومی",
   "Stop asking for the password?": "دیگر رمز عبور خواسته نشود؟",
   "Add the on-call schedules or people to call when someone dials this number.": "زمان‌بندی‌های آنکال یا افرادی را اضافه کنید که وقتی کسی این شماره را می‌گیرد، با آن‌ها تماس گرفته می‌شود.",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "این رکورد را نزد ارائه‌دهنده DNS خود اضافه کنید تا {{domain}} به داشبورد شما اشاره کند.",
   "An on-call schedule rings whoever is on call in it when the call comes in.": "زمان‌بندی آنکال هنگام دریافت تماس، با کسی تماس می‌گیرد که در آن لحظه آنکال است.",
   "Choose an on-call schedule or a person to call.": "یک زمان‌بندی آنکال یا یک فرد را برای تماس انتخاب کنید.",
   "Choose who to call": "انتخاب کنید با چه کسی تماس گرفته شود",
@@ -24592,6 +24593,7 @@
   "Ring for": "مدت زنگ",
   "Ring for (in seconds)": "مدت زنگ (به ثانیه)",
   "Search schedules or people...": "جستجوی زمان‌بندی‌ها یا افراد...",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "این داشبورد را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید تا ما گواهی SSL آن را صادر و برایتان تمدید کنیم.",
   "Who to call": "تماس با چه کسی",
   "{{count}} seconds": "{{count}} ثانیه",
   "{{count}} seconds_one": "{{count}} ثانیه"
