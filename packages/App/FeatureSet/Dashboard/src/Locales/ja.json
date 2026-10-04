@@ -221,6 +221,7 @@
     "categories": {
       "account": "アカウント",
       "actions": "アクション",
+      "pages": "ページ",
       "quickLinks": "クイックリンク"
     },
     "sections": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "レポートのスケジュール",
   "Send email reports": "メールレポートを送信",
   "Time zone": "タイムゾーン",
+  "User Settings": "ユーザー設定",
   "When reports go out, and the stretch of time each one covers.": "レポートを送るタイミングと、各レポートの対象期間。",
   "How often a report goes out, such as every month or every 2 weeks.": "レポートを送る頻度です。例: 毎月、2 週間ごと。",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "以降のレポートは同じ時刻に送信されます。毎月 1 日に送るには、いずれかの月の 1 日を選んでください。",

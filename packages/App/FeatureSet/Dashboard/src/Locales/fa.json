@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "حوادث فعال",
+      "adminDashboard": "داشبورد مدیریت",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "ساخت هشدار",
+      "createAnnouncement": "ساخت اطلاعیه",
+      "createMonitor": "ساخت مانیتور",
+      "createScheduledMaintenance": "ساخت تعمیر و نگهداری زمان‌بندی‌شده",
+      "darkTheme": "تغییر به پوسته تیره",
+      "declareIncident": "اعلام حادثه",
+      "lightTheme": "تغییر به پوسته روشن",
+      "logOut": "خروج از حساب",
+      "myOnCallPolicies": "سیاست‌های آنکال من",
+      "projectInvitations": "دعوت‌های پروژه"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "حساب",
+      "actions": "اقدام‌ها",
+      "pages": "صفحه‌ها",
+      "quickLinks": "پیوندهای سریع"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "هشدارها",
+      "incidents": "حوادث",
+      "monitors": "مانیتورها",
+      "onCallPolicies": "سیاست‌های آنکال",
+      "statusPages": "صفحات وضعیت"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "زمان‌بندی گزارش",
   "Send email reports": "ارسال گزارش‌های ایمیلی",
   "Time zone": "منطقه زمانی",
+  "User Settings": "تنظیمات کاربر",
   "When reports go out, and the stretch of time each one covers.": "زمان ارسال گزارش‌ها، و بازه‌ای که هر گزارش پوشش می‌دهد.",
   "How often a report goes out, such as every month or every 2 weeks.": "هر چند وقت یک بار گزارش ارسال شود، مثلا هر ماه یا هر ۲ هفته.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "گزارش‌های بعدی در همان ساعت ارسال می‌شوند. برای ارسال در روز اول هر ماه، روز اول یکی از ماه‌ها را انتخاب کنید.",

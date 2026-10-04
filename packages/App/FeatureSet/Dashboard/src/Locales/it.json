@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Incidenti attivi",
+      "adminDashboard": "Dashboard amministratore",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Crea avviso",
+      "createAnnouncement": "Crea annuncio",
+      "createMonitor": "Crea monitor",
+      "createScheduledMaintenance": "Crea manutenzione programmata",
+      "darkTheme": "Passa al tema scuro",
+      "declareIncident": "Dichiara incidente",
+      "lightTheme": "Passa al tema chiaro",
+      "logOut": "Esci",
+      "myOnCallPolicies": "I miei criteri di reperibilità",
+      "projectInvitations": "Inviti al progetto"
     },
     "categories": {
       "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "actions": "Azioni",
+      "pages": "Pagine",
+      "quickLinks": "Collegamenti rapidi"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Avvisi",
+      "incidents": "Incidenti",
+      "monitors": "Monitor",
+      "onCallPolicies": "Policy di reperibilità",
+      "statusPages": "Pagine di stato"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Pianificazione dei report",
   "Send email reports": "Invia report via email",
   "Time zone": "Fuso orario",
+  "User Settings": "Impostazioni utente",
   "When reports go out, and the stretch of time each one covers.": "Quando vengono inviati i report e il periodo coperto da ciascuno.",
   "How often a report goes out, such as every month or every 2 weeks.": "Ogni quanto viene inviato un report, ad esempio ogni mese o ogni 2 settimane.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "I report successivi partono alla stessa ora. Scegli il giorno 1 di un mese per inviarli il giorno 1 di ogni mese.",

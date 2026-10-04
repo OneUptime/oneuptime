@@ -221,6 +221,7 @@
     "categories": {
       "account": "Account",
       "actions": "Actions",
+      "pages": "Pages",
       "quickLinks": "Quick links"
     },
     "sections": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Report Schedule",
   "Send email reports": "Send email reports",
   "Time zone": "Time zone",
+  "User Settings": "User Settings",
   "When reports go out, and the stretch of time each one covers.": "When reports go out, and the stretch of time each one covers.",
   "How often a report goes out, such as every month or every 2 weeks.": "How often a report goes out, such as every month or every 2 weeks.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.",

@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Aktive hendelser",
+      "adminDashboard": "Admin-dashbord",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Opprett varsel",
+      "createAnnouncement": "Opprett kunngjøring",
+      "createMonitor": "Opprett monitor",
+      "createScheduledMaintenance": "Opprett planlagt vedlikehold",
+      "darkTheme": "Bytt til mørkt tema",
+      "declareIncident": "Erklær hendelse",
+      "lightTheme": "Bytt til lyst tema",
+      "logOut": "Logg ut",
+      "myOnCallPolicies": "Mine vaktretningslinjer",
+      "projectInvitations": "Prosjektinvitasjoner"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "Konto",
+      "actions": "Handlinger",
+      "pages": "Sider",
+      "quickLinks": "Hurtiglenker"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Varsler",
+      "incidents": "Hendelser",
+      "monitors": "Monitorer",
+      "onCallPolicies": "Vaktretningslinjer",
+      "statusPages": "Statussider"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Rapporttidsplan",
   "Send email reports": "Send e-postrapporter",
   "Time zone": "Tidssone",
+  "User Settings": "Brukerinnstillinger",
   "When reports go out, and the stretch of time each one covers.": "Når rapporter sendes, og hvilken periode hver rapport dekker.",
   "How often a report goes out, such as every month or every 2 weeks.": "Hvor ofte en rapport sendes, for eksempel hver måned eller hver 2. uke.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "De neste rapportene sendes på samme tidspunkt. Velg den 1. i en måned for å sende den 1. i hver måned.",

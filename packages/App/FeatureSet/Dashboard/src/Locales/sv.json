@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Aktiva incidenter",
+      "adminDashboard": "Admin-instrumentpanel",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Skapa varning",
+      "createAnnouncement": "Skapa meddelande",
+      "createMonitor": "Skapa monitor",
+      "createScheduledMaintenance": "Skapa schemalagt underhåll",
+      "darkTheme": "Byt till mörkt tema",
+      "declareIncident": "Deklarera incident",
+      "lightTheme": "Byt till ljust tema",
+      "logOut": "Logga ut",
+      "myOnCallPolicies": "Mina jourpolicyer",
+      "projectInvitations": "Projektinbjudningar"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "Konto",
+      "actions": "Åtgärder",
+      "pages": "Sidor",
+      "quickLinks": "Snabblänkar"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Varningar",
+      "incidents": "Incidenter",
+      "monitors": "Monitorer",
+      "onCallPolicies": "Jourpolicyer",
+      "statusPages": "Statussidor"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Rapportschema",
   "Send email reports": "Skicka e-postrapporter",
   "Time zone": "Tidszon",
+  "User Settings": "Användarinställningar",
   "When reports go out, and the stretch of time each one covers.": "När rapporter skickas och vilken period varje rapport täcker.",
   "How often a report goes out, such as every month or every 2 weeks.": "Hur ofta en rapport skickas, till exempel varje månad eller varannan vecka.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Följande rapporter skickas vid samma tid. Välj den 1:a i en månad för att skicka den 1:a varje månad.",

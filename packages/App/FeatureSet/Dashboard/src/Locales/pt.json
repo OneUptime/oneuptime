@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Incidentes ativos",
+      "adminDashboard": "Painel de administração",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Criar alerta",
+      "createAnnouncement": "Criar anúncio",
+      "createMonitor": "Criar monitor",
+      "createScheduledMaintenance": "Criar manutenção programada",
+      "darkTheme": "Mudar para o tema escuro",
+      "declareIncident": "Declarar incidente",
+      "lightTheme": "Mudar para o tema claro",
+      "logOut": "Sair",
+      "myOnCallPolicies": "Minhas Políticas de Plantão",
+      "projectInvitations": "Convites do projeto"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "Conta",
+      "actions": "Ações",
+      "pages": "Páginas",
+      "quickLinks": "Links rápidos"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Alertas",
+      "incidents": "Incidentes",
+      "monitors": "Monitores",
+      "onCallPolicies": "Políticas de plantão",
+      "statusPages": "Páginas de status"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Agendamento de relatórios",
   "Send email reports": "Enviar relatórios por e-mail",
   "Time zone": "Fuso horário",
+  "User Settings": "Configurações do usuário",
   "When reports go out, and the stretch of time each one covers.": "Quando os relatórios são enviados e o período que cada um abrange.",
   "How often a report goes out, such as every month or every 2 weeks.": "Com que frequência um relatório é enviado, por exemplo todo mês ou a cada 2 semanas.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Os relatórios seguintes saem no mesmo horário. Escolha o dia 1 de um mês para enviar no dia 1 de cada mês.",

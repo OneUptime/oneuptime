@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "활성 인시던트",
+      "adminDashboard": "관리자 대시보드",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "알림 생성",
+      "createAnnouncement": "공지사항 만들기",
+      "createMonitor": "모니터 생성",
+      "createScheduledMaintenance": "예정된 유지 관리 만들기",
+      "darkTheme": "다크 테마로 전환",
+      "declareIncident": "인시던트 선언",
+      "lightTheme": "라이트 테마로 전환",
+      "logOut": "로그아웃",
+      "myOnCallPolicies": "내 온콜 정책",
+      "projectInvitations": "프로젝트 초대"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "계정",
+      "actions": "작업",
+      "pages": "페이지",
+      "quickLinks": "빠른 링크"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "알림",
+      "incidents": "인시던트",
+      "monitors": "모니터",
+      "onCallPolicies": "온콜 정책",
+      "statusPages": "상태 페이지"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "보고서 일정",
   "Send email reports": "이메일 보고서 보내기",
   "Time zone": "시간대",
+  "User Settings": "사용자 설정",
   "When reports go out, and the stretch of time each one covers.": "보고서를 보내는 시점과 각 보고서가 다루는 기간입니다.",
   "How often a report goes out, such as every month or every 2 weeks.": "보고서를 보내는 주기입니다. 예: 매월, 2주마다.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "이후 보고서는 같은 시각에 발송됩니다. 매월 1일에 보내려면 어느 달의 1일을 선택하세요.",

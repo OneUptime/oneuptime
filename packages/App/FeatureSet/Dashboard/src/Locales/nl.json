@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Actieve incidenten",
+      "adminDashboard": "Beheerdashboard",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Waarschuwing maken",
+      "createAnnouncement": "Aankondiging aanmaken",
+      "createMonitor": "Monitor maken",
+      "createScheduledMaintenance": "Gepland onderhoud maken",
+      "darkTheme": "Overschakelen naar donker thema",
+      "declareIncident": "Incident melden",
+      "lightTheme": "Overschakelen naar licht thema",
+      "logOut": "Uitloggen",
+      "myOnCallPolicies": "Mijn bereikbaarheidsbeleid",
+      "projectInvitations": "Projectuitnodigingen"
     },
     "categories": {
       "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "actions": "Acties",
+      "pages": "Pagina's",
+      "quickLinks": "Snelkoppelingen"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Waarschuwingen",
+      "incidents": "Incidenten",
+      "monitors": "Monitoren",
+      "onCallPolicies": "Bereikbaarheidsbeleid",
+      "statusPages": "Statuspagina's"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Rapportschema",
   "Send email reports": "E-mailrapporten versturen",
   "Time zone": "Tijdzone",
+  "User Settings": "Gebruikersinstellingen",
   "When reports go out, and the stretch of time each one covers.": "Wanneer rapporten worden verstuurd en welke periode elk rapport beslaat.",
   "How often a report goes out, such as every month or every 2 weeks.": "Hoe vaak een rapport wordt verstuurd, bijvoorbeeld elke maand of elke 2 weken.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Volgende rapporten gaan op hetzelfde tijdstip uit. Kies de 1e van een maand om op de 1e van elke maand te versturen.",

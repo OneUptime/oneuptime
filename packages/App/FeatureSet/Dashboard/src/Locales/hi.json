@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "सक्रिय घटनाएं",
+      "adminDashboard": "व्यवस्थापक डैशबोर्ड",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "अलर्ट बनाएं",
+      "createAnnouncement": "घोषणा बनाएँ",
+      "createMonitor": "मॉनिटर बनाएं",
+      "createScheduledMaintenance": "अनुसूचित रखरखाव बनाएं",
+      "darkTheme": "गहरे रंग वाली थीम पर जाएँ",
+      "declareIncident": "घटना घोषित करें",
+      "lightTheme": "हल्के रंग वाली थीम पर जाएँ",
+      "logOut": "लॉग आउट",
+      "myOnCallPolicies": "मेरी ऑन-कॉल नीतियाँ",
+      "projectInvitations": "प्रोजेक्ट आमंत्रण"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "खाता",
+      "actions": "क्रियाएँ",
+      "pages": "पेज",
+      "quickLinks": "त्वरित लिंक"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "अलर्ट",
+      "incidents": "घटनाएं",
+      "monitors": "मॉनिटर",
+      "onCallPolicies": "ऑन-कॉल नीतियां",
+      "statusPages": "स्थिति पृष्ठ"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "रिपोर्ट शेड्यूल",
   "Send email reports": "ईमेल रिपोर्ट भेजें",
   "Time zone": "समय क्षेत्र",
+  "User Settings": "उपयोगकर्ता सेटिंग्स",
   "When reports go out, and the stretch of time each one covers.": "रिपोर्ट कब भेजी जाती हैं, और हर रिपोर्ट किस अवधि की होती है।",
   "How often a report goes out, such as every month or every 2 weeks.": "रिपोर्ट कितनी बार भेजी जाती है, जैसे हर महीने या हर 2 सप्ताह।",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "आगे की रिपोर्ट उसी समय भेजी जाती हैं। हर महीने की 1 तारीख को भेजने के लिए किसी महीने की 1 तारीख चुनें।",

@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Активные инциденты",
+      "adminDashboard": "Панель администратора",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Создать оповещение",
+      "createAnnouncement": "Создать объявление",
+      "createMonitor": "Создать монитор",
+      "createScheduledMaintenance": "Создать плановое обслуживание",
+      "darkTheme": "Переключиться на тёмную тему",
+      "declareIncident": "Объявить инцидент",
+      "lightTheme": "Переключиться на светлую тему",
+      "logOut": "Выйти",
+      "myOnCallPolicies": "Мои политики дежурства",
+      "projectInvitations": "Приглашения в проект"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "Аккаунт",
+      "actions": "Действия",
+      "pages": "Страницы",
+      "quickLinks": "Быстрые ссылки"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Оповещения",
+      "incidents": "Инциденты",
+      "monitors": "Мониторы",
+      "onCallPolicies": "Политики дежурств",
+      "statusPages": "Страницы состояния"
     }
   },
   "keyboardShortcuts": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Расписание отчётов",
   "Send email reports": "Отправлять отчёты по email",
   "Time zone": "Часовой пояс",
+  "User Settings": "Настройки пользователя",
   "When reports go out, and the stretch of time each one covers.": "Когда отправляются отчёты и какой период охватывает каждый из них.",
   "How often a report goes out, such as every month or every 2 weeks.": "Как часто отправляется отчёт, например каждый месяц или раз в 2 недели.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Следующие отчёты отправляются в то же время суток. Выберите 1-е число месяца, чтобы отправлять 1-го числа каждого месяца.",

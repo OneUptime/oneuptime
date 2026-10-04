@@ -221,6 +221,7 @@
     "categories": {
       "account": "Konto",
       "actions": "Aktionen",
+      "pages": "Seiten",
       "quickLinks": "Schnellzugriff"
     },
     "sections": {
@@ -24837,6 +24838,7 @@
   "Report Schedule": "Berichtszeitplan",
   "Send email reports": "E-Mail-Berichte senden",
   "Time zone": "Zeitzone",
+  "User Settings": "Benutzereinstellungen",
   "When reports go out, and the stretch of time each one covers.": "Wann Berichte versendet werden und welchen Zeitraum jeder umfasst.",
   "How often a report goes out, such as every month or every 2 weeks.": "Wie oft ein Bericht versendet wird, zum Beispiel jeden Monat oder alle 2 Wochen.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Weitere Berichte folgen zur selben Uhrzeit. Wählen Sie den 1. eines Monats, um am 1. jedes Monats zu senden.",
