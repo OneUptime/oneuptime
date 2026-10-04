@@ -17,7 +17,6 @@ import {
 import {
   filterPaletteCommands,
   getPaletteSectionId,
-  normalizePaletteQuery,
   PaletteCommandMatch,
 } from "./PaletteFilter";
 import {
@@ -72,6 +71,13 @@ interface PaletteSectionView {
 }
 
 const EMPTY_PROVIDERS: Array<PaletteSearchProvider> = [];
+
+/*
+ * The most commands a search lists, best first. A letter or two can match
+ * hundreds of pages; the best fifty are plenty to choose from, and typing on
+ * narrows them.
+ */
+export const PALETTE_SEARCH_RESULT_LIMIT: number = 50;
 
 type HasPendingSectionFunction = (
   sections: Array<PaletteSectionView>,
@@ -246,7 +252,11 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     query,
   );
 
-  const normalizedQuery: string = normalizePaletteQuery(query);
+  /*
+   * Browsing while the box is empty, searching once anything is typed: a
+   * query of only punctuation ("?") is a search that finds nothing.
+   */
+  const trimmedQuery: string = query.trim();
 
   const sections: Array<PaletteSectionView> = useMemo(() => {
     const built: Array<PaletteSectionView> = [];
@@ -296,7 +306,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
       });
     };
 
-    if (!normalizedQuery) {
+    if (!trimmedQuery) {
       // Browsing: "Recent" first (when we have any), then the full catalog.
       if (recentCommandIds.length > 0) {
         const commandById: Map<string, PaletteCommand> = new Map();
@@ -359,7 +369,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
       const matches: Array<PaletteCommandMatch> = filterPaletteCommands(
         props.commands,
         query,
-      );
+      ).slice(0, PALETTE_SEARCH_RESULT_LIMIT);
       groupByCategory(
         matches.map((match: PaletteCommandMatch) => {
           return match.command;
@@ -416,13 +426,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     });
 
     return built;
-  }, [
-    normalizedQuery,
-    query,
-    props.commands,
-    recentCommandIds,
-    providerSections,
-  ]);
+  }, [trimmedQuery, query, props.commands, recentCommandIds, providerSections]);
 
   // Flattened list in render order — the keyboard walks this.
   const flatEntries: Array<FlatEntry> = useMemo(() => {

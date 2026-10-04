@@ -4,15 +4,14 @@ import {
   getPaletteQueryWords,
   getPaletteSectionId,
   getSharedTitlePenalty,
+  isCompactWordPrefix,
   isSubsequenceMatch,
-  isWithinOneEdit,
   matchPaletteCommand,
   normalizePaletteQuery,
   PaletteCommandMatch,
   PaletteHighlightSegment,
   PaletteMatchRank,
   rankPaletteCommand,
-  stemPaletteWord,
 } from "../../../../UI/Components/CommandPalette/PaletteFilter";
 import { PaletteCommand } from "../../../../UI/Components/CommandPalette/Types";
 import { describe, expect, test } from "@jest/globals";
@@ -120,21 +119,29 @@ describe("getPaletteQueryWords", () => {
   });
 });
 
-describe("stemPaletteWord", () => {
+describe("isCompactWordPrefix", () => {
   test.each([
-    ["keys", "key"],
-    ["policies", "policy"],
-    ["schedules", "schedule"],
-    ["statuses", "status"],
-    ["searches", "search"],
-    ["status", "status"],
-    ["access", "access"],
-    ["analysis", "analysis"],
-    ["sso", "sso"],
-    ["rules", "rule"],
-  ])("%s stems to %s", (word: string, stem: string) => {
-    expect(stemPaletteWord(word)).toBe(stem);
-  });
+    // Typed without spaces, across whole words.
+    [["on", "call", "duty"], "oncall", true],
+    [["on", "call", "duty"], "oncal", true],
+    [["api", "keys"], "apikeys", true],
+    [["alert", "state"], "alertst", true],
+    // Stopping inside the first word.
+    [["monitors"], "mon", true],
+    // A plural "s" is not the start of the next word.
+    [["alert", "state"], "alerts", false],
+    [["monitor", "status"], "monitors", false],
+    // One letter into a later word is too little to mean it.
+    [["api", "keys"], "apik", false],
+    // Longer than the title, or not its start.
+    [["api", "keys"], "apikeysx", false],
+    [["api", "keys"], "keys", false],
+  ])(
+    "%j / %s: %s",
+    (words: Array<string>, query: string, expected: boolean) => {
+      expect(isCompactWordPrefix(words, query)).toBe(expected);
+    },
+  );
 });
 
 describe("isSubsequenceMatch", () => {
@@ -152,23 +159,6 @@ describe("isSubsequenceMatch", () => {
 
   test("an empty needle matches anything", () => {
     expect(isSubsequenceMatch("", "monitors")).toBe(true);
-  });
-});
-
-describe("isWithinOneEdit", () => {
-  test.each([
-    ["incident", "incident", true],
-    ["incidnet", "incident", true],
-    ["slakc", "slack", true],
-    ["moniter", "monitor", true],
-    ["monitr", "monitor", true],
-    ["monnitor", "monitor", true],
-    ["incdnet", "incident", false],
-    ["rule", "roles", false],
-    ["abc", "xyz", false],
-  ])("%s / %s: %s", (a: string, b: string, expected: boolean) => {
-    expect(isWithinOneEdit(a, b)).toBe(expected);
-    expect(isWithinOneEdit(b, a)).toBe(expected);
   });
 });
 
@@ -209,7 +199,7 @@ describe("rankPaletteCommand", () => {
     ["access", PaletteMatchRank.Keyword],
     ["project api", PaletteMatchRank.Context],
     ["advanced keys", PaletteMatchRank.Context],
-    ["eys", PaletteMatchRank.TitleSubstring],
+    ["eys", PaletteMatchRank.Substring],
     ["acess token", PaletteMatchRank.Fuzzy],
     ["aik", PaletteMatchRank.Fuzzy],
   ])(
@@ -351,6 +341,30 @@ describe("matchPaletteCommand scores", () => {
     ).toBeGreaterThan(
       matchPaletteCommand(rumSettingsPage, "user settings")!.score,
     );
+  });
+
+  test("one word in the trail names no place: the bonus needs two", () => {
+    // Both words name User Settings: 50 for the context match, +4 for one place.
+    const notificationMethods: PaletteCommand = makePage(
+      "notification-methods",
+      "Notification Methods",
+      ["User Settings", "Alerts & Notifications"],
+    );
+    // "settings" is its title (+4); "user" alone in the trail earns nothing more.
+    const rumSettings: PaletteCommand = makePage("rum-settings", "Settings", [
+      "Real User Monitoring",
+    ]);
+
+    expect(matchPaletteCommand(notificationMethods, "user settings")).toEqual({
+      command: notificationMethods,
+      rank: PaletteMatchRank.Context,
+      score: 54,
+    });
+    expect(matchPaletteCommand(rumSettings, "user settings")).toEqual({
+      command: rumSettings,
+      rank: PaletteMatchRank.Context,
+      score: 54,
+    });
   });
 });
 
@@ -517,6 +531,108 @@ describe("filterPaletteCommands", () => {
     ]);
   });
 
+  test("a plural query word is the same word, never the start of a longer one", () => {
+    const commands: Array<PaletteCommand> = [
+      makePage("runners", "Runners", ["Runbooks"]),
+      makePage("runbooks", "Runbooks", ["Runbooks"]),
+      makePage("runs", "Runs", ["Workflows", "Logs"]),
+      makePage("keys", "API Keys", ["Project Settings", "Advanced"]),
+    ];
+
+    // "runs" is "run": Runners and Runbooks hold only its letters in order.
+    expect(ids(filterPaletteCommands(commands, "runs"))).toEqual(["runs"]);
+    expect(rankPaletteCommand(commands[0]!, "runs")).toBe(
+      PaletteMatchRank.Fuzzy,
+    );
+    // "key" and "keys" are one word.
+    expect(ids(filterPaletteCommands(commands, "api key"))).toEqual(["keys"]);
+  });
+
+  test("a plural query does not start a title that starts with its singular", () => {
+    const alertState: PaletteCommand = makePage("alert-state", "Alert State", [
+      "Alerts",
+      "Settings",
+    ]);
+    const allAlerts: PaletteCommand = makePage("all-alerts", "All Alerts", [
+      "Alerts",
+    ]);
+
+    // "alerts" names a word of each title, and starts neither.
+    expect(matchPaletteCommand(alertState, "alerts")).toEqual({
+      command: alertState,
+      rank: PaletteMatchRank.TitleWords,
+      score: 80,
+    });
+    expect(matchPaletteCommand(allAlerts, "alerts")).toEqual({
+      command: allAlerts,
+      rank: PaletteMatchRank.TitleWords,
+      score: 80,
+    });
+    // Typing on into the next word does start it.
+    expect(rankPaletteCommand(alertState, "alert st")).toBe(
+      PaletteMatchRank.TitlePrefix,
+    );
+    expect(rankPaletteCommand(alertState, "alertst")).toBe(
+      PaletteMatchRank.TitlePrefix,
+    );
+  });
+
+  test("repeating a word does not stand in for a second one", () => {
+    const commands: Array<PaletteCommand> = [
+      makePage("incident-fields", "Custom Fields", ["Incidents", "Settings"]),
+    ];
+
+    expect(ids(filterPaletteCommands(commands, "incidents incidents"))).toEqual(
+      [],
+    );
+    expect(ids(filterPaletteCommands(commands, "incident incidents"))).toEqual(
+      [],
+    );
+    expect(ids(filterPaletteCommands(commands, "incident settings"))).toEqual([
+      "incident-fields",
+    ]);
+  });
+
+  test("a query inside a keyword finds the command, below one inside a title", () => {
+    const commands: Array<PaletteCommand> = [
+      makeCommand("on-call", "On-Call Duty", "Essentials", ["pagerduty"]),
+      makeCommand("superduty", "Superduty Checks", "Other"),
+      makeCommand("duty", "Duty Roster", "Other"),
+    ];
+
+    expect(ids(filterPaletteCommands(commands, "erduty"))).toEqual([
+      "superduty",
+      "on-call",
+    ]);
+    // One or two letters are inside almost every keyword: not looked for there.
+    expect(ids(filterPaletteCommands(commands, "ge"))).toEqual([]);
+  });
+
+  test("initials are a fallback: 'ai' lists the AI pages, not Active Incidents", () => {
+    const commands: Array<PaletteCommand> = [
+      makePage("active-incidents", "Active Incidents", ["Incidents"]),
+      makePage("ai", "AI Features", ["Project Settings"]),
+    ];
+
+    expect(ids(filterPaletteCommands(commands, "ai"))).toEqual(["ai"]);
+    // With nothing better, the initials still find it.
+    expect(ids(filterPaletteCommands([commands[0]!], "ai"))).toEqual([
+      "active-incidents",
+    ]);
+  });
+
+  test("a query of only punctuation matches nothing; an empty one matches everything", () => {
+    const commands: Array<PaletteCommand> = [
+      makeCommand("one", "Alpha", "A"),
+      makeCommand("two", "Beta", "B"),
+    ];
+
+    expect(filterPaletteCommands(commands, "#")).toEqual([]);
+    expect(filterPaletteCommands(commands, " ? ")).toEqual([]);
+    expect(matchPaletteCommand(commands[0]!, "?")).toBeNull();
+    expect(ids(filterPaletteCommands(commands, ""))).toEqual(["one", "two"]);
+  });
+
   test("letters in order are the last resort", () => {
     const commands: Array<PaletteCommand> = [
       makeCommand("monitors", "Monitors", "Essentials"),
@@ -671,10 +787,29 @@ describe("getHighlightSegments", () => {
     ]);
   });
 
-  test("text whose length changes when lowercased is left unmarked", () => {
-    // "İ" lowercases to two code units; marks would land in the wrong place.
+  test("marks the text as shown, whatever its case, accents and punctuation", () => {
+    // Typed without the hyphen, or with one for the space.
+    expect(getHighlightSegments("On-Call Duty", "oncall")).toEqual([
+      { text: "On-Call", isMatch: true },
+      { text: " Duty", isMatch: false },
+    ]);
+    expect(getHighlightSegments("API Keys", "api-keys")).toEqual([
+      { text: "API Keys", isMatch: true },
+    ]);
+    // Typed without the accents.
+    expect(getHighlightSegments("Résumé", "resume")).toEqual([
+      { text: "Résumé", isMatch: true },
+    ]);
+    // "İ" lowercases to two code units; the mark still lands on it.
     expect(getHighlightSegments("İstanbul", "ist")).toEqual([
-      { text: "İstanbul", isMatch: false },
+      { text: "İst", isMatch: true },
+      { text: "anbul", isMatch: false },
+    ]);
+  });
+
+  test("a query of only punctuation marks nothing", () => {
+    expect(getHighlightSegments("API Keys", "--")).toEqual([
+      { text: "API Keys", isMatch: false },
     ]);
   });
 });

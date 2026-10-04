@@ -1,4 +1,9 @@
 import { PaletteCommand } from "./Types";
+import {
+  getWordVariants,
+  isSameWord,
+  matchWordWithTypo,
+} from "../../../Utils/WordMatch";
 
 /*
  * Pure, React-free search for the command palette. Kept out of the component
@@ -10,8 +15,8 @@ import { PaletteCommand } from "./Types";
  * - Case, accents, punctuation and spacing do not matter: "on call",
  *   "on-call" and "oncall" are the same, and so are "resume" and "résumé".
  * - Each word of the query is matched against the start of a word, in any
- *   order, and a plural "s" does not matter: "keys api" and "api key" both
- *   find API Keys.
+ *   order, and the number does not matter: "keys api" and "api key" both
+ *   find API Keys. Words are compared whole, so "runs" is not "Runners".
  * - Keywords are other names for a command ("pager" for On-Call, "delete
  *   project" for the Danger Zone). A breadcrumb says where a page lives
  *   ("Incidents > Settings"); it narrows a search down ("incident custom
@@ -20,13 +25,16 @@ import { PaletteCommand } from "./Types";
  * - A title many pages share ("Custom Fields", "API", "Slack") says little on
  *   its own, so a match on it ranks below a distinctive title: "api" opens
  *   API Keys before the thirty Developer pages called API.
- * - Fallbacks, offered only when nothing matches better: the group a command
- *   is listed under ("observability" lists the observability products), a
- *   typo in a word ("incidnet") and the title's letters in order ("mntr"
- *   finds Monitors).
+ * - Fallbacks, offered only when nothing matches better: a title's initials
+ *   ("ak" finds API Keys), the group a command is listed under
+ *   ("observability" lists the observability products), a typo in a word
+ *   ("incidnet") and the title's letters in order ("mntr" finds Monitors).
  * - Between equally good matches, the command's searchPriority decides (the
  *   Dashboard puts products before pages, and pages before actions), then
  *   the caller's order.
+ *
+ * Plurals and typos are matched by Utils/WordMatch, which the workflow step
+ * pickers use too.
  */
 
 /**
@@ -35,25 +43,28 @@ import { PaletteCommand } from "./Types";
  * for how much of the query a context match found in the title.
  */
 export enum PaletteMatchRank {
-  /** The whole title: "api keys", "API-Keys" and "apikey" all name API Keys. */
+  /** The whole title: "api keys", "API-Keys" and "apikeys" all name API Keys. */
   TitleExact = 0,
-  /** The title starts with the query: "api k" finds API Keys. */
+  /** The title starts with the query: "api k" and "oncall" are prefixes. */
   TitlePrefix = 1,
   /** Every query word starts a word of the title, in any order: "keys api". */
   TitleWords = 2,
-  /** The query is the start of the title's initials: "ak" finds API Keys. */
-  TitleInitials = 3,
   /** A keyword is the query, starts with it, or holds every word of it. */
-  Keyword = 4,
+  Keyword = 3,
   /**
    * Every query word is found across the title, keywords and where the
    * command lives (its breadcrumb, or the group it is listed under), at
    * least one in its own names: "incident custom fields", "logs
    * observability".
    */
-  Context = 5,
-  /** The query appears inside the title, not at a word start: "eys". */
-  TitleSubstring = 6,
+  Context = 4,
+  /**
+   * The query appears inside the title or a keyword, not at a word start:
+   * "eys" finds API Keys.
+   */
+  Substring = 5,
+  /** The query starts the title's initials: "ak" finds API Keys. A fallback. */
+  TitleInitials = 6,
   /**
    * Only the group a command is listed under holds the query: "observability"
    * lists the observability products. A fallback.
@@ -68,7 +79,11 @@ export enum PaletteMatchRank {
 
 // Ranks offered only when nothing matches better.
 const FALLBACK_RANKS: ReadonlySet<PaletteMatchRank> = new Set<PaletteMatchRank>(
-  [PaletteMatchRank.Category, PaletteMatchRank.Fuzzy],
+  [
+    PaletteMatchRank.TitleInitials,
+    PaletteMatchRank.Category,
+    PaletteMatchRank.Fuzzy,
+  ],
 );
 
 export interface PaletteCommandMatch {
@@ -88,16 +103,22 @@ const RANK_SCORES: Readonly<Record<PaletteMatchRank, number>> = {
   [PaletteMatchRank.TitleExact]: 100,
   [PaletteMatchRank.TitlePrefix]: 90,
   [PaletteMatchRank.TitleWords]: 80,
-  [PaletteMatchRank.TitleInitials]: 72,
   [PaletteMatchRank.Keyword]: 62,
   [PaletteMatchRank.Context]: 50,
-  [PaletteMatchRank.TitleSubstring]: 40,
+  [PaletteMatchRank.Substring]: 40,
+  [PaletteMatchRank.TitleInitials]: 45,
   [PaletteMatchRank.Category]: 30,
   [PaletteMatchRank.Fuzzy]: 20,
 };
 
 // A keyword that is exactly the query is worth more than one it starts.
 const KEYWORD_EXACT_BONUS: number = 8;
+
+// The query inside a keyword is weaker evidence than inside the title.
+const KEYWORD_SUBSTRING_PENALTY: number = 6;
+
+// The shortest query found inside a keyword: one or two letters are anywhere.
+const KEYWORD_SUBSTRING_MIN_LENGTH: number = 3;
 
 // A context match that found query words in the title is worth more.
 const CONTEXT_TITLE_WORD_BONUS: number = 4;
@@ -114,6 +135,12 @@ const TYPO_MIN_LENGTH: number = 5;
 
 // The shortest query that may match a title's letters in order.
 const SUBSEQUENCE_MIN_LENGTH: number = 2;
+
+/*
+ * The shortest query word whose plural or singular counts as the same word:
+ * "is" is not the plural of "i".
+ */
+const SAME_WORD_MIN_LENGTH: number = 3;
 
 /*
  * A title shared by k pages: subtracted from its title-based matches. Two
@@ -138,7 +165,7 @@ export const getSharedTitlePenalty: (sharedBy: number) => number = (
  */
 const LETTER_ACCENTS: RegExp = /[\u0300-\u0305\u0307-\u036f]+/g;
 const NOT_A_LETTER_OR_DIGIT: RegExp = /[^\p{L}\p{M}\p{N}]+/gu;
-const WORD_ENDINGS_DROPPING_ES: RegExp = /(?:ches|shes|sses|uses|xes|zes)$/;
+const WORD_CHARACTER: RegExp = /[\p{L}\p{M}\p{N}]/u;
 
 /**
  * Text the way the search compares it: lowercase, accents dropped, and
@@ -154,35 +181,6 @@ export const normalizePaletteQuery: (query: string) => string = (
     .toLowerCase()
     .replace(NOT_A_LETTER_OR_DIGIT, " ")
     .trim();
-};
-
-/**
- * A word without its plural ending, so "keys" meets "key" and "policies"
- * meets "policy". English endings only; for a word that has none it is the
- * word itself.
- */
-export const stemPaletteWord: (word: string) => string = (
-  word: string,
-): string => {
-  if (word.length > 4 && word.endsWith("ies")) {
-    return `${word.slice(0, -3)}y`;
-  }
-
-  if (word.length > 4 && WORD_ENDINGS_DROPPING_ES.test(word)) {
-    return word.slice(0, -2);
-  }
-
-  if (
-    word.length > 3 &&
-    word.endsWith("s") &&
-    !word.endsWith("ss") &&
-    !word.endsWith("us") &&
-    !word.endsWith("is")
-  ) {
-    return word.slice(0, -1);
-  }
-
-  return word;
 };
 
 /** The query's words, normalized: what gets highlighted and matched. */
@@ -220,54 +218,41 @@ export const isSubsequenceMatch: (
 };
 
 /**
- * True when `a` and `b` differ by at most one edit: a letter changed, added,
- * dropped, or two neighbours swapped ("incidnet").
+ * True when the words, run together, start with `compactQuery` without
+ * cutting a word short in the middle of the query: "oncall" starts
+ * "On-Call Duty" and "oncal" too, but "alerts" does not start "Alert State"
+ * (it would end on the "s" of "State"). A query that stops inside the first
+ * word is fine ("mon"); inside a later one it needs two of its letters.
  */
-export const isWithinOneEdit: (a: string, b: string) => boolean = (
-  a: string,
-  b: string,
-): boolean => {
-  if (a === b) {
-    return true;
-  }
+export const isCompactWordPrefix: (
+  words: Array<string>,
+  compactQuery: string,
+) => boolean = (words: Array<string>, compactQuery: string): boolean => {
+  let rest: string = compactQuery;
 
-  if (Math.abs(a.length - b.length) > 1) {
-    return false;
-  }
+  for (let index: number = 0; index < words.length; index++) {
+    const word: string = words[index]!;
 
-  let common: number = 0;
-
-  while (common < a.length && common < b.length && a[common] === b[common]) {
-    common++;
-  }
-
-  if (a.length === b.length) {
-    if (a.slice(common + 1) === b.slice(common + 1)) {
-      return true;
+    if (rest.length <= word.length) {
+      return word.startsWith(rest) && (index === 0 || rest.length >= 2);
     }
 
-    return (
-      common + 1 < a.length &&
-      a[common] === b[common + 1] &&
-      a[common + 1] === b[common] &&
-      a.slice(common + 2) === b.slice(common + 2)
-    );
+    if (!rest.startsWith(word)) {
+      return false;
+    }
+
+    rest = rest.slice(word.length);
   }
 
-  if (a.length > b.length) {
-    return a.slice(common + 1) === b.slice(common);
-  }
-
-  return a.slice(common) === b.slice(common + 1);
+  return false;
 };
 
 interface PreparedText {
   words: Array<string>;
-  stems: Array<string>;
+  // getWordVariants of each word, worked out once.
+  variants: Array<Array<string>>;
   // The words run together: "on-call duty" is "oncallduty".
   compact: string;
-  // The stems run together: "API Keys" is "apikey".
-  stemmedCompact: string;
   // The words joined with single spaces.
   spaced: string;
 }
@@ -277,13 +262,13 @@ const prepareText: (text: string) => PreparedText = (
 ): PreparedText => {
   const normalized: string = normalizePaletteQuery(text);
   const words: Array<string> = normalized ? normalized.split(" ") : [];
-  const stems: Array<string> = words.map(stemPaletteWord);
 
   return {
     words,
-    stems,
+    variants: words.map((word: string): Array<string> => {
+      return getWordVariants(word);
+    }),
     compact: words.join(""),
-    stemmedCompact: stems.join(""),
     spaced: words.join(" "),
   };
 };
@@ -309,6 +294,18 @@ interface PreparedCommand {
 const preparedCommands: WeakMap<PaletteCommand, PreparedCommand> =
   new WeakMap();
 
+const prepareTexts: (texts: Array<string>) => Array<PreparedText> = (
+  texts: Array<string>,
+): Array<PreparedText> => {
+  return texts
+    .map((text: string): PreparedText => {
+      return prepareText(text);
+    })
+    .filter((prepared: PreparedText): boolean => {
+      return prepared.words.length > 0;
+    });
+};
+
 const prepareCommand: (command: PaletteCommand) => PreparedCommand = (
   command: PaletteCommand,
 ): PreparedCommand => {
@@ -324,36 +321,15 @@ const prepareCommand: (command: PaletteCommand) => PreparedCommand = (
 
   const title: PreparedText = prepareText(command.title);
 
-  const contextParts: Array<string> = hasBreadcrumb
-    ? [...(command.breadcrumb || []), ...(command.breadcrumbKeywords || [])]
-    : [command.category];
-
   const prepared: PreparedCommand = {
     title,
-    titles: [
-      title,
-      ...(command.titleAliases || [])
-        .map((alias: string): PreparedText => {
-          return prepareText(alias);
-        })
-        .filter((alias: PreparedText): boolean => {
-          return alias.words.length > 0;
-        }),
-    ],
-    keywords: (command.keywords || [])
-      .map((keyword: string): PreparedText => {
-        return prepareText(keyword);
-      })
-      .filter((keyword: PreparedText): boolean => {
-        return keyword.words.length > 0;
-      }),
-    context: contextParts
-      .map((part: string): PreparedText => {
-        return prepareText(part);
-      })
-      .filter((part: PreparedText): boolean => {
-        return part.words.length > 0;
-      }),
+    titles: [title, ...prepareTexts(command.titleAliases || [])],
+    keywords: prepareTexts(command.keywords || []),
+    context: prepareTexts(
+      hasBreadcrumb
+        ? [...(command.breadcrumb || []), ...(command.breadcrumbKeywords || [])]
+        : [command.category],
+    ),
     hasBreadcrumb,
   };
 
@@ -362,45 +338,44 @@ const prepareCommand: (command: PaletteCommand) => PreparedCommand = (
   return prepared;
 };
 
-interface PreparedQuery {
-  text: PreparedText;
-  stems: Array<string>;
-}
+type PreparedQuery = PreparedText;
 
-// Whether one query word starts one word of the text, plural endings aside.
+/*
+ * Whether one query word matches one word of a name: the word starts with
+ * it, or it is the same word in the singular or plural ("keys" is "key").
+ */
 const wordMatches: (
   token: string,
-  tokenStem: string,
+  tokenVariants: Array<string>,
   word: string,
-  wordStem: string,
+  wordVariants: Array<string>,
 ) => boolean = (
   token: string,
-  tokenStem: string,
+  tokenVariants: Array<string>,
   word: string,
-  wordStem: string,
+  wordVariants: Array<string>,
 ): boolean => {
   if (word.startsWith(token)) {
     return true;
   }
 
-  if (tokenStem.length < 3) {
-    return false;
-  }
-
-  return word.startsWith(tokenStem) || wordStem.startsWith(tokenStem);
+  return (
+    token.length >= SAME_WORD_MIN_LENGTH &&
+    isSameWord(token, word, tokenVariants, wordVariants)
+  );
 };
 
 const textHasWord: (
   text: PreparedText,
   token: string,
-  tokenStem: string,
+  tokenVariants: Array<string>,
 ) => boolean = (
   text: PreparedText,
   token: string,
-  tokenStem: string,
+  tokenVariants: Array<string>,
 ): boolean => {
   return text.words.some((word: string, index: number): boolean => {
-    return wordMatches(token, tokenStem, word, text.stems[index] || word);
+    return wordMatches(token, tokenVariants, word, text.variants[index] || []);
   });
 };
 
@@ -408,9 +383,68 @@ const textHasEveryWord: (
   text: PreparedText,
   query: PreparedQuery,
 ) => boolean = (text: PreparedText, query: PreparedQuery): boolean => {
-  return query.text.words.every((token: string, index: number): boolean => {
-    return textHasWord(text, token, query.stems[index] || token);
+  return query.words.every((token: string, index: number): boolean => {
+    return textHasWord(text, token, query.variants[index] || []);
   });
+};
+
+/*
+ * The same words, in the same order, the number aside: "api key" is "API
+ * Keys".
+ */
+const isSameWords: (text: PreparedText, query: PreparedQuery) => boolean = (
+  text: PreparedText,
+  query: PreparedQuery,
+): boolean => {
+  return (
+    text.words.length === query.words.length &&
+    text.words.every((word: string, index: number): boolean => {
+      return isSameWord(
+        query.words[index]!,
+        word,
+        query.variants[index],
+        text.variants[index],
+      );
+    })
+  );
+};
+
+// How a name (a title, or a keyword) matches the whole query, or null.
+const matchName: (
+  name: PreparedText,
+  query: PreparedQuery,
+) =>
+  | PaletteMatchRank.TitleExact
+  | PaletteMatchRank.TitlePrefix
+  | PaletteMatchRank.TitleWords
+  | null = (
+  name: PreparedText,
+  query: PreparedQuery,
+):
+  | PaletteMatchRank.TitleExact
+  | PaletteMatchRank.TitlePrefix
+  | PaletteMatchRank.TitleWords
+  | null => {
+  if (name.compact.length === 0) {
+    return null;
+  }
+
+  if (name.compact === query.compact || isSameWords(name, query)) {
+    return PaletteMatchRank.TitleExact;
+  }
+
+  if (
+    name.spaced.startsWith(query.spaced) ||
+    isCompactWordPrefix(name.words, query.compact)
+  ) {
+    return PaletteMatchRank.TitlePrefix;
+  }
+
+  if (textHasEveryWord(name, query)) {
+    return PaletteMatchRank.TitleWords;
+  }
+
+  return null;
 };
 
 // A query word that is a typo of the start of one of these words.
@@ -423,13 +457,7 @@ const hasTypoOf: (token: string, words: Array<string>) => boolean = (
   }
 
   return words.some((word: string): boolean => {
-    return [token.length - 1, token.length, token.length + 1].some(
-      (length: number): boolean => {
-        return (
-          length <= word.length && isWithinOneEdit(token, word.slice(0, length))
-        );
-      },
-    );
+    return matchWordWithTypo(token, word);
   });
 };
 
@@ -463,49 +491,33 @@ const getRankScore: (rank: PaletteMatchRank) => number = (
   return RANK_SCORES[rank];
 };
 
-// How one title matches the query on its own, or null.
-const matchTitle: (
-  title: PreparedText,
+/*
+ * The query's words, each once: "incidents incident" is one word, so
+ * repeating a word cannot stand in for a second one.
+ */
+const countDistinctWords: (query: PreparedQuery) => number = (
   query: PreparedQuery,
-) => PaletteMatchRank | null = (
-  title: PreparedText,
-  query: PreparedQuery,
-): PaletteMatchRank | null => {
-  if (title.compact.length === 0) {
-    return null;
-  }
+): number => {
+  let distinct: number = 0;
 
-  if (
-    title.compact === query.text.compact ||
-    title.stemmedCompact === query.text.stemmedCompact
-  ) {
-    return PaletteMatchRank.TitleExact;
-  }
+  query.words.forEach((token: string, index: number): void => {
+    const isRepeat: boolean = query.words
+      .slice(0, index)
+      .some((earlier: string, earlierIndex: number): boolean => {
+        return isSameWord(
+          token,
+          earlier,
+          query.variants[index],
+          query.variants[earlierIndex],
+        );
+      });
 
-  if (title.compact.startsWith(query.text.compact)) {
-    return PaletteMatchRank.TitlePrefix;
-  }
+    if (!isRepeat) {
+      distinct++;
+    }
+  });
 
-  if (textHasEveryWord(title, query)) {
-    return PaletteMatchRank.TitleWords;
-  }
-
-  const initials: string = title.words
-    .map((word: string): string => {
-      return word.charAt(0);
-    })
-    .join("");
-
-  if (
-    query.text.words.length === 1 &&
-    query.text.compact.length >= 2 &&
-    title.words.length >= 2 &&
-    initials.startsWith(query.text.compact)
-  ) {
-    return PaletteMatchRank.TitleInitials;
-  }
-
-  return null;
+  return distinct;
 };
 
 /*
@@ -525,7 +537,7 @@ const matchPreparedCommand: (data: {
 }): PaletteCommandMatch | null => {
   const title: PreparedText = data.prepared.title;
   const query: PreparedQuery = data.query;
-  const tokens: Array<string> = query.text.words;
+  const tokens: Array<string> = query.words;
 
   const penalty: number = data.prepared.hasBreadcrumb
     ? getSharedTitlePenalty(data.sharedBy)
@@ -549,7 +561,7 @@ const matchPreparedCommand: (data: {
   let bestTitleRank: PaletteMatchRank | null = null;
 
   for (const candidate of data.prepared.titles) {
-    const rank: PaletteMatchRank | null = matchTitle(candidate, query);
+    const rank: PaletteMatchRank | null = matchName(candidate, query);
 
     if (rank !== null && (bestTitleRank === null || rank < bestTitleRank)) {
       bestTitleRank = rank;
@@ -560,23 +572,19 @@ const matchPreparedCommand: (data: {
     return titleMatch(bestTitleRank);
   }
 
-  // Keywords: another name for the command, matched like a weaker title.
+  // Keywords: other names for the command, matched like a weaker title.
   let bestKeywordScore: number | null = null;
 
   for (const keyword of data.prepared.keywords) {
-    if (
-      keyword.compact === query.text.compact ||
-      keyword.stemmedCompact === query.text.stemmedCompact
-    ) {
+    const rank: PaletteMatchRank | null = matchName(keyword, query);
+
+    if (rank === PaletteMatchRank.TitleExact) {
       bestKeywordScore =
         getRankScore(PaletteMatchRank.Keyword) + KEYWORD_EXACT_BONUS;
       break;
     }
 
-    if (
-      keyword.compact.startsWith(query.text.compact) ||
-      textHasEveryWord(keyword, query)
-    ) {
+    if (rank !== null) {
       bestKeywordScore = getRankScore(PaletteMatchRank.Keyword);
     }
   }
@@ -592,40 +600,36 @@ const matchPreparedCommand: (data: {
   /*
    * Context: every word somewhere across the title, the keywords and where
    * the command lives. A command with a breadcrumb needs a word of its own
-   * name in a one-word query; with two words or more, the breadcrumb may
-   * carry all of them ("incident settings" lists Incidents > Settings).
+   * name, or two different words: "incident settings" lists Incidents >
+   * Settings, but "incidents" (or "incidents incidents") does not list
+   * every page in Incidents.
    */
-  // The command's own names: its title, the title's aliases and keywords.
   const ownNames: Array<PreparedText> = [
     ...data.prepared.titles,
     ...data.prepared.keywords,
   ];
 
-  const ownNamesHaveWord: (token: string, stem: string) => boolean = (
-    token: string,
-    stem: string,
-  ): boolean => {
-    return ownNames.some((name: PreparedText): boolean => {
-      return textHasWord(name, token, stem);
-    });
-  };
-
-  let titleWordHits: number = 0;
+  let ownNameWordCount: number = 0;
+  let contextWordCount: number = 0;
   let allWordsFound: boolean = true;
-  // The crumbs that hold the words the title does not.
+  // The crumbs that hold the words the command's own names do not.
   const crumbsUsed: Set<number> = new Set<number>();
 
   tokens.forEach((token: string, index: number): void => {
-    const stem: string = query.stems[index] || token;
+    const variants: Array<string> = query.variants[index] || [];
 
-    if (ownNamesHaveWord(token, stem)) {
-      titleWordHits++;
+    const inOwnNames: boolean = ownNames.some((name: PreparedText): boolean => {
+      return textHasWord(name, token, variants);
+    });
+
+    if (inOwnNames) {
+      ownNameWordCount++;
       return;
     }
 
     const crumb: number = data.prepared.context.findIndex(
       (part: PreparedText): boolean => {
-        return textHasWord(part, token, stem);
+        return textHasWord(part, token, variants);
       },
     );
 
@@ -634,20 +638,22 @@ const matchPreparedCommand: (data: {
       return;
     }
 
+    contextWordCount++;
     crumbsUsed.add(crumb);
   });
 
-  const contextIsEnough: boolean = data.prepared.hasBreadcrumb
-    ? titleWordHits > 0 || tokens.length > 1
-    : titleWordHits > 0;
+  const isContextEnough: boolean = data.prepared.hasBreadcrumb
+    ? ownNameWordCount > 0 || countDistinctWords(query) > 1
+    : ownNameWordCount > 0;
 
-  if (allWordsFound && contextIsEnough) {
+  if (allWordsFound && isContextEnough) {
     /*
-     * Words that all name one place ("user settings" names User Settings)
-     * say more than words scattered over the trail ("Real User Monitoring >
-     * Settings").
+     * Two words or more that all name one place ("user settings" names User
+     * Settings) say more than words scattered over the trail ("Real User
+     * Monitoring > Settings").
      */
-    const namesOnePlace: boolean = crumbsUsed.size === 1 && tokens.length > 1;
+    const namesOnePlace: boolean =
+      crumbsUsed.size === 1 && contextWordCount > 1;
 
     return {
       command: data.command,
@@ -656,18 +662,49 @@ const matchPreparedCommand: (data: {
         getRankScore(PaletteMatchRank.Context) +
         Math.min(
           CONTEXT_TITLE_WORD_BONUS_CAP,
-          titleWordHits * CONTEXT_TITLE_WORD_BONUS,
+          ownNameWordCount * CONTEXT_TITLE_WORD_BONUS,
         ) +
         (namesOnePlace ? CONTEXT_ONE_PLACE_BONUS : 0),
     };
   }
 
+  // Inside the title, or inside a keyword.
   if (
     title.compact.length > 0 &&
-    (title.spaced.includes(query.text.spaced) ||
-      title.compact.includes(query.text.compact))
+    (title.spaced.includes(query.spaced) ||
+      title.compact.includes(query.compact))
   ) {
-    return titleMatch(PaletteMatchRank.TitleSubstring);
+    return titleMatch(PaletteMatchRank.Substring);
+  }
+
+  if (
+    query.compact.length >= KEYWORD_SUBSTRING_MIN_LENGTH &&
+    data.prepared.keywords.some((keyword: PreparedText): boolean => {
+      return keyword.compact.includes(query.compact);
+    })
+  ) {
+    return {
+      command: data.command,
+      rank: PaletteMatchRank.Substring,
+      score:
+        getRankScore(PaletteMatchRank.Substring) - KEYWORD_SUBSTRING_PENALTY,
+    };
+  }
+
+  // Fallbacks from here on: shown only when nothing matches better.
+  const initials: string = title.words
+    .map((word: string): string => {
+      return word.charAt(0);
+    })
+    .join("");
+
+  if (
+    tokens.length === 1 &&
+    query.compact.length >= 2 &&
+    title.words.length >= 2 &&
+    initials.startsWith(query.compact)
+  ) {
+    return titleMatch(PaletteMatchRank.TitleInitials);
   }
 
   // Only the group the command is listed under holds every word.
@@ -680,7 +717,7 @@ const matchPreparedCommand: (data: {
   }
 
   // A typo: every word found, at least one of them only with a typo.
-  const searchableWords: Array<string> = ownNames.flatMap(
+  const ownWords: Array<string> = ownNames.flatMap(
     (name: PreparedText): Array<string> => {
       return name.words;
     },
@@ -690,13 +727,17 @@ const matchPreparedCommand: (data: {
 
   const everyWordWithTypos: boolean = tokens.every(
     (token: string, index: number): boolean => {
-      const stem: string = query.stems[index] || token;
+      const variants: Array<string> = query.variants[index] || [];
 
-      if (ownNamesHaveWord(token, stem)) {
+      if (
+        ownNames.some((name: PreparedText): boolean => {
+          return textHasWord(name, token, variants);
+        })
+      ) {
         return true;
       }
 
-      if (hasTypoOf(token, searchableWords)) {
+      if (hasTypoOf(token, ownWords)) {
         typoCount++;
         return true;
       }
@@ -710,8 +751,8 @@ const matchPreparedCommand: (data: {
   }
 
   if (
-    query.text.compact.length >= SUBSEQUENCE_MIN_LENGTH &&
-    isWordStartSubsequence(query.text.compact, title)
+    query.compact.length >= SUBSEQUENCE_MIN_LENGTH &&
+    isWordStartSubsequence(query.compact, title)
   ) {
     return titleMatch(PaletteMatchRank.Fuzzy);
   }
@@ -719,19 +760,12 @@ const matchPreparedCommand: (data: {
   return null;
 };
 
-const prepareQuery: (query: string) => PreparedQuery = (
-  query: string,
-): PreparedQuery => {
-  const text: PreparedText = prepareText(query);
-
-  return { text, stems: text.stems };
-};
-
 /**
  * How one command matches the query, or null when it does not match at all.
  * `sharedBy` is how many commands share its title (see
  * getSharedTitlePenalty); filterPaletteCommands works it out over the whole
- * catalog.
+ * catalog. An empty query matches everything; a query of only punctuation
+ * matches nothing.
  */
 export const matchPaletteCommand: (
   command: PaletteCommand,
@@ -742,10 +776,14 @@ export const matchPaletteCommand: (
   query: string,
   sharedBy?: number,
 ): PaletteCommandMatch | null => {
-  const preparedQuery: PreparedQuery = prepareQuery(query);
-
-  if (preparedQuery.text.words.length === 0) {
+  if (query.trim().length === 0) {
     return { command, rank: PaletteMatchRank.TitleExact, score: 0 };
+  }
+
+  const preparedQuery: PreparedQuery = prepareText(query);
+
+  if (preparedQuery.words.length === 0) {
+    return null;
   }
 
   return matchPreparedCommand({
@@ -769,16 +807,22 @@ export const rankPaletteCommand: (
   return match ? match.rank : null;
 };
 
+interface IndexedMatch {
+  match: PaletteCommandMatch;
+  index: number;
+}
+
 /**
  * Filter commands against free text and return them best match first.
  * Equal scores go by searchPriority, then keep the caller's order, so two
  * pages whose titles both match the same way stay in catalog order. An empty
- * or whitespace query matches everything in the original order.
+ * or whitespace query matches everything in the original order; a query of
+ * only punctuation ("#", "?") matches nothing.
  *
- * The group a command is listed under, typos and letters-in-order are
- * fallbacks: they are offered only when nothing matches better, so "pager"
- * lists On-Call and not Status Pages, and "settings" does not list Users
- * for being in the Settings group.
+ * Initials, the group a command is listed under, typos and letters-in-order
+ * are fallbacks: they are offered only when nothing matches better, so
+ * "pager" lists On-Call and not Status Pages, and "settings" does not list
+ * Users for being in the Settings group.
  */
 export const filterPaletteCommands: (
   commands: Array<PaletteCommand>,
@@ -787,12 +831,16 @@ export const filterPaletteCommands: (
   commands: Array<PaletteCommand>,
   query: string,
 ): Array<PaletteCommandMatch> => {
-  const preparedQuery: PreparedQuery = prepareQuery(query);
-
-  if (preparedQuery.text.words.length === 0) {
+  if (query.trim().length === 0) {
     return commands.map((command: PaletteCommand) => {
       return { command, rank: PaletteMatchRank.TitleExact, score: 0 };
     });
+  }
+
+  const preparedQuery: PreparedQuery = prepareText(query);
+
+  if (preparedQuery.words.length === 0) {
+    return [];
   }
 
   const prepared: Array<PreparedCommand> = commands.map(
@@ -809,12 +857,12 @@ export const filterPaletteCommands: (
 
   prepared.forEach((command: PreparedCommand): void => {
     titleCounts.set(
-      command.title.stemmedCompact,
-      (titleCounts.get(command.title.stemmedCompact) || 0) + 1,
+      command.title.compact,
+      (titleCounts.get(command.title.compact) || 0) + 1,
     );
   });
 
-  const matches: Array<{ match: PaletteCommandMatch; index: number }> = [];
+  const matches: Array<IndexedMatch> = [];
 
   commands.forEach((command: PaletteCommand, index: number): void => {
     const preparedCommand: PreparedCommand = prepared[index]!;
@@ -823,7 +871,7 @@ export const filterPaletteCommands: (
       command,
       prepared: preparedCommand,
       query: preparedQuery,
-      sharedBy: titleCounts.get(preparedCommand.title.stemmedCompact) || 1,
+      sharedBy: titleCounts.get(preparedCommand.title.compact) || 1,
     });
 
     if (match) {
@@ -832,45 +880,96 @@ export const filterPaletteCommands: (
   });
 
   const hasBetterMatches: boolean = matches.some(
-    (entry: { match: PaletteCommandMatch; index: number }): boolean => {
+    (entry: IndexedMatch): boolean => {
       return !FALLBACK_RANKS.has(entry.match.rank);
     },
   );
 
   return matches
-    .filter((entry: { match: PaletteCommandMatch; index: number }): boolean => {
+    .filter((entry: IndexedMatch): boolean => {
       return !hasBetterMatches || !FALLBACK_RANKS.has(entry.match.rank);
     })
-    .sort(
-      (
-        a: { match: PaletteCommandMatch; index: number },
-        b: { match: PaletteCommandMatch; index: number },
-      ): number => {
-        if (b.match.score !== a.match.score) {
-          return b.match.score - a.match.score;
-        }
+    .sort((a: IndexedMatch, b: IndexedMatch): number => {
+      if (b.match.score !== a.match.score) {
+        return b.match.score - a.match.score;
+      }
 
-        const priorityA: number = a.match.command.searchPriority || 0;
-        const priorityB: number = b.match.command.searchPriority || 0;
+      const priorityA: number = a.match.command.searchPriority || 0;
+      const priorityB: number = b.match.command.searchPriority || 0;
 
-        if (priorityB !== priorityA) {
-          return priorityB - priorityA;
-        }
+      if (priorityB !== priorityA) {
+        return priorityB - priorityA;
+      }
 
-        return a.index - b.index;
-      },
-    )
-    .map((entry: { match: PaletteCommandMatch; index: number }) => {
+      return a.index - b.index;
+    })
+    .map((entry: IndexedMatch): PaletteCommandMatch => {
       return entry.match;
     });
 };
 
-const LETTER_OR_DIGIT: RegExp = /[\p{L}\p{N}]/u;
+/*
+ * A text's letters and digits as the search reads them (lowercase, accents
+ * dropped), run together, with where each one came from in the text: so a
+ * match found in the search's terms can be marked in the text as shown.
+ */
+interface NormalizedTextMap {
+  compact: string;
+  // For each character of `compact`, its character's index in the text.
+  sourceIndex: Array<number>;
+  // For each character of `compact`, whether a word of the text starts there.
+  startsWord: Array<boolean>;
+}
+
+const mapNormalizedText: (text: string) => NormalizedTextMap = (
+  text: string,
+): NormalizedTextMap => {
+  const characters: Array<string> = [];
+  const sourceIndex: Array<number> = [];
+  const startsWord: Array<boolean> = [];
+  let isInWord: boolean = false;
+
+  for (let index: number = 0; index < text.length; index++) {
+    const character: string = text.charAt(index);
+
+    if (!WORD_CHARACTER.test(character)) {
+      isInWord = false;
+      continue;
+    }
+
+    const normalized: string = character
+      .normalize("NFKD")
+      .replace(LETTER_ACCENTS, "")
+      .normalize("NFC")
+      .toLowerCase();
+
+    let isFirst: boolean = true;
+
+    for (const part of normalized) {
+      if (!WORD_CHARACTER.test(part)) {
+        continue;
+      }
+
+      characters.push(part);
+      sourceIndex.push(index);
+      startsWord.push(!isInWord && isFirst);
+      isFirst = false;
+    }
+
+    // A lone accent written as a mark of its own stays inside its word.
+    isInWord = true;
+  }
+
+  return { compact: characters.join(""), sourceIndex, startsWord };
+};
 
 /**
- * Split text into segments for <mark> highlighting: each query word is
+ * Split text into segments for <mark> highlighting, reading it the way the
+ * search does (case, accents and punctuation aside): each query word is
  * marked where it starts a word of the text ("keys api" marks "API" and
- * "Keys"), or, when it starts none, where it first appears. Typo and
+ * "Keys"), the whole query where it runs across words ("oncall" marks
+ * "On-Call"), and, when it starts no word, where it first appears ("eys").
+ * A space or hyphen between two marked words is marked with them. Typo and
  * letters-in-order matches produce no highlight (per-character marks read
  * as noise).
  */
@@ -881,26 +980,13 @@ export const getHighlightSegments: (
   text: string,
   query: string,
 ): Array<PaletteHighlightSegment> => {
-  const tokens: Array<string> = query
-    .toLowerCase()
-    .split(/\s+/)
-    .map((token: string): string => {
-      return token.trim();
-    })
-    .filter((token: string): boolean => {
-      return token.length > 0;
-    });
+  const tokens: Array<string> = getPaletteQueryWords(query);
 
-  const haystack: string = text.toLowerCase();
-
-  /*
-   * Lowercasing can change a string's length (a dotted capital I), which
-   * would put the marks in the wrong place; such text is left unmarked.
-   */
-  if (tokens.length === 0 || haystack.length !== text.length) {
+  if (tokens.length === 0 || text.length === 0) {
     return [{ text, isMatch: false }];
   }
 
+  const map: NormalizedTextMap = mapNormalizedText(text);
   const marked: Array<boolean> = new Array<boolean>(text.length).fill(false);
 
   const markRange: (start: number, length: number) => void = (
@@ -908,40 +994,39 @@ export const getHighlightSegments: (
     length: number,
   ): void => {
     for (let index: number = start; index < start + length; index++) {
-      marked[index] = true;
+      const source: number | undefined = map.sourceIndex[index];
+
+      if (source !== undefined) {
+        marked[source] = true;
+      }
     }
   };
 
-  const isWordStart: (index: number) => boolean = (index: number): boolean => {
-    return index === 0 || !LETTER_OR_DIGIT.test(haystack.charAt(index - 1));
-  };
-
-  // The whole query first, so "on and on" marks both "on"s, then each word.
+  // The whole query first, then each of its words.
+  const wholeQuery: string = tokens.join("");
   const needles: Array<string> = Array.from(
-    new Set<string>([query.trim().toLowerCase(), ...tokens]),
-  ).filter((needle: string): boolean => {
-    return needle.length > 0;
-  });
+    new Set<string>([wholeQuery, ...tokens]),
+  );
 
   for (const needle of needles) {
     let foundAtWordStart: boolean = false;
     let firstAnywhere: number = -1;
-    let at: number = haystack.indexOf(needle);
+    let at: number = map.compact.indexOf(needle);
 
     while (at !== -1) {
       if (firstAnywhere === -1) {
         firstAnywhere = at;
       }
 
-      if (isWordStart(at)) {
+      if (map.startsWord[at]) {
         foundAtWordStart = true;
         markRange(at, needle.length);
       }
 
-      at = haystack.indexOf(needle, at + 1);
+      at = map.compact.indexOf(needle, at + 1);
     }
 
-    if (!foundAtWordStart && firstAnywhere !== -1 && needle === needles[0]) {
+    if (!foundAtWordStart && firstAnywhere !== -1 && needle === wholeQuery) {
       // Only the whole query may be marked mid-word ("eys" in "Keys").
       markRange(firstAnywhere, needle.length);
     }
@@ -956,7 +1041,7 @@ export const getHighlightSegments: (
       !marked[index] &&
       marked[index - 1] &&
       marked[index + 1] &&
-      !LETTER_OR_DIGIT.test(text.charAt(index))
+      !WORD_CHARACTER.test(text.charAt(index))
     ) {
       marked[index] = true;
     }

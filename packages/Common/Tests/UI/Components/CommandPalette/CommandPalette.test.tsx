@@ -1,5 +1,6 @@
 import CommandPalette, {
   ComponentProps,
+  PALETTE_SEARCH_RESULT_LIMIT,
 } from "../../../../UI/Components/CommandPalette/CommandPalette";
 import { PaletteCommand } from "../../../../UI/Components/CommandPalette/Types";
 import { resetPageScrollLockForTesting } from "../../../../UI/Utils/PageScrollLock";
@@ -480,6 +481,60 @@ describe("CommandPalette", () => {
         "No results found.",
       );
       expect(screen.queryAllByRole("option")).toHaveLength(0);
+    });
+
+    test("a query of only punctuation is a search that finds nothing", () => {
+      renderPalette();
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: "?" },
+      });
+
+      expect(screen.getByTestId("command-palette-empty")).toHaveTextContent(
+        "No results found.",
+      );
+      expect(screen.queryAllByRole("option")).toHaveLength(0);
+    });
+
+    test("lists the best fifty matches at most, the best first", () => {
+      const commands: Array<PaletteCommand> = [];
+
+      for (
+        let index: number = 1;
+        index <= PALETTE_SEARCH_RESULT_LIMIT + 10;
+        index++
+      ) {
+        commands.push(
+          makeCommand({
+            id: `settings-${index}`,
+            title: `Settings ${index}`,
+            category: "Pages",
+          }),
+        );
+      }
+
+      // The best match is listed last: it still comes first.
+      commands.push(
+        makeCommand({ id: "settings", title: "Settings", category: "Pages" }),
+      );
+
+      renderPalette({ commands });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: "settings" },
+      });
+
+      const options: Array<HTMLElement> = screen.getAllByRole("option");
+
+      expect(PALETTE_SEARCH_RESULT_LIMIT).toBe(50);
+      expect(options).toHaveLength(50);
+      expect(options[0]).toHaveAttribute(
+        "data-testid",
+        "command-palette-option-settings",
+      );
+      expect(
+        screen.getByTestId("command-palette-result-count"),
+      ).toHaveTextContent("50 results");
     });
   });
 

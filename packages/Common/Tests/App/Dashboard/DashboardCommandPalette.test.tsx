@@ -50,6 +50,7 @@ const getAllPermissionsMock: MockFunction = getJestMockFunction();
 const isMasterAdminMock: MockFunction = getJestMockFunction();
 let navigationTranslations: Record<string, string> = {};
 let isBillingEnabled: boolean = false;
+let pageSearchAreasBuilds: number = 0;
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -153,6 +154,30 @@ jest.mock("../../../UI/Config", () => {
   return config;
 });
 
+/*
+ * Counts how often the page rows are built: a re-render of an open Search
+ * reuses them, and a change in what the user may do rebuilds them.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex",
+    ) as Record<string, unknown>;
+    const getPageSearchAreas: () => unknown = actual[
+      "getPageSearchAreas"
+    ] as () => unknown;
+
+    return {
+      ...actual,
+      getPageSearchAreas: (): unknown => {
+        pageSearchAreasBuilds++;
+        return getPageSearchAreas();
+      },
+    };
+  },
+);
+
 function palette(): HTMLElement | null {
   return screen.queryByTestId("command-palette");
 }
@@ -201,6 +226,7 @@ beforeEach(() => {
   isMasterAdminMock.mockReturnValue(false);
   getListMock.mockResolvedValue({ data: [], count: 0 } as never);
   isBillingEnabled = false;
+  pageSearchAreasBuilds = 0;
 });
 
 afterEach(() => {
@@ -725,6 +751,43 @@ describe("DashboardCommandPalette finds every page the menus link to", () => {
       target: { value: "schlüssel" },
     });
     expect(optionTestIds()).toContain(apiKeys);
+  });
+
+  test("a re-render while Search is open keeps the page rows; new rights rebuild them", () => {
+    getAllPermissionsMock.mockReturnValue([Permission.ProjectMember]);
+    const view: ReturnType<typeof render> = render(<DashboardCommandPalette />);
+    // Nothing is built while Search is closed.
+    expect(pageSearchAreasBuilds).toBe(0);
+
+    search("delete project");
+
+    const action: string = "command-palette-option-page-action-delete-project";
+    expect(pageSearchAreasBuilds).toBe(1);
+    expect(optionTestIds()).not.toContain(action);
+
+    view.rerender(<DashboardCommandPalette />);
+    expect(pageSearchAreasBuilds).toBe(1);
+
+    // The rights arrive while Search is open: Delete Project is offered.
+    getAllPermissionsMock.mockReturnValue([Permission.ProjectOwner]);
+    view.rerender(<DashboardCommandPalette />);
+    expect(pageSearchAreasBuilds).toBe(2);
+    expect(optionTestIds()[0]).toBe(action);
+  });
+
+  test("after a project switch, a page opens in the project now open", () => {
+    const view: ReturnType<typeof render> = render(<DashboardCommandPalette />);
+    search("api keys");
+
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-b"));
+    view.rerender(<DashboardCommandPalette />);
+    fireEvent.click(
+      screen.getByTestId(pageOptionTestId(PageMap.SETTINGS_APIKEYS)),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/project-b/settings/api-keys"),
+    );
   });
 });
 

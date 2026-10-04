@@ -352,8 +352,18 @@ describe("search forgives the way people type", () => {
     );
   });
 
-  test("initials find a page", () => {
+  test("initials find a page when nothing matches better", () => {
     expect(rows("ak")[0]).toBe("API Keys — Project Settings › Advanced");
+    expect(rows("ocp")[0]).toBe("On-Call Policies — On-Call Duty › Policies");
+
+    // "ai" names the AI pages, so Active Incidents is not offered for its initials.
+    const ai: Array<string> = rows("ai");
+    expect(ai.length).toBeGreaterThan(0);
+    expect(
+      ai.filter((row: string): boolean => {
+        return row.startsWith("Active ");
+      }),
+    ).toEqual([]);
   });
 
   test("nothing is listed for words nothing holds", () => {

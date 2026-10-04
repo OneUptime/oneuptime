@@ -15,6 +15,7 @@ import {
   getEntitySearchSpecs,
   getVisibleActionIds,
   isRoutePathNavigable,
+  PageSearchAvailability,
   PageSearchCommandDescriptor,
   PALETTE_ENTITY_SEARCH_LIMIT,
   PALETTE_RECENTS_STORAGE_KEY,
@@ -64,6 +65,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -258,8 +260,13 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
   let commands: Array<PaletteCommand> = [];
   let searchProviders: Array<PaletteSearchProvider> | undefined = undefined;
 
-  const hasProjectSelected: boolean =
-    ProjectUtil.getCurrentProjectId() !== null;
+  const currentProjectId: string =
+    ProjectUtil.getCurrentProjectId()?.toString() || "";
+  const hasProjectSelected: boolean = currentProjectId.length > 0;
+
+  // What the page rows are built from, while the palette is open.
+  let pageCatalogEntries: Array<PaletteNavigationCatalogEntry> = [];
+  let pageAvailability: PageSearchAvailability | null = null;
 
   if (isOpen) {
     const essentialsCategory: string = t("navbar.categories.essentials");
@@ -517,64 +524,16 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       },
     );
 
-    // --- every page the menus link to, and the actions done on them -------
-    const pagesCategory: string = t("commandPalette.categories.pages", "Pages");
+    // --- every page the menus link to: built below, and kept (useMemo) ----
+    pageCatalogEntries = catalogEntries;
+    pageAvailability = {
+      isBillingEnabled: BILLING_ENABLED,
+      isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
+      canDeleteProject:
+        hasProjectSelected && canDeleteProject({ permissions, isMasterAdmin }),
+    };
 
-    // The products menu's own names, so a breadcrumb names a product the same way.
-    const productTitleByRoutePath: Map<string, string> = new Map();
-    catalogEntries.forEach((entry: PaletteNavigationCatalogEntry): void => {
-      if (!productTitleByRoutePath.has(entry.routePath)) {
-        productTitleByRoutePath.set(entry.routePath, entry.title);
-      }
-    });
-
-    const pageCommands: Array<PaletteCommand> =
-      buildPageSearchCommandDescriptors({
-        areas: getPageSearchAreas(),
-        availability: {
-          isBillingEnabled: BILLING_ENABLED,
-          isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
-          canDeleteProject:
-            hasProjectSelected &&
-            canDeleteProject({ permissions, isMasterAdmin }),
-        },
-        getRouteTemplate: (pageKey: string): string | undefined => {
-          return RouteMap[pageKey]?.toString();
-        },
-        getRoutePath: (pageKey: string): string | undefined => {
-          const route: Route | undefined = RouteMap[pageKey];
-          return route
-            ? RouteUtil.populateRouteParams(route).toString()
-            : undefined;
-        },
-        getProductTitle: (routePath: string): string | undefined => {
-          return productTitleByRoutePath.get(routePath);
-        },
-        translate: (text: string): string => {
-          return translator.translateText(text) || text;
-        },
-        catalog: catalogEntries,
-      }).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
-        return {
-          id: descriptor.id,
-          title: descriptor.title,
-          titleAliases: descriptor.titleAliases,
-          keywords: descriptor.keywords,
-          breadcrumb: descriptor.breadcrumb,
-          breadcrumbKeywords: descriptor.breadcrumbKeywords,
-          icon: descriptor.icon,
-          iconColor: descriptor.iconColor,
-          category: descriptor.isAction ? actionsCategory : pagesCategory,
-          isSearchOnly: true,
-          searchPriority: PALETTE_SEARCH_PRIORITY.page,
-          onSelect: () => {
-            closePalette();
-            Navigation.navigate(new Route(descriptor.routePath));
-          },
-        };
-      });
-
-    commands = [...actionCommands, ...navigationCommands, ...pageCommands];
+    commands = [...actionCommands, ...navigationCommands];
 
     // --- live entity search (project-scoped, so project required) ---------
     if (hasProjectSelected) {
@@ -625,6 +584,89 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         }),
       ];
     }
+  }
+
+  /*
+   * Every page the menus link to, and the actions done on them: about four
+   * hundred rows. They are built when Search opens, and again only when the
+   * project, the language, the products menu or what the user may do
+   * changes. A re-render while Search is open keeps the same rows, so the
+   * search keeps the work it did on them (PaletteFilter caches it per row).
+   */
+  const pageCommandsKey: string = pageAvailability
+    ? JSON.stringify([
+        currentProjectId,
+        translator.language,
+        pageAvailability,
+        pageCatalogEntries.map(
+          (entry: PaletteNavigationCatalogEntry): Array<string> => {
+            return [entry.routePath, entry.title];
+          },
+        ),
+      ])
+    : "";
+
+  const pageCommands: Array<PaletteCommand> = useMemo(() => {
+    if (!pageAvailability) {
+      return [];
+    }
+
+    const pagesCategory: string = t("commandPalette.categories.pages", "Pages");
+    const actionsCategory: string = t(
+      "commandPalette.categories.actions",
+      "Actions",
+    );
+
+    // The products menu's own names, so a breadcrumb names a product the same way.
+    const productTitleByRoutePath: Map<string, string> = new Map();
+    pageCatalogEntries.forEach((entry: PaletteNavigationCatalogEntry): void => {
+      if (!productTitleByRoutePath.has(entry.routePath)) {
+        productTitleByRoutePath.set(entry.routePath, entry.title);
+      }
+    });
+
+    return buildPageSearchCommandDescriptors({
+      areas: getPageSearchAreas(),
+      availability: pageAvailability,
+      getRouteTemplate: (pageKey: string): string | undefined => {
+        return RouteMap[pageKey]?.toString();
+      },
+      getRoutePath: (pageKey: string): string | undefined => {
+        const route: Route | undefined = RouteMap[pageKey];
+        return route
+          ? RouteUtil.populateRouteParams(route).toString()
+          : undefined;
+      },
+      getProductTitle: (routePath: string): string | undefined => {
+        return productTitleByRoutePath.get(routePath);
+      },
+      translate: (text: string): string => {
+        return translator.translateText(text) || text;
+      },
+      catalog: pageCatalogEntries,
+    }).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
+      return {
+        id: descriptor.id,
+        title: descriptor.title,
+        titleAliases: descriptor.titleAliases,
+        keywords: descriptor.keywords,
+        breadcrumb: descriptor.breadcrumb,
+        breadcrumbKeywords: descriptor.breadcrumbKeywords,
+        icon: descriptor.icon,
+        iconColor: descriptor.iconColor,
+        category: descriptor.isAction ? actionsCategory : pagesCategory,
+        isSearchOnly: true,
+        searchPriority: PALETTE_SEARCH_PRIORITY.page,
+        onSelect: () => {
+          closePalette();
+          Navigation.navigate(new Route(descriptor.routePath));
+        },
+      };
+    });
+  }, [pageCommandsKey]);
+
+  if (pageCommands.length > 0) {
+    commands = [...commands, ...pageCommands];
   }
 
   return (
