@@ -425,6 +425,54 @@ describe("A stepped edit form", () => {
     expect(submitted()["name"]).toBe("Server room");
   });
 
+  /*
+   * Until the form has read the record it has no step on screen - and no
+   * last step - so the dialog's footer must not offer Save Changes then
+   * either: it opens on Next.
+   */
+  test("offers no Save Changes while the record is still loading", async () => {
+    getItemMock.mockReset();
+    // The card's own read answers; the dialog's is still on its way.
+    getItemMock.mockResolvedValueOnce(loadedProbe());
+    getItemMock.mockReturnValue(
+      new Promise<Probe>((): void => {
+        // Never settles.
+      }),
+    );
+
+    const user: UserEvent = userEvent.setup({ delay: null });
+
+    await act(async (): Promise<void> => {
+      render(
+        <CardModelDetail<Probe>
+          name="Probe Details"
+          cardProps={{
+            title: "Probe Details",
+            description: "Here are more details for this probe.",
+          }}
+          isEditable={true}
+          formSteps={STEPS}
+          formFields={FIELDS}
+          modelDetailProps={{
+            modelType: Probe,
+            id: "probe-detail",
+            modelId: PROBE_ID,
+            fields: [{ field: { name: true }, title: "Name" }],
+          }}
+        />,
+      );
+    });
+
+    await user.click(
+      await screen.findByText("Edit Probe", {}, { timeout: WAIT_TIMEOUT }),
+    );
+    await act(async (): Promise<void> => {});
+
+    expect(dialog()).toBeInTheDocument();
+    expect(submitButtonIn(dialog())).not.toBeInTheDocument();
+    expect(primaryFooterButtonsIn(dialog())).toEqual([]);
+  });
+
   test("Next stays on the step on screen when a field on it fails", async () => {
     const user: UserEvent = await openEditDialog();
 
