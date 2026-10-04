@@ -216,95 +216,99 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                               {...draggableProvided.draggableProps}
                               className={`mb-4 border rounded-lg overflow-hidden border-l-4 bg-white ${getCriteriaHeaderColor(i)}`}
                             >
-                              {/* Collapsible Header */}
+                              {/*
+                               * Collapsible Header: the drag handle, and the
+                               * button that opens and closes the criteria,
+                               * side by side. The header used to be one
+                               * role="button" holding the handle, which a
+                               * screen reader reads as one control: the
+                               * handle was lost inside it. The button still
+                               * answers a press anywhere on the header (its
+                               * ::after covers the header); the handle sits
+                               * above that.
+                               */}
                               <div
-                                className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                                onClick={() => {
-                                  toggleCriteriaCollapsed(criteriaId);
-                                }}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e: React.KeyboardEvent) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    toggleCriteriaCollapsed(criteriaId);
-                                  }
-                                }}
-                                aria-expanded={!isCollapsed}
+                                data-testid="monitor-criteria-header"
+                                className="relative flex items-center px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                               >
-                                <div className="flex items-center flex-1 min-w-0">
-                                  <div
-                                    {...draggableProvided.dragHandleProps}
-                                    onClick={(e: React.MouseEvent) => {
-                                      e.stopPropagation();
-                                    }}
-                                    onKeyDown={(e: React.KeyboardEvent) => {
-                                      e.stopPropagation();
-                                    }}
-                                    className="mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
-                                    aria-label={translator.translateText(
-                                      "Drag to reorder criteria",
-                                    )}
-                                    title={translator.translateText(
-                                      "Drag to reorder",
-                                    )}
-                                  >
-                                    <Icon
-                                      icon={IconProp.GripVertical}
-                                      className="w-4 h-4"
-                                    />
-                                  </div>
+                                <div
+                                  {...draggableProvided.dragHandleProps}
+                                  className="relative z-10 mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
+                                  aria-label={translator.translateText(
+                                    "Drag to reorder criteria",
+                                  )}
+                                  title={translator.translateText(
+                                    "Drag to reorder",
+                                  )}
+                                >
                                   <Icon
-                                    icon={
-                                      isCollapsed
-                                        ? IconProp.ChevronRight
-                                        : IconProp.ChevronDown
-                                    }
-                                    className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
+                                    icon={IconProp.GripVertical}
+                                    className="w-4 h-4"
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center flex-wrap gap-2">
-                                      <span
-                                        className={`text-sm font-semibold ${
-                                          isCriteriaDisabled
-                                            ? "text-gray-500"
-                                            : "text-gray-900"
-                                        }`}
-                                      >
-                                        {criteriaName}
-                                      </span>
-                                      {isCriteriaDisabled && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-                                          {translator.translateText("Disabled")}
+                                </div>
+                                <button
+                                  type="button"
+                                  aria-expanded={!isCollapsed}
+                                  onClick={() => {
+                                    toggleCriteriaCollapsed(criteriaId);
+                                  }}
+                                  className="flex min-w-0 flex-1 items-center justify-between text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
+                                >
+                                  <div className="flex items-center flex-1 min-w-0">
+                                    <Icon
+                                      icon={
+                                        isCollapsed
+                                          ? IconProp.ChevronRight
+                                          : IconProp.ChevronDown
+                                      }
+                                      className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center flex-wrap gap-2">
+                                        <span
+                                          className={`text-sm font-semibold ${
+                                            isCriteriaDisabled
+                                              ? "text-gray-500"
+                                              : "text-gray-900"
+                                          }`}
+                                        >
+                                          {criteriaName}
                                         </span>
-                                      )}
-                                      {isCollapsed && (
-                                        <span className="text-xs text-gray-500 truncate">
-                                          {getCriteriaSummary(i)}
-                                        </span>
+                                        {isCriteriaDisabled && (
+                                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
+                                            {translator.translateText(
+                                              "Disabled",
+                                            )}
+                                          </span>
+                                        )}
+                                        {isCollapsed && (
+                                          <span className="text-xs text-gray-500 truncate">
+                                            {getCriteriaSummary(i)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {!isCollapsed && i.data?.description && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {i.data.description}
+                                        </p>
                                       )}
                                     </div>
-                                    {!isCollapsed && i.data?.description && (
-                                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                        {i.data.description}
-                                      </p>
-                                    )}
                                   </div>
-                                </div>
-                                <div className="flex items-center ml-2">
-                                  <span className="text-xs text-gray-400 mr-2">
-                                    {translator.translateTemplate(
-                                      "{{position}} of {{total}}",
-                                      {
-                                        position: index + 1,
-                                        total:
-                                          monitorCriteria.data
-                                            ?.monitorCriteriaInstanceArray
-                                            .length || 0,
-                                      },
-                                    )}
-                                  </span>
-                                </div>
+                                  <div className="flex items-center ml-2">
+                                    <span className="text-xs text-gray-400 mr-2">
+                                      {translator.translateTemplate(
+                                        "{{position}} of {{total}}",
+                                        {
+                                          position: index + 1,
+                                          total:
+                                            monitorCriteria.data
+                                              ?.monitorCriteriaInstanceArray
+                                              .length || 0,
+                                        },
+                                      )}
+                                    </span>
+                                  </div>
+                                </button>
                               </div>
 
                               {/* Collapsible Content */}

@@ -1721,7 +1721,7 @@ describe("event notes: templates", () => {
     fireEvent.change(filter, { target: { value: "template 7" } });
 
     const menu: HTMLElement = screen.getByTestId("note-template-menu");
-    expect(within(menu).getAllByRole("option")).toHaveLength(1);
+    expect(within(menu).getAllByRole("listitem")).toHaveLength(1);
     expect(within(menu).getAllByText("Template 7")).not.toHaveLength(0);
 
     fireEvent.change(filter, { target: { value: "zzz" } });

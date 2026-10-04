@@ -62,7 +62,10 @@ const FilterChipButton: FunctionComponent<ComponentProps> = (
       >
         {props.children}
         {canClear && (
-          <span aria-hidden="true" className={FILTER_CHIP_CLEAR_PLACE_CLASSES} />
+          <span
+            aria-hidden="true"
+            className={FILTER_CHIP_CLEAR_PLACE_CLASSES}
+          />
         )}
       </button>
       {canClear && (
