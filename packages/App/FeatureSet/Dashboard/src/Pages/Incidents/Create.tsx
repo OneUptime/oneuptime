@@ -23,6 +23,11 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -147,6 +152,13 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  CreatedRecordKind,
+  pickRecordToCreateFrom,
+} from "../../Components/CreateFromRecord/CreateFromRecord";
+import useRecordToCreateFrom, {
+  RecordToCreateFromState,
+} from "../../Components/CreateFromRecord/useRecordToCreateFrom";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -339,7 +351,10 @@ const advancedSection: FormFieldCollapsibleSection<Incident> =
   getAdvancedFormSection<Incident>();
 
 /*
- * Every resource type the "Resources Affected" step offers. The editor and
+ * Every resource type the "Resources Affected" step offers: what the
+ * incident's own Edit offers, so an incident declared from a Proxmox
+ * cluster's, a vCenter's, a Ceph or Docker Swarm cluster's or an IoT fleet's
+ * Incidents tab keeps it picked (Components/CreateFromRecord). The editor and
  * the review step's read-only picker both take this list, so the summary
  * names every type the editor lets the user pick.
  */
@@ -349,6 +364,11 @@ const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "KubernetesCluster",
   "DockerHost",
   "PodmanHost",
+  "ProxmoxCluster",
+  "VMwareVCenter",
+  "CephCluster",
+  "DockerSwarmCluster",
+  "IoTFleet",
   "DatabaseServer",
   "Service",
 ];
@@ -522,6 +542,16 @@ const IncidentCreate: FunctionComponent<
   const [formOpenedAt] = useState<Date>(() => {
     return OneUptimeDate.getCurrentDate();
   });
+
+  /*
+   * The monitor, host or other resource whose Incidents tab the page was
+   * opened from (?monitorId=, ?hostId=, ...): picked on Resources Affected,
+   * ahead of a template's resources, and the breadcrumbs go back through
+   * its tab. Opened from the project's list, there is none.
+   */
+  const recordToCreateFrom: RecordToCreateFromState = useRecordToCreateFrom(
+    CreatedRecordKind.Incident,
+  );
 
   useEffect(() => {
     loadCustomFieldDefinitions();
@@ -1101,13 +1131,22 @@ const IncidentCreate: FunctionComponent<
    */
   const formInitialValues: JSONObject = useMemo(() => {
     return {
-      ...initialValuesForIncident,
+      ...pickRecordToCreateFrom({
+        values: initialValuesForIncident,
+        record: recordToCreateFrom.record,
+        created: CreatedRecordKind.Incident,
+      }),
       ...getCustomFieldFormInitialValues({
         definitions: detailsStepDefinitions,
         customFields: startingCustomFields,
       }),
     };
-  }, [initialValuesForIncident, detailsStepDefinitions, startingCustomFields]);
+  }, [
+    initialValuesForIncident,
+    recordToCreateFrom.record,
+    detailsStepDefinitions,
+    startingCustomFields,
+  ]);
 
   /*
    * The Details step: each "Show on Create" field, in its order, required
@@ -1145,7 +1184,10 @@ const IncidentCreate: FunctionComponent<
         ]
       : [];
 
-  const isPageLoading: boolean = isLoading || isLoadingCustomFieldDefinitions;
+  const isPageLoading: boolean =
+    isLoading ||
+    isLoadingCustomFieldDefinitions ||
+    recordToCreateFrom.isLoading;
 
   return (
     <Fragment>
@@ -1608,6 +1650,17 @@ const IncidentCreate: FunctionComponent<
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
                         podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                        proxmoxClusters={
+                          values.proxmoxClusters as Array<ProxmoxCluster>
+                        }
+                        vmwareVCenters={
+                          values.vmwareVCenters as Array<VMwareVCenter>
+                        }
+                        cephClusters={values.cephClusters as Array<CephCluster>}
+                        dockerSwarmClusters={
+                          values.dockerSwarmClusters as Array<DockerSwarmCluster>
+                        }
+                        iotFleets={values.iotFleets as Array<IoTFleet>}
                         databaseServers={
                           values.databaseServers as Array<DatabaseServer>
                         }
@@ -1638,6 +1691,11 @@ const IncidentCreate: FunctionComponent<
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
+                          proxmoxClusters: payload.proxmoxClusters,
+                          vmwareVCenters: payload.vmwareVCenters,
+                          cephClusters: payload.cephClusters,
+                          dockerSwarmClusters: payload.dockerSwarmClusters,
+                          iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
                           services: payload.services,
                         } as FormValues<Incident>);
@@ -1659,6 +1717,11 @@ const IncidentCreate: FunctionComponent<
                       item.kubernetesClusters,
                       item.dockerHosts,
                       item.podmanHosts,
+                      item.proxmoxClusters,
+                      item.vmwareVCenters,
+                      item.cephClusters,
+                      item.dockerSwarmClusters,
+                      item.iotFleets,
                       item.databaseServers,
                       item.services,
                     ].some((resources: unknown): boolean => {
@@ -1683,6 +1746,17 @@ const IncidentCreate: FunctionComponent<
                         }
                         dockerHosts={item.dockerHosts as Array<DockerHost>}
                         podmanHosts={item.podmanHosts as Array<PodmanHost>}
+                        proxmoxClusters={
+                          item.proxmoxClusters as Array<ProxmoxCluster>
+                        }
+                        vmwareVCenters={
+                          item.vmwareVCenters as Array<VMwareVCenter>
+                        }
+                        cephClusters={item.cephClusters as Array<CephCluster>}
+                        dockerSwarmClusters={
+                          item.dockerSwarmClusters as Array<DockerSwarmCluster>
+                        }
+                        iotFleets={item.iotFleets as Array<IoTFleet>}
                         databaseServers={
                           item.databaseServers as Array<DatabaseServer>
                         }
@@ -1821,7 +1895,9 @@ const IncidentCreate: FunctionComponent<
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * hosts/kubernetesClusters/dockerHosts/podmanHosts/
-                 * databaseServers/services on load and submit.
+                 * proxmoxClusters/vmwareVCenters/cephClusters/
+                 * dockerSwarmClusters/iotFleets/databaseServers/services on
+                 * load and submit.
                  */
                 {
                   field: { hosts: true },
@@ -1855,6 +1931,56 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { podmanHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { proxmoxClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { vmwareVCenters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { cephClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { dockerSwarmClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { iotFleets: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

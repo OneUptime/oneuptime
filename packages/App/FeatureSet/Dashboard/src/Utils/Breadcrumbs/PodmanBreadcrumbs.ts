@@ -59,6 +59,10 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Podman", "View Host", "Scheduled Maintenance"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_SETTINGS, [
       "Project",
       "Podman",

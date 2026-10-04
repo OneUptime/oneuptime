@@ -1,4 +1,8 @@
 import { getIncidentsBreadcrumbs } from "../../Utils/Breadcrumbs/IncidentBreadcrumbs";
+import {
+  CreatePageBreadcrumbsSlot,
+  useCreatePageBreadcrumbsSlot,
+} from "../../Components/CreateFromRecord/CreatePageBreadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import LayoutPageComponentProps from "../LayoutPageComponentProps";
 import SideMenu from "./SideMenu";
@@ -11,6 +15,12 @@ const IncidentsLayout: FunctionComponent<LayoutPageComponentProps> = (
   props: LayoutPageComponentProps,
 ): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+  /*
+   * The create page, opened from a record's tab, draws its trail back
+   * through that tab here (Components/CreateFromRecord).
+   */
+  const createPage: CreatePageBreadcrumbsSlot = useCreatePageBreadcrumbsSlot();
+
   return (
     <Page
       title={"Incidents"}
@@ -19,9 +29,11 @@ const IncidentsLayout: FunctionComponent<LayoutPageComponentProps> = (
           <SideMenu project={props.currentProject || undefined} />
         )
       }
-      breadcrumbLinks={getIncidentsBreadcrumbs(path)}
+      breadcrumbLinks={
+        createPage.breadcrumbLinks || getIncidentsBreadcrumbs(path)
+      }
     >
-      <Outlet />
+      <Outlet context={createPage.outletContext} />
     </Page>
   );
 };

@@ -1,4 +1,5 @@
 import AlertsTable from "../../../Components/Alert/AlertsTable";
+import { CreateFromRecordKind } from "../../../Components/CreateFromRecord/CreateFromRecord";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageComponentProps from "../../PageComponentProps";
@@ -28,9 +29,7 @@ const MonitorAlerts: FunctionComponent<
       <DependencySuppressionWarning monitorId={modelId} />
       <AlertsTable
         query={query}
-        createInitialValues={{
-          monitor: modelId,
-        }}
+        createFrom={{ kind: CreateFromRecordKind.Monitor, id: modelId }}
       />
     </Fragment>
   );

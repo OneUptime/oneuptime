@@ -1,4 +1,8 @@
 import { getScheduleMaintenanceBreadcrumbs } from "../../Utils/Breadcrumbs";
+import {
+  CreatePageBreadcrumbsSlot,
+  useCreatePageBreadcrumbsSlot,
+} from "../../Components/CreateFromRecord/CreatePageBreadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import LayoutPageComponentProps from "../LayoutPageComponentProps";
 import SideMenu from "./SideMenu";
@@ -11,6 +15,12 @@ const ScheduledMaintenancesLayout: FunctionComponent<
   LayoutPageComponentProps
 > = (props: LayoutPageComponentProps): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+  /*
+   * The create page, opened from a record's tab, draws its trail back
+   * through that tab here (Components/CreateFromRecord).
+   */
+  const createPage: CreatePageBreadcrumbsSlot = useCreatePageBreadcrumbsSlot();
+
   return (
     <Page
       title={"Scheduled Maintenance Events"}
@@ -19,9 +29,11 @@ const ScheduledMaintenancesLayout: FunctionComponent<
           <SideMenu project={props.currentProject || undefined} />
         )
       }
-      breadcrumbLinks={getScheduleMaintenanceBreadcrumbs(path)}
+      breadcrumbLinks={
+        createPage.breadcrumbLinks || getScheduleMaintenanceBreadcrumbs(path)
+      }
     >
-      <Outlet />
+      <Outlet context={createPage.outletContext} />
     </Page>
   );
 };
