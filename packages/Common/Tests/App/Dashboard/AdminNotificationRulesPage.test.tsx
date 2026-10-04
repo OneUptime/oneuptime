@@ -1113,7 +1113,6 @@ const mailtoHrefIn: MailtoHrefInFunction = (element: HTMLElement): string => {
 interface RuleTypeCase {
   label: string;
   ruleType: NotificationRuleType;
-  Page: FunctionComponent<PageComponentProps>;
   severityModelType: SeverityModelType;
   wrongSeverityModelType: SeverityModelType;
   foreignKeyColumn: SeverityForeignKeyColumn;
