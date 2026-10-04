@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle mit dem Link sehen dieses Dashboard mit allen seinen Widgets, ohne sich anzumelden.",
   "Remove Password": "Passwort entfernen",
   "Share Publicly": "Öffentlich teilen",
-  "Stop asking for the password?": "Nicht mehr nach dem Passwort fragen?"
+  "Stop asking for the password?": "Nicht mehr nach dem Passwort fragen?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Fügen Sie die Bereitschaftspläne oder Personen hinzu, die angerufen werden, wenn jemand diese Nummer wählt.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Ein Bereitschaftsplan lässt das Telefon der Person klingeln, die beim Eingang des Anrufs Bereitschaft hat.",
+  "Choose an on-call schedule or a person to call.": "Wählen Sie einen Bereitschaftsplan oder eine Person aus, die angerufen werden soll.",
+  "Choose who to call": "Auswählen, wer angerufen wird",
+  "Describe who this rule calls and why.": "Beschreiben Sie, wen diese Regel anruft und warum.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Nimmt in dieser Zeit niemand ab, geht der Anruf an die nächste Regel weiter. Wählen Sie eine kürzere Zeit, als das Telefon bis zur Mailbox braucht.",
+  "No on-call schedules or people to pick from.": "Keine Bereitschaftspläne oder Personen zur Auswahl.",
+  "Ring for": "Klingeldauer",
+  "Ring for (in seconds)": "Klingeldauer (in Sekunden)",
+  "Search schedules or people...": "Bereitschaftspläne oder Personen suchen...",
+  "Who to call": "Wer angerufen wird",
+  "{{count}} seconds": "{{count}} Sekunden",
+  "{{count}} seconds_one": "{{count}} Sekunde"
 }

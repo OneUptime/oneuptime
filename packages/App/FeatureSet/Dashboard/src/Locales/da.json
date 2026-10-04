@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Tilføj eskaleringsregel",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Tilføj lag",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle med linket kan se dette dashboard og alle dets widgets uden at logge ind.",
   "Remove Password": "Fjern adgangskode",
   "Share Publicly": "Del offentligt",
-  "Stop asking for the password?": "Holde op med at spørge om adgangskoden?"
+  "Stop asking for the password?": "Holde op med at spørge om adgangskoden?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Tilføj de vagtplaner eller personer, der skal ringes til, når nogen ringer til dette nummer.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "En vagtplan ringer til den, der har vagt, når opkaldet kommer ind.",
+  "Choose an on-call schedule or a person to call.": "Vælg en vagtplan eller en person, der skal ringes til.",
+  "Choose who to call": "Vælg, hvem der skal ringes til",
+  "Describe who this rule calls and why.": "Beskriv, hvem denne regel ringer til, og hvorfor.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Hvis ingen svarer inden for denne tid, går opkaldet videre til næste regel. Hold den kortere end den tid, det tager, før deres telefon går på telefonsvareren.",
+  "No on-call schedules or people to pick from.": "Ingen vagtplaner eller personer at vælge imellem.",
+  "Ring for": "Ringetid",
+  "Ring for (in seconds)": "Ringetid (i sekunder)",
+  "Search schedules or people...": "Søg efter vagtplaner eller personer...",
+  "Who to call": "Hvem der skal ringes til",
+  "{{count}} seconds": "{{count}} sekunder",
+  "{{count}} seconds_one": "{{count}} sekund"
 }

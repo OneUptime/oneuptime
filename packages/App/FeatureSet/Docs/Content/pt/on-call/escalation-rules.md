@@ -10,7 +10,7 @@ Ao criar uma política de plantão na página **Políticas de plantão**, o form
 
 ## Adicionar uma regra de escalonamento
 
-Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral e clique em **Add Escalation Rule**. A caixa de diálogo é uma única página curta com duas perguntas:
+Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral e clique em **Adicionar regra de escalonamento**. A caixa de diálogo é uma única página curta com duas perguntas:
 
 - **Notificar** — quem é acionado neste nível. Um único seletor reúne agendamentos de plantão, equipes e pessoas: clique em **Adicionar destinatário**, pesquise e escolha quantos precisar. É preciso pelo menos um.
   - Um **agendamento de plantão** aciona quem estiver de plantão quando o nível é executado, não uma pessoa fixa.

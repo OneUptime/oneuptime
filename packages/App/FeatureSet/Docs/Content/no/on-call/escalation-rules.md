@@ -10,7 +10,7 @@ Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør s
 
 ## Legg til en eskaleringsregel
 
-Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Add Escalation Rule**. Dialogen er én kort side med to spørsmål:
+Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side med to spørsmål:
 
 - **Varsle** — hvem som varsles på dette nivået. Én velger dekker vaktplaner, team og personer: klikk på **Legg til mottaker**, søk og velg så mange du trenger. Minst én må med.
   - En **vaktplan** varsler den som har vakt når nivået kjører, ikke en fast person.

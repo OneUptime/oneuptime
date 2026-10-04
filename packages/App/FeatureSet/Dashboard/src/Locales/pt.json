@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Adicionar regra de escalonamento",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Adicionar camada",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Qualquer pessoa com o link verá este painel e todos os seus widgets, sem fazer login.",
   "Remove Password": "Remover senha",
   "Share Publicly": "Compartilhar publicamente",
-  "Stop asking for the password?": "Parar de pedir a senha?"
+  "Stop asking for the password?": "Parar de pedir a senha?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Adicione os agendamentos de plantão ou as pessoas para quem ligar quando alguém discar este número.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Um agendamento de plantão faz tocar o telefone de quem estiver de plantão quando a chamada chegar.",
+  "Choose an on-call schedule or a person to call.": "Escolha um agendamento de plantão ou uma pessoa para quem ligar.",
+  "Choose who to call": "Escolher para quem ligar",
+  "Describe who this rule calls and why.": "Descreva para quem esta regra liga e por quê.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Se ninguém atender nesse tempo, a chamada passa para a próxima regra. Use um tempo menor do que o telefone leva para cair na caixa postal.",
+  "No on-call schedules or people to pick from.": "Nenhum agendamento de plantão ou pessoa para escolher.",
+  "Ring for": "Tempo de toque",
+  "Ring for (in seconds)": "Tempo de toque (em segundos)",
+  "Search schedules or people...": "Pesquisar agendamentos ou pessoas...",
+  "Who to call": "Para quem ligar",
+  "{{count}} seconds": "{{count}} segundos",
+  "{{count}} seconds_one": "{{count}} segundo"
 }

@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Legg til eskaleringsregel",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Legg til lag",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle med lenken ser dette dashbordet og alle widgetene på det, uten å logge på.",
   "Remove Password": "Fjern passord",
   "Share Publicly": "Del offentlig",
-  "Stop asking for the password?": "Slutte å spørre om passordet?"
+  "Stop asking for the password?": "Slutte å spørre om passordet?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Legg til vaktplanene eller personene som skal ringes når noen ringer dette nummeret.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "En vaktplan ringer den som har vakt når samtalen kommer inn.",
+  "Choose an on-call schedule or a person to call.": "Velg en vaktplan eller en person som skal ringes.",
+  "Choose who to call": "Velg hvem som skal ringes",
+  "Describe who this rule calls and why.": "Beskriv hvem denne regelen ringer og hvorfor.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Hvis ingen svarer innen denne tiden, går samtalen videre til neste regel. Hold den kortere enn tiden telefonen bruker før den går til talepost.",
+  "No on-call schedules or people to pick from.": "Ingen vaktplaner eller personer å velge mellom.",
+  "Ring for": "Ringetid",
+  "Ring for (in seconds)": "Ringetid (i sekunder)",
+  "Search schedules or people...": "Søk etter vaktplaner eller personer ...",
+  "Who to call": "Hvem som skal ringes",
+  "{{count}} seconds": "{{count}} sekunder",
+  "{{count}} seconds_one": "{{count}} sekund"
 }

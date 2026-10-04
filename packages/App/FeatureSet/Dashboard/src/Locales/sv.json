@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Lägg till eskaleringsregel",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Lägg till lager",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alla med länken ser den här instrumentpanelen och alla dess widgetar utan att logga in.",
   "Remove Password": "Ta bort lösenord",
   "Share Publicly": "Dela offentligt",
-  "Stop asking for the password?": "Sluta fråga efter lösenordet?"
+  "Stop asking for the password?": "Sluta fråga efter lösenordet?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Lägg till de jourscheman eller personer som ska ringas när någon ringer det här numret.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Ett jourschema ringer den som har jour när samtalet kommer in.",
+  "Choose an on-call schedule or a person to call.": "Välj ett jourschema eller en person att ringa.",
+  "Choose who to call": "Välj vem som ska ringas",
+  "Describe who this rule calls and why.": "Beskriv vem den här regeln ringer och varför.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Om ingen svarar inom den här tiden går samtalet vidare till nästa regel. Håll den kortare än tiden det tar innan deras telefon går till röstbrevlådan.",
+  "No on-call schedules or people to pick from.": "Inga jourscheman eller personer att välja.",
+  "Ring for": "Ringtid",
+  "Ring for (in seconds)": "Ringtid (i sekunder)",
+  "Search schedules or people...": "Sök jourscheman eller personer...",
+  "Who to call": "Vem som ska ringas",
+  "{{count}} seconds": "{{count}} sekunder",
+  "{{count}} seconds_one": "{{count}} sekund"
 }

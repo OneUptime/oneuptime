@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Aggiungi regola di escalation",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Aggiungi livello",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Chiunque abbia il link vedrà questa dashboard con tutti i suoi widget, senza accedere.",
   "Remove Password": "Rimuovi password",
   "Share Publicly": "Condividi pubblicamente",
-  "Stop asking for the password?": "Non chiedere più la password?"
+  "Stop asking for the password?": "Non chiedere più la password?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Aggiungi le pianificazioni di reperibilità o le persone da chiamare quando qualcuno compone questo numero.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Una pianificazione di reperibilità fa squillare il telefono di chi è reperibile quando arriva la chiamata.",
+  "Choose an on-call schedule or a person to call.": "Scegli una pianificazione di reperibilità o una persona da chiamare.",
+  "Choose who to call": "Scegli chi chiamare",
+  "Describe who this rule calls and why.": "Descrivi chi chiama questa regola e perché.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Se nessuno risponde entro questo tempo, la chiamata passa alla regola successiva. Usa un tempo più breve di quello dopo cui il loro telefono passa alla segreteria.",
+  "No on-call schedules or people to pick from.": "Nessuna pianificazione di reperibilità o persona da scegliere.",
+  "Ring for": "Durata dello squillo",
+  "Ring for (in seconds)": "Durata dello squillo (in secondi)",
+  "Search schedules or people...": "Cerca pianificazioni o persone...",
+  "Who to call": "Chi chiamare",
+  "{{count}} seconds": "{{count}} secondi",
+  "{{count}} seconds_one": "{{count}} secondo"
 }

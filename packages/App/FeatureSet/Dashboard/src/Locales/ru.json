@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Добавить правило эскалации",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Добавить слой",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Все, у кого есть ссылка, увидят эту панель со всеми её виджетами без входа в систему.",
   "Remove Password": "Удалить пароль",
   "Share Publicly": "Открыть общий доступ",
-  "Stop asking for the password?": "Больше не запрашивать пароль?"
+  "Stop asking for the password?": "Больше не запрашивать пароль?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Добавьте расписания дежурств или людей, которым звонить, когда кто-то набирает этот номер.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Расписание дежурств звонит тому, кто дежурит в момент звонка.",
+  "Choose an on-call schedule or a person to call.": "Выберите расписание дежурств или человека, которому звонить.",
+  "Choose who to call": "Выбрать, кому звонить",
+  "Describe who this rule calls and why.": "Опишите, кому звонит это правило и зачем.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Если за это время никто не ответит, звонок перейдёт к следующему правилу. Сделайте его короче, чем время, через которое их телефон переключается на голосовую почту.",
+  "No on-call schedules or people to pick from.": "Нет расписаний дежурств или людей для выбора.",
+  "Ring for": "Длительность вызова",
+  "Ring for (in seconds)": "Длительность вызова (в секундах)",
+  "Search schedules or people...": "Поиск расписаний или людей...",
+  "Who to call": "Кому звонить",
+  "{{count}} seconds": "{{count}} сек.",
+  "{{count}} seconds_one": "{{count}} секунда"
 }

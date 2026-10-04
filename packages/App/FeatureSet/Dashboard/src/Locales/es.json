@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Cualquiera con el enlace verá este panel y todos sus widgets, sin iniciar sesión.",
   "Remove Password": "Quitar contraseña",
   "Share Publicly": "Compartir públicamente",
-  "Stop asking for the password?": "¿Dejar de pedir la contraseña?"
+  "Stop asking for the password?": "¿Dejar de pedir la contraseña?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Añade las programaciones de guardia o las personas a las que llamar cuando alguien marque este número.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Una programación de guardia hace sonar el teléfono de quien esté de guardia cuando llega la llamada.",
+  "Choose an on-call schedule or a person to call.": "Elige una programación de guardia o una persona a la que llamar.",
+  "Choose who to call": "Elegir a quién llamar",
+  "Describe who this rule calls and why.": "Describe a quién llama esta regla y por qué.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Si nadie contesta en este tiempo, la llamada pasa a la siguiente regla. Usa un tiempo más corto que el que tarda su teléfono en pasar al buzón de voz.",
+  "No on-call schedules or people to pick from.": "No hay programaciones de guardia ni personas para elegir.",
+  "Ring for": "Duración del timbre",
+  "Ring for (in seconds)": "Duración del timbre (en segundos)",
+  "Search schedules or people...": "Buscar programaciones o personas...",
+  "Who to call": "A quién llamar",
+  "{{count}} seconds": "{{count}} segundos",
+  "{{count}} seconds_one": "{{count}} segundo"
 }

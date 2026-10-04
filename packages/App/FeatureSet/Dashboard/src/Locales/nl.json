@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "Escalatieregel toevoegen",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "Laag toevoegen",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Iedereen met de link ziet dit dashboard en alle widgets erop, zonder zich aan te melden.",
   "Remove Password": "Wachtwoord verwijderen",
   "Share Publicly": "Openbaar delen",
-  "Stop asking for the password?": "Niet meer om het wachtwoord vragen?"
+  "Stop asking for the password?": "Niet meer om het wachtwoord vragen?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Voeg de bereikbaarheidsschema's of personen toe die gebeld worden wanneer iemand dit nummer belt.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Een bereikbaarheidsschema laat de telefoon overgaan van wie er dienst heeft wanneer de oproep binnenkomt.",
+  "Choose an on-call schedule or a person to call.": "Kies een bereikbaarheidsschema of een persoon om te bellen.",
+  "Choose who to call": "Kies wie er gebeld wordt",
+  "Describe who this rule calls and why.": "Beschrijf wie deze regel belt en waarom.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Als niemand binnen deze tijd opneemt, gaat de oproep naar de volgende regel. Houd het korter dan de tijd waarna hun telefoon naar de voicemail gaat.",
+  "No on-call schedules or people to pick from.": "Geen bereikbaarheidsschema's of personen om uit te kiezen.",
+  "Ring for": "Overgaan gedurende",
+  "Ring for (in seconds)": "Overgaan gedurende (in seconden)",
+  "Search schedules or people...": "Schema's of personen zoeken...",
+  "Who to call": "Wie er gebeld wordt",
+  "{{count}} seconds": "{{count}} seconden",
+  "{{count}} seconds_one": "{{count}} seconde"
 }

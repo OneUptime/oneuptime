@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Anyone with the link will see this dashboard and every widget on it, without signing in.",
   "Remove Password": "Remove Password",
   "Share Publicly": "Share Publicly",
-  "Stop asking for the password?": "Stop asking for the password?"
+  "Stop asking for the password?": "Stop asking for the password?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Add the on-call schedules or people to call when someone dials this number.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "An on-call schedule rings whoever is on call in it when the call comes in.",
+  "Choose an on-call schedule or a person to call.": "Choose an on-call schedule or a person to call.",
+  "Choose who to call": "Choose who to call",
+  "Describe who this rule calls and why.": "Describe who this rule calls and why.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.",
+  "No on-call schedules or people to pick from.": "No on-call schedules or people to pick from.",
+  "Ring for": "Ring for",
+  "Ring for (in seconds)": "Ring for (in seconds)",
+  "Search schedules or people...": "Search schedules or people...",
+  "Who to call": "Who to call",
+  "{{count}} seconds": "{{count}} seconds",
+  "{{count}} seconds_one": "{{count}} second"
 }

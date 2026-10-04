@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "एस्केलेशन नियम जोड़ें",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "परत जोड़ें",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "लिंक वाला कोई भी व्यक्ति साइन इन किए बिना यह डैशबोर्ड और उसके सभी विजेट देखेगा।",
   "Remove Password": "पासवर्ड हटाएं",
   "Share Publicly": "सार्वजनिक रूप से साझा करें",
-  "Stop asking for the password?": "पासवर्ड मांगना बंद करें?"
+  "Stop asking for the password?": "पासवर्ड मांगना बंद करें?",
+  "Add the on-call schedules or people to call when someone dials this number.": "जब कोई इस नंबर पर कॉल करे, तब जिन ऑन-कॉल अनुसूचियों या लोगों को कॉल करना है, उन्हें जोड़ें।",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "ऑन-कॉल अनुसूची कॉल आने पर उस समय ऑन-कॉल व्यक्ति को कॉल करती है।",
+  "Choose an on-call schedule or a person to call.": "कॉल करने के लिए कोई ऑन-कॉल अनुसूची या व्यक्ति चुनें।",
+  "Choose who to call": "चुनें कि किसे कॉल करना है",
+  "Describe who this rule calls and why.": "बताएँ कि यह नियम किसे कॉल करता है और क्यों।",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "यदि इस समय में कोई जवाब नहीं देता, तो कॉल अगले नियम पर चली जाती है। इसे उस समय से कम रखें जितने में उनका फ़ोन वॉइसमेल पर चला जाता है।",
+  "No on-call schedules or people to pick from.": "चुनने के लिए कोई ऑन-कॉल अनुसूची या व्यक्ति नहीं है।",
+  "Ring for": "घंटी बजने का समय",
+  "Ring for (in seconds)": "घंटी बजने का समय (सेकंड में)",
+  "Search schedules or people...": "अनुसूचियाँ या लोग खोजें...",
+  "Who to call": "किसे कॉल करें",
+  "{{count}} seconds": "{{count}} सेकंड",
+  "{{count}} seconds_one": "{{count}} सेकंड"
 }

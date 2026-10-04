@@ -10,7 +10,7 @@ När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efte
 
 ## Lägg till en eskaleringsregel
 
-Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Add Escalation Rule**. Dialogen är en kort sida med två frågor:
+Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida med två frågor:
 
 - **Avisera** — vem som larmas på den här nivån. En väljare omfattar jourscheman, team och personer: klicka på **Lägg till mottagare**, sök och välj så många du behöver. Minst en krävs.
   - Ett **jourschema** larmar den som har jour när nivån körs, inte en fast person.

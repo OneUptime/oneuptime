@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime joue<br/>le message d'accueil]
     D --> E[Charger les règles d'escalade]
     E --> F{Règle 1:<br/>Essayer l'utilisateur d'astreinte}
-    F -->|Sans réponse| G{Règle 2:<br/>Essayer l'équipe de secours}
+    F -->|Sans réponse| G{Règle 2:<br/>Essayer l'ingénieur de secours}
     F -->|Répondu| H[Connecter l'appelant<br/>à l'ingénieur]
     G -->|Sans réponse| I{Règle 3:<br/>Essayer le responsable}
     G -->|Répondu| H
@@ -70,7 +70,7 @@ La fonctionnalité de politique d'appels entrants fonctionne en :
 
 1. Recevant les appels entrants sur un numéro de téléphone Twilio
 2. Jouant un message d'accueil personnalisable
-3. Acheminant l'appel via des règles d'escalade (équipes, plannings ou utilisateurs)
+3. Acheminant l'appel via des règles d'escalade (plannings d'astreinte ou personnes)
 4. Connectant l'appelant au premier ingénieur d'astreinte disponible
 5. Escaladant à la règle suivante si personne ne répond
 
@@ -154,35 +154,37 @@ flowchart LR
 
 ## Étape 6 : Configurer les règles d'escalade
 
-Les règles d'escalade déterminent comment les appels sont acheminés :
+Les règles d'escalade décident qui est appelé quand quelqu'un compose le numéro de la politique, du haut de la liste vers le bas :
 
 1. Ouvrez votre politique d'appels entrants
 2. Allez dans l'onglet **Règles d'escalade**
 3. Cliquez sur **Ajouter une règle d'escalade**
-4. Configurez la règle :
-   - **Ordre** : L'ordre de priorité (les numéros plus petits sont essayés en premier)
-   - **Escalader après (secondes)** : Combien de temps attendre avant d'escalader
-   - **Planning d'astreinte** : Sélectionner un planning pour acheminer vers la personne d'astreinte
-   - **Équipes** : Sélectionner des équipes spécifiques
-   - **Utilisateurs** : Sélectionner des utilisateurs spécifiques
-5. Ajoutez des règles d'escalade supplémentaires si nécessaire
+4. Remplissez la règle. C'est une seule étape :
+   - **Qui appeler** : un planning d'astreinte ou une personne. Un planning fait sonner la personne d'astreinte dans ce planning au moment de l'appel. Les personnes sont les membres de votre projet.
+   - **Durée de sonnerie (en secondes)** : combien de temps leur téléphone sonne avant que l'appel passe à la règle suivante. Elle commence à 30 secondes, et Twilio accepte de 5 à 600.
+   - **Nom** et **Description** sont facultatifs, sous **Avancé**. Une règle sans nom est affichée selon sa place dans la liste : **Level 1**, **Level 2**.
+5. Enregistrez-la, puis ajoutez une règle pour chaque planning ou personne à essayer ensuite
+
+Les règles sont appelées du haut de la liste vers le bas, et une nouvelle règle est ajoutée à la fin. Pour changer l'ordre, faites glisser une règle par la poignée en haut à gauche ; au clavier, placez le focus sur la poignée, appuyez sur Espace, déplacez-la avec les flèches, puis appuyez de nouveau sur Espace.
+
+> **Attention à la messagerie** : gardez la **Durée de sonnerie** plus courte que le délai au bout duquel le téléphone de la personne renvoie un appel sans réponse vers sa messagerie. Si la messagerie répond d'abord, l'appelant y est connecté et l'appel ne passe pas à la règle suivante. Twilio ajoute quelques secondes à chaque sonnerie.
 
 ### Exemple de règle d'escalade
 
 ```mermaid
 flowchart TD
     subgraph "Chaîne d'escalade"
-        A[Règle 1 : Astreinte principale<br/>Attendre 30 secondes] --> B[Règle 2 : Astreinte secondaire<br/>Attendre 30 secondes]
-        B --> C[Règle 3 : Responsable ingénierie<br/>Attendre 30 secondes]
+        A[Level 1 : planning d'astreinte principal<br/>Sonner 30 secondes] --> B[Level 2 : planning d'astreinte secondaire<br/>Sonner 30 secondes]
+        B --> C[Level 3 : responsable de l'ingénierie<br/>Sonner 30 secondes]
         C --> D[Message sans réponse]
     end
 ```
 
-| Ordre | Escalader après | Cible                              |
-| ----- | --------------- | ---------------------------------- |
-| 1     | 30 secondes     | Planning d'astreinte principal     |
-| 2     | 30 secondes     | Planning d'astreinte secondaire    |
-| 3     | 30 secondes     | Responsable de l'équipe ingénierie |
+| Niveau  | Qui appeler                                | Durée de sonnerie |
+| ------- | ------------------------------------------ | ----------------- |
+| Level 1 | Planning d'astreinte principal             | 30 secondes       |
+| Level 2 | Planning d'astreinte secondaire            | 30 secondes       |
+| Level 3 | Responsable de l'ingénierie (une personne) | 30 secondes       |
 
 ## Étape 7 : Configurer les messages vocaux (optionnel)
 
@@ -209,13 +211,14 @@ Personnalisez les messages entendus par les appelants :
 
 ### Paramètres des règles d'escalade
 
-| Paramètre                  | Description                                                          |
-| -------------------------- | -------------------------------------------------------------------- |
-| Ordre                      | Ordre de priorité (1 = priorité la plus élevée)                      |
-| Escalader après (secondes) | Temps d'attente avant d'essayer la règle suivante (par défaut : 30s) |
-| Planning d'astreinte       | Acheminer vers la personne actuellement d'astreinte                  |
-| Équipes                    | Acheminer vers tous les membres des équipes sélectionnées            |
-| Utilisateurs               | Acheminer vers des utilisateurs spécifiques                          |
+| Paramètre                       | Description                                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Qui appeler                     | Un planning d'astreinte, qui appelle la personne d'astreinte, ou une personne. Chaque règle appelle l'un des deux                                                        |
+| Durée de sonnerie (en secondes) | Combien de temps le téléphone sonne avant que l'appel passe à la règle suivante (par défaut : 30 ; de 5 à 600)                                                          |
+| Nom et Description              | Facultatifs, sous Avancé. Une règle sans nom est affichée comme Level 1, Level 2 et ainsi de suite, selon sa place dans la liste                                       |
+| Ordre                           | La place de la règle dans la liste : les règles sont appelées de haut en bas. Se règle en faisant glisser les règles ; via l'API, une nouvelle règle sans ordre va à la fin |
+
+Via l'API, une règle définit `onCallDutyPolicyScheduleId` ou `userId` (l'un des deux, jamais les deux) et `escalateAfterSeconds` : la durée de sonnerie, 30 si elle est omise.
 
 ## Consultation des journaux d'appels
 
@@ -268,6 +271,7 @@ Si vous n'avez plus besoin d'un numéro de téléphone :
 - Vérifiez que les règles d'escalade sont correctement configurées
 - Assurez-vous que les plannings d'astreinte ont des utilisateurs assignés pour l'heure actuelle
 - Vérifiez que la politique est activée
+- Si les appels aboutissent sur la messagerie d'un ingénieur, réglez la **Durée de sonnerie** de la règle sous le délai au bout duquel son téléphone bascule sur la messagerie
 
 ### Problèmes de qualité audio
 

@@ -16,6 +16,13 @@ import ObjectID from "../../../Types/ObjectID";
  * PeoplePickerKinds.ts - search, look up by id, avatar - and every picker can
  * offer it. An escalation rule's Notify field offers on-call schedules,
  * teams and people in one list.
+ *
+ * A picker takes any number of picks, unless its field says it takes one
+ * (PeoplePickerFieldConfig.isSinglePick): an incoming call rule calls one
+ * on-call schedule or one person. A pick then replaces the last one, and
+ * each kind's form value holds that one id, or null, instead of a list - the
+ * shape of a record's own column for one related record (userId,
+ * onCallDutyPolicyScheduleId), which can then be the value key itself.
  */
 
 export enum PeoplePickerKind {
@@ -61,7 +68,19 @@ export interface PeoplePickerFieldConfig {
   searchPlaceholder?: string | undefined;
   // What the search list says when there is nothing to pick at all.
   emptyText?: string | undefined;
+  /*
+   * One pick at most, of any kind. Picking replaces what was picked and
+   * closes the list, and each kind's form value is one id, or null, rather
+   * than a list (PeoplePickerFormValue). Leave it out for any number.
+   */
+  isSinglePick?: boolean | undefined;
 }
+
+/*
+ * What a picker field writes to one kind's form value: the kind's ids, or,
+ * when the field takes a single pick, the one id or null.
+ */
+export type PeoplePickerFormValue = Array<string> | string | null;
 
 /*
  * One pick, as a key: the kind and the id. Ids are compared without case -
@@ -178,18 +197,39 @@ export const readPeoplePickerFormValue: (
   return result;
 };
 
+/*
+ * One kind's form value in the shape the field writes it: whatever a form
+ * holds (ids, ObjectIDs, related rows) as its list of ids, or - for a field
+ * that takes a single pick - its first id, or null when there is none.
+ */
+export const toPeoplePickerFormValue: (
+  config: PeoplePickerFieldConfig,
+  value: unknown,
+) => PeoplePickerFormValue = (
+  config: PeoplePickerFieldConfig,
+  value: unknown,
+): PeoplePickerFormValue => {
+  const ids: Array<string> = toPeoplePickerIds(value);
+
+  if (config.isSinglePick) {
+    return ids[0] || null;
+  }
+
+  return ids;
+};
+
 // The form values a picker field's picks are written to.
 export const toPeoplePickerFormValues: (
   config: PeoplePickerFieldConfig,
   value: PeoplePickerValue,
-) => Record<string, Array<string>> = (
+) => Record<string, PeoplePickerFormValue> = (
   config: PeoplePickerFieldConfig,
   value: PeoplePickerValue,
-): Record<string, Array<string>> => {
-  const result: Record<string, Array<string>> = {};
+): Record<string, PeoplePickerFormValue> => {
+  const result: Record<string, PeoplePickerFormValue> = {};
 
   for (const entry of config.kinds) {
-    result[entry.valueKey] = toPeoplePickerIds(value[entry.kind]);
+    result[entry.valueKey] = toPeoplePickerFormValue(config, value[entry.kind]);
   }
 
   return result;
@@ -224,6 +264,20 @@ export const addToPeoplePickerValue: (
   }
 
   return { ...value, [kind]: [...ids, id] };
+};
+
+/*
+ * The value of a picker that takes a single pick, once this one is picked:
+ * it alone, whatever kind was picked before.
+ */
+export const replacePeoplePickerValue: (
+  kind: PeoplePickerKind,
+  id: string,
+) => PeoplePickerValue = (
+  kind: PeoplePickerKind,
+  id: string,
+): PeoplePickerValue => {
+  return { [kind]: [id] };
 };
 
 export const removeFromPeoplePickerValue: (

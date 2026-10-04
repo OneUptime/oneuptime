@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "افزودن قاعده تشدید",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "افزودن لایه",
@@ -24581,5 +24581,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "هر کسی که پیوند را دارد، بدون ورود به سیستم، این داشبورد و همه ابزارک‌های آن را می‌بیند.",
   "Remove Password": "حذف رمز عبور",
   "Share Publicly": "اشتراک‌گذاری عمومی",
-  "Stop asking for the password?": "دیگر رمز عبور خواسته نشود؟"
+  "Stop asking for the password?": "دیگر رمز عبور خواسته نشود؟",
+  "Add the on-call schedules or people to call when someone dials this number.": "زمان‌بندی‌های آنکال یا افرادی را اضافه کنید که وقتی کسی این شماره را می‌گیرد، با آن‌ها تماس گرفته می‌شود.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "زمان‌بندی آنکال هنگام دریافت تماس، با کسی تماس می‌گیرد که در آن لحظه آنکال است.",
+  "Choose an on-call schedule or a person to call.": "یک زمان‌بندی آنکال یا یک فرد را برای تماس انتخاب کنید.",
+  "Choose who to call": "انتخاب کنید با چه کسی تماس گرفته شود",
+  "Describe who this rule calls and why.": "توضیح دهید این قاعده با چه کسی تماس می‌گیرد و چرا.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "اگر کسی در این مدت پاسخ ندهد، تماس به قاعده بعدی می‌رود. آن را کوتاه‌تر از زمانی بگذارید که طول می‌کشد تلفن آن‌ها به پیغام‌گیر برود.",
+  "No on-call schedules or people to pick from.": "هیچ زمان‌بندی آنکال یا فردی برای انتخاب وجود ندارد.",
+  "Ring for": "مدت زنگ",
+  "Ring for (in seconds)": "مدت زنگ (به ثانیه)",
+  "Search schedules or people...": "جستجوی زمان‌بندی‌ها یا افراد...",
+  "Who to call": "تماس با چه کسی",
+  "{{count}} seconds": "{{count}} ثانیه",
+  "{{count}} seconds_one": "{{count}} ثانیه"
 }
