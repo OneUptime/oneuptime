@@ -339,7 +339,7 @@ Each incident's page shows its own measurements in a **Measurements** card, righ
 | **Ends before it starts**     | The recorded times disagree (**Invalid**), with how far apart they are.                                                         |
 | **Not worked out yet**        | OneUptime has not worked it out for this incident yet: just after the measurement was created, or after its start, end or unit changed. |
 
-Alerts and scheduled maintenance events have the same card on their pages; a maintenance event's waiting ends when it is completed. The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
+Alerts and scheduled maintenance events have the same card on their pages. For a maintenance event, **Not reached** comes once the event is completed. The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
 
 ### Impact Started At, and why it is blank
 
