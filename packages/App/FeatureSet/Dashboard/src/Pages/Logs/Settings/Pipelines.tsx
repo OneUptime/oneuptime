@@ -1,6 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -100,6 +107,32 @@ Adds a category label to logs based on filter conditions. Useful for tagging log
    - Categories: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`
 `;
 
+/*
+ * A new pipeline is a name. It does nothing until it has a filter and
+ * processors, and those are set up on its own page - so the create form asks
+ * only for the name (the description folded under Advanced), and creating
+ * one opens its page. Enabled is not asked: the column defaults to on, and a
+ * pipeline with no processors changes nothing; it is switched off on its
+ * page.
+ */
+const ADVANCED: FormFieldCollapsibleSection<LogPipeline> =
+  getAdvancedFormSection<LogPipeline>();
+
+type GetPipelineRouteFunction = (item: LogPipeline) => Route;
+
+const getPipelineRoute: GetPipelineRouteFunction = (
+  item: LogPipeline,
+): Route => {
+  return new Route(
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] as Route,
+      {
+        modelId: new ObjectID(item._id as string),
+      },
+    ).toString(),
+  );
+};
+
 const LogPipelines: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -136,9 +169,6 @@ const LogPipelines: FunctionComponent<
       }}
       noItemsMessage={"No log pipelines found."}
       viewPageRoute={Navigation.getCurrentRoute()}
-      createInitialValues={{
-        isEnabled: true,
-      }}
       formFields={[
         {
           field: {
@@ -160,16 +190,23 @@ const LogPipelines: FunctionComponent<
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this pipeline does.",
-        },
-        {
-          field: {
-            isEnabled: true,
-          },
-          title: "Enabled",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
+          collapsibleSection: ADVANCED,
         },
       ]}
+      /*
+       * Its filter and processors are what make a pipeline do anything,
+       * and they are on its page: land there.
+       */
+      onCreateSuccess={(
+        item: LogPipeline,
+        modalType?: ModalType,
+      ): Promise<LogPipeline> => {
+        if (modalType === ModalType.Create && item._id) {
+          Navigation.navigate(getPipelineRoute(item));
+        }
+
+        return Promise.resolve(item);
+      }}
       showRefreshButton={true}
       showViewIdButton={true}
       filters={[

@@ -1,6 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -47,6 +54,32 @@ Most instrumentation leaves successful spans **Unset**, the OpenTelemetry defaul
 Pipelines apply to spans ingested after you save them (a change can take up to a minute to reach ingest); spans already stored keep their status.
 `;
 
+/*
+ * A new pipeline is a name. It does nothing until it has a filter and
+ * processors, and those are set up on its own page - so the create form asks
+ * only for the name (the description folded under Advanced), and creating
+ * one opens its page. Enabled is not asked: the column defaults to on, and a
+ * pipeline with no processors changes nothing; it is switched off on its
+ * page.
+ */
+const ADVANCED: FormFieldCollapsibleSection<TracePipeline> =
+  getAdvancedFormSection<TracePipeline>();
+
+type GetPipelineRouteFunction = (item: TracePipeline) => Route;
+
+const getPipelineRoute: GetPipelineRouteFunction = (
+  item: TracePipeline,
+): Route => {
+  return new Route(
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.TRACES_SETTINGS_PIPELINE_VIEW] as Route,
+      {
+        modelId: new ObjectID(item._id as string),
+      },
+    ).toString(),
+  );
+};
+
 const TracePipelines: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -83,9 +116,6 @@ const TracePipelines: FunctionComponent<
       }}
       noItemsMessage={"No trace pipelines found."}
       viewPageRoute={Navigation.getCurrentRoute()}
-      createInitialValues={{
-        isEnabled: true,
-      }}
       formFields={[
         {
           field: {
@@ -107,16 +137,23 @@ const TracePipelines: FunctionComponent<
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Describe what this pipeline does.",
-        },
-        {
-          field: {
-            isEnabled: true,
-          },
-          title: "Enabled",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
+          collapsibleSection: ADVANCED,
         },
       ]}
+      /*
+       * Its filter and processors are what make a pipeline do anything,
+       * and they are on its page: land there.
+       */
+      onCreateSuccess={(
+        item: TracePipeline,
+        modalType?: ModalType,
+      ): Promise<TracePipeline> => {
+        if (modalType === ModalType.Create && item._id) {
+          Navigation.navigate(getPipelineRoute(item));
+        }
+
+        return Promise.resolve(item);
+      }}
       showRefreshButton={true}
       searchableFields={["name", "description"]}
       showViewIdButton={true}
