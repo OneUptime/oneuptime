@@ -276,7 +276,9 @@ describe("the project's filter condition fields", () => {
     expect(files.length).toBeGreaterThan(2000);
     expect(
       fields.filter((field: FilterConditionField): boolean => {
-        return field.file === `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`;
+        return (
+          field.file === `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`
+        );
       }),
     ).toEqual([
       expect.objectContaining({

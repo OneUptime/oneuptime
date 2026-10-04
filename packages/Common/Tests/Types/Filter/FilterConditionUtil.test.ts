@@ -22,7 +22,7 @@ describe("isFilterConditionNeeded", () => {
     expected: boolean;
   }
 
-  test.each<Case>([
+  const COUNTS: Array<Case> = [
     { name: "no filters", filters: [], expected: false },
     { name: "one filter", filters: [{ value: "a" }], expected: false },
     {
@@ -31,7 +31,9 @@ describe("isFilterConditionNeeded", () => {
       expected: true,
     },
     { name: "four filters", filters: [1, 2, 3, 4], expected: true },
-  ])("$name: asks for a condition - $expected", (row: Case) => {
+  ];
+
+  test.each(COUNTS)("$name: asks for a condition - $expected", (row: Case) => {
     expect(isFilterConditionNeeded(row.filters)).toBe(row.expected);
   });
 
@@ -39,7 +41,7 @@ describe("isFilterConditionNeeded", () => {
    * A form holds no list until its filters editor has drawn: nothing to
    * combine yet.
    */
-  test.each<Case>([
+  const NOT_LISTS: Array<Case> = [
     { name: "undefined", filters: undefined, expected: false },
     { name: "null", filters: null, expected: false },
     { name: "a string", filters: "two", expected: false },
@@ -49,7 +51,9 @@ describe("isFilterConditionNeeded", () => {
       filters: { length: 3 },
       expected: false,
     },
-  ])("reads $name as no filters", (row: Case) => {
+  ];
+
+  test.each(NOT_LISTS)("reads $name as no filters", (row: Case) => {
     expect(isFilterConditionNeeded(row.filters)).toBe(row.expected);
   });
 });

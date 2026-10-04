@@ -979,7 +979,9 @@ describe("BasicForm never re-seeds a form the user has edited", () => {
             defaultValue: "the field's default",
             getCustomElement: (
               _values: FormValues<any>,
-              elementProps: { onChange?: ((value: unknown) => void) | undefined },
+              elementProps: {
+                onChange?: ((value: unknown) => void) | undefined;
+              },
             ): React.ReactElement => {
               return (
                 <SelfFillingField

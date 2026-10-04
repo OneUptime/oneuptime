@@ -322,7 +322,9 @@ async function addFilter(value: string): Promise<void> {
   const before: number = filterValueBoxes().length;
 
   await act(async (): Promise<void> => {
-    fireEvent.click(within(dialog()).getByRole("button", { name: "Add Filter" }));
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: "Add Filter" }),
+    );
   });
 
   await waitFor(() => {
@@ -536,9 +538,14 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       (model["filters"] as unknown as Array<MetricPipelineRuleFilterCondition>)
         .length,
     ).toBe(1);
-    expect(
-      (model["filters"] as unknown as Array<MetricPipelineRuleFilterCondition>)[0],
-    ).toMatchObject(metricNameFilter("debug.metric"));
+    const [filter] = model[
+      "filters"
+    ] as unknown as Array<MetricPipelineRuleFilterCondition>;
+    expect({
+      checkOn: filter?.checkOn,
+      conditionType: filter?.conditionType,
+      value: filter?.value,
+    }).toEqual(metricNameFilter("debug.metric"));
   });
 
   test("creates a rule that matches any of its filters, once two ask for it", async () => {
@@ -674,10 +681,9 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       fireEvent.click(moreFieldsHeader());
     });
 
-    const picker: HTMLElement = await within(dialog()).findByRole(
-      "combobox",
-      { name: /^Only for one service/ },
-    );
+    const picker: HTMLElement = await within(dialog()).findByRole("combobox", {
+      name: /^Only for one service/,
+    });
     expect(
       within(dialog()).getByText(
         "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.",
@@ -845,9 +851,8 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       const steps: HTMLElement = within(dialog()).getByRole("navigation", {
         name: "Progress",
       });
-      const stepItems: Array<HTMLElement> = within(steps).getAllByRole(
-        "listitem",
-      );
+      const stepItems: Array<HTMLElement> =
+        within(steps).getAllByRole("listitem");
 
       await act(async (): Promise<void> => {
         fireEvent.click(stepItems[stepItems.length - 1]!);
@@ -865,14 +870,16 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       expect(model["filterCondition"]).toBe(FilterCondition.Any);
       expect(
         (
-          model["filters"] as unknown as Array<MetricPipelineRuleFilterCondition>
+          model[
+            "filters"
+          ] as unknown as Array<MetricPipelineRuleFilterCondition>
         ).map((filter: MetricPipelineRuleFilterCondition) => {
           return filter.value;
         }),
       ).toEqual(["first.metric", "second.metric"]);
-      expect(
-        (model["service"] as BaseModel | undefined)?._id?.toString(),
-      ).toBe(CHECKOUT_SERVICE_ID);
+      expect((model["service"] as BaseModel | undefined)?._id?.toString()).toBe(
+        CHECKOUT_SERVICE_ID,
+      );
       expect(model["isEnabled"]).toBe(true);
     });
   });
@@ -1071,7 +1078,8 @@ describe.each(RECORDING_RULE_PAGES)("$label", (entry: RecordingRulePage) => {
         within(dialog()).queryByRole("navigation", { name: "Progress" }),
       ).toBeNull();
       expect(
-        within(dialog()).getByRole("textbox", { name: "Name" })
+        within(dialog())
+          .getByRole("textbox", { name: "Name" })
           .compareDocumentPosition(outputMetricName) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
@@ -1152,7 +1160,9 @@ describe("what the folded More fields header says while left alone", () => {
     expect(
       getPipelineRuleAdvancedSummary({ description: "Why it drops" }),
     ).toBeUndefined();
-    expect(getPipelineRuleAdvancedSummary({ isEnabled: false })).toBeUndefined();
+    expect(
+      getPipelineRuleAdvancedSummary({ isEnabled: false }),
+    ).toBeUndefined();
     expect(
       getPipelineRuleAdvancedSummary({
         service: CHECKOUT_SERVICE_ID,
@@ -1164,9 +1174,9 @@ describe("what the folded More fields header says while left alone", () => {
         service: { label: "checkout", value: CHECKOUT_SERVICE_ID },
       } as never),
     ).toBeUndefined();
-    expect(
-      getPipelineRuleAdvancedSummary({ service: "" } as never),
-    ).toEqual([PIPELINE_RULE_DEFAULTS_SUMMARY]);
+    expect(getPipelineRuleAdvancedSummary({ service: "" } as never)).toEqual([
+      PIPELINE_RULE_DEFAULTS_SUMMARY,
+    ]);
   });
 
   test("a recording rule: on, writing every minute - until one of them is set", () => {
