@@ -24,17 +24,23 @@ import { getJestSpyOn } from "../../Spy";
  * "What your status page shows", the one card on a status page's Advanced
  * Settings for what visitors see: a switch per list (incidents, episodes,
  * announcements, scheduled maintenance), how far back each goes, its labels,
- * the uptime history window and the "Powered by OneUptime" line.
+ * the page's uptime - the uptime history window, the overall uptime
+ * percentage with its precision, and which statuses count as downtime - and
+ * the "Powered by OneUptime" line.
  *
- * It replaced six cards with an Edit dialog each. Every control saves its
+ * It replaced eight cards with an Edit dialog each. Every control saves its
  * own column at once: switches when pressed, a number of days when the box
- * is left or Enter is pressed. A list that is off does not offer its history
- * and labels. Controls are locked while they save and for someone who may
- * not edit the page, roll back with the reason when the server refuses, and
- * name the plan they need.
+ * is left or Enter is pressed, a precision or a status when it is picked. A
+ * list that is off does not offer its history and labels, and the overall
+ * uptime percentage that is off does not offer its precision. Switches and
+ * boxes are locked while they save, the dropdowns never (a pick made
+ * meanwhile waits its turn), and all are locked for someone who may not edit
+ * the page, roll back with the reason when the server refuses, and name the
+ * plan they need.
  *
  * Only the network, the permission gate and the plan are stubbed; the card,
- * its rows, the switches and the number boxes are the real ones.
+ * its rows, the switches, the number boxes and the dropdowns (react-select)
+ * are the real ones.
  */
 
 /*
@@ -43,6 +49,7 @@ import { getJestSpyOn } from "../../Spy";
  * reports a rejected one as unhandled although the card catches it.
  */
 const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
@@ -51,6 +58,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
+      },
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
       updateById: (...args: Array<unknown>): unknown => {
         return updateByIdMock(...args);
@@ -63,26 +73,37 @@ import StatusPageDisplaySettingsCard, {
   STATUS_PAGE_DISPLAY_SETTINGS_CARD_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCard";
 import StatusPageDisplaySettingsCopy, {
+  DISPLAY_CHOICES,
   DISPLAY_DAYS,
   DISPLAY_SECTIONS,
   DISPLAY_SETTING_COLUMNS,
+  DISPLAY_STATUSES,
   DISPLAY_SWITCHES,
+  DisplayChoiceColumn,
   DisplayDaysColumn,
   DisplayDaysDefinition,
   DisplaySectionDefinition,
   DisplaySettingColumn,
+  DisplayStatusesColumn,
   DisplaySwitchColumn,
   DisplaySwitchDefinition,
+  DisplayValueColumn,
+  getDisplayChoiceTestId,
   getDisplayDaysTestId,
   getDisplaySectionTestId,
+  getDisplayStatusesTestId,
   getDisplaySwitchTestId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import IncidentStatusPageScopeCopy from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
+import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
+import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -91,7 +112,9 @@ import ProjectUtil from "../../../UI/Utils/Project";
 
 const STATUS_PAGE_ID: string = "5b5b5b5b-0000-4000-8000-0000000000bb";
 
-type StoredColumns = Partial<Record<DisplaySettingColumn, boolean | number>>;
+type StoredColumns = Partial<
+  Record<DisplayValueColumn, boolean | number | string>
+>;
 
 // A new status page, as the columns' defaults leave it.
 const NEW_PAGE: StoredColumns = {
@@ -108,15 +131,77 @@ const NEW_PAGE: StoredColumns = {
   showScheduledEventHistoryInDays: 14,
   showScheduledEventLabelsOnStatusPage: false,
   showUptimeHistoryInDays: 90,
+  showOverallUptimePercentOnStatusPage: false,
+  overallUptimePercentPrecision: UptimePrecision.TWO_DECIMAL,
   hidePoweredByOneUptimeBranding: false,
 };
 
+// The project's monitor statuses, as the server lists them.
+const OPERATIONAL_ID: string = "6c6c6c6c-0000-4000-8000-000000000001";
+const DEGRADED_ID: string = "6c6c6c6c-0000-4000-8000-000000000002";
+const OFFLINE_ID: string = "6c6c6c6c-0000-4000-8000-000000000003";
+const MAINTENANCE_ID: string = "6c6c6c6c-0000-4000-8000-000000000004";
+
+function monitorStatus(data: {
+  id: string;
+  name: string;
+  color: string;
+  priority: number;
+}): MonitorStatus {
+  const status: MonitorStatus = new MonitorStatus();
+  status._id = data.id;
+  status.name = data.name;
+  status.color = new Color(data.color);
+  status.priority = data.priority;
+  return status;
+}
+
+const PROJECT_STATUSES: Array<MonitorStatus> = [
+  monitorStatus({
+    id: OPERATIONAL_ID,
+    name: "Operational",
+    color: "#22c55e",
+    priority: 1,
+  }),
+  monitorStatus({
+    id: DEGRADED_ID,
+    name: "Degraded",
+    color: "#eab308",
+    priority: 2,
+  }),
+  monitorStatus({
+    id: OFFLINE_ID,
+    name: "Offline",
+    color: "#ef4444",
+    priority: 3,
+  }),
+  monitorStatus({
+    id: MAINTENANCE_ID,
+    name: "Under Maintenance",
+    color: "#6366f1",
+    priority: 4,
+  }),
+];
+
+function statusesNamed(...names: Array<string>): Array<MonitorStatus> {
+  return names.map((name: string): MonitorStatus => {
+    return PROJECT_STATUSES.find((status: MonitorStatus): boolean => {
+      return status.name === name;
+    })!;
+  });
+}
+
 let stored: StoredColumns | null | Error = null;
+// What a new page counts as downtime: the statuses that are not operational.
+let storedStatuses: Array<MonitorStatus> = [];
+let projectStatuses: Array<MonitorStatus> | Error = PROJECT_STATUSES;
 let gate: PermissionGateResult = { isAllowed: true };
 let plan: PlanType | null = null;
 
 beforeEach(() => {
   stored = { ...NEW_PAGE };
+  storedStatuses = statusesNamed("Degraded", "Offline");
+  projectStatuses = PROJECT_STATUSES;
   gate = { isAllowed: true };
   plan = null;
 
@@ -137,7 +222,23 @@ beforeEach(() => {
       (page as unknown as Record<string, unknown>)[column] = value;
     }
 
+    page.downtimeMonitorStatuses = storedStatuses;
+
     return page;
+  });
+
+  getListMock.mockReset();
+  getListMock.mockImplementation(async (): Promise<unknown> => {
+    if (projectStatuses instanceof Error) {
+      throw projectStatuses;
+    }
+
+    return {
+      data: projectStatuses,
+      count: projectStatuses.length,
+      skip: 0,
+      limit: 10000,
+    };
   });
 
   updateByIdMock.mockReset();
@@ -207,6 +308,118 @@ function daysRowFor(column: DisplayDaysColumn): HTMLElement {
   return screen.getByTestId(`${getDisplayDaysTestId(column)}-row`);
 }
 
+const PRECISION: DisplayChoiceColumn = "overallUptimePercentPrecision";
+const DOWNTIME: DisplayStatusesColumn = "downtimeMonitorStatuses";
+const OVERALL: DisplaySwitchColumn = "showOverallUptimePercentOnStatusPage";
+
+function choiceRowFor(column: DisplayChoiceColumn): HTMLElement {
+  return screen.getByTestId(`${getDisplayChoiceTestId(column)}-row`);
+}
+
+function queryChoiceRowFor(column: DisplayChoiceColumn): HTMLElement | null {
+  return screen.queryByTestId(`${getDisplayChoiceTestId(column)}-row`);
+}
+
+function statusesRowFor(column: DisplayStatusesColumn): HTMLElement {
+  return screen.getByTestId(`${getDisplayStatusesTestId(column)}-row`);
+}
+
+/*
+ * The dropdowns' inputs, found in their rows. A locked react-select hides
+ * its input (visibility: hidden), which takes its name out of the
+ * accessibility tree, so the names are checked where the dropdowns are not
+ * locked.
+ */
+function precisionBox(): HTMLElement {
+  return within(choiceRowFor(PRECISION)).getByRole("combobox", {
+    hidden: true,
+  });
+}
+
+function downtimeBox(): HTMLElement {
+  return within(statusesRowFor(DOWNTIME)).getByRole("combobox", {
+    hidden: true,
+  });
+}
+
+// What the precision dropdown shows as picked.
+function shownPrecision(): string {
+  const row: HTMLElement = choiceRowFor(PRECISION);
+
+  return (
+    row.querySelector(".ou-select__single-value")?.textContent ||
+    row.querySelector(".ou-select__placeholder")?.textContent ||
+    ""
+  );
+}
+
+// The names on the downtime chips, in order.
+function downtimeChips(): Array<string> {
+  return Array.from(
+    statusesRowFor(DOWNTIME).querySelectorAll(
+      ".ou-select__multi-value__label",
+    ),
+  ).map((chip: Element): string => {
+    return (chip.textContent || "").trim();
+  });
+}
+
+async function flush(): Promise<void> {
+  await act(async () => {
+    for (let i: number = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+  });
+}
+
+// The options a dropdown offers, read from its open menu.
+function offeredBy(box: HTMLElement): Array<string> {
+  fireEvent.keyDown(box, { key: "ArrowDown", code: "ArrowDown" });
+
+  const labels: Array<string> = screen
+    .queryAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return (option.textContent || "").trim();
+    });
+
+  fireEvent.keyDown(box, { key: "Escape", code: "Escape" });
+
+  return labels;
+}
+
+async function pickFrom(box: HTMLElement, label: string): Promise<void> {
+  fireEvent.keyDown(box, { key: "ArrowDown", code: "ArrowDown" });
+
+  const option: HTMLElement = screen.getByRole("option", { name: label });
+
+  fireEvent.mouseDown(option);
+  fireEvent.click(option);
+  await flush();
+}
+
+async function removeChip(name: string): Promise<void> {
+  const remove: HTMLElement = within(statusesRowFor(DOWNTIME)).getByRole(
+    "button",
+    { name: `Remove ${name}` },
+  );
+
+  fireEvent.click(remove);
+  await flush();
+}
+
+function updatesOf(column: string): Array<Record<string, unknown>> {
+  return updateByIdMock.mock.calls
+    .map((call: Array<unknown>): Record<string, unknown> => {
+      return (call[0] as Record<string, unknown>)["data"] as Record<
+        string,
+        unknown
+      >;
+    })
+    .filter((data: Record<string, unknown>): boolean => {
+      return column in data;
+    });
+}
+
 function definitionOf(column: DisplaySwitchColumn): DisplaySwitchDefinition {
   return DISPLAY_SWITCHES.find(
     (candidate: DisplaySwitchDefinition): boolean => {
@@ -264,7 +477,7 @@ const LIST_SWITCHES: Array<DisplaySwitchColumn> = [
 ];
 
 describe("reading the status page", () => {
-  test("asks once for the card's fourteen columns and nothing else", async () => {
+  test("asks once for the card's seventeen columns and nothing else", async () => {
     await renderCard();
     await loaded();
 
@@ -289,9 +502,33 @@ describe("reading the status page", () => {
       showScheduledEventHistoryInDays: true,
       showScheduledEventLabelsOnStatusPage: true,
       showUptimeHistoryInDays: true,
+      showOverallUptimePercentOnStatusPage: true,
+      overallUptimePercentPrecision: true,
+      // What each chip shows.
+      downtimeMonitorStatuses: { _id: true, name: true, color: true },
       hidePoweredByOneUptimeBranding: true,
     });
-    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(14);
+    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(17);
+  });
+
+  test("asks once for the project's monitor statuses, in their colours and priority order, for the downtime picker", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    expect(getListMock).toHaveBeenCalledTimes(1);
+
+    const request: Record<string, unknown> = getListMock.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(request["modelType"]).toBe(MonitorStatus);
+    expect(request["select"]).toEqual({
+      _id: true,
+      name: true,
+      color: true,
+      priority: true,
+    });
+    expect(request["sort"]).toEqual({ priority: SortOrder.Ascending });
   });
 
   test("is one card, saying what it is for", async () => {
@@ -368,8 +605,11 @@ describe("reading the status page", () => {
       );
     }
 
-    expect(screen.getAllByRole("switch")).toHaveLength(9);
+    expect(screen.getAllByRole("switch")).toHaveLength(10);
     expect(screen.getAllByRole("spinbutton")).toHaveLength(5);
+
+    // The downtime picker; the precision only while the overall % is on.
+    expect(screen.getAllByRole("combobox")).toEqual([downtimeBox()]);
   });
 
   test("keeps the names the settings have always had, and the scope switch's own copy", async () => {
@@ -386,6 +626,7 @@ describe("reading the status page", () => {
       "Show Announcements",
       "Show Scheduled Maintenance Events",
       "Show Event Labels",
+      "Show Overall Uptime Percent",
       "Show Powered By OneUptime Branding",
     ]);
 
@@ -427,6 +668,13 @@ describe("reading the status page", () => {
 
     expect(daysFor("showUptimeHistoryInDays")).toHaveValue(90);
 
+    // No overall uptime percentage, so no precision to pick.
+    expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "false");
+    expect(queryChoiceRowFor(PRECISION)).toBeNull();
+
+    // The statuses that are not operational count as downtime.
+    expect(downtimeChips()).toEqual(["Degraded", "Offline"]);
+
     // Stored as "do not hide it", shown as a switch that is on.
     expect(switchFor("hidePoweredByOneUptimeBranding")).toHaveAttribute(
       "aria-checked",
@@ -435,8 +683,11 @@ describe("reading the status page", () => {
   });
 
   test("shows each setting as the page has it", async () => {
+    storedStatuses = statusesNamed("Offline");
     stored = {
       ...NEW_PAGE,
+      showOverallUptimePercentOnStatusPage: true,
+      overallUptimePercentPrecision: UptimePrecision.THREE_DECIMAL,
       showIncidentHistoryInDays: 30,
       showIncidentLabelsOnStatusPage: true,
       onlyShowScopedIncidents: true,
@@ -467,6 +718,10 @@ describe("reading the status page", () => {
     expect(daysFor("showScheduledEventHistoryInDays")).toHaveValue(7);
     expect(daysFor("showUptimeHistoryInDays")).toHaveValue(45);
 
+    expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "true");
+    expect(shownPrecision()).toBe("99.999%");
+    expect(downtimeChips()).toEqual(["Offline"]);
+
     // Hidden: the switch that shows it is off.
     expect(switchFor("hidePoweredByOneUptimeBranding")).toHaveAttribute(
       "aria-checked",
@@ -475,10 +730,13 @@ describe("reading the status page", () => {
   });
 
   test("a page with no value for a setting shows the model's default for it", async () => {
-    stored = {};
+    stored = { showOverallUptimePercentOnStatusPage: true };
 
     await renderCard();
     await loaded();
+
+    // Two decimals: the precision's own default.
+    expect(shownPrecision()).toBe("99.99%");
 
     for (const column of LIST_SWITCHES) {
       expect(switchFor(column)).toHaveAttribute("aria-checked", "true");
@@ -494,6 +752,16 @@ describe("reading the status page", () => {
       "aria-checked",
       "true",
     );
+  });
+
+  test("a page with no value for any setting shows the overall uptime percentage off, the default", async () => {
+    stored = {};
+
+    await renderCard();
+    await loaded();
+
+    expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "false");
+    expect(queryChoiceRowFor(PRECISION)).toBeNull();
   });
 
   test("a page that is not there says so, with nothing to change", async () => {
@@ -1148,8 +1416,10 @@ describe("how many days", () => {
       daysFor("showUptimeHistoryInDays").getAttribute("aria-describedby"),
     ).toBe(description.id);
 
-    // No switch: the uptime bars are always there.
-    expect(within(section).queryByRole("switch")).toBeNull();
+    // No switch of its own, the uptime bars are always there: only the overall %.
+    expect(within(section).getAllByRole("switch")).toEqual([
+      switchFor(OVERALL),
+    ]);
   });
 
   test("is locked while it saves, then says Saved", async () => {
@@ -1228,6 +1498,625 @@ describe("how many days", () => {
   });
 });
 
+describe("the overall uptime percentage", () => {
+  test("sits in the uptime row, under the number of days, saying what visitors see", async () => {
+    await renderCard();
+    await loaded();
+
+    const section: HTMLElement = screen.getByTestId(
+      getDisplaySectionTestId("uptime-history"),
+    );
+
+    expect(within(section).getByRole("switch", { name: "Show Overall Uptime Percent" })).toBe(
+      switchFor(OVERALL),
+    );
+    expect(
+      within(switchRowFor(OVERALL)).getByText(
+        StatusPageDisplaySettingsCopy.overallUptimeDescription,
+      ),
+    ).toBeInTheDocument();
+
+    // The days first, then the switch.
+    const days: HTMLElement = daysFor("showUptimeHistoryInDays");
+
+    expect(
+      days.compareDocumentPosition(switchFor(OVERALL)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("off, as a new page has it, offers no precision: the precision is of that percentage alone", async () => {
+    await renderCard();
+    await loaded();
+
+    expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "false");
+    expect(queryChoiceRowFor(PRECISION)).toBeNull();
+  });
+
+  test("turning it on saves the switch alone, and offers the precision the page has", async () => {
+    await renderCard();
+    await loaded();
+
+    await press(OVERALL);
+
+    await waitFor(() => {
+      expect(choiceRowFor(PRECISION)).toBeInTheDocument();
+    });
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(lastUpdate()["data"]).toEqual({
+      showOverallUptimePercentOnStatusPage: true,
+    });
+    expect(shownPrecision()).toBe("99.99%");
+    expect(
+      screen.getByRole("combobox", {
+        name: StatusPageDisplaySettingsCopy.precisionLabel,
+      }),
+    ).toBe(precisionBox());
+  });
+
+  test("turning it off takes the precision away, and saves the switch alone", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    await renderCard();
+    await loaded();
+
+    expect(choiceRowFor(PRECISION)).toBeInTheDocument();
+
+    await press(OVERALL);
+
+    await waitFor(() => {
+      expect(queryChoiceRowFor(PRECISION)).toBeNull();
+    });
+    expect(lastUpdate()["data"]).toEqual({
+      showOverallUptimePercentOnStatusPage: false,
+    });
+  });
+
+  test("offers every precision, fewest decimals first, each as a visitor would read it", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    await renderCard();
+    await loaded();
+
+    expect(offeredBy(precisionBox())).toEqual([
+      "99%",
+      "99.9%",
+      "99.99%",
+      "99.999%",
+    ]);
+  });
+
+  test.each([
+    [UptimePrecision.NO_DECIMAL, "99%"],
+    [UptimePrecision.ONE_DECIMAL, "99.9%"],
+    [UptimePrecision.TWO_DECIMAL, "99.99%"],
+    [UptimePrecision.THREE_DECIMAL, "99.999%"],
+  ])("a page stored with %s shows %s", async (value: string, shown: string) => {
+    stored = {
+      ...NEW_PAGE,
+      showOverallUptimePercentOnStatusPage: true,
+      overallUptimePercentPrecision: value,
+    };
+
+    await renderCard();
+    await loaded();
+
+    expect(shownPrecision()).toBe(shown);
+  });
+
+  test("a precision the list does not know is shown as it is stored", async () => {
+    stored = {
+      ...NEW_PAGE,
+      showOverallUptimePercentOnStatusPage: true,
+      overallUptimePercentPrecision: "Five Decimal",
+    };
+
+    await renderCard();
+    await loaded();
+
+    expect(shownPrecision()).toBe("Five Decimal");
+    expect(offeredBy(precisionBox())).toEqual([
+      "99%",
+      "99.9%",
+      "99.99%",
+      "99.999%",
+      "Five Decimal",
+    ]);
+  });
+
+  test("picking a precision saves that column alone, at once, and says so", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    await renderCard();
+    await loaded();
+
+    await pickFrom(precisionBox(), "99.9%");
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+
+    const request: Record<string, unknown> = lastUpdate();
+
+    expect(request["modelType"]).toBe(StatusPage);
+    expect((request["id"] as ObjectID).toString()).toBe(STATUS_PAGE_ID);
+    expect(request["data"]).toEqual({
+      overallUptimePercentPrecision: UptimePrecision.ONE_DECIMAL,
+    });
+    expect(shownPrecision()).toBe("99.9%");
+    expect(
+      screen.getByTestId(`${getDisplayChoiceTestId(PRECISION)}-status`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.saved);
+
+    // No dialog, no Save button.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("button", { name: /save/i })).toBeNull();
+  });
+
+  test("picking what the page has saves nothing", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    await renderCard();
+    await loaded();
+
+    await pickFrom(precisionBox(), "99.99%");
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId(`${getDisplayChoiceTestId(PRECISION)}-status`),
+    ).toHaveTextContent("");
+  });
+
+  test("says Saving… while the pick is on its way, and stays usable, so a second pick is saved after it and the last one wins", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    const finishers: Array<() => void> = [];
+
+    updateByIdMock.mockImplementation((): Promise<unknown> => {
+      return new Promise<unknown>((resolve: (value: unknown) => void) => {
+        finishers.push((): void => {
+          resolve({});
+        });
+      });
+    });
+
+    await renderCard();
+    await loaded();
+
+    await pickFrom(precisionBox(), "99%");
+
+    expect(
+      screen.getByTestId(`${getDisplayChoiceTestId(PRECISION)}-status`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.saving);
+    expect(precisionBox()).not.toBeDisabled();
+
+    await pickFrom(precisionBox(), "99.9%");
+    await pickFrom(precisionBox(), "99.999%");
+
+    // One request at a time.
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(shownPrecision()).toBe("99.999%");
+
+    await act(async () => {
+      finishers[0]!();
+    });
+    await flush();
+
+    // Only the last waiting pick is sent.
+    expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    expect(lastUpdate()["data"]).toEqual({
+      overallUptimePercentPrecision: UptimePrecision.THREE_DECIMAL,
+    });
+
+    await act(async () => {
+      finishers[1]!();
+    });
+    await flush();
+
+    expect(shownPrecision()).toBe("99.999%");
+    expect(
+      screen.getByTestId(`${getDisplayChoiceTestId(PRECISION)}-status`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.saved);
+    expect(updateByIdMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a refused pick goes back to the page's precision, with the reason", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error(
+        "You do not have permission to update this Status Page.",
+      );
+    });
+
+    await renderCard();
+    await loaded();
+
+    await pickFrom(precisionBox(), "99%");
+
+    const error: HTMLElement = screen.getByTestId(
+      `${getDisplayChoiceTestId(PRECISION)}-error`,
+    );
+
+    expect(error).toHaveAttribute("role", "alert");
+    expect(error).toHaveTextContent(
+      "You do not have permission to update this Status Page.",
+    );
+    expect(shownPrecision()).toBe("99.99%");
+
+    // A new pick clears it.
+    updateByIdMock.mockResolvedValue({} as never);
+    await pickFrom(precisionBox(), "99.9%");
+
+    expect(
+      screen.queryByTestId(`${getDisplayChoiceTestId(PRECISION)}-error`),
+    ).toBeNull();
+    expect(shownPrecision()).toBe("99.9%");
+  });
+
+  test("turned off and on again, the precision is as last saved, not as first read", async () => {
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    await renderCard();
+    await loaded();
+
+    await pickFrom(precisionBox(), "99%");
+    expect(lastUpdate()["data"]).toEqual({
+      overallUptimePercentPrecision: UptimePrecision.NO_DECIMAL,
+    });
+
+    await press(OVERALL);
+    await waitFor(() => {
+      expect(queryChoiceRowFor(PRECISION)).toBeNull();
+    });
+    await waitFor(() => {
+      expect(switchFor(OVERALL)).not.toHaveAttribute("aria-disabled", "true");
+    });
+
+    await press(OVERALL);
+
+    await waitFor(() => {
+      expect(shownPrecision()).toBe("99%");
+    });
+  });
+
+  test("a refused attempt to turn it on (it needs the Scale plan) offers no precision", async () => {
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error(
+        "Please upgrade your plan to Scale to access this feature",
+      );
+    });
+
+    await renderCard();
+    await loaded();
+
+    await press(OVERALL);
+
+    await waitFor(() => {
+      expect(
+        within(switchRowFor(OVERALL)).getByRole("alert"),
+      ).toHaveTextContent(
+        "Please upgrade your plan to Scale to access this feature",
+      );
+    });
+    expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "false");
+    expect(queryChoiceRowFor(PRECISION)).toBeNull();
+  });
+
+  /*
+   * The bug this row fixes: the precision shared an Edit dialog with the
+   * switch, the dialog sent both, and the server refuses a write that
+   * carries the Scale plan's switch on a lower plan - so a page whose
+   * overall percentage was on (turned on on Scale, or by the API) could not
+   * have its precision changed at all.
+   */
+  test("on a plan below Scale, the switch names Scale, and the precision still saves, on its own", async () => {
+    plan = PlanType.Growth;
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
+
+    getJestSpyOn(
+      SubscriptionPlan,
+      "isFeatureAccessibleOnCurrentPlan",
+    ).mockImplementation((needed: unknown): boolean => {
+      return needed === PlanType.Free || needed === PlanType.Growth;
+    });
+
+    await renderCard();
+    await loaded();
+
+    expect(
+      within(switchRowFor(OVERALL)).getByTestId("pill"),
+    ).toHaveTextContent("Scale Plan");
+    expect(
+      within(choiceRowFor(PRECISION)).queryByTestId("pill"),
+    ).not.toBeInTheDocument();
+
+    await pickFrom(precisionBox(), "99.999%");
+
+    expect(updatesOf(PRECISION)).toEqual([
+      { overallUptimePercentPrecision: UptimePrecision.THREE_DECIMAL },
+    ]);
+    expect(updatesOf(OVERALL)).toEqual([]);
+  });
+});
+
+describe("what counts as downtime", () => {
+  test("is in the uptime row, last, named for what it does, saying what it does", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    const section: HTMLElement = screen.getByTestId(
+      getDisplaySectionTestId("uptime-history"),
+    );
+
+    expect(within(section).getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-row`)).toBe(
+      statusesRowFor(DOWNTIME),
+    );
+    expect(
+      screen.getByRole("combobox", {
+        name: StatusPageDisplaySettingsCopy.downtimeLabel,
+      }),
+    ).toBe(downtimeBox());
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-description`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.downtimeDescription);
+
+    // After the overall uptime percentage.
+    expect(
+      switchFor(OVERALL).compareDocumentPosition(downtimeBox()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("shows the page's statuses as chips, each in its own colour", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    expect(downtimeChips()).toEqual(["Degraded", "Offline"]);
+
+    const dots: Array<string | null> = Array.from(
+      statusesRowFor(DOWNTIME).querySelectorAll(
+        ".ou-select__multi-value__label [title]",
+      ),
+    ).map((dot: Element): string | null => {
+      return dot.getAttribute("title");
+    });
+
+    expect(dots).toEqual(["#eab308", "#ef4444"]);
+  });
+
+  test("offers the project's other statuses, in priority order", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    // The picked ones are chips already.
+    expect(offeredBy(downtimeBox())).toEqual([
+      "Operational",
+      "Under Maintenance",
+    ]);
+  });
+
+  test("adding a status saves the statuses alone, by id, at once, and says so", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    await pickFrom(downtimeBox(), "Under Maintenance");
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+
+    const request: Record<string, unknown> = lastUpdate();
+
+    expect(request["modelType"]).toBe(StatusPage);
+    expect((request["id"] as ObjectID).toString()).toBe(STATUS_PAGE_ID);
+    expect(request["data"]).toEqual({
+      downtimeMonitorStatuses: [DEGRADED_ID, OFFLINE_ID, MAINTENANCE_ID],
+    });
+    expect(downtimeChips()).toEqual([
+      "Degraded",
+      "Offline",
+      "Under Maintenance",
+    ]);
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-status`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.saved);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("taking a status off saves the rest", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    await removeChip("Degraded");
+
+    expect(lastUpdate()["data"]).toEqual({
+      downtimeMonitorStatuses: [OFFLINE_ID],
+    });
+    expect(downtimeChips()).toEqual(["Offline"]);
+  });
+
+  test("the last status cannot be taken off: nothing is sent, the chip stays, and the row says why", async () => {
+    storedStatuses = statusesNamed("Offline");
+
+    await renderCard();
+    await loaded();
+    await flush();
+
+    await removeChip("Offline");
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(downtimeChips()).toEqual(["Offline"]);
+
+    const error: HTMLElement = screen.getByTestId(
+      `${getDisplayStatusesTestId(DOWNTIME)}-error`,
+    );
+
+    expect(error).toHaveAttribute("role", "alert");
+    expect(error).toHaveTextContent(
+      StatusPageDisplaySettingsCopy.downtimeKeepOne,
+    );
+
+    // Adding one clears it and saves.
+    await pickFrom(downtimeBox(), "Degraded");
+
+    expect(
+      screen.queryByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-error`),
+    ).toBeNull();
+    expect(lastUpdate()["data"]).toEqual({
+      downtimeMonitorStatuses: [OFFLINE_ID, DEGRADED_ID],
+    });
+  });
+
+  test("has no clear-all control: the list always keeps a status", async () => {
+    await renderCard();
+    await loaded();
+    await flush();
+
+    expect(
+      statusesRowFor(DOWNTIME).querySelector(".ou-select__clear-indicator"),
+    ).toBeNull();
+  });
+
+  test("a refused change puts back the page's statuses, with the reason", async () => {
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error("Monitor status not found.");
+    });
+
+    await renderCard();
+    await loaded();
+    await flush();
+
+    await pickFrom(downtimeBox(), "Operational");
+
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-error`),
+    ).toHaveTextContent("Monitor status not found.");
+    expect(downtimeChips()).toEqual(["Degraded", "Offline"]);
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-status`),
+    ).toHaveTextContent("");
+  });
+
+  test("is never locked while it saves: a change made meanwhile is saved after it, and the last one wins", async () => {
+    const finishers: Array<() => void> = [];
+
+    updateByIdMock.mockImplementation((): Promise<unknown> => {
+      return new Promise<unknown>((resolve: (value: unknown) => void) => {
+        finishers.push((): void => {
+          resolve({});
+        });
+      });
+    });
+
+    await renderCard();
+    await loaded();
+    await flush();
+
+    await pickFrom(downtimeBox(), "Under Maintenance");
+
+    expect(downtimeBox()).not.toBeDisabled();
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-status`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.saving);
+
+    await removeChip("Degraded");
+    await pickFrom(downtimeBox(), "Operational");
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(downtimeChips()).toEqual([
+      "Offline",
+      "Under Maintenance",
+      "Operational",
+    ]);
+
+    await act(async () => {
+      finishers[0]!();
+    });
+    await flush();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    expect(lastUpdate()["data"]).toEqual({
+      downtimeMonitorStatuses: [OFFLINE_ID, MAINTENANCE_ID, OPERATIONAL_ID],
+    });
+
+    await act(async () => {
+      finishers[1]!();
+    });
+    await flush();
+
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-status`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.saved);
+  });
+
+  test("a page with none (only the API leaves a page so) says every uptime percentage reads 100%, and a pick saves", async () => {
+    storedStatuses = [];
+
+    await renderCard();
+    await loaded();
+    await flush();
+
+    expect(downtimeChips()).toEqual([]);
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-description`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.downtimeEmptyDescription);
+    expect(statusesRowFor(DOWNTIME)).toHaveTextContent(
+      StatusPageDisplaySettingsCopy.downtimePlaceholder,
+    );
+
+    await pickFrom(downtimeBox(), "Offline");
+
+    expect(lastUpdate()["data"]).toEqual({
+      downtimeMonitorStatuses: [OFFLINE_ID],
+    });
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-description`),
+    ).toHaveTextContent(StatusPageDisplaySettingsCopy.downtimeDescription);
+  });
+
+  test("when the project's statuses cannot be read it says why, and the page's chips still show", async () => {
+    projectStatuses = new Error("The server is down for maintenance.");
+
+    await renderCard();
+    await loaded();
+    await flush();
+
+    expect(
+      screen.getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-load-error`),
+    ).toHaveTextContent("The server is down for maintenance.");
+    expect(downtimeChips()).toEqual(["Degraded", "Offline"]);
+
+    // The rest of the card is untouched.
+    expect(switchFor("showIncidentsOnStatusPage")).toBeInTheDocument();
+  });
+
+  test("a status the project's list leaves out stays a chip of its own, and can be taken off", async () => {
+    const retired: MonitorStatus = monitorStatus({
+      id: "6c6c6c6c-0000-4000-8000-000000000009",
+      name: "Retired",
+      color: "#000000",
+      priority: 9,
+    });
+
+    storedStatuses = [...statusesNamed("Offline"), retired];
+
+    await renderCard();
+    await loaded();
+    await flush();
+
+    expect(downtimeChips()).toEqual(["Offline", "Retired"]);
+
+    await removeChip("Retired");
+
+    expect(lastUpdate()["data"]).toEqual({
+      downtimeMonitorStatuses: [OFFLINE_ID],
+    });
+  });
+});
+
 describe("who may change them", () => {
   test("the gate is asked about updating a status page", async () => {
     await renderCard();
@@ -1250,6 +2139,7 @@ describe("who may change them", () => {
       isAllowed: false,
       disabledReason: "You do not have permission to update this Status Page.",
     };
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
 
     await renderCard();
     await loaded();
@@ -1264,6 +2154,14 @@ describe("who may change them", () => {
     for (const definition of DISPLAY_DAYS) {
       expect(daysFor(definition.column)).toHaveAttribute("readonly");
     }
+
+    // The precision and the downtime statuses too, still showing their values.
+    expect(precisionBox()).toBeDisabled();
+    expect(shownPrecision()).toBe("99.99%");
+    expect(downtimeBox()).toBeDisabled();
+    expect(downtimeChips()).toEqual(["Degraded", "Offline"]);
+    expect(offeredBy(precisionBox())).toEqual([]);
+    expect(offeredBy(downtimeBox())).toEqual([]);
 
     expect(
       screen.getAllByText(
@@ -1299,6 +2197,8 @@ describe("plans", () => {
 
   test("on the Free plan, each setting the Free plan cannot change names the plan it needs, beside it", async () => {
     plan = PlanType.Free;
+    // On, so its precision is drawn too.
+    stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
 
     getJestSpyOn(
       SubscriptionPlan,
@@ -1316,6 +2216,22 @@ describe("plans", () => {
     const rowOf: (column: DisplaySettingColumn) => HTMLElement = (
       column: DisplaySettingColumn,
     ): HTMLElement => {
+      if (
+        DISPLAY_CHOICES.some((definition: { column: string }) => {
+          return definition.column === column;
+        })
+      ) {
+        return choiceRowFor(column as DisplayChoiceColumn);
+      }
+
+      if (
+        DISPLAY_STATUSES.some((definition: { column: string }) => {
+          return definition.column === column;
+        })
+      ) {
+        return statusesRowFor(column as DisplayStatusesColumn);
+      }
+
       return DISPLAY_DAYS.some((definition: DisplayDaysDefinition) => {
         return definition.column === column;
       })
@@ -1340,6 +2256,20 @@ describe("plans", () => {
         `${needed} Plan`,
       );
     }
+
+    /*
+     * The overall uptime percentage needs Scale to be switched; its
+     * precision and the downtime statuses, every plan.
+     */
+    expect(
+      within(switchRowFor(OVERALL)).getByTestId("pill"),
+    ).toHaveTextContent("Scale Plan");
+    expect(
+      within(choiceRowFor(PRECISION)).queryByTestId("pill"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(statusesRowFor(DOWNTIME)).queryByTestId("pill"),
+    ).not.toBeInTheDocument();
 
     /*
      * As the model has it today: the four lists, their labels and how far
@@ -1403,6 +2333,13 @@ describe("plans", () => {
     await press("onlyShowScopedIncidents");
     await waitFor(() => {
       expect(lastUpdate()["data"]).toEqual({ onlyShowScopedIncidents: true });
+    });
+
+    await pickFrom(downtimeBox(), "Under Maintenance");
+    await waitFor(() => {
+      expect(lastUpdate()["data"]).toEqual({
+        downtimeMonitorStatuses: [DEGRADED_ID, OFFLINE_ID, MAINTENANCE_ID],
+      });
     });
 
     // Each request carried its own column alone.

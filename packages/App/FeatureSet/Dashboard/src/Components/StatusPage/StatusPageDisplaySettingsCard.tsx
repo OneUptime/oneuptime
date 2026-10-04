@@ -1,3 +1,4 @@
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -16,34 +17,46 @@ import React, {
 } from "react";
 import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
+  DISPLAY_STATUSES,
+  DISPLAY_VALUE_COLUMNS,
+  DisplayChoiceDefinition,
   DisplayDaysDefinition,
   DisplayOptionDefinition,
   DisplaySectionDefinition,
   DisplaySectionId,
-  DisplaySettingColumn,
+  DisplayStatusesDefinition,
+  DisplaySwitchColumn,
   DisplaySwitchDefinition,
+  DisplayValueColumn,
+  getDisplayChoiceTestId,
   getDisplayDaysTestId,
   getDisplaySectionTestId,
   getDisplaySettingDefault,
   getDisplaySettingsSelect,
+  getDisplayStatusesTestId,
   getDisplaySwitchDescription,
   getDisplaySwitchTestId,
 } from "./StatusPageDisplaySettingsCopy";
+import StatusPageChoiceSetting from "./StatusPageChoiceSetting";
 import StatusPageDaysSetting from "./StatusPageDaysSetting";
+import StatusPageDowntimeStatusesSetting from "./StatusPageDowntimeStatusesSetting";
 import StatusPageSwitchRow from "./StatusPageSwitchRow";
 
 /*
  * "What your status page shows", on Advanced -> Advanced Settings: one row
  * per thing the page can show (incidents, episodes, announcements,
- * scheduled maintenance, uptime history, the "Powered by OneUptime" line),
- * each with its switch, how far back it goes and its labels switch. Every
- * control saves its own column at once; see StatusPageDisplaySettingsCopy
- * for what each one does and why it is drawn this way.
+ * scheduled maintenance, its uptime, the "Powered by OneUptime" line), each
+ * with its switch, how far back it goes and its labels switch - and for the
+ * uptime, the overall uptime percentage with its precision, and which
+ * monitor statuses count as downtime. Every control saves its own column at
+ * once; see StatusPageDisplaySettingsCopy for what each one does and why it
+ * is drawn this way.
  *
  * The page is read once, for the card's columns only. While a list is
  * switched off its history and labels are not offered (they change nothing
- * then). When it is switched on again they come back as last saved: the
- * card keeps what each control saved, rather than what it first read.
+ * then), and while the overall uptime percentage is off, neither is its
+ * precision. When they are switched on again those come back as last saved:
+ * the card keeps what each control saved, rather than what it first read.
  */
 
 export interface ComponentProps {
@@ -53,19 +66,24 @@ export interface ComponentProps {
 export const STATUS_PAGE_DISPLAY_SETTINGS_CARD_TEST_ID: string =
   "status-page-display-settings";
 
-type StoredValues = Partial<Record<DisplaySettingColumn, boolean | number>>;
+type StoredValue = boolean | number | string;
+
+// One empty list for every render, so a row given it sees no change.
+const NO_STATUSES: Array<MonitorStatus> = [];
+
+type StoredValues = Partial<Record<DisplayValueColumn, StoredValue>>;
 
 // The column as the page holds it, its default when it holds nothing.
 const getStoredValue: (
   values: StoredValues,
-  column: DisplaySettingColumn,
-) => boolean | number = (
+  column: DisplayValueColumn,
+) => StoredValue = (
   values: StoredValues,
-  column: DisplaySettingColumn,
-): boolean | number => {
-  const value: boolean | number | undefined = values[column];
+  column: DisplayValueColumn,
+): StoredValue => {
+  const value: StoredValue | undefined = values[column];
 
-  if (value === undefined || value === null) {
+  if (value === undefined || value === null || value === "") {
     return getDisplaySettingDefault(column);
   }
 
@@ -91,9 +109,17 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const descriptionIdPrefix: string = `display-section-${useId()}`;
   const [values, setValues] = useState<StoredValues | null>(null);
+  // The statuses each list of statuses holds, with their names and colours.
+  const [statuses, setStatuses] = useState<
+    Partial<Record<string, Array<MonitorStatus>>>
+  >({});
   // Which sections' switches are on right now, as they are pressed.
   const [shownSections, setShownSections] = useState<
     Partial<Record<DisplaySectionId, boolean>>
+  >({});
+  // Which switches with a pick under them are on right now, as they are pressed.
+  const [shownChoices, setShownChoices] = useState<
+    Partial<Record<DisplaySwitchColumn, boolean>>
   >({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -110,26 +136,39 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
       });
 
       if (item) {
+        const record: Record<string, unknown> = item as unknown as Record<
+          string,
+          unknown
+        >;
+
         const read: StoredValues = {};
 
-        for (const section of DISPLAY_SECTIONS) {
-          for (const definition of [
-            ...(section.show ? [section.show] : []),
-            ...section.options,
-            ...(section.days ? [section.days] : []),
-          ]) {
-            const value: unknown = (item as unknown as Record<string, unknown>)[
-              definition.column
-            ];
+        for (const column of DISPLAY_VALUE_COLUMNS) {
+          const value: unknown = record[column];
 
-            if (typeof value === "boolean" || typeof value === "number") {
-              read[definition.column] = value;
-            }
+          if (
+            typeof value === "boolean" ||
+            typeof value === "number" ||
+            typeof value === "string"
+          ) {
+            read[column] = value;
           }
         }
 
+        const readStatuses: Partial<Record<string, Array<MonitorStatus>>> = {};
+
+        for (const definition of DISPLAY_STATUSES) {
+          const value: unknown = record[definition.column];
+
+          readStatuses[definition.column] = Array.isArray(value)
+            ? (value as Array<MonitorStatus>)
+            : [];
+        }
+
         setValues(read);
+        setStatuses(readStatuses);
         setShownSections({});
+        setShownChoices({});
       } else {
         setError(
           translator.translateText(StatusPageDisplaySettingsCopy.notFound) ||
@@ -147,10 +186,10 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
     void fetchStatusPage();
   }, [props.statusPageId.toString()]);
 
-  const remember: (
-    column: DisplaySettingColumn,
-    value: boolean | number,
-  ) => void = (column: DisplaySettingColumn, value: boolean | number): void => {
+  const remember: (column: DisplayValueColumn, value: StoredValue) => void = (
+    column: DisplayValueColumn,
+    value: StoredValue,
+  ): void => {
     setValues((current: StoredValues | null): StoredValues => {
       return { ...(current || {}), [column]: value };
     });
@@ -206,6 +245,84 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
         }}
         dataTestId={getDisplayDaysTestId(definition.column)}
       />
+    );
+  };
+
+  const renderChoice: (
+    stored: StoredValues,
+    definition: DisplayChoiceDefinition,
+  ) => ReactElement = (
+    stored: StoredValues,
+    definition: DisplayChoiceDefinition,
+  ): ReactElement => {
+    return (
+      <StatusPageChoiceSetting
+        statusPageId={props.statusPageId}
+        definition={definition}
+        initialValue={String(getStoredValue(stored, definition.column))}
+        onSaved={(value: string): void => {
+          remember(definition.column, value);
+        }}
+        dataTestId={getDisplayChoiceTestId(definition.column)}
+      />
+    );
+  };
+
+  const renderStatuses: (definition: DisplayStatusesDefinition) => ReactElement =
+    (definition: DisplayStatusesDefinition): ReactElement => {
+      return (
+        <StatusPageDowntimeStatusesSetting
+          statusPageId={props.statusPageId}
+          definition={definition}
+          initialStatuses={statuses[definition.column] || NO_STATUSES}
+          onSaved={(saved: Array<MonitorStatus>): void => {
+            setStatuses(
+              (
+                current: Partial<Record<string, Array<MonitorStatus>>>,
+              ): Partial<Record<string, Array<MonitorStatus>>> => {
+                return { ...current, [definition.column]: saved };
+              },
+            );
+          }}
+          dataTestId={getDisplayStatusesTestId(definition.column)}
+        />
+      );
+    };
+
+  const renderOption: (
+    stored: StoredValues,
+    option: DisplayOptionDefinition,
+  ) => ReactElement = (
+    stored: StoredValues,
+    option: DisplayOptionDefinition,
+  ): ReactElement => {
+    const choice: DisplayChoiceDefinition | undefined = option.choiceWhileOn;
+
+    if (!choice) {
+      return renderSwitch(stored, option);
+    }
+
+    const isOn: boolean =
+      shownChoices[option.column] ?? isSwitchOn(stored, option);
+
+    return (
+      <>
+        {renderSwitch(stored, option, (nowOn: boolean): void => {
+          setShownChoices(
+            (
+              current: Partial<Record<DisplaySwitchColumn, boolean>>,
+            ): Partial<Record<DisplaySwitchColumn, boolean>> => {
+              return { ...current, [option.column]: nowOn };
+            },
+          );
+        })}
+        {isOn ? (
+          // Under the switch's name: a switch is 44px wide, 12px from it.
+          <div className="mt-2 pl-14">{renderChoice(stored, choice)}</div>
+        ) : (
+          <></>
+        )}
+      </>
     );
   };
 
@@ -283,10 +400,16 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
         {options.map((option: DisplayOptionDefinition): ReactElement => {
           return (
             <div className="mt-3 pl-14" key={option.column}>
-              {renderSwitch(stored, option)}
+              {renderOption(stored, option)}
             </div>
           );
         })}
+
+        {section.statuses && isShown ? (
+          <div className="mt-4 pl-14">{renderStatuses(section.statuses)}</div>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
