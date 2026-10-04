@@ -16,8 +16,13 @@ import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
 import BooleanValue from "./BooleanValue";
-import DetailIdLine from "./DetailIdLine";
+import DetailRecordLine from "./DetailRecordLine";
 import { getRecordIdText, isRecordIdField } from "./DetailRecordId";
+import {
+  getRecordTimes,
+  isRecordTimeField,
+  RecordTime,
+} from "./DetailRecordTime";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
@@ -48,6 +53,14 @@ export interface ComponentProps<T extends GenericObject> {
   id?: string | undefined;
   showDetailsInNumberOfColumns?: number | undefined;
   style?: DetailStyle | undefined;
+  /*
+   * The item is a record (the default): its own ID, and when it was created
+   * and last updated, go on the small line under the fields rather than in
+   * the grid. False for values that are not a record's own columns - a
+   * record's custom fields, which people name, and could name "createdAt" -
+   * so every field is drawn as the field it is.
+   */
+  showRecordLine?: boolean | undefined;
 }
 
 type DetailFunction = <T extends GenericObject>(
@@ -1015,24 +1028,44 @@ const Detail: DetailFunction = <T extends GenericObject>(
     },
   );
 
+  const showRecordLine: boolean = props.showRecordLine !== false;
+
+  type IsRecordLineFieldFunction = (field: Field<T>) => boolean;
+
   /*
    * The record's own ID is not one of the fields: it goes on one small line
-   * under them, with a copy button (DetailRecordId.ts says why). A card that
-   * declared it twice still gets one line.
+   * under them, with a copy button (DetailRecordId.ts says why). So do when
+   * the record was created and last updated, after the ID
+   * (DetailRecordTime.ts). A card that declared one twice still says it once.
    */
-  const recordIdField: Field<T> | undefined = shownFields.find(
-    (field: Field<T>) => {
-      return isRecordIdField(field);
-    },
-  );
+  const isRecordLineField: IsRecordLineFieldFunction = (
+    field: Field<T>,
+  ): boolean => {
+    return (
+      showRecordLine && (isRecordIdField(field) || isRecordTimeField(field))
+    );
+  };
+
+  const recordIdField: Field<T> | undefined = showRecordLine
+    ? shownFields.find((field: Field<T>) => {
+        return isRecordIdField(field);
+      })
+    : undefined;
 
   const recordId: string =
     recordIdField && props.item
       ? getRecordIdText(getNestedValue(props.item, String(recordIdField.key)))
       : "";
 
+  const recordTimes: Array<RecordTime> =
+    showRecordLine && props.item
+      ? getRecordTimes(shownFields, (field: Field<T>): unknown => {
+          return getNestedValue(props.item, String(field.key));
+        })
+      : [];
+
   const gridFields: Array<Field<T>> = shownFields.filter((field: Field<T>) => {
-    return !isRecordIdField(field);
+    return !isRecordLineField(field);
   });
 
   const gridClassName: string = `grid grid-cols-1 ${gapClasses} sm:grid-cols-${
@@ -1045,7 +1078,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     },
   );
 
-  if (!recordId) {
+  if (!recordId && recordTimes.length === 0) {
     return (
       /*
        * The id names this detail, so it belongs to the element that holds all
@@ -1062,13 +1095,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
   }
 
   /*
-   * With an ID line the detail is the fields and the line under them, so the
-   * id moves to the element that holds both. The grid inside keeps its own
-   * classes, and its rows their first/last trims; the line draws the one
+   * With a record line the detail is the fields and the line under them, so
+   * the id moves to the element that holds both. The grid inside keeps its
+   * own classes, and its rows their first/last trims; the line draws the one
    * divider above it, in the rhythm of the rows: the compact style's rows
    * are py-3 apart, the others' wider.
    */
-  const idLineClassName: string =
+  const recordLineClassName: string =
     gridFields.length === 0
       ? ""
       : styleType === DetailStyle.Compact
@@ -1082,7 +1115,11 @@ const Detail: DetailFunction = <T extends GenericObject>(
       ) : (
         <></>
       )}
-      <DetailIdLine recordId={recordId} className={idLineClassName} />
+      <DetailRecordLine
+        recordId={recordId}
+        times={recordTimes}
+        className={recordLineClassName}
+      />
     </div>
   );
 };

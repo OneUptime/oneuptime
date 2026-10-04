@@ -731,6 +731,82 @@ test.describe("probe checks", () => {
     await screenshot(page, "monitor-overview-desktop");
   });
 
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't take
+   * space up top." The Details card used to end with a Created row - a
+   * label, a clock and the date - above the ID line. When the monitor was
+   * created is on that line now, after the ID.
+   */
+  test("the Details card says when the monitor was created on its ID line, not in a row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    const details: Locator = card(sideColumn(page), "Details");
+    const labels: Array<string> = (
+      await details.locator("label").allInnerTexts()
+    )
+      .map((text: string): string => {
+        return text.trim();
+      })
+      .filter((text: string): boolean => {
+        return text.length > 0;
+      });
+
+    expect(labels).toEqual(["Name", "Description", "Labels", "Monitor Type"]);
+
+    const recordLine: Locator = details.getByTestId("detail-record-line");
+    const idLine: Locator = recordLine.getByTestId("detail-id-line");
+    const created: Locator = recordLine.getByTestId("detail-created-at");
+    const createdValue: Locator = created.getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(idLine.getByTestId("detail-id-label")).toHaveText("ID");
+    await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+      "Created",
+    );
+    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM GMT");
+    await expect(createdValue).toHaveAttribute(
+      "datetime",
+      "2026-03-02T09:30:00.000Z",
+    );
+
+    // After the ID on its line, or under it, whole, when the column is narrow.
+    const lineBox: Box = await documentBox(recordLine);
+    const idBox: Box = await documentBox(idLine);
+    const createdBox: Box = await documentBox(created);
+    if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+      expect(
+        Math.abs(
+          createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+        ),
+        "Created sits level with the ID",
+      ).toBeLessThanOrEqual(2);
+      expect(createdBox.x, "after the ID").toBeGreaterThan(
+        idBox.x + idBox.width,
+      );
+    } else {
+      expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+        idBox.y + idBox.height - 1,
+      );
+    }
+    await expectAbove(
+      details.locator("label").last(),
+      recordLine,
+      "the line ends the card",
+    );
+
+    // The time to the second, on hover.
+    await createdValue.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Mar 02 2026, 09:30:00 AM GMT",
+    );
+  });
+
   test("offline with open work", async ({ page }: { page: Page }) => {
     await openReady(page, { query: "state=offline" });
     await expectSettled(page);
