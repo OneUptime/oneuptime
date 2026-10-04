@@ -38,12 +38,6 @@ const DELIBERATE_NESTINGS: Record<
   string,
   { nestings: Array<string>; reason: string }
 > = {
-  "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimeline.tsx":
-    {
-      nestings: ["div[role=slider] > button"],
-      reason:
-        "The replay's notice markers are pinned to the slider track at the moment they mark. A screen reader works the slider with its arrow keys, and the same notices are rows in the rail beside the player, selectable there.",
-    },
   "packages/Common/UI/Components/Navbar/NavBarMenuModal.tsx": {
     nestings: ["div[role=option] > Link"],
     reason:
@@ -274,7 +268,13 @@ describe("controls across the project", () => {
     }
   });
 
-  test("the shared pickers this rule was written for stay apart", () => {
+  /*
+   * The ones taken apart when the rule came in: the dropdown's Clear button,
+   * the filter chips' clear "x", the note template list, the monitor criteria
+   * and runbook step headers, and the replay timeline's notice markers. None
+   * may come back as an exception.
+   */
+  test("the controls this rule was written for stay apart", () => {
     const files: Array<string> = [
       "packages/Common/UI/Components/EntityDropdown/EntityDropdown.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipButton.tsx",
@@ -282,7 +282,9 @@ describe("controls across the project", () => {
       "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipValueInput.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDateRange.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/EventNotes/NoteTemplateMenu.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorCriteria.tsx",
       "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimeline.tsx",
     ];
 
     for (const file of files) {
