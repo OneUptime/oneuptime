@@ -244,9 +244,9 @@ describe("Navbar", () => {
       ).toBeNull();
     });
 
-    it("folds every category but the ones it opens on, like the desktop products menu", () => {
+    it("folds every category but the ones it keeps open, like the desktop products menu", () => {
       expect(
-        openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] }),
+        openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] }),
       ).toEqual([
         "home-nav-bar-item:Home",
         "more-monitors:Monitors",
@@ -263,6 +263,45 @@ describe("Navbar", () => {
         "more-hosts",
       );
       expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    });
+
+    it("lists the categories it keeps open under a plain heading that never folds", () => {
+      // What the menu stored when Essentials could still be folded.
+      window.localStorage.setItem(
+        "oneuptime-navbar-product-categories",
+        JSON.stringify({ Essentials: false }),
+      );
+
+      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] });
+
+      const heading: HTMLElement = screen.getByRole("heading", {
+        level: 3,
+        name: "Essentials",
+      });
+      expect(screen.queryByRole("button", { name: "Essentials" })).toBeNull();
+      expect(
+        screen.getByRole("group", { name: "Essentials" }),
+      ).toContainElement(screen.getByRole("link", { name: "Monitors" }));
+      // The same row as a folded line, so the names line up; no chevron.
+      expect(heading.parentElement).toHaveClass(
+        "border",
+        "border-transparent",
+        "px-2",
+        "py-2",
+      );
+      expect(heading.parentElement!.querySelector("svg")).toBeNull();
+      expect(heading).toHaveClass("leading-4", "uppercase");
+
+      fireEvent.click(heading);
+
+      expect(
+        screen.getByRole("link", { name: "Monitors" }),
+      ).toBeInTheDocument();
+      expect(
+        JSON.parse(
+          window.localStorage.getItem("oneuptime-navbar-product-categories")!,
+        ),
+      ).toEqual({ Essentials: false });
     });
   });
 

@@ -10,11 +10,12 @@ export interface DashboardNavigationItems {
   navItems: NavItem[];
   moreMenuItems: MoreMenuItem[];
   /*
-   * The categories the products menu opens on: Essentials. Every other
-   * category starts folded to one line until it is opened, so the menu
-   * opens on the core products rather than on every product at once.
+   * The categories the products menu always shows open: Essentials. They
+   * never fold. Every other category starts folded to one line until it is
+   * opened, so the menu opens on the core products rather than on every
+   * product at once.
    */
-  moreMenuCategoriesOpenByDefault: Array<string>;
+  moreMenuCategoriesAlwaysOpen: Array<string>;
   rightElement: NavItem;
 }
 
@@ -831,14 +832,16 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   ];
 
   /*
-   * The products menu opens on Essentials, the products a problem flows
-   * through (see the top of the list). The rest - observability, AI, code,
-   * resources, every infrastructure platform, dashboards and automation,
-   * settings - are each folded to one line that names what is inside, one
-   * click or a search away. The category of the page the user is on opens by
-   * itself, and what someone opens or folds is remembered on their browser.
+   * The products menu always opens on Essentials, the products a problem
+   * flows through (see the top of the list), and they never fold: the
+   * maintainer asked to "always have Essentials expanded by default". The
+   * rest - observability, AI, code, resources, every infrastructure
+   * platform, dashboards and automation, settings - are each folded to one
+   * line that names what is inside, one click or a search away. The category
+   * of the page the user is on opens by itself, and what someone opens or
+   * folds among those is remembered on their browser.
    */
-  const moreMenuCategoriesOpenByDefault: Array<string> = [essentialsCategory];
+  const moreMenuCategoriesAlwaysOpen: Array<string> = [essentialsCategory];
 
   // Define the right element (User Settings)
   const rightElement: NavItem = {
@@ -854,7 +857,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   return {
     navItems,
     moreMenuItems,
-    moreMenuCategoriesOpenByDefault,
+    moreMenuCategoriesAlwaysOpen,
     rightElement,
   };
 }
