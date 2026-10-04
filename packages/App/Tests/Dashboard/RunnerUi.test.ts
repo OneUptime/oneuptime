@@ -156,8 +156,10 @@ const readLocale: ReadLocaleFunction = (
  * sixteen languages rather than failing anywhere.
  */
 const NEW_STRINGS: Array<string> = [
-  "Here are more details for this Runner.",
-  "Here is more details on the connection status for this Runner.",
+  /*
+   * The Runner Details and Runner Status cards have no description: their
+   * titles say what they hold (CardDescriptionsSayWhatFor).
+   */
   /*
    * The Runner's owners are one Owners card now, people and teams together,
    * in place of an owner-teams and an owner-users table.

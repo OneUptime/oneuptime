@@ -21,7 +21,6 @@ const DashboardView: FunctionComponent<
         name="Dashboard > Dashboard Details"
         cardProps={{
           title: "Dashboard Details",
-          description: "Here are more details for this dashboard.",
         }}
         isEditable={true}
         formFields={[

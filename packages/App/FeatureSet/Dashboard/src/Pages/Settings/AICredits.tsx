@@ -38,7 +38,8 @@ const AIBillingSettings: FunctionComponent<
         name="Current Balance"
         cardProps={{
           title: "Current Balance",
-          description: "Here is your current AI balance for this project.",
+          description:
+            "AI features are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
           buttons: [
             {
               title: "Recharge Balance",

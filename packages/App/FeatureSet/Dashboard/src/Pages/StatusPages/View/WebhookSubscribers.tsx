@@ -410,7 +410,7 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
             cardProps={{
               title: "Webhook Subscribers",
               description:
-                "Here are the list of webhook URLs that have subscribed to the status page.",
+                "URLs that get each of this status page's updates as a JSON POST request, for your own tools. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",

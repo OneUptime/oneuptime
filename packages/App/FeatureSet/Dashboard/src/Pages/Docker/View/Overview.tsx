@@ -1626,7 +1626,6 @@ const DockerHostOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Docker Host Details",
-          description: "Overview of this Docker host.",
           // Edited in one place: the same card on the host's Settings page.
           buttons: [
             <EditInSettingsLink

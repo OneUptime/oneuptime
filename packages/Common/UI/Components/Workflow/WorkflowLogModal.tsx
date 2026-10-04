@@ -130,9 +130,7 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || "Workflow Run"}
-      description={
-        props.description || "Here is what happened when this workflow ran."
-      }
+      description={props.description}
       isLoading={false}
       modalWidth={ModalWidth.Large}
       /*

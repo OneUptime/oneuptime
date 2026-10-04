@@ -248,8 +248,12 @@ describe("MonitorFeedElement refresh", () => {
     expect(
       screen.getByRole("heading", { name: "Monitor Feed" }),
     ).toBeInTheDocument();
+    // The overview's own sentence: one copy, one translation.
     expect(screen.getByTestId("card-description")).toHaveTextContent(
-      "This is the timeline and feed for this monitor.",
+      "Everything that has happened to this monitor, newest first.",
+    );
+    expect(screen.getByTestId("card-description")).not.toHaveTextContent(
+      "This is the timeline and feed",
     );
   });
 

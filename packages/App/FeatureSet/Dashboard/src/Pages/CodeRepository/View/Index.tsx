@@ -21,7 +21,6 @@ const CodeRepositoryView: FunctionComponent<
         name="Repository > Repository Details"
         cardProps={{
           title: "Repository Details",
-          description: "Here are more details for this repository.",
         }}
         /*
          * What the repository is called: its name, description and labels

@@ -526,7 +526,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
         <FieldLabelElement
           title="Exceptions Preview"
           description={
-            "Here is the preview of the exceptions that will be monitored based on the filters you have set above."
+            "The exceptions these filters match, so you can check the filters before you save."
           }
           hideOptionalLabel={true}
           isHeading={true}

@@ -430,7 +430,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             cardProps={{
               title: "Slack Subscribers",
               description:
-                "Here are the list of Slack channels that have subscribed to the status page.",
+                "Slack channels that get this status page's updates. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",

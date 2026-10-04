@@ -39,7 +39,6 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
         name="Trace Drop Filter Details"
         cardProps={{
           title: "Drop Filter Details",
-          description: "Basic information about this drop filter.",
         }}
         isEditable={true}
         formFields={[
