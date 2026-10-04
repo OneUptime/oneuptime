@@ -24,6 +24,7 @@ import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * A PROJECT'S FIRST TWILIO CONFIG BECOMES ITS DEFAULT: the Twilio Config
@@ -687,8 +688,8 @@ describe("Set as Project Default on a row", () => {
     );
 
     const reportsBefore: number = fetchReports;
-    const onComplete: jest.Mock = jest.fn();
-    const onError: jest.Mock = jest.fn();
+    const onComplete: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
 
     // The server takes the default from the config that had it.
     defaultCount = 1;
@@ -725,8 +726,8 @@ describe("Set as Project Default on a row", () => {
     await renderCard();
 
     const reportsBefore: number = fetchReports;
-    const onComplete: jest.Mock = jest.fn();
-    const onError: jest.Mock = jest.fn();
+    const onComplete: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
 
     await act(async (): Promise<void> => {
       // Typed as returning nothing; the table's own action is async.

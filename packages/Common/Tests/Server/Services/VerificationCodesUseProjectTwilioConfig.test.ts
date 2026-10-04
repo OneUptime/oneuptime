@@ -7,8 +7,10 @@ import SmsService from "../../../Server/Services/SmsService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import CallRequest from "../../../Types/Call/CallRequest";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import SMS from "../../../Types/SMS/SMS";
@@ -61,6 +63,16 @@ const PROJECT_TWILIO_CONFIG: TwilioConfig = {
   primaryPhoneNumber: new Phone("+15550001111"),
   secondaryPhoneNumbers: [],
 };
+
+type SmsOptions = Parameters<typeof SmsService.sendSms>[1];
+type CallOptions = Parameters<typeof CallService.makeCall>[1];
+
+// What the notification service answers for a message it has taken.
+const SENT: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+  200,
+  {},
+  {},
+);
 
 interface SentSms {
   sms: SMS;
@@ -132,18 +144,31 @@ beforeEach(() => {
 
   jest
     .spyOn(SmsService, "sendSms")
-    .mockImplementation(async (sms: SMS, options: unknown): Promise<void> => {
-      sentSms.push({ sms, options: options as Record<string, unknown> });
-    });
+    .mockImplementation(
+      async (
+        sms: SMS,
+        options: SmsOptions,
+      ): Promise<HTTPResponse<JSONObject>> => {
+        sentSms.push({
+          sms,
+          options: options as unknown as Record<string, unknown>,
+        });
+        return SENT;
+      },
+    );
 
   jest
     .spyOn(CallService, "makeCall")
     .mockImplementation(
-      async (callRequest: CallRequest, options: unknown): Promise<void> => {
+      async (
+        callRequest: CallRequest,
+        options: CallOptions,
+      ): Promise<HTTPResponse<JSONObject>> => {
         placedCalls.push({
           callRequest,
-          options: options as Record<string, unknown>,
+          options: options as unknown as Record<string, unknown>,
         });
+        return SENT;
       },
     );
 });
