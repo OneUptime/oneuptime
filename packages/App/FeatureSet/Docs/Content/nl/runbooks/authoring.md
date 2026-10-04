@@ -14,7 +14,7 @@ Elke stap heeft:
 | **Goedkeuring vereist**         | Indien aan pauzeert het runbook na deze stap en wacht tot een gebruiker goedkeurt voordat de volgende stap draait. |
 | **Typespecifieke configuratie** | Script, URL, agent, enz. — zie hieronder.                                                                          |
 
-Stappen draaien **op volgorde**. Herorden ze met de pijltjes omhoog/omlaag in de Steps-editor.
+Stappen draaien **op volgorde**. Sleep een stap aan de greep links in de kop om de volgorde te wijzigen; met het toetsenbord focust u de greep, drukt u op Spatie, verplaatst u de stap met de pijltjestoetsen en drukt u nogmaals op Spatie.
 
 ## Staptypes
 

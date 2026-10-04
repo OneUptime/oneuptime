@@ -1579,7 +1579,7 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
      */
     expect(
       rowNamingFor(
-        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01   " },
+        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01  \u0000" },
         FULL_NAMES,
       ),
     ).toEqual({

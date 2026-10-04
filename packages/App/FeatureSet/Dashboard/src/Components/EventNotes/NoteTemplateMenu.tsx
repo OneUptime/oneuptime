@@ -239,15 +239,19 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
             />
           </div>
         )}
-        <ul
-          className="max-h-72 min-h-0 flex-1 overflow-y-auto py-1"
-          role="listbox"
-        >
+        {/*
+         * A plain list of buttons, reached with Tab. It used to call itself a
+         * listbox of options with each button inside an option, which a
+         * screen reader reads as one control holding another: the button was
+         * lost inside the option, and the list promised arrow keys it never
+         * answered to.
+         */}
+        <ul className="max-h-72 min-h-0 flex-1 overflow-y-auto py-1">
           {visibleTemplates.map((template: NoteTemplateOption) => {
             const preview: string = getTemplatePreview(template.note);
 
             return (
-              <li key={template.id} role="option" aria-selected={false}>
+              <li key={template.id}>
                 <button
                   type="button"
                   className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none"
@@ -293,7 +297,6 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         disabled={props.isDisabled}
-        aria-haspopup="listbox"
         aria-expanded={popup.isPopupOpen}
         aria-controls={popup.isPopupOpen ? popup.popupId : undefined}
         data-testid="note-template-menu-button"

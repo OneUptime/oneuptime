@@ -17,6 +17,10 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
+import {
+  describeNestedControls,
+  findNestedControls,
+} from "../../../Helpers/NestedControls";
 
 /*
  * A people picker that takes one pick - an incoming call rule's "Who to
@@ -469,4 +473,47 @@ describe("the same picker taking several picks", () => {
     expect(lastChange()).toEqual({ [PeoplePickerKind.User]: [] });
     expect(screen.getByRole("dialog")).toBeVisible();
   });
+});
+
+/*
+ * The people picker has the shape the dropdown's Clear button and the filter
+ * chips' "x" were taken apart for: chips that each carry a remove button,
+ * beside a button that opens a list of options. No control may be drawn
+ * inside another (a screen reader reads a button, or an option, as one
+ * control and offers nothing inside it).
+ */
+describe("the people picker draws no control inside another", () => {
+  test.each([
+    ["one pick", true],
+    ["several picks", false],
+  ])(
+    "taking %s: with picks, and with its list open",
+    async (_name: string, isSinglePick: boolean) => {
+      const view: ReturnType<typeof render> = render(
+        <Harness
+          isSinglePick={isSinglePick}
+          initial={
+            isSinglePick
+              ? { [PeoplePickerKind.OnCallSchedule]: [PRIMARY] }
+              : {
+                  [PeoplePickerKind.OnCallSchedule]: [PRIMARY],
+                  [PeoplePickerKind.User]: [ADA],
+                }
+          }
+        />,
+      );
+
+      await waitFor(() => {
+        expect(chipNames().length).toBeGreaterThan(0);
+      });
+      expect(
+        describeNestedControls(findNestedControls(view.container)),
+      ).toEqual([]);
+
+      await openList();
+      expect(describeNestedControls(findNestedControls(document.body))).toEqual(
+        [],
+      );
+    },
+  );
 });

@@ -17,13 +17,10 @@ import {
   toFacetDate,
 } from "./FacetDateRange";
 import {
-  FILTER_CHIP_ACTIVE_CLASSES,
-  FILTER_CHIP_BASE_CLASSES,
-  FILTER_CHIP_CLEAR_CLASSES,
-  FILTER_CHIP_INACTIVE_CLASSES,
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
 } from "./FilterChipStyles";
+import FilterChipButton from "./FilterChipButton";
 import {
   translatableTerm,
   Translator,
@@ -122,16 +119,15 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="relative inline-block">
-      <button
-        type="button"
-        onClick={togglePopover}
-        className={`${FILTER_CHIP_BASE_CLASSES} ${
-          isChipActive
-            ? FILTER_CHIP_ACTIVE_CLASSES
-            : FILTER_CHIP_INACTIVE_CLASSES
-        }`}
-        aria-expanded={isComponentVisible}
-        aria-haspopup="dialog"
+      <FilterChipButton
+        isActive={isChipActive}
+        isExpanded={isComponentVisible}
+        popupKind="dialog"
+        onToggle={togglePopover}
+        clearLabel={translator.translateTemplate("Clear {{label}} filter", {
+          label: translatableTerm(props.label),
+        })}
+        onClear={isChipActive || hasAnyDate ? clearChipFully : undefined}
       >
         {isChipActive || hasAnyDate ? (
           <>
@@ -165,28 +161,6 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                     })}
               </span>
             </span>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                clearChipFully();
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  clearChipFully();
-                }
-              }}
-              className={FILTER_CHIP_CLEAR_CLASSES}
-              aria-label={translator.translateTemplate(
-                "Clear {{label}} filter",
-                { label: translatableTerm(props.label) },
-              )}
-            >
-              <Icon icon={IconProp.Close} className="h-3 w-3" />
-            </span>
           </>
         ) : (
           <>
@@ -205,7 +179,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
             />
           </>
         )}
-      </button>
+      </FilterChipButton>
 
       {isComponentVisible && (
         <div

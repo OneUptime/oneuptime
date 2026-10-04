@@ -14,7 +14,7 @@ Varje steg har:
 | **Kräver godkännande**        | Om på pausar runbooket efter detta steg och väntar tills en användare godkänner innan nästa steg körs. |
 | **Typspecifik konfiguration** | Skript, URL, agent, etc. — se nedan.                                                                   |
 
-Steg körs **i ordning**. Omordna dem med upp/ned-pilarna i Steg-editorn.
+Steg körs **i ordning**. Dra ett steg i handtaget till vänster i dess rubrik för att ändra ordningen; med tangentbordet fokuserar du handtaget, trycker på blanksteg, flyttar steget med piltangenterna och trycker på blanksteg igen.
 
 ## Stegtyper
 

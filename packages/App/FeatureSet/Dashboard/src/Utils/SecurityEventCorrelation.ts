@@ -363,7 +363,7 @@ function normalizeConditions(
     }
 
     // Identical rows are redundant under both AND and OR — drop them.
-    const dedupeKey: string = `${condition.field} ${condition.operator} ${value}`;
+    const dedupeKey: string = `${condition.field}\u0000${condition.operator}\u0000${value}`;
     if (seen.has(dedupeKey)) {
       continue;
     }
