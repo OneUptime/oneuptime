@@ -1434,7 +1434,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SECURITY_EVENTS_THREAT_INTEL,
             title: "Threat Intel",
             icon: IconProp.ShieldExclamation,
-            keywords: ["threat intelligence", "indicators of compromise", "ioc"],
+            keywords: [
+              "threat intelligence",
+              "indicators of compromise",
+              "ioc",
+            ],
           },
           {
             page: PageMap.SECURITY_EVENTS_MONITORS,

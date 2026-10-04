@@ -225,10 +225,12 @@ const isSameName: (a: string, b: string) => boolean = (
  * The English behind a translated name, searched so English still finds the
  * page in any language. Nothing when the name shown is the English.
  */
-const englishUnlessShown: (shown: string, english: string) => Array<string> =
-  (shown: string, english: string): Array<string> => {
-    return isSameName(shown, english) ? [] : [english];
-  };
+const englishUnlessShown: (shown: string, english: string) => Array<string> = (
+  shown: string,
+  english: string,
+): Array<string> => {
+  return isSameName(shown, english) ? [] : [english];
+};
 
 /*
  * Turn the page index into palette command descriptors for one person in one
@@ -259,9 +261,7 @@ export function buildPageSearchCommandDescriptors(
           continue;
         }
 
-        const template: string | undefined = input.getRouteTemplate(
-          page.page,
-        );
+        const template: string | undefined = input.getRouteTemplate(page.page);
         const path: string | undefined = input.getRoutePath(page.page);
 
         if (!template || !path) {

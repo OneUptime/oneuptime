@@ -128,17 +128,18 @@ beforeAll(() => {
   cleanup();
 
   productPaths = new Set<string>(
-    ([...items.navItems, ...items.moreMenuItems, items.rightElement] as Array<
-      NavItem | MoreMenuItem
-    >).map((item: NavItem | MoreMenuItem): string => {
+    (
+      [...items.navItems, ...items.moreMenuItems, items.rightElement] as Array<
+        NavItem | MoreMenuItem
+      >
+    ).map((item: NavItem | MoreMenuItem): string => {
       return item.route.toString();
     }),
   );
 });
 
-const indexEntries: Array<PageSearchIndexEntry> = getPageSearchIndexEntries(
-  getPageSearchAreas(),
-);
+const indexEntries: Array<PageSearchIndexEntry> =
+  getPageSearchIndexEntries(getPageSearchAreas());
 
 const indexedKeys: Set<string> = new Set<string>(
   indexEntries.map((entry: PageSearchIndexEntry): string => {

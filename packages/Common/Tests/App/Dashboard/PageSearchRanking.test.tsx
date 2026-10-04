@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 import Permission from "../../../Types/Permission";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
@@ -176,13 +182,21 @@ describe("what the maintainer searched for comes first", () => {
   });
 
   test("on-call schedules and policies, however they are written", () => {
-    for (const query of ["on-call schedules", "on call schedule", "oncall schedules"]) {
+    for (const query of [
+      "on-call schedules",
+      "on call schedule",
+      "oncall schedules",
+    ]) {
       expect(rows(query)[0]).toBe(
         "On-Call Schedules — On-Call Duty › Schedules",
       );
     }
 
-    for (const query of ["on-call policy", "On Call Policies", "oncall policy"]) {
+    for (const query of [
+      "on-call policy",
+      "On Call Policies",
+      "oncall policy",
+    ]) {
       expect(rows(query)[0]).toBe("On-Call Policies — On-Call Duty › Policies");
     }
   });
@@ -202,7 +216,9 @@ describe("what the maintainer searched for comes first", () => {
       "On-Call Policies — On-Call Duty › Policies",
     ]);
 
-    expect(rows("rota")[0]).toBe("On-Call Schedules — On-Call Duty › Schedules");
+    expect(rows("rota")[0]).toBe(
+      "On-Call Schedules — On-Call Duty › Schedules",
+    );
   });
 });
 
@@ -219,7 +235,9 @@ describe("a name many pages share gives way to a distinctive one", () => {
     const listed: Array<string> = rows("settings");
 
     expect(listed.slice(0, 2)).toEqual(["Project Settings", "User Settings"]);
-    expect(listed.indexOf("Settings — Project Settings › Audit Logs")).toBeGreaterThan(1);
+    expect(
+      listed.indexOf("Settings — Project Settings › Audit Logs"),
+    ).toBeGreaterThan(1);
   });
 
   test("'monitors' opens the Monitors product before Security Events' Monitors tab", () => {
@@ -273,7 +291,9 @@ describe("the breadcrumb tells pages apart and narrows a search", () => {
   test("'incident settings' lists the pages of Incidents > Settings, incident-named ones first", () => {
     const listed: Array<string> = rows("incident settings");
 
-    expect(listed[0]).toMatch(/^Incident (State|Severity|Templates|Roles) — Incidents › Settings$/);
+    expect(listed[0]).toMatch(
+      /^Incident (State|Severity|Templates|Roles) — Incidents › Settings$/,
+    );
     expect(listed).toContain("Custom Fields — Incidents › Settings");
     expect(listed).not.toContain("Owner Rules — Incidents › Rules");
   });
@@ -299,7 +319,9 @@ describe("the breadcrumb tells pages apart and narrows a search", () => {
 
 describe("search forgives the way people type", () => {
   test("case, accents and punctuation do not matter", () => {
-    expect(rows("NOTIFICATION-SETTINGS")[0]).toMatch(/^Notification Settings — /);
+    expect(rows("NOTIFICATION-SETTINGS")[0]).toMatch(
+      /^Notification Settings — /,
+    );
     expect(rows("dángér zóne")[0]).toBe("Danger Zone — Project Settings");
   });
 

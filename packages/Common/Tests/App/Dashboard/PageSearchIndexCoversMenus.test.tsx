@@ -1,6 +1,19 @@
-import { afterAll, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import * as React from "react";
@@ -140,16 +153,19 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState", () => {
-  return {
-    __esModule: true,
-    default: {
-      getUnresolvedIncidentStates: (): Promise<Array<unknown>> => {
-        return Promise.resolve([]);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/IncidentState",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getUnresolvedIncidentStates: (): Promise<Array<unknown>> => {
+          return Promise.resolve([]);
+        },
       },
-    },
-  };
-});
+    };
+  },
+);
 
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/AlertState", () => {
   return {
@@ -422,7 +438,10 @@ function openPalette(): void {
   // The project as the dashboard stores it: with monitor groups turned on.
   window.localStorage.setItem(
     `project_${PROJECT_ID}`,
-    JSON.stringify({ _id: PROJECT_ID, isFeatureFlagMonitorGroupsEnabled: true }),
+    JSON.stringify({
+      _id: PROJECT_ID,
+      isFeatureFlagMonitorGroupsEnabled: true,
+    }),
   );
   render(<DashboardCommandPalette />);
   act((): void => {
@@ -525,7 +544,9 @@ describe("Search finds every page the side menus link to", () => {
         link.section === link.title || crumbs.startsWith(link.section);
 
       if (!repeatsAName && !crumbs.includes(link.section)) {
-        problems.push(`${where}: breadcrumb "${crumbs}" leaves out the section`);
+        problems.push(
+          `${where}: breadcrumb "${crumbs}" leaves out the section`,
+        );
       }
     }
 

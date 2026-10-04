@@ -67,8 +67,9 @@ export enum PaletteMatchRank {
 }
 
 // Ranks offered only when nothing matches better.
-const FALLBACK_RANKS: ReadonlySet<PaletteMatchRank> =
-  new Set<PaletteMatchRank>([PaletteMatchRank.Category, PaletteMatchRank.Fuzzy]);
+const FALLBACK_RANKS: ReadonlySet<PaletteMatchRank> = new Set<PaletteMatchRank>(
+  [PaletteMatchRank.Category, PaletteMatchRank.Fuzzy],
+);
 
 export interface PaletteCommandMatch {
   command: PaletteCommand;
@@ -436,23 +437,25 @@ const hasTypoOf: (token: string, words: Array<string>) => boolean = (
  * The title's letters in order, starting at the start of one of its words:
  * "mntr" finds Monitors, but "ors" finds nothing.
  */
-const isWordStartSubsequence: (needle: string, title: PreparedText) => boolean =
-  (needle: string, title: PreparedText): boolean => {
-    let offset: number = 0;
+const isWordStartSubsequence: (
+  needle: string,
+  title: PreparedText,
+) => boolean = (needle: string, title: PreparedText): boolean => {
+  let offset: number = 0;
 
-    for (const word of title.words) {
-      if (
-        word.charAt(0) === needle.charAt(0) &&
-        isSubsequenceMatch(needle, title.compact.slice(offset))
-      ) {
-        return true;
-      }
-
-      offset += word.length;
+  for (const word of title.words) {
+    if (
+      word.charAt(0) === needle.charAt(0) &&
+      isSubsequenceMatch(needle, title.compact.slice(offset))
+    ) {
+      return true;
     }
 
-    return false;
-  };
+    offset += word.length;
+  }
+
+  return false;
+};
 
 const getRankScore: (rank: PaletteMatchRank) => number = (
   rank: PaletteMatchRank,
@@ -761,10 +764,7 @@ export const rankPaletteCommand: (
   command: PaletteCommand,
   query: string,
 ): PaletteMatchRank | null => {
-  const match: PaletteCommandMatch | null = matchPaletteCommand(
-    command,
-    query,
-  );
+  const match: PaletteCommandMatch | null = matchPaletteCommand(command, query);
 
   return match ? match.rank : null;
 };
@@ -860,11 +860,9 @@ export const filterPaletteCommands: (
         return a.index - b.index;
       },
     )
-    .map(
-      (entry: { match: PaletteCommandMatch; index: number }) => {
-        return entry.match;
-      },
-    );
+    .map((entry: { match: PaletteCommandMatch; index: number }) => {
+      return entry.match;
+    });
 };
 
 const LETTER_OR_DIGIT: RegExp = /[\p{L}\p{N}]/u;

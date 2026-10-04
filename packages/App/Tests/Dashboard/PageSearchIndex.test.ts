@@ -227,12 +227,19 @@ describe("the page index is sound", () => {
   });
 
   test("keywords are lowercase, trimmed, non-empty, not repeated, and never the title itself", () => {
-    const checkKeywords: (owner: string, title: string, keywords: Array<string>) => void = (
+    const checkKeywords: (
+      owner: string,
+      title: string,
+      keywords: Array<string>,
+    ) => void = (
       owner: string,
       title: string,
       keywords: Array<string>,
     ): void => {
-      expect({ owner, unique: new Set(keywords).size === keywords.length }).toEqual({
+      expect({
+        owner,
+        unique: new Set(keywords).size === keywords.length,
+      }).toEqual({
         owner,
         unique: true,
       });
@@ -365,12 +372,14 @@ describe("the Developer pages come from the list their menus are drawn from", ()
         }),
       ).toEqual(
         expect.arrayContaining(
-          DEVELOPER_DOCS_PAGES.map((definition: DeveloperDocsPageDefinition) => {
-            return [
-              getDeveloperDocsPageKey(parent.pageKey, definition.type),
-              definition.title,
-            ];
-          }),
+          DEVELOPER_DOCS_PAGES.map(
+            (definition: DeveloperDocsPageDefinition) => {
+              return [
+                getDeveloperDocsPageKey(parent.pageKey, definition.type),
+                definition.title,
+              ];
+            },
+          ),
         ),
       );
     }
@@ -432,9 +441,9 @@ describe("buildPageSearchCommandDescriptors", () => {
       },
     });
 
-    expect(
-      findPage(descriptors, PageMap.SETTINGS_APIKEYS)?.breadcrumb[0],
-    ).toBe("Projekteinstellungen");
+    expect(findPage(descriptors, PageMap.SETTINGS_APIKEYS)?.breadcrumb[0]).toBe(
+      "Projekteinstellungen",
+    );
     // Its English name is still searched.
     expect(
       findPage(descriptors, PageMap.SETTINGS_APIKEYS)?.breadcrumbKeywords[0],

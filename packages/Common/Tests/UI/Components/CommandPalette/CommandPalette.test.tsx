@@ -411,7 +411,11 @@ describe("CommandPalette", () => {
       renderPalette({
         commands: [
           makeCommand({ id: "stats", title: "Stats", category: "Monitoring" }),
-          makeCommand({ id: "uptime", title: "Uptime", category: "Monitoring" }),
+          makeCommand({
+            id: "uptime",
+            title: "Uptime",
+            category: "Monitoring",
+          }),
           makeCommand({ id: "logs", title: "Logs", category: "Telemetry" }),
         ],
       });
@@ -679,7 +683,9 @@ describe("CommandPalette", () => {
       ).toHaveTextContent("Alerts");
       // The breadcrumb is shown instead of a description.
       expect(
-        screen.getByTestId("command-palette-option-page-incident-custom-fields"),
+        screen.getByTestId(
+          "command-palette-option-page-incident-custom-fields",
+        ),
       ).not.toHaveTextContent("Never shown");
     });
 
@@ -795,9 +801,9 @@ describe("CommandPalette", () => {
         "aria-activedescendant",
         "command-palette-option-page-alert-custom-fields",
       );
-      expect(screen.getByTestId("command-palette-result-count")).toHaveTextContent(
-        "2 results",
-      );
+      expect(
+        screen.getByTestId("command-palette-result-count"),
+      ).toHaveTextContent("2 results");
     });
   });
 

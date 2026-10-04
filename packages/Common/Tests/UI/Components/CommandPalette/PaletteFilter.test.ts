@@ -401,10 +401,7 @@ describe("filterPaletteCommands", () => {
       makeCommand("two", "Beta", "B"),
     ];
 
-    expect(ids(filterPaletteCommands(commands, "   "))).toEqual([
-      "one",
-      "two",
-    ]);
+    expect(ids(filterPaletteCommands(commands, "   "))).toEqual(["one", "two"]);
   });
 
   test("excludes commands that match nowhere", () => {
@@ -443,7 +440,10 @@ describe("filterPaletteCommands", () => {
 
   test("a page called Settings gives way to Project Settings", () => {
     const commands: Array<PaletteCommand> = [
-      makePage("audit-settings", "Settings", ["Project Settings", "Audit Logs"]),
+      makePage("audit-settings", "Settings", [
+        "Project Settings",
+        "Audit Logs",
+      ]),
       makePage("insights-settings", "Settings", ["Insights"]),
       makeCommand("project-settings", "Project Settings", "Settings"),
     ];
@@ -474,9 +474,9 @@ describe("filterPaletteCommands", () => {
       makePage("alert-fields", "Custom Fields", ["Alerts", "Settings"]),
     ];
 
-    expect(ids(filterPaletteCommands(commands, "incident custom fields"))).toEqual(
-      ["incident-fields"],
-    );
+    expect(
+      ids(filterPaletteCommands(commands, "incident custom fields")),
+    ).toEqual(["incident-fields"]);
     expect(ids(filterPaletteCommands(commands, "custom fields"))).toEqual([
       "monitor-fields",
       "incident-fields",
