@@ -157,8 +157,9 @@ export const getSubscribePreferenceChoices: (
  * get, in one sentence - or, while an unticked "all" box has nothing picked
  * under it, that nothing is picked yet. Such a subscription is taken as it
  * always was; it just hears little: with no resources picked, only the
- * announcements that name no resource, and with no event types picked,
- * nothing at all.
+ * announcements about nothing this page shows, and with no event types
+ * picked, nothing at all (StatusPageSubscriberService
+ * .shouldSendNotification).
  */
 export const getSubscribePreferencesSummaryKeys: (
   data: SubscribePreferenceOptions & {
