@@ -205,8 +205,8 @@ const valueMultiSelect: ValueMultiSelectFunction = (): HTMLElement => {
 };
 
 /**
- * Open the criteria form, reveal the advanced options and add one attribute
- * filter row keyed on `logtype` — the state the reporter's screenshot was in.
+ * Open the criteria form, open More fields and add one attribute filter row
+ * keyed on `logtype` — the state the reporter's screenshot was in.
  */
 function openFormWithAttributeRow(): Recorder {
   const recorder: Recorder = { closeCount: 0, latestLogMonitor: null };
@@ -214,16 +214,16 @@ function openFormWithAttributeRow(): Recorder {
   render(<LogHarness recorder={recorder} />);
 
   /*
-   * A step that already has advanced filters set renders them expanded, so
-   * the toggle is only present when they are collapsed.
+   * The attribute filter is folded under More fields with the other filters
+   * most log monitors leave alone, on a new monitor and an edited one alike.
    */
-  const showAdvanced: HTMLElement | null = screen.queryByText(
-    "Show Advanced Options",
-  );
+  const moreFields: HTMLElement = screen.getByRole("button", {
+    name: "More fields",
+  });
 
-  if (showAdvanced) {
-    fireEvent.click(showAdvanced);
-  }
+  expect(moreFields).toHaveAttribute("aria-expanded", "false");
+
+  fireEvent.click(moreFields);
 
   fireEvent.click(screen.getByText("Add Filter by Attributes"));
 

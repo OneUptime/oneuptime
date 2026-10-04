@@ -17,14 +17,15 @@ I monitor tracce ricercano e contano gli span corrispondenti a filtri specifici.
 1. Accedere a **Monitor** nel Dashboard di OneUptime
 2. Fare clic su **Crea monitor**
 3. Selezionare **Tracce** come tipo di monitor
-4. Selezionare i servizi di telemetria da monitorare
-5. Configurare i filtri degli span e i criteri secondo necessità
+4. Scegliere quali span contare: il nome dello span, l'intervallo di tempo e gli stati degli span
+5. Per limitarli a servizi di telemetria, entità dell'infrastruttura o attributi, aprire **Altri campi** sotto questi filtri
+6. Configurare i criteri secondo necessità
 
 ## Opzioni di Configurazione
 
 ### Servizi di Telemetria
 
-Selezionare uno o più servizi da cui monitorare le tracce. I servizi devono inviare tracce a OneUptime tramite OpenTelemetry.
+Selezionare in **Altri campi** uno o più servizi da cui monitorare le tracce. Lasciarlo vuoto per monitorare gli span di tutti i servizi. I servizi devono inviare tracce a OneUptime tramite OpenTelemetry.
 
 ### Filtri Span
 

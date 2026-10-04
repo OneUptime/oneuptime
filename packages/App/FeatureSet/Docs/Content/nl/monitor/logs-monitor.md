@@ -17,14 +17,15 @@ Logboekenmonitors zoeken en tellen logboeken die aan specifieke filters voldoen 
 1. Ga naar **Monitoren** in het OneUptime-dashboard
 2. Klik op **Monitor maken**
 3. Selecteer **Logboeken** als het monitortype
-4. Selecteer de te bewaken telemetriediensten
-5. Configureer logboekfilters en criteria naar wens
+4. Kies welke logboeken worden geteld: de tekst die ze bevatten, het tijdvenster en de ernstniveaus
+5. Open **Meer velden** onder deze filters om ze te beperken tot telemetriediensten, infrastructuurentiteiten of attributen
+6. Configureer de criteria naar wens
 
 ## Configuratie-opties
 
 ### Telemetriediensten
 
-Selecteer een of meer diensten waarvan logboeken worden bewaakt. Diensten moeten logboeken via OpenTelemetry naar OneUptime sturen.
+Selecteer onder **Meer velden** een of meer diensten waarvan logboeken worden bewaakt. Laat het leeg om logboeken van alle diensten te bewaken. Diensten moeten logboeken via OpenTelemetry naar OneUptime sturen.
 
 ### Logboekfilters
 

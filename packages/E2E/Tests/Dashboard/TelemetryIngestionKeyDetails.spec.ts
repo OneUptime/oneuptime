@@ -150,8 +150,8 @@ test.describe("Telemetry ingestion key details", () => {
 
   /*
    * The edit form walks Details, Access & Limits and Browser Settings, and
-   * the origins are on the last. Next walks there; Save Changes works from
-   * any step of an edit form, so saving from there is what a person does.
+   * the origins are on the last. Next walks there, and Save Changes is on
+   * that last step only, so the walk ends with no Next left to press.
    */
   const openEditForm: () => Promise<void> = async (): Promise<void> => {
     await ctx.page

@@ -17,14 +17,15 @@ Os monitores de rastreamentos pesquisam e contam spans que correspondem a filtro
 1. Vá para **Monitores** no Painel do OneUptime
 2. Clique em **Criar monitor**
 3. Selecione **Traços** como o tipo de monitor
-4. Selecione os serviços de telemetria para monitorar
-5. Configure filtros e critérios de span conforme necessário
+4. Escolha quais spans contar: o nome do span, a janela de tempo e os status de span
+5. Para restringi-los a serviços de telemetria, entidades de infraestrutura ou atributos, abra **Mais campos** abaixo desses filtros
+6. Configure os critérios conforme necessário
 
 ## Opções de Configuração
 
 ### Serviços de Telemetria
 
-Selecione um ou mais serviços para monitorar rastreamentos. Os serviços devem estar enviando rastreamentos para o OneUptime via OpenTelemetry.
+Selecione em **Mais campos** um ou mais serviços para monitorar rastreamentos. Deixe vazio para monitorar os spans de todos os serviços. Os serviços devem estar enviando rastreamentos para o OneUptime via OpenTelemetry.
 
 ### Filtros de Span
 

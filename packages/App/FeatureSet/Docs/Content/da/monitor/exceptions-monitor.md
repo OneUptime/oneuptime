@@ -18,14 +18,15 @@ Undtagelsesmonitoer tæller og filtrerer undtagelser, der matcher specifikke kri
 1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Undtagelser** som monitortype
-4. Vælg de telemetritjenester, der skal overvåges
-5. Konfigurer undtagelsesfiltre og kriterier efter behov
+4. Vælg, hvilke undtagelser der skal tælles: meddelelsen, undtagelsestyperne, miljøerne og tidsvinduet
+5. Åbn **Flere felter** under disse filtre for at begrænse dem til telemetritjenester eller infrastrukturenheder, eller for også at tælle løste og arkiverede undtagelser
+6. Konfigurer kriterierne efter behov
 
 ## Konfigurationsindstillinger
 
 ### Telemetritjenester
 
-Vælg én eller flere tjenester, der skal overvåges undtagelser fra. Tjenester skal sende undtagelsesdata til OneUptime via OpenTelemetry.
+Vælg under **Flere felter** én eller flere tjenester, der skal overvåges undtagelser fra. Lad feltet være tomt for at overvåge undtagelser fra alle tjenester. Tjenester skal sende undtagelsesdata til OneUptime via OpenTelemetry.
 
 ### Undtagelsesfiltre
 

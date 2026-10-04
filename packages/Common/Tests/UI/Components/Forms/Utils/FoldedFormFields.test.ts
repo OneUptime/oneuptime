@@ -166,6 +166,36 @@ describe("getFoldedFieldValue", () => {
     expect(valueOf(labels, { labels: [] })).toBeUndefined();
   });
 
+  test("key-value pairs say how many, never what they hold", () => {
+    /*
+     * A log, trace or security event monitor's attribute filters, folded
+     * under More fields: "Filter by Attributes: 2". A value typed there can
+     * be anything, operator objects included, so only the count is shown.
+     */
+    const attributes: Field<JSONObject> = field(
+      "attributes",
+      FormFieldSchemaType.Dictionary,
+      { title: "Filter by Attributes" },
+    );
+
+    expect(
+      valueOf(attributes, {
+        attributes: {
+          "oneuptime.detection.rule_id": "12121212",
+          "http.status_code": { _type: "GreaterThan", value: 499 },
+        },
+      }),
+    ).toEqual({ value: "2", translateValue: false });
+    expect(
+      valueOf(attributes, { attributes: { "user.name": "root" } }),
+    ).toEqual({ value: "1", translateValue: false });
+
+    // Nothing there, or nothing a set of pairs can be: nothing to say.
+    expect(valueOf(attributes, { attributes: {} })).toBeUndefined();
+    expect(valueOf(attributes, {})).toBeUndefined();
+    expect(valueOf(attributes, { attributes: "root" })).toBeUndefined();
+  });
+
   test("a people picker says how many people and teams are picked", () => {
     const owners: Field<JSONObject> = {
       title: "Owners",

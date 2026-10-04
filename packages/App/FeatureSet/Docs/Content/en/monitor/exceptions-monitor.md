@@ -18,14 +18,15 @@ Exceptions monitors count and filter exceptions matching specific criteria. This
 1. Go to **Monitors** in the OneUptime Dashboard
 2. Click **Create Monitor**
 3. Select **Exceptions** as the monitor type
-4. Select the telemetry services to monitor
-5. Configure exception filters and criteria as needed
+4. Choose the exceptions to count: the message, the exception types, the environments and the time window
+5. To narrow them to telemetry services or infrastructure entities, or to count resolved and archived exceptions too, open **More fields** below these filters
+6. Configure the criteria as needed
 
 ## Configuration Options
 
 ### Telemetry Services
 
-Select one or more services to monitor exceptions from. Services must be sending exception data to OneUptime via OpenTelemetry.
+Select one or more services to monitor exceptions from, under **More fields**. Leave it empty to monitor exceptions from every service. Services must be sending exception data to OneUptime via OpenTelemetry.
 
 ### Exception Filters
 

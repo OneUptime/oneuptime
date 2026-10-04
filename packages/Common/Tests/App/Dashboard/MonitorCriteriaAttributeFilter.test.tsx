@@ -256,17 +256,14 @@ const backdropLayer: BackdropLayerFunction = (): HTMLElement => {
   return screen.getByTestId("modal").parentElement!;
 };
 
-// Walks the video: open the advanced section, then add one attribute filter.
+/*
+ * Walks the video: open the section the attribute filter is folded in (More
+ * fields, once Show Advanced Options), then add one attribute filter.
+ */
 type OpenAttributeFilterFunction = () => void;
 
 const openAttributeFilter: OpenAttributeFilterFunction = (): void => {
-  const showAdvanced: HTMLElement | null = screen.queryByText(
-    "Show Advanced Options",
-  );
-
-  if (showAdvanced) {
-    fireEvent.click(showAdvanced);
-  }
+  fireEvent.click(screen.getByRole("button", { name: "More fields" }));
 
   fireEvent.click(screen.getByText("Add Filter by Attributes"));
 };

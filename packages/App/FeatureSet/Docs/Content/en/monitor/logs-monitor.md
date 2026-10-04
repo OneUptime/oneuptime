@@ -17,14 +17,15 @@ Logs monitors search and count logs matching specific filters over a time window
 1. Go to **Monitors** in the OneUptime Dashboard
 2. Click **Create Monitor**
 3. Select **Logs** as the monitor type
-4. Select the telemetry services to monitor
-5. Configure log filters and criteria as needed
+4. Choose the logs to count: the text they include, the time window and the severity levels
+5. To narrow them to telemetry services, infrastructure entities or attributes, open **More fields** below these filters
+6. Configure the criteria as needed
 
 ## Configuration Options
 
 ### Telemetry Services
 
-Select one or more services to monitor logs from. Services must be sending logs to OneUptime via OpenTelemetry.
+Select one or more services to monitor logs from, under **More fields**. Leave it empty to monitor logs from every service. Services must be sending logs to OneUptime via OpenTelemetry.
 
 ### Log Filters
 
