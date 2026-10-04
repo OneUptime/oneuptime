@@ -456,6 +456,78 @@ describe("a closed single-select's value and its Clear button", () => {
   });
 });
 
+/*
+ * A pick closes a single-select's menu, which swaps the search input (or the
+ * option that had focus) for the value button. Focus used to drop to the
+ * page with them; from the keyboard it now follows to the value button, as
+ * it does on Escape. A pointer pick leaves focus alone, so no focus ring
+ * appears around the field after a click.
+ */
+describe("after a pick from the keyboard, focus stays in the field", () => {
+  test("Enter on the highlighted option: the value button has focus, then Tab reaches Clear and the next field", async () => {
+    const user: UserEventController = userEvent.setup();
+    const harness: Harness = renderDropdown({ value: null });
+
+    await user.click(getCombobox());
+    await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+
+    expect(harness.onChange).toHaveBeenCalledWith("admins", {
+      selectedOptions: [{ value: "admins", label: "Admins" }],
+      previousOptions: [],
+    });
+    expect(queryMenu()).toBeNull();
+    expect(getValueButton()).toHaveFocus();
+    expect(getValueButton()).toHaveAccessibleDescription("Admins");
+
+    await user.tab();
+    expect(getClearButton()).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("textbox", { name: "Next field" })).toHaveFocus();
+  });
+
+  test("Enter on an option reached with Tab: the value button has focus", async () => {
+    const user: UserEventController = userEvent.setup();
+    const harness: Harness = renderDropdown();
+
+    await user.click(getValueButton());
+    expect(getCombobox()).toHaveFocus();
+    // The input's Clear button, then the options.
+    await user.tab();
+    await user.tab();
+    await user.tab();
+    expect(screen.getByRole("option", { name: "Admins" })).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+
+    expect(harness.onChange).toHaveBeenCalledWith("admins", expect.anything());
+    expect(queryMenu()).toBeNull();
+    expect(getValueButton()).toHaveFocus();
+  });
+
+  test("a pointer pick leaves focus alone", async () => {
+    const user: UserEventController = userEvent.setup();
+    const harness: Harness = renderDropdown({ value: null });
+
+    await user.click(getCombobox());
+    await user.click(screen.getByRole("option", { name: "Admins" }));
+
+    expect(harness.onChange).toHaveBeenCalledWith("admins", expect.anything());
+    expect(queryMenu()).toBeNull();
+    expect(getValueButton()).not.toHaveFocus();
+  });
+
+  test("a multi-select keeps focus in its search input, with the menu open", async () => {
+    const user: UserEventController = userEvent.setup();
+    renderDropdown({ isMultiSelect: true, value: [] });
+
+    await user.click(getCombobox());
+    await user.keyboard("{ArrowDown}{Enter}");
+
+    expect(getCombobox()).toHaveFocus();
+    expect(queryMenu()).toBeInTheDocument();
+  });
+});
+
 describe("no control is drawn inside another, in any state of the dropdown", () => {
   test("a closed single-select with nothing picked", () => {
     const harness: Harness = renderDropdown({ value: null });

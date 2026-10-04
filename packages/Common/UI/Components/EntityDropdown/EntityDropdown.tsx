@@ -1053,9 +1053,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       [isMulti, props.onChange],
     );
 
-  const addOption: (opt: DropdownOption) => void = (
+  const addOption: (
     opt: DropdownOption,
-  ): void => {
+    pickedWithKeyboard?: boolean,
+  ) => void = (opt: DropdownOption, pickedWithKeyboard?: boolean): void => {
     const key: string = valueKey(opt.value);
     optionsCacheRef.current.set(key, opt);
     if (isMulti) {
@@ -1072,6 +1073,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     setSelectedKeys([key]);
     notify([key], selectedKeys);
     setSearchQuery("");
+    /*
+     * The pick closes the menu, which swaps the search input (or the option
+     * that had focus) for the value button. A keyboard user's focus follows
+     * to that button, as it does on Escape, instead of dropping to the page;
+     * a pointer pick leaves focus alone, so no focus ring appears after a
+     * click.
+     */
+    if (pickedWithKeyboard) {
+      focusFieldAfterSwapRef.current = true;
+    }
     setIsOpen(false);
   };
 
@@ -1663,7 +1674,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   const opt: DropdownOption | undefined =
                     availableOptions[highlightedIndex];
                   if (opt) {
-                    addOption(opt);
+                    addOption(opt, true);
                     setHighlightedIndex(-1);
                   }
                   return;
@@ -1848,8 +1859,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                         ): void => {
                           event.preventDefault();
                         }}
-                        onClick={(): void => {
-                          addOption(opt);
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ): void => {
+                          // Enter or Space on an option reached with Tab.
+                          addOption(opt, event.detail === 0);
                         }}
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
                           isHighlighted
