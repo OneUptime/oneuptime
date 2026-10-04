@@ -24869,7 +24869,15 @@
   "The usual starting state": "وضعیت آغازین معمول",
   "Their names could not be loaded.": "نام‌هایشان بارگیری نشد.",
   "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد.",
+  "Add {{labels}}": "افزودن {{labels}}",
+  "Add {{labels}} and {{count}} more": "افزودن {{labels}} و {{count}} مورد دیگر",
+  "Add {{labels}} and {{count}} more_one": "افزودن {{labels}} و {{count}} مورد دیگر",
+  "Add {{owners}} and {{count}} more as owners": "افزودن {{owners}} و {{count}} مورد دیگر به‌عنوان مالک",
+  "Add {{owners}} and {{count}} more as owners_one": "افزودن {{owners}} و {{count}} مورد دیگر به‌عنوان مالک",
+  "Add {{owners}} as owners": "افزودن {{owners}} به‌عنوان مالک",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "رویدادهایی که از این قالب زمان‌بندی می‌شوند، تا زمانی که در جریان هستند وضعیت مانیتورهایشان را به این وضعیت تغییر می‌دهند - مانیتورهایی که اینجا انتخاب شده‌اند و هر مانیتوری که هنگام زمان‌بندی رویداد انتخاب شود.",
+  "Named after the labels it adds until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس برچسب‌هایی که می‌افزاید نام‌گذاری می‌شود.",
+  "Named after the owners it adds until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید نام‌گذاری می‌شود.",
   "No monitors affected by this scheduled maintenance event.": "هیچ مانیتوری تحت تأثیر این رویداد تعمیر و نگهداری زمان‌بندی‌شده نیست.",
   "No other resources affected by this scheduled maintenance event.": "هیچ منبع دیگری تحت تأثیر این رویداد تعمیر و نگهداری زمان‌بندی‌شده نیست.",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "میزبان‌ها، خوشه‌های Kubernetes، میزبان‌های Docker یا سرویس‌هایی را که رویدادهای ساخته‌شده از این قالب باید از پیش پر کنند جستجو و پیوست کنید.",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "برای قاعده‌ای که روی همه سرویس‌ها اعمال شود، خالی بگذارید. قواعد یک سرویس پیش از قواعد کل پروژه اجرا می‌شوند.",
   "Only for one service": "فقط برای یک سرویس",
   "The rule applies to every service, and takes effect within a minute of being saved.": "این قاعده روی همه سرویس‌ها اعمال می‌شود و ظرف یک دقیقه پس از ذخیره شدن اثر می‌کند.",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "این قاعده هر دقیقه متریک خود را می‌نویسد و ظرف یک دقیقه پس از ذخیره شدن شروع می‌کند."
+  "The rule writes its metric every minute, starting within a minute of being saved.": "این قاعده هر دقیقه متریک خود را می‌نویسد و ظرف یک دقیقه پس از ذخیره شدن شروع می‌کند.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "وقتی این قاعده مطابقت کند، این برچسب‌ها افزوده می‌شوند. برچسب‌هایی که از قبل افزوده شده‌اند دوباره افزوده نمی‌شوند.",
+  "e.g. Add Platform as owners": "برای نمونه افزودن Platform به‌عنوان مالک",
+  "e.g. Add production": "برای نمونه افزودن production"
 }

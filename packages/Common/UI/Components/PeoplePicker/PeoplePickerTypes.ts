@@ -1,4 +1,6 @@
 import ObjectID from "../../../Types/ObjectID";
+import type { DropdownOption } from "../Dropdown/Dropdown";
+import type { DropdownChange } from "../Dropdown/DropdownChange";
 
 /*
  * The people picker's plain data: what kinds of record it picks, how a pick
@@ -58,6 +60,19 @@ export interface PeoplePickerOption {
 export type PeoplePickerValue = Partial<
   Record<PeoplePickerKind, Array<string>>
 >;
+
+/*
+ * What a change picked, by name: the picks the picker holds now and the ones
+ * it held before, in the order it shows them. A form can then name
+ * something after the people and teams picked without a request of its own
+ * - an owner rule is named "Add Platform as owners". Only picks the picker
+ * can name are in it: one whose name is still being looked up, or that is no
+ * longer found, is left out rather than handed over by its id.
+ */
+export interface PeoplePickerChange {
+  selectedOptions: Array<PeoplePickerOption>;
+  previousOptions: Array<PeoplePickerOption>;
+}
 
 // A kind a form field offers, and the form value its picks are kept in.
 export interface PeoplePickerFieldKind {
@@ -339,6 +354,65 @@ export const replacePeoplePickerValue: (
   id: string,
 ): PeoplePickerValue => {
   return { [kind]: [id] };
+};
+
+/*
+ * The names of a value's picks, in the order the picker shows them: by kind,
+ * then as picked. A pick the picker cannot name yet (getOption has nothing)
+ * or no longer finds (isUnknown) is left out.
+ */
+export const getPeoplePickerNamedOptions: (data: {
+  kinds: Array<PeoplePickerKind>;
+  value: PeoplePickerValue;
+  getOption: (
+    kind: PeoplePickerKind,
+    id: string,
+  ) => PeoplePickerOption | undefined;
+}) => Array<PeoplePickerOption> = (data: {
+  kinds: Array<PeoplePickerKind>;
+  value: PeoplePickerValue;
+  getOption: (
+    kind: PeoplePickerKind,
+    id: string,
+  ) => PeoplePickerOption | undefined;
+}): Array<PeoplePickerOption> => {
+  const options: Array<PeoplePickerOption> = [];
+
+  for (const kind of data.kinds) {
+    for (const id of data.value[kind] || []) {
+      const option: PeoplePickerOption | undefined = data.getOption(kind, id);
+
+      if (option && !option.isUnknown && option.name) {
+        options.push(option);
+      }
+    }
+  }
+
+  return options;
+};
+
+/*
+ * A picker's change in the words a form field's onChange hears it in
+ * (Forms/Types/Field): each pick as an option labelled with its name, whose
+ * value is the pick's key (getPeoplePickerOptionKey), so a person and a team
+ * of one name stay two picks.
+ */
+export const toPeoplePickerDropdownChange: (
+  change: PeoplePickerChange,
+) => DropdownChange = (change: PeoplePickerChange): DropdownChange => {
+  const toDropdownOption: (option: PeoplePickerOption) => DropdownOption = (
+    option: PeoplePickerOption,
+  ): DropdownOption => {
+    return {
+      value: getPeoplePickerOptionKey(option.kind, option.id),
+      label: option.name,
+    };
+  };
+
+  return {
+    selectedOptions: change.selectedOptions.map(toDropdownOption),
+    previousOptions: change.previousOptions.map(toDropdownOption),
+  };
 };
 
 export const removeFromPeoplePickerValue: (

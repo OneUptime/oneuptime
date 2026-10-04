@@ -45,10 +45,16 @@ function listTypescriptReactFiles(directoryPath: string): Array<string> {
   return result;
 }
 
+/*
+ * A field object whose own stepId is "match-criteria": the stepId found
+ * before the next field starts, so a column or filter written earlier on
+ * the page (`field: { name: true }`, with no stepId) is never read as the
+ * criterion after it.
+ */
 function extractMatchFields(source: string): Set<string> {
   const fields: Set<string> = new Set<string>();
   const matchFieldPattern: RegExp =
-    /field\s*:\s*\{\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*true\s*,?\s*\}\s*,(?:(?!stepId\s*:)[\s\S])*?stepId\s*:\s*["']match-criteria["']/g;
+    /field\s*:\s*\{\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*true\s*,?\s*\}\s*,(?:(?!stepId\s*:|field\s*:)[\s\S])*?stepId\s*:\s*["']match-criteria["']/g;
 
   for (const match of source.matchAll(matchFieldPattern)) {
     fields.add(match[1]!);
@@ -94,6 +100,15 @@ function extractFormMatchFields(data: {
   return fields;
 }
 
+/*
+ * A form with a Match Criteria step: one its page writes out, or the shared
+ * label and owner rule form (Dashboard Utils/Form/ResourceRuleForm), whose
+ * Match step is the same "match-criteria" step and whose page writes its
+ * criteria fields itself.
+ */
+const MATCH_CRITERIA_FORM: RegExp =
+  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner)RuleFormSteps</;
+
 function discoverStaticRuleForms(): {
   formFiles: Array<string>;
   formsByModel: Map<string, FormCoverage>;
@@ -103,9 +118,7 @@ function discoverStaticRuleForms(): {
     DASHBOARD_SOURCE_ROOT,
   ).filter((filePath: string): boolean => {
     return (
-      fs
-        .readFileSync(filePath, "utf8")
-        .match(/id\s*:\s*["']match-criteria["']/) !== null
+      fs.readFileSync(filePath, "utf8").match(MATCH_CRITERIA_FORM) !== null
     );
   });
   const metricPipelineFile: string = path.join(

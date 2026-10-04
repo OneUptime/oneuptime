@@ -24869,7 +24869,15 @@
   "The usual starting state": "일반적인 시작 상태",
   "Their names could not be loaded.": "이름을 불러오지 못했습니다.",
   "Who takes each role on this incident.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다.",
+  "Add {{labels}}": "{{labels}} 추가",
+  "Add {{labels}} and {{count}} more": "{{labels}} 외 {{count}}개 추가",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} 외 {{count}}개 추가",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} 외 {{count}}개를 소유자로 추가",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} 외 {{count}}개를 소유자로 추가",
+  "Add {{owners}} as owners": "{{owners}}을(를) 소유자로 추가",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "이 템플릿으로 예약된 이벤트는 진행 중인 동안 모니터 상태를 이 상태로 변경합니다. 여기에서 선택한 모니터와 이벤트를 예약할 때 선택한 모니터가 모두 해당됩니다.",
+  "Named after the labels it adds until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 레이블에 따라 이름이 지정됩니다.",
+  "Named after the owners it adds until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 소유자에 따라 이름이 지정됩니다.",
   "No monitors affected by this scheduled maintenance event.": "이 예정된 유지 관리 이벤트의 영향을 받는 모니터가 없습니다.",
   "No other resources affected by this scheduled maintenance event.": "이 예정된 유지 관리 이벤트의 영향을 받는 다른 리소스가 없습니다.",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "이 템플릿에서 만든 이벤트가 미리 채워야 하는 호스트, Kubernetes 클러스터, Docker 호스트 또는 서비스를 검색하고 첨부하세요.",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "비워 두면 모든 서비스에 적용되는 규칙이 됩니다. 단일 서비스 규칙은 프로젝트 전체 규칙보다 먼저 실행됩니다.",
   "Only for one service": "하나의 서비스에만",
   "The rule applies to every service, and takes effect within a minute of being saved.": "규칙은 모든 서비스에 적용되며 저장 후 1분 이내에 적용됩니다.",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "규칙은 저장 후 1분 이내에 시작하여 매분 메트릭을 기록합니다."
+  "The rule writes its metric every minute, starting within a minute of being saved.": "규칙은 저장 후 1분 이내에 시작하여 매분 메트릭을 기록합니다.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
+  "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
+  "e.g. Add production": "예: production 추가"
 }

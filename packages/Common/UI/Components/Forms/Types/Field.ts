@@ -241,7 +241,10 @@ export default interface Field<TEntity> {
    * the pick was as the list showed it - the options picked now and before,
    * with their labels - so a field can fill in a name after what was picked
    * without a request of its own (a status page resource's display name
-   * follows its monitor: StatusPageResourceFormFields).
+   * follows its monitor: StatusPageResourceFormFields). A PeoplePicker field
+   * says the same of its people and teams, each labelled with its name (an
+   * owner rule is named after its owners: Dashboard Utils/Form/
+   * ResourceRuleForm).
    */
   onChange?:
     | ((

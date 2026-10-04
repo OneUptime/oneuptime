@@ -9,7 +9,8 @@ import path from "path";
  *
  *   - each page is the rule table over its own model, with the three legacy
  *     match fields on the "match-criteria" step (that is what makes ModelForm
- *     swap in the condition builder) and the action fields on their own step;
+ *     swap in the condition builder), and its steps and action fields taken
+ *     from the shared label and owner rule form (Utils/Form/ResourceRuleForm);
  *   - the pages are reachable: the SLO list's side menu links them, the routes
  *     sit in the list layout where `settings` can never be read as an SLO id,
  *     and every page has breadcrumbs;
@@ -139,7 +140,9 @@ interface PageCase {
   viewKey: string;
   tableId: string;
   actionStep: string;
-  actionFields: Array<string>;
+  // The shared form's steps and action fields the page takes.
+  stepsHelper: string;
+  actionFieldsHelper: string;
 }
 
 const PAGES: Array<PageCase> = [
@@ -153,7 +156,8 @@ const PAGES: Array<PageCase> = [
     viewKey: "SLOS_SETTINGS_LABEL_RULE_VIEW",
     tableId: "slo-label-rules-table",
     actionStep: "labels",
-    actionFields: ["labelsToAdd"],
+    stepsHelper: "getLabelRuleFormSteps",
+    actionFieldsHelper: "getLabelRuleActionFields",
   },
   {
     name: "SLO Owner Rules",
@@ -164,7 +168,8 @@ const PAGES: Array<PageCase> = [
     viewKey: "SLOS_SETTINGS_OWNER_RULE_VIEW",
     tableId: "slo-owner-rules-table",
     actionStep: "owners",
-    actionFields: ["owners"],
+    stepsHelper: "getOwnerRuleFormSteps",
+    actionFieldsHelper: "getOwnerRuleActionFields",
   },
 ];
 
@@ -194,17 +199,17 @@ describe.each(PAGES)("$name page", (c: PageCase) => {
     expect(fieldsOnStep(code, "match-criteria")).toEqual(LEGACY_MATCH_FIELDS);
   });
 
-  test("puts the action fields on their own step", () => {
-    expect(fieldsOnStep(code, c.actionStep)).toEqual(c.actionFields);
-    expect(code).toContain(`id: "${c.actionStep}"`);
-  });
-
-  test("names its basic info the way every rule does", () => {
-    expect(fieldsOnStep(code, "basic-info")).toEqual(
-      c.table === "RuleTable"
-        ? ["name", "description", "isEnabled", "notifyOwners"]
-        : ["name", "description", "isEnabled"],
+  test("takes its steps and what the rule adds from the shared form", () => {
+    expect(dense(c.page)).toContain(
+      `formSteps={${c.stepsHelper}<${c.model}>()}`,
     );
+    expect(dense(c.page)).toContain(
+      `...${c.actionFieldsHelper}<${c.model}>(),]}`,
+    );
+    // Nothing of its own besides the criteria: no Basic Info, no action step.
+    expect(fieldsOnStep(code, c.actionStep)).toEqual([]);
+    expect(fieldsOnStep(code, "basic-info")).toEqual([]);
+    expect(code).not.toContain("formSteps={[");
   });
 
   test("keeps its table state to itself", () => {
@@ -249,21 +254,25 @@ describe.each(PAGES)("$name page", (c: PageCase) => {
   });
 });
 
+/*
+ * What the rule adds is asked by the shared form both pages take
+ * (Utils/Form/ResourceRuleForm), so it is read there.
+ */
+const RESOURCE_RULE_FORM: string = "Utils/Form/ResourceRuleForm.ts";
+
 describe("SLO Owner Rules page form", () => {
   const code: string = readCode(OWNER_RULES_PAGE);
+  const shared: string = readCode(RESOURCE_RULE_FORM);
 
-  test("lets the rule turn owner notifications off", () => {
-    expect(code).toMatch(
-      /field: \{ notifyOwners: true \}, title: "Notify Owners", stepId: "basic-info", fieldType: FormFieldSchemaType\.Toggle,/,
+  test("lets the rule turn owner notifications off, on the Owners step", () => {
+    expect(shared).toMatch(
+      /field: \{ notifyOwners: true \} as unknown as SelectFormFields<TEntity>, title: "Notify Owners", description: OWNER_RULE_NOTIFY_OWNERS_DESCRIPTION, stepId: "owners", fieldType: FormFieldSchemaType\.Toggle,/,
     );
   });
 
   test("picks people and teams in one owners picker, saying what a match does", () => {
-    expect(code).toContain(
-      'import getOwnersFormField, { OWNER_RULE_OWNERS_DESCRIPTION, } from "Common/UI/Components/PeoplePicker/OwnersFormField";',
-    );
-    expect(code).toContain(
-      'getOwnersFormField({ stepId: "owners", description: OWNER_RULE_OWNERS_DESCRIPTION, })',
+    expect(shared).toContain(
+      'getOwnersFormField<TEntity>({ stepId: "owners", required: true, description: OWNER_RULE_OWNERS_DESCRIPTION,',
     );
     // No dropdown per kind any more.
     expect(code).not.toContain("ownerTeams");
@@ -274,11 +283,15 @@ describe("SLO Owner Rules page form", () => {
 describe("SLO Label Rules page form", () => {
   test("picks labels from the project's labels, for matching and for adding", () => {
     const code: string = readCode(LABEL_RULES_PAGE);
+    const shared: string = readCode(RESOURCE_RULE_FORM);
 
-    for (const field of ["serviceLevelObjectiveLabels", "labelsToAdd"]) {
-      expect(code).toMatch(
+    for (const [source, field] of [
+      [code, "serviceLevelObjectiveLabels"],
+      [shared, "labelsToAdd"],
+    ] as Array<[string, string]>) {
+      expect(source).toMatch(
         new RegExp(
-          `field: \\{ ${field}: true \\},[\\s\\S]*?dropdownModal: \\{ type: Label, labelField: "name", valueField: "_id", \\}`,
+          `field: \\{ ${field}: true \\}[^,]*,[\\s\\S]*?dropdownModal: \\{ type: Label, labelField: "name", valueField: "_id", \\}`,
         ),
       );
     }

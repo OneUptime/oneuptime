@@ -24869,7 +24869,15 @@
   "The usual starting state": "सामान्य प्रारंभिक स्थिति",
   "Their names could not be loaded.": "उनके नाम लोड नहीं हो सके।",
   "Who takes each role on this incident.": "इस घटना में हर भूमिका कौन निभाएगा।",
+  "Add {{labels}}": "{{labels}} जोड़ें",
+  "Add {{labels}} and {{count}} more": "{{labels}} और {{count}} अन्य जोड़ें",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} और {{count}} अन्य जोड़ें",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} और {{count}} अन्य को स्वामी के रूप में जोड़ें",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} और {{count}} अन्य को स्वामी के रूप में जोड़ें",
+  "Add {{owners}} as owners": "{{owners}} को स्वामी के रूप में जोड़ें",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "इस टेम्पलेट से शेड्यूल किए गए इवेंट जारी रहने तक अपने मॉनिटर की स्थिति बदलकर यह कर देते हैं - यहां चुने गए मॉनिटर और इवेंट शेड्यूल करते समय चुने गए सभी मॉनिटर।",
+  "Named after the labels it adds until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले लेबल के आधार पर रखा जाता है।",
+  "Named after the owners it adds until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले स्वामियों के आधार पर रखा जाता है।",
   "No monitors affected by this scheduled maintenance event.": "इस अनुसूचित रखरखाव इवेंट से कोई मॉनिटर प्रभावित नहीं है।",
   "No other resources affected by this scheduled maintenance event.": "इस अनुसूचित रखरखाव इवेंट से कोई अन्य संसाधन प्रभावित नहीं है।",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "इस टेम्पलेट से बनाए गए इवेंट्स जिन होस्ट, Kubernetes क्लस्टर, Docker होस्ट या सेवाओं को पूर्व-भरना चाहिए, उन्हें खोजें और संलग्न करें।",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "हर सेवा पर लागू होने वाले नियम के लिए खाली छोड़ें। एक सेवा के नियम प्रोजेक्ट-व्यापी नियमों से पहले चलते हैं।",
   "Only for one service": "केवल एक सेवा के लिए",
   "The rule applies to every service, and takes effect within a minute of being saved.": "नियम हर सेवा पर लागू होता है और सहेजे जाने के एक मिनट के भीतर प्रभावी हो जाता है।",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "नियम सहेजे जाने के एक मिनट के भीतर शुरू होकर हर मिनट अपना मेट्रिक लिखता है।"
+  "The rule writes its metric every minute, starting within a minute of being saved.": "नियम सहेजे जाने के एक मिनट के भीतर शुरू होकर हर मिनट अपना मेट्रिक लिखता है।",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "जब यह नियम मेल खाता है, तो ये लेबल जोड़े जाते हैं। पहले से जुड़े लेबल दोबारा नहीं जोड़े जाते।",
+  "e.g. Add Platform as owners": "उदा. Platform को स्वामी के रूप में जोड़ें",
+  "e.g. Add production": "उदा. production जोड़ें"
 }

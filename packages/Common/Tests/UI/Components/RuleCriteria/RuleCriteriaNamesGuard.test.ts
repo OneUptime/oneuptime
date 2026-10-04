@@ -307,8 +307,13 @@ function listTsxFiles(directory: string): Array<string> {
 // A template literal that is help markdown: it has a heading.
 const MARKDOWN_HEADING: RegExp = /^#{2,4} /m;
 
-// A page whose form has a Match Criteria step.
-const MATCH_CRITERIA_STEP: RegExp = /id\s*:\s*["']match-criteria["']/;
+/*
+ * A page whose form has a Match Criteria step: written on the page, or the
+ * shared label and owner rule form's Match step (Dashboard Utils/Form/
+ * ResourceRuleForm).
+ */
+const MATCH_CRITERIA_STEP: RegExp =
+  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner)RuleFormSteps</;
 
 function markdownTemplates(source: string): Array<string> {
   const sourceFile: ts.SourceFile = ts.createSourceFile(

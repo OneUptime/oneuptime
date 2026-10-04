@@ -24869,7 +24869,15 @@
   "The usual starting state": "El estado inicial habitual",
   "Their names could not be loaded.": "No se pudieron cargar sus nombres.",
   "Who takes each role on this incident.": "Quién asume cada rol en este incidente.",
+  "Add {{labels}}": "Añadir {{labels}}",
+  "Add {{labels}} and {{count}} more": "Añadir {{labels}} y {{count}} más",
+  "Add {{labels}} and {{count}} more_one": "Añadir {{labels}} y {{count}} más",
+  "Add {{owners}} and {{count}} more as owners": "Añadir {{owners}} y {{count}} más como propietarios",
+  "Add {{owners}} and {{count}} more as owners_one": "Añadir {{owners}} y {{count}} más como propietarios",
+  "Add {{owners}} as owners": "Añadir {{owners}} como propietarios",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Los eventos programados desde esta plantilla cambian sus monitores a este estado mientras están en curso: los elegidos aquí y los que se elijan al programar el evento.",
+  "Named after the labels it adds until you type a name of your own.": "Lleva el nombre de las etiquetas que añade hasta que escribas uno propio.",
+  "Named after the owners it adds until you type a name of your own.": "Lleva el nombre de los propietarios que añade hasta que escribas uno propio.",
   "No monitors affected by this scheduled maintenance event.": "Este evento de mantenimiento programado no afecta a ningún monitor.",
   "No other resources affected by this scheduled maintenance event.": "Este evento de mantenimiento programado no afecta a ningún otro recurso.",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Busca y asocia hosts, clústeres de Kubernetes, hosts de Docker o servicios con los que los eventos creados a partir de esta plantilla deben rellenarse previamente.",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Déjalo vacío para una regla que se aplique a todos los servicios. Las reglas de un solo servicio se ejecutan antes que las de todo el proyecto.",
   "Only for one service": "Solo para un servicio",
   "The rule applies to every service, and takes effect within a minute of being saved.": "La regla se aplica a todos los servicios y entra en vigor en el minuto siguiente a guardarla.",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "La regla escribe su métrica cada minuto, a partir del minuto siguiente a guardarla."
+  "The rule writes its metric every minute, starting within a minute of being saved.": "La regla escribe su métrica cada minuto, a partir del minuto siguiente a guardarla.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Cuando esta regla coincide, se añaden estas etiquetas. Las etiquetas ya añadidas no se añaden dos veces.",
+  "e.g. Add Platform as owners": "p. ej. Añadir Platform como propietarios",
+  "e.g. Add production": "p. ej. Añadir production"
 }

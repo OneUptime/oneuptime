@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getLabelRuleActionFields,
+  getLabelRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -140,36 +144,8 @@ const OnCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Labels", id: "labels", columns: 2 },
-      ]}
+      formSteps={getLabelRuleFormSteps<OnCallDutyPolicyLabelRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Tag matching on-call policies",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { onCallDutyPolicyLabels: true },
           title: "On-Call Policy Labels",
@@ -205,22 +181,7 @@ const OnCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { labelsToAdd: true },
-          title: "Labels to Add",
-          stepId: "labels",
-          sectionTitle: "Labels to Attach",
-          sectionDescription:
-            "When this rule matches, every selected label is attached to the on-call policy. Already-attached labels are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Labels",
-        },
+        ...getLabelRuleActionFields<OnCallDutyPolicyLabelRule>(),
       ]}
       showRefreshButton={true}
     />
@@ -296,36 +257,8 @@ const OnCallScheduleLabelRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Labels", id: "labels", columns: 2 },
-      ]}
+      formSteps={getLabelRuleFormSteps<OnCallDutyPolicyScheduleLabelRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Tag matching on-call schedules",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { onCallDutyPolicyScheduleLabels: true },
           title: "On-Call Schedule Labels",
@@ -361,22 +294,7 @@ const OnCallScheduleLabelRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "production|rotation",
         },
-        {
-          field: { labelsToAdd: true },
-          title: "Labels to Add",
-          stepId: "labels",
-          sectionTitle: "Labels to Attach",
-          sectionDescription:
-            "When this rule matches, every selected label is attached to the on-call schedule. Already-attached labels are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Labels",
-        },
+        ...getLabelRuleActionFields<OnCallDutyPolicyScheduleLabelRule>(),
       ]}
       showRefreshButton={true}
     />
@@ -451,36 +369,8 @@ const IncomingCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Labels", id: "labels", columns: 2 },
-      ]}
+      formSteps={getLabelRuleFormSteps<IncomingCallPolicyLabelRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Tag matching incoming call policies",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { incomingCallPolicyLabels: true },
           title: "Incoming Call Policy Labels",
@@ -516,22 +406,7 @@ const IncomingCallPolicyLabelRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "billing|support",
         },
-        {
-          field: { labelsToAdd: true },
-          title: "Labels to Add",
-          stepId: "labels",
-          sectionTitle: "Labels to Attach",
-          sectionDescription:
-            "When this rule matches, every selected label is attached to the incoming call policy. Already-attached labels are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Labels",
-        },
+        ...getLabelRuleActionFields<IncomingCallPolicyLabelRule>(),
       ]}
       showRefreshButton={true}
     />

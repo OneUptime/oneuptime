@@ -24869,7 +24869,15 @@
   "The usual starting state": "通常の開始状態",
   "Their names could not be loaded.": "名前を読み込めませんでした。",
   "Who takes each role on this incident.": "このインシデントで各ロールを誰が担当するか。",
+  "Add {{labels}}": "{{labels}} を追加",
+  "Add {{labels}} and {{count}} more": "{{labels}} ほか {{count}} 件を追加",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} ほか {{count}} 件を追加",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} ほか {{count}} 件を所有者として追加",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} ほか {{count}} 件を所有者として追加",
+  "Add {{owners}} as owners": "{{owners}} を所有者として追加",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "このテンプレートからスケジュールされたイベントは、進行中の間、モニターのステータスをこのステータスに変更します。ここで選択したモニターと、イベントのスケジュール時に選択したモニターが対象です。",
+  "Named after the labels it adds until you type a name of your own.": "独自の名前を入力するまで、追加するラベルに合わせて名前が付きます。",
+  "Named after the owners it adds until you type a name of your own.": "独自の名前を入力するまで、追加する所有者に合わせて名前が付きます。",
   "No monitors affected by this scheduled maintenance event.": "この定期メンテナンスイベントの影響を受けるモニターはありません。",
   "No other resources affected by this scheduled maintenance event.": "この定期メンテナンスイベントの影響を受ける他のリソースはありません。",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "このテンプレートから作成されたイベントに事前入力すべきホスト、Kubernetes クラスター、Docker ホスト、またはサービスを検索して添付します。",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "空のままにすると、すべてのサービスに適用されるルールになります。単一サービスのルールは、プロジェクト全体のルールより先に実行されます。",
   "Only for one service": "1 つのサービスのみ",
   "The rule applies to every service, and takes effect within a minute of being saved.": "ルールはすべてのサービスに適用され、保存から 1 分以内に有効になります。",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "ルールは保存から 1 分以内に、毎分のメトリクスの書き込みを開始します。"
+  "The rule writes its metric every minute, starting within a minute of being saved.": "ルールは保存から 1 分以内に、毎分のメトリクスの書き込みを開始します。",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。",
+  "e.g. Add Platform as owners": "例: Platform を所有者として追加",
+  "e.g. Add production": "例: production を追加"
 }

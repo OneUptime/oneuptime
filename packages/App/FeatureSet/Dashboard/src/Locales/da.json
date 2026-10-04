@@ -24869,7 +24869,15 @@
   "The usual starting state": "Den sædvanlige starttilstand",
   "Their names could not be loaded.": "Deres navne kunne ikke indlæses.",
   "Who takes each role on this incident.": "Hvem der påtager sig hver rolle i denne hændelse.",
+  "Add {{labels}}": "Tilføj {{labels}}",
+  "Add {{labels}} and {{count}} more": "Tilføj {{labels}} og {{count}} til",
+  "Add {{labels}} and {{count}} more_one": "Tilføj {{labels}} og {{count}} til",
+  "Add {{owners}} and {{count}} more as owners": "Tilføj {{owners}} og {{count}} til som ejere",
+  "Add {{owners}} and {{count}} more as owners_one": "Tilføj {{owners}} og {{count}} til som ejere",
+  "Add {{owners}} as owners": "Tilføj {{owners}} som ejere",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Begivenheder, der planlægges ud fra denne skabelon, sætter deres overvågninger til denne status, mens de er i gang – dem, der er valgt her, og dem, der vælges, når begivenheden planlægges.",
+  "Named after the labels it adds until you type a name of your own.": "Navngivet efter de etiketter, den tilføjer, indtil du skriver dit eget navn.",
+  "Named after the owners it adds until you type a name of your own.": "Navngivet efter de ejere, den tilføjer, indtil du skriver dit eget navn.",
   "No monitors affected by this scheduled maintenance event.": "Ingen overvågninger påvirket af denne planlagte vedligeholdelsesbegivenhed.",
   "No other resources affected by this scheduled maintenance event.": "Ingen andre ressourcer påvirket af denne planlagte vedligeholdelsesbegivenhed.",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Søg efter og tilknyt værter, Kubernetes-klynger, Docker-værter eller tjenester, som begivenheder oprettet ud fra denne skabelon skal forhåndsudfylde.",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Lad stå tom for en regel, der gælder for alle tjenester. Regler for én tjeneste køres før de projektomspændende.",
   "Only for one service": "Kun for én tjeneste",
   "The rule applies to every service, and takes effect within a minute of being saved.": "Reglen gælder for alle tjenester og træder i kraft inden for et minut efter, at den er gemt.",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "Reglen skriver sin måling hvert minut, fra senest et minut efter, at den er gemt."
+  "The rule writes its metric every minute, starting within a minute of being saved.": "Reglen skriver sin måling hvert minut, fra senest et minut efter, at den er gemt.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Når denne regel matcher, tilføjes disse etiketter. Etiketter, der allerede er tilføjet, tilføjes ikke to gange.",
+  "e.g. Add Platform as owners": "f.eks. Tilføj Platform som ejere",
+  "e.g. Add production": "f.eks. Tilføj production"
 }

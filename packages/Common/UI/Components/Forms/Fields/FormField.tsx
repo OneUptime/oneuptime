@@ -48,10 +48,12 @@ import YamlEditor from "../../CodeEditor/YamlEditor";
 import PeoplePicker from "../../PeoplePicker/PeoplePicker";
 import {
   getPeoplePickerKinds,
+  PeoplePickerChange,
   PeoplePickerFormValue,
   PeoplePickerValue,
   readPeoplePickerExcludedValue,
   readPeoplePickerFormValue,
+  toPeoplePickerDropdownChange,
   toPeoplePickerFormValues,
 } from "../../PeoplePicker/PeoplePickerTypes";
 import InsertTemplateVariableButton from "../../TemplateVariables/InsertTemplateVariableButton";
@@ -1013,7 +1015,9 @@ const FormField: <T extends GenericObject>(
            * written to the form on its own, as two dropdowns used to. A
            * picker that takes one pick writes each kind's one id, or null:
            * the kind not picked is cleared. Its search list leaves out what
-           * the form values its excludePicksOf names hold right now.
+           * the form values its excludePicksOf names hold right now. The
+           * field's own onChange hears what was picked by name, as a
+           * dropdown's does (an owner rule is named after its owners).
            */}
           {props.field.fieldType === FormFieldSchemaType.PeoplePicker &&
             props.field.peoplePicker && (
@@ -1023,11 +1027,17 @@ const FormField: <T extends GenericObject>(
                   props.field.peoplePicker,
                   props.currentValues,
                 )}
-                onChange={(value: PeoplePickerValue) => {
+                onChange={(
+                  value: PeoplePickerValue,
+                  change?: PeoplePickerChange,
+                ) => {
                   const formValues: Record<string, PeoplePickerFormValue> =
                     toPeoplePickerFormValues(props.field.peoplePicker!, value);
 
-                  onChange(formValues);
+                  onChange(
+                    formValues,
+                    change ? toPeoplePickerDropdownChange(change) : undefined,
+                  );
 
                   for (const valueKey of Object.keys(formValues)) {
                     props.setFieldValue(

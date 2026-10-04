@@ -24869,7 +24869,15 @@
   "The usual starting state": "通常的初始状态",
   "Their names could not be loaded.": "无法加载他们的名称。",
   "Who takes each role on this incident.": "由谁担任此事件的各个角色。",
+  "Add {{labels}}": "添加 {{labels}}",
+  "Add {{labels}} and {{count}} more": "添加 {{labels}} 及另外 {{count}} 个",
+  "Add {{labels}} and {{count}} more_one": "添加 {{labels}} 及另外 {{count}} 个",
+  "Add {{owners}} and {{count}} more as owners": "将 {{owners}} 及另外 {{count}} 个添加为所有者",
+  "Add {{owners}} and {{count}} more as owners_one": "将 {{owners}} 及另外 {{count}} 个添加为所有者",
+  "Add {{owners}} as owners": "将 {{owners}} 添加为所有者",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "从此模板计划的事件在进行期间会将其监视器的状态更改为此状态——包括此处选择的监视器，以及计划事件时选择的任何监视器。",
+  "Named after the labels it adds until you type a name of your own.": "在您输入自己的名称之前，按其添加的标签命名。",
+  "Named after the owners it adds until you type a name of your own.": "在您输入自己的名称之前，按其添加的所有者命名。",
   "No monitors affected by this scheduled maintenance event.": "没有受此计划维护事件影响的监视器。",
   "No other resources affected by this scheduled maintenance event.": "没有受此计划维护事件影响的其他资源。",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "搜索并关联从此模板创建的事件应预填充的主机、Kubernetes 集群、Docker 主机或服务。",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "留空则规则适用于所有服务。单个服务的规则先于项目范围的规则运行。",
   "Only for one service": "仅限一个服务",
   "The rule applies to every service, and takes effect within a minute of being saved.": "该规则适用于所有服务，并在保存后一分钟内生效。",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "该规则在保存后一分钟内开始，每分钟写入一次其指标。"
+  "The rule writes its metric every minute, starting within a minute of being saved.": "该规则在保存后一分钟内开始，每分钟写入一次其指标。",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "当此规则匹配时，会添加这些标签。已添加的标签不会被重复添加。",
+  "e.g. Add Platform as owners": "例如 将 Platform 添加为所有者",
+  "e.g. Add production": "例如 添加 production"
 }

@@ -24869,7 +24869,15 @@
   "The usual starting state": "The usual starting state",
   "Their names could not be loaded.": "Their names could not be loaded.",
   "Who takes each role on this incident.": "Who takes each role on this incident.",
+  "Add {{labels}}": "Add {{labels}}",
+  "Add {{labels}} and {{count}} more": "Add {{labels}} and {{count}} more",
+  "Add {{labels}} and {{count}} more_one": "Add {{labels}} and {{count}} more",
+  "Add {{owners}} and {{count}} more as owners": "Add {{owners}} and {{count}} more as owners",
+  "Add {{owners}} and {{count}} more as owners_one": "Add {{owners}} and {{count}} more as owners",
+  "Add {{owners}} as owners": "Add {{owners}} as owners",
   "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.": "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.",
+  "Named after the labels it adds until you type a name of your own.": "Named after the labels it adds until you type a name of your own.",
+  "Named after the owners it adds until you type a name of your own.": "Named after the owners it adds until you type a name of your own.",
   "No monitors affected by this scheduled maintenance event.": "No monitors affected by this scheduled maintenance event.",
   "No other resources affected by this scheduled maintenance event.": "No other resources affected by this scheduled maintenance event.",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.": "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
@@ -24881,5 +24889,8 @@
   "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.",
   "Only for one service": "Only for one service",
   "The rule applies to every service, and takes effect within a minute of being saved.": "The rule applies to every service, and takes effect within a minute of being saved.",
-  "The rule writes its metric every minute, starting within a minute of being saved.": "The rule writes its metric every minute, starting within a minute of being saved."
+  "The rule writes its metric every minute, starting within a minute of being saved.": "The rule writes its metric every minute, starting within a minute of being saved.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "When this rule matches, these labels are attached. Labels already attached are not added twice.",
+  "e.g. Add Platform as owners": "e.g. Add Platform as owners",
+  "e.g. Add production": "e.g. Add production"
 }
