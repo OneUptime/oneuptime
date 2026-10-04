@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 
 /*
  * The plain-language half of the Incident and Alert Grouping Rules pages.
@@ -21,7 +22,10 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   - one sentence per rule in the list instead of raw columns
  *     (getGroupingRuleSummary);
  *   - everything else behind "Show advanced settings", which an existing rule
- *     that uses any of it opens with (hasAdvancedSettings).
+ *     that uses any of it opens with (hasAdvancedSettings);
+ *   - who owns the episodes a rule opens asked with one people picker, where
+ *     two dropdowns set a default assignee nothing ever showed (see
+ *     EPISODE_OWNERS_FIELD_KEY).
  *
  * React-free on purpose: App has no react (see
  * App/Tests/FeatureSetImportsStayReactFree.test.ts), and the node tests that
@@ -97,6 +101,46 @@ export const INACTIVITY_TIMEOUT_SETTING_FIELD_KEY: string =
 export const SHOW_ADVANCED_SETTINGS_FIELD_KEY: string = "showAdvancedSettings";
 
 /*
+ * Who owns the episodes a rule opens: the On-Call & Ownership step's Episode
+ * Owners, one people picker kept in the rule's episodeOwnerUsers and
+ * episodeOwnerTeams. The engines make each of them an owner of every episode
+ * the rule opens - listed on the episode's Owners page and notified like any
+ * owner (GroupingRuleEpisodeOwners, on the server).
+ *
+ * The step used to ask "Default Assign To Team" and "Default Assign To User"
+ * instead: two dropdowns the engines copied into the episode's
+ * assignedToTeam and assignedToUser, which nothing in OneUptime reads - no
+ * page, notification or worker. A rule saved with them keeps them: the API
+ * and Terraform still read and write those columns, and the engines still
+ * copy them. Its edit form names them under the owners and offers to make
+ * them owners instead (getLegacyDefaultAssignee).
+ */
+export const EPISODE_OWNERS_FIELD_KEY: string = "episodeOwners";
+export const EPISODE_OWNER_USERS_COLUMN: string = "episodeOwnerUsers";
+export const EPISODE_OWNER_TEAMS_COLUMN: string = "episodeOwnerTeams";
+
+// The form-only key of the line under the owners that names the old pair.
+export const LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY: string =
+  "legacyDefaultAssignee";
+
+// The columns the old pair wrote, which the edit form reads and clears.
+export const LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN: string =
+  "defaultAssignToUserId";
+export const LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN: string =
+  "defaultAssignToTeamId";
+
+// Their relations, which a rule read through the API can carry instead.
+const LEGACY_DEFAULT_ASSIGNEE_USER_RELATION: string = "defaultAssignToUser";
+const LEGACY_DEFAULT_ASSIGNEE_TEAM_RELATION: string = "defaultAssignToTeam";
+
+const LEGACY_DEFAULT_ASSIGNEE_KEYS: Array<string> = [
+  LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN,
+  LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN,
+  LEGACY_DEFAULT_ASSIGNEE_USER_RELATION,
+  LEGACY_DEFAULT_ASSIGNEE_TEAM_RELATION,
+];
+
+/*
  * The engines fall back to this when a rule's time window is switched on with
  * no minutes (`rule.timeWindowMinutes || 60`), so the summary does too.
  */
@@ -157,6 +201,12 @@ export const GROUPING_RULE_COPY: {
   showAdvancedTitle: string;
   showAdvancedDescription: string;
   summaryColumnTitle: string;
+  episodeOwnersTitle: string;
+  episodeOwnersDescription: string;
+  legacyAssigneeTitle: string;
+  legacyAssigneeDescription: string;
+  legacyAssigneeAddAsOwners: string;
+  legacyAssigneeRemove: string;
 } = {
   cardDescription: {
     [GroupingRuleKind.Incident]:
@@ -242,6 +292,18 @@ export const GROUPING_RULE_COPY: {
   showAdvancedDescription:
     "Reopen and auto-resolve episodes, set episode titles and labels, page on-call and assign owners. Most teams can leave these as they are.",
   summaryColumnTitle: "Grouping",
+  episodeOwnersTitle: "Episode Owners",
+  episodeOwnersDescription:
+    "Added as owners of every episode this rule opens, and notified like any other owner.",
+  /*
+   * The line under the owners of a rule that still has the old default
+   * assignee: who it names, that nothing shows it, and the way out.
+   */
+  legacyAssigneeTitle: "Default assignee",
+  legacyAssigneeDescription:
+    "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.",
+  legacyAssigneeAddAsOwners: "Add as owners",
+  legacyAssigneeRemove: "Remove",
 };
 
 export interface GroupingModeOption {
@@ -1208,7 +1270,8 @@ const hasValue: HasValueFunction = (value: unknown): boolean => {
 /*
  * Whether a rule uses anything behind "Show advanced settings". An existing
  * rule that does opens with them shown, so nothing it does is ever hidden
- * from the person editing it.
+ * from the person editing it - its episode owners included, and the old
+ * default assignee, whose line is drawn on the same step.
  */
 export const hasAdvancedSettings: (values: GroupingRuleValues) => boolean = (
   values: GroupingRuleValues,
@@ -1234,15 +1297,147 @@ export const hasAdvancedSettings: (values: GroupingRuleValues) => boolean = (
       "episodeDescriptionTemplate",
       "episodeLabels",
       "onCallDutyPolicies",
-      "defaultAssignToTeam",
-      "defaultAssignToTeamId",
-      "defaultAssignToUser",
-      "defaultAssignToUserId",
+      EPISODE_OWNER_USERS_COLUMN,
+      EPISODE_OWNER_TEAMS_COLUMN,
+      ...LEGACY_DEFAULT_ASSIGNEE_KEYS,
       "episodeMemberRoleAssignments",
     ].some((key: string): boolean => {
       return hasValue(values[key]);
     })
   );
+};
+
+type ReadIdFunction = (value: unknown) => string | null;
+
+// One id, in any shape a form value or a related row holds it.
+const readId: ReadIdFunction = (value: unknown): string | null => {
+  return toPeoplePickerIds(value)[0] || null;
+};
+
+export interface LegacyDefaultAssignee {
+  userId: string | null;
+  teamId: string | null;
+}
+
+/*
+ * The default assignee a rule still has from the old form - its user, its
+ * team, or both - or null when it has none.
+ */
+export const getLegacyDefaultAssignee: (
+  values: GroupingRuleValues,
+) => LegacyDefaultAssignee | null = (
+  values: GroupingRuleValues,
+): LegacyDefaultAssignee | null => {
+  const userId: string | null =
+    readId(values[LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN]) ||
+    readId(values[LEGACY_DEFAULT_ASSIGNEE_USER_RELATION]);
+  const teamId: string | null =
+    readId(values[LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN]) ||
+    readId(values[LEGACY_DEFAULT_ASSIGNEE_TEAM_RELATION]);
+
+  if (!userId && !teamId) {
+    return null;
+  }
+
+  return { userId, teamId };
+};
+
+export enum LegacyDefaultAssigneeAction {
+  AddAsOwners = "add-as-owners",
+  Remove = "remove",
+}
+
+/*
+ * What the line's buttons hand the form. Add as owners names the picks to
+ * make owners: the ones the project still has, as the line looked them up
+ * (someone who left, or a deleted team, cannot own anything).
+ */
+export interface LegacyDefaultAssigneeChange {
+  action: LegacyDefaultAssigneeAction;
+  userId?: string | null | undefined;
+  teamId?: string | null | undefined;
+}
+
+export const isLegacyDefaultAssigneeChange: (
+  value: unknown,
+) => value is LegacyDefaultAssigneeChange = (
+  value: unknown,
+): value is LegacyDefaultAssigneeChange => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const action: unknown = (value as Record<string, unknown>)["action"];
+
+  return (
+    action === LegacyDefaultAssigneeAction.AddAsOwners ||
+    action === LegacyDefaultAssigneeAction.Remove
+  );
+};
+
+type AddOwnerIdFunction = (list: unknown, id: string | null) => Array<string>;
+
+// The list's ids with one more, unless it is there already in any case.
+const addOwnerId: AddOwnerIdFunction = (
+  list: unknown,
+  id: string | null,
+): Array<string> => {
+  const ids: Array<string> = toPeoplePickerIds(list);
+
+  if (
+    id &&
+    !ids.some((existing: string): boolean => {
+      return existing.toLowerCase() === id.toLowerCase();
+    })
+  ) {
+    ids.push(id);
+  }
+
+  return ids;
+};
+
+/*
+ * The form values either button writes. Both clear the old pair, so it is
+ * gone from the rule once it is saved and the line does not come back; Add
+ * as owners also adds its picks to Episode Owners, each once.
+ */
+export const getValuesForLegacyDefaultAssigneeChange: (data: {
+  values: GroupingRuleValues;
+  change: LegacyDefaultAssigneeChange;
+}) => GroupingRuleValues = (data: {
+  values: GroupingRuleValues;
+  change: LegacyDefaultAssigneeChange;
+}): GroupingRuleValues => {
+  const updates: GroupingRuleValues = {
+    [LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN]: null,
+    [LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN]: null,
+  };
+
+  for (const key of LEGACY_DEFAULT_ASSIGNEE_KEYS) {
+    if (data.values[key] !== undefined) {
+      updates[key] = null;
+    }
+  }
+
+  if (data.change.action !== LegacyDefaultAssigneeAction.AddAsOwners) {
+    return updates;
+  }
+
+  if (data.change.userId) {
+    updates[EPISODE_OWNER_USERS_COLUMN] = addOwnerId(
+      data.values[EPISODE_OWNER_USERS_COLUMN],
+      data.change.userId,
+    );
+  }
+
+  if (data.change.teamId) {
+    updates[EPISODE_OWNER_TEAMS_COLUMN] = addOwnerId(
+      data.values[EPISODE_OWNER_TEAMS_COLUMN],
+      data.change.teamId,
+    );
+  }
+
+  return updates;
 };
 
 /*

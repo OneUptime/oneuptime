@@ -1377,7 +1377,8 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Default Assign To User",
-    description: "Default user to assign episodes created by this rule",
+    description:
+      "Kept for API compatibility: copied to the assignedToUser of each episode this rule opens, which OneUptime does not show anywhere. To make someone responsible for those episodes, use episodeOwnerUsers.",
   })
   @ManyToOne(
     () => {
@@ -1420,7 +1421,8 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     title: "Default Assign To User ID",
-    description: "Default User ID to assign episodes created by this rule",
+    description:
+      "ID of defaultAssignToUser. Kept for API compatibility: OneUptime does not show it anywhere. To make someone responsible for the episodes this rule opens, use episodeOwnerUsers.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1456,7 +1458,8 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     type: TableColumnType.Entity,
     modelType: Team,
     title: "Default Assign To Team",
-    description: "Default team to assign episodes created by this rule",
+    description:
+      "Kept for API compatibility: copied to the assignedToTeam of each episode this rule opens, which OneUptime does not show anywhere. To make a team responsible for those episodes, use episodeOwnerTeams.",
   })
   @ManyToOne(
     () => {
@@ -1499,7 +1502,8 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     title: "Default Assign To Team ID",
-    description: "Default Team ID to assign episodes created by this rule",
+    description:
+      "ID of defaultAssignToTeam. Kept for API compatibility: OneUptime does not show it anywhere. To make a team responsible for the episodes this rule opens, use episodeOwnerTeams.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1587,7 +1591,7 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     modelType: User,
     title: "Episode Owner Users",
     description:
-      "Users to automatically add as owners to episodes created by this rule.",
+      "Users added as owners of every episode this rule opens, and notified like any owner. Each must be a member of the project.",
   })
   @ManyToMany(
     () => {
@@ -1636,7 +1640,7 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     modelType: Team,
     title: "Episode Owner Teams",
     description:
-      "Teams to automatically add as owners to episodes created by this rule.",
+      "Teams added as owners of every episode this rule opens, and notified like any owner. Each must be a team of the project.",
   })
   @ManyToMany(
     () => {

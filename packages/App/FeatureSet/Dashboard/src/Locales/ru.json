@@ -2173,7 +2173,6 @@
   "Default": "По умолчанию",
   "Default Assign To Team": "Команда для назначения по умолчанию",
   "Default Assign To User": "Пользователь для назначения по умолчанию",
-  "Default Assignees": "Ответственные по умолчанию",
   "Default Bar Color": "Цвет полосы по умолчанию",
   "Default Bar Color of the History Chart": "Цвет полосы по умолчанию для графика истории",
   "Default is 80%.": "По умолчанию 80%.",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Как часто отправляется отчёт, например каждый месяц или раз в 2 недели.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Следующие отчёты отправляются в то же время суток. Выберите 1-е число месяца, чтобы отправлять 1-го числа каждого месяца.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Включите, чтобы снова отправлять подписчикам отчёт по email по прежнему расписанию.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Включите, чтобы 1-го числа каждого месяца в 09:00 отправлять подписчикам по email отчёт за предыдущий месяц. Расписание можно изменить после включения."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Включите, чтобы 1-го числа каждого месяца в 09:00 отправлять подписчикам по email отчёт за предыдущий месяц. Расписание можно изменить после включения.",
+  "Add as owners": "Добавить владельцами",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "Добавляются владельцами каждого эпизода, который открывает это правило, и получают уведомления, как любой другой владелец.",
+  "Default assignee": "Ответственный по умолчанию",
+  "Episode Owners": "Владельцы эпизода",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "Задано в прежней версии этой формы и нигде не отображается. Добавьте их владельцами, чтобы они отвечали за эпизоды, которые открывает это правило."
 }

@@ -2173,7 +2173,6 @@
   "Default": "Predefinito",
   "Default Assign To Team": "Assegnazione predefinita al team",
   "Default Assign To User": "Assegnazione predefinita all'utente",
-  "Default Assignees": "Assegnatari predefiniti",
   "Default Bar Color": "Colore predefinito della barra",
   "Default Bar Color of the History Chart": "Colore predefinito della barra del grafico cronologico",
   "Default is 80%.": "Il valore predefinito è 80%.",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Ogni quanto viene inviato un report, ad esempio ogni mese o ogni 2 settimane.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "I report successivi partono alla stessa ora. Scegli il giorno 1 di un mese per inviarli il giorno 1 di ogni mese.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Attivalo per inviare di nuovo un report via email agli iscritti, con la stessa pianificazione di prima.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Attivalo per inviare agli iscritti, il giorno 1 di ogni mese alle 09:00, un report via email sul mese precedente. Potrai cambiare la pianificazione una volta attivato."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Attivalo per inviare agli iscritti, il giorno 1 di ogni mese alle 09:00, un report via email sul mese precedente. Potrai cambiare la pianificazione una volta attivato.",
+  "Add as owners": "Aggiungi come proprietari",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "Aggiunti come proprietari di ogni episodio aperto da questa regola e notificati come qualsiasi altro proprietario.",
+  "Default assignee": "Assegnatario predefinito",
+  "Episode Owners": "Proprietari dell'episodio",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "Impostato da una versione precedente di questo modulo e non mostrato da nessuna parte. Aggiungili come proprietari per renderli responsabili degli episodi aperti da questa regola."
 }

@@ -2173,7 +2173,6 @@
   "Default": "پیش‌فرض",
   "Default Assign To Team": "تخصیص پیش‌فرض به تیم",
   "Default Assign To User": "تخصیص پیش‌فرض به کاربر",
-  "Default Assignees": "تخصیص‌یافتگان پیش‌فرض",
   "Default Bar Color": "رنگ پیش‌فرض میله",
   "Default Bar Color of the History Chart": "رنگ پیش‌فرض میله نمودار تاریخچه",
   "Default is 80%.": "پیش‌فرض ۸۰٪ است.",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "هر چند وقت یک بار گزارش ارسال شود، مثلا هر ماه یا هر ۲ هفته.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "گزارش‌های بعدی در همان ساعت ارسال می‌شوند. برای ارسال در روز اول هر ماه، روز اول یکی از ماه‌ها را انتخاب کنید.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "این را روشن کنید تا گزارش ایمیلی دوباره با همان زمان‌بندی قبلی برای مشترکان ارسال شود.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "این را روشن کنید تا روز اول هر ماه ساعت ۰۹:۰۰ گزارش ماه قبل برای مشترکان ایمیل شود. پس از روشن شدن می‌توانید زمان‌بندی را تغییر دهید."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "این را روشن کنید تا روز اول هر ماه ساعت ۰۹:۰۰ گزارش ماه قبل برای مشترکان ایمیل شود. پس از روشن شدن می‌توانید زمان‌بندی را تغییر دهید.",
+  "Add as owners": "افزودن به‌عنوان مالک",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "به‌عنوان مالک هر اپیزودی که این قاعده باز می‌کند اضافه می‌شوند و مانند هر مالک دیگری اعلان دریافت می‌کنند.",
+  "Default assignee": "تخصیص‌یافتهٔ پیش‌فرض",
+  "Episode Owners": "مالکان اپیزود",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "توسط نسخهٔ قدیمی‌تر این فرم تنظیم شده و در هیچ‌جا نمایش داده نمی‌شود. برای اینکه مسئول اپیزودهایی باشند که این قاعده باز می‌کند، آن‌ها را به‌عنوان مالک اضافه کنید."
 }

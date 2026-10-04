@@ -2173,7 +2173,6 @@
   "Default": "デフォルト",
   "Default Assign To Team": "デフォルトの割り当て先チーム",
   "Default Assign To User": "デフォルトの割り当て先ユーザー",
-  "Default Assignees": "デフォルトの担当者",
   "Default Bar Color": "デフォルトのバーの色",
   "Default Bar Color of the History Chart": "履歴チャートのデフォルトのバーの色",
   "Default is 80%.": "デフォルトは 80% です。",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "スパンとブローカーのメトリクスで指定する必要があるシステム、宛先、名前空間。",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "対象が接続を受け付けなかったか、途中で接続を切断しました — 何も待ち受けていなかったか、対象がいなくなりました。",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "対象は 24 時間後に期限切れになり、最初に一致したセッションで使用されます。",
-  "The team and user new episodes are assigned to by default. Both are optional.": "新しいエピソードのデフォルトの割り当て先のチームとユーザー。どちらも任意です。",
   "The team where the message will be posted.": "メッセージを投稿するチーム。",
   "The team where the new channel will be created.": "新しいチャネルを作成するチーム。",
   "The template body for this notification template.": "この通知テンプレートのテンプレート本文。",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "レポートを送る頻度です。例: 毎月、2 週間ごと。",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "以降のレポートは同じ時刻に送信されます。毎月 1 日に送るには、いずれかの月の 1 日を選んでください。",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "オンにすると、以前と同じスケジュールで購読者へのメールレポートを再開します。",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "オンにすると、毎月 1 日の 09:00 に前月分のレポートを購読者にメールで送ります。スケジュールはオンにした後で変更できます。"
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "オンにすると、毎月 1 日の 09:00 に前月分のレポートを購読者にメールで送ります。スケジュールはオンにした後で変更できます。",
+  "Add as owners": "所有者として追加",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "このルールが開くすべてのエピソードに所有者として追加され、他の所有者と同じように通知を受け取ります。",
+  "Default assignee": "デフォルトの担当者",
+  "Episode Owners": "エピソードの所有者",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "このフォームの以前のバージョンで設定されたもので、どこにも表示されません。このルールが開くエピソードの責任者にするには、所有者として追加してください。"
 }

@@ -73,6 +73,8 @@ const SHARED_STRINGS: Array<string> = [
   "{{count}} hours",
   "1 day",
   "{{count}} days",
+  // The old default assignee line's second button.
+  "Remove",
 ];
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
@@ -162,6 +164,28 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
     expect(source).toContain(
       "placeholder: GROUPING_RULE_TEMPLATES[0]!.name[KIND],",
     );
+    // Episode Owners: the form translates a field's title and help.
+    expect(source).toContain("title: GROUPING_RULE_COPY.episodeOwnersTitle,");
+    expect(source).toContain(
+      "description: GROUPING_RULE_COPY.episodeOwnersDescription,",
+    );
+  });
+
+  test("the line about an old default assignee translates every word it draws", () => {
+    const source: string = readSource(
+      "Components",
+      "GroupingRule",
+      "LegacyDefaultAssigneeNote.tsx",
+    );
+
+    for (const key of [
+      "legacyAssigneeTitle",
+      "legacyAssigneeDescription",
+      "legacyAssigneeAddAsOwners",
+      "legacyAssigneeRemove",
+    ]) {
+      expect(source).toContain(`translate(GROUPING_RULE_COPY.${key})`);
+    }
   });
 
   test("the Group-by cards are translated before CardSelect draws them", () => {

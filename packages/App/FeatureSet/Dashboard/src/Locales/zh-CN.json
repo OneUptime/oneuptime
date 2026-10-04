@@ -2173,7 +2173,6 @@
   "Default": "默认",
   "Default Assign To Team": "默认分配给团队",
   "Default Assign To User": "默认分配给用户",
-  "Default Assignees": "默认受理人",
   "Default Bar Color": "默认条形颜色",
   "Default Bar Color of the History Chart": "历史图表的默认条形颜色",
   "Default is 80%.": "默认值为 80%。",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "报告的发送频率，例如每月或每 2 周。",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "之后的报告在同一时间发送。选择某个月的 1 日，即可在每月 1 日发送。",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "开启后，将按之前的计划重新向订阅者发送邮件报告。",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "开启后，每月 1 日 09:00 向订阅者发送上个月的邮件报告。开启后可以更改计划。"
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "开启后，每月 1 日 09:00 向订阅者发送上个月的邮件报告。开启后可以更改计划。",
+  "Add as owners": "添加为所有者",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "添加为此规则打开的每个片段的所有者，并像其他所有者一样收到通知。",
+  "Default assignee": "默认受理人",
+  "Episode Owners": "片段所有者",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "由此表单的旧版本设置，不会在任何地方显示。将其添加为所有者，使其对此规则打开的片段负责。"
 }

@@ -2173,7 +2173,6 @@
   "Default": "डिफ़ॉल्ट",
   "Default Assign To Team": "डिफ़ॉल्ट रूप से टीम को असाइन करें",
   "Default Assign To User": "डिफ़ॉल्ट रूप से उपयोगकर्ता को असाइन करें",
-  "Default Assignees": "डिफ़ॉल्ट असाइनी",
   "Default Bar Color": "डिफ़ॉल्ट बार रंग",
   "Default Bar Color of the History Chart": "इतिहास चार्ट का डिफ़ॉल्ट बार रंग",
   "Default is 80%.": "डिफ़ॉल्ट 80% है।",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "रिपोर्ट कितनी बार भेजी जाती है, जैसे हर महीने या हर 2 सप्ताह।",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "आगे की रिपोर्ट उसी समय भेजी जाती हैं। हर महीने की 1 तारीख को भेजने के लिए किसी महीने की 1 तारीख चुनें।",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "इसे चालू करें ताकि सब्सक्राइबर को पहले जैसे शेड्यूल पर फिर से ईमेल रिपोर्ट मिले।",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "इसे चालू करें ताकि हर महीने की 1 तारीख को 09:00 बजे सब्सक्राइबर को पिछले महीने की रिपोर्ट ईमेल से मिले। चालू होने के बाद आप शेड्यूल बदल सकते हैं।"
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "इसे चालू करें ताकि हर महीने की 1 तारीख को 09:00 बजे सब्सक्राइबर को पिछले महीने की रिपोर्ट ईमेल से मिले। चालू होने के बाद आप शेड्यूल बदल सकते हैं।",
+  "Add as owners": "मालिक के रूप में जोड़ें",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "इस नियम द्वारा खोले गए हर एपिसोड के मालिक के रूप में जोड़े जाते हैं, और किसी भी अन्य मालिक की तरह सूचित किए जाते हैं।",
+  "Default assignee": "डिफ़ॉल्ट असाइनी",
+  "Episode Owners": "एपिसोड के मालिक",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "इस फ़ॉर्म के पुराने संस्करण द्वारा सेट किया गया और कहीं भी नहीं दिखाया जाता। इस नियम द्वारा खोले गए एपिसोड के लिए उन्हें ज़िम्मेदार बनाने हेतु उन्हें मालिक के रूप में जोड़ें।"
 }

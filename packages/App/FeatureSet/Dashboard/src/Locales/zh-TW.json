@@ -2173,7 +2173,6 @@
   "Default": "預設",
   "Default Assign To Team": "預設指派給團隊",
   "Default Assign To User": "預設指派給使用者",
-  "Default Assignees": "預設受指派者",
   "Default Bar Color": "預設長條顏色",
   "Default Bar Color of the History Chart": "歷史圖表的預設長條顏色",
   "Default is 80%.": "預設值為 80%。",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "報告的寄送頻率，例如每月或每 2 週。",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "之後的報告在同一時間寄送。選擇某個月的 1 日，即可在每月 1 日寄送。",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "開啟後，將依先前的排程重新寄送電子郵件報告給訂閱者。",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "開啟後，每月 1 日 09:00 將上個月的報告以電子郵件寄給訂閱者。開啟後可以變更排程。"
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "開啟後，每月 1 日 09:00 將上個月的報告以電子郵件寄給訂閱者。開啟後可以變更排程。",
+  "Add as owners": "新增為擁有者",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "新增為此規則開啟的每個片段的擁有者，並像其他擁有者一樣收到通知。",
+  "Default assignee": "預設受指派者",
+  "Episode Owners": "片段擁有者",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "由此表單的舊版本設定，不會在任何地方顯示。將其新增為擁有者，使其對此規則開啟的片段負責。"
 }

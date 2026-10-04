@@ -2173,7 +2173,6 @@
   "Default": "Predeterminado",
   "Default Assign To Team": "Asignar al equipo predeterminado",
   "Default Assign To User": "Asignar al usuario predeterminado",
-  "Default Assignees": "Asignados predeterminados",
   "Default Bar Color": "Color de barra predeterminado",
   "Default Bar Color of the History Chart": "Color de barra predeterminado del gráfico de historial",
   "Default is 80%.": "El predeterminado es 80%.",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "El sistema, el destino y el espacio de nombres que deben nombrar sus spans y las métricas del broker.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "El destino no aceptó ninguna conexión, o cortó una a mitad: no había nada escuchando, o desapareció.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "El objetivo caduca a las 24 horas y lo consume la primera sesión que coincide con él.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "El equipo y el usuario a los que se asignan de forma predeterminada los nuevos episodios. Ambos son opcionales.",
   "The team where the message will be posted.": "El equipo en el que se publicará el mensaje.",
   "The team where the new channel will be created.": "El equipo en el que se creará el nuevo canal.",
   "The template body for this notification template.": "El cuerpo de la plantilla de esta plantilla de notificación.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Con qué frecuencia se envía un informe, por ejemplo cada mes o cada 2 semanas.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Los informes siguientes se envían a la misma hora. Elija el día 1 de un mes para enviarlos el día 1 de cada mes.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Actívelo para volver a enviar un informe por correo electrónico a los suscriptores, con la misma programación que antes.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Actívelo para enviar a los suscriptores, el día 1 de cada mes a las 09:00, un informe por correo electrónico sobre el mes anterior. Podrá cambiar la programación una vez activado."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Actívelo para enviar a los suscriptores, el día 1 de cada mes a las 09:00, un informe por correo electrónico sobre el mes anterior. Podrá cambiar la programación una vez activado.",
+  "Add as owners": "Añadir como propietarios",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "Se añaden como propietarios de cada episodio que abre esta regla y reciben notificaciones como cualquier otro propietario.",
+  "Default assignee": "Asignado predeterminado",
+  "Episode Owners": "Propietarios del episodio",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "Lo estableció una versión anterior de este formulario y no se muestra en ningún sitio. Añádelos como propietarios para que sean responsables de los episodios que abre esta regla."
 }

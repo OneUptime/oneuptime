@@ -2173,7 +2173,6 @@
   "Default": "Standaard",
   "Default Assign To Team": "Standaard toewijzen aan team",
   "Default Assign To User": "Standaard toewijzen aan gebruiker",
-  "Default Assignees": "Standaard toegewezenen",
   "Default Bar Color": "Standaard balkkleur",
   "Default Bar Color of the History Chart": "Standaard balkkleur van de geschiedenisgrafiek",
   "Default is 80%.": "Standaard is 80%.",
@@ -17642,7 +17641,6 @@
   "The system, destination and namespace its spans and broker metrics must name.": "The system, destination and namespace its spans and broker metrics must name.",
   "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.": "The target accepted no connection, or dropped one mid-flight — nothing was listening, or it went away.",
   "The target expires after 24 hours and is consumed by the first session that matches it.": "The target expires after 24 hours and is consumed by the first session that matches it.",
-  "The team and user new episodes are assigned to by default. Both are optional.": "The team and user new episodes are assigned to by default. Both are optional.",
   "The team where the message will be posted.": "The team where the message will be posted.",
   "The team where the new channel will be created.": "The team where the new channel will be created.",
   "The template body for this notification template.": "The template body for this notification template.",
@@ -24843,5 +24841,10 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Hoe vaak een rapport wordt verstuurd, bijvoorbeeld elke maand of elke 2 weken.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Volgende rapporten gaan op hetzelfde tijdstip uit. Kies de 1e van een maand om op de 1e van elke maand te versturen.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Zet dit aan om abonnees weer een rapport per e-mail te sturen, volgens hetzelfde schema als eerder.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Zet dit aan om abonnees op de 1e van elke maand om 09:00 een rapport per e-mail over de vorige maand te sturen. U kunt het schema wijzigen zodra het aan staat."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Zet dit aan om abonnees op de 1e van elke maand om 09:00 een rapport per e-mail over de vorige maand te sturen. U kunt het schema wijzigen zodra het aan staat.",
+  "Add as owners": "Toevoegen als eigenaren",
+  "Added as owners of every episode this rule opens, and notified like any other owner.": "Worden als eigenaar toegevoegd aan elke episode die deze regel opent, en krijgen meldingen zoals elke andere eigenaar.",
+  "Default assignee": "Standaard toegewezene",
+  "Episode Owners": "Episode-eigenaren",
+  "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.": "Ingesteld door een oudere versie van dit formulier en nergens getoond. Voeg ze toe als eigenaar om ze verantwoordelijk te maken voor de episodes die deze regel opent."
 }
