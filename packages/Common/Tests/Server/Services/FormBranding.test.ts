@@ -464,9 +464,9 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
 
     test("hands over the logo, its alt text and the favicon, the images base64", async () => {
       storedForm = publicForm({
-        logoFile: FILES[LOGO_FILE_ID],
+        logoFile: FILES[LOGO_FILE_ID]!,
         logoAltText: "Acme Inc.",
-        faviconFile: FILES[FAVICON_FILE_ID],
+        faviconFile: FILES[FAVICON_FILE_ID]!,
       });
 
       const form: PublicForm = await getPublicForm();
@@ -530,9 +530,9 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
 
     test("never hands over a file a form should not show, whatever its row holds", async () => {
       storedForm = publicForm({
-        logoFile: FILES[HTML_FILE_ID],
+        logoFile: FILES[HTML_FILE_ID]!,
         logoAltText: "Acme Inc.",
-        faviconFile: FILES[HUGE_FILE_ID],
+        faviconFile: FILES[HUGE_FILE_ID]!,
       });
 
       const form: PublicForm = await getPublicForm();
@@ -549,7 +549,7 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
     test("a form that is turned off hands over nothing, as any other unavailable form", async () => {
       storedForm = publicForm({
         isEnabled: false,
-        logoFile: FILES[LOGO_FILE_ID],
+        logoFile: FILES[LOGO_FILE_ID]!,
       });
 
       const error: Exception | undefined = await refusal(getPublicForm());
@@ -564,7 +564,7 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
     test("a network the form does not allow gets no logo", async () => {
       storedForm = publicForm({
         ipWhitelist: "198.51.100.0/24",
-        logoFile: FILES[LOGO_FILE_ID],
+        logoFile: FILES[LOGO_FILE_ID]!,
       });
 
       const error: Exception | undefined = await refusal(getPublicForm());
@@ -574,7 +574,7 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
     });
 
     test("a link to another form, or to none, gets nothing", async () => {
-      storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID] });
+      storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID]! });
 
       for (const shareKey of [
         "0f8fad5b-d9cb-469f-a165-70867728950e",
@@ -588,7 +588,7 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
     });
 
     test("a project whose plan does not include forms gets nothing, when billing is on", async () => {
-      storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID] });
+      storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID]! });
 
       (
         SubscriptionPlan.isFeatureAccessibleOnCurrentPlan as unknown as MockedFn

@@ -161,7 +161,7 @@ function buildForm(data: {
 
   if (data.logoId) {
     form.logoFileId = new ObjectID(data.logoId);
-    form.logoFile = FILES[data.logoId];
+    form.logoFile = FILES[data.logoId]!;
   }
 
   if (data.logoAltText) {
@@ -170,7 +170,7 @@ function buildForm(data: {
 
   if (data.faviconId) {
     form.faviconFileId = new ObjectID(data.faviconId);
-    form.faviconFile = FILES[data.faviconId];
+    form.faviconFile = FILES[data.faviconId]!;
   }
 
   return form;
@@ -388,11 +388,11 @@ describe("a form's logo and favicon over HTTP", () => {
       Object.assign(read, form);
 
       if (!findBy.select["logoFile"]) {
-        read.logoFile = undefined;
+        delete read.logoFile;
       }
 
       if (!findBy.select["faviconFile"]) {
-        read.faviconFile = undefined;
+        delete read.faviconFile;
       }
 
       return read;

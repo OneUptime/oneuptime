@@ -5,7 +5,7 @@ import File from "../../../../../Models/DatabaseModels/File";
 import Form from "../../../../../Models/DatabaseModels/Form";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
-import ColumnAccessControl from "../../../../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../../../Types/BaseDatabase/AccessControl";
 import TableColumnType from "../../../../../Types/Database/TableColumnType";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { FORM_BRANDING_COLUMNS } from "../../../../../Types/Form/FormBranding";
