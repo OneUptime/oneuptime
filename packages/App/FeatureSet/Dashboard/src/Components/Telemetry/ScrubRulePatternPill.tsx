@@ -62,7 +62,7 @@ const ScrubRulePatternPill: FunctionComponent<ComponentProps> = (
             text="Scrubs nothing"
             color={Red500}
             icon={IconProp.Alert}
-            tooltip="This rule has no pattern that ingest can use, so it scrubs nothing. Edit it to give it one, or delete it."
+            tooltip="This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it."
           />
         </span>
       )}
