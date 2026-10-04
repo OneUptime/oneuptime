@@ -33,17 +33,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  *   - Declare Incident opens on Title, Incident Severity and Description;
  *     Declared At, Initial State, Labels and Private Incident wait, folded,
- *     under Advanced - which says nothing until something in it is set, and
- *     "Configured" when a template or a private alert set something;
+ *     under More fields - whose header names them, and shows the ones a
+ *     template or a private alert set, with their values;
  *   - three steps and the review, not six;
  *   - Declare Incident is on the review, the last step, only: the steps
  *     before it offer a plain Next, and nothing primary;
- *   - declared without opening Advanced, the incident is sent no state (the
+ *   - declared without opening More fields, the incident is sent no state (the
  *     server starts it in the project's starting state) and the moment the
  *     page opened as Declared At;
  *   - the review step leaves out the folded options nobody touched;
  *   - Create Alert opens on Title, Alert Severity and Description, with
- *     Initial State, Labels and Private Alert under Advanced, and asks for no
+ *     Initial State, Labels and Private Alert under More fields, and asks for no
  *     root cause or remediation notes.
  */
 
@@ -326,7 +326,7 @@ afterEach(() => {
 });
 
 describe("Declare Incident", () => {
-  test("opens on Title, Incident Severity and Description, with the rest folded under Advanced", async () => {
+  test("opens on Title, Incident Severity and Description, with the rest folded under More fields", async () => {
     await renderPage(IncidentCreate, "/dashboard/incidents/create");
 
     expect(await screen.findByText("Title")).toBeVisible();
@@ -367,7 +367,7 @@ describe("Declare Incident", () => {
     ]);
   });
 
-  test("Advanced opens on the four options, and Declared At starts at the moment the page opened", async () => {
+  test("More fields opens on the four options, and Declared At starts at the moment the page opened", async () => {
     const user: UserEvent = await renderPage(
       IncidentCreate,
       "/dashboard/incidents/create",
@@ -439,7 +439,7 @@ describe("Declare Incident", () => {
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
-  test("declared without opening Advanced, it is sent no state and the moment the page opened", async () => {
+  test("declared without opening More fields, it is sent no state and the moment the page opened", async () => {
     const user: UserEvent = await renderPage(
       IncidentCreate,
       "/dashboard/incidents/create",
@@ -562,7 +562,7 @@ describe("Declare Incident", () => {
 });
 
 describe("Create Alert", () => {
-  test("opens on Title, Alert Severity and Description, with the rest folded under Advanced", async () => {
+  test("opens on Title, Alert Severity and Description, with the rest folded under More fields", async () => {
     await renderPage(AlertCreate, "/dashboard/alerts/create");
 
     expect(await screen.findByText("Title")).toBeVisible();
