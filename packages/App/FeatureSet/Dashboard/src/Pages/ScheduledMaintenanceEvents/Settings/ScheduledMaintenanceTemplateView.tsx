@@ -70,6 +70,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         formFields={getTemplateFormFields({
           isViewPage: true,
           excludeAffectedResources: true,
+          templateId: modelId,
         })}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

@@ -15,6 +15,8 @@ import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
 import FetchMonitors from "../Monitor/FetchMonitors";
 import FetchStatusPages from "../StatusPage/FetchStatusPages";
+import { getStatusPageSuggestionsFooter } from "../StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import { getNotifySubscribersOfUpdateFormField } from "../StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import {
   AnnouncementFormKind,
@@ -129,6 +131,10 @@ export const getAnnouncementFormFields: (
         "Attach files that should be available with this announcement on the status page.",
       collapsibleSection: advancedSection,
     },
+    /*
+     * Under it, once monitors are picked below, the pages that show them,
+     * one click to add (StatusPageSuggestions).
+     */
     {
       field: {
         statusPages: true,
@@ -144,6 +150,9 @@ export const getAnnouncementFormFields: (
       },
       required: true,
       placeholder: "Select Status Pages",
+      getFooterElement: getStatusPageSuggestionsFooter<StatusPageAnnouncement>({
+        eventType: StatusPageEventType.Announcement,
+      }),
       getSummaryElement: (
         item: FormValues<StatusPageAnnouncement>,
       ): ReactElement => {
@@ -341,7 +350,10 @@ export const getAnnouncementTemplateFormFields: () => Array<
         "Add an announcement note",
       ),
     },
-    // Optional here: an announcement made from it picks its pages then.
+    /*
+     * Optional here: an announcement made from it picks its pages then.
+     * Suggested from the monitors, as on the announcement.
+     */
     {
       field: {
         statusPages: true,
@@ -357,6 +369,10 @@ export const getAnnouncementTemplateFormFields: () => Array<
       },
       required: false,
       placeholder: "Select Status Pages",
+      getFooterElement:
+        getStatusPageSuggestionsFooter<StatusPageAnnouncementTemplate>({
+          eventType: StatusPageEventType.Announcement,
+        }),
     },
     {
       field: {

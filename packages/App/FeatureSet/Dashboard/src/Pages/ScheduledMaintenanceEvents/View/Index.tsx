@@ -1,6 +1,8 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
+import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -534,6 +536,11 @@ const ScheduledMaintenanceView: FunctionComponent<
                 stepId: "event",
                 collapsibleSection: detailsAdvancedSection,
               }),
+              /*
+               * Under it, the pages that show the event's monitors, one
+               * click to add. The monitors are edited in the Affected
+               * Resources card, so they are read from the event.
+               */
               {
                 field: {
                   statusPages: true,
@@ -549,6 +556,14 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 required: false,
                 placeholder: "Select Status Pages",
+                getFooterElement:
+                  getStatusPageSuggestionsFooter<ScheduledMaintenance>({
+                    eventType: StatusPageEventType.ScheduledEvent,
+                    monitorsOf: {
+                      modelType: ScheduledMaintenance,
+                      modelId: modelId,
+                    },
+                  }),
               },
               {
                 field: {
