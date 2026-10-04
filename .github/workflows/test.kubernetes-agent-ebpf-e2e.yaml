@@ -26,6 +26,7 @@ on:
       - "HelmChart/Public/kubernetes-agent/**"
       - "Tests/Ops/agent-ebpf-e2e/**"
       - ".github/workflows/test.kubernetes-agent-ebpf-e2e.yaml"
+      - ".github/actions/free-disk-space/**"
   push:
     branches:
       - master
@@ -33,6 +34,7 @@ on:
       - "HelmChart/Public/kubernetes-agent/**"
       - "Tests/Ops/agent-ebpf-e2e/**"
       - ".github/workflows/test.kubernetes-agent-ebpf-e2e.yaml"
+      - ".github/actions/free-disk-space/**"
   # The runner image (and with it the kernel) changes under an unchanged
   # chart; catch that before a customer's node does.
   schedule:
@@ -150,12 +152,17 @@ jobs:
           print(len(checks), "checks; failed or skipped:", bad or "none")
           sys.exit(1 if bad or len(checks) < 28 else 0)
           PY
+      # Without the test cluster's admin kubeconfig: the cluster goes with the
+      # runner, but a public repository's artifact is no place for a
+      # credential.
       - name: Upload captures
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: agent-ebpf-e2e-${{ matrix.platform }}-${{ matrix.runner }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/agent-ebpf-e2e
+          path: |
+            ${{ runner.temp }}/agent-ebpf-e2e
+            !${{ runner.temp }}/agent-ebpf-e2e/kubeconfig
           retention-days: 7
           if-no-files-found: ignore
       - name: Show how to run this locally

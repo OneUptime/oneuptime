@@ -122,7 +122,7 @@ spec:
           configMap:
             name: e2e-src
         # A directory on the node, which run.sh copies off the node itself
-        # (docker cp / cp): streaming tens of MB through `kubectl exec` or
+        # (docker cp / sudo cat): streaming tens of MB through `kubectl exec` or
         # `kubectl cp` was cut short under load.
         - name: data
           hostPath:

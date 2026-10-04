@@ -1287,8 +1287,8 @@ ebpf:
 #     up by its root-namespace PID in the node's /proc, with no
 #     PID-namespace translation, so on nodes that are themselves
 #     containers (KinD, k3d, container-based Docker Desktop nodes) it
-#     attributes samples to the wrong processes and no sample links to
-#     a span.
+#     attributes samples to the wrong processes and almost no sample
+#     links to a span.
 profiling:
   enabled: false
   image:

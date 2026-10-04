@@ -485,7 +485,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 When `ebpf.enabled` is also true (the default), the profiler correlates samples with OBI's trace context via the shared bpffs map, so each span gets its own flame graph linkable from the trace view. Since v0.14 OBI only keeps that map filled when asked, so the chart sets `OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true` on the eBPF DaemonSet whenever `profiling.enabled` and `profiling.obiProcessContext` are both on. Filling it costs instrumented apps a little on every async context switch (on Node.js, a hook on every callback); set `profiling.obiProcessContext=false` if you want flame graphs without the per-span link.
 
-Profiling needs nodes whose `hostPID` is the kernel's root PID namespace, as any VM or bare-metal node's is. The profiler looks a sample's process up by its root-namespace PID in the node's `/proc` and has no PID-namespace translation, so on nodes that are themselves containers (KinD, k3d, container-based Docker Desktop nodes) it attributes samples to the wrong processes and no sample links to a span.
+Profiling needs nodes whose `hostPID` is the kernel's root PID namespace, as any VM or bare-metal node's is. The profiler looks a sample's process up by its root-namespace PID in the node's `/proc` and has no PID-namespace translation, so on nodes that are themselves containers (KinD, k3d, container-based Docker Desktop nodes) it attributes samples to the wrong processes and almost no sample links to a span.
 
 | Key | Default | Description |
 | --- | --- | --- |
