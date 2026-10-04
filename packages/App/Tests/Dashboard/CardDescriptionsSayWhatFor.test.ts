@@ -135,7 +135,7 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/StatusPages/View/PrivateUser.tsx",
-    "People who can sign in to see this status page. Each one gets an email invitation to set a password.",
+    "People who can sign in to see this status page. Each one is emailed an invitation when you add them.",
   ],
   [
     "Pages/Monitor/View/Probes.tsx",

@@ -24746,7 +24746,7 @@
   "New announcements made from this template start with these details. Announcements already made from it keep their own.": "用此模板创建的新公告会以这些内容开始。已用它创建的公告保留各自的内容。",
   "New events scheduled from this template start with these details. Events already scheduled from it keep their own.": "用此模板安排的新事件会以这些内容开始。已用它安排的事件保留各自的内容。",
   "New incidents declared from this template start with these details. Incidents already declared from it keep their own.": "用此模板声明的新事件会以这些内容开始。已用它声明的事件保留各自的内容。",
-  "People who can sign in to see this status page. Each one gets an email invitation to set a password.": "可以登录查看此状态页的人员。每人都会收到一封邀请邮件，用于设置密码。",
+  "People who can sign in to see this status page. Each one is emailed an invitation when you add them.": "可以登录查看此状态页的人员。添加后，每人都会收到一封邀请邮件。",
   "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.": "通过电子邮件接收此状态页更新的人员。访客可以在状态页上订阅，您也可以在此添加。",
   "Phone numbers that get this status page's updates by text message. Visitors subscribe on the status page, or you can add them here.": "通过短信接收此状态页更新的电话号码。访客可以在状态页上订阅，您也可以在此添加。",
   "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.": "检查此资源的探测器。只有这些探测器会监控它——在这里添加探测器，它才会开始为此资源工作。",

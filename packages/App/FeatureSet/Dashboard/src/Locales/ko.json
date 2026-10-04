@@ -24746,7 +24746,7 @@
   "New announcements made from this template start with these details. Announcements already made from it keep their own.": "이 템플릿으로 만드는 새 공지는 이 내용으로 시작합니다. 이미 만든 공지는 각자의 내용을 유지합니다.",
   "New events scheduled from this template start with these details. Events already scheduled from it keep their own.": "이 템플릿으로 예약하는 새 이벤트는 이 내용으로 시작합니다. 이미 예약된 이벤트는 각자의 내용을 유지합니다.",
   "New incidents declared from this template start with these details. Incidents already declared from it keep their own.": "이 템플릿으로 선언하는 새 인시던트는 이 내용으로 시작합니다. 이미 선언된 인시던트는 각자의 내용을 유지합니다.",
-  "People who can sign in to see this status page. Each one gets an email invitation to set a password.": "로그인해서 이 상태 페이지를 볼 수 있는 사람입니다. 각자 비밀번호를 설정하라는 초대 이메일을 받습니다.",
+  "People who can sign in to see this status page. Each one is emailed an invitation when you add them.": "로그인해서 이 상태 페이지를 볼 수 있는 사람입니다. 추가하면 각자에게 초대 이메일이 발송됩니다.",
   "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.": "이 상태 페이지의 업데이트를 이메일로 받는 사람입니다. 방문자가 상태 페이지에서 구독하거나, 여기에서 직접 추가할 수 있습니다.",
   "Phone numbers that get this status page's updates by text message. Visitors subscribe on the status page, or you can add them here.": "이 상태 페이지의 업데이트를 문자 메시지로 받는 전화번호입니다. 방문자가 상태 페이지에서 구독하거나, 여기에서 직접 추가할 수 있습니다.",
   "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.": "이 리소스를 확인하는 프로브입니다. 이 리소스는 여기 있는 프로브만 모니터링합니다. 여기에 프로브를 추가해야 그 프로브가 이 리소스에서 작동합니다.",

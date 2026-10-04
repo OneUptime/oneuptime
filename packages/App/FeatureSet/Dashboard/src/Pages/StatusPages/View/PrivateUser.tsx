@@ -263,7 +263,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Private Users",
           description:
-            "People who can sign in to see this status page. Each one gets an email invitation to set a password.",
+            "People who can sign in to see this status page. Each one is emailed an invitation when you add them.",
           buttons: [
             {
               title: "Add in Bulk",

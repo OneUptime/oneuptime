@@ -24746,7 +24746,7 @@
   "New announcements made from this template start with these details. Announcements already made from it keep their own.": "このテンプレートから作成する新しいお知らせは、これらの内容から始まります。すでに作成されたお知らせは、それぞれの内容を保持します。",
   "New events scheduled from this template start with these details. Events already scheduled from it keep their own.": "このテンプレートから予定する新しいイベントは、これらの内容から始まります。すでに予定されたイベントは、それぞれの内容を保持します。",
   "New incidents declared from this template start with these details. Incidents already declared from it keep their own.": "このテンプレートから宣言する新しいインシデントは、これらの内容から始まります。すでに宣言されたインシデントは、それぞれの内容を保持します。",
-  "People who can sign in to see this status page. Each one gets an email invitation to set a password.": "サインインしてこのステータスページを閲覧できるユーザー。各ユーザーには、パスワードを設定するための招待メールが届きます。",
+  "People who can sign in to see this status page. Each one is emailed an invitation when you add them.": "サインインしてこのステータスページを閲覧できるユーザー。追加すると、各ユーザーに招待メールが送信されます。",
   "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.": "このステータスページの更新情報をメールで受け取るユーザー。訪問者がステータスページで購読するか、ここで追加できます。",
   "Phone numbers that get this status page's updates by text message. Visitors subscribe on the status page, or you can add them here.": "このステータスページの更新情報を SMS で受け取る電話番号。訪問者がステータスページで購読するか、ここで追加できます。",
   "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.": "このリソースをチェックするプローブ。このリソースを監視するのはここにあるプローブだけです — ここに追加すると、そのプローブがこのリソースの監視を開始します。",

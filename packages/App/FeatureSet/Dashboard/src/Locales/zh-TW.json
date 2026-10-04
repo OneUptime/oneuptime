@@ -24746,7 +24746,7 @@
   "New announcements made from this template start with these details. Announcements already made from it keep their own.": "以此範本建立的新公告會以這些內容開始。已用它建立的公告會保留各自的內容。",
   "New events scheduled from this template start with these details. Events already scheduled from it keep their own.": "以此範本排定的新事件會以這些內容開始。已用它排定的事件會保留各自的內容。",
   "New incidents declared from this template start with these details. Incidents already declared from it keep their own.": "以此範本宣告的新事件會以這些內容開始。已用它宣告的事件會保留各自的內容。",
-  "People who can sign in to see this status page. Each one gets an email invitation to set a password.": "可以登入查看此狀態頁面的人員。每個人都會收到一封邀請郵件，用來設定密碼。",
+  "People who can sign in to see this status page. Each one is emailed an invitation when you add them.": "可以登入查看此狀態頁面的人員。新增後，每個人都會收到一封邀請郵件。",
   "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.": "透過電子郵件接收此狀態頁面更新的人員。訪客可以在狀態頁面上訂閱，您也可以在此新增。",
   "Phone numbers that get this status page's updates by text message. Visitors subscribe on the status page, or you can add them here.": "透過簡訊接收此狀態頁面更新的電話號碼。訪客可以在狀態頁面上訂閱，您也可以在此新增。",
   "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.": "檢查此資源的探測器。只有這些探測器會監測它——在這裡新增探測器，它才會開始為此資源工作。",
