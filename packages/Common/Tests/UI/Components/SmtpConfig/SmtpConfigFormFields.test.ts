@@ -18,7 +18,6 @@ import { getCreateFormColumnDefault } from "../../../../UI/Components/Forms/Util
 import {
   DEFAULT_SMTP_PORT,
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-  IMPLICIT_TLS_SMTP_PORT,
   PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES,
   PROJECT_SMTP_CONFIG_FORM_COLUMNS,
   SMTP_FROM_EMAIL_DESCRIPTION,
@@ -492,9 +491,12 @@ describe("both forms", () => {
     ]);
   });
 
+  /*
+   * What the mail service does with the switch and with port 465 is pinned
+   * against the service itself in App/Tests/Notification/
+   * SmtpRequireTlsMeaning.test.ts.
+   */
   test("name the TLS switch after what it does, and the port after what the service does with 465", () => {
-    expect(IMPLICIT_TLS_SMTP_PORT).toBe(465);
-
     const secure: Field<ProjectSmtpConfig> = fieldFor(PROJECT_FIELDS, "secure");
 
     expect(secure.title).toBe("Require TLS");

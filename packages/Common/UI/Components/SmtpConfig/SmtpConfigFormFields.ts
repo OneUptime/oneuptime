@@ -21,8 +21,9 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
  *
  * A project's Custom SMTP config (Settings > Notification Settings) walked
  * six steps - Basic, Transport, SMTP Server, Authentication, OAuth Settings,
- * Email - and the Admin Dashboard's instance mail server (Settings > Email >
- * Host Settings) the same five. The Transport step was one dropdown, already
+ * Email - and the Admin Dashboard's instance mail server (Settings > Emails,
+ * the Custom Email and SMTP Settings card) the same five but Basic. The
+ * Transport step was one dropdown, already
  * on SMTP. "Use SSL / TLS" was asked although the mail service decides TLS
  * from the port on its own (port 465 is always TLS) and only reads the
  * switch as "require it" everywhere else, and the port had no value to
@@ -105,7 +106,10 @@ export const PROJECT_SMTP_CONFIG_FORM_COLUMNS: SmtpConfigFormColumns<ProjectSmtp
     configDescription: "description",
   };
 
-// Admin Dashboard > Settings > Email > Host Settings: the instance's server.
+/*
+ * Admin Dashboard > Settings > Emails, the Custom Email and SMTP Settings
+ * card: the server the instance itself sends from.
+ */
 export const GLOBAL_SMTP_CONFIG_FORM_COLUMNS: SmtpConfigFormColumns<GlobalConfig> =
   {
     transportType: "smtpTransportType",
@@ -131,16 +135,9 @@ export const SMTP_SENDER_STEP_ID: string = "sender";
 /*
  * The port a new project config starts on: the submission port (STARTTLS)
  * nearly every provider gives. Only a create form's start - the column has
- * no default - and the placeholder of every form.
+ * no default. Every form's Port placeholder says the same.
  */
 export const DEFAULT_SMTP_PORT: number = 587;
-
-/*
- * The port the mail service always speaks TLS on from the first byte
- * (App/FeatureSet/Notification/Services/MailService, resolveConnectionSettings),
- * whatever Require TLS says.
- */
-export const IMPLICIT_TLS_SMTP_PORT: number = 465;
 
 export const SMTP_PORT_DESCRIPTION: string = translationKey(
   "The port your provider gives you, usually 587. Port 465 is always encrypted.",
