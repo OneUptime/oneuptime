@@ -278,8 +278,10 @@ export default class TracePipeline extends BaseModel {
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
     title: "Enabled",
-    description: "Whether this trace pipeline is active.",
+    description:
+      "Whether this trace pipeline is active. Left out of a create, a new pipeline starts on.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
