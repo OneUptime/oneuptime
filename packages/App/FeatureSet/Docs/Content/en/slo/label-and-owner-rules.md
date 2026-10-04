@@ -8,7 +8,7 @@ If you have not read it yet, start with the [SLOs Overview](/docs/slo/introducti
 
 ## Label rules
 
-A label rule has a name, an optional description, its match criteria, and the **Labels to Add**. A new rule starts enabled; to pause one without deleting it, switch **Enabled** off on its edit form.
+Creating a label rule takes two steps: **Match**, the conditions an SLO must meet (see [Match criteria](#match-criteria)), then **Labels**, where you pick the **Labels to Add**. A rule has to add at least one label. Its **Name** is filled in from the labels you pick (_Add Checkout, Production_) and follows your picks until you type a name of your own. The optional **Description** is under **More fields**. A new rule starts enabled; to pause one without deleting it, switch **Enabled** off on its edit form.
 
 When the rule matches an SLO, every label in **Labels to Add** is attached to it. Labels the SLO already has are not added twice, and when several rules match, the SLO gets all of their labels.
 
@@ -16,11 +16,11 @@ Label rules can be exported to a file and imported into another project — see 
 
 ## Owner rules
 
-An owner rule has a name, an optional description, whether to **Notify Owners**, its match criteria, and the **Owners** to add — people and teams, picked from one list with **Add owner**. Like a label rule, it starts enabled, and its edit form has the **Enabled** switch.
+Creating an owner rule takes the same two steps: **Match**, then **Owners**, where you pick the **Owners** to add — people and teams, picked from one list with **Add owner**. A rule has to add at least one owner. Its **Name** is filled in from them (_Add Checkout team as owners_) until you type a name of your own, and **Notify Owners** and the optional **Description** are under **More fields**. Like a label rule, it starts enabled, and its edit form has the **Enabled** switch.
 
 When the rule matches an SLO, every user and team on the rule is added as an owner. Owners the SLO already has are skipped, and when several rules match, the SLO gets all of their owners. SLO owners are who hears about the SLO — see [Error Budgets](/docs/slo/error-budget) for the notifications they get.
 
-- **Notify Owners** is on by default: the owners the rule adds get the same "you were added as an owner" notification as an owner added by hand. Turn it off to add owners silently.
+- **Notify Owners** (under **More fields**) is on by default: the owners the rule adds get the same "you were added as an owner" notification as an owner added by hand. Turn it off to add owners silently.
 - A user who is no longer a member of the project, or a team from another project, is never added. The rule's other owners still are.
 
 ## Match criteria

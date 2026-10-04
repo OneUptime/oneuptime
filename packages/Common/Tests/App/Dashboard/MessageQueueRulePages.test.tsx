@@ -131,7 +131,13 @@ describe.each([
     tableId: "message-queue-owner-rules-table",
     actionStep: "owners",
     // One picker for people and teams, in place of a dropdown for each.
-    actionFields: ["owners", "name", "isEnabled", "notifyOwners", "description"],
+    actionFields: [
+      "owners",
+      "name",
+      "isEnabled",
+      "notifyOwners",
+      "description",
+    ],
   },
 ])("the queue $name page", (page: any) => {
   const listUrl: string = `/dashboard/${PROJECT_ID}/queues/${page.listPath}`;
@@ -309,7 +315,10 @@ describe("the owner rules page's owners", () => {
     expect(notifyOwners["collapsibleSection"]).toBeDefined();
     // No default of its own: the form starts it where the server does (on).
     expect(notifyOwners["defaultValue"]).toBeUndefined();
-    expect(new MessageQueueOwnerRule().getTableColumnMetadata("notifyOwners").defaultValue).toBe(true);
+    expect(
+      new MessageQueueOwnerRule().getTableColumnMetadata("notifyOwners")
+        .defaultValue,
+    ).toBe(true);
     expect(fieldsInStep(props, "basic-info")).toEqual([]);
   });
 });

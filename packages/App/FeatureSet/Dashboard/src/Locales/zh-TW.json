@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "從此範本宣告的事件以此狀態開始。留空則使用一般的初始狀態。",
   "The usual starting state": "一般的初始狀態",
   "Their names could not be loaded.": "無法載入他們的名稱。",
-  "Who takes each role on this incident.": "由誰擔任此事件的各個角色。"
+  "Who takes each role on this incident.": "由誰擔任此事件的各個角色。",
+  "Add {{labels}}": "新增 {{labels}}",
+  "Add {{labels}} and {{count}} more": "新增 {{labels}} 及另外 {{count}} 個",
+  "Add {{labels}} and {{count}} more_one": "新增 {{labels}} 及另外 {{count}} 個",
+  "Add {{owners}} and {{count}} more as owners": "將 {{owners}} 及另外 {{count}} 個新增為擁有者",
+  "Add {{owners}} and {{count}} more as owners_one": "將 {{owners}} 及另外 {{count}} 個新增為擁有者",
+  "Add {{owners}} as owners": "將 {{owners}} 新增為擁有者",
+  "Named after the labels it adds until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的標籤命名。",
+  "Named after the owners it adds until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的擁有者命名。",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "當此規則符合時，會新增這些標籤。已新增的標籤不會重複新增。",
+  "e.g. Add Platform as owners": "例如 將 Platform 新增為擁有者",
+  "e.g. Add production": "例如 新增 production"
 }

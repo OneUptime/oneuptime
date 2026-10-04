@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "이 템플릿으로 선언된 인시던트는 이 상태에서 시작합니다. 비워 두면 일반적인 시작 상태가 됩니다.",
   "The usual starting state": "일반적인 시작 상태",
   "Their names could not be loaded.": "이름을 불러오지 못했습니다.",
-  "Who takes each role on this incident.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다."
+  "Who takes each role on this incident.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다.",
+  "Add {{labels}}": "{{labels}} 추가",
+  "Add {{labels}} and {{count}} more": "{{labels}} 외 {{count}}개 추가",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} 외 {{count}}개 추가",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} 외 {{count}}개를 소유자로 추가",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} 외 {{count}}개를 소유자로 추가",
+  "Add {{owners}} as owners": "{{owners}}을(를) 소유자로 추가",
+  "Named after the labels it adds until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 레이블에 따라 이름이 지정됩니다.",
+  "Named after the owners it adds until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 소유자에 따라 이름이 지정됩니다.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
+  "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
+  "e.g. Add production": "예: production 추가"
 }

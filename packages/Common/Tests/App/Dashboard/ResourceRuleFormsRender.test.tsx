@@ -244,7 +244,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
           const platformId: string = "0000000b-0000-4000-8000-000000000001";
 
           rows = passes("_id", platformId)
-            ? [Object.assign(new TeamModel(), { _id: platformId, name: "Platform" })]
+            ? [
+                Object.assign(new TeamModel(), {
+                  _id: platformId,
+                  name: "Platform",
+                }),
+              ]
             : [];
         }
 
@@ -556,7 +561,9 @@ describe.each(PAGES)("$name", (page: PageCase) => {
 
     // The first step is the conditions builder; nothing is asked of the name.
     expect(within(dialog()).getByText("Conditions")).toBeInTheDocument();
-    expect(within(dialog()).queryByRole("textbox", { name: "Name" })).toBeNull();
+    expect(
+      within(dialog()).queryByRole("textbox", { name: "Name" }),
+    ).toBeNull();
     // Next is plain; the rule is created from the last step only.
     expect(
       within(dialog()).queryByTestId("modal-footer-submit-button"),
@@ -582,7 +589,9 @@ describe.each(PAGES)("$name", (page: PageCase) => {
     expect(nameBox()).toBeVisible();
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
     // A new rule starts on: no Enabled question.
-    expect(within(dialog()).queryByRole("switch", { name: /Enabled/ })).toBeNull();
+    expect(
+      within(dialog()).queryByRole("switch", { name: /Enabled/ }),
+    ).toBeNull();
     expect(
       within(dialog()).getByTestId("modal-footer-submit-button"),
     ).toBeInTheDocument();
@@ -792,4 +801,3 @@ describe("editing a rule", () => {
     expect(nameBox()).toHaveValue("Production hosts");
   });
 });
-

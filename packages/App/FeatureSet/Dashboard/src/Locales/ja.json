@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "このテンプレートから宣言されたインシデントは、この状態から始まります。空欄のままにすると通常の開始状態になります。",
   "The usual starting state": "通常の開始状態",
   "Their names could not be loaded.": "名前を読み込めませんでした。",
-  "Who takes each role on this incident.": "このインシデントで各ロールを誰が担当するか。"
+  "Who takes each role on this incident.": "このインシデントで各ロールを誰が担当するか。",
+  "Add {{labels}}": "{{labels}} を追加",
+  "Add {{labels}} and {{count}} more": "{{labels}} ほか {{count}} 件を追加",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} ほか {{count}} 件を追加",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} ほか {{count}} 件を所有者として追加",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} ほか {{count}} 件を所有者として追加",
+  "Add {{owners}} as owners": "{{owners}} を所有者として追加",
+  "Named after the labels it adds until you type a name of your own.": "独自の名前を入力するまで、追加するラベルに合わせて名前が付きます。",
+  "Named after the owners it adds until you type a name of your own.": "独自の名前を入力するまで、追加する所有者に合わせて名前が付きます。",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。",
+  "e.g. Add Platform as owners": "例: Platform を所有者として追加",
+  "e.g. Add production": "例: production を追加"
 }

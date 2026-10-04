@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Инциденты, объявленные из этого шаблона, начинаются в этом состоянии. Оставьте пустым для обычного начального состояния.",
   "The usual starting state": "Обычное начальное состояние",
   "Their names could not be loaded.": "Не удалось загрузить их имена.",
-  "Who takes each role on this incident.": "Кто берёт каждую роль в этом инциденте."
+  "Who takes each role on this incident.": "Кто берёт каждую роль в этом инциденте.",
+  "Add {{labels}}": "Добавить {{labels}}",
+  "Add {{labels}} and {{count}} more": "Добавить {{labels}} и ещё {{count}}",
+  "Add {{labels}} and {{count}} more_one": "Добавить {{labels}} и ещё {{count}}",
+  "Add {{owners}} and {{count}} more as owners": "Добавить {{owners}} и ещё {{count}} как владельцев",
+  "Add {{owners}} and {{count}} more as owners_one": "Добавить {{owners}} и ещё {{count}} как владельцев",
+  "Add {{owners}} as owners": "Добавить {{owners}} как владельцев",
+  "Named after the labels it adds until you type a name of your own.": "Название дано по добавляемым меткам, пока вы не введёте своё.",
+  "Named after the owners it adds until you type a name of your own.": "Название дано по добавляемым владельцам, пока вы не введёте своё.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Когда это правило срабатывает, эти метки добавляются. Уже добавленные метки повторно не добавляются.",
+  "e.g. Add Platform as owners": "напр. Добавить Platform как владельцев",
+  "e.g. Add production": "напр. Добавить production"
 }

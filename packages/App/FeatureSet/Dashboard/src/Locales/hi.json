@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "इस टेम्पलेट से घोषित घटनाएँ इसी स्थिति में शुरू होती हैं। सामान्य प्रारंभिक स्थिति के लिए खाली छोड़ें।",
   "The usual starting state": "सामान्य प्रारंभिक स्थिति",
   "Their names could not be loaded.": "उनके नाम लोड नहीं हो सके।",
-  "Who takes each role on this incident.": "इस घटना में हर भूमिका कौन निभाएगा।"
+  "Who takes each role on this incident.": "इस घटना में हर भूमिका कौन निभाएगा।",
+  "Add {{labels}}": "{{labels}} जोड़ें",
+  "Add {{labels}} and {{count}} more": "{{labels}} और {{count}} अन्य जोड़ें",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} और {{count}} अन्य जोड़ें",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} और {{count}} अन्य को स्वामी के रूप में जोड़ें",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} और {{count}} अन्य को स्वामी के रूप में जोड़ें",
+  "Add {{owners}} as owners": "{{owners}} को स्वामी के रूप में जोड़ें",
+  "Named after the labels it adds until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले लेबल के आधार पर रखा जाता है।",
+  "Named after the owners it adds until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले स्वामियों के आधार पर रखा जाता है।",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "जब यह नियम मेल खाता है, तो ये लेबल जोड़े जाते हैं। पहले से जुड़े लेबल दोबारा नहीं जोड़े जाते।",
+  "e.g. Add Platform as owners": "उदा. Platform को स्वामी के रूप में जोड़ें",
+  "e.g. Add production": "उदा. production जोड़ें"
 }

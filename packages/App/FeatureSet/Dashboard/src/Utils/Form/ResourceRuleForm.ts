@@ -114,8 +114,11 @@ export const OWNER_RULE_NOTIFY_OWNERS_DESCRIPTION: string = translationKey(
  * language puts the names and the count where its grammar wants them.
  */
 export interface RuleNameWording {
-  // The placeholder the picks go in, as a list: "labels", "owners".
-  placeholder: string;
+  /*
+   * The {{slot}} the picks go in, as a list: "labels", "owners". An
+   * identifier, not copy.
+   */
+  picksSlot: string;
   // Every pick named: "Add {{labels}}".
   allPicks: string;
   // Some picks named, and how many more there are.
@@ -123,7 +126,7 @@ export interface RuleNameWording {
 }
 
 export const LABEL_RULE_NAME_WORDING: RuleNameWording = {
-  placeholder: "labels",
+  picksSlot: "labels",
   allPicks: translationKey("Add {{labels}}"),
   somePicks: {
     one: "Add {{labels}} and {{count}} more",
@@ -132,7 +135,7 @@ export const LABEL_RULE_NAME_WORDING: RuleNameWording = {
 };
 
 export const OWNER_RULE_NAME_WORDING: RuleNameWording = {
-  placeholder: "owners",
+  picksSlot: "owners",
   allPicks: translationKey("Add {{owners}} as owners"),
   somePicks: {
     one: "Add {{owners}} and {{count}} more as owners",
@@ -158,12 +161,12 @@ const fillWording: FillWordingFunction = (
 ): string => {
   if (leftOut === 0) {
     return translateTemplate(wording.allPicks, {
-      [wording.placeholder]: list,
+      [wording.picksSlot]: list,
     });
   }
 
   return translatePlural(wording.somePicks, leftOut, {
-    [wording.placeholder]: list,
+    [wording.picksSlot]: list,
   });
 };
 

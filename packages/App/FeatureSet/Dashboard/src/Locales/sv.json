@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidenter som deklareras från den här mallen börjar i detta tillstånd. Lämna tomt för det vanliga starttillståndet.",
   "The usual starting state": "Det vanliga starttillståndet",
   "Their names could not be loaded.": "Deras namn kunde inte läsas in.",
-  "Who takes each role on this incident.": "Vem som tar varje roll i den här incidenten."
+  "Who takes each role on this incident.": "Vem som tar varje roll i den här incidenten.",
+  "Add {{labels}}": "Lägg till {{labels}}",
+  "Add {{labels}} and {{count}} more": "Lägg till {{labels}} och {{count}} till",
+  "Add {{labels}} and {{count}} more_one": "Lägg till {{labels}} och {{count}} till",
+  "Add {{owners}} and {{count}} more as owners": "Lägg till {{owners}} och {{count}} till som ägare",
+  "Add {{owners}} and {{count}} more as owners_one": "Lägg till {{owners}} och {{count}} till som ägare",
+  "Add {{owners}} as owners": "Lägg till {{owners}} som ägare",
+  "Named after the labels it adds until you type a name of your own.": "Namngiven efter etiketterna den lägger till tills du skriver ett eget namn.",
+  "Named after the owners it adds until you type a name of your own.": "Namngiven efter ägarna den lägger till tills du skriver ett eget namn.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "När den här regeln matchar läggs dessa etiketter till. Etiketter som redan finns läggs inte till två gånger.",
+  "e.g. Add Platform as owners": "t.ex. Lägg till Platform som ägare",
+  "e.g. Add production": "t.ex. Lägg till production"
 }

@@ -220,8 +220,10 @@ describe("every label and owner rule form", () => {
     );
 
     for (const form of sharedForms) {
-      expect({ form: describeForm(form), reasons: form.uncountableReasons })
-        .toEqual({ form: describeForm(form), reasons: [] });
+      expect({
+        form: describeForm(form),
+        reasons: form.uncountableReasons,
+      }).toEqual({ form: describeForm(form), reasons: [] });
     }
   });
 
@@ -256,9 +258,10 @@ describe("every label and owner rule form", () => {
         file,
         ownSteps: false,
       });
-      expect({ file, basicInfo: /basic-info|Basic Info/.test(code) }).toEqual(
-        { file, basicInfo: false },
-      );
+      expect({ file, basicInfo: /basic-info|Basic Info/.test(code) }).toEqual({
+        file,
+        basicInfo: false,
+      });
     }
 
     for (const form of sharedForms) {
@@ -367,9 +370,10 @@ describe("every label and owner rule form", () => {
         },
       );
 
-      expect({ form: describeForm(form), editOnly: enabled?.isEditOnly }).toEqual(
-        { form: describeForm(form), editOnly: true },
-      );
+      expect({
+        form: describeForm(form),
+        editOnly: enabled?.isEditOnly,
+      }).toEqual({ form: describeForm(form), editOnly: true });
     }
   });
 

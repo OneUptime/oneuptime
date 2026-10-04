@@ -518,10 +518,7 @@ describe("in another language", () => {
   });
 
   test("the count of picks left out takes the reader's plural form", () => {
-    const one: string = getLabelRuleName([
-      "a".repeat(60),
-      "b".repeat(60),
-    ]);
+    const one: string = getLabelRuleName(["a".repeat(60), "b".repeat(60)]);
 
     expect(one).toBe(`${"a".repeat(60)} und 1 weiteres hinzufügen`);
   });

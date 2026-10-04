@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Les incidents déclarés à partir de ce modèle commencent dans cet état. Laissez vide pour l'état de départ habituel.",
   "The usual starting state": "L'état de départ habituel",
   "Their names could not be loaded.": "Impossible de charger leurs noms.",
-  "Who takes each role on this incident.": "Qui assume chaque rôle sur cet incident."
+  "Who takes each role on this incident.": "Qui assume chaque rôle sur cet incident.",
+  "Add {{labels}}": "Ajouter {{labels}}",
+  "Add {{labels}} and {{count}} more": "Ajouter {{labels}} et {{count}} autres",
+  "Add {{labels}} and {{count}} more_one": "Ajouter {{labels}} et {{count}} autre",
+  "Add {{owners}} and {{count}} more as owners": "Ajouter {{owners}} et {{count}} autres comme propriétaires",
+  "Add {{owners}} and {{count}} more as owners_one": "Ajouter {{owners}} et {{count}} autre comme propriétaires",
+  "Add {{owners}} as owners": "Ajouter {{owners}} comme propriétaires",
+  "Named after the labels it adds until you type a name of your own.": "Nommée d'après les étiquettes qu'elle ajoute jusqu'à ce que vous saisissiez votre propre nom.",
+  "Named after the owners it adds until you type a name of your own.": "Nommée d'après les propriétaires qu'elle ajoute jusqu'à ce que vous saisissiez votre propre nom.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Lorsque cette règle correspond, ces étiquettes sont ajoutées. Les étiquettes déjà présentes ne sont pas ajoutées deux fois.",
+  "e.g. Add Platform as owners": "ex. Ajouter Platform comme propriétaires",
+  "e.g. Add production": "ex. Ajouter production"
 }

@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidenten die vanuit deze sjabloon worden gemeld, beginnen in deze status. Laat leeg voor de gebruikelijke beginstatus.",
   "The usual starting state": "De gebruikelijke beginstatus",
   "Their names could not be loaded.": "Hun namen konden niet worden geladen.",
-  "Who takes each role on this incident.": "Wie welke rol op zich neemt bij dit incident."
+  "Who takes each role on this incident.": "Wie welke rol op zich neemt bij dit incident.",
+  "Add {{labels}}": "{{labels}} toevoegen",
+  "Add {{labels}} and {{count}} more": "{{labels}} en {{count}} andere toevoegen",
+  "Add {{labels}} and {{count}} more_one": "{{labels}} en {{count}} andere toevoegen",
+  "Add {{owners}} and {{count}} more as owners": "{{owners}} en {{count}} andere als eigenaren toevoegen",
+  "Add {{owners}} and {{count}} more as owners_one": "{{owners}} en {{count}} andere als eigenaren toevoegen",
+  "Add {{owners}} as owners": "{{owners}} als eigenaren toevoegen",
+  "Named after the labels it adds until you type a name of your own.": "Genoemd naar de labels die de regel toevoegt, totdat u zelf een naam typt.",
+  "Named after the owners it adds until you type a name of your own.": "Genoemd naar de eigenaren die de regel toevoegt, totdat u zelf een naam typt.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Wanneer deze regel overeenkomt, worden deze labels toegevoegd. Labels die al zijn toegevoegd, worden niet twee keer toegevoegd.",
+  "e.g. Add Platform as owners": "bijv. Platform als eigenaren toevoegen",
+  "e.g. Add production": "bijv. production toevoegen"
 }

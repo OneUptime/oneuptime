@@ -24868,5 +24868,16 @@
   "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید.",
   "The usual starting state": "وضعیت آغازین معمول",
   "Their names could not be loaded.": "نام‌هایشان بارگیری نشد.",
-  "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد."
+  "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد.",
+  "Add {{labels}}": "افزودن {{labels}}",
+  "Add {{labels}} and {{count}} more": "افزودن {{labels}} و {{count}} مورد دیگر",
+  "Add {{labels}} and {{count}} more_one": "افزودن {{labels}} و {{count}} مورد دیگر",
+  "Add {{owners}} and {{count}} more as owners": "افزودن {{owners}} و {{count}} مورد دیگر به‌عنوان مالک",
+  "Add {{owners}} and {{count}} more as owners_one": "افزودن {{owners}} و {{count}} مورد دیگر به‌عنوان مالک",
+  "Add {{owners}} as owners": "افزودن {{owners}} به‌عنوان مالک",
+  "Named after the labels it adds until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس برچسب‌هایی که می‌افزاید نام‌گذاری می‌شود.",
+  "Named after the owners it adds until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید نام‌گذاری می‌شود.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice.": "وقتی این قاعده مطابقت کند، این برچسب‌ها افزوده می‌شوند. برچسب‌هایی که از قبل افزوده شده‌اند دوباره افزوده نمی‌شوند.",
+  "e.g. Add Platform as owners": "برای نمونه افزودن Platform به‌عنوان مالک",
+  "e.g. Add production": "برای نمونه افزودن production"
 }
