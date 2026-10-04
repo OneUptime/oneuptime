@@ -498,12 +498,22 @@ export class Service extends DatabaseService<StatusPage> {
      * API or Terraform) gets the default one - every month, on the 1st at
      * 09:00 in the report timezone - and, with any schedule, the time its
      * first report goes out, which the report worker waits for. A schedule
-     * the caller sent is kept.
+     * the caller sent is kept, once it can be read.
      */
+    const reportWrite: StatusPageReportScheduleColumns =
+      getReportScheduleColumns(createBy.data);
+
+    const reportWriteProblem: string | null =
+      StatusPageReportScheduleUtil.getWriteProblem(reportWrite);
+
+    if (reportWriteProblem) {
+      throw new BadDataException(reportWriteProblem);
+    }
+
     applyReportScheduleWrite(
       createBy.data,
       StatusPageReportScheduleUtil.getScheduleWrite({
-        write: getReportScheduleColumns(createBy.data),
+        write: reportWrite,
       }),
     );
 
@@ -1314,6 +1324,13 @@ export class Service extends DatabaseService<StatusPage> {
 
     if (!StatusPageReportScheduleUtil.isReportWrite(write)) {
       return null;
+    }
+
+    const problem: string | null =
+      StatusPageReportScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
     }
 
     const statusPages: Array<StatusPage> = await this.findBy({

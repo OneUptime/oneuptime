@@ -693,6 +693,65 @@ describe("reading the columns", () => {
     ).toBe("1 Year");
   });
 
+  test("an interval type the calendar cannot step by, or a count below one, is no interval", () => {
+    expect(
+      StatusPageReportScheduleUtil.toRecurring({
+        _type: "Recurring",
+        value: { intervalType: "Fortnight", intervalCount: 1 },
+      }),
+    ).toBeUndefined();
+    expect(
+      StatusPageReportScheduleUtil.toRecurring({
+        _type: "Recurring",
+        value: { intervalType: EventInterval.Week, intervalCount: -2 },
+      }),
+    ).toBeUndefined();
+    expect(
+      StatusPageReportScheduleUtil.toRecurring(every(EventInterval.Week, 0)),
+    ).toBeUndefined();
+  });
+
+  test("says why a write's schedule cannot be stored", () => {
+    expect(
+      StatusPageReportScheduleUtil.getWriteProblem({
+        reportStartDateTime: "soon",
+      }),
+    ).toContain("reportStartDateTime is not a date and time");
+    expect(
+      StatusPageReportScheduleUtil.getWriteProblem({
+        reportRecurringInterval: {},
+      }),
+    ).toContain("reportRecurringInterval is not a recurring interval");
+
+    // Nothing to say about a schedule that can be read, left out or cleared.
+    expect(
+      StatusPageReportScheduleUtil.getWriteProblem({
+        reportStartDateTime: NOW,
+        reportRecurringInterval: every(EventInterval.Month, 1).toJSON(),
+      }),
+    ).toBeNull();
+    expect(StatusPageReportScheduleUtil.getWriteProblem({})).toBeNull();
+    expect(
+      StatusPageReportScheduleUtil.getWriteProblem({
+        reportStartDateTime: null,
+        reportRecurringInterval: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("no next report for a schedule the calendar cannot step through", () => {
+    const broken: Recurring = every(EventInterval.Month, 1);
+    broken.intervalType = "Fortnight" as EventInterval;
+
+    expect(
+      StatusPageReportScheduleUtil.getNextReportDate({
+        reportStartDateTime: at(NOW),
+        reportRecurringInterval: broken,
+        after: at(NOW),
+      }),
+    ).toBeUndefined();
+  });
+
   test("a timezone moment does not know reads as UTC", () => {
     expect(StatusPageReportScheduleUtil.getTimezone("Asia/Kolkata")).toBe(
       Timezone.AsiaKolkata,

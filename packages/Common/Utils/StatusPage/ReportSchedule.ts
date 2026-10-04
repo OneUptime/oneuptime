@@ -152,17 +152,62 @@ export default class StatusPageReportScheduleUtil {
     }
   }
 
-  // A recurring interval column's value, or undefined when it holds nothing usable.
+  /*
+   * A recurring interval column's value, or undefined when it holds nothing
+   * usable - an interval type the calendar cannot step by included, which
+   * would otherwise only fail when the next report is worked out.
+   */
   public static toRecurring(value: unknown): Recurring | undefined {
     if (value === undefined || value === null) {
       return undefined;
     }
 
     try {
-      return Recurring.fromJSON(value as JSONObject | Recurring);
+      const recurring: Recurring = Recurring.fromJSON(
+        value as JSONObject | Recurring,
+      );
+
+      if (
+        !Object.values(EventInterval).includes(recurring.intervalType) ||
+        !(recurring.intervalCount?.toNumber() >= 1)
+      ) {
+        return undefined;
+      }
+
+      return recurring;
     } catch {
       return undefined;
     }
+  }
+
+  /*
+   * Why a write's report schedule cannot be stored, or null: a first report
+   * date or an interval it carries that cannot be read. Sending null clears
+   * the column, and is fine. The update path used to refuse an interval it
+   * could not read only by accident (Recurring.fromJSON threw "Invalid
+   * Rotation" while working out the next send); this keeps refusing it, on
+   * a create as on an update, whether reports are on or off.
+   */
+  public static getWriteProblem(
+    write: StatusPageReportScheduleColumns,
+  ): string | null {
+    if (
+      write.reportStartDateTime !== undefined &&
+      write.reportStartDateTime !== null &&
+      !this.toDate(write.reportStartDateTime)
+    ) {
+      return "reportStartDateTime is not a date and time. Send it as an ISO 8601 string, such as 2026-11-01T09:00:00.000Z.";
+    }
+
+    if (
+      write.reportRecurringInterval !== undefined &&
+      write.reportRecurringInterval !== null &&
+      !this.toRecurring(write.reportRecurringInterval)
+    ) {
+      return "reportRecurringInterval is not a recurring interval: it needs an interval type (Hour, Day, Week, Month or Year) and an interval count of 1 or more.";
+    }
+
+    return null;
   }
 
   /*
@@ -187,12 +232,17 @@ export default class StatusPageReportScheduleUtil {
       return undefined;
     }
 
-    return Recurring.getNextDateAfter({
-      startDate: startDate,
-      recurring: recurring,
-      afterDate: data.after || OneUptimeDate.getCurrentDate(),
-      timezone: this.getTimezone(data.reportTimezone),
-    });
+    try {
+      return Recurring.getNextDateAfter({
+        startDate: startDate,
+        recurring: recurring,
+        afterDate: data.after || OneUptimeDate.getCurrentDate(),
+        timezone: this.getTimezone(data.reportTimezone),
+      });
+    } catch {
+      // Nothing to show for a schedule the calendar cannot step through.
+      return undefined;
+    }
   }
 
   /*

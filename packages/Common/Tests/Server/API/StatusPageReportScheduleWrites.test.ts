@@ -18,6 +18,7 @@ import PermissionScope from "../../../Types/Database/AccessControl/PermissionSco
 import OneUptimeDate from "../../../Types/Date";
 import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -499,6 +500,70 @@ describe("editing the schedule", () => {
   });
 });
 
+describe("a schedule that cannot be read", () => {
+  // What the update route answers for a write it refuses as bad data.
+  const refusal: (data: JSONObject) => Promise<string> = async (
+    data: JSONObject,
+  ): Promise<string> => {
+    try {
+      await api.updateItem(ownerRequest(data), response());
+      return "saved";
+    } catch (err) {
+      if (err instanceof BadDataException) {
+        return err.message;
+      }
+
+      throw err;
+    }
+  };
+
+  test("an interval that is not one is refused, with reports on or off, and nothing is written", async () => {
+    for (const isReportEnabled of [false, true]) {
+      stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = isReportEnabled;
+      writes = [];
+
+      for (const interval of [
+        {},
+        { _type: "Recurring", value: { intervalType: "Fortnight" } },
+      ]) {
+        expect(
+          await refusal({ reportRecurringInterval: interval as JSONObject }),
+        ).toContain("reportRecurringInterval is not a recurring interval");
+      }
+
+      expect(writes).toEqual([]);
+    }
+  });
+
+  test("a first report date that is not a date is refused, and nothing is written", async () => {
+    expect(
+      await refusal({ isReportEnabled: true, reportStartDateTime: "soon" }),
+    ).toContain("reportStartDateTime is not a date and time");
+    expect(writes).toEqual([]);
+  });
+
+  test("null clears a column: with reports off it is stored, with them on the default comes back", async () => {
+    stored[STATUS_PAGE_ID.toString()] = {
+      isReportEnabled: false,
+      reportStartDateTime: OneUptimeDate.fromString("2026-10-15T10:00:00.000Z"),
+      reportRecurringInterval: every(EventInterval.Week, 1),
+      reportTimezone: Timezone.UTC,
+    };
+
+    expect(await refusal({ reportStartDateTime: null })).toBe("saved");
+    expect(onlyWrite()).toEqual({ reportStartDateTime: null });
+
+    stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = true;
+    writes = [];
+
+    expect(await refusal({ reportStartDateTime: null })).toBe("saved");
+    expect(onlyWrite()).toEqual({
+      reportStartDateTime: "2026-11-01T09:00:00.000Z",
+      sendNextReportBy: "2026-11-01T09:00:00.000Z",
+    });
+  });
+});
+
 describe("on OneUptime Cloud (billing on)", () => {
   test("switching reports on needs Growth, as before; from Growth up it saves with the default schedule", async () => {
     setTestBillingEnabled(true);
@@ -719,6 +784,19 @@ describe("creating a status page", () => {
     expect(created.reportPeriodType).toBeUndefined();
     expect(created.sendNextReportBy?.toISOString()).toBe(
       "2026-10-06T08:00:00.000Z",
+    );
+  });
+
+  test("with an interval that cannot be read, it is refused", async () => {
+    const page: StatusPage = new StatusPage();
+    page.isReportEnabled = true;
+    (page as unknown as Record<string, unknown>)["reportRecurringInterval"] = {
+      _type: "Recurring",
+      value: { intervalType: "Fortnight" },
+    };
+
+    await expect(beforeCreate(page)).rejects.toThrow(
+      "reportRecurringInterval is not a recurring interval",
     );
   });
 
