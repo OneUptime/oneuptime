@@ -236,9 +236,17 @@
       "failed": "Vi kunne ikke afmelde dig. Prøv igen.",
       "loadFailed": "Vi kunne ikke indlæse dette afmeldingslink. Prøv igen senere."
     },
-    "steps": {
-      "details": "Detaljer",
-      "preferences": "Præferencer"
+    "preferences": {
+      "title": "Præferencer",
+      "description": "Vælg, hvad du vil høre om.",
+      "summary": {
+        "everything": "Du får alle opdateringer fra denne statusside.",
+        "pickedResources": "Du får kun opdateringer om de ressourcer, du har valgt.",
+        "pickedEventTypes": "Du får kun opdateringer om de hændelsestyper, du har valgt.",
+        "pickedResourcesAndEventTypes": "Du får kun opdateringer om de ressourcer og hændelsestyper, du har valgt.",
+        "noResources": "Du har ikke valgt nogen ressourcer endnu.",
+        "noEventTypes": "Du har ikke valgt nogen hændelsestyper endnu."
+      }
     }
   },
   "accounts": {

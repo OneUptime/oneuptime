@@ -236,9 +236,17 @@
       "failed": "Det gick inte att avsluta prenumerationen. Försök igen.",
       "loadFailed": "Det gick inte att läsa in den här avregistreringslänken. Försök igen senare."
     },
-    "steps": {
-      "details": "Detaljer",
-      "preferences": "Inställningar"
+    "preferences": {
+      "title": "Inställningar",
+      "description": "Välj vad du vill få höra om.",
+      "summary": {
+        "everything": "Du får alla uppdateringar från den här statussidan.",
+        "pickedResources": "Du får bara uppdateringar om de resurser du har valt.",
+        "pickedEventTypes": "Du får bara uppdateringar om de händelsetyper du har valt.",
+        "pickedResourcesAndEventTypes": "Du får bara uppdateringar om de resurser och händelsetyper du har valt.",
+        "noResources": "Du har inte valt några resurser än.",
+        "noEventTypes": "Du har inte valt några händelsetyper än."
+      }
     }
   },
   "accounts": {

@@ -236,9 +236,17 @@
       "failed": "Vi kunne ikke avslutte abonnementet. Prøv igjen.",
       "loadFailed": "Vi kunne ikke laste inn denne lenken for å avslutte abonnementet. Prøv igjen senere."
     },
-    "steps": {
-      "details": "Detaljer",
-      "preferences": "Preferanser"
+    "preferences": {
+      "title": "Preferanser",
+      "description": "Velg hva du vil høre om.",
+      "summary": {
+        "everything": "Du får alle oppdateringer fra denne statussiden.",
+        "pickedResources": "Du får bare oppdateringer om ressursene du har valgt.",
+        "pickedEventTypes": "Du får bare oppdateringer om hendelsestypene du har valgt.",
+        "pickedResourcesAndEventTypes": "Du får bare oppdateringer om ressursene og hendelsestypene du har valgt.",
+        "noResources": "Du har ikke valgt noen ressurser ennå.",
+        "noEventTypes": "Du har ikke valgt noen hendelsestyper ennå."
+      }
     }
   },
   "accounts": {
