@@ -78,7 +78,7 @@ Vá a **Incidentes → Configurações → Modelos de post-mortem** (`/dashboard
 - **Nome do modelo** e **Descrição do modelo**, ambos obrigatórios.
 - **Modelo de análise pós-incidente**, o corpo em si, em Markdown, obrigatório.
 
-Você aplica um deles a partir do incidente, não das configurações. Abra um incidente, escolha **Post-mortem** no menu lateral dele (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) e use **Aplicar modelo**. Isso abre a caixa **Aplicar modelo de post-mortem** com um menu **Selecionar Modelo**; escolher um carrega o corpo do modelo no editor **Nota da análise pós-incidente**, onde você o ajusta antes de salvar. Episódios de incidente têm a mesma tela **Post-mortem** e bebem da mesma biblioteca de modelos.
+Você aplica um deles a partir do incidente, não das configurações. Abra um incidente, escolha **Post-mortem** no menu lateral dele (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) e use **Aplicar modelo**. Isso abre a caixa **Aplicar modelo de post-mortem** com um menu **Selecionar Modelo**; escolher um carrega o corpo do modelo no editor **Nota da análise pós-incidente**, onde você o ajusta antes de salvar. Episódios de incidente têm a mesma tela **Post-mortem** e bebem da mesma biblioteca de modelos. **Aplicar modelo** só aparece quando o projeto tem um modelo de post-mortem; se houver só um, ele já vem selecionado. O editor abre o post-mortem do incidente como está, com o modelo como nota, então a publicação na página de status, a data de publicação e os anexos continuam como estavam.
 
 ## Campos personalizados
 

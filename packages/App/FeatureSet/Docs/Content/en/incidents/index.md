@@ -134,7 +134,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.
 - **Runbooks** — runbook executions attached to this incident.
-- **Postmortem** — the write-up, which you can optionally publish to the status page.
+- **Postmortem** — the write-up and its attachments, which you can optionally publish to the status page. **Edit Postmortem Note** asks for the note and attachments, then **Publish on Status Page**; only while that is on does it ask **Notify Subscribers** and **Postmortem Published At**, which turning publishing on sets to now. **Generate with AI** drafts the note for you, and **Apply Template** — shown once the project has a postmortem template — starts it from one.
 - **Linked Alerts** — the alerts linked to this incident, with each alert's current state, and who linked it and when. Alerts have a matching **Linked Incidents** page. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
 - **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed. The first two are under **Notifications**, which starts collapsed: click **Notifications** to show them. **Audit Logs** is under **Advanced**.

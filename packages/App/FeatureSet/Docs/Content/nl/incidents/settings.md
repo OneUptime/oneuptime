@@ -76,7 +76,7 @@ Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{p
 - **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
 - **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
 
-Toepassen doe je vanaf het incident, niet vanuit de instellingen. Open een incident, kies **Postmortem** in het zijmenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) en gebruik **Sjabloon toepassen**. Dat opent de dialoog **Postmortemsjabloon toepassen** met een vervolgkeuzelijst **Selecteer sjabloon**; kies je er een, dan wordt de sjabloontekst in de editor **Postmortem-notitie** geladen, waar je hem bewerkt voordat je opslaat. Incident-episodes hebben dezelfde pagina **Postmortem** en putten uit dezelfde sjabloonbibliotheek.
+Toepassen doe je vanaf het incident, niet vanuit de instellingen. Open een incident, kies **Postmortem** in het zijmenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) en gebruik **Sjabloon toepassen**. Dat opent de dialoog **Postmortemsjabloon toepassen** met een vervolgkeuzelijst **Selecteer sjabloon**; kies je er een, dan wordt de sjabloontekst in de editor **Postmortem-notitie** geladen, waar je hem bewerkt voordat je opslaat. Incident-episodes hebben dezelfde pagina **Postmortem** en putten uit dezelfde sjabloonbibliotheek. **Sjabloon toepassen** verschijnt pas als het project een postmortemsjabloon heeft; is er maar één, dan is die al gekozen. De editor opent de postmortem van het incident zoals die is, met het sjabloon als notitie, dus of hij op de statuspagina staat, wanneer hij is gepubliceerd en de bijlagen blijven zoals ze waren.
 
 ## Aangepaste velden
 
