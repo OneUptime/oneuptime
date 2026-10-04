@@ -102,7 +102,7 @@
 
 ### اعلان اعلامیه
 
-خودِ اعلامیه **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`) را حمل می‌کند، که روی فرم ساخت به‌صورت جعبه انتخاب **Notify Status Page Subscribers** در معرض است و پیش‌فرضش روشن. اگر اعلامیه زیر **Monitors affected (Optional)** مانیتورهایی را نام ببرد، اعلان به همان مانیتورها محدود می‌شود؛ خالی بگذاریدش و به همه مشترکان خبر داده می‌شود.
+خودِ اعلامیه **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`) را حمل می‌کند، که روی فرم ساخت به‌صورت جعبه انتخاب **Notify Status Page Subscribers** زیر **Schedule & Notifications** در معرض است و پیش‌فرضش روشن. به مشترکان یک بار خبر داده می‌شود، وقتی نمایش اعلامیه شروع می‌شود؛ پس این انتخاب هنگام ساخت اعلامیه انجام می‌شود و ویرایش آن را تغییر نمی‌دهد. اگر اعلامیه زیر **Monitors Affected** مانیتورهایی را نام ببرد، اعلان به همان مانیتورها محدود می‌شود؛ خالی بگذاریدش و به همه مشترکان خبر داده می‌شود.
 
 ### رویدادهای نگهداری زمان‌بندی‌شده
 
@@ -244,12 +244,14 @@
 
 اعلامیه رکوردی در سطح پروژه است (مدل `StatusPageAnnouncement`) که به یک یا چند صفحه وضعیت پخشش می‌کنید، اختیاراً محدود به مانیتورهای مشخص، با پنجره‌ای که در آن نشان داده می‌شود.
 
-یکی را از **Status Pages → More → Announcements**، یا از **Announcements** در منوی کناری صفحه وضعیتی منفرد می‌سازید. فرم ساخت جادوگری چهارگامی است:
+یکی را از **Status Pages → More → Announcements**، یا از **Announcements** در منوی کناری صفحه وضعیتی منفرد می‌سازید. اگر از صفحه وضعیتی بسازید، همان صفحه از پیش انتخاب شده است، پس یک عنوان و یک توضیح کافی است، و **Create Announcement** شما را به فهرست **Announcements** همان صفحه برمی‌گرداند (یا به فهرست پروژه، اگر در میانه راه آن صفحه را از انتخاب درآورده باشید). فرم ساخت دو گام دارد و سپس مرور:
 
-1. **Basic Information** — **Announcement Title** (الزامی، دست‌کم دو نویسه)، **Description** (مارک‌داون، اختیاری) و **Attachments** برای فایل‌هایی که باید همراه اعلامیه روی صفحه وضعیت در دسترس باشند.
-2. **Status Pages** — گزینه **Show announcement on these status pages**، چندانتخابی الزامی. یک اعلامیه می‌تواند هم‌زمان چند صفحه را نشانه بگیرد.
-3. **Resources Affected** — گزینه **Monitors affected (Optional)**. اگر هیچ‌کدام را برنگزینید، به همه مشترکان خبر داده می‌شود.
-4. **Schedule & Settings** — گزینه‌های **Start Showing Announcement At** (الزامی، پیش‌فرض حالا)، **End Showing Announcement At** (اختیاری) و **Notify Status Page Subscribers** (به‌طور پیش‌فرض روشن).
+1. **Announcement** — **Title** (الزامی، دست‌کم دو نویسه) و **Description** (مارک‌داون، الزامی: متنی است که مردم روی صفحه وضعیت می‌خوانند). **Attachments**، برای فایل‌هایی که باید همراه اعلامیه روی صفحه وضعیت در دسترس باشند، زیر **Advanced** است.
+2. **Status Pages** — گزینه **Show announcement on these status pages**، چندانتخابی الزامی (یک اعلامیه می‌تواند هم‌زمان چند صفحه را نشانه بگیرد)، و **Monitors Affected**: اگر هیچ‌کدام را برنگزینید، به همه مشترکان خبر داده می‌شود. زیر آن‌ها، **Schedule & Notifications** به یک خط جمع شده که می‌گوید چه می‌شود؛ به‌طور پیش‌فرض: اعلامیه همین حالا نمایش داده می‌شود و تا وقتی پایانش دهید می‌ماند، و مشترکان هنگام شروع نمایش آن مطلع می‌شوند. بازش کنید تا **Start Showing Announcement At** (پیش‌فرض حالا)، **End Showing Announcement At** (خالی: اعلامیه می‌ماند تا وقتی پایانی برایش تعیین کنید) یا **Notify Status Page Subscribers** (به‌طور پیش‌فرض روشن) را تغییر دهید. آن خط پاسخ‌های شما را دنبال می‌کند. پایان باید پس از شروع باشد و، برای اعلامیه تازه، هنوز نرسیده باشد: اعلامیه‌ای که از پیش پایان یافته هرگز نمایش داده نمی‌شود.
+
+گام مرور همان خط را نشان می‌دهد. **Create from Template** فرم را از روی یک قالب پر می‌کند؛ اگر از صفحه وضعیتی ساخته شود، صفحه‌های وضعیت خود قالب کنار همان صفحه نگه داشته می‌شوند.
+
+صفحه خود اعلامیه آن را در همان دو گام ویرایش می‌کند. **Notify subscribers about this update** زیر توضیح است، و **Schedule** شروع و پایان را نگه می‌دارد. گذاشتن پایانی که گذشته است راه پایین آوردن یک اعلامیه است.
 
 بازدیدکنندگان اعلامیه‌ها را در `/announcements` می‌خوانند، که به **Active Announcements** و **Past Announcements** تقسیم شده و هرکدام با **Announced at** مهر خورده‌اند. اعلامیه‌هایی که هم‌اکنون زنده‌اند بالای صفحه نمای کلی هم سنجاق می‌شوند. وقتی چیزی برای نشان دادن نباشد، صفحه *No Announcement* را با یادداشتی می‌خواند که تاکنون چیزی منتشر نشده است.
 
@@ -271,7 +273,7 @@
 
 ## قالب‌های اعلامیه
 
-اگر مدام همان نوع اطلاعیه را منتشر می‌کنید — یادآوری ماهانه نگهداری، تنزل تکرارشونده شخص ثالثی — از پیش قوطی‌اش کنید. بخش **Status Pages → Settings → Announcement Templates** مدل `StatusPageAnnouncementTemplate` را ذخیره می‌کند، و فرمش **Template Name**، **Template Description**، **Announcement Title**، **Description**، **Show announcement on these status pages**، **Monitors affected (Optional)** و **Notify Subscribers** را می‌پرسد، پس پخش و تصمیم اعلان یک بار گرفته می‌شوند نه هر بار.
+اگر مدام همان نوع اطلاعیه را منتشر می‌کنید — یادآوری ماهانه نگهداری، تنزل تکرارشونده شخص ثالثی — از پیش قوطی‌اش کنید. بخش **Status Pages → Settings → Announcement Templates** مدل `StatusPageAnnouncementTemplate` را ذخیره می‌کند. فرمش **Template Info** (**Template Name**، **Template Description**) و سپس گام‌های خود اعلامیه را طی می‌کند: **Announcement** (**Title**، **Description**) و **Status Pages** (**Show announcement on these status pages**، **Monitors Affected** و **Notify Status Page Subscribers** که به‌طور پیش‌فرض روشن است)، پس پخش و تصمیم اعلان یک بار گرفته می‌شوند نه هر بار. قالب زمان‌بندی ندارد: اعلامیه‌ای که از آن ساخته شود از لحظه ساخت نمایش داده می‌شود، مگر آنکه زیر **Schedule & Notifications** تغییرش دهید.
 
 ## مشترکان وب‌هوک و محافظت در برابر SSRF
 
