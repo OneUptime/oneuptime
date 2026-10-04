@@ -18,12 +18,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useMemo,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useMemo } from "react";
 import {
   DisplayChoiceColumn,
   DisplayChoiceDefinition,

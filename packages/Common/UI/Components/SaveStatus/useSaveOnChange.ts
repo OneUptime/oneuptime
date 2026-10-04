@@ -50,128 +50,129 @@ export interface SaveOnChangeOptions<T> {
   onSaved?: ((value: T) => void) | undefined;
 }
 
-const useSaveOnChange: <T>(options: SaveOnChangeOptions<T>) => SaveOnChange<T> =
-  <T>(options: SaveOnChangeOptions<T>): SaveOnChange<T> => {
-    const [value, setValue] = useState<T>(options.initialValue);
-    const [savedValue, setSavedValue] = useState<T>(options.initialValue);
-    const [saveState, setSaveState] = useState<SaveState>(SaveState.Idle);
-    const [error, setError] = useState<string>("");
-    const [revision, setRevision] = useState<number>(0);
+const useSaveOnChange: <T>(
+  options: SaveOnChangeOptions<T>,
+) => SaveOnChange<T> = <T>(
+  options: SaveOnChangeOptions<T>,
+): SaveOnChange<T> => {
+  const [value, setValue] = useState<T>(options.initialValue);
+  const [savedValue, setSavedValue] = useState<T>(options.initialValue);
+  const [saveState, setSaveState] = useState<SaveState>(SaveState.Idle);
+  const [error, setError] = useState<string>("");
+  const [revision, setRevision] = useState<number>(0);
 
-    /*
-     * Set at once, where the state above lands on the next render: whether a
-     * save is on its way, what the record has, the last change asked for,
-     * and a change waiting its turn.
-     */
-    const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
-    const savedValueRef: MutableRefObject<T> = useRef<T>(options.initialValue);
-    const latestValueRef: MutableRefObject<T> = useRef<T>(
-      options.initialValue,
-    );
-    const waitingRef: MutableRefObject<{ value: T } | null> = useRef<{
-      value: T;
-    } | null>(null);
+  /*
+   * Set at once, where the state above lands on the next render: whether a
+   * save is on its way, what the record has, the last change asked for,
+   * and a change waiting its turn.
+   */
+  const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
+  const savedValueRef: MutableRefObject<T> = useRef<T>(options.initialValue);
+  const latestValueRef: MutableRefObject<T> = useRef<T>(options.initialValue);
+  const waitingRef: MutableRefObject<{ value: T } | null> = useRef<{
+    value: T;
+  } | null>(null);
 
-    // The options of the latest render, for a save that outlives it.
-    const optionsRef: MutableRefObject<SaveOnChangeOptions<T>> =
-      useRef<SaveOnChangeOptions<T>>(options);
-    optionsRef.current = options;
+  // The options of the latest render, for a save that outlives it.
+  const optionsRef: MutableRefObject<SaveOnChangeOptions<T>> =
+    useRef<SaveOnChangeOptions<T>>(options);
+  optionsRef.current = options;
 
-    const isSame: (first: T, second: T) => boolean = (
-      first: T,
-      second: T,
-    ): boolean => {
-      const compare: ((first: T, second: T) => boolean) | undefined =
-        optionsRef.current.isSame;
+  const isSame: (first: T, second: T) => boolean = (
+    first: T,
+    second: T,
+  ): boolean => {
+    const compare: ((first: T, second: T) => boolean) | undefined =
+      optionsRef.current.isSame;
 
-      return compare ? compare(first, second) : first === second;
-    };
+    return compare ? compare(first, second) : first === second;
+  };
 
-    const saveUntilSettled: (first: T) => Promise<void> = async (
-      first: T,
-    ): Promise<void> => {
-      isSavingRef.current = true;
+  const saveUntilSettled: (first: T) => Promise<void> = async (
+    first: T,
+  ): Promise<void> => {
+    isSavingRef.current = true;
 
-      let next: { value: T } | null = { value: first };
+    let next: { value: T } | null = { value: first };
 
-      while (next) {
-        const target: T = next.value;
+    while (next) {
+      const target: T = next.value;
 
-        // A waiting change back to what the record now has sends nothing.
-        if (isSame(target, savedValueRef.current)) {
-          next = waitingRef.current;
-          waitingRef.current = null;
-          continue;
-        }
-
-        setSaveState(SaveState.Saving);
-
-        try {
-          await optionsRef.current.save(target);
-
-          savedValueRef.current = target;
-          setSavedValue(target);
-          setSaveState(SaveState.Saved);
-          optionsRef.current.onSaved?.(target);
-        } catch (err) {
-          // Back to what the record has, with the reason; a waiting change goes too.
-          waitingRef.current = null;
-          latestValueRef.current = savedValueRef.current;
-          setValue(savedValueRef.current);
-          setSaveState(SaveState.Idle);
-          setError(API.getFriendlyMessage(err));
-          setRevision((current: number): number => {
-            return current + 1;
-          });
-          break;
-        }
-
+      // A waiting change back to what the record now has sends nothing.
+      if (isSame(target, savedValueRef.current)) {
         next = waitingRef.current;
         waitingRef.current = null;
+        continue;
       }
 
-      isSavingRef.current = false;
-    };
+      setSaveState(SaveState.Saving);
 
-    const change: (next: T) => void = (next: T): void => {
-      latestValueRef.current = next;
-      setValue(next);
-      setError("");
+      try {
+        await optionsRef.current.save(target);
 
-      if (isSavingRef.current) {
-        waitingRef.current = { value: next };
-        return;
-      }
-
-      if (isSame(next, savedValueRef.current)) {
-        return;
-      }
-
-      void saveUntilSettled(next);
-    };
-
-    const refuse: (reason: string) => void = (reason: string): void => {
-      // What was last asked for stays: the change being saved, or the record's.
-      setValue(latestValueRef.current);
-      setError(reason);
-      setRevision((current: number): number => {
-        return current + 1;
-      });
-
-      if (!isSavingRef.current) {
+        savedValueRef.current = target;
+        setSavedValue(target);
+        setSaveState(SaveState.Saved);
+        optionsRef.current.onSaved?.(target);
+      } catch (err) {
+        // Back to what the record has, with the reason; a waiting change goes too.
+        waitingRef.current = null;
+        latestValueRef.current = savedValueRef.current;
+        setValue(savedValueRef.current);
         setSaveState(SaveState.Idle);
+        setError(API.getFriendlyMessage(err));
+        setRevision((current: number): number => {
+          return current + 1;
+        });
+        break;
       }
-    };
 
-    return {
-      value,
-      savedValue,
-      saveState,
-      error,
-      revision,
-      change,
-      refuse,
-    };
+      next = waitingRef.current;
+      waitingRef.current = null;
+    }
+
+    isSavingRef.current = false;
   };
+
+  const change: (next: T) => void = (next: T): void => {
+    latestValueRef.current = next;
+    setValue(next);
+    setError("");
+
+    if (isSavingRef.current) {
+      waitingRef.current = { value: next };
+      return;
+    }
+
+    if (isSame(next, savedValueRef.current)) {
+      return;
+    }
+
+    void saveUntilSettled(next);
+  };
+
+  const refuse: (reason: string) => void = (reason: string): void => {
+    // What was last asked for stays: the change being saved, or the record's.
+    setValue(latestValueRef.current);
+    setError(reason);
+    setRevision((current: number): number => {
+      return current + 1;
+    });
+
+    if (!isSavingRef.current) {
+      setSaveState(SaveState.Idle);
+    }
+  };
+
+  return {
+    value,
+    savedValue,
+    saveState,
+    error,
+    revision,
+    change,
+    refuse,
+  };
+};
 
 export default useSaveOnChange;

@@ -65,10 +65,7 @@ const createFakeSave: () => FakeSave = (): FakeSave => {
   };
 };
 
-type Hook = RenderHookResult<
-  SaveOnChange<string>,
-  SaveOnChangeOptions<string>
->;
+type Hook = RenderHookResult<SaveOnChange<string>, SaveOnChangeOptions<string>>;
 
 const renderSetting: (
   options: Partial<SaveOnChangeOptions<string>> & {
@@ -132,9 +129,11 @@ describe("useSaveOnChange", () => {
     expect(hook.result.current.value).toBe("three");
     expect(hook.result.current.savedValue).toBe("two");
     expect(hook.result.current.saveState).toBe(SaveState.Saving);
-    expect(fake.requests.map((request: SaveRequest) => {
-      return request.value;
-    })).toEqual(["three"]);
+    expect(
+      fake.requests.map((request: SaveRequest) => {
+        return request.value;
+      }),
+    ).toEqual(["three"]);
 
     await fake.requests[0]!.succeed();
 
@@ -169,9 +168,11 @@ describe("useSaveOnChange", () => {
 
     await fake.requests[0]!.succeed();
 
-    expect(fake.requests.map((request: SaveRequest) => {
-      return request.value;
-    })).toEqual(["three", "five"]);
+    expect(
+      fake.requests.map((request: SaveRequest) => {
+        return request.value;
+      }),
+    ).toEqual(["three", "five"]);
     expect(hook.result.current.saveState).toBe(SaveState.Saving);
 
     await fake.requests[1]!.succeed();
@@ -204,9 +205,11 @@ describe("useSaveOnChange", () => {
 
     await fake.requests[0]!.succeed();
 
-    expect(fake.requests.map((request: SaveRequest) => {
-      return request.value;
-    })).toEqual(["three", "two"]);
+    expect(
+      fake.requests.map((request: SaveRequest) => {
+        return request.value;
+      }),
+    ).toEqual(["three", "two"]);
 
     await fake.requests[1]!.succeed();
 
@@ -289,7 +292,10 @@ describe("useSaveOnChange", () => {
     const hook: RenderHookResult<
       SaveOnChange<Array<string>>,
       SaveOnChangeOptions<Array<string>>
-    > = renderHook(
+    > = renderHook<
+      SaveOnChange<Array<string>>,
+      SaveOnChangeOptions<Array<string>>
+    >(
       (props: SaveOnChangeOptions<Array<string>>) => {
         return useSaveOnChange<Array<string>>(props);
       },

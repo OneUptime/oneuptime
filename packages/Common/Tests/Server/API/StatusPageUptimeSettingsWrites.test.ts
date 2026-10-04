@@ -224,7 +224,10 @@ beforeEach(() => {
   });
 
   getJestSpyOn(ProjectService, "getCurrentPlan").mockImplementation(
-    async (): Promise<{ plan: PlanType | null; isSubscriptionUnpaid: boolean }> => {
+    async (): Promise<{
+      plan: PlanType | null;
+      isSubscriptionUnpaid: boolean;
+    }> => {
       return { plan: currentPlan, isSubscriptionUnpaid: false };
     },
   );

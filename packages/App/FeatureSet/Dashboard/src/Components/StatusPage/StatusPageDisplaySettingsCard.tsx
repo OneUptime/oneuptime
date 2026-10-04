@@ -268,26 +268,27 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderStatuses: (definition: DisplayStatusesDefinition) => ReactElement =
-    (definition: DisplayStatusesDefinition): ReactElement => {
-      return (
-        <StatusPageDowntimeStatusesSetting
-          statusPageId={props.statusPageId}
-          definition={definition}
-          initialStatuses={statuses[definition.column] || NO_STATUSES}
-          onSaved={(saved: Array<MonitorStatus>): void => {
-            setStatuses(
-              (
-                current: Partial<Record<string, Array<MonitorStatus>>>,
-              ): Partial<Record<string, Array<MonitorStatus>>> => {
-                return { ...current, [definition.column]: saved };
-              },
-            );
-          }}
-          dataTestId={getDisplayStatusesTestId(definition.column)}
-        />
-      );
-    };
+  const renderStatuses: (
+    definition: DisplayStatusesDefinition,
+  ) => ReactElement = (definition: DisplayStatusesDefinition): ReactElement => {
+    return (
+      <StatusPageDowntimeStatusesSetting
+        statusPageId={props.statusPageId}
+        definition={definition}
+        initialStatuses={statuses[definition.column] || NO_STATUSES}
+        onSaved={(saved: Array<MonitorStatus>): void => {
+          setStatuses(
+            (
+              current: Partial<Record<string, Array<MonitorStatus>>>,
+            ): Partial<Record<string, Array<MonitorStatus>>> => {
+              return { ...current, [definition.column]: saved };
+            },
+          );
+        }}
+        dataTestId={getDisplayStatusesTestId(definition.column)}
+      />
+    );
+  };
 
   const renderOption: (
     stored: StoredValues,

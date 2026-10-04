@@ -155,7 +155,10 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
   > => {
     const known: Map<string, MonitorStatus> = new Map();
 
-    for (const status of [...props.initialStatuses, ...(projectStatuses || [])]) {
+    for (const status of [
+      ...props.initialStatuses,
+      ...(projectStatuses || []),
+    ]) {
       const statusId: string = getStatusId(status);
 
       if (statusId) {
@@ -166,9 +169,7 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
     return known;
   }, [props.initialStatuses, projectStatuses]);
 
-  const setting: SaveOnChange<Array<string>> = useSaveOnChange<
-    Array<string>
-  >({
+  const setting: SaveOnChange<Array<string>> = useSaveOnChange<Array<string>>({
     initialValue: getStatusIds(props.initialStatuses),
     isSame: isSameStatusList,
     save: async (statusIds: Array<string>): Promise<void> => {
@@ -250,17 +251,16 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
    * The chips. A new array whenever the picker must follow (a refusal puts
    * the last chip back), since it keeps its own copy of what is picked.
    */
-  const selectedOptions: Array<DropdownOption> = useMemo((): Array<
-    DropdownOption
-  > => {
-    return setting.value.map((statusId: string): DropdownOption => {
-      return (
-        options.find((option: DropdownOption): boolean => {
-          return String(option.value) === statusId;
-        }) || { value: statusId, label: statusId }
-      );
-    });
-  }, [setting.value, options, setting.revision]);
+  const selectedOptions: Array<DropdownOption> =
+    useMemo((): Array<DropdownOption> => {
+      return setting.value.map((statusId: string): DropdownOption => {
+        return (
+          options.find((option: DropdownOption): boolean => {
+            return String(option.value) === statusId;
+          }) || { value: statusId, label: statusId }
+        );
+      });
+    }, [setting.value, options, setting.revision]);
 
   const description: string = getDisplayStatusesDescription(
     props.definition,

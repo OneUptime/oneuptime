@@ -356,9 +356,7 @@ function shownPrecision(): string {
 // The names on the downtime chips, in order.
 function downtimeChips(): Array<string> {
   return Array.from(
-    statusesRowFor(DOWNTIME).querySelectorAll(
-      ".ou-select__multi-value__label",
-    ),
+    statusesRowFor(DOWNTIME).querySelectorAll(".ou-select__multi-value__label"),
   ).map((chip: Element): string => {
     return (chip.textContent || "").trim();
   });
@@ -1507,9 +1505,11 @@ describe("the overall uptime percentage", () => {
       getDisplaySectionTestId("uptime-history"),
     );
 
-    expect(within(section).getByRole("switch", { name: "Show Overall Uptime Percent" })).toBe(
-      switchFor(OVERALL),
-    );
+    expect(
+      within(section).getByRole("switch", {
+        name: "Show Overall Uptime Percent",
+      }),
+    ).toBe(switchFor(OVERALL));
     expect(
       within(switchRowFor(OVERALL)).getByText(
         StatusPageDisplaySettingsCopy.overallUptimeDescription,
@@ -1723,9 +1723,7 @@ describe("the overall uptime percentage", () => {
     stored = { ...NEW_PAGE, showOverallUptimePercentOnStatusPage: true };
 
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "You do not have permission to update this Status Page.",
-      );
+      throw new Error("You do not have permission to update this Status Page.");
     });
 
     await renderCard();
@@ -1823,9 +1821,9 @@ describe("the overall uptime percentage", () => {
     await renderCard();
     await loaded();
 
-    expect(
-      within(switchRowFor(OVERALL)).getByTestId("pill"),
-    ).toHaveTextContent("Scale Plan");
+    expect(within(switchRowFor(OVERALL)).getByTestId("pill")).toHaveTextContent(
+      "Scale Plan",
+    );
     expect(
       within(choiceRowFor(PRECISION)).queryByTestId("pill"),
     ).not.toBeInTheDocument();
@@ -1849,9 +1847,9 @@ describe("what counts as downtime", () => {
       getDisplaySectionTestId("uptime-history"),
     );
 
-    expect(within(section).getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-row`)).toBe(
-      statusesRowFor(DOWNTIME),
-    );
+    expect(
+      within(section).getByTestId(`${getDisplayStatusesTestId(DOWNTIME)}-row`),
+    ).toBe(statusesRowFor(DOWNTIME));
     expect(
       screen.getByRole("combobox", {
         name: StatusPageDisplaySettingsCopy.downtimeLabel,
@@ -2261,9 +2259,9 @@ describe("plans", () => {
      * The overall uptime percentage needs Scale to be switched; its
      * precision and the downtime statuses, every plan.
      */
-    expect(
-      within(switchRowFor(OVERALL)).getByTestId("pill"),
-    ).toHaveTextContent("Scale Plan");
+    expect(within(switchRowFor(OVERALL)).getByTestId("pill")).toHaveTextContent(
+      "Scale Plan",
+    );
     expect(
       within(choiceRowFor(PRECISION)).queryByTestId("pill"),
     ).not.toBeInTheDocument();

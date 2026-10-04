@@ -591,9 +591,9 @@ describe("the overall uptime percentage", () => {
   });
 
   test("a precision the list leaves out is shown as it is stored, and only while the page has it", () => {
-    expect(getDisplayChoiceOptions(precision, UptimePrecision.ONE_DECIMAL)).toEqual(
-      [...UPTIME_PRECISION_OPTIONS],
-    );
+    expect(
+      getDisplayChoiceOptions(precision, UptimePrecision.ONE_DECIMAL),
+    ).toEqual([...UPTIME_PRECISION_OPTIONS]);
     expect(getDisplayChoiceOptions(precision, undefined)).toEqual([
       ...UPTIME_PRECISION_OPTIONS,
     ]);
@@ -653,7 +653,9 @@ describe("what counts as downtime", () => {
     );
     expect(getDisplayStatusesProblem(statuses, ["a"])).toBeNull();
     expect(getDisplayStatusesProblem(statuses, ["a", "b"])).toBeNull();
-    expect(statuses.keepOne).toBe(StatusPageDisplaySettingsCopy.downtimeKeepOne);
+    expect(statuses.keepOne).toBe(
+      StatusPageDisplaySettingsCopy.downtimeKeepOne,
+    );
   });
 
   test("sends the statuses alone, by id", () => {
@@ -677,19 +679,11 @@ describe("what counts as downtime", () => {
   test.each([
     [[], [], true],
     [["a"], ["a"], true],
-    [
-      ["a", "b"],
-      ["b", "a"],
-      true,
-    ],
+    [["a", "b"], ["b", "a"], true],
     [["a"], ["b"], false],
     [["a"], ["a", "b"], false],
     [["a", "b"], ["a"], false],
-    [
-      ["a", "a"],
-      ["a", "b"],
-      false,
-    ],
+    [["a", "a"], ["a", "b"], false],
   ])(
     "%j and %j are the same list: %s",
     (first: Array<string>, second: Array<string>, isSame: boolean) => {
@@ -847,12 +841,14 @@ describe("one place for each setting", () => {
       );
 
       expect([file, source.includes("useSaveOnChange")]).toEqual([file, true]);
-      expect([file, source.includes("PermissionGate.checkColumnUpdate(")]).toEqual(
-        [file, true],
-      );
-      expect([file, source.includes("ModelAPI.updateById<StatusPage>(")]).toEqual(
-        [file, true],
-      );
+      expect([
+        file,
+        source.includes("PermissionGate.checkColumnUpdate("),
+      ]).toEqual([file, true]);
+      expect([
+        file,
+        source.includes("ModelAPI.updateById<StatusPage>("),
+      ]).toEqual([file, true]);
       expect([file, source.includes("CardModelDetail")]).toEqual([file, false]);
       expect([file, source.includes("ModelForm")]).toEqual([file, false]);
     }
