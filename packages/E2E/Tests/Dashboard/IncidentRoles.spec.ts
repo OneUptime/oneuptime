@@ -221,10 +221,13 @@ test.describe("Incident roles", () => {
       await multipleUsers.click();
       await expect(multipleUsers).toHaveAttribute("aria-checked", "true");
 
-      // Then how it looks: a colour is required.
+      /*
+       * Then how it looks, on the last step: the first shows a plain Next,
+       * and Create Incident Role is on the last step only.
+       */
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-      await expect(submit).toHaveText("Next");
-      await submit.click();
+      await expect(submit).toHaveCount(0);
+      await modal.getByTestId("modal-footer-next-button").click();
       await modal
         .getByPlaceholder("Please select color for this role.", {
           exact: true,

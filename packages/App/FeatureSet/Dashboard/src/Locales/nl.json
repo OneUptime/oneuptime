@@ -24686,6 +24686,7 @@
   "Precision": "Precisie",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "De gemiddelde uptime van de resources van de pagina, getoond naast de algemene status zolang alles operationeel is.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "De tijd die een monitor in een van deze statussen doorbrengt, gaat op deze pagina af van zijn uptime.",
+  "New Scheduled Maintenance Event": "Nieuwe geplande onderhoudsgebeurtenis",
   "Bar Color Rules": "Regels voor balkkleuren",
   "More fields": "Meer velden",
   "More settings": "Meer instellingen",

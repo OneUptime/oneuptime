@@ -19,23 +19,23 @@ import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Long forms are split into steps - edit forms included. A stepped edit form
- * used to be a trap: its dialog's only primary button read "Next" until the
- * last step, so someone who changed a field on the first step saw no Save,
- * closed the dialog and lost the change. The Probe Details form had its steps
- * taken away for exactly that (dbb2f8920b).
+ * "In multi-step form. Please dont have the primary save button on any step
+ * except the last. ... Next button should never be primary color as well.
+ * Can you please do this for all multistep forms in the project?" - the
+ * maintainer, 2026-10-04.
  *
- * So a stepped EDIT dialog (ModelFormModal with formType Update - every
- * CardModelDetail edit, and every ModelTable Edit) keeps Save Changes as its
- * one primary button on every step. Save validates every step first and, if
- * a field on another step fails, opens that step with the error showing. A
- * plain Next walks on, and the step list opens any step, not only the ones
- * already passed - every step of an edit form is filled in already.
+ * So a stepped dialog, create or edit (ModelFormModal - every CardModelDetail
+ * edit, every ModelTable Create and Edit), walks with a plain Next and offers
+ * its action - Create Probe, Save Changes - on the last step only, as its one
+ * primary button (Forms/Utils/SteppedFormFooter.ts). The action checks every
+ * step first and, if a field on another step fails, opens that step with the
+ * error showing.
  *
- * A stepped CREATE dialog walks with Next while a later step still asks for
- * something, and offers its action - with the same plain Next beside it - as
- * soon as every step left is optional (Forms/Utils/FinishFromAnyStep.ts). Its
- * step list still opens only the steps already passed.
+ * An edit form's step list opens any step, not only the ones already passed:
+ * every step of an edit form is filled in already, so a change on the first
+ * step is saved by opening the last step from the list and pressing Save
+ * Changes there. (Before 2026-10-04 an edit dialog saved from any step, and a
+ * create dialog offered its action as soon as the steps left were optional.)
  *
  * These drive the real CardModelDetail, ModelFormModal, ModelForm and
  * BasicForm; only transport and permissions are stubbed.
@@ -233,6 +233,25 @@ async function openEditDialog(): Promise<UserEvent> {
   return user;
 }
 
+const PRIMARY_CLASS: string = "bg-indigo-600";
+const PLAIN_CLASS: string = "bg-white";
+
+function nextButtonIn(container: HTMLElement): HTMLElement | null {
+  return within(container).queryByTestId("modal-footer-next-button");
+}
+
+function submitButtonIn(container: HTMLElement): HTMLElement | null {
+  return within(container).queryByTestId("modal-footer-submit-button");
+}
+
+function primaryFooterButtonsIn(container: HTMLElement): Array<HTMLElement> {
+  return within(within(container).getByTestId("modal-footer"))
+    .queryAllByRole("button")
+    .filter((button: HTMLElement) => {
+      return button.className.split(/\s+/).includes(PRIMARY_CLASS);
+    });
+}
+
 describe("A stepped edit form", () => {
   beforeEach(() => {
     cleanup();
@@ -242,27 +261,62 @@ describe("A stepped edit form", () => {
     getItemMock.mockResolvedValue(loadedProbe());
   });
 
-  test("offers Save Changes on its first step, as its one primary button, with a plain Next beside it", async () => {
+  test("offers a plain Next on its first step, and no Save Changes: nothing primary", async () => {
     await openEditDialog();
 
     expect(activeStep()).toBe("About");
-    expect(saveButton()).toHaveTextContent("Save Changes");
-    expect(
-      within(dialog()).getByTestId("modal-footer-next-button"),
-    ).toHaveTextContent("Next");
+    expect(submitButtonIn(dialog())).not.toBeInTheDocument();
+    expect(nextButtonIn(dialog())).toHaveTextContent("Next");
+    expect(nextButtonIn(dialog())!.className).toContain(PLAIN_CLASS);
+    expect(primaryFooterButtonsIn(dialog())).toEqual([]);
     // No Back button: that stays removed from stepped forms (b61a6b656d).
     expect(
       within(dialog()).queryByRole("button", { name: "Back" }),
     ).not.toBeInTheDocument();
   });
 
-  test("saves a change made on the first step without walking the other steps", async () => {
+  test("walks on with Next, and offers Save Changes on the last step only", async () => {
+    const user: UserEvent = await openEditDialog();
+
+    await user.click(nextButtonIn(dialog())!);
+    await waitFor(() => {
+      expect(activeStep()).toBe("Identity");
+    });
+    expect(within(dialog()).getByPlaceholderText("Probe name")).toHaveValue(
+      "WBHQ",
+    );
+    expect(submitButtonIn(dialog())).not.toBeInTheDocument();
+    expect(nextButtonIn(dialog())).toBeInTheDocument();
+
+    await user.click(nextButtonIn(dialog())!);
+    await waitFor(() => {
+      expect(activeStep()).toBe("Monitoring");
+    });
+
+    await waitFor(() => {
+      expect(nextButtonIn(dialog())).not.toBeInTheDocument();
+    });
+    expect(saveButton()).toHaveTextContent("Save Changes");
+    expect(saveButton().className).toContain(PRIMARY_CLASS);
+    expect(primaryFooterButtonsIn(dialog())).toEqual([saveButton()]);
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("a change on the first step is saved from the last step, one click away in the step list", async () => {
     const user: UserEvent = await openEditDialog();
 
     fireEvent.change(
       within(dialog()).getByPlaceholderText("What this probe is for"),
       { target: { value: "The probe in the new rack" } },
     );
+
+    await user.click(within(progress()).getByText("Monitoring"));
+    await waitFor(() => {
+      expect(activeStep()).toBe("Monitoring");
+    });
+    await waitFor(() => {
+      expect(submitButtonIn(dialog())).toBeInTheDocument();
+    });
     await user.click(saveButton());
 
     await waitFor(
@@ -279,32 +333,7 @@ describe("A stepped edit form", () => {
     expect(submitted()["_id"]).toBe(PROBE_ID.toString());
   });
 
-  test("walks on with Next, and drops Next on the last step", async () => {
-    const user: UserEvent = await openEditDialog();
-
-    await user.click(within(dialog()).getByTestId("modal-footer-next-button"));
-    await waitFor(() => {
-      expect(activeStep()).toBe("Identity");
-    });
-    expect(within(dialog()).getByPlaceholderText("Probe name")).toHaveValue(
-      "WBHQ",
-    );
-
-    await user.click(within(dialog()).getByTestId("modal-footer-next-button"));
-    await waitFor(() => {
-      expect(activeStep()).toBe("Monitoring");
-    });
-
-    await waitFor(() => {
-      expect(
-        within(dialog()).queryByTestId("modal-footer-next-button"),
-      ).not.toBeInTheDocument();
-    });
-    expect(saveButton()).toHaveTextContent("Save Changes");
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-  });
-
-  test("opens a step not reached yet from the step list", async () => {
+  test("opens a step not reached yet from the step list, and back again", async () => {
     const user: UserEvent = await openEditDialog();
 
     await user.click(within(progress()).getByText("Monitoring"));
@@ -314,14 +343,16 @@ describe("A stepped edit form", () => {
     });
     expect(within(dialog()).getByTestId("auto-enable-toggle")).toBeVisible();
 
-    // And back again.
     await user.click(within(progress()).getByText("About"));
     await waitFor(() => {
       expect(activeStep()).toBe("About");
     });
+    // Back on the first step: Next again, not Save.
+    expect(submitButtonIn(dialog())).not.toBeInTheDocument();
+    expect(nextButtonIn(dialog())).toBeInTheDocument();
   });
 
-  test("saves a change made on a step opened from the step list", async () => {
+  test("saves a change made on the last step", async () => {
     const user: UserEvent = await openEditDialog();
 
     await user.click(within(progress()).getByText("Monitoring"));
@@ -353,13 +384,16 @@ describe("A stepped edit form", () => {
     expect(submitted()["name"]).toBe("WBHQ");
   });
 
-  test("does not save while a field on another step fails, and opens that step with the error", async () => {
+  test("Save checks the steps that were skipped, and opens one that fails, with its error", async () => {
     // A record whose required name is missing - it is on the second step.
     getItemMock.mockResolvedValue(loadedProbe({ name: "" }));
 
     const user: UserEvent = await openEditDialog();
 
-    expect(activeStep()).toBe("About");
+    await user.click(within(progress()).getByText("Monitoring"));
+    await waitFor(() => {
+      expect(submitButtonIn(dialog())).toBeInTheDocument();
+    });
     await user.click(saveButton());
 
     await waitFor(() => {
@@ -369,10 +403,16 @@ describe("A stepped edit form", () => {
       await within(dialog()).findByText("Name is required."),
     ).toBeVisible();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
+    // The step it opened is not the last: Next, not Save.
+    expect(submitButtonIn(dialog())).not.toBeInTheDocument();
 
-    // Fixed where it was shown, it saves.
+    // Fixed where it was shown, Next walks on and Save saves.
     fireEvent.change(within(dialog()).getByPlaceholderText("Probe name"), {
       target: { value: "Server room" },
+    });
+    await user.click(nextButtonIn(dialog())!);
+    await waitFor(() => {
+      expect(activeStep()).toBe("Monitoring");
     });
     await user.click(saveButton());
 
@@ -385,7 +425,55 @@ describe("A stepped edit form", () => {
     expect(submitted()["name"]).toBe("Server room");
   });
 
-  test("stays on the step on screen when the failing field is on it", async () => {
+  /*
+   * Until the form has read the record it has no step on screen - and no
+   * last step - so the dialog's footer must not offer Save Changes then
+   * either: it opens on Next.
+   */
+  test("offers no Save Changes while the record is still loading", async () => {
+    getItemMock.mockReset();
+    // The card's own read answers; the dialog's is still on its way.
+    getItemMock.mockResolvedValueOnce(loadedProbe());
+    getItemMock.mockReturnValue(
+      new Promise<Probe>((): void => {
+        // Never settles.
+      }),
+    );
+
+    const user: UserEvent = userEvent.setup({ delay: null });
+
+    await act(async (): Promise<void> => {
+      render(
+        <CardModelDetail<Probe>
+          name="Probe Details"
+          cardProps={{
+            title: "Probe Details",
+            description: "Here are more details for this probe.",
+          }}
+          isEditable={true}
+          formSteps={STEPS}
+          formFields={FIELDS}
+          modelDetailProps={{
+            modelType: Probe,
+            id: "probe-detail",
+            modelId: PROBE_ID,
+            fields: [{ field: { name: true }, title: "Name" }],
+          }}
+        />,
+      );
+    });
+
+    await user.click(
+      await screen.findByText("Edit Probe", {}, { timeout: WAIT_TIMEOUT }),
+    );
+    await act(async (): Promise<void> => {});
+
+    expect(dialog()).toBeInTheDocument();
+    expect(submitButtonIn(dialog())).not.toBeInTheDocument();
+    expect(primaryFooterButtonsIn(dialog())).toEqual([]);
+  });
+
+  test("Next stays on the step on screen when a field on it fails", async () => {
     const user: UserEvent = await openEditDialog();
 
     await user.click(within(progress()).getByText("Identity"));
@@ -396,7 +484,7 @@ describe("A stepped edit form", () => {
     fireEvent.change(within(dialog()).getByPlaceholderText("Probe name"), {
       target: { value: "" },
     });
-    await user.click(saveButton());
+    await user.click(nextButtonIn(dialog())!);
 
     expect(
       await within(dialog()).findByText("Name is required."),
@@ -443,63 +531,79 @@ describe("A stepped create form", () => {
     return screen.getByRole("dialog", { name: "Create New Probe" });
   }
 
-  test("walks with Next, and no second button, while a later step asks for something", async () => {
-    await openCreateDialog();
-
-    // The required name is on the next step.
-    await waitFor(() => {
-      expect(
-        within(createDialog()).getByTestId("modal-footer-submit-button"),
-      ).toHaveTextContent("Next");
+  function createProgress(): HTMLElement {
+    return within(createDialog()).getByRole("navigation", {
+      name: "Progress",
     });
-    expect(
-      within(createDialog()).queryByTestId("modal-footer-next-button"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(createDialog()).queryByRole("button", { name: "Create Probe" }),
-    ).not.toBeInTheDocument();
-  });
+  }
 
-  test("offers the action, with a plain Next beside it, once every step left is optional", async () => {
+  function createActiveStep(): string {
+    return (
+      createProgress().querySelector('[aria-current="step"]')?.textContent || ""
+    );
+  }
+
+  test("walks with a plain Next, and offers no action, on every step but the last", async () => {
     const user: UserEvent = await openCreateDialog();
 
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
-    );
-    await within(createDialog()).findByPlaceholderText("Probe name");
-
-    // Only the Monitoring step is left, and its switch has a default.
     await waitFor(() => {
-      expect(
-        within(createDialog()).getByTestId("modal-footer-submit-button"),
-      ).toHaveTextContent("Create Probe");
+      expect(nextButtonIn(createDialog())).toBeInTheDocument();
     });
-    expect(
-      within(createDialog()).getByTestId("modal-footer-next-button"),
-    ).toHaveTextContent("Next");
-    expect(
-      within(createDialog()).queryByRole("button", { name: "Back" }),
-    ).not.toBeInTheDocument();
-  });
+    expect(submitButtonIn(createDialog())).not.toBeInTheDocument();
+    expect(primaryFooterButtonsIn(createDialog())).toEqual([]);
 
-  test("creates from that step, without opening the optional one, sending its switch as it starts", async () => {
-    const user: UserEvent = await openCreateDialog();
-
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
-    );
+    await user.click(nextButtonIn(createDialog())!);
     fireEvent.change(
       await within(createDialog()).findByPlaceholderText("Probe name"),
       { target: { value: "Server room" } },
     );
+
+    /*
+     * Only the Monitoring step is left, and its switch has a default - the
+     * action still waits for the last step.
+     */
+    expect(submitButtonIn(createDialog())).not.toBeInTheDocument();
+    expect(
+      within(createDialog()).queryByRole("button", { name: "Create Probe" }),
+    ).not.toBeInTheDocument();
+    expect(nextButtonIn(createDialog())).toHaveTextContent("Next");
+    expect(primaryFooterButtonsIn(createDialog())).toEqual([]);
+
+    await user.click(nextButtonIn(createDialog())!);
+    await within(createDialog()).findByTestId("auto-enable-toggle");
+
     await waitFor(() => {
-      expect(
-        within(createDialog()).getByTestId("modal-footer-submit-button"),
-      ).toHaveTextContent("Create Probe");
+      expect(nextButtonIn(createDialog())).not.toBeInTheDocument();
     });
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
+    expect(submitButtonIn(createDialog())).toHaveTextContent("Create Probe");
+    expect(primaryFooterButtonsIn(createDialog())).toEqual([
+      submitButtonIn(createDialog()),
+    ]);
+    expect(
+      within(createDialog()).queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("creates from the last step with what every step holds", async () => {
+    const user: UserEvent = await openCreateDialog();
+
+    fireEvent.change(
+      within(createDialog()).getByPlaceholderText("What this probe is for"),
+      { target: { value: "The probe in the server room" } },
     );
+    await user.click(nextButtonIn(createDialog())!);
+    fireEvent.change(
+      await within(createDialog()).findByPlaceholderText("Probe name"),
+      { target: { value: "Server room" } },
+    );
+    await user.click(nextButtonIn(createDialog())!);
+    await within(createDialog()).findByTestId("auto-enable-toggle");
+    await waitFor(() => {
+      expect(submitButtonIn(createDialog())).toBeInTheDocument();
+    });
+
+    await user.click(submitButtonIn(createDialog())!);
 
     await waitFor(
       () => {
@@ -509,47 +613,33 @@ describe("A stepped create form", () => {
     );
 
     expect(submitted()["name"]).toBe("Server room");
-    // The switch the Monitoring step would have shown, at the model's default.
+    expect(submitted()["description"]).toBe("The probe in the server room");
+    // The Monitoring step's switch, at the model's default.
     expect(submitted()["shouldAutoEnableProbeOnNewMonitors"]).toBe(
       new Probe().getTableColumnMetadata("shouldAutoEnableProbeOnNewMonitors")
         .defaultValue ?? false,
     );
-    expect(
-      within(createDialog()).queryByTestId("auto-enable-toggle"),
-    ).not.toBeInTheDocument();
   });
 
-  test("asks for the empty name on the step on screen when the action is pressed", async () => {
+  test("Next asks for the empty name on its step, and does not walk on", async () => {
     const user: UserEvent = await openCreateDialog();
 
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
-    );
+    await user.click(nextButtonIn(createDialog())!);
     await within(createDialog()).findByPlaceholderText("Probe name");
-    await waitFor(() => {
-      expect(
-        within(createDialog()).getByTestId("modal-footer-submit-button"),
-      ).toHaveTextContent("Create Probe");
-    });
 
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
-    );
+    await user.click(nextButtonIn(createDialog())!);
 
     expect(
       await within(createDialog()).findByText("Name is required."),
     ).toBeVisible();
+    expect(createActiveStep()).toBe("Identity");
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
   test("still cannot skip to a step not reached yet", async () => {
     const user: UserEvent = await openCreateDialog();
 
-    await user.click(
-      within(
-        within(createDialog()).getByRole("navigation", { name: "Progress" }),
-      ).getByText("Monitoring"),
-    );
+    await user.click(within(createProgress()).getByText("Monitoring"));
 
     expect(
       within(createDialog()).getByPlaceholderText("What this probe is for"),
@@ -557,38 +647,6 @@ describe("A stepped create form", () => {
     expect(
       within(createDialog()).queryByTestId("auto-enable-toggle"),
     ).not.toBeInTheDocument();
-  });
-
-  test("walks on with Next to the last step, which shows the action alone", async () => {
-    const user: UserEvent = await openCreateDialog();
-
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
-    );
-    fireEvent.change(
-      await within(createDialog()).findByPlaceholderText("Probe name"),
-      { target: { value: "Server room" } },
-    );
-    await waitFor(() => {
-      expect(
-        within(createDialog()).getByTestId("modal-footer-next-button"),
-      ).toBeInTheDocument();
-    });
-    await user.click(
-      within(createDialog()).getByTestId("modal-footer-next-button"),
-    );
-    await within(createDialog()).findByTestId("auto-enable-toggle");
-    await waitFor(() => {
-      expect(
-        within(createDialog()).queryByTestId("modal-footer-next-button"),
-      ).not.toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(
-        within(createDialog()).getByTestId("modal-footer-submit-button"),
-      ).toHaveTextContent("Create Probe");
-    });
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
+    expect(submitButtonIn(createDialog())).not.toBeInTheDocument();
   });
 });

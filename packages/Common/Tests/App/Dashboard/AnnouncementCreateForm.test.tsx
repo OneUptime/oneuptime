@@ -47,8 +47,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - the start, the end and the notify switch are folded to the one line
  *     that says what happens, the line follows them, and the review step
  *     shows it;
- *   - opened from a status page, that page is picked, Create is the main
- *     button from the first step, and it goes back to the page's tab;
+ *   - opened from a status page, that page is picked, so the title and
+ *     the description are all it asks for - Next walks the rest, and
+ *     Create is on the review, the last step - and it goes back to the
+ *     page's tab;
  *   - a template's pages are kept beside that page, and its notify choice
  *     shows in the line.
  */
@@ -339,6 +341,23 @@ function queryCreateButton(): HTMLElement | null {
 
 function nextButton(): HTMLElement {
   return screen.getByRole("button", { name: inPageLanguage("Next") });
+}
+
+/*
+ * Create Announcement is on the last step - the review - only: walks there
+ * with Next, then presses it.
+ */
+async function createFromTheReview(): Promise<void> {
+  for (let step: number = 0; step < 5 && !queryCreateButton(); step++) {
+    fireEvent.click(nextButton());
+    await act(async () => {});
+  }
+
+  await waitFor(() => {
+    expect(currentStepTitle()).toBe(inPageLanguage("Summary"));
+  });
+
+  fireEvent.click(createButton());
 }
 
 async function typeTitle(title: string): Promise<void> {
@@ -726,7 +745,7 @@ describe("Create Announcement, from the project's Announcements list", () => {
       await screen.findByRole("option", { name: /Acme Public Status/ }),
     );
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -798,8 +817,15 @@ describe("Create Announcement, from the project's Announcements list", () => {
       breadcrumbs().map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
-    expect(breadcrumbs()[1]!.href).toMatch(/\/status-pages\/announcements$/);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "Announcements",
+      "Create Announcement",
+    ]);
+    // From the project, as every page's trail starts.
+    expect(breadcrumbs()[0]!.href).toMatch(/\/home\/?$/);
+    expect(breadcrumbs()[2]!.href).toMatch(/\/status-pages\/announcements$/);
   });
 });
 
@@ -820,12 +846,15 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       ).id.toString(),
     ).toBe(STATUS_PAGE_ID);
 
-    // Every step after this one holds valid answers: Create is the main button.
-    expect(createButton()).toBeInTheDocument();
+    /*
+     * Every step after this one holds valid answers, and still Create waits
+     * for the review, the last step: Next here.
+     */
+    expect(queryCreateButton()).toBeNull();
     expect(nextButton()).toBeInTheDocument();
 
     await writeAnnouncement();
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -842,7 +871,7 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
   test("goes back to that page's Announcements tab", async () => {
     await renderPage();
     await writeAnnouncement();
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(Navigation.navigate).toHaveBeenCalled();
@@ -874,15 +903,17 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
         return link.title;
       }),
     ).toEqual([
+      "Project",
       "Status Pages",
       "View Status Page",
       "Announcements",
       "Create Announcement",
     ]);
-    expect(links[1]!.href).toMatch(
+    expect(links[1]!.href).toMatch(/\/status-pages$/);
+    expect(links[2]!.href).toMatch(
       new RegExp(`/status-pages/${STATUS_PAGE_ID}$`),
     );
-    expect(links[2]!.href).toMatch(
+    expect(links[3]!.href).toMatch(
       new RegExp(`/status-pages/${STATUS_PAGE_ID}/announcements$`),
     );
   });
@@ -897,11 +928,11 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
     fireEvent.click(schedule);
     fireEvent.change(endsAtInput(), { target: { value: "2026-10-03T08:00" } });
     await act(async () => {});
-    // Folded again before pressing Create.
+    // Folded again before pressing Next.
     fireEvent.click(schedule);
     expect(schedule).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.click(createButton());
+    fireEvent.click(nextButton());
 
     expect(
       await screen.findByText(ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR),
@@ -938,7 +969,7 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       "false",
     );
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -975,7 +1006,12 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       breadcrumbs().map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "Announcements",
+      "Create Announcement",
+    ]);
 
     await writeAnnouncement();
     await goToNextStep("Status Pages");
@@ -1002,7 +1038,12 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       breadcrumbs().map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "Announcements",
+      "Create Announcement",
+    ]);
   });
 
   test("a template that cannot be read says so above the form, which still opens with the page picked", async () => {
@@ -1017,10 +1058,12 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
     expect(screen.getByText("This template was deleted.")).toBeInTheDocument();
     // Nothing of the template, but the page it was opened from is picked.
     expect(labelledInput("Title").value).toBe("");
-    expect(createButton()).toBeInTheDocument();
+    // The form opens on its first step all the same: Next, not Create.
+    expect(queryCreateButton()).toBeNull();
+    expect(nextButton()).toBeInTheDocument();
 
     await writeAnnouncement();
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -1043,7 +1086,7 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
     await act(async () => {});
     fireEvent.click(schedule);
 
-    fireEvent.click(createButton());
+    fireEvent.click(nextButton());
 
     expect(
       await screen.findByText(ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR),
@@ -1074,7 +1117,7 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       screen.getByRole("button", { name: /Remove Acme Public Status/ }),
     );
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -1104,7 +1147,7 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
         title: "Create Announcement",
         href: null,
       });
-      expect(links[2]!.href).toBe(
+      expect(links[3]!.href).toBe(
         `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/announcements`,
       );
     } finally {

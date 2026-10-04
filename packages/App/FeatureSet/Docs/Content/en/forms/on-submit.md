@@ -80,7 +80,7 @@ A submission is somebody's request, and a request is reviewed before it is publi
 
 ## The On Submit settings
 
-**Edit Settings** opens the settings in steps. Every step is filled in already, so **Save Changes** saves from any of them, and **Next** walks on.
+**Edit Settings** opens the settings in steps: **Next** walks on, and **Save Changes** is on the last step. Every step is filled in already, so the step list beside the form opens any of them, the last one included: change a setting on its step, then open the last step and save.
 
 | Step              | Incident form                                                     | Maintenance form                                   |
 | ----------------- | ----------------------------------------------------------------- | -------------------------------------------------- |

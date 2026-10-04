@@ -265,11 +265,10 @@ const selectFirstOption: SelectFirstOptionFunction = async (data: {
  *
  * The form is a stepped ModelFormModal with THREE steps and no monitoring
  * question among them: Device Details -> Probe & Site -> SNMP (Optional).
- * The SNMP step is shown for every device and required by none, so the
- * footer's main button - which keeps the "modal-footer-submit-button" test
- * id on every step - reads "Next" on Device Details (the probe is still to
- * be picked) and "Save" from Probe & Site on, with a plain Next beside it
- * (modal-footer-next-button) that walks on to the SNMP step.
+ * The SNMP step is shown for every device and required by none, and it is
+ * the last step: Device Details and Probe & Site walk on with a plain Next
+ * (modal-footer-next-button), and Save (modal-footer-submit-button) is on
+ * the SNMP step only.
  */
 type CreateDeviceFunction = (data: {
   page: Page;
@@ -314,8 +313,8 @@ const createDevice: CreateDeviceFunction = async (data: {
     .getByPlaceholder("10.0.0.1 or switch-01.example.com")
     .fill(UNROUTABLE_HOSTNAME);
 
-  await expect(footerButton).toHaveText("Next", { timeout: 30000 });
-  await footerButton.click();
+  await expect(footerButton).toHaveCount(0);
+  await page.getByTestId("modal-footer-next-button").click();
 
   /*
    * Step 2 - Probe & Site. The probe is REQUIRED here now: it is the thing
@@ -364,8 +363,8 @@ const createDevice: CreateDeviceFunction = async (data: {
     await expect(createPingMonitorCheckbox).toBeChecked();
   }
 
-  // Only the optional SNMP step is left: the device could be saved here.
-  await expect(footerButton).toHaveText("Save", { timeout: 30000 });
+  // Only the optional SNMP step is left, and Save is on it, not here.
+  await expect(footerButton).toHaveCount(0);
   await page.getByTestId("modal-footer-next-button").click();
 
   /*

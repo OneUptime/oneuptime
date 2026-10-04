@@ -2795,7 +2795,7 @@ describe("the Change modal: advanced Runner bindings", () => {
    * on the first step saves without walking to the second, which already
    * holds the saved Runner and credential.
    */
-  test("an admin with a Runner question saves a first-step change without walking to the second step", async () => {
+  test("an admin with a Runner question saves a first-step change from the second step, one click away in the step list", async () => {
     grant(ADMIN_PERMISSIONS);
     serve(advancedStatus());
     serveCluster(hostRunnerBinding());
@@ -2818,11 +2818,27 @@ describe("the Change modal: advanced Runner bindings", () => {
         { timeout: WAIT_TIMEOUT },
       ),
     ).toHaveTextContent("Next");
+    // Save is on the last step only.
     expect(
-      within(dialog).getByTestId("modal-footer-submit-button"),
-    ).toHaveTextContent("Save");
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
 
     await toggleSwitch(dialog, "ai-investigation-field", true);
+
+    // Every question holds the saved answer: the list opens the last step.
+    fireEvent.click(within(progress).getByText("Runner & Credential"));
+
+    expect(
+      await within(dialog).findByTestId(
+        "modal-footer-submit-button",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveTextContent("Save");
+    expect(
+      within(dialog).queryByTestId("modal-footer-next-button"),
+    ).not.toBeInTheDocument();
+
     saveChangeModal(dialog);
 
     expect(await waitForOneUpdate()).toEqual({

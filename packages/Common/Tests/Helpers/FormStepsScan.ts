@@ -65,11 +65,11 @@ import { LocaleLookup, loadLocaleFor } from "../DialogActionRules";
  *     on a ModelTable, so is a step whose every field the Edit form leaves
  *     out.
  *
- * And, for the "finish from any step" guard (FinishFromAnyStepGuard.test.ts),
- * what a custom element draws: the components its getCustomElement renders
- * (following a render helper in the same file), where each is declared, and
- * whether it fills in a value of its own when it is drawn - an effect in it
- * that calls onChange (see CustomElementComponentFacts).
+ * And what a custom element draws: the components its getCustomElement
+ * renders (following a render helper in the same file), where each is
+ * declared, and whether it fills in a value of its own when it is drawn - an
+ * effect in it that calls onChange (see CustomElementComponentFacts). The
+ * Admin Dashboard's team picker is found that way (ProjectTeamFormsGuard).
  */
 
 export const LONG_FORM_FIELD_LIMIT: number = 3;
@@ -224,8 +224,6 @@ export interface FormFieldFacts {
    * helper returns another's field. Undefined for a field written out.
    */
   helper?: string | undefined;
-  // customElementCanBeSkipped written true (Forms/Utils/FinishFromAnyStep).
-  customElementCanBeSkipped: boolean;
   // What its getCustomElement draws; empty when it has none.
   customElementComponents: Array<CustomElementComponentFacts>;
   file: string;
@@ -1989,7 +1987,6 @@ export class FormStepsScanner {
               .getText(collapsibleSection.getSourceFile())
               .replace(/\s+/g, "")
           : undefined,
-      customElementCanBeSkipped: isTrue("customElementCanBeSkipped"),
       customElementComponents: getCustomElement
         ? this.readDrawnComponents(getCustomElement)
         : [],

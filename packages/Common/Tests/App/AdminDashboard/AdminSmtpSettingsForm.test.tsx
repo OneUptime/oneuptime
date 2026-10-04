@@ -350,7 +350,31 @@ async function waitForField(
   return within(dialog).getByPlaceholderText(placeholder) as HTMLInputElement;
 }
 
+/*
+ * Save Changes is on the last step only. Every step of the edit dialog is
+ * filled in already, so its step list opens the last one directly.
+ */
+async function openLastStep(dialog: HTMLElement): Promise<void> {
+  const steps: Array<HTMLElement> = within(
+    within(dialog).getByRole("navigation", { name: "Progress" }),
+  ).getAllByRole("listitem");
+  const last: HTMLElement = steps[steps.length - 1] as HTMLElement;
+
+  if (!last.querySelector('[aria-current="step"]')) {
+    expect(
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(last);
+    });
+    await settle();
+  }
+}
+
 async function save(dialog: HTMLElement): Promise<void> {
+  await openLastStep(dialog);
+
   await act(async () => {
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
   });
@@ -478,7 +502,16 @@ describe("Admin > Settings > Email > Host Settings", () => {
       within(dialog).getByRole("button", { name: "Pick Microsoft Graph" }),
     ).toBeVisible();
 
-    // Saves from any step.
+    // Save Changes is on the last step only: a plain Next here.
+    expect(
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
+    expect(
+      within(dialog).getByTestId("modal-footer-next-button"),
+    ).toHaveTextContent("Next");
+
+    await openLastStep(dialog);
+
     expect(
       within(dialog).getByTestId("modal-footer-submit-button"),
     ).toHaveTextContent("Save Changes");
@@ -536,11 +569,24 @@ describe("Admin > Settings > Email > Host Settings", () => {
       "Mail is sent over SMTP, signing in with the username and password. TLS is used only if the server offers it.",
     );
 
-    // The port is still asked for: nothing is saved without one.
+    // The port is still asked for: Next stays on the step, nothing saved.
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    });
+    await settle();
+
+    expect(
+      within(dialog).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
+
+    // And the save, from the last step, sends the user back to it.
+    await openLastStep(dialog);
     await act(async () => {
       fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
     });
     await settle();
+
+    expect(within(dialog).getByPlaceholderText("587")).toBeVisible();
 
     expect(mockCreateOrUpdate).not.toHaveBeenCalled();
   });

@@ -64,24 +64,37 @@ test.describe("Creating a telemetry ingestion key", () => {
     return getCardButton(ctx.page, "Create Ingestion Key");
   };
 
-  // The dialog's main button: Create Ingestion Key, or Next while it walks.
+  /*
+   * The dialog's main button, Create Ingestion Key: on the last step only.
+   * Every other step shows a plain Next instead.
+   */
   const mainButton: () => Locator = (): Locator => {
     return modal().getByTestId("modal-footer-submit-button");
   };
 
-  /*
-   * The one button that reads Next: the main button while a step still to
-   * come asks for something (or, on the Free plan, the Billing step has not
-   * been shown), and the plain one beside Create Ingestion Key once every
-   * step left is filled in. Walks on, never creates.
-   */
+  const nextButton: () => Locator = (): Locator => {
+    return modal().getByTestId("modal-footer-next-button");
+  };
+
+  // Walks on with the plain Next, the one way on from a step but the last.
   const next: () => Promise<void> = async (): Promise<void> => {
-    const nextButton: Locator = modal().getByRole("button", {
+    const button: Locator = modal().getByRole("button", {
       name: "Next",
       exact: true,
     });
-    await expect(nextButton).toHaveCount(1);
-    await nextButton.click();
+    await expect(button).toHaveCount(1);
+    await expect(mainButton()).toHaveCount(0);
+    await button.click();
+  };
+
+  /*
+   * The footer's one way on from a step: Next, or Create Ingestion Key on
+   * the last step. Both check the step on screen first.
+   */
+  const wayOn: (data: { isLastStep: boolean }) => Locator = (data: {
+    isLastStep: boolean;
+  }): Locator => {
+    return data.isLastStep ? mainButton() : nextButton();
   };
 
   const nameInput: () => Locator = (): Locator => {
@@ -144,20 +157,21 @@ test.describe("Creating a telemetry ingestion key", () => {
   // From the Key step of a Browser key to its Browser Settings step.
   const goToBrowserSettings: () => Promise<void> = async (): Promise<void> => {
     await pickType("Browser");
-    // Allowed Origins is still to fill in: the main button walks on.
-    await expect(mainButton()).toHaveText("Next");
+    // Key is not the last step now: Next, and no Create.
+    await expect(mainButton()).toHaveCount(0);
     await next();
     await expect(activeStep()).toHaveText("Browser Settings");
     await expect(originsInput()).toBeVisible();
   };
 
   /*
-   * On the Free plan, the pricing on the Billing step is shown before the
-   * key can be created; elsewhere the step on screen creates it.
+   * On the Free plan, the pricing on the Billing step - the last one - is
+   * shown before the key can be created; elsewhere the step on screen is
+   * the last, and creates it.
    */
   const readyToCreate: () => Promise<void> = async (): Promise<void> => {
     if (IS_BILLING_ENABLED) {
-      await expect(mainButton()).toHaveText("Next");
+      await expect(mainButton()).toHaveCount(0);
       await next();
       await expect(
         modal().getByRole("region", { name: "Telemetry pricing", exact: true }),
@@ -294,10 +308,9 @@ test.describe("Creating a telemetry ingestion key", () => {
         "Key",
         "Billing",
       ]);
-      await expect(mainButton()).toHaveText("Next");
-      await expect(modal().getByTestId("modal-footer-next-button")).toHaveCount(
-        0,
-      );
+      // Create is on the last step only: a plain Next here.
+      await expect(mainButton()).toHaveCount(0);
+      await expect(nextButton()).toHaveText("Next");
     } else {
       // One page: nothing to walk.
       await expect(progressList()).toHaveCount(0);
@@ -308,14 +321,17 @@ test.describe("Creating a telemetry ingestion key", () => {
   });
 
   test("refuses a missing or short name before anything is created", async () => {
+    // On the Free plan Key walks on to Billing; elsewhere it is the one page.
+    const keyStepWayOn: Locator = wayOn({ isLastStep: !IS_BILLING_ENABLED });
+
     await nameInput().fill("");
-    await mainButton().click();
+    await keyStepWayOn.click();
     await expect(
       modal().getByText("Name is required.", { exact: true }),
     ).toBeVisible();
 
     await nameInput().fill("x");
-    await mainButton().click();
+    await keyStepWayOn.click();
     await expect(
       modal().getByText("Name cannot be less than 2 characters.", {
         exact: true,
@@ -379,7 +395,7 @@ test.describe("Creating a telemetry ingestion key", () => {
         ? ["Key", "Browser Settings", "Billing"]
         : ["Key", "Browser Settings"],
     );
-    await expect(mainButton()).toHaveText("Next");
+    await expect(mainButton()).toHaveCount(0);
     await next();
     await expect(activeStep()).toHaveText("Browser Settings");
 
@@ -388,7 +404,12 @@ test.describe("Creating a telemetry ingestion key", () => {
       modal().getByPlaceholder("storefront-web", { exact: true }),
     ).toBeHidden();
 
-    await mainButton().click();
+    // On the Free plan Billing follows; elsewhere this is the last step.
+    const browserStepWayOn: Locator = wayOn({
+      isLastStep: !IS_BILLING_ENABLED,
+    });
+
+    await browserStepWayOn.click();
     await expect(
       modal().getByText("Allowed Origins is required.", { exact: true }),
     ).toBeVisible();
@@ -398,7 +419,7 @@ test.describe("Creating a telemetry ingestion key", () => {
       "   ",
     ]) {
       await fillOrigins(invalidJSON);
-      await mainButton().click();
+      await browserStepWayOn.click();
       await expect(
         modal().getByText(/Allowed Origins is not valid JSON\./),
       ).toBeVisible();
@@ -423,7 +444,7 @@ test.describe("Creating a telemetry ingestion key", () => {
       },
     ]) {
       await fillOrigins(invalidOrigins.value);
-      await mainButton().click();
+      await browserStepWayOn.click();
       await expect(
         modal().getByText(invalidOrigins.error, { exact: true }),
       ).toBeVisible();
@@ -438,15 +459,13 @@ test.describe("Creating a telemetry ingestion key", () => {
 
     /*
      * Back on Key and forward again: everything is still there. Every step
-     * left is filled in now (bar the Free plan's pricing), so the main
-     * button on Key would create the key: walk on with Next.
+     * left is filled in now, and Key still shows Next, not Create: the key
+     * is created from the last step only.
      */
     await returnToStep("Key");
     await expect(nameInput()).toHaveValue(name);
     await expect(card("Browser")).toHaveAttribute("aria-checked", "true");
-    await expect(mainButton()).toHaveText(
-      IS_BILLING_ENABLED ? "Next" : "Create Ingestion Key",
-    );
+    await expect(mainButton()).toHaveCount(0);
     await next();
     await expect(activeStep()).toHaveText("Browser Settings");
     await expect(originsInput()).toHaveValue(JSON.stringify(origins));

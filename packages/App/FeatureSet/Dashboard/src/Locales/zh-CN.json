@@ -24686,6 +24686,7 @@
   "Precision": "精度",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "页面上各资源的平均正常运行时间，在一切正常运行时显示在整体状态旁边。",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "监视器处于其中任一状态的时间，会从它在此页面上的正常运行时间中扣除。",
+  "New Scheduled Maintenance Event": "新的计划维护事件",
   "Bar Color Rules": "条形颜色规则",
   "More fields": "更多字段",
   "More settings": "更多设置",

@@ -41,9 +41,9 @@ import React, { ReactElement } from "react";
  *     working; switched off - to stage a filter before it drops anything -
  *     the header says "Configured".
  *
- * Action is the only other required answer and it has its default, so the
- * filter can be created from Match (Forms/Utils/FinishFromAnyStep); Next
- * walks on to Action for Sample.
+ * Action is the only other required answer and it has its default, so Next
+ * on Match walks to Action without asking for anything there; the filter
+ * is created from Action, the last step (Forms/Utils/SteppedFormFooter).
  */
 
 export const LOG_DROP_FILTER_DEFAULTS_SUMMARY: string = translationKey(

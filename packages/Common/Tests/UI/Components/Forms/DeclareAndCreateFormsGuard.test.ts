@@ -39,7 +39,11 @@ import {
  *     so;
  *   - Declared At starts at the moment the page opened, fixed, so the
  *     Advanced section can tell a time someone set from the one it started
- *     with.
+ *     with;
+ *   - opened from a monitor's Incidents or Alerts tab, the monitor is
+ *     already picked: the tab hands its list the monitor, the list puts it
+ *     in the address, and the page picks it (Components/CreateFromRecord;
+ *     App's CreateFromRecordGuard holds every other record's tabs to it).
  */
 
 // packages/Common/Tests/UI/Components/Forms -> the repository root.
@@ -531,6 +535,77 @@ describe("Declared At", () => {
   });
 });
 
+describe("opened from a monitor's tab, the monitor is already picked", () => {
+  /*
+   * Declare Incident on a monitor's Incidents tab, and Create Alert on its
+   * Alerts tab, opened these pages with nothing picked: the monitor was
+   * searched for again on the next step, or forgotten, and the new record
+   * never showed on the tab it was made from.
+   */
+  test("the monitor's Incidents and Alerts tabs hand their lists the monitor", () => {
+    for (const [file, table] of [
+      [`${DASHBOARD}/Pages/Monitor/View/Incidents.tsx`, "IncidentsTable"],
+      [`${DASHBOARD}/Pages/Monitor/View/Alerts.tsx`, "AlertsTable"],
+    ] as Array<[string, string]>) {
+      const source: string = dense(file);
+
+      expect(source).toContain(
+        `<${table} query={query} createFrom={{ kind: CreateFromRecordKind.Monitor, id: modelId }} />`,
+      );
+      // The create values the alerts list took and never used are gone.
+      expect(source).not.toContain("createInitialValues");
+    }
+  });
+
+  test("the lists put it in the address of Declare Incident and Create Alert", () => {
+    const incidents: string = dense(
+      `${DASHBOARD}/Components/Incident/IncidentsTable.tsx`,
+    );
+    const alerts: string = dense(
+      `${DASHBOARD}/Components/Alert/AlertsTable.tsx`,
+    );
+
+    expect(incidents).toContain(
+      "RouteUtil.getPageRoute(PageMap.INCIDENT_CREATE, { query: createQuery, })",
+    );
+    expect(incidents).toContain(
+      "query: { ...createQuery, incidentTemplateId: incidentTemplateId.toString(), },",
+    );
+    expect(alerts).toContain(
+      "RouteUtil.getPageRoute(PageMap.ALERT_CREATE, { query: createQuery, })",
+    );
+  });
+
+  test.each([
+    { shape: INCIDENT_CREATE, created: "Incident" },
+    { shape: ALERT_CREATE, created: "Alert" },
+  ] as Array<{ shape: FormShape; created: string }>)(
+    "$shape.label looks the record up, waits for it, and picks it",
+    ({ shape, created }: { shape: FormShape; created: string }) => {
+      const source: string = dense(shape.file);
+
+      expect(source).toContain(
+        `useRecordToCreateFrom( CreatedRecordKind.${created}, )`,
+      );
+      expect(source).toContain(
+        `record: recordToCreateFrom.record, created: CreatedRecordKind.${created},`,
+      );
+      expect(source).toContain("recordToCreateFrom.isLoading");
+    },
+  );
+
+  /*
+   * Picked on a step of its own: the record is not a field of the first
+   * step, and no step is added for it - the steps above are unchanged.
+   */
+  test("the record is picked on the resources step, not on a step of its own", () => {
+    expect(
+      shownOn(formFor(INCIDENT_CREATE), "resources-affected")[0]!.key,
+    ).toBe("monitors");
+    expect(shownOn(formFor(ALERT_CREATE), "on-call")[0]!.key).toBe("monitor");
+  });
+});
+
 describe("who responds", () => {
   test("Declare Incident and Create Incident Episode put on-call policies and roles on one step, and say who takes an empty role", () => {
     for (const [shape, key, description] of [
@@ -552,8 +627,6 @@ describe("who responds", () => {
 
       expect(field).toContain('stepId: "on-call",');
       expect(field).toContain(`description: "${description}",`);
-      // Starts empty and writes only what is picked (FinishFromAnyStepGuard).
-      expect(field).toContain("customElementCanBeSkipped: true,");
       expect(field).toContain(
         '"Nobody picked. You take any role marked Primary."',
       );

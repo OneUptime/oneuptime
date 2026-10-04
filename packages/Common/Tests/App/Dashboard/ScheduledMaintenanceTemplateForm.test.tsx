@@ -326,7 +326,7 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(labelText("Description")).toContain("(Optional)");
   });
 
-  test("can be created from the Event step: every step after it is optional", async () => {
+  test("every step after Event is optional: Next walks them without asking, and Create Template is on the last", async () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
@@ -336,6 +336,21 @@ describe("Create Scheduled Maintenance Template", () => {
       target: { value: "Database maintenance" },
     });
     await act(async () => {});
+
+    // The action is on the last step only.
+    expect(
+      screen.queryByRole("button", { name: "Create Template" }),
+    ).not.toBeInTheDocument();
+
+    await goToNextStep("Resources Affected");
+    expect(
+      screen.queryByRole("button", { name: "Create Template" }),
+    ).not.toBeInTheDocument();
+
+    await goToNextStep("Recurring");
+    expect(
+      screen.queryByRole("button", { name: "Next" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
 

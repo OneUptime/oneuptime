@@ -20,11 +20,17 @@ import {
   getAnnouncementScheduleSection,
   getAnnouncementScheduleSectionSummary,
   getAnnouncementScheduleSummary,
-  getInitialAnnouncementStatusPageIds,
   getStatusPageToReturnTo,
   readAnnouncementQueryId,
   readRecordIds,
 } from "../../FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import {
+  CreateFromRecordKind,
+  CreatedRecordKind,
+  pickRecordToCreateFrom,
+  readCreateFromRecordId,
+} from "../../FeatureSet/Dashboard/src/Components/CreateFromRecord/CreateFromRecord";
+import { JSONObject } from "Common/Types/JSON";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import OneUptimeDate from "Common/Types/Date";
@@ -185,9 +191,37 @@ describe("the create page's address", () => {
 });
 
 describe("the status pages a new announcement starts with", () => {
+  /*
+   * The page it was opened from is picked the way every create page picks
+   * the record it was opened from (Components/CreateFromRecord).
+   */
+  const startingStatusPages: (data: {
+    statusPageId?: string | undefined;
+    templateStatusPageIds?: Array<string> | undefined;
+  }) => unknown = (data: {
+    statusPageId?: string | undefined;
+    templateStatusPageIds?: Array<string> | undefined;
+  }): unknown => {
+    const values: JSONObject = data.templateStatusPageIds
+      ? { statusPages: data.templateStatusPageIds }
+      : {};
+
+    return pickRecordToCreateFrom({
+      values: values,
+      record: data.statusPageId
+        ? {
+            kind: CreateFromRecordKind.StatusPage,
+            id: data.statusPageId,
+            name: "Acme Public Status",
+          }
+        : null,
+      created: CreatedRecordKind.Announcement,
+    })["statusPages"];
+  };
+
   test("the page it was created from, then its template's, each once", () => {
     expect(
-      getInitialAnnouncementStatusPageIds({
+      startingStatusPages({
         statusPageId: STATUS_PAGE_ID,
         templateStatusPageIds: [OTHER_STATUS_PAGE_ID, STATUS_PAGE_ID],
       }),
@@ -196,16 +230,18 @@ describe("the status pages a new announcement starts with", () => {
 
   test("only the template's, or only the page, or none", () => {
     expect(
-      getInitialAnnouncementStatusPageIds({
+      startingStatusPages({
         templateStatusPageIds: [OTHER_STATUS_PAGE_ID],
       }),
     ).toEqual([OTHER_STATUS_PAGE_ID]);
-    expect(
-      getInitialAnnouncementStatusPageIds({ statusPageId: STATUS_PAGE_ID }),
-    ).toEqual([STATUS_PAGE_ID]);
-    expect(getInitialAnnouncementStatusPageIds({ statusPageId: null })).toEqual(
-      [],
-    );
+    expect(startingStatusPages({ statusPageId: STATUS_PAGE_ID })).toEqual([
+      STATUS_PAGE_ID,
+    ]);
+    expect(startingStatusPages({})).toBeUndefined();
+  });
+
+  test("reads the address with the one reader every create page uses", () => {
+    expect(readAnnouncementQueryId).toBe(readCreateFromRecordId);
   });
 
   test("reads the IDs a picker writes, ObjectIDs and records alike, each once", () => {

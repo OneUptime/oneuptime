@@ -19,7 +19,6 @@ import ModelForm, {
 } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import Card from "Common/UI/Components/Card/Card";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -31,14 +30,19 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Page from "Common/UI/Components/Page/Page";
 import {
-  ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM,
   ANNOUNCEMENT_TEMPLATE_QUERY_PARAM,
   AnnouncementFormKind,
-  getInitialAnnouncementStatusPageIds,
   getStatusPageToReturnTo,
   readAnnouncementQueryId,
   readRecordIds,
 } from "../../Components/Announcement/AnnouncementForm";
+import {
+  CreatedRecordKind,
+  pickRecordToCreateFrom,
+} from "../../Components/CreateFromRecord/CreateFromRecord";
+import useRecordToCreateFrom, {
+  RecordToCreateFromState,
+} from "../../Components/CreateFromRecord/useRecordToCreateFrom";
 import {
   ANNOUNCEMENT_FORM_STEPS,
   getAnnouncementFormFields,
@@ -62,15 +66,23 @@ const AnnouncementCreate: FunctionComponent<
    */
   const [templateError, setTemplateError] = useState<string>("");
 
+  // What the template picked in "Create from Template" fills in.
   const [initialValuesForAnnouncement, setInitialValuesForAnnouncement] =
     useState<JSONObject>({});
 
   /*
-   * The status page whose Announcements tab the page was opened from, once
-   * it is known to exist: it is picked on the form, and Create goes back to
-   * its tab.
+   * The status page whose Announcements tab the page was opened from
+   * (?statusPageId=), once it is known to exist and the viewer can read it:
+   * it is picked on the form, ahead of the template's pages, the trail goes
+   * back through its tab, and Create goes back there. A page that cannot be
+   * read leaves the form as the project's list opens it, rather than in its
+   * way (Components/CreateFromRecord).
    */
-  const [fromStatusPageId, setFromStatusPageId] = useState<string | null>(null);
+  const recordToCreateFrom: RecordToCreateFromState = useRecordToCreateFrom(
+    CreatedRecordKind.Announcement,
+  );
+
+  const fromStatusPageId: string | null = recordToCreateFrom.record?.id || null;
 
   // The status pages the announcement was created on, read as it is sent.
   const createdStatusPageIds: MutableRefObject<Array<string>> = useRef<
@@ -82,24 +94,19 @@ const AnnouncementCreate: FunctionComponent<
   }, []);
 
   useEffect(() => {
-    loadInitialValues({
-      statusPageId: readAnnouncementQueryId(
-        Navigation.getQueryStringByName(ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM),
-      ),
-      announcementTemplateId: readAnnouncementQueryId(
+    loadTemplate(
+      readAnnouncementQueryId(
         Navigation.getQueryStringByName(ANNOUNCEMENT_TEMPLATE_QUERY_PARAM),
       ),
-    });
+    );
   }, []);
 
-  const loadInitialValues: (data: {
-    statusPageId: string | null;
-    announcementTemplateId: string | null;
-  }) => Promise<void> = async (data: {
-    statusPageId: string | null;
-    announcementTemplateId: string | null;
-  }): Promise<void> => {
-    if (!data.statusPageId && !data.announcementTemplateId) {
+  const loadTemplate: (
+    announcementTemplateId: string | null,
+  ) => Promise<void> = async (
+    announcementTemplateId: string | null,
+  ): Promise<void> => {
+    if (!announcementTemplateId) {
       setIsLoading(false);
       return;
     }
@@ -109,49 +116,21 @@ const AnnouncementCreate: FunctionComponent<
     setIsLoading(true);
 
     try {
-      const [statusPage, announcementTemplate]: [
-        StatusPage | null,
-        StatusPageAnnouncementTemplate | null,
-      ] = await Promise.all([
-        /*
-         * The page only saves picking it: one that cannot be read leaves the
-         * form as the project's list opens it, rather than in its way.
-         */
-        data.statusPageId
-          ? ModelAPI.getItem<StatusPage>({
-              modelType: StatusPage,
-              id: new ObjectID(data.statusPageId),
-              select: {
-                _id: true,
-                name: true,
-              },
-            }).catch((): null => {
-              return null;
-            })
-          : Promise.resolve(null),
-        data.announcementTemplateId
-          ? ModelAPI.getItem<StatusPageAnnouncementTemplate>({
-              modelType: StatusPageAnnouncementTemplate,
-              id: new ObjectID(data.announcementTemplateId),
-              select: {
-                title: true,
-                description: true,
-                statusPages: true,
-                monitors: true,
-                shouldStatusPageSubscribersBeNotified: true,
-              },
-            }).catch((err: unknown): null => {
-              setTemplateError(API.getFriendlyMessage(err));
-              return null;
-            })
-          : Promise.resolve(null),
-      ]);
-
-      /*
-       * A page that is gone, or not in this project, comes back without an
-       * ID, and is not picked either.
-       */
-      const statusPageId: string | null = statusPage?.id?.toString() || null;
+      const announcementTemplate: StatusPageAnnouncementTemplate | null =
+        await ModelAPI.getItem<StatusPageAnnouncementTemplate>({
+          modelType: StatusPageAnnouncementTemplate,
+          id: new ObjectID(announcementTemplateId),
+          select: {
+            title: true,
+            description: true,
+            statusPages: true,
+            monitors: true,
+            shouldStatusPageSubscribersBeNotified: true,
+          },
+        }).catch((err: unknown): null => {
+          setTemplateError(API.getFriendlyMessage(err));
+          return null;
+        });
 
       let initialValue: JSONObject = {};
 
@@ -167,18 +146,17 @@ const AnnouncementCreate: FunctionComponent<
         };
       }
 
-      const statusPageIds: Array<string> = getInitialAnnouncementStatusPageIds({
-        statusPageId: statusPageId,
-        templateStatusPageIds: readRecordIds(announcementTemplate?.statusPages),
-      });
+      // The template's pages, by ID; the status page opened from goes first.
+      const templateStatusPageIds: Array<string> = readRecordIds(
+        announcementTemplate?.statusPages,
+      );
 
-      if (statusPageIds.length > 0) {
-        initialValue["statusPages"] = statusPageIds;
+      if (templateStatusPageIds.length > 0) {
+        initialValue["statusPages"] = templateStatusPageIds;
       } else {
         delete initialValue["statusPages"];
       }
 
-      setFromStatusPageId(statusPageId);
       setInitialValuesForAnnouncement(initialValue);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -187,44 +165,41 @@ const AnnouncementCreate: FunctionComponent<
     setIsLoading(false);
   };
 
+  // One identity per load: the form latches its initial values once.
+  const formInitialValues: JSONObject = useMemo(() => {
+    return pickRecordToCreateFrom({
+      values: initialValuesForAnnouncement,
+      record: recordToCreateFrom.record,
+      created: CreatedRecordKind.Announcement,
+    });
+  }, [initialValuesForAnnouncement, recordToCreateFrom.record]);
+
+  const isPageLoading: boolean = isLoading || recordToCreateFrom.isLoading;
+
   /*
    * Opened from a status page, the trail goes back through that page's
-   * Announcements tab, as the tab's own trail reads; otherwise through the
-   * project's Announcements list. The last link is this page, which
+   * Announcements tab, as the tab's own trail reads (CreateFromRecord);
+   * otherwise through the project's Announcements list. Both start at the
+   * project, as every page's trail does. The last link is this page, which
    * Breadcrumbs draws as text, so the address keeps what it was opened with.
    */
-  const breadcrumbLinks: Array<Link> = [
+  const breadcrumbLinks: Array<Link> = recordToCreateFrom.breadcrumbLinks || [
+    {
+      title: "Project",
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+    },
     {
       title: "Status Pages",
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.STATUS_PAGES] as Route,
       ),
     },
-    ...(fromStatusPageId
-      ? [
-          {
-            title: "View Status Page",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-              { modelId: fromStatusPageId },
-            ),
-          },
-          {
-            title: "Announcements",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
-              { modelId: fromStatusPageId },
-            ),
-          },
-        ]
-      : [
-          {
-            title: "Announcements",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
-            ),
-          },
-        ]),
+    {
+      title: "Announcements",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
+      ),
+    },
     {
       title: "Create Announcement",
       to: RouteUtil.populateRouteParams(
@@ -243,17 +218,17 @@ const AnnouncementCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
-          {!isLoading && !error && templateError && (
+          {!isPageLoading && !error && templateError && (
             <div className="mb-5">
               <ErrorMessage message={templateError} />
             </div>
           )}
-          {!isLoading && !error && (
+          {!isPageLoading && !error && (
             <ModelForm<StatusPageAnnouncement>
               modelType={StatusPageAnnouncement}
-              initialValues={initialValuesForAnnouncement}
+              initialValues={formInitialValues}
               name="Create New Announcement"
               id="create-announcement-form"
               steps={ANNOUNCEMENT_FORM_STEPS}

@@ -282,10 +282,13 @@ describe("Telemetry ingestion key detail page", () => {
         name: /^Allowed Origins/,
       }),
     ).not.toBeInTheDocument();
-    // An edit form saves from any step: Save is there from the first one.
+    // Save Changes is on the last step only: a plain Next on the first.
     expect(
-      within(editDialog()).getByRole("button", { name: "Save Changes" }),
-    ).toBeVisible();
+      within(editDialog()).queryByRole("button", { name: "Save Changes" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(editDialog()).getByTestId("modal-footer-next-button"),
+    ).toHaveTextContent("Next");
 
     await next(user);
     await waitFor(() => {

@@ -12,6 +12,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Alerts from "../Pages/Alerts/Alerts";
 
 import AlertCreate from "../Pages/Alerts/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 import AlertView from "../Pages/Alerts/View/Index";
 
 import AlertViewNotificationLogs from "../Pages/Alerts/View/NotificationLogs";
@@ -212,10 +213,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_CREATE] || ""}
           element={
-            <AlertCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
-            />
+            <RemountOnAddressChange>
+              <AlertCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
+              />
+            </RemountOnAddressChange>
           }
         />
 

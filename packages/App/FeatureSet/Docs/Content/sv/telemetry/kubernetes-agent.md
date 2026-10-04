@@ -358,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` behåller din befintliga konfiguration (förinställning, klusternamn, filter); skicka eventuella nya `--set`-åsidosättanden ovanpå den.
 
+> **eBPF:s span-mått har bytt namn.** `ebpf.features.spanMetrics` skickar nu `traces.span.metrics.calls` och `traces.span.metrics.duration` (sekunder) i stället för `traces_spanmetrics_calls_total` och `traces_spanmetrics_latency`: samma serier under de namn som OBI behåller (de gamla har OBI markerat som föråldrade). En instrumentpanel, ett diagram eller en måttbaserad monitor på ett gammalt namn får inga nya data efter uppgraderingen, utan något fel — flytta den till det nya namnet och uppdatera även `filters.metrics`-poster som nämner ett gammalt namn.
+
 ## Avinstallera agenten
 
 ```bash
@@ -413,7 +415,7 @@ Alla på som standard. Stäng av någon med `--set ebpf.features.<name>=false`:
 | `ebpf.features.*`         | Standard | Vad det lägger till                                            |
 | ------------------------- | -------- | -------------------------------------------------------------- |
 | `httpMetrics`             | på       | HTTP/gRPC RED-mått (begärandefrekvens, latens, fel) per tjänst |
-| `spanMetrics`             | på       | Begäran-/svarsstorlek och varaktighet per span                 |
+| `spanMetrics`             | på       | Antal anrop och varaktighet för spans (`traces.span.metrics.*`) |
 | `serviceGraph`            | på       | Kantmått anropare → anropad; driver tjänstekartan              |
 | `networkMetrics`          | på       | TCP/UDP-flödesräknare pod-till-pod                             |
 | `networkInterZoneMetrics` | av       | Inter-zonvariant av nätverksmått (dubblerar kardinalitet)      |

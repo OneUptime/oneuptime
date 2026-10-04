@@ -24686,6 +24686,7 @@
   "Precision": "परिशुद्धता",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "पेज के संसाधनों का औसत अपटाइम, जो सब कुछ चालू रहने तक उसकी समग्र स्थिति के पास दिखाया जाता है।",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "कोई मॉनिटर इनमें से किसी भी स्थिति में जितना समय बिताता है, वह इस पेज पर उसके अपटाइम से घटाया जाता है।",
+  "New Scheduled Maintenance Event": "नया अनुसूचित रखरखाव इवेंट",
   "Bar Color Rules": "बार रंग नियम",
   "More fields": "और फ़ील्ड",
   "More settings": "और सेटिंग्स",

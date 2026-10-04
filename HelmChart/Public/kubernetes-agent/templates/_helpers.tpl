@@ -107,13 +107,19 @@ Usage (the include is nindent-ed under the `nodeSelector:` key):
 Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
 toggles. Returns a comma-separated string of the OBI feature names that are
 currently enabled. (An empty string does NOT mean "no metrics": OBI falls back
-to its default, `application`.) Current OBI (since v0.12) refuses to start on a token it does
+to its default, `application`.) Current OBI (since v0.11) refuses to start on a token it does
 not know, so every token here must exist in the pinned version.
 */}}
 {{- define "kubernetes-agent.ebpfMetricsFeatures" -}}
 {{- $features := list -}}
 {{- if .Values.ebpf.features.httpMetrics -}}{{- $features = append $features "application" -}}{{- end -}}
-{{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span" -}}{{- end -}}
+{{- /* `application_span_otel`, not OBI's deprecated `application_span`: the
+     same spans, attributes and buckets, named traces.span.metrics.calls and
+     traces.span.metrics.duration (seconds) instead of
+     traces_spanmetrics_calls_total and traces_spanmetrics_latency. Every OBI
+     release has it, so it needs no version gate; OBI warns about the old name
+     since v0.12.2, and refuses the two together. */ -}}
+{{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span_otel" -}}{{- end -}}
 {{- if .Values.ebpf.features.serviceGraph -}}{{- $features = append $features "application_service_graph" -}}{{- end -}}
 {{- /* ebpf.features.hostMetrics is ignored on purpose: its `application_host`
      feature is gone in OBI v0.14, and an unknown token stops OBI starting. */ -}}
@@ -373,6 +379,50 @@ per enabled switch, both on the base below.
 
 {{- define "kubernetes-agent.ebpfDatabaseSpanCondition" -}}
 resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and (attributes["db.system.name"] != nil or attributes["db.system"] != nil)
+{{- end }}
+
+{{/*
+Whether to drop OBI's HTTP server metrics for its own Node.js inspector
+requests in `filter/ebpf-node-inspector` (ebpf.dropNodeInspectorMetrics).
+Only with eBPF on (OBI is what sends them) and its Node.js agent on (with
+ebpf.nodejs.enabled=false OBI never injects, so the filter could only drop an
+app's own datapoints), and on unless explicitly set to false, for the same
+--reuse-values reason as the database switches above.
+*/}}
+{{- define "kubernetes-agent.dropNodeInspectorMetrics" -}}
+{{- and (.Values.ebpf.enabled | default false) (ne (toString ((.Values.ebpf.nodejs | default dict).enabled)) "false") (ne (toString .Values.ebpf.dropNodeInspectorMetrics) "false") -}}
+{{- end -}}
+
+{{/*
+OTTL datapoint condition of `filter/ebpf-node-inspector`. OBI v0.14 injects
+its Node.js agent through the app's inspector after it has started tracing
+the process, so its own GET /json/list (GET /json/version too, when the
+inspector was already open) and the WebSocket upgrade that follows, on
+127.0.0.1:9229, count in the app's http.server.* metrics under the routes
+/json/list, /json/version and /* (answered 101).
+
+  - telemetry.distro.name scopes it to OBI: the receiver also takes what
+    applications push from their own SDKs.
+  - A datapoint has no client address, so this cannot tell OBI's requests
+    from anyone else's on port 9229: an app's own GET /json/list or
+    /json/version there, and its own WebSocket upgrades there that OBI names
+    /* (no route template), lose their datapoints too. OneUptime drops the
+    matching spans on ingest, where the client address is known.
+  - http.route, not url.path: OBI's metrics carry only the route. These are
+    the names OBI gives those requests with the default route naming
+    (ebpf.routes.unmatched heuristic); with another ebpf.routes.unmatched,
+    or an ebpf.routes.patterns entry that matches them, some or all of the
+    injection's datapoints are kept.
+  - Only http.server.*. OBI's span metrics (ebpf.features.spanMetrics) carry
+    neither the port nor the HTTP status, only the span name, so they still
+    count a GET /json/list call per injection (and a GET /json/version for
+    an app started with --inspect) and add the upgrade to the app's GET /*.
+    Dropping span.name "GET /json/list" would also drop a real DevTools
+    endpoint's (a headless Chrome or browserless service), so they are left
+    alone.
+*/}}
+{{- define "kubernetes-agent.ebpfNodeInspectorMetricCondition" -}}
+resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and IsMatch(metric.name, "^http\\.server\\.") and attributes["server.port"] == 9229 and attributes["http.request.method"] == "GET" and (attributes["http.route"] == "/json/list" or attributes["http.route"] == "/json/version" or (attributes["http.route"] == "/*" and attributes["http.response.status_code"] == 101))
 {{- end }}
 
 {{/*

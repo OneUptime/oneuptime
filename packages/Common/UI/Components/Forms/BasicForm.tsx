@@ -29,11 +29,12 @@ import { isFormSectionConfigured } from "./Utils/AdvancedFormSection";
 import { getFoldedFormFieldItems } from "./Utils/FoldedFormFields";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
+  FORM_NEXT_BUTTON_TEST_ID,
+  NEXT_BUTTON_STYLE,
   NEXT_BUTTON_TEXT,
   SteppedFormFooter,
-  canFinishFormFromStep,
   getSteppedFormFooter,
-} from "./Utils/FinishFromAnyStep";
+} from "./Utils/SteppedFormFooter";
 import {
   getPeoplePickerValueKeys,
   toPeoplePickerFormValue,
@@ -87,18 +88,22 @@ export interface FormSummaryConfig {
 export interface BasicFormHandle {
   setFieldTouched: (fieldName: string, value: boolean) => void;
   setFieldValue: (fieldName: string, value: JSONValue) => void;
-  // Validates the current step, then moves on - or submits on the last step.
+  /*
+   * What Enter in a field does: validates the current step, then moves on -
+   * or, on the last step, submits as submitAllSteps does.
+   */
   submitForm: () => void;
   /*
    * Validates the current step, then moves on. Never submits: on the last
-   * step it does nothing. What a plain Next beside the form's action calls,
-   * so a second click that lands after the last step opened cannot submit.
+   * step it does nothing. What Next calls, so a second click that lands
+   * after the last step opened cannot submit.
    */
   goToNextStep: () => void;
   /*
-   * Validates every step and submits from wherever the user is. A field
+   * The form's action, which a stepped form offers on its last step only
+   * (Utils/SteppedFormFooter.ts): validates every step and submits. A field
    * that fails sends the user to the first step it is on, with its error
-   * showing. On a form without steps it is submitForm.
+   * showing. On a form without steps it validates the form and submits.
    */
   submitAllSteps: () => void;
 }
@@ -130,15 +135,12 @@ export interface BaseComponentProps<T> {
   hideSubmitButton?: undefined | boolean;
   error?: string | undefined;
   onFormStepChange?: undefined | ((stepId: string) => void);
-  onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   /*
-   * Whether the form can be finished from the step on screen: every other
-   * step already holds valid answers (Utils/FinishFromAnyStep.ts). A host
-   * that draws its own buttons (hideSubmitButton) then shows the form's
-   * action as its main button, calling submitAllSteps, with a plain Next
-   * beside it calling submitForm. The form's own buttons do that already.
+   * Whether the step on screen is the last one. A host that draws its own
+   * buttons (hideSubmitButton) offers the form's action there only, and a
+   * plain Next on every other step (Utils/SteppedFormFooter.ts).
    */
-  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
+  onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
   summary?: FormSummaryConfig | undefined;
@@ -146,8 +148,8 @@ export interface BaseComponentProps<T> {
    * Every step can be opened from the step list, not only the ones already
    * walked through. For a form whose steps are all filled in already - an
    * edit form - so a change on the third step does not mean clicking Next
-   * twice to reach it. Pair it with submitAllSteps, which validates the
-   * steps the user skipped.
+   * twice to reach it, and the last step, where Save is, is one click away.
+   * The action validates the steps the user skipped (submitAllSteps).
    */
   allowAnyStepNavigation?: boolean | undefined;
 }
@@ -239,19 +241,25 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }) ?? -1;
     const activeStep: FormStep<T> | undefined = formSteps?.[activeStepIndex];
 
-    const isOnLastFormStep: boolean =
-      !currentFormStepId ||
-      !formSteps ||
-      formSteps.length === 0 ||
-      ((formSteps as Array<FormStep<T>>)[formSteps.length - 1] as FormStep<T>)
-        .id === currentFormStepId;
-
     /*
-     * The steps the form has shown. A step holding a custom element that has
-     * not been drawn yet keeps the form from being finished before it
-     * (Utils/FinishFromAnyStep.ts).
+     * Whether the step on screen is the last one, worked out on every render
+     * from the values as they are now - not from the step list, which an
+     * effect updates a frame later: an answer that brings a later step into
+     * view takes the form's action away in the same pass, and one that hides
+     * the steps after this one brings it in.
+     *
+     * Before the first step opens (a mount effect opens it) the form is about
+     * to show its first step, so a form of several steps is not on its last
+     * one yet: a host's footer starts on Next, never on the form's action.
      */
-    const [shownStepIds, setShownStepIds] = useState<Array<string>>([]);
+    const visibleFormSteps: Array<FormStep<T>> = getVisibleFormSteps() || [];
+
+    const isOnLastFormStep: boolean =
+      visibleFormSteps.length === 0 ||
+      (currentFormStepId
+        ? (visibleFormSteps[visibleFormSteps.length - 1] as FormStep<T>).id ===
+          currentFormStepId
+        : visibleFormSteps.length === 1);
 
     useEffect(() => {
       if (props.values) {
@@ -266,22 +274,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }, []);
 
     /*
-     * Recorded while rendering the step, not in an effect after it: an
-     * effect's update could still be waiting when the next click lands, and
-     * the step would not count as shown yet. Setting state of this component
-     * while it renders is React's way to keep state in step with other state.
-     */
-    if (currentFormStepId && !shownStepIds.includes(currentFormStepId)) {
-      setShownStepIds([...shownStepIds, currentFormStepId]);
-    }
-
-    /*
-     * A layout effect, as is the report below: a host that draws the
-     * buttons (a dialog's footer) learns where the form is in the same pass
-     * that moved it, before anything is painted. With a plain effect the
-     * footer said what the step before wanted for a frame - long enough for
-     * a quick second click to land on a button that had since changed
-     * meaning (Next one moment, the form's action the next).
+     * A layout effect: a host that draws the buttons (a dialog's footer)
+     * learns where the form is in the same pass that moved it, before
+     * anything is painted. With a plain effect the footer said what the step
+     * before wanted for a frame - long enough for a quick second click meant
+     * as Next to land on the form's action, which the last step had just
+     * brought in.
      */
     useLayoutEffect(() => {
       if (props.onIsLastFormStep) {
@@ -308,36 +306,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const [formFields, setFormFields] = useState<Fields<T>>([]);
 
     /*
-     * Worked out on every render, from the values as they are now: an answer
-     * that brings a step with a required field into view takes the action
-     * away again, and answering that field gives it back.
+     * Next on every step but the last; the form's action - its one primary
+     * button - on the last step only (Utils/SteppedFormFooter.ts).
      */
-    const canFinishFromCurrentStep: boolean =
-      formFields.length > 0 &&
-      Boolean(currentFormStepId) &&
-      !isOnLastFormStep &&
-      canFinishFormFromStep<T>({
-        steps: getVisibleFormSteps() || [],
-        currentStepId: currentFormStepId,
-        fields: formFields,
-        values: refCurrentValue.current,
-        shownStepIds: shownStepIds,
-        onValidate: props.onValidate || undefined,
-      });
-
-    useLayoutEffect(() => {
-      props.onCanFinishFromCurrentStep?.(canFinishFromCurrentStep);
-    }, [canFinishFromCurrentStep]);
-
     const footer: SteppedFormFooter = getSteppedFormFooter({
-      hasSteps: Boolean(currentFormStepId && formSteps && formSteps.length > 0),
+      hasSteps: visibleFormSteps.length > 0,
       isOnLastStep: isOnLastFormStep,
-      canFinishFromCurrentStep: canFinishFromCurrentStep,
-      actionText: props.submitButtonText || "Submit",
     });
 
-    const submitButtonText: string =
-      translateString(footer.primaryButtonText) ?? footer.primaryButtonText;
+    const actionText: string = props.submitButtonText || "Submit";
+
+    const submitButtonText: string = translateString(actionText) ?? actionText;
 
     const nextButtonText: string =
       translateString(NEXT_BUTTON_TEXT) ?? NEXT_BUTTON_TEXT;
@@ -643,8 +622,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     };
 
     /*
-     * Checks the step on screen, then walks on to the next one; on the last
-     * step (or a form without steps) it submits, unless told not to.
+     * Checks the step on screen, then walks on to the next one. On the last
+     * step it submits, unless told not to - after checking every step, as
+     * the form's action does - and a form without steps submits once it is
+     * checked.
      */
     const validateStepAndWalkOn: (data: {
       submitOnLastStep: boolean;
@@ -669,16 +650,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
 
-      if (
-        (steps &&
-          steps.length > 0 &&
-          (steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) ||
-        currentFormStepId === null
-      ) {
+      if (currentFormStepId === null || !steps || steps.length === 0) {
         if (data.submitOnLastStep) {
           submitValues();
         }
-      } else if (steps && steps.length > 0) {
+        return;
+      }
+
+      if ((steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) {
+        if (data.submitOnLastStep) {
+          submitAllSteps();
+        }
+      } else {
         const currentStepIndex: number = steps.findIndex(
           (step: FormStep<T>) => {
             return step.id === currentFormStepId;
@@ -703,7 +686,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
 
       if (!steps || steps.length === 0 || currentFormStepId === null) {
-        submitForm();
+        validateStepAndWalkOn({ submitOnLastStep: true });
         return;
       }
 
@@ -932,10 +915,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }
 
     /*
-     * Next beside the action, on a step the form can be finished from. Plain,
-     * like Cancel: the action stays the form's one primary button. Beside it
-     * on the left, as in a dialog's footer; under it where the action spans
-     * the form (a status page's Subscribe).
+     * Next, on every step but the last, where the form's action will be.
+     * Plain, like Cancel: Next commits nothing, so it never wears the
+     * primary colour (Utils/SteppedFormFooter.ts). Where the action spans
+     * the form (a status page's Subscribe), Next spans it too.
      */
     const nextButtonElement: ReactElement | null =
       showSubmitButton && footer.showNextButton ? (
@@ -947,13 +930,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         >
           <Button
             title={nextButtonText}
-            dataTestId="form-next-button"
+            dataTestId={FORM_NEXT_BUTTON_TEST_ID}
             id={`${props.id}-next-button`}
             onClick={() => {
               goToNextStep();
             }}
             disabled={isLoading || isDropdownOptionsLoading || false}
-            buttonStyle={ButtonStyleType.NORMAL}
+            buttonStyle={NEXT_BUTTON_STYLE}
             style={primaryButtonStyle}
           />
         </div>
@@ -1243,15 +1226,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                   })()}
                 </div>
 
-                <div
-                  className={`flex w-full ${
-                    props.maxPrimaryButtonWidth && nextButtonElement
-                      ? "flex-col"
-                      : "justify-end"
-                  }`}
-                >
-                  {!props.maxPrimaryButtonWidth && nextButtonElement}
-                  {showSubmitButton && (
+                <div className="flex w-full justify-end">
+                  {nextButtonElement}
+                  {showSubmitButton && footer.showActionButton && (
                     <div
                       className="mt-3"
                       style={{
@@ -1262,12 +1239,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         title={submitButtonText}
                         dataTestId={props.submitButtonText!}
                         onClick={() => {
-                          if (footer.primaryButtonSubmitsAllSteps) {
-                            submitAllSteps();
-                            return;
-                          }
-
-                          submitForm();
+                          // Checks every step, and opens one with a problem.
+                          submitAllSteps();
                         }}
                         id={`${props.id}-submit-button`}
                         isLoading={
@@ -1280,7 +1253,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                       />
                     </div>
                   )}
-                  {props.maxPrimaryButtonWidth && nextButtonElement}
                   {props.onCancel && (
                     <div>
                       <Button

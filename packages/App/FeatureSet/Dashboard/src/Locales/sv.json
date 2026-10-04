@@ -24686,6 +24686,7 @@
   "Precision": "Precision",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "Den genomsnittliga upptiden för sidans resurser, som visas bredvid dess övergripande status så länge allt är i drift.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Tid som en övervakare tillbringar i någon av dessa statusar dras av från dess upptid på den här sidan.",
+  "New Scheduled Maintenance Event": "Nytt schemalagt underhållsevenemang",
   "Bar Color Rules": "Regler för stapelfärger",
   "More fields": "Fler fält",
   "More settings": "Fler inställningar",

@@ -199,8 +199,9 @@ describe("the announcement forms in the docs", () => {
     expect(ENGLISH_GUIDE).toContain(
       "Created from a status page, that page is already picked",
     );
+    // On the review, the last step: the steps before it walk on with Next.
     expect(ENGLISH_GUIDE).toContain(
-      "**Create Announcement** brings you back to the page's **Announcements** list (or to the project's list, if you unpicked that page on the way)",
+      "**Next** walks the rest, and **Create Announcement**, on the review, brings you back to the page's **Announcements** list (or to the project's list, if you unpicked that page on the way)",
     );
   });
 

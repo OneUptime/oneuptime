@@ -41,7 +41,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - two steps (Event, Resources Affected) and the review, the shape of
  *     Declare Incident;
  *   - Starts At is the next full hour, Ends At an hour later, so typing a
- *     title is all it takes - Create is the main button from the first step;
+ *     title is all it asks for - Next walks the rest, and Create is on the
+ *     review, the last step;
  *   - moving the start moves the end with it, and the end must come after
  *     the start;
  *   - Owners and Labels wait under Advanced on Event, Change Monitor Status
@@ -316,6 +317,29 @@ function nextButton(): HTMLElement {
   return screen.getByRole("button", { name: inPageLanguage("Next") });
 }
 
+function queryCreateButton(): HTMLElement | null {
+  return screen.queryByRole("button", {
+    name: inPageLanguage("Create Scheduled Maintenance Event"),
+  });
+}
+
+/*
+ * Create Scheduled Maintenance Event is on the last step - the review -
+ * only: walks there with Next, then presses it.
+ */
+async function createFromTheReview(): Promise<void> {
+  for (let step: number = 0; step < 5 && !queryCreateButton(); step++) {
+    fireEvent.click(nextButton());
+    await act(async () => {});
+  }
+
+  await waitFor(() => {
+    expect(currentStepTitle()).toBe(inPageLanguage("Summary"));
+  });
+
+  fireEvent.click(createButton());
+}
+
 async function typeTitle(title: string): Promise<void> {
   fireEvent.change(titleInput(), { target: { value: title } });
   await act(async () => {});
@@ -471,7 +495,7 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(endsAtInput().value).toMatch(/^2026-10-03T12:00/);
 
     await typeTitle("Database upgrade");
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -481,14 +505,15 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(isoOf(createdModel().endsAt)).toBe("2026-10-03T06:30:00.000Z");
   });
 
-  test("asks for nothing but a title: Create is the main button from the first step", async () => {
+  test("asks for nothing but a title, and creates from the review, the last step", async () => {
     await renderPage();
 
-    expect(createButton()).toBeInTheDocument();
+    // Nothing else is required, and still Create waits for the last step.
+    expect(queryCreateButton()).toBeNull();
     expect(nextButton()).toBeInTheDocument();
 
     await typeTitle("Database upgrade");
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -516,10 +541,10 @@ describe("Create Scheduled Maintenance Event", () => {
     });
   });
 
-  test("still asks for the title when Create is pressed without one", async () => {
+  test("still asks for the title when Next is pressed without one", async () => {
     await renderPage();
 
-    fireEvent.click(createButton());
+    fireEvent.click(nextButton());
 
     expect(await screen.findByText("Title is required.")).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
@@ -548,7 +573,7 @@ describe("Create Scheduled Maintenance Event", () => {
     });
 
     await typeTitle("Database upgrade");
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -563,7 +588,7 @@ describe("Create Scheduled Maintenance Event", () => {
 
     fireEvent.change(endsAtInput(), { target: { value: "2026-10-03T09:00" } });
     await act(async () => {});
-    fireEvent.click(createButton());
+    fireEvent.click(nextButton());
 
     expect(
       await screen.findByText("Ends At must be after Starts At."),
@@ -636,8 +661,9 @@ describe("Create Scheduled Maintenance Event", () => {
     fireEvent.click(advanced);
 
     expect(sectionBody(advanced)).toBeVisible();
-    // Create stays the main button: nothing on the steps left is required.
-    expect(createButton()).toBeInTheDocument();
+    // Nothing on the step left is required; Create is still on it only.
+    expect(queryCreateButton()).toBeNull();
+    expect(nextButton()).toBeInTheDocument();
   });
 
   test("the subscriber line follows the switches, and the event is saved as they say", async () => {
@@ -677,7 +703,7 @@ describe("Create Scheduled Maintenance Event", () => {
     // The line says what is set; no "Configured" badge repeats it.
     expect(setChips()).toEqual([]);
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);

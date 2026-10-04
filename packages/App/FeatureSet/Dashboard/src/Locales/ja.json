@@ -24686,6 +24686,7 @@
   "Precision": "精度",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "ページのリソースの平均稼働率です。すべてが正常に稼働している間、全体のステータスの横に表示されます。",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "モニターがこれらのいずれかのステータスにある時間は、このページでの稼働率から差し引かれます。",
+  "New Scheduled Maintenance Event": "新しい定期メンテナンスイベント",
   "Bar Color Rules": "バーの色のルール",
   "More fields": "その他の項目",
   "More settings": "その他の設定",

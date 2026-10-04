@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` behält Ihre bestehende Konfiguration bei (Preset, Cluster-Name, Filter); übergeben Sie alle neuen `--set`-Überschreibungen zusätzlich.
 
+> **eBPF-Span-Metriken haben neue Namen.** `ebpf.features.spanMetrics` sendet jetzt `traces.span.metrics.calls` und `traces.span.metrics.duration` (Sekunden) statt `traces_spanmetrics_calls_total` und `traces_spanmetrics_latency`: dieselben Reihen unter den Namen, die OBI beibehält (die alten hat OBI als veraltet markiert). Ein Dashboard, ein Diagramm oder ein Metriken-Monitor auf einem alten Namen erhält nach dem Upgrade keine neuen Daten mehr, ohne Fehlermeldung — stellen Sie ihn auf den neuen Namen um und passen Sie auch `filters.metrics`-Einträge an, die einen alten Namen nennen.
+
 ## Den Agent deinstallieren
 
 ```bash
@@ -412,7 +414,7 @@ Alle standardmäßig aktiviert. Schalten Sie jede mit `--set ebpf.features.<name
 | `ebpf.features.*`         | Standard    | Was es hinzufügt                                                       |
 | ------------------------- | ----------- | ---------------------------------------------------------------------- |
 | `httpMetrics`             | aktiviert   | HTTP/gRPC-RED-Metriken (Request-Rate, Latenz, Fehler) pro Service      |
-| `spanMetrics`             | aktiviert   | Request-/Response-Größe und -Dauer pro Span                            |
+| `spanMetrics`             | aktiviert   | Aufrufanzahl und Dauer der Spans (`traces.span.metrics.*`)             |
 | `serviceGraph`            | aktiviert   | Caller → Callee Edge-Metriken; speist die Service-Map                  |
 | `networkMetrics`          | aktiviert   | Pod-zu-Pod-TCP/UDP-Fluss-Zähler                                        |
 | `networkInterZoneMetrics` | deaktiviert | Inter-Zone-Variante der Netzwerkmetriken (verdoppelt die Kardinalität) |

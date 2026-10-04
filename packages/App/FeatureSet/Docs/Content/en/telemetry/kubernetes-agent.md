@@ -453,6 +453,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 If the upgrade fails with `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set "aiAgent.remediation.namespaces={web}"`), or with `--set-json 'aiAgent.remediation.namespaces=[]'` to go back to the cluster-wide binding. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`, so it fails with the same error.
 
+> **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
+
 ### Upgrading to the Kubernetes AI agent
 
 The chart now runs the [Kubernetes AI agent](#kubernetes-ai-agent) by default. It replaces the in-cluster Runner (`component=ai-runner`) that `aiAccess.enabled=true` installed in earlier versions. Before you upgrade:
@@ -545,7 +547,7 @@ All on by default. Turn any off with `--set ebpf.features.<name>=false`:
 | `ebpf.features.*`         | Default | What it adds                                                      |
 | ------------------------- | ------- | ----------------------------------------------------------------- |
 | `httpMetrics`             | on      | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
-| `spanMetrics`             | on      | Per-span request/response size and duration                       |
+| `spanMetrics`             | on      | Span call count and duration (`traces.span.metrics.*`)            |
 | `serviceGraph`            | on      | Caller → callee edge metrics; drives the service map              |
 | `networkMetrics`          | on      | Pod-to-pod TCP/UDP flow counters                                  |
 | `networkInterZoneMetrics` | off     | Inter-zone variant of network metrics (doubles cardinality)       |

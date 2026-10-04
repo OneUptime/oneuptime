@@ -237,8 +237,6 @@ export const getGroupingModeFormField: <TModel extends BaseModel>(
     description: GROUPING_RULE_COPY.modeFieldDescription[kind],
     stepId: "grouping",
     fieldType: FormFieldSchemaType.CustomComponent,
-    // Writes only the answer picked; the form starts from the rule's own.
-    customElementCanBeSkipped: true,
     required: false,
     hideOptionalLabel: true,
     spanFullRow: true,
@@ -300,8 +298,6 @@ export const getTimeWindowFormField: <TModel extends BaseModel>(
     stepId: "grouping",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -370,8 +366,6 @@ export const getReopenWindowFormField: <TModel extends BaseModel>(
     stepId: "episode-lifecycle",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -412,8 +406,6 @@ export const getResolveDelayFormField: <TModel extends BaseModel>(
     stepId: "episode-lifecycle",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
@@ -454,8 +446,6 @@ export const getInactivityTimeoutFormField: <TModel extends BaseModel>(
     stepId: "episode-lifecycle",
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
-    // Shows the rule's own switch and minutes, and writes only a change.
-    customElementCanBeSkipped: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,

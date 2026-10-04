@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` bevarer din eksisterende konfiguration (preset, cluster-navn, filtre); angiv eventuelle nye `--set`-tilsidesættelser oven på det.
 
+> **eBPF-span-metrikker har fået nye navne.** `ebpf.features.spanMetrics` sender nu `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme serier under de navne, OBI beholder (de gamle har OBI udfaset). Et dashboard, et diagram eller en metrikkermonitor på et gammelt navn modtager ingen nye data efter opgraderingen og viser ingen fejl — flyt det til det nye navn, og ret også `filters.metrics`-poster, der nævner et gammelt navn.
+
 ## Afinstallering af agenten
 
 ```bash
@@ -412,7 +414,7 @@ Alle slået til som standard. Slå en hvilken som helst fra med `--set ebpf.feat
 | `ebpf.features.*`         | Standard | Hvad den tilføjer                                                  |
 | ------------------------- | -------- | ------------------------------------------------------------------ |
 | `httpMetrics`             | til      | HTTP/gRPC RED-metrikker (request-rate, latency, fejl) pr. tjeneste |
-| `spanMetrics`             | til      | Request-/response-størrelse og -varighed pr. span                  |
+| `spanMetrics`             | til      | Antal kald og varighed for spans (`traces.span.metrics.*`)         |
 | `serviceGraph`            | til      | Caller → callee edge-metrikker; driver service map                 |
 | `networkMetrics`          | til      | Pod-til-pod TCP/UDP flow-tællere                                   |
 | `networkInterZoneMetrics` | fra      | Inter-zone-variant af netværksmetrikker (fordobler kardinalitet)   |

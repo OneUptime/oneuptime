@@ -141,7 +141,8 @@ describe("the OAuth 2.0 variables guide", () => {
     expect(GUIDE).toContain(
       "**Edit Settings** walks the same **Provider** (token URL), **Credentials** (client ID) and **Advanced**",
     );
-    expect(GUIDE).toContain("**Save Changes** is on every step");
+    expect(GUIDE).toContain("**Save Changes** is on the last step");
+    expect(GUIDE).not.toContain("**Save Changes** is on every step");
   });
 
   // Google's OAuth clients have no Client Credentials grant.
