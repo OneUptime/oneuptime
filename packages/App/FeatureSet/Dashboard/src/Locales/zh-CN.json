@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "将监视器状态更改为",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "搜索监视器...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24686,5 +24686,12 @@
   "Precision": "精度",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "页面上各资源的平均正常运行时间，在一切正常运行时显示在整体状态旁边。",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "监视器处于其中任一状态的时间，会从它在此页面上的正常运行时间中扣除。",
-  "New Scheduled Maintenance Event": "新的计划维护事件"
+  "New Scheduled Maintenance Event": "新的计划维护事件",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "从此模板声明的事件会将其监视器的状态更改为此状态——包括此处选择的监视器，以及声明事件时选择的任何监视器。",
+  "No monitors affected by this incident.": "没有受此事件影响的监视器。",
+  "No other resources affected by this incident.": "没有受此事件影响的其他资源。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "搜索并关联受此事件影响的主机、Kubernetes 集群、Docker 主机、数据库或服务。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "搜索并关联从此模板创建的事件应预填充的主机、Kubernetes 集群、Docker 主机或服务。",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "搜索并关联受此事件影响的监视器。列出这些监视器的状态页面会显示此事件。",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "搜索并关联从此模板创建的事件应预填充的监视器。"
 }

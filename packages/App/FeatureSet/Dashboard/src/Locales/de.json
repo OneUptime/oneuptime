@@ -24686,5 +24686,12 @@
   "Precision": "Genauigkeit",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "Die durchschnittliche Verfügbarkeit der Ressourcen der Seite, angezeigt neben ihrem Gesamtstatus, solange alles betriebsbereit ist.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Die Zeit, die ein Monitor in einem dieser Status verbringt, wird auf dieser Seite von seiner Verfügbarkeit abgezogen.",
-  "New Scheduled Maintenance Event": "Neues geplantes Wartungsereignis"
+  "New Scheduled Maintenance Event": "Neues geplantes Wartungsereignis",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Aus dieser Vorlage gemeldete Vorfälle setzen ihre Monitore auf diesen Status – die hier ausgewählten und alle, die beim Melden des Vorfalls ausgewählt werden.",
+  "No monitors affected by this incident.": "Keine Monitore von diesem Vorfall betroffen.",
+  "No other resources affected by this incident.": "Keine weiteren Ressourcen von diesem Vorfall betroffen.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Hosts, Kubernetes-Cluster, Docker-Hosts, Datenbanken oder Dienste suchen und anhängen, die von diesem Vorfall betroffen sind.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Suchen und verknüpfen Sie Hosts, Kubernetes-Cluster, Docker-Hosts oder Dienste, die aus dieser Vorlage erstellte Vorfälle vorab ausfüllen sollen.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Monitore suchen und anhängen, die von diesem Vorfall betroffen sind. Die Statusseiten, die sie auflisten, zeigen ihn an.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Suchen und verknüpfen Sie die Monitore, die aus dieser Vorlage erstellte Vorfälle vorab ausfüllen sollen."
 }

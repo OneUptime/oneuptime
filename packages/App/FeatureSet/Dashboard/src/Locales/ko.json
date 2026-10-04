@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "모니터 상태를 다음으로 변경",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "모니터 검색...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24686,5 +24686,12 @@
   "Precision": "정밀도",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "페이지 리소스의 평균 가동 시간으로, 모든 것이 정상 작동하는 동안 전체 상태 옆에 표시됩니다.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "모니터가 이 상태 중 하나에 머문 시간은 이 페이지에서 해당 모니터의 가동 시간에서 차감됩니다.",
-  "New Scheduled Maintenance Event": "새 예약 유지보수 이벤트"
+  "New Scheduled Maintenance Event": "새 예약 유지보수 이벤트",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "이 템플릿으로 선언된 인시던트는 모니터 상태를 이 상태로 변경합니다. 여기에서 선택한 모니터와 인시던트를 선언할 때 선택한 모니터가 모두 해당됩니다.",
+  "No monitors affected by this incident.": "이 인시던트의 영향을 받은 모니터가 없습니다.",
+  "No other resources affected by this incident.": "이 인시던트의 영향을 받은 다른 리소스가 없습니다.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "이 인시던트의 영향을 받은 호스트, Kubernetes 클러스터, Docker 호스트, 데이터베이스 또는 서비스를 검색하고 첨부하세요.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "이 템플릿에서 만든 인시던트가 미리 채워야 하는 호스트, Kubernetes 클러스터, Docker 호스트 또는 서비스를 검색하고 첨부하세요.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "이 인시던트의 영향을 받은 모니터를 검색하고 첨부하세요. 해당 모니터가 표시된 상태 페이지에 이 인시던트가 표시됩니다.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "이 템플릿에서 만든 인시던트가 미리 채워야 하는 모니터를 검색하고 첨부하세요."
 }

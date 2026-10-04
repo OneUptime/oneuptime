@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "Endre overvåkingsstatus til",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "Søk etter overvåkere...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24686,5 +24686,12 @@
   "Precision": "Presisjon",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "Gjennomsnittlig oppetid for sidens ressurser, vist ved siden av den samlede statusen så lenge alt er i drift.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Tiden en monitor bruker i en av disse statusene, trekkes fra oppetiden dens på denne siden.",
-  "New Scheduled Maintenance Event": "Ny planlagt vedlikeholdshendelse"
+  "New Scheduled Maintenance Event": "Ny planlagt vedlikeholdshendelse",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Hendelser som erklæres fra denne malen, setter overvåkerne sine til denne statusen – de som er valgt her, og de som velges når hendelsen erklæres.",
+  "No monitors affected by this incident.": "Ingen overvåkere påvirket av denne hendelsen.",
+  "No other resources affected by this incident.": "Ingen andre ressurser påvirket av denne hendelsen.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Søk etter og knytt til verter, Kubernetes-klynger, Docker-verter, databaser eller tjenester som denne hendelsen påvirker.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Søk etter og knytt til verter, Kubernetes-klynger, Docker-verter eller tjenester som hendelser opprettet fra denne malen skal forhåndsutfylle.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Søk etter og knytt til overvåkerne som denne hendelsen påvirker. Statussidene som viser dem, viser hendelsen.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Søk etter og knytt til overvåkerne som hendelser opprettet fra denne malen skal forhåndsutfylle."
 }

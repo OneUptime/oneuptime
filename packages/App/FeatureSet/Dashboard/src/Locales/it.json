@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "Cambia lo stato del monitor in",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "Cerca monitor...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24686,5 +24686,12 @@
   "Precision": "Precisione",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "L'uptime medio delle risorse della pagina, mostrato accanto al suo stato complessivo finché tutto è operativo.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Il tempo che un monitor trascorre in uno di questi stati viene sottratto al suo uptime su questa pagina.",
-  "New Scheduled Maintenance Event": "Nuovo evento di manutenzione programmata"
+  "New Scheduled Maintenance Event": "Nuovo evento di manutenzione programmata",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Gli incidenti dichiarati da questo modello portano i loro monitor a questo stato: quelli scelti qui e quelli scelti quando l'incidente viene dichiarato.",
+  "No monitors affected by this incident.": "Nessun monitor interessato da questo incidente.",
+  "No other resources affected by this incident.": "Nessun'altra risorsa interessata da questo incidente.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Cerca e allega host, cluster Kubernetes, host Docker, database o servizi interessati da questo incidente.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Cerca e allega host, cluster Kubernetes, host Docker o servizi che gli incidenti creati da questo modello dovrebbero precompilare.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Cerca e allega i monitor interessati da questo incidente. Le pagine di stato che li elencano lo mostrano.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Cerca e allega i monitor che gli incidenti creati da questo modello dovrebbero precompilare."
 }
