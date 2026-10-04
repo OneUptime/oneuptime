@@ -2,6 +2,10 @@ import { FeedStatus, FeedUrls } from "./CalendarFeedTypes";
 import OneUptimeDate from "Common/Types/Date";
 import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
 import {
+  UserOverrideCoverWindow,
+  getUserOverrideCoverWindow,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
+import {
   MAX_MINUTES_BEFORE_SHIFT,
   MIN_MINUTES_BEFORE_SHIFT,
 } from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
@@ -498,6 +502,34 @@ export const isCoveringShift: IsCoveringShiftFunction = (
   return Boolean(
     shift.override && shift.override.originalUserId !== shift.userId,
   );
+};
+
+type GetCoverWindowForShiftFunction = (
+  shift: MaterializedShiftJson,
+  now: Date,
+) => UserOverrideCoverWindow | null;
+
+/*
+ * The window "Get cover" asks to cover for an upcoming shift - the shift,
+ * from now once it has started - or null when it is not offered: for a
+ * shift that has ended, and for one the reader is covering for someone
+ * else. Overrides do not chain (UserOverrideUtil), so cover booked for a
+ * shift that is itself cover would change nothing; the mobile app leaves
+ * those out too (canRequestCover).
+ */
+export const getCoverWindowForShift: GetCoverWindowForShiftFunction = (
+  shift: MaterializedShiftJson,
+  now: Date,
+): UserOverrideCoverWindow | null => {
+  if (!shift.projectId || isCoveringShift(shift)) {
+    return null;
+  }
+
+  return getUserOverrideCoverWindow({
+    start: shift.start,
+    end: shift.end,
+    now: now,
+  });
 };
 
 export interface UpcomingShiftsWindow {

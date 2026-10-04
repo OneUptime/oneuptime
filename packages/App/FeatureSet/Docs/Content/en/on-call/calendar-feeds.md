@@ -48,7 +48,7 @@ Settings on the same card:
 
 The status line shows when the link was last fetched, by which calendar app, how many times, and the last four characters of the token so you can tell links apart. If nothing has fetched the link after two days, the page asks whether the server is reachable from the internet (see Troubleshooting).
 
-The page also lists your **Upcoming shifts** (the next 30 days), each with a **Get cover** link that opens User Overrides pre-filled for that shift, and the **Remind me before shifts** card described further down.
+The page also lists your **Upcoming shifts** (the next 30 days), and the **Remind me before shifts** card described further down. Each of your own shifts has a **Get cover** link: it opens User Overrides in the shift's project with a new override pre-filled for that shift, you as **Who is away?** and the shift's times as **Starts** and **Ends** (from now, if the shift has started), so all that is left is **Who covers?**. A shift that exists only inside one policy is covered on that policy's User Overrides page. A shift you are covering for someone else has no **Get cover**: overrides do not chain, so cover for cover would change nothing.
 
 Actions:
 

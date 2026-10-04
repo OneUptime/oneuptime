@@ -3,7 +3,14 @@ import {
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
 } from "./UserOverrideForm";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  USER_OVERRIDE_COVER_ENDS_AT_PARAM,
+  USER_OVERRIDE_COVER_STARTS_AT_PARAM,
+  UserOverrideCoverWindow,
+  readUserOverrideCoverRequest,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -11,7 +18,13 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Navigation from "Common/UI/Utils/Navigation";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import User from "Common/Models/DatabaseModels/User";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -28,6 +41,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * Each row reads as the override does: who is away, who covers, from when,
  * until when. Adding one asks the same four things, with you as the person
  * away and now as the start (UserOverrideForm.ts).
+ *
+ * "Get cover" on an upcoming shift (User Settings > Calendar Feed) opens
+ * this page with the shift's window in its address: Add User Override opens
+ * on that window, with you away, so all that is left is who covers
+ * (UserOverrideCoverRequest.ts).
  */
 
 export interface ComponentProps {
@@ -125,7 +143,42 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
    * Who is away starts as the person adding the override, read when the
    * page opens: booking your own leave is what this form is most often for.
    */
-  const currentUserId: string = UserUtil.getUserId().toString();
+  const currentUserId: string = UserUtil.getUserId()?.toString() || "";
+
+  /*
+   * The window a "Get cover" link asks to cover, read once as the page
+   * opens. It is what Add User Override starts with until an override is
+   * added from it; the address is cleaned at once, so a reload does not
+   * open the dialog again.
+   */
+  const [coverRequest, setCoverRequest] =
+    useState<UserOverrideCoverWindow | null>(() => {
+      return readUserOverrideCoverRequest({
+        startsAt: Navigation.getQueryStringByName(
+          USER_OVERRIDE_COVER_STARTS_AT_PARAM,
+        ),
+        endsAt: Navigation.getQueryStringByName(
+          USER_OVERRIDE_COVER_ENDS_AT_PARAM,
+        ),
+        now: OneUptimeDate.getCurrentDate(),
+      });
+    });
+
+  useEffect(() => {
+    if (
+      Navigation.getQueryStringByName(USER_OVERRIDE_COVER_STARTS_AT_PARAM) ===
+        null &&
+      Navigation.getQueryStringByName(USER_OVERRIDE_COVER_ENDS_AT_PARAM) ===
+        null
+    ) {
+      return;
+    }
+
+    Navigation.setQueryString({
+      [USER_OVERRIDE_COVER_STARTS_AT_PARAM]: null,
+      [USER_OVERRIDE_COVER_ENDS_AT_PARAM]: null,
+    });
+  }, []);
 
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
@@ -147,6 +200,22 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         isCreateable={true}
         isViewable={false}
         createVerb="Add"
+        showCreateForm={Boolean(coverRequest)}
+        createInitialValues={
+          coverRequest
+            ? {
+                startsAt: coverRequest.startsAt,
+                endsAt: coverRequest.endsAt,
+              }
+            : undefined
+        }
+        onCreateSuccess={async (
+          item: OnCallDutyPolicyUserOverride,
+        ): Promise<OnCallDutyPolicyUserOverride> => {
+          // The cover it asked for is booked: the next one starts afresh.
+          setCoverRequest(null);
+          return item;
+        }}
         onBeforeCreate={async (
           item: OnCallDutyPolicyUserOverride,
         ): Promise<OnCallDutyPolicyUserOverride> => {

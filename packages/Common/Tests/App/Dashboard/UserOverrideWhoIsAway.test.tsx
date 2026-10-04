@@ -41,7 +41,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     person covering as routeAlertsToUserId, for the policy whose page it
  *     was added on, or for every policy;
  *   - the list reads Away, Covered by, Starts, Ends - with no policy column,
- *     which said the same thing on every row.
+ *     which said the same thing on every row;
+ *   - opened from "Get cover" on an upcoming shift, the page opens Add User
+ *     Override on that shift's window, with you away.
  */
 
 let permissionsForTest: Array<string> = [];
@@ -173,6 +175,7 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Timezone from "../../../Types/Timezone";
+import { getUserOverrideCoverQueryParams } from "../../../Types/OnCallDutyPolicy/UserOverrideCoverRequest";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
@@ -294,18 +297,18 @@ afterEach(() => {
 
 type Page = "global" | "policy";
 
-async function renderPage(page: Page): Promise<void> {
+async function renderPage(page: Page, search: string = ""): Promise<void> {
   const path: string =
     page === "global"
       ? `/dashboard/${PROJECT_ID}/on-call-duty/user-overrides`
       : `/dashboard/${PROJECT_ID}/on-call-duty/policies/${POLICY_ID}/user-overrides`;
 
-  window.history.replaceState(window.history.state, "", path);
+  window.history.replaceState(window.history.state, "", `${path}${search}`);
 
   // The policy's page reads the policy's id from the route.
   Navigation.setLocation({
     pathname: path,
-    search: "",
+    search: search,
     hash: "",
     state: null,
     key: "test",
@@ -796,6 +799,160 @@ describe.each(["global", "policy"] as Array<Page>)(
         ),
       ).toBeVisible();
       expect(createOrUpdateMock).not.toHaveBeenCalled();
+    });
+  },
+);
+
+/*
+ * "Get cover" on Jane's shift from 14:00 to 22:00 tomorrow, as the Upcoming
+ * shifts card writes it (getUserOverrideCoverQueryParams).
+ */
+const SHIFT_STARTS: Date = OneUptimeDate.fromString("2026-03-04T14:00:00.000Z");
+const SHIFT_ENDS: Date = OneUptimeDate.fromString("2026-03-04T22:00:00.000Z");
+
+function coverSearch(window: { startsAt: Date; endsAt: Date }): string {
+  const params: Record<string, string> =
+    getUserOverrideCoverQueryParams(window);
+
+  return `?${Object.entries(params)
+    .map(([key, value]: [string, string]): string => {
+      return `${key}=${value}`;
+    })
+    .join("&")}`;
+}
+
+async function findOpenDialog(): Promise<HTMLElement> {
+  const modal: HTMLElement = await screen.findByTestId("modal");
+
+  await within(modal).findByText("Who covers?");
+
+  await waitFor(() => {
+    expect(timeInput(modal, "Ends").value).not.toBe("");
+  });
+
+  return modal;
+}
+
+describe.each(["global", "policy"] as Array<Page>)(
+  "the %s page, opened from 'Get cover' on an upcoming shift",
+  (page: Page) => {
+    test("opens Add User Override on the shift's window, with you away", async () => {
+      await renderPage(
+        page,
+        coverSearch({ startsAt: SHIFT_STARTS, endsAt: SHIFT_ENDS }),
+      );
+
+      const modal: HTMLElement = await findOpenDialog();
+
+      expect(timeInput(modal, "Starts").value).toMatch(/^2026-03-04T14:00/);
+      expect(timeInput(modal, "Ends").value).toMatch(/^2026-03-04T22:00/);
+
+      await waitFor(() => {
+        expect(chipIds(picker(modal, "Who is away?"))).toEqual([ALEX]);
+      });
+      expect(chipIds(picker(modal, "Who covers?"))).toEqual([]);
+    });
+
+    test("takes the window out of the address, so a reload opens the page as usual", async () => {
+      await renderPage(
+        page,
+        coverSearch({ startsAt: SHIFT_STARTS, endsAt: SHIFT_ENDS }),
+      );
+
+      await findOpenDialog();
+
+      expect(window.location.search).toBe("");
+    });
+
+    test("books cover for that shift once who covers is picked", async () => {
+      await renderPage(
+        page,
+        coverSearch({ startsAt: SHIFT_STARTS, endsAt: SHIFT_ENDS }),
+      );
+
+      const modal: HTMLElement = await findOpenDialog();
+
+      await pick(modal, "Who covers?", "Choose who covers", SAM);
+      await submit(modal);
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const sent: OnCallDutyPolicyUserOverride = sentOverride();
+
+      expect(idOf(sent.overrideUserId)).toBe(ALEX);
+      expect(idOf(sent.routeAlertsToUserId)).toBe(SAM);
+      expect(OneUptimeDate.fromString(sent.startsAt!).toISOString()).toBe(
+        SHIFT_STARTS.toISOString(),
+      );
+      expect(OneUptimeDate.fromString(sent.endsAt!).toISOString()).toBe(
+        SHIFT_ENDS.toISOString(),
+      );
+
+      if (page === "policy") {
+        expect(idOf(sent.onCallDutyPolicyId)).toBe(POLICY_ID);
+      } else {
+        expect(sent.onCallDutyPolicyId).toBeFalsy();
+      }
+
+      // Booked: the next Add User Override starts afresh, from now.
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+      });
+
+      const next: HTMLElement = await openAddDialog();
+
+      expect(timeInput(next, "Starts").value).toMatch(/^2026-03-03T12:34/);
+      expect(timeInput(next, "Ends").value).toBe("");
+    });
+
+    test("a shift that has started is covered from now", async () => {
+      await renderPage(
+        page,
+        coverSearch({
+          startsAt: OneUptimeDate.fromString("2026-03-03T08:00:00.000Z"),
+          endsAt: SHIFT_ENDS,
+        }),
+      );
+
+      const modal: HTMLElement = await findOpenDialog();
+
+      expect(timeInput(modal, "Starts").value).toMatch(/^2026-03-03T12:34/);
+    });
+
+    test("an address that asks for nothing usable opens the page as usual", async () => {
+      for (const search of [
+        // The shift has ended.
+        coverSearch({
+          startsAt: OneUptimeDate.fromString("2026-03-02T08:00:00.000Z"),
+          endsAt: OneUptimeDate.fromString("2026-03-02T16:00:00.000Z"),
+        }),
+        // Half of it.
+        `?coverStartsAt=${encodeURIComponent(SHIFT_STARTS.toISOString())}`,
+        // Not times at all.
+        "?coverStartsAt=soon&coverEndsAt=later",
+      ]) {
+        await renderPage(page, search);
+
+        await waitFor(() => {
+          expect(
+            screen
+              .getAllByRole("button")
+              .some((button: HTMLElement): boolean => {
+                return (
+                  (button.textContent || "").trim() === "Add User Override"
+                );
+              }),
+          ).toBe(true);
+        });
+
+        expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+        // Nothing the page could use is left in the address either.
+        expect(window.location.search).toBe("");
+
+        cleanup();
+      }
     });
   },
 );
