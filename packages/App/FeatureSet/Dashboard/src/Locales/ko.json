@@ -24651,6 +24651,11 @@
   "Who is away?": "누가 부재 중인가요?",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "누군가 부재 중인 동안 사용자 재정의는 그 사람에게 갈 알림을 정해진 기간 동안 대신하는 사람에게 보냅니다. 온콜 정책의 재정의는 그 정책에만 적용되고, 정책이 없는 재정의는 모든 온콜 정책에 적용됩니다.",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "스크럽할 텍스트의 정규식이며, 슬래시나 플래그 없이 입력합니다. 대소문자를 구분합니다.",
+  "Add all": "모두 추가",
+  "Add {{statusPageName}}": "{{statusPageName}} 추가",
+  "Added {{count}} status pages.": "상태 페이지 {{count}}개를 추가했습니다.",
+  "Added {{count}} status pages._one": "상태 페이지 {{count}}개를 추가했습니다.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}}을(를) 상태 페이지에 추가했습니다.",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "일치시킬 정규식을 입력하세요. 정규식이 없으면 이 규칙은 아무것도 스크럽하지 않습니다.",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "일치 항목은 스팬 이름, 속성, 이벤트 속성에서 [REDACTED]로 바뀝니다.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "일치 항목은 로그 본문과 속성에서 [REDACTED]로 바뀝니다.",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "전화번호 스크럽",
   "Scrub sensitive attributes": "민감한 속성 스크럽",
   "Scrubs nothing": "아무것도 스크럽하지 않음",
+  "Status pages that show the affected monitors:": "영향받는 모니터를 표시하는 상태 페이지:",
+  "Status pages that show the affected monitors:_one": "영향받는 모니터를 표시하는 상태 페이지:",
   "The filter applies to new logs within a minute of being created.": "필터는 생성 후 1분 이내에 새 로그에 적용됩니다.",
   "The filter applies to new spans within a minute of being created.": "필터는 생성 후 1분 이내에 새 스팬에 적용됩니다.",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "키가 민감해 보이는 속성의 값은 [REDACTED]로 바뀝니다.",
   "This is not a valid regular expression: {{reason}}": "올바른 정규식이 아닙니다: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "이 패턴은 빈 텍스트와 일치하므로 모든 문자 사이에 대체 문자열을 넣게 됩니다. 한 글자 이상과 일치하도록 만드세요.",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "이 규칙에는 사용할 수 있는 패턴이 없어 아무것도 스크럽하지 않습니다. 편집해서 패턴을 지정하거나 삭제하세요."
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "이 규칙에는 사용할 수 있는 패턴이 없어 아무것도 스크럽하지 않습니다. 편집해서 패턴을 지정하거나 삭제하세요.",
+  "Untitled status page": "제목 없는 상태 페이지"
 }

@@ -24651,6 +24651,11 @@
   "Who is away?": "誰が不在ですか？",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "誰かが不在の間、ユーザーオーバーライドは、その人に届くはずのアラートを指定した期間、代理の人に送ります。オンコールポリシーのオーバーライドはそのポリシーにのみ適用され、ポリシーのないオーバーライドはすべてのオンコールポリシーに適用されます。",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "スクラブするテキストの正規表現です（スラッシュやフラグは不要）。大文字と小文字は区別されます。",
+  "Add all": "すべて追加",
+  "Add {{statusPageName}}": "{{statusPageName}}を追加",
+  "Added {{count}} status pages.": "{{count}} 件のステータスページを追加しました。",
+  "Added {{count}} status pages._one": "{{count}} 件のステータスページを追加しました。",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} をステータスページに追加しました。",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "照合する正規表現を入力してください。入力しないと、このルールは何もスクラブしません。",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "一致した部分は、スパン名、属性、イベント属性で [REDACTED] に置き換えられます。",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "一致した部分は、ログ本文と属性で [REDACTED] に置き換えられます。",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "電話番号をスクラブ",
   "Scrub sensitive attributes": "機密属性をスクラブ",
   "Scrubs nothing": "何もスクラブしません",
+  "Status pages that show the affected monitors:": "影響を受けるモニターを表示しているステータスページ:",
+  "Status pages that show the affected monitors:_one": "影響を受けるモニターを表示しているステータスページ:",
   "The filter applies to new logs within a minute of being created.": "フィルターは作成から 1 分以内に新しいログに適用されます。",
   "The filter applies to new spans within a minute of being created.": "フィルターは作成から 1 分以内に新しいスパンに適用されます。",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "キーが機密情報に見える属性の値は [REDACTED] に置き換えられます。",
   "This is not a valid regular expression: {{reason}}": "有効な正規表現ではありません: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "このパターンは空のテキストに一致するため、すべての文字の間に置換文字列が挿入されます。1 文字以上に一致するようにしてください。",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "このルールには使用できるパターンがないため、何もスクラブしません。編集してパターンを指定するか、削除してください。"
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "このルールには使用できるパターンがないため、何もスクラブしません。編集してパターンを指定するか、削除してください。",
+  "Untitled status page": "無題のステータスページ"
 }

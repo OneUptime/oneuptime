@@ -24651,6 +24651,11 @@
   "Who is away?": "कौन अनुपस्थित है?",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "जब कोई अनुपस्थित होता है, तो उपयोगकर्ता ओवरराइड उनके लिए आने वाले अलर्ट तय समय तक कवर करने वाले व्यक्ति को भेजता है। किसी ऑन-कॉल नीति पर बना ओवरराइड केवल उसी नीति पर लागू होता है; बिना नीति वाला ओवरराइड हर ऑन-कॉल नीति पर लागू होता है।",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "स्क्रब किए जाने वाले टेक्स्ट के लिए रेगुलर एक्सप्रेशन, बिना स्लैश या फ़्लैग के। मिलान केस-सेंसिटिव होता है।",
+  "Add all": "सभी जोड़ें",
+  "Add {{statusPageName}}": "{{statusPageName}} जोड़ें",
+  "Added {{count}} status pages.": "{{count}} स्थिति पृष्ठ जोड़े गए।",
+  "Added {{count}} status pages._one": "{{count}} स्थिति पृष्ठ जोड़ा गया।",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} को स्थिति पृष्ठों में जोड़ा गया।",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "मिलान के लिए रेगुलर एक्सप्रेशन दर्ज करें। इसके बिना यह नियम कुछ भी स्क्रब नहीं करेगा।",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "मिलान स्पैन नामों, विशेषताओं और इवेंट विशेषताओं में [REDACTED] से बदल दिए जाते हैं।",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "मिलान लॉग बॉडी और विशेषताओं में [REDACTED] से बदल दिए जाते हैं।",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "फ़ोन नंबर स्क्रब करें",
   "Scrub sensitive attributes": "संवेदनशील विशेषताएँ स्क्रब करें",
   "Scrubs nothing": "कुछ भी स्क्रब नहीं करता",
+  "Status pages that show the affected monitors:": "प्रभावित मॉनिटर दिखाने वाले स्थिति पृष्ठ:",
+  "Status pages that show the affected monitors:_one": "प्रभावित मॉनिटर को दिखाने वाले स्थिति पृष्ठ:",
   "The filter applies to new logs within a minute of being created.": "फ़िल्टर बनने के एक मिनट के भीतर नए लॉग पर लागू हो जाता है।",
   "The filter applies to new spans within a minute of being created.": "फ़िल्टर बनने के एक मिनट के भीतर नए स्पैन पर लागू हो जाता है।",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "जिन विशेषताओं की कुंजी संवेदनशील लगती है, उनके मान [REDACTED] से बदल दिए जाते हैं।",
   "This is not a valid regular expression: {{reason}}": "यह मान्य रेगुलर एक्सप्रेशन नहीं है: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "यह पैटर्न खाली टेक्स्ट से मेल खाता है, इसलिए यह हर अक्षर के बीच अपना प्रतिस्थापन डाल देगा। इसे कम से कम एक अक्षर से मेल खाने वाला बनाएं।",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "इस नियम में कोई उपयोगी पैटर्न नहीं है, इसलिए यह कुछ भी स्क्रब नहीं करता। इसे पैटर्न देने के लिए संपादित करें, या हटा दें।"
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "इस नियम में कोई उपयोगी पैटर्न नहीं है, इसलिए यह कुछ भी स्क्रब नहीं करता। इसे पैटर्न देने के लिए संपादित करें, या हटा दें।",
+  "Untitled status page": "बिना शीर्षक वाला स्थिति पृष्ठ"
 }

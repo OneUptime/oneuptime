@@ -24651,6 +24651,11 @@
   "Who is away?": "Кто отсутствует?",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Пока кто-то отсутствует, пользовательское переопределение направляет оповещения, которые получил бы этот человек, замещающему на заданное время. Переопределение в политике дежурства действует только для этой политики; без политики — для всех политик дежурства.",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "Регулярное выражение для очищаемого текста, без косых черт и флагов. Регистр учитывается.",
+  "Add all": "Добавить все",
+  "Add {{statusPageName}}": "Добавить {{statusPageName}}",
+  "Added {{count}} status pages.": "Добавлено страниц состояния: {{count}}.",
+  "Added {{count}} status pages._one": "Добавлена {{count}} страница состояния.",
+  "Added {{statusPageName}} to the status pages.": "Страница состояния {{statusPageName}} добавлена.",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "Введите регулярное выражение для поиска. Без него это правило ничего не очистит.",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Совпадения заменяются на [REDACTED] в именах спанов, атрибутах и атрибутах событий.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Совпадения заменяются на [REDACTED] в теле журнала и атрибутах.",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "Очистка номеров телефонов",
   "Scrub sensitive attributes": "Очистка конфиденциальных атрибутов",
   "Scrubs nothing": "Ничего не очищает",
+  "Status pages that show the affected monitors:": "Страницы состояния, на которых показаны затронутые мониторы:",
+  "Status pages that show the affected monitors:_one": "Страницы состояния, на которых показан затронутый монитор:",
   "The filter applies to new logs within a minute of being created.": "Фильтр начинает действовать для новых журналов в течение минуты после создания.",
   "The filter applies to new spans within a minute of being created.": "Фильтр начинает действовать для новых спанов в течение минуты после создания.",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "Значения атрибутов, ключ которых выглядит конфиденциальным, заменяются на [REDACTED].",
   "This is not a valid regular expression: {{reason}}": "Это недопустимое регулярное выражение: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "Этот шаблон совпадает с пустым текстом, поэтому он вставил бы замену между всеми символами. Сделайте так, чтобы он совпадал хотя бы с одним символом.",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "У этого правила нет пригодного шаблона, поэтому оно ничего не очищает. Отредактируйте его, указав шаблон, или удалите."
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "У этого правила нет пригодного шаблона, поэтому оно ничего не очищает. Отредактируйте его, указав шаблон, или удалите.",
+  "Untitled status page": "Страница состояния без названия"
 }

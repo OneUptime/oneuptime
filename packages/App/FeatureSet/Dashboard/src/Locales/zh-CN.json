@@ -24651,6 +24651,11 @@
   "Who is away?": "谁不在岗？",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在岗时，用户覆盖会在设定的时间内，把本应发给此人的警报发给代班的人。值班策略上的覆盖只适用于该策略；没有策略的覆盖适用于所有值班策略。",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "要清理的文本的正则表达式，不带斜杠或标志。区分大小写。",
+  "Add all": "全部添加",
+  "Add {{statusPageName}}": "添加{{statusPageName}}",
+  "Added {{count}} status pages.": "已添加 {{count}} 个状态页面。",
+  "Added {{count}} status pages._one": "已添加 {{count}} 个状态页面。",
+  "Added {{statusPageName}} to the status pages.": "已将{{statusPageName}}添加到状态页面。",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "请输入要匹配的正则表达式。没有它，此规则将不会清理任何内容。",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "匹配项会在跨度名称、属性和事件属性中替换为 [REDACTED]。",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "匹配项会在日志正文和属性中替换为 [REDACTED]。",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "清理电话号码",
   "Scrub sensitive attributes": "清理敏感属性",
   "Scrubs nothing": "不清理任何内容",
+  "Status pages that show the affected monitors:": "显示受影响监视器的状态页面：",
+  "Status pages that show the affected monitors:_one": "显示受影响监视器的状态页面：",
   "The filter applies to new logs within a minute of being created.": "过滤器在创建后一分钟内对新日志生效。",
   "The filter applies to new spans within a minute of being created.": "过滤器在创建后一分钟内对新跨度生效。",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "键看起来敏感的属性，其值会替换为 [REDACTED]。",
   "This is not a valid regular expression: {{reason}}": "这不是有效的正则表达式：{{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "此模式匹配空文本，因此会在每个字符之间插入替换内容。请让它至少匹配一个字符。",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "此规则没有可用的模式，因此不会清理任何内容。请编辑它以提供一个模式，或将其删除。"
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "此规则没有可用的模式，因此不会清理任何内容。请编辑它以提供一个模式，或将其删除。",
+  "Untitled status page": "未命名的状态页面"
 }

@@ -24651,6 +24651,11 @@
   "Who is away?": "Who is away?",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.",
+  "Add all": "Add all",
+  "Add {{statusPageName}}": "Add {{statusPageName}}",
+  "Added {{count}} status pages.": "Added {{count}} status pages.",
+  "Added {{count}} status pages._one": "Added {{count}} status page.",
+  "Added {{statusPageName}} to the status pages.": "Added {{statusPageName}} to the status pages.",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "Enter the regular expression to match. Without one, this rule would scrub nothing.",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Matches are replaced with [REDACTED] in span names, attributes and event attributes.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Matches are replaced with [REDACTED] in the log body and attributes.",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "Scrub phone numbers",
   "Scrub sensitive attributes": "Scrub sensitive attributes",
   "Scrubs nothing": "Scrubs nothing",
+  "Status pages that show the affected monitors:": "Status pages that show the affected monitors:",
+  "Status pages that show the affected monitors:_one": "Status pages that show the affected monitor:",
   "The filter applies to new logs within a minute of being created.": "The filter applies to new logs within a minute of being created.",
   "The filter applies to new spans within a minute of being created.": "The filter applies to new spans within a minute of being created.",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "The values of attributes whose key looks sensitive are replaced with [REDACTED].",
   "This is not a valid regular expression: {{reason}}": "This is not a valid regular expression: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it."
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.",
+  "Untitled status page": "Untitled status page"
 }

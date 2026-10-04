@@ -24651,6 +24651,11 @@
   "Who is away?": "Vem är borta?",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Medan någon är borta skickar en användaråsidosättning de larm som skulle nå personen till den som täcker upp, under en bestämd tid. En åsidosättning på en jourpolicy gäller bara den policyn; en utan policy gäller alla jourpolicyer.",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "Ett reguljärt uttryck för texten som ska rensas, utan snedstreck eller flaggor. Skiljer på versaler och gemener.",
+  "Add all": "Lägg till alla",
+  "Add {{statusPageName}}": "Lägg till {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} statussidor har lagts till.",
+  "Added {{count}} status pages._one": "{{count}} statussida har lagts till.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} har lagts till bland statussidorna.",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "Ange det reguljära uttrycket som ska matchas. Utan det skulle den här regeln inte rensa något.",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "Träffar ersätts med [REDACTED] i span-namn, attribut och händelseattribut.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "Träffar ersätts med [REDACTED] i loggens brödtext och attribut.",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "Rensa telefonnummer",
   "Scrub sensitive attributes": "Rensa känsliga attribut",
   "Scrubs nothing": "Rensar ingenting",
+  "Status pages that show the affected monitors:": "Statussidor som visar de berörda monitorerna:",
+  "Status pages that show the affected monitors:_one": "Statussidor som visar den berörda monitorn:",
   "The filter applies to new logs within a minute of being created.": "Filtret gäller nya loggar inom en minut efter att det har skapats.",
   "The filter applies to new spans within a minute of being created.": "Filtret gäller nya spans inom en minut efter att det har skapats.",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "Värdena för attribut vars nyckel ser känslig ut ersätts med [REDACTED].",
   "This is not a valid regular expression: {{reason}}": "Det här är inte ett giltigt reguljärt uttryck: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "Det här mönstret matchar tom text och skulle därför lägga in sin ersättning mellan varje tecken. Låt det matcha minst ett tecken.",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "Den här regeln har inget användbart mönster, så den rensar ingenting. Redigera den för att ge den ett, eller ta bort den."
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "Den här regeln har inget användbart mönster, så den rensar ingenting. Redigera den för att ge den ett, eller ta bort den.",
+  "Untitled status page": "Namnlös statussida"
 }

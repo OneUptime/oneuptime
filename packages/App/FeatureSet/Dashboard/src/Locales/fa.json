@@ -24651,6 +24651,11 @@
   "Who is away?": "چه کسی غایب است؟",
   "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "وقتی کسی غایب است، جایگزینی کاربر هشدارهایی را که باید به او می‌رسید، برای مدت مشخصی به جایگزینش می‌فرستد. جایگزینی روی یک سیاست آنکال فقط برای همان سیاست است؛ جایگزینی بدون سیاست برای همه سیاست‌های آنکال است.",
   "A regular expression for the text to scrub, without slashes or flags. Matching is case-sensitive.": "عبارت باقاعده برای متنی که باید پالایش شود، بدون اسلش یا پرچم. به بزرگی و کوچکی حروف حساس است.",
+  "Add all": "افزودن همه",
+  "Add {{statusPageName}}": "افزودن {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} صفحه وضعیت افزوده شد.",
+  "Added {{count}} status pages._one": "{{count}} صفحه وضعیت افزوده شد.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} به صفحات وضعیت افزوده شد.",
   "Enter the regular expression to match. Without one, this rule would scrub nothing.": "عبارت باقاعده‌ای را که باید تطبیق داده شود وارد کنید. بدون آن، این قاعده چیزی را پالایش نمی‌کند.",
   "Matches are replaced with [REDACTED] in span names, attributes and event attributes.": "موارد منطبق در نام‌های اسپن، ویژگی‌ها و ویژگی‌های رویداد با [REDACTED] جایگزین می‌شوند.",
   "Matches are replaced with [REDACTED] in the log body and attributes.": "موارد منطبق در بدنه و ویژگی‌های لاگ با [REDACTED] جایگزین می‌شوند.",
@@ -24663,10 +24668,13 @@
   "Scrub phone numbers": "پالایش شماره‌های تلفن",
   "Scrub sensitive attributes": "پالایش ویژگی‌های حساس",
   "Scrubs nothing": "چیزی را پالایش نمی‌کند",
+  "Status pages that show the affected monitors:": "صفحات وضعیتی که مانیتورهای تحت تأثیر را نشان می‌دهند:",
+  "Status pages that show the affected monitors:_one": "صفحات وضعیتی که مانیتور تحت تأثیر را نشان می‌دهند:",
   "The filter applies to new logs within a minute of being created.": "فیلتر ظرف یک دقیقه پس از ایجاد، روی لاگ‌های جدید اعمال می‌شود.",
   "The filter applies to new spans within a minute of being created.": "فیلتر ظرف یک دقیقه پس از ایجاد، روی اسپن‌های جدید اعمال می‌شود.",
   "The values of attributes whose key looks sensitive are replaced with [REDACTED].": "مقدار ویژگی‌هایی که کلیدشان حساس به نظر می‌رسد با [REDACTED] جایگزین می‌شود.",
   "This is not a valid regular expression: {{reason}}": "این یک عبارت باقاعده معتبر نیست: {{reason}}",
   "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.": "این الگو با متن خالی منطبق می‌شود، بنابراین جایگزین خود را بین تک‌تک نویسه‌ها قرار می‌دهد. کاری کنید که دست‌کم با یک نویسه منطبق شود.",
-  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "این قاعده الگوی قابل‌استفاده‌ای ندارد و بنابراین چیزی را پالایش نمی‌کند. آن را ویرایش کنید تا الگویی داشته باشد، یا حذفش کنید."
+  "This rule has no usable pattern, so it scrubs nothing. Edit it to give it one, or delete it.": "این قاعده الگوی قابل‌استفاده‌ای ندارد و بنابراین چیزی را پالایش نمی‌کند. آن را ویرایش کنید تا الگویی داشته باشد، یا حذفش کنید.",
+  "Untitled status page": "صفحه وضعیت بی‌نام"
 }
