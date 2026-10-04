@@ -918,6 +918,53 @@ describe("the Branding section", () => {
     expect(status()).toHaveTextContent(FormsCopy.unsavedChanges);
   });
 
+  test("a re-read that fails is said in the Branding section, never over the questions, and the next one clears it", async () => {
+    await renderBuilder();
+
+    await click(
+      within(screen.getByTestId("form-branding")).getByTestId(
+        "folded-section-header",
+      ),
+    );
+    await click(screen.getByTestId("form-branding-edit"));
+
+    const failing: Record<string, unknown> =
+      recordedDetailDialogs[recordedDetailDialogs.length - 1]!;
+
+    getItemMock.mockRejectedValueOnce(new Error("The network went away."));
+
+    await act(async () => {
+      (failing["onSuccess"] as (form: Form) => void)(new Form());
+    });
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("form-branding")).getByTestId(
+          "form-branding-error",
+        ),
+      ).toHaveTextContent("The network went away.");
+    });
+    expect(
+      screen.queryByTestId("form-builder-save-error"),
+    ).not.toBeInTheDocument();
+
+    // Saved again, and read again: the error is gone.
+    await click(screen.getByTestId("form-branding-edit"));
+
+    const succeeding: Record<string, unknown> =
+      recordedDetailDialogs[recordedDetailDialogs.length - 1]!;
+
+    await act(async () => {
+      (succeeding["onSuccess"] as (form: Form) => void)(new Form());
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("form-branding-error"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   test("someone who may not edit the form sees it without Edit Branding", async () => {
     gate = {
       isAllowed: false,
