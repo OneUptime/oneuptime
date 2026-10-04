@@ -1,6 +1,7 @@
 import FilePicker, {
-  DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES,
-  getMaxFileSizeInMegabytes,
+  DEFAULT_MAX_FILE_SIZE_IN_BYTES,
+  formatFileSizeLimit,
+  getMaxFileSizeInBytes,
 } from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
@@ -141,12 +142,15 @@ describe("FilePicker", () => {
 
   /*
    * A picker for something smaller than any upload - a form's logo takes
-   * 1 MB - says its own limit, and refuses a larger file before it is
-   * uploaded, so it never promises more than the field keeps.
+   * 512 KB, its favicon 128 KB - says its own limit, and refuses a larger
+   * file before it is uploaded, so it never promises more than the field
+   * keeps.
    */
   describe("a limit of its own", () => {
+    const ONE_MB: number = 1024 * 1024;
+
     it("says its own limit, with the types it takes", () => {
-      render(<FilePicker {...defaultProps} maxFileSizeInMegabytes={1} />);
+      render(<FilePicker {...defaultProps} maxFileSizeInBytes={ONE_MB} />);
 
       expect(
         screen.getByText("Types: PNG. Max 1 MB each."),
@@ -154,24 +158,32 @@ describe("FilePicker", () => {
       expect(screen.queryByText(/Max 10MB each/)).not.toBeInTheDocument();
     });
 
+    it("says a limit under a megabyte in kilobytes", () => {
+      render(<FilePicker {...defaultProps} maxFileSizeInBytes={512 * 1024} />);
+
+      expect(
+        screen.getByText("Types: PNG. Max 512 KB each."),
+      ).toBeInTheDocument();
+    });
+
     it("says its own limit without types too", () => {
       render(
         <FilePicker
           {...defaultProps}
           mimeTypes={[]}
-          maxFileSizeInMegabytes={1}
+          maxFileSizeInBytes={128 * 1024}
         />,
       );
 
-      expect(screen.getByText("Max 1 MB each.")).toBeInTheDocument();
+      expect(screen.getByText("Max 128 KB each.")).toBeInTheDocument();
     });
 
     it("refuses a larger file before uploading it, and says why", async () => {
-      const big: File = new File([new Uint8Array(1024 * 1024 + 1)], "big.png", {
+      const big: File = new File([new Uint8Array(ONE_MB + 1)], "big.png", {
         type: MimeType.png,
       });
 
-      render(<FilePicker {...defaultProps} maxFileSizeInMegabytes={1} />);
+      render(<FilePicker {...defaultProps} maxFileSizeInBytes={ONE_MB} />);
 
       await act(async () => {
         fireEvent.drop(screen.getByText("Upload files"), {
@@ -188,19 +200,42 @@ describe("FilePicker", () => {
       expect(mockOnChange).not.toHaveBeenCalled();
     });
 
+    it("refuses a file one byte over a kilobyte limit", async () => {
+      const big: File = new File(
+        [new Uint8Array(128 * 1024 + 1)],
+        "favicon.png",
+        { type: MimeType.png },
+      );
+
+      render(<FilePicker {...defaultProps} maxFileSizeInBytes={128 * 1024} />);
+
+      await act(async () => {
+        fireEvent.drop(screen.getByText("Upload files"), {
+          dataTransfer: { files: [big], types: ["Files"] },
+        });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('"favicon.png" exceeds the 128 KB limit.'),
+        ).toBeInTheDocument();
+      });
+      expect(ModelAPI.create).not.toHaveBeenCalled();
+    });
+
     it("takes a file of exactly its limit", async () => {
-      const exact: File = new File([new Uint8Array(1024 * 1024)], "exact.png", {
+      const exact: File = new File([new Uint8Array(ONE_MB)], "exact.png", {
         type: MimeType.png,
       });
       // jsdom's File cannot read itself; the upload reads these bytes.
       exact.arrayBuffer = async (): Promise<ArrayBuffer> => {
-        return new ArrayBuffer(1024 * 1024);
+        return new ArrayBuffer(ONE_MB);
       };
       (
         ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
       ).mockResolvedValue(await mockCreateResponse(exact));
 
-      render(<FilePicker {...defaultProps} maxFileSizeInMegabytes={1} />);
+      render(<FilePicker {...defaultProps} maxFileSizeInBytes={ONE_MB} />);
 
       await act(async () => {
         fireEvent.drop(screen.getByText("Upload files"), {
@@ -214,14 +249,109 @@ describe("FilePicker", () => {
     });
 
     it("is never more than the 10 MB every upload is held to", () => {
-      expect(DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES).toBe(10);
+      expect(DEFAULT_MAX_FILE_SIZE_IN_BYTES).toBe(10 * ONE_MB);
 
-      for (const value of [undefined, 0, -1, Number.NaN, 10, 50]) {
-        expect(getMaxFileSizeInMegabytes(value)).toBe(10);
+      for (const value of [
+        undefined,
+        0,
+        -1,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        10 * ONE_MB,
+        50 * ONE_MB,
+      ]) {
+        expect(getMaxFileSizeInBytes(value)).toBe(10 * ONE_MB);
       }
 
-      expect(getMaxFileSizeInMegabytes(1)).toBe(1);
-      expect(getMaxFileSizeInMegabytes(0.5)).toBe(0.5);
+      expect(getMaxFileSizeInBytes(ONE_MB)).toBe(ONE_MB);
+      expect(getMaxFileSizeInBytes(128 * 1024)).toBe(128 * 1024);
+    });
+
+    it("keeps the everyday wording at the everyday limit", () => {
+      render(<FilePicker {...defaultProps} maxFileSizeInBytes={10 * ONE_MB} />);
+
+      expect(screen.getByText(/Max 10MB each/)).toBeInTheDocument();
+    });
+
+    it("words a limit as people read it", () => {
+      expect(formatFileSizeLimit(128 * 1024)).toBe("128 KB");
+      expect(formatFileSizeLimit(512 * 1024)).toBe("512 KB");
+      expect(formatFileSizeLimit(ONE_MB)).toBe("1 MB");
+      expect(formatFileSizeLimit(1.5 * ONE_MB)).toBe("1.5 MB");
+      expect(formatFileSizeLimit(10 * ONE_MB)).toBe("10 MB");
+      // Never "0 KB".
+      expect(formatFileSizeLimit(100)).toBe("1 KB");
+    });
+  });
+
+  /*
+   * A picker that takes ICO - a form's favicon - takes it however the
+   * browser names it: "image/x-icon", or "image/vnd.microsoft.icon" (Linux,
+   * Firefox), and stores it as image/x-icon either way.
+   */
+  describe("ICO", () => {
+    type UploadIcoFunction = (type: string) => Promise<FileModel>;
+
+    const uploadIco: UploadIcoFunction = async (
+      type: string,
+    ): Promise<FileModel> => {
+      const icon: File = new File(
+        [new Uint8Array([0, 0, 1, 0])],
+        "favicon.ico",
+        { type },
+      );
+      icon.arrayBuffer = async (): Promise<ArrayBuffer> => {
+        return new Uint8Array([0, 0, 1, 0]).buffer;
+      };
+      (
+        ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
+      ).mockResolvedValue(await mockCreateResponse(icon));
+
+      render(
+        <FilePicker
+          {...defaultProps}
+          mimeTypes={[MimeType.png, MimeType.ico]}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.drop(screen.getByText("Upload files"), {
+          dataTransfer: { files: [icon], types: ["Files"] },
+        });
+      });
+
+      await waitFor(() => {
+        expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+      });
+
+      return (
+        (ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>).mock
+          .calls[0]![0] as unknown as { model: FileModel }
+      ).model;
+    };
+
+    it("as image/x-icon", async () => {
+      expect((await uploadIco(MimeType.ico)).fileType).toBe(MimeType.ico);
+    });
+
+    it("as image/vnd.microsoft.icon, stored as image/x-icon", async () => {
+      expect((await uploadIco("image/vnd.microsoft.icon")).fileType).toBe(
+        MimeType.ico,
+      );
+    });
+
+    it("says ICO among the types it takes", () => {
+      render(
+        <FilePicker
+          {...defaultProps}
+          mimeTypes={[MimeType.png, MimeType.ico]}
+          maxFileSizeInBytes={128 * 1024}
+        />,
+      );
+
+      expect(
+        screen.getByText("Types: PNG, ICO. Max 128 KB each."),
+      ).toBeInTheDocument();
     });
   });
 

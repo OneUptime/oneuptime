@@ -79,6 +79,9 @@ import {
   getDefaultFormFields,
 } from "Common/Types/Form/FormField";
 import {
+  FORM_FAVICON_NOT_FOUND_MESSAGE,
+  FORM_FAVICON_TOO_LARGE_MESSAGE,
+  FORM_FAVICON_TYPE_MESSAGE,
   FORM_LOGO_NOT_FOUND_MESSAGE,
   FORM_LOGO_TOO_LARGE_MESSAGE,
   FORM_LOGO_TYPE_MESSAGE,
@@ -1106,10 +1109,13 @@ describe("Forms docs", () => {
         FormMessage.CaptchaFailed,
         FORM_FOREIGN_PAGE_MESSAGE,
         FORM_SUBMISSION_BODY_MESSAGE,
-        // Saving a logo the public page could not draw (Branding).
+        // Saving a logo or favicon the public page could not draw (Branding).
         FORM_LOGO_TYPE_MESSAGE,
         FORM_LOGO_TOO_LARGE_MESSAGE,
         FORM_LOGO_NOT_FOUND_MESSAGE,
+        FORM_FAVICON_TYPE_MESSAGE,
+        FORM_FAVICON_TOO_LARGE_MESSAGE,
+        FORM_FAVICON_NOT_FOUND_MESSAGE,
       ];
 
       for (const sentence of quoted) {

@@ -66,9 +66,10 @@ jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
 import FormBrandingSection, {
   FORM_BRANDING_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingSection";
+import * as FormBrandingValuesModule from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingValues";
 import {
-  FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
-  FORM_BRANDING_UPLOAD_TYPES,
+  FORM_FAVICON_UPLOAD,
+  FORM_LOGO_UPLOAD,
   FormBrandingValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingValues";
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
@@ -114,6 +115,7 @@ afterEach(() => {
 function renderSection(
   values: FormBrandingValues = {},
   isReadOnly: boolean = false,
+  error?: string,
 ): void {
   render(
     <FormBrandingSection
@@ -121,6 +123,7 @@ function renderSection(
       formName="Report a Problem"
       values={values}
       isReadOnly={isReadOnly}
+      error={error}
       onSaved={() => {
         onSaved();
       }}
@@ -298,6 +301,51 @@ describe("open", () => {
   });
 });
 
+describe("drawing", () => {
+  /*
+   * The builder re-renders on every keystroke in a question; the images are
+   * encoded again only when the branding itself changes.
+   */
+  test("encodes the images once per branding, not once per render", () => {
+    const encode: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      FormBrandingValuesModule,
+      "getFormBrandingPreview",
+    );
+    const values: FormBrandingValues = { logoFile: LOGO, faviconFile: FAVICON };
+
+    const draw: (
+      branding: FormBrandingValues,
+      formName: string,
+    ) => ReactElement = (
+      branding: FormBrandingValues,
+      formName: string,
+    ): ReactElement => {
+      return (
+        <FormBrandingSection
+          formId={new ObjectID(FORM_ID)}
+          formName={formName}
+          values={branding}
+          isReadOnly={false}
+          onSaved={() => {
+            onSaved();
+          }}
+        />
+      );
+    };
+
+    const { rerender } = render(draw(values, "Report a Problem"));
+
+    rerender(draw(values, "Report a Problem!"));
+    rerender(draw(values, "Report a Problem!!"));
+
+    expect(encode).toHaveBeenCalledTimes(1);
+
+    rerender(draw({ ...values, faviconFile: null }, "Report a Problem!!"));
+
+    expect(encode).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("Edit Branding", () => {
   test("opens one short dialog: the logo, what it says, the favicon", () => {
     renderSection({ logoFile: LOGO });
@@ -341,12 +389,16 @@ describe("Edit Branding", () => {
       ["faviconFile", "Favicon", FormFieldSchemaType.ImageFile, false],
     ]);
 
-    // Uploads offer exactly the image types and the size the server takes.
-    expect(fields[0]!.fileTypes).toEqual(FORM_BRANDING_UPLOAD_TYPES);
-    expect(fields[2]!.fileTypes).toEqual(FORM_BRANDING_UPLOAD_TYPES);
-    expect(FORM_BRANDING_UPLOAD_MAX_MEGABYTES).toBe(1);
-    expect(fields[0]!.maxFileSizeInMegabytes).toBe(1);
-    expect(fields[2]!.maxFileSizeInMegabytes).toBe(1);
+    /*
+     * Each upload offers exactly the image types and the size the server
+     * takes for it: a logo of 512 KB, a favicon of 128 KB that may be an ICO.
+     */
+    expect(fields[0]!.fileTypes).toEqual(FORM_LOGO_UPLOAD.fileTypes);
+    expect(fields[0]!.maxFileSizeInBytes).toBe(512 * 1024);
+    expect(fields[0]!.fileTypes).not.toContain(MimeType.ico);
+    expect(fields[2]!.fileTypes).toEqual(FORM_FAVICON_UPLOAD.fileTypes);
+    expect(fields[2]!.maxFileSizeInBytes).toBe(128 * 1024);
+    expect(fields[2]!.fileTypes).toContain(MimeType.ico);
     expect(fields[0]!.description).toBe(FormsCopy.logoDescription);
     expect(fields[1]!.description).toBe(FormsCopy.logoAltTextDescription);
     expect(fields[1]!.placeholder).toBe(FormsCopy.logoAltTextPlaceholder);
@@ -368,6 +420,27 @@ describe("Edit Branding", () => {
     expect(altText.showIf!({})).toBe(false);
     expect(altText.showIf!({ logoFile: null } as never)).toBe(false);
     expect(altText.showIf!({ logoFile: LOGO } as never)).toBe(true);
+  });
+
+  test("a save that leaves no logo clears what the logo said, too", async () => {
+    renderSection({ logoFile: LOGO, logoAltText: "Acme Inc." });
+    open();
+    fireEvent.click(screen.getByTestId("form-branding-edit"));
+
+    const onBeforeUpdate: (form: Form) => Promise<Form> = lastDialog()[
+      "onBeforeUpdate"
+    ] as (form: Form) => Promise<Form>;
+
+    const withoutLogo: Form = new Form();
+    withoutLogo.logoAltText = "Acme Inc.";
+
+    expect((await onBeforeUpdate(withoutLogo)).logoAltText).toBeNull();
+
+    const withLogo: Form = new Form();
+    withLogo.logoFile = LOGO;
+    withLogo.logoAltText = "Acme Inc.";
+
+    expect((await onBeforeUpdate(withLogo)).logoAltText).toBe("Acme Inc.");
   });
 
   test("saving closes the dialog and has the page read the branding again", async () => {
@@ -394,6 +467,29 @@ describe("Edit Branding", () => {
 
     expect(onSaved).not.toHaveBeenCalled();
     expect(screen.queryByTestId("stub-dialog")).not.toBeInTheDocument();
+  });
+
+  test("says, in the section, when the branding could not be read again", () => {
+    renderSection({ logoFile: LOGO }, false, "Your session has expired.");
+    open();
+
+    const error: HTMLElement = within(section()).getByTestId(
+      "form-branding-error",
+    );
+
+    expect(error).toHaveTextContent("Your session has expired.");
+    // Above the logo and favicon it is about.
+    expect(
+      error.compareDocumentPosition(screen.getByTestId("form-branding-logo")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("says nothing of the kind otherwise", () => {
+    renderSection({ logoFile: LOGO });
+    open();
+
+    expect(screen.queryByTestId("form-branding-error")).not.toBeInTheDocument();
   });
 
   test("someone who may not edit the form sees the branding, and no button", () => {

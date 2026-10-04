@@ -397,10 +397,16 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
         "faviconFile",
       ].sort(),
     );
-    expect(findBy.select["logoFile"]).toEqual({ file: true, fileType: true });
+    // Each image's bytes, type and project: only its own project's is shown.
+    expect(findBy.select["logoFile"]).toEqual({
+      file: true,
+      fileType: true,
+      projectId: true,
+    });
     expect(findBy.select["faviconFile"]).toEqual({
       file: true,
       fileType: true,
+      projectId: true,
     });
   });
 

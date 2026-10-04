@@ -2,11 +2,13 @@ import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/
 import Form from "Common/Models/DatabaseModels/Form";
 import MimeType from "Common/Types/File/MimeType";
 import {
-  FORM_BRANDING_IMAGE_MAX_BYTES,
-  FORM_BRANDING_IMAGE_TYPES,
+  FORM_FAVICON_IMAGE_TYPES,
+  FORM_FAVICON_MAX_BYTES,
   FORM_FAVICON_NOT_FOUND_MESSAGE,
   FORM_FAVICON_TOO_LARGE_MESSAGE,
   FORM_FAVICON_TYPE_MESSAGE,
+  FORM_LOGO_IMAGE_TYPES,
+  FORM_LOGO_MAX_BYTES,
   FORM_LOGO_NOT_FOUND_MESSAGE,
   FORM_LOGO_TOO_LARGE_MESSAGE,
   FORM_LOGO_TYPE_MESSAGE,
@@ -20,12 +22,14 @@ import path from "path";
  * Build page's folded Branding section - against the product:
  *
  *   - Building a Form has a Branding section that names the dialog's fields
- *     as the dialog does, the image types and the size the server takes,
- *     the OneUptime defaults, and quotes the refusals word for word;
+ *     as the dialog does, the image types and the size the server takes for
+ *     each image, that a file must be of the form's own project, the
+ *     OneUptime defaults, and quotes the refusals word for word;
  *   - Forms Overview lists the section on the Build page and the three API
- *     columns, as the Form model names them, with how to upload an image;
+ *     columns, as the Form model names them, with how to upload an image -
+ *     in the form's project;
  *   - Sharing & Security says the images reach the page only inside the
- *     form, never by a file's id.
+ *     form, never by a file's id, and only of the form's own project.
  *
  * The Dashboard's Branding section is a React component, which App tests
  * never import: its field titles are read from its source.
@@ -83,7 +87,17 @@ const TYPE_NAMES: Record<string, string> = {
   [MimeType.gif]: "GIF",
   [MimeType.webp]: "WebP",
   [MimeType.svg]: "SVG",
+  [MimeType.ico]: "ICO",
 };
+
+// "PNG, JPEG, GIF, WebP or SVG": the types as a sentence names them.
+function typeList(types: ReadonlyArray<string>): string {
+  const names: Array<string> = types.map((type: string): string => {
+    return TYPE_NAMES[type] as string;
+  });
+
+  return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
 
 describe("Building a Form - Branding", () => {
   const building: string = readPage("building");
@@ -118,49 +132,51 @@ describe("Building a Form - Branding", () => {
     );
   });
 
-  it("names the image types and the size the server takes", () => {
-    const types: string = FORM_BRANDING_IMAGE_TYPES.map(
-      (type: string): string => {
-        return TYPE_NAMES[type] as string;
-      },
-    ).join(", ");
+  it("names each image's types and size as the server takes them", () => {
+    expect(typeList(FORM_LOGO_IMAGE_TYPES)).toBe("PNG, JPEG, GIF, WebP or SVG");
+    expect(typeList(FORM_FAVICON_IMAGE_TYPES)).toBe(
+      "PNG, JPEG, GIF, WebP, SVG or ICO",
+    );
+    expect(FORM_LOGO_MAX_BYTES).toBe(512 * 1024);
+    expect(FORM_FAVICON_MAX_BYTES).toBe(128 * 1024);
 
-    expect(types).toBe("PNG, JPEG, GIF, WebP, SVG");
-    expect(FORM_BRANDING_IMAGE_MAX_BYTES).toBe(1024 * 1024);
-    expect(branding).toContain(
-      "A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
-    );
+    const logo: string = `A ${typeList(FORM_LOGO_IMAGE_TYPES)} image of ${
+      FORM_LOGO_MAX_BYTES / 1024
+    } KB or less.`;
+    const favicon: string = `A ${typeList(FORM_FAVICON_IMAGE_TYPES)} image of ${
+      FORM_FAVICON_MAX_BYTES / 1024
+    } KB or less;`;
+
+    expect(branding).toContain(logo);
+    expect(branding).toContain(favicon);
     // The dialog says the same.
-    expect(FormsCopy.logoDescription).toContain(
-      "A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
+    expect(FormsCopy.logoDescription).toContain(logo);
+    expect(FormsCopy.faviconDescription).toContain(
+      `of ${FORM_FAVICON_MAX_BYTES / 1024} KB or less`,
     );
+    expect(FormsCopy.faviconDescription).toContain("ICO");
+    // Never the old limit.
+    expect(branding).not.toContain("1 MB");
   });
 
-  it("quotes the logo's refusals word for word, and says the favicon's are the same", () => {
+  it("says a file must be of the form's own project", () => {
+    expect(branding).toContain(
+      "it must have been uploaded in the form's own project",
+    );
+    expect(branding).toContain("or that was uploaded in another project");
+  });
+
+  it("quotes every refusal word for word, the logo's and the favicon's", () => {
     for (const message of [
       FORM_LOGO_TYPE_MESSAGE,
       FORM_LOGO_TOO_LARGE_MESSAGE,
       FORM_LOGO_NOT_FOUND_MESSAGE,
-    ]) {
-      expect(branding).toContain(`"${message}"`);
-    }
-
-    expect([
       FORM_FAVICON_TYPE_MESSAGE,
       FORM_FAVICON_TOO_LARGE_MESSAGE,
       FORM_FAVICON_NOT_FOUND_MESSAGE,
-    ]).toEqual(
-      [
-        FORM_LOGO_TYPE_MESSAGE,
-        FORM_LOGO_TOO_LARGE_MESSAGE,
-        FORM_LOGO_NOT_FOUND_MESSAGE,
-      ].map((message: string): string => {
-        return message.replace(/logo/g, "favicon");
-      }),
-    );
-    expect(branding).toContain(
-      "A favicon is refused the same way, in the same words.",
-    );
+    ]) {
+      expect(branding).toContain(`"${message}"`);
+    }
   });
 
   it("says Preview shows the logo, and the public page shows it first", () => {
@@ -194,9 +210,13 @@ describe("Forms Overview - branding", () => {
       expect(api).toContain(`\`${column}\``);
     }
 
-    expect(api).toContain("`POST /api/file`");
+    expect(api).toContain("`POST /api/file`, in the form's project");
     expect(api).toContain("`isPublic` set to `false`");
+    expect(api).toContain(
+      "it must have been uploaded in the form's project, and a logo must be a PNG, JPEG, GIF, WebP or SVG image of 512 KB or less, a favicon one of those or an ICO of 128 KB or less",
+    );
     expect(api).toContain("[Branding](/docs/forms/building#branding)");
+    expect(api).not.toContain("1 MB");
   });
 
   it("says the public read carries the branding", () => {
@@ -219,6 +239,9 @@ describe("Sharing & Security - branding", () => {
     );
     expect(protects).toContain(
       "no file can be fetched by its id through a form; the files themselves stay private",
+    );
+    expect(protects).toContain(
+      "A form shows only images uploaded in its own project",
     );
   });
 });

@@ -297,6 +297,42 @@ describe("readPublicForm: the form's branding", () => {
     }
   });
 
+  test("an ICO is drawn as the favicon, never as the logo", () => {
+    const ico: JSONObject = { type: "image/x-icon", data: "AAABAAEA" };
+    const form: PublicForm = told({
+      logo: ico,
+      logoAltText: "Acme Inc.",
+      favicon: ico,
+    });
+
+    expect(form.logo).toBeUndefined();
+    expect(form.logoAltText).toBeUndefined();
+    expect(form.favicon).toEqual(ico);
+  });
+
+  test("never more than each image may weigh: a logo's worth is too much for a favicon", () => {
+    // The longest base64 of a 128 KB and of a 512 KB image.
+    const faviconSized: string = "A".repeat(Math.ceil((128 * 1024) / 3) * 4);
+    const logoSized: string = "A".repeat(Math.ceil((512 * 1024) / 3) * 4);
+
+    expect(
+      told({ favicon: { type: "image/png", data: faviconSized } }).favicon,
+    ).toBeDefined();
+    expect(
+      told({ favicon: { type: "image/png", data: `${faviconSized}AAAA` } })
+        .favicon,
+    ).toBeUndefined();
+    expect(
+      told({ logo: { type: "image/png", data: logoSized } }).logo,
+    ).toBeDefined();
+    expect(
+      told({ logo: { type: "image/png", data: `${logoSized}AAAA` } }).logo,
+    ).toBeUndefined();
+    expect(
+      told({ favicon: { type: "image/png", data: logoSized } }).favicon,
+    ).toBeUndefined();
+  });
+
   test("an alt text that is not text, or only spaces, is none", () => {
     for (const logoAltText of [42, "   ", { text: "Acme" }]) {
       expect(

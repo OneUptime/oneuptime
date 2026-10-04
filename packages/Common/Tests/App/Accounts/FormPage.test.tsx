@@ -968,6 +968,27 @@ describe("the form's branding", () => {
     expect(iconLinks()).toEqual([]);
   });
 
+  test("an ICO favicon is the tab's icon, as an ICO", async () => {
+    addPageIcons();
+
+    const ico: { type: string; data: string } = {
+      type: "image/x-icon",
+      data: Buffer.from([0x00, 0x00, 0x01, 0x00, 0x01, 0x00]).toString(
+        "base64",
+      ),
+    };
+    const icoUrl: string = `data:image/x-icon;base64,${ico.data}`;
+
+    await renderForm({ ...BRANDED, favicon: ico });
+
+    expect(iconLinks()).toEqual([
+      PAGE_ICONS[0],
+      { rel: "shortcut icon", href: icoUrl, type: "image/x-icon", sizes: null },
+      { rel: "icon", href: icoUrl, type: "image/x-icon", sizes: null },
+      PAGE_ICONS[3],
+    ]);
+  });
+
   test("a form without a favicon leaves the tab's icon alone", async () => {
     addPageIcons();
 

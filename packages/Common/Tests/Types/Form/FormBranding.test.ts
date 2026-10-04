@@ -2,20 +2,23 @@ import MimeType from "../../../Types/File/MimeType";
 import {
   encodeBase64,
   FORM_BRANDING_COLUMNS,
-  FORM_BRANDING_IMAGE_MAX_BYTES,
-  FORM_BRANDING_IMAGE_TYPES,
   FORM_BRANDING_IMAGES,
   FORM_FAVICON_IMAGE,
+  FORM_FAVICON_IMAGE_TYPES,
+  FORM_FAVICON_MAX_BYTES,
   FORM_FAVICON_NOT_FOUND_MESSAGE,
   FORM_FAVICON_TOO_LARGE_MESSAGE,
   FORM_FAVICON_TYPE_MESSAGE,
   FORM_LOGO_ALT_TEXT_MAX_LENGTH,
   FORM_LOGO_IMAGE,
+  FORM_LOGO_IMAGE_TYPES,
+  FORM_LOGO_MAX_BYTES,
   FORM_LOGO_NOT_FOUND_MESSAGE,
   FORM_LOGO_TOO_LARGE_MESSAGE,
   FORM_LOGO_TYPE_MESSAGE,
   FormBrandingImageDefinition,
   FormBrandingImageKind,
+  getBase64MaxLength,
   getFileBytes,
   getFormBrandingImageProblem,
   getPublicFormBranding,
@@ -40,7 +43,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * favicon. These are the rules every side holds them to:
  *
  *   - a write may point a form only at a File that exists, is an image
- *     every browser draws and weighs 1 MB at most (getFormBrandingImageProblem);
+ *     every browser draws and is small - a logo 512 KB at most, a favicon
+ *     128 KB (getFormBrandingImageProblem; whose project the file is in is
+ *     FormService's to check);
  *   - the public page is told only what is set, the images base64, and an
  *     image the rules refuse is never told at all, whatever a row holds
  *     (getPublicFormBranding);
@@ -54,11 +59,19 @@ const PNG_BYTES: Array<number> = [
 ];
 const PNG_BASE64: string = Buffer.from(PNG_BYTES).toString("base64");
 
+// The first bytes of an ICO: reserved, type 1 (icon), one image.
+const ICO_BYTES: Array<number> = [0x00, 0x00, 0x01, 0x00, 0x01, 0x00];
+const ICO_BASE64: string = Buffer.from(ICO_BYTES).toString("base64");
+
 const SVG_TEXT: string =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>';
 
 function pngFile(): { file: Buffer; fileType: string } {
   return { file: Buffer.from(PNG_BYTES), fileType: MimeType.png };
+}
+
+function icoFile(): { file: Buffer; fileType: string } {
+  return { file: Buffer.from(ICO_BYTES), fileType: MimeType.ico };
 }
 
 const originalBuffer: typeof Buffer = Buffer;
@@ -67,9 +80,26 @@ afterEach(() => {
   (globalThis as unknown as { Buffer: typeof Buffer }).Buffer = originalBuffer;
 });
 
+// Never an image, for either: documents, pages and formats browsers do not all draw.
+const NEVER_AN_IMAGE: Array<unknown> = [
+  MimeType.pdf,
+  MimeType.txt,
+  MimeType.json,
+  MimeType.zip,
+  MimeType.bmp,
+  MimeType.heic,
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml;charset=utf-8",
+  "",
+  undefined,
+  null,
+  42,
+];
+
 describe("the rules", () => {
-  test("a logo or favicon is a PNG, JPEG, GIF, WebP or SVG image", () => {
-    expect([...FORM_BRANDING_IMAGE_TYPES].sort()).toEqual(
+  test("a logo is a PNG, JPEG, GIF, WebP or SVG image", () => {
+    expect([...FORM_LOGO_IMAGE_TYPES].sort()).toEqual(
       [
         "image/gif",
         "image/jpeg",
@@ -79,36 +109,47 @@ describe("the rules", () => {
       ].sort(),
     );
 
-    for (const type of FORM_BRANDING_IMAGE_TYPES) {
-      expect(isFormBrandingImageType(type)).toBe(true);
+    for (const type of FORM_LOGO_IMAGE_TYPES) {
+      expect(isFormBrandingImageType(type, FORM_LOGO_IMAGE)).toBe(true);
       // However the type was written.
-      expect(isFormBrandingImageType(` ${type.toUpperCase()} `)).toBe(true);
+      expect(
+        isFormBrandingImageType(` ${type.toUpperCase()} `, FORM_LOGO_IMAGE),
+      ).toBe(true);
     }
 
-    for (const refused of [
-      MimeType.pdf,
-      MimeType.txt,
-      MimeType.json,
-      MimeType.zip,
-      MimeType.ico,
-      MimeType.bmp,
-      MimeType.heic,
-      "text/html",
-      "application/xhtml+xml",
-      "",
-      undefined,
-      null,
-      42,
-    ]) {
-      expect([refused, isFormBrandingImageType(refused)]).toEqual([
+    // An ICO is a favicon's format, never a logo's.
+    for (const refused of [MimeType.ico, ...NEVER_AN_IMAGE]) {
+      expect([
         refused,
-        false,
-      ]);
+        isFormBrandingImageType(refused, FORM_LOGO_IMAGE),
+      ]).toEqual([refused, false]);
     }
   });
 
-  test("an image weighs 1 MB at most, and the alt text fits its column", () => {
-    expect(FORM_BRANDING_IMAGE_MAX_BYTES).toBe(1024 * 1024);
+  test("a favicon is any of those, or an ICO - the classic favicon format", () => {
+    expect([...FORM_FAVICON_IMAGE_TYPES].sort()).toEqual(
+      [...FORM_LOGO_IMAGE_TYPES, "image/x-icon"].sort(),
+    );
+    expect(MimeType.ico).toBe("image/x-icon");
+
+    for (const type of FORM_FAVICON_IMAGE_TYPES) {
+      expect(isFormBrandingImageType(type, FORM_FAVICON_IMAGE)).toBe(true);
+      expect(
+        isFormBrandingImageType(` ${type.toUpperCase()} `, FORM_FAVICON_IMAGE),
+      ).toBe(true);
+    }
+
+    for (const refused of NEVER_AN_IMAGE) {
+      expect([
+        refused,
+        isFormBrandingImageType(refused, FORM_FAVICON_IMAGE),
+      ]).toEqual([refused, false]);
+    }
+  });
+
+  test("a logo weighs 512 KB at most, a favicon 128 KB, and the alt text fits its column", () => {
+    expect(FORM_LOGO_MAX_BYTES).toBe(512 * 1024);
+    expect(FORM_FAVICON_MAX_BYTES).toBe(128 * 1024);
     expect(FORM_LOGO_ALT_TEXT_MAX_LENGTH).toBe(100);
   });
 
@@ -119,6 +160,8 @@ describe("the rules", () => {
       relationColumn: "logoFile",
       idColumn: "logoFileId",
       name: "logo",
+      types: FORM_LOGO_IMAGE_TYPES,
+      maxBytes: FORM_LOGO_MAX_BYTES,
       typeMessage: FORM_LOGO_TYPE_MESSAGE,
       tooLargeMessage: FORM_LOGO_TOO_LARGE_MESSAGE,
       notFoundMessage: FORM_LOGO_NOT_FOUND_MESSAGE,
@@ -128,6 +171,8 @@ describe("the rules", () => {
       relationColumn: "faviconFile",
       idColumn: "faviconFileId",
       name: "favicon",
+      types: FORM_FAVICON_IMAGE_TYPES,
+      maxBytes: FORM_FAVICON_MAX_BYTES,
       typeMessage: FORM_FAVICON_TYPE_MESSAGE,
       tooLargeMessage: FORM_FAVICON_TOO_LARGE_MESSAGE,
       notFoundMessage: FORM_FAVICON_NOT_FOUND_MESSAGE,
@@ -141,24 +186,33 @@ describe("the rules", () => {
     ]);
   });
 
-  test("words each refusal as a whole sentence that names the image", () => {
+  test("words each refusal as a whole sentence that names the image and its own limits", () => {
     expect(FORM_LOGO_TYPE_MESSAGE).toBe(
       "The logo must be a PNG, JPEG, GIF, WebP or SVG image.",
     );
     expect(FORM_LOGO_TOO_LARGE_MESSAGE).toBe(
-      "The logo must be 1 MB or smaller.",
+      "The logo must be 512 KB or smaller.",
     );
     expect(FORM_LOGO_NOT_FOUND_MESSAGE).toBe(
       "The logo's file could not be found. Upload the logo again.",
     );
     expect(FORM_FAVICON_TYPE_MESSAGE).toBe(
-      "The favicon must be a PNG, JPEG, GIF, WebP or SVG image.",
+      "The favicon must be a PNG, JPEG, GIF, WebP, SVG or ICO image.",
     );
     expect(FORM_FAVICON_TOO_LARGE_MESSAGE).toBe(
-      "The favicon must be 1 MB or smaller.",
+      "The favicon must be 128 KB or smaller.",
     );
     expect(FORM_FAVICON_NOT_FOUND_MESSAGE).toBe(
       "The favicon's file could not be found. Upload the favicon again.",
+    );
+  });
+
+  test("each limit a message names is the one the rules hold the image to", () => {
+    expect(FORM_LOGO_TOO_LARGE_MESSAGE).toContain(
+      `${FORM_LOGO_MAX_BYTES / 1024} KB`,
+    );
+    expect(FORM_FAVICON_TOO_LARGE_MESSAGE).toContain(
+      `${FORM_FAVICON_MAX_BYTES / 1024} KB`,
     );
   });
 });
@@ -244,25 +298,24 @@ describe("getFormBrandingImageProblem - what a write may point a form at", () =>
   test.each(FORM_BRANDING_IMAGES)(
     "the $name: an image of an allowed type and size passes",
     (image: FormBrandingImageDefinition) => {
-      for (const type of FORM_BRANDING_IMAGE_TYPES) {
+      for (const type of image.types) {
         expect(
           getFormBrandingImageProblem({
             image: image,
-            file: { file: Buffer.from(PNG_BYTES), fileType: type },
+            file: { fileType: type, size: PNG_BYTES.length },
           }),
         ).toBeNull();
       }
 
-      // Exactly the most it may weigh.
-      expect(
-        getFormBrandingImageProblem({
-          image: image,
-          file: {
-            file: Buffer.alloc(FORM_BRANDING_IMAGE_MAX_BYTES),
-            fileType: MimeType.png,
-          },
-        }),
-      ).toBeNull();
+      // One byte, and exactly the most it may weigh.
+      for (const size of [1, image.maxBytes]) {
+        expect(
+          getFormBrandingImageProblem({
+            image: image,
+            file: { fileType: MimeType.png, size: size },
+          }),
+        ).toBeNull();
+      }
     },
   );
 
@@ -273,11 +326,17 @@ describe("getFormBrandingImageProblem - what a write may point a form at", () =>
         null,
         undefined,
         { fileType: MimeType.png },
-        { file: Buffer.alloc(0), fileType: MimeType.png },
+        { fileType: MimeType.png, size: 0 },
+        { fileType: MimeType.png, size: null },
+        { fileType: MimeType.png, size: "12" },
+        { fileType: MimeType.png, size: Number.NaN },
+        { fileType: MimeType.png, size: Number.POSITIVE_INFINITY },
+        { fileType: MimeType.png, size: -1 },
       ]) {
-        expect(getFormBrandingImageProblem({ image, file })).toBe(
+        expect([file, getFormBrandingImageProblem({ image, file })]).toEqual([
+          file,
           image.notFoundMessage,
-        );
+        ]);
       }
     },
   );
@@ -285,72 +344,126 @@ describe("getFormBrandingImageProblem - what a write may point a form at", () =>
   test.each(FORM_BRANDING_IMAGES)(
     "the $name: a document, a web page or an unknown type is refused",
     (image: FormBrandingImageDefinition) => {
-      for (const fileType of [
-        MimeType.pdf,
-        MimeType.docx,
-        "text/html",
-        undefined,
-      ]) {
-        expect(
+      for (const fileType of NEVER_AN_IMAGE) {
+        expect([
+          fileType,
           getFormBrandingImageProblem({
             image,
-            file: { file: Buffer.from(PNG_BYTES), fileType },
+            file: { fileType, size: PNG_BYTES.length },
           }),
-        ).toBe(image.typeMessage);
+        ]).toEqual([fileType, image.typeMessage]);
       }
     },
   );
 
+  test("an ICO may be the favicon, never the logo", () => {
+    expect(
+      getFormBrandingImageProblem({
+        image: FORM_FAVICON_IMAGE,
+        file: { fileType: MimeType.ico, size: ICO_BYTES.length },
+      }),
+    ).toBeNull();
+    expect(
+      getFormBrandingImageProblem({
+        image: FORM_LOGO_IMAGE,
+        file: { fileType: MimeType.ico, size: ICO_BYTES.length },
+      }),
+    ).toBe(FORM_LOGO_TYPE_MESSAGE);
+  });
+
   test.each(FORM_BRANDING_IMAGES)(
-    "the $name: one byte over 1 MB is refused",
+    "the $name: one byte over its most is refused",
     (image: FormBrandingImageDefinition) => {
       expect(
         getFormBrandingImageProblem({
           image,
-          file: {
-            file: Buffer.alloc(FORM_BRANDING_IMAGE_MAX_BYTES + 1),
-            fileType: MimeType.png,
-          },
+          file: { fileType: MimeType.png, size: image.maxBytes + 1 },
         }),
       ).toBe(image.tooLargeMessage);
     },
   );
+
+  test("a file small enough for a logo can still be too large for a favicon", () => {
+    const size: number = FORM_FAVICON_MAX_BYTES + 1;
+
+    expect(size).toBeLessThan(FORM_LOGO_MAX_BYTES);
+    expect(
+      getFormBrandingImageProblem({
+        image: FORM_LOGO_IMAGE,
+        file: { fileType: MimeType.png, size },
+      }),
+    ).toBeNull();
+    expect(
+      getFormBrandingImageProblem({
+        image: FORM_FAVICON_IMAGE,
+        file: { fileType: MimeType.png, size },
+      }),
+    ).toBe(FORM_FAVICON_TOO_LARGE_MESSAGE);
+  });
 });
 
 describe("getPublicFormImage / getPublicFormBranding - what the page is told", () => {
   test("an image as its type and its bytes, base64", () => {
-    expect(getPublicFormImage(pngFile())).toEqual({
+    expect(getPublicFormImage(pngFile(), FORM_LOGO_IMAGE)).toEqual({
       type: "image/png",
       data: PNG_BASE64,
     });
 
     expect(
-      getPublicFormImage({
-        file: Buffer.from(SVG_TEXT),
-        fileType: " IMAGE/SVG+XML ",
-      }),
+      getPublicFormImage(
+        {
+          file: Buffer.from(SVG_TEXT),
+          fileType: " IMAGE/SVG+XML ",
+        },
+        FORM_LOGO_IMAGE,
+      ),
     ).toEqual({
       type: "image/svg+xml",
       data: Buffer.from(SVG_TEXT).toString("base64"),
     });
   });
 
-  test("never an image the rules refuse, whatever a row holds", () => {
-    for (const file of [
-      undefined,
-      null,
-      "image",
-      { file: Buffer.from("<script>alert(1)</script>"), fileType: "text/html" },
-      { file: Buffer.from(PNG_BYTES), fileType: MimeType.pdf },
-      { file: Buffer.alloc(0), fileType: MimeType.png },
-      {
-        file: Buffer.alloc(FORM_BRANDING_IMAGE_MAX_BYTES + 1),
-        fileType: MimeType.png,
-      },
-    ]) {
-      expect(getPublicFormImage(file)).toBeUndefined();
-    }
+  test("an ICO as the favicon, never as the logo", () => {
+    expect(getPublicFormImage(icoFile(), FORM_FAVICON_IMAGE)).toEqual({
+      type: "image/x-icon",
+      data: ICO_BASE64,
+    });
+    expect(getPublicFormImage(icoFile(), FORM_LOGO_IMAGE)).toBeUndefined();
   });
+
+  test.each(FORM_BRANDING_IMAGES)(
+    "the $name: never an image the rules refuse, whatever a row holds",
+    (image: FormBrandingImageDefinition) => {
+      for (const file of [
+        undefined,
+        null,
+        "image",
+        [pngFile()],
+        {
+          file: Buffer.from("<script>alert(1)</script>"),
+          fileType: "text/html",
+        },
+        { file: Buffer.from(PNG_BYTES), fileType: MimeType.pdf },
+        { file: Buffer.alloc(0), fileType: MimeType.png },
+        { file: "iVBORw0KGgo=", fileType: MimeType.png },
+        { fileType: MimeType.png },
+        {
+          file: Buffer.alloc(image.maxBytes + 1),
+          fileType: MimeType.png,
+        },
+      ]) {
+        expect(getPublicFormImage(file, image)).toBeUndefined();
+      }
+
+      // Exactly the most it may weigh is told.
+      expect(
+        getPublicFormImage(
+          { file: Buffer.alloc(image.maxBytes), fileType: MimeType.png },
+          image,
+        ),
+      ).toBeDefined();
+    },
+  );
 
   test("a form without branding is told nothing more than before", () => {
     expect(getPublicFormBranding({})).toEqual({});
@@ -392,14 +505,30 @@ describe("getPublicFormImage / getPublicFormBranding - what the page is told", (
       }),
     ).toEqual({});
     expect(
+      getPublicFormBranding({ logoFile: icoFile(), logoAltText: "Acme Inc." }),
+    ).toEqual({});
+    expect(
       getPublicFormBranding({ logoFile: pngFile(), logoAltText: "   " }),
     ).toEqual({ logo: { type: "image/png", data: PNG_BASE64 } });
   });
 
-  test("a favicon alone", () => {
+  test("a favicon alone, an ICO one included", () => {
     expect(getPublicFormBranding({ faviconFile: pngFile() })).toEqual({
       favicon: { type: "image/png", data: PNG_BASE64 },
     });
+    expect(getPublicFormBranding({ faviconFile: icoFile() })).toEqual({
+      favicon: { type: "image/x-icon", data: ICO_BASE64 },
+    });
+  });
+
+  test("a favicon larger than a favicon may be is not told, though a logo that size would be", () => {
+    const file: { file: Buffer; fileType: string } = {
+      file: Buffer.alloc(FORM_FAVICON_MAX_BYTES + 1),
+      fileType: MimeType.png,
+    };
+
+    expect(getPublicFormBranding({ faviconFile: file })).toEqual({});
+    expect(getPublicFormBranding({ logoFile: file }).logo).toBeDefined();
   });
 });
 
@@ -416,70 +545,158 @@ describe("readFormLogoAltText", () => {
   });
 });
 
+describe("getBase64MaxLength", () => {
+  test("the longest base64 a file of so many bytes takes", () => {
+    for (const bytes of [1, 2, 3, 4, 5, 6, 100, FORM_FAVICON_MAX_BYTES]) {
+      expect(getBase64MaxLength(bytes)).toBe(
+        Buffer.alloc(bytes).toString("base64").length,
+      );
+    }
+  });
+});
+
 describe("readPublicFormImage - what the page will draw of what it was handed", () => {
   test("an allowed type in real base64", () => {
     expect(
-      readPublicFormImage({ type: "image/png", data: PNG_BASE64 }),
+      readPublicFormImage(
+        { type: "image/png", data: PNG_BASE64 },
+        FORM_LOGO_IMAGE,
+      ),
     ).toEqual({ type: "image/png", data: PNG_BASE64 });
     expect(
-      readPublicFormImage({ type: "IMAGE/WEBP", data: "AAAA", extra: 1 }),
+      readPublicFormImage(
+        { type: "IMAGE/WEBP", data: "AAAA", extra: 1 },
+        FORM_LOGO_IMAGE,
+      ),
     ).toEqual({ type: "image/webp", data: "AAAA" });
   });
 
-  test("never a type that is not an image, or that a data: URL could turn into a page", () => {
-    for (const type of [
-      "text/html",
-      "image/svg+xml;charset=utf-8,<svg onload=alert(1)>",
-      "application/pdf",
-      "image/png;base64,AAAA",
-      "",
-      undefined,
-    ]) {
-      expect(readPublicFormImage({ type, data: PNG_BASE64 })).toBeUndefined();
-    }
+  test("an ICO as the favicon, never as the logo", () => {
+    const told: unknown = { type: "image/x-icon", data: ICO_BASE64 };
+
+    expect(readPublicFormImage(told, FORM_FAVICON_IMAGE)).toEqual({
+      type: "image/x-icon",
+      data: ICO_BASE64,
+    });
+    expect(readPublicFormImage(told, FORM_LOGO_IMAGE)).toBeUndefined();
   });
 
-  test("never data that is not base64 - nothing can leave the data: URL", () => {
-    for (const data of [
-      "",
-      "not base64!",
-      'AAAA"onerror="alert(1)',
-      "AAAA AAAA",
-      "AAA",
-      "AAAAA===",
-      "A===",
-      "data:image/png;base64,AAAA",
-      42,
-      undefined,
-    ]) {
-      expect(readPublicFormImage({ type: "image/png", data })).toBeUndefined();
-    }
-  });
+  test.each(FORM_BRANDING_IMAGES)(
+    "the $name: never a type that is not an image, or that a data: URL could turn into a page",
+    (image: FormBrandingImageDefinition) => {
+      for (const type of [
+        "text/html",
+        "image/svg+xml;charset=utf-8,<svg onload=alert(1)>",
+        "application/pdf",
+        "image/png;base64,AAAA",
+        "",
+        undefined,
+      ]) {
+        expect(
+          readPublicFormImage({ type, data: PNG_BASE64 }, image),
+        ).toBeUndefined();
+      }
+    },
+  );
 
-  test("never more than the most an image may weigh", () => {
-    const largest: string = "A".repeat(
-      Math.ceil(FORM_BRANDING_IMAGE_MAX_BYTES / 3) * 4,
+  test.each(FORM_BRANDING_IMAGES)(
+    "the $name: never data that is not base64 - nothing can leave the data: URL",
+    (image: FormBrandingImageDefinition) => {
+      for (const data of [
+        "",
+        "not base64!",
+        'AAAA"onerror="alert(1)',
+        "AAAA AAAA",
+        "AAA",
+        "AAAAA===",
+        "A===",
+        "data:image/png;base64,AAAA",
+        42,
+        undefined,
+      ]) {
+        expect(
+          readPublicFormImage({ type: "image/png", data }, image),
+        ).toBeUndefined();
+      }
+    },
+  );
+
+  test.each(FORM_BRANDING_IMAGES)(
+    "the $name: never more than the most it may weigh",
+    (image: FormBrandingImageDefinition) => {
+      const largest: string = "A".repeat(getBase64MaxLength(image.maxBytes));
+
+      expect(
+        readPublicFormImage({ type: "image/png", data: largest }, image),
+      ).toBeDefined();
+      expect(
+        readPublicFormImage(
+          { type: "image/png", data: `${largest}AAAA` },
+          image,
+        ),
+      ).toBeUndefined();
+    },
+  );
+
+  test("a logo's worth of base64 is too much for a favicon", () => {
+    const logoSized: string = "A".repeat(
+      getBase64MaxLength(FORM_LOGO_MAX_BYTES),
     );
 
     expect(
-      readPublicFormImage({ type: "image/png", data: largest }),
+      readPublicFormImage(
+        { type: "image/png", data: logoSized },
+        FORM_LOGO_IMAGE,
+      ),
     ).toBeDefined();
     expect(
-      readPublicFormImage({ type: "image/png", data: `${largest}AAAA` }),
+      readPublicFormImage(
+        { type: "image/png", data: logoSized },
+        FORM_FAVICON_IMAGE,
+      ),
     ).toBeUndefined();
   });
 
   test("nothing that is not an image at all", () => {
     for (const value of [undefined, null, "", "AAAA", [], [PNG_BASE64], 7]) {
-      expect(readPublicFormImage(value)).toBeUndefined();
+      expect(readPublicFormImage(value, FORM_LOGO_IMAGE)).toBeUndefined();
+      expect(readPublicFormImage(value, FORM_FAVICON_IMAGE)).toBeUndefined();
     }
   });
 
   test("round trips what the server tells", () => {
-    const told: PublicFormImage = getPublicFormImage(pngFile())!;
+    const logo: PublicFormImage = getPublicFormImage(
+      pngFile(),
+      FORM_LOGO_IMAGE,
+    )!;
+    const favicon: PublicFormImage = getPublicFormImage(
+      icoFile(),
+      FORM_FAVICON_IMAGE,
+    )!;
 
-    expect(readPublicFormImage(JSON.parse(JSON.stringify(told)))).toEqual(told);
+    expect(
+      readPublicFormImage(JSON.parse(JSON.stringify(logo)), FORM_LOGO_IMAGE),
+    ).toEqual(logo);
+    expect(
+      readPublicFormImage(
+        JSON.parse(JSON.stringify(favicon)),
+        FORM_FAVICON_IMAGE,
+      ),
+    ).toEqual(favicon);
   });
+
+  test.each(FORM_BRANDING_IMAGES)(
+    "the $name: the largest image the server tells is one the page draws",
+    (image: FormBrandingImageDefinition) => {
+      const told: PublicFormImage = getPublicFormImage(
+        { file: Buffer.alloc(image.maxBytes, 7), fileType: MimeType.png },
+        image,
+      )!;
+
+      expect(told).toBeDefined();
+      expect(readPublicFormImage(told, image)).toEqual(told);
+    },
+  );
 });
 
 describe("getPublicFormImageUrl", () => {
@@ -487,6 +704,9 @@ describe("getPublicFormImageUrl", () => {
     expect(getPublicFormImageUrl({ type: "image/png", data: PNG_BASE64 })).toBe(
       `data:image/png;base64,${PNG_BASE64}`,
     );
+    expect(
+      getPublicFormImageUrl({ type: "image/x-icon", data: ICO_BASE64 }),
+    ).toBe(`data:image/x-icon;base64,${ICO_BASE64}`);
   });
 });
 
@@ -517,14 +737,14 @@ describe("buildPublicForm carries the branding the form was read with", () => {
     const built: BuiltPublicForm = build({
       logoFile: pngFile(),
       logoAltText: "Acme Inc.",
-      faviconFile: pngFile(),
+      faviconFile: icoFile(),
     });
 
     expect(built.form.logo).toEqual({ type: "image/png", data: PNG_BASE64 });
     expect(built.form.logoAltText).toBe("Acme Inc.");
     expect(built.form.favicon).toEqual({
-      type: "image/png",
-      data: PNG_BASE64,
+      type: "image/x-icon",
+      data: ICO_BASE64,
     });
   });
 

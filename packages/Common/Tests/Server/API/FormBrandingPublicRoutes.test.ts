@@ -87,7 +87,11 @@ if (
  *     allowlist - and cost that read nothing extra;
  *   - nothing serves them at an address of their own, and the file route
  *     that serves files by id does not serve them: they stay private, and
- *     nothing in the form's answer names them.
+ *     nothing in the form's answer names them;
+ *   - only a file of the form's own project is ever handed over: not one of
+ *     another project, nor one uploaded with none, even when a form's row
+ *     names one (every write refuses that already - FormBranding.test.ts -
+ *     and the read checks again).
  *
  * The plan check is stubbed (see FormPublicRoutes.test.ts), so the suite
  * holds with BILLING_ENABLED on, as CI runs it, and off.
@@ -96,18 +100,25 @@ if (
 const PROJECT_ID: ObjectID = new ObjectID(
   "5d7f3c0a-4c55-4d3e-9a3e-2d4a7d1c9f01",
 );
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "5d7f3c0a-4c55-4d3e-9a3e-2d4a7d1c9f99",
+);
 
 const ACME_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const GLOBEX_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
 const PLAIN_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae9";
 const OFF_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90aea";
 const LOCKED_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90aeb";
+const FOREIGN_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90aec";
 
 const ACME_LOGO_ID: string = "f1000000-0000-4000-8000-000000000001";
 const ACME_FAVICON_ID: string = "f1000000-0000-4000-8000-000000000002";
 const GLOBEX_LOGO_ID: string = "f1000000-0000-4000-8000-000000000003";
 // A private file no form shows: an attachment of an internal note, say.
 const PRIVATE_FILE_ID: string = "f1000000-0000-4000-8000-000000000004";
+// Images of another project, and of none (uploaded before files had one).
+const FOREIGN_FILE_ID: string = "f1000000-0000-4000-8000-000000000005";
+const UNOWNED_FILE_ID: string = "f1000000-0000-4000-8000-000000000006";
 
 const ALLOWED_IP: string = "198.51.100.23";
 const OTHER_IP: string = "203.0.113.7";
@@ -115,7 +126,13 @@ const OTHER_IP: string = "203.0.113.7";
 const INSTANCE_ORIGIN: string = "https://oneuptime.example.com";
 const FOREIGN_ORIGIN: string = "https://evil.example";
 
-function image(id: string, fileType: string, text: string): File {
+function image(
+  id: string,
+  fileType: string,
+  text: string,
+  // The project it was uploaded in; null for none.
+  projectId: ObjectID | null = PROJECT_ID,
+): File {
   const row: File = new File();
   row._id = id;
   row.name = `${id}.img`;
@@ -123,6 +140,11 @@ function image(id: string, fileType: string, text: string): File {
   row.file = Buffer.from(text);
   row.isPublic = false;
   row.imageAccessToken = `token-${id}`;
+
+  if (projectId) {
+    row.projectId = projectId;
+  }
+
   return row;
 }
 
@@ -131,6 +153,18 @@ const FILES: Record<string, File> = {
   [ACME_FAVICON_ID]: image(ACME_FAVICON_ID, MimeType.svg, "<svg>acme</svg>"),
   [GLOBEX_LOGO_ID]: image(GLOBEX_LOGO_ID, MimeType.png, "globex logo bytes"),
   [PRIVATE_FILE_ID]: image(PRIVATE_FILE_ID, MimeType.png, "private bytes"),
+  [FOREIGN_FILE_ID]: image(
+    FOREIGN_FILE_ID,
+    MimeType.png,
+    "another project's private bytes",
+    OTHER_PROJECT_ID,
+  ),
+  [UNOWNED_FILE_ID]: image(
+    UNOWNED_FILE_ID,
+    MimeType.png,
+    "bytes of a file with no project",
+    null,
+  ),
 };
 
 function base64Of(id: string): string {
@@ -201,6 +235,18 @@ const FORMS: Array<Form> = [
     name: "Office Only",
     logoId: ACME_LOGO_ID,
     ipWhitelist: "198.51.100.0/24",
+  }),
+  /*
+   * A row naming another project's file as its logo and a file of no
+   * project as its favicon: what no write lets through, as if something
+   * had written it anyway.
+   */
+  buildForm({
+    key: FOREIGN_KEY,
+    name: "Borrowed Branding",
+    logoId: FOREIGN_FILE_ID,
+    logoAltText: "Someone Else",
+    faviconId: UNOWNED_FILE_ID,
   }),
 ];
 
@@ -493,6 +539,21 @@ describe("a form's logo and favicon over HTTP", () => {
       }
 
       expect(result.raw).not.toContain("/file/");
+    });
+
+    it("never a file of another project, or of none, even when a form's row names one", async () => {
+      const result: HttpResult = await send({
+        port,
+        path: readPath(FOREIGN_KEY),
+      });
+
+      // The form itself is served, as one without branding.
+      expect(result.status).toBe(200);
+      expect(result.body?.["name"]).toBe("Borrowed Branding");
+      expect(result.body).not.toHaveProperty("logo");
+      expect(result.body).not.toHaveProperty("logoAltText");
+      expect(result.body).not.toHaveProperty("favicon");
+      expectNoImageIn(result);
     });
 
     it("costs the read nothing extra: one page load is one read", async () => {
