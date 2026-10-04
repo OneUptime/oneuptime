@@ -44,6 +44,8 @@
 - **Allow Subscribers to Choose Resources** (`allowSubscribersToChooseResources`) — به‌طور پیش‌فرض خاموش. روشنش کنید و فرم اشتراک کلید **Subscribe to All Resources** می‌گیرد؛ پاکش کنید و **Select Resources to Subscribe** پدیدار می‌شود تا بازدیدکننده منابع منفرد را برگزیند.
 - **Allow Subscribers to Choose Event Types** (`allowSubscribersToChooseEventTypes`) — به‌طور پیش‌فرض خاموش. همان شکل: کلید **Subscribe to All Event Types**، و **Select Event Types to Subscribe** زیرش وقتی پاک شود.
 
+با روشن بودن هر کدام از این دو هم فرم یک صفحه می‌ماند: این انتخاب‌ها در **Preferences** قرار می‌گیرند که زیر جای ارسال به‌روزرسانی‌ها جمع شده است. در حالت جمع‌شده، در یک خط می‌گوید بازدیدکننده چه چیزی دریافت می‌کند (تا وقتی چیزی را محدود نکند، همه به‌روزرسانی‌های صفحه وضعیت)، پس کسی که همه چیز را می‌خواهد فقط **Subscribe** را می‌زند. صفحه **Update Subscription** همین انتخاب‌ها را باز نشان می‌دهد.
+
 نوع رویدادها `Incident`، `Announcement` و `Scheduled Event` هستند.
 
 انتخاب‌ها روی رکورد مشترک به‌صورت **Is Subscribed to All Resources** (`isSubscribedToAllResources`، پیش‌فرض درست)، **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`، پیش‌فرض درست)، **Subscribed to Resources** و **Subscribed to Event Types** می‌نشینند.

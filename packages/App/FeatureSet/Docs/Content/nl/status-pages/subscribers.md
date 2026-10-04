@@ -44,6 +44,8 @@ Standaard krijgt een abonnee alles wat op de pagina staat. Twee schakelaars in d
 - **Abonnees toestaan resources te kiezen** (`allowSubscribersToChooseResources`) — standaard uit. Zet je hem aan, dan krijgt het aanmeldformulier er een schakelaar **Abonneren op alle bronnen** bij; haal je die weg, dan verschijnt **Selecteer bronnen om op te abonneren** zodat de bezoeker afzonderlijke resources kan aanvinken.
 - **Abonnees toestaan gebeurtenistypen te kiezen** (`allowSubscribersToChooseEventTypes`) — standaard uit. Zelfde patroon: een schakelaar **Abonneren op alle gebeurtenistypen**, met daaronder **Selecteer gebeurtenistypen om op te abonneren** zodra je die uitzet.
 
+Staat een van beide aan, dan blijft het formulier één pagina: deze keuzes staan onder **Voorkeuren**, ingeklapt onder waar updates naartoe gaan. Ingeklapt zegt het in één regel wat de bezoeker krijgt (alle updates van de statuspagina, zolang hij niets beperkt), dus wie alles wil, klikt gewoon op **Abonneren**. De pagina **Abonnement bijwerken** toont dezelfde keuzes uitgeklapt.
+
 De gebeurtenistypen zijn `Incident`, `Announcement` en `Scheduled Event`.
 
 De keuzes belanden op het abonneerecord als **Is Subscribed to All Resources** (`isSubscribedToAllResources`, standaard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, standaard true), **Subscribed to Resources** en **Subscribed to Event Types**.

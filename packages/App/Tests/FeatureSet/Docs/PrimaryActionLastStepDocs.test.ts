@@ -94,9 +94,13 @@ describe("the docs on stepped forms", () => {
       "status-pages/subscribers.md",
       "**Create Scheduled Maintenance Event** is on the review at the end",
     ],
+    /*
+     * The subscribe form has no steps: Preferences is folded on its one
+     * page, above Subscribe.
+     */
     [
       "status-pages/subscribers.md",
-      "**Next** opens **Preferences**, where every resource and every kind of event are already chosen",
+      "a visitor who wants everything presses **Subscribe** without opening it",
     ],
     ["workflows/variables.md", "**Save Changes** is on the last step"],
     ["forms/on-submit.md", "**Save Changes** is on the last step"],

@@ -44,6 +44,8 @@ OneUptime Cloud에서는 사용 중인 요금제에 포함되지 않는 스위�
 - **구독자가 리소스를 선택하도록 허용** (`allowSubscribersToChooseResources`) — 기본으로 꺼져 있습니다. 켜면 구독 양식에 **모든 리소스 구독** 토글이 생기고, 이를 해제하면 **구독할 리소스 선택**이 나타나 방문자가 리소스를 개별로 고를 수 있습니다.
 - **구독자가 이벤트 유형을 선택하도록 허용** (`allowSubscribersToChooseEventTypes`) — 기본으로 꺼져 있습니다. 모양은 같습니다. **모든 이벤트 유형 구독** 토글이 있고, 해제하면 그 아래에 **구독할 이벤트 유형 선택**이 나타납니다.
 
+둘 중 하나라도 켜져 있어도 양식은 한 페이지입니다. 이 선택 항목은 업데이트를 받을 곳 아래에 접힌 **환경설정**에 들어 있습니다. 접힌 상태에서는 방문자가 받게 될 내용(범위를 좁히지 않는 한 상태 페이지의 모든 업데이트)을 한 줄로 보여 주므로, 모두 받고 싶은 방문자는 **구독**만 누르면 됩니다. **구독 업데이트** 페이지에서는 같은 선택 항목이 펼쳐진 채로 나옵니다.
+
 이벤트 유형은 `Incident`, `Announcement`, `Scheduled Event`입니다.
 
 선택 결과는 구독자 레코드에 **Is Subscribed to All Resources**(`isSubscribedToAllResources`, 기본값 true), **Is Subscribed to All Event Types**(`isSubscribedToAllEventTypes`, 기본값 true), **Subscribed to Resources**, **Subscribed to Event Types**로 저장됩니다.

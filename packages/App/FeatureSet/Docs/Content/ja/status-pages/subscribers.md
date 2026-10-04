@@ -44,6 +44,8 @@ OneUptime Cloud では、ご利用のプランに含まれないスイッチの�
 - **購読者にリソースの選択を許可する**（`allowSubscribersToChooseResources`）— 既定でオフ。オンにすると購読フォームに **すべてのリソースを購読する** トグルが増え、それを外すと **購読するリソースを選択** が現れて、訪問者がリソースを個別に選べるようになります。
 - **購読者にイベントタイプの選択を許可する**（`allowSubscribersToChooseEventTypes`）— 既定でオフ。形は同じで、**すべてのイベントタイプを購読する** トグルと、それを外したときに下に出る **購読するイベントタイプを選択** です。
 
+どちらかがオンでも、フォームは 1 ページのままです。これらの選択肢は、更新の送信先の下にある折りたたまれた **設定** に入ります。折りたたまれた状態では、訪問者が受け取る内容（絞り込まない限り、ステータスページのすべてのアップデート）が 1 行で表示されるので、すべて受け取りたい訪問者は **購読する** を押すだけです。**購読を更新** ページでは、同じ選択肢が開いた状態で表示されます。
+
 イベントタイプは `Incident`、`Announcement`、`Scheduled Event` の 3 つです。
 
 選んだ内容は購読者レコードの **Is Subscribed to All Resources**（`isSubscribedToAllResources`、既定は true）、**Is Subscribed to All Event Types**（`isSubscribedToAllEventTypes`、既定は true）、**Subscribed to Resources**、**Subscribed to Event Types** に入ります。
