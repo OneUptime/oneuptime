@@ -26,19 +26,19 @@ Seleziona il gruppo in cui vuoi che la risorsa finisca (oppure **Top of page** p
 
 - **Monitor** — il menu a discesa dei monitor del tuo progetto, segnaposto **Seleziona monitor**. Obbligatorio.
 - **Nome visualizzato** — il testo che i visitatori leggono. Si compila con il nome del monitor appena lo scegli, e lo segue se ne scegli un altro, finché non scrivi un nome tuo. È memorizzato separatamente dal nome del monitor, quindi puoi rinominarlo qui senza toccare il monitoraggio.
-- **Avanzato** — chiuso. Contiene **Descrizione** (markdown facoltativo mostrato sotto la riga, utile per una frase che spieghi che cosa fa davvero quel servizio) e le [opzioni di visualizzazione](#le-opzioni-di-visualizzazione-di-una-risorsa). Se lo lasci chiuso, la risorsa riceve i loro valori predefiniti.
+- **Altri campi** — chiuso. Contiene **Descrizione** (markdown facoltativo mostrato sotto la riga, utile per una frase che spieghi che cosa fa davvero quel servizio) e le [opzioni di visualizzazione](#le-opzioni-di-visualizzazione-di-una-risorsa). Se lo lasci chiuso, la risorsa riceve i loro valori predefiniti.
 
-Scegli un monitor, clicca **Aggiungi monitor** e la riga è sulla pagina. In un gruppo a griglia la finestra chiede anche, sopra **Avanzato**, la riga e la colonna in cui va il monitor — vedi [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia).
+Scegli un monitor, clicca **Aggiungi monitor** e la riga è sulla pagina. In un gruppo a griglia la finestra chiede anche, sopra **Altri campi**, la riga e la colonna in cui va il monitor — vedi [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia).
 
 Se il tuo progetto ha i gruppi di monitor abilitati, sotto il menu a discesa compare un link **Add a Monitor Group instead.** — cliccalo e il menu **Monitor** viene sostituito da un menu **Monitor Gruppo** (**Seleziona gruppo di monitor**). Il link si trasforma allora in **Add a Monitor instead.** così puoi tornare indietro. Usa un gruppo di monitor quando vuoi che una singola riga della pagina rappresenti più controlli messi insieme.
 
 ### Aggiungerne diversi in una volta
 
-**Add Multiple** (che nel menu **More actions** si chiama anche **Add multiple monitors**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor** invece di un singolo menu a discesa, poi la stessa sezione chiusa **Avanzato**, le cui opzioni di visualizzazione valgono per tutti i monitor selezionati. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Add Monitors** li aggiunge — non ci sono passaggi da attraversare. È il modo più veloce per popolare una pagina nuova.
+**Add Multiple** (che nel menu **More actions** si chiama anche **Add multiple monitors**) apre **Add Multiple Monitors**. Anche questa è una sola pagina: una selezione multipla **Monitor** invece di un singolo menu a discesa, poi la stessa sezione chiusa **Altri campi**, le cui opzioni di visualizzazione valgono per tutti i monitor selezionati. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Add Monitors** li aggiunge — non ci sono passaggi da attraversare. È il modo più veloce per popolare una pagina nuova.
 
 ## Le opzioni di visualizzazione di una risorsa
 
-La sezione **Avanzato** è identica nel modulo di aggiunta singola e nella finestra di aggiunta multipla. Parte chiusa in entrambi, e anche in **Modifica risorsa**, dove la sua intestazione dice **Configurato** quando qualcosa al suo interno non è al valore predefinito. Tutto qui è per singola risorsa — due righe nello stesso gruppo possono essere configurate in modo diverso.
+La sezione **Altri campi** è identica nel modulo di aggiunta singola e nella finestra di aggiunta multipla. Parte chiusa in entrambi, e anche in **Modifica risorsa**, dove la sua intestazione, da chiusa, mostra ciò che al suo interno non è al valore predefinito. Tutto qui è per singola risorsa — due righe nello stesso gruppo possono essere configurate in modo diverso.
 
 | Campo                                                    | A che serve                                                                                            |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Clicca **New Group** per aprire **Create New Status Page Group**. È una sola pa
 - **Nome gruppo** (`name`) — obbligatorio. È il titolo di sezione che i visitatori vedono.
 - **Parent Group** (`parentStatusPageGroupId`) — facoltativo. Lascialo su **No parent group (top level)** per tenere il gruppo al livello superiore. **Add a sub group** lo compila per te.
 - **Layout** — chiuso, e la sua intestazione dice **List** o **Grid**. Contiene la **Modalità di visualizzazione** e gli assi di una griglia (vedi [Layout a elenco o a griglia](#layout-a-elenco-o-a-griglia)), e si apre da solo su un gruppo a griglia.
-- **Avanzato** — chiuso. Contiene il resto e rispecchia le opzioni delle risorse a livello di gruppo:
+- **Altri campi** — chiuso. Contiene il resto e rispecchia le opzioni delle risorse a livello di gruppo:
   - **Descrizione gruppo** (`description`) — markdown facoltativo, mostrato sotto il titolo.
   - **Espandi sulla pagina di stato per impostazione predefinita** (`isExpandedByDefault`) — attivo per impostazione predefinita: se la sezione parte aperta o chiusa per i visitatori.
   - **Mostra stato attuale del gruppo** (`showCurrentStatus`) — attivo per impostazione predefinita. Mostra uno stato accanto al titolo del gruppo.

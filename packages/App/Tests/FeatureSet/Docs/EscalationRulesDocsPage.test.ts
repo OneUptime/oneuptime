@@ -11,6 +11,7 @@ import {
   DEFAULT_ESCALATE_AFTER_IN_MINUTES,
   getDefaultEscalationRuleName,
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -285,7 +286,7 @@ describe("the Escalation Rules docs page", () => {
           "Notify",
           "Add responder",
           "Escalate after (in minutes)",
-          "Advanced",
+          MORE_FIELDS_SECTION_TITLE,
           ...RULE_BUTTONS,
           "Repeat Policy",
         ]) {

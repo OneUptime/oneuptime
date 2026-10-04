@@ -26,19 +26,19 @@ Wählen Sie die Gruppe, in der die Ressource landen soll (oder **Top of page** f
 
 - **Überwachung** – das Dropdown der Monitore in Ihrem Projekt, Platzhalter **Überwachung auswählen**. Pflichtfeld.
 - **Anzeigename** – der Text, den Besucher lesen. Er wird mit dem Namen des Monitors ausgefüllt, sobald Sie ihn auswählen, und wechselt mit, wenn Sie einen anderen Monitor wählen – bis Sie einen eigenen Namen eingeben. Er wird getrennt vom eigenen Namen des Monitors gespeichert, Sie können ihn hier also ändern, ohne die Überwachung anzufassen.
-- **Erweitert** – eingeklappt. Enthält **Beschreibung** (optionales Markdown, unter der Zeile angezeigt, gut für einen Satz, der erklärt, was der Dienst eigentlich tut) und die [Anzeigeoptionen](#anzeigeoptionen-an-einer-ressource). Bleibt der Abschnitt zu, bekommt die Ressource deren Standardwerte.
+- **Weitere Felder** – eingeklappt. Enthält **Beschreibung** (optionales Markdown, unter der Zeile angezeigt, gut für einen Satz, der erklärt, was der Dienst eigentlich tut) und die [Anzeigeoptionen](#anzeigeoptionen-an-einer-ressource). Bleibt der Abschnitt zu, bekommt die Ressource deren Standardwerte.
 
-Monitor auswählen, auf **Monitor hinzufügen** klicken, und die Zeile steht auf der Seite. In einer Grid-Gruppe fragt der Dialog oberhalb von **Erweitert** außerdem nach der Zeile und der Spalte, in die der Monitor gehört – siehe [Listen-Layout und Raster-Layout](#listen-layout-und-raster-layout).
+Monitor auswählen, auf **Monitor hinzufügen** klicken, und die Zeile steht auf der Seite. In einer Grid-Gruppe fragt der Dialog oberhalb von **Weitere Felder** außerdem nach der Zeile und der Spalte, in die der Monitor gehört – siehe [Listen-Layout und Raster-Layout](#listen-layout-und-raster-layout).
 
 Sind in Ihrem Projekt Monitorgruppen aktiviert, steht unter dem Dropdown ein Link **Add a Monitor Group instead.** – klicken Sie ihn an, und das Dropdown **Überwachung** wird gegen ein Dropdown **Monitor Gruppe** getauscht (**Überwachungsgruppe auswählen**). Der Link wechselt dann zu **Add a Monitor instead.**, damit Sie zurückkönnen. Nehmen Sie eine Monitorgruppe, wenn eine Zeile auf der Seite mehrere zusammengefasste Prüfungen darstellen soll.
 
 ### Mehrere auf einmal hinzufügen
 
-**Add Multiple** (im Menü **More actions** auch **Add multiple monitors**) öffnet **Add Multiple Monitors**. Auch er ist eine einzige Seite: eine Mehrfachauswahl **Monitore** statt eines einzelnen Dropdowns, darunter derselbe eingeklappte Abschnitt **Erweitert**, dessen Anzeigeoptionen für jeden Monitor gelten, den Sie ausgewählt haben. Jede Ressource übernimmt Anzeigenamen und Beschreibung von ihrem Monitor, und **Monitore hinzufügen** fügt sie hinzu – es gibt keine Schritte zu durchlaufen. Das ist der schnellste Weg, eine neue Seite zu bestücken.
+**Add Multiple** (im Menü **More actions** auch **Add multiple monitors**) öffnet **Add Multiple Monitors**. Auch er ist eine einzige Seite: eine Mehrfachauswahl **Monitore** statt eines einzelnen Dropdowns, darunter derselbe eingeklappte Abschnitt **Weitere Felder**, dessen Anzeigeoptionen für jeden Monitor gelten, den Sie ausgewählt haben. Jede Ressource übernimmt Anzeigenamen und Beschreibung von ihrem Monitor, und **Monitore hinzufügen** fügt sie hinzu – es gibt keine Schritte zu durchlaufen. Das ist der schnellste Weg, eine neue Seite zu bestücken.
 
 ## Anzeigeoptionen an einer Ressource
 
-Der Abschnitt **Erweitert** ist im Einzelformular und im Massendialog derselbe. Er startet in beiden eingeklappt, ebenso unter **Ressource bearbeiten**, wo seine Kopfzeile **Konfiguriert** zeigt, wenn darin etwas vom Standard abweicht. Alles hier gilt pro Ressource – zwei Zeilen in derselben Gruppe dürfen unterschiedlich konfiguriert sein.
+Der Abschnitt **Weitere Felder** ist im Einzelformular und im Massendialog derselbe. Er startet in beiden eingeklappt, ebenso unter **Ressource bearbeiten**, wo seine eingeklappte Kopfzeile zeigt, was darin vom Standard abweicht. Alles hier gilt pro Ressource – zwei Zeilen in derselben Gruppe dürfen unterschiedlich konfiguriert sein.
 
 | Feld                                                              | Zweck                                                                                              |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Klicken Sie auf **New Group**, um **Create New Status Page Group** zu öffnen. D
 - **Gruppenname** (`name`) – Pflichtfeld. Das ist die Abschnittsüberschrift, die Besucher sehen.
 - **Parent Group** (`parentStatusPageGroupId`) – optional. Lassen Sie das Feld auf **No parent group (top level)**, damit die Gruppe auf oberster Ebene bleibt. **Add a sub group** füllt es für Sie aus.
 - **Layout** – eingeklappt; die Kopfzeile zeigt **List** oder **Grid**. Der Abschnitt enthält den **Ansichtsmodus** und die Achsen eines Rasters (siehe [Listen-Layout und Raster-Layout](#listen-layout-und-raster-layout)) und öffnet sich bei einer Grid-Gruppe von selbst.
-- **Erweitert** – eingeklappt. Enthält den Rest und spiegelt die Ressourcenoptionen auf Gruppenebene:
+- **Weitere Felder** – eingeklappt. Enthält den Rest und spiegelt die Ressourcenoptionen auf Gruppenebene:
   - **Gruppenbeschreibung** (`description`) – optionales Markdown, unter der Überschrift angezeigt.
   - **Auf Statusseite standardmäßig erweitern** (`isExpandedByDefault`) – standardmäßig an: ob der Abschnitt für Besucher offen oder eingeklappt startet.
   - **Aktuellen Gruppenstatus anzeigen** (`showCurrentStatus`) – standardmäßig an. Zeigt einen Status neben der Gruppenüberschrift.

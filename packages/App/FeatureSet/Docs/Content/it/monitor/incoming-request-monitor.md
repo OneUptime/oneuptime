@@ -163,7 +163,7 @@ I percorsi devono iniziare con il prefisso letterale `requestBody.`. Un percorso
 Un webhook descrive solo ciò che sta in quel payload, quindi OneUptime non risolve mai un incidente perché la sua chiave ha smesso di comparire. Un incidente viene risolto solo quando un payload dichiara esplicitamente che quella chiave è rientrata. Devono valere due cose insieme:
 
 1. **Field that signals recovery** e **Value that means recovered** sono impostati e corrispondono al payload. Il confronto è esatto e distingue maiuscole e minuscole — `Resolved` non corrisponde a `resolved`.
-2. L'incidente del criterio ha **Auto Resolve Incident** attivo, sotto **Advanced Options** nel modulo dell'incidente. Senza di esso, gli eventi di ripristino corrispondenti vengono ignorati e gli incidenti restano aperti. (Lo stesso vale per gli avvisi e **Auto Resolve Alert**.)
+2. L'incidente del criterio ha **Auto Resolve Incident** attivo, sotto **More fields** nel modulo dell'incidente. Senza di esso, gli eventi di ripristino corrispondenti vengono ignorati e gli incidenti restano aperti. (Lo stesso vale per gli avvisi e **Auto Resolve Alert**.)
 
 **Max incidents per request** limita l'estrazione, non solo la creazione. Le chiavi oltre il limite sono invisibili anche al ripristino, quindi in un payload con più chiavi distinte del limite un allarme che riporta `resolved` oltre di esso non chiuderà il proprio incidente.
 

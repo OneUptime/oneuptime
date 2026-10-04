@@ -212,7 +212,7 @@ async function mountWith(data: {
   // Drawn once the statuses have loaded; until then it is a loader.
   await waitFor(() => {
     expect(
-      screen.getByRole("button", { name: "Advanced" }),
+      screen.getByRole("button", { name: "More fields" }),
     ).toBeInTheDocument();
   });
 
@@ -225,7 +225,7 @@ async function mountWith(data: {
 }
 
 function advancedHeader(): HTMLElement {
-  return screen.getByRole("button", { name: "Advanced" });
+  return screen.getByRole("button", { name: "More fields" });
 }
 
 function advancedBody(): HTMLElement {

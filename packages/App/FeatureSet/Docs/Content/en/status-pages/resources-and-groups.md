@@ -30,15 +30,15 @@ Select the group you want the resource to land in (or **Top of page** for an ung
 
 - **Monitor** — the dropdown of monitors in your project, placeholder **Select Monitor**. Required.
 - **Display Name** — the text visitors read. It fills in with the monitor's name as you pick it, and follows when you pick another monitor, until you type a name of your own. It is stored separately from the monitor's own name, so you can rename it here without touching monitoring.
-- **Advanced** — folded. It holds **Description** (optional markdown shown under the row, good for a sentence explaining what the service actually does) and the [display options](#display-options-on-a-resource). Leave it closed and the resource gets their defaults.
+- **More fields** — folded. It holds **Description** (optional markdown shown under the row, good for a sentence explaining what the service actually does) and the [display options](#display-options-on-a-resource). Leave it closed and the resource gets their defaults.
 
-Pick a monitor, click **Add Monitor**, and the row is on the page. In a grid group the dialog also asks for the row and the column the monitor goes in, above **Advanced** — see [List layout vs grid layout](#list-layout-vs-grid-layout).
+Pick a monitor, click **Add Monitor**, and the row is on the page. In a grid group the dialog also asks for the row and the column the monitor goes in, above **More fields** — see [List layout vs grid layout](#list-layout-vs-grid-layout).
 
 If your project has monitor groups turned on (the **Monitor Groups** switch on **Project Settings** > **Advanced** > **Feature Flags**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** — click it and the **Monitor** dropdown is swapped for a **Monitor Group** dropdown (**Select Monitor Group**). The link then flips to **Add a Monitor instead.** so you can go back. Use a monitor group when you want one row on the page to represent several checks rolled together.
 
 ### Adding several at once
 
-**Add Multiple** (also **Add multiple monitors** in the **More actions** menu) opens **Add Multiple Monitors**. It is one page too: a **Monitors** multi-select instead of a single dropdown, then the same folded **Advanced** section, whose display options apply to every monitor you picked. Each resource takes its display name and description from its monitor, and **Add Monitors** adds them — there is nothing to step through. This is the fastest way to seed a new page.
+**Add Multiple** (also **Add multiple monitors** in the **More actions** menu) opens **Add Multiple Monitors**. It is one page too: a **Monitors** multi-select instead of a single dropdown, then the same folded **More fields** section, whose display options apply to every monitor you picked. Each resource takes its display name and description from its monitor, and **Add Monitors** adds them — there is nothing to step through. This is the fastest way to seed a new page.
 
 The multi-select also has a **Labels** tab: click a label and every monitor carrying it is selected at once.
 
@@ -52,7 +52,7 @@ The same rule holds everywhere else a resource is created. Adding a monitor that
 
 ## Display options on a resource
 
-The **Advanced** section is the same on the single-add form and the bulk modal. It starts folded on both, and on **Edit resource** too, where its header says **Configured** when something in it is not at its default. Everything here is per-resource — two rows in the same group can be configured differently.
+The **More fields** section is the same on the single-add form and the bulk modal. It starts folded on both, and on **Edit resource** too, where its folded header shows what in it is not at its default. Everything here is per-resource — two rows in the same group can be configured differently.
 
 | Field                                                    | Purpose                                                                                            |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -74,7 +74,7 @@ So the sequence is: turn the toggles on per resource, then set the window once f
 
 Groups have their own copies of these toggles — see below — so a group can show a rolled-up percentage while the individual monitors inside it stay quiet, or the other way round.
 
-The colors of the history chart bars are set under **Advanced** on the **Branding** page, and which monitor statuses count as "down" in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
+The colors of the history chart bars are set under **More settings** on the **Branding** page, and which monitor statuses count as "down" in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
 ## Groups
 
@@ -83,7 +83,7 @@ Click **New Group** to open **Create New Status Page Group**. It is one page: tw
 - **Group Name** (`name`) — required. This is the section heading visitors see.
 - **Parent Group** (`parentStatusPageGroupId`) — optional. Leave it at **No parent group (top level)** to keep the group at the top level. **Add a sub group** fills it in for you.
 - **Layout** — folded, and its header says **List** or **Grid**. It holds **View Mode** and a grid's axes (see [List layout vs grid layout](#list-layout-vs-grid-layout)), and it opens by itself on a grid group.
-- **Advanced** — folded. It holds the rest, and mirrors the resource options at group level:
+- **More fields** — folded. It holds the rest, and mirrors the resource options at group level:
   - **Group Description** (`description`) — optional markdown, shown under the heading.
   - **Expand on Status Page by Default** (`isExpandedByDefault`) — on by default: whether the section starts open or collapsed for visitors.
   - **Show Current Group Status** (`showCurrentStatus`) — on by default. Shows a status beside the group heading.

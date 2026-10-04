@@ -57,7 +57,7 @@ Crie um novo monitor e escolha **SQL Query** como o tipo de monitor, depois pree
 - **Consulta SQL** — a consulta somente leitura a ser executada (consulte Escrevendo a consulta).
 - **Usar SSL / TLS** — habilite para conectar via TLS. Quando habilitado, você pode desativar **Verificar certificado do servidor** se o banco de dados usar um certificado autoassinado.
 
-### Opções avançadas
+### Mais campos
 
 - **Tempo Limite de Conexão (ms)** — quanto tempo aguardar para estabelecer uma conexão. Padrão `10000`, máximo `30000`.
 - **Tempo Limite de Instrução (ms)** — o limite rígido de quanto tempo a consulta pode ser executada. Padrão `15000`, máximo `60000`.

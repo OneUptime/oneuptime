@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "계정 비밀번호 또는 제공업체가 SMTP용으로 발급한 API 키입니다.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "이메일을 보내는 주소입니다. 서버에서 이 주소로 보내는 것을 허용해야 합니다. Microsoft Graph에서는 메일을 보내는 사서함입니다.",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "제공업체가 알려 준 포트로, 보통 587입니다. 포트 465는 항상 암호화됩니다.",
-  "Port 465 is always encrypted, but the certificate is not checked.": "포트 465는 항상 암호화되지만 인증서는 확인하지 않습니다."
+  "Port 465 is always encrypted, but the certificate is not checked.": "포트 465는 항상 암호화되지만 인증서는 확인하지 않습니다.",
+  "More fields": "추가 필드",
+  "More settings": "추가 설정",
+  "{{count}} more": "외 {{count}}개",
+  "{{count}} more_one": "외 {{count}}개",
+  "On": "켜짐",
+  "Off": "꺼짐"
 }

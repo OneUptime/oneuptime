@@ -163,7 +163,7 @@ Os caminhos precisam começar com o prefixo literal `requestBody.`. Um caminho s
 Um webhook descreve apenas o que está naquele payload, então o OneUptime nunca resolve um incidente porque a sua chave deixou de aparecer. Um incidente só é resolvido quando um payload diz explicitamente que aquela chave se recuperou. Duas coisas precisam ser verdadeiras ao mesmo tempo:
 
 1. **Field that signals recovery** e **Value that means recovered** estão definidos e correspondem ao payload. A comparação é exata e diferencia maiúsculas de minúsculas — `Resolved` não corresponde a `resolved`.
-2. O incidente do critério tem **Auto Resolve Incident** ativado, em **Advanced Options** no formulário do incidente. Sem isso, eventos de recuperação correspondentes são ignorados e os incidentes continuam abertos. (O mesmo vale para alertas e **Auto Resolve Alert**.)
+2. O incidente do critério tem **Auto Resolve Incident** ativado, em **More fields** no formulário do incidente. Sem isso, eventos de recuperação correspondentes são ignorados e os incidentes continuam abertos. (O mesmo vale para alertas e **Auto Resolve Alert**.)
 
 **Max incidents per request** limita a extração, não apenas a criação. As chaves além do limite também ficam invisíveis para a recuperação, então em um payload com mais chaves distintas do que o limite, um alerta informando `resolved` além dele não fechará o seu incidente.
 

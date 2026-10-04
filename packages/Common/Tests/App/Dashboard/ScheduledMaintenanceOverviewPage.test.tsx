@@ -1328,7 +1328,7 @@ describe("Scheduled maintenance overview page", () => {
         "title",
         "startsAt",
         "endsAt",
-        "Advanced: labels",
+        "More fields: labels",
       ]);
       expect(rowsOn(card, "status-pages")).toEqual([
         "statusPages",

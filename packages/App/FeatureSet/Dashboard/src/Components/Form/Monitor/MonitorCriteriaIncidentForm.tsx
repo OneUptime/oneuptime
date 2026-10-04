@@ -19,7 +19,12 @@ import React, {
 import OwnersPicker, {
   OwnersPickerValue,
 } from "Common/UI/Components/PeoplePicker/OwnersPicker";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -28,7 +33,7 @@ import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariable
 import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
-import { hasIncidentAdvancedOptions } from "./CriteriaAdvancedOptions";
+import { getIncidentMoreFieldsItems } from "./MonitorMoreFields";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -105,9 +110,12 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaIncident.onCallPolicyIds?.length,
   );
-  // Only what the user chose: a default rule's auto-resolve does not count.
-  const hasAdvancedOptions: boolean =
-    hasIncidentAdvancedOptions(criteriaIncident);
+  /*
+   * The More fields section's options, by name, the ones the user chose
+   * as chips: a default rule's auto-resolve does not count.
+   */
+  const moreFieldsItems: Array<FoldedSectionItem> =
+    getIncidentMoreFieldsItems(criteriaIncident);
   const hasIncidentTeam: boolean = Boolean(
     criteriaIncident.incidentMemberRoles?.length,
   );
@@ -275,11 +283,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Description - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="Description"
         description="Optional incident description"
         badge={hasDescription ? "Set" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasDescription}
       >
         <div>
@@ -299,14 +306,13 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
       {/* On-Call - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="On-Call"
         description="Configure on-call policy escalation"
         badge={hasNotifications ? "Configured" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasNotifications}
       >
         <div>
@@ -341,15 +347,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             placeholder="Select On-Call Policies"
           />
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
       {/* Incident Roles - Collapsible */}
       {props.incidentRoleOptions && props.incidentRoleOptions.length > 0 && (
-        <CollapsibleSection
+        <FoldedSection
           title="Incident Roles"
           description="Pre-assign team members to incident roles"
           badge={hasIncidentTeam ? "Configured" : undefined}
-          variant="bordered"
           defaultCollapsed={!hasIncidentTeam}
         >
           <div className="space-y-4">
@@ -453,15 +458,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               );
             })}
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       )}
 
       {/* Ownership & Labels - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="Ownership & Labels"
         description="Assign owners and labels to the incident"
         badge={hasOwnershipOrLabels ? "Configured" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasOwnershipOrLabels}
       >
         <div className="space-y-4">
@@ -518,15 +522,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
-      {/* Advanced Options - Collapsible */}
-      <CollapsibleSection
-        title="Advanced Options"
+      {/*
+       * More fields - folded, like every form's: what most rules never
+       * change. Its header names the options and shows the ones chosen.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
         description="Auto-resolve and remediation settings"
-        badge={hasAdvancedOptions ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasAdvancedOptions}
+        items={moreFieldsItems}
+        dataTestId="criteria-incident-more-fields"
       >
         <div className="space-y-4">
           <div>
@@ -580,7 +587,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
     </div>
   );
 };

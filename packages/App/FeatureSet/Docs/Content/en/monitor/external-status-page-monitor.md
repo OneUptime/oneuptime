@@ -71,7 +71,7 @@ If the status page reports on multiple components, you can optionally specify a 
 
 When a component group is also set, the component name filter is applied **within** that group, letting you target a single component inside a larger group. When neither filter is specified, all components in scope are monitored.
 
-### Advanced Options
+### More fields
 
 #### Timeout
 

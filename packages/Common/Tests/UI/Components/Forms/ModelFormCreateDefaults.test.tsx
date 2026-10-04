@@ -504,8 +504,8 @@ describe("an Edit form", () => {
   });
 });
 
-describe("a folded Advanced section", () => {
-  test("does not say Configured over a switch nobody changed, and does once someone does", async () => {
+describe("a folded More fields section", () => {
+  test("does not show a switch nobody changed as set, and does once someone does", async () => {
     const advanced: ReturnType<typeof getAdvancedFormSection> =
       getAdvancedFormSection<IncidentOwnerRule>();
 
@@ -518,10 +518,15 @@ describe("a folded Advanced section", () => {
     });
 
     const header: HTMLElement = screen.getByRole("button", {
-      name: /Advanced/,
+      name: "More fields",
     });
 
     expect(header).toHaveAttribute("aria-expanded", "false");
+    // Named on the header, not set: it is at the column's default.
+    expect(within(header).getByTestId("folded-section-item")).toHaveAttribute(
+      "data-item-set",
+      "false",
+    );
     expect(screen.queryByText("Configured")).not.toBeInTheDocument();
 
     // Open, switch it off, fold it again: now something is set.
@@ -534,8 +539,107 @@ describe("a folded Advanced section", () => {
     fireEvent.click(header);
 
     await waitFor(() => {
-      expect(within(header).getByText("Configured")).toBeInTheDocument();
+      expect(
+        within(header).getByTestId("folded-section-item"),
+      ).toHaveTextContent("Notify Owners: Off");
     });
+    expect(within(header).getByTestId("folded-section-item")).toHaveAttribute(
+      "data-item-set",
+      "true",
+    );
+  });
+});
+
+describe("an Edit form's folded More fields section", () => {
+  /*
+   * An Edit form starts from the record, never from the column defaults -
+   * but its folded header still tells a switch on because its column starts
+   * on from one somebody turned off.
+   */
+  test("shows a switch turned off its column's default as set, and one at it as not", async () => {
+    recordToEdit = {
+      _id: RULE_ID.toString(),
+      name: "Assign the database team",
+      isEnabled: true,
+      notifyOwners: false,
+    };
+
+    const advanced: ReturnType<typeof getAdvancedFormSection> =
+      getAdvancedFormSection<IncidentOwnerRule>();
+
+    await renderForm<IncidentOwnerRule>({
+      modelType: IncidentOwnerRule,
+      formType: FormType.Update,
+      fields: [
+        NAME_FIELD,
+        { ...ENABLED_FIELD, collapsibleSection: advanced },
+        { ...NOTIFY_OWNERS_FIELD, collapsibleSection: advanced },
+      ],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Rule name")).toHaveValue(
+        "Assign the database team",
+      );
+    });
+
+    const header: HTMLElement = screen.getByRole("button", {
+      name: "More fields",
+    });
+
+    await waitFor(() => {
+      expect(
+        within(header)
+          .getAllByTestId("folded-section-item")
+          .map((item: HTMLElement): string => {
+            return `${item.textContent} ${item.getAttribute("data-item-set")}`;
+          }),
+      ).toEqual(["Enabled false", "Notify Owners: Off true"]);
+    });
+
+    // The record as it is: the switches show what is stored.
+    fireEvent.click(header);
+    expect(switchNamed("Enabled")).toHaveAttribute("aria-checked", "true");
+    expect(switchNamed("Notify Owners")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  test("starts no field from its column's default", async () => {
+    recordToEdit = {
+      _id: RULE_ID.toString(),
+      name: "Assign the database team",
+    };
+
+    const advanced: ReturnType<typeof getAdvancedFormSection> =
+      getAdvancedFormSection<IncidentOwnerRule>();
+
+    await renderForm<IncidentOwnerRule>({
+      modelType: IncidentOwnerRule,
+      formType: FormType.Update,
+      fields: [
+        NAME_FIELD,
+        { ...NOTIFY_OWNERS_FIELD, collapsibleSection: advanced },
+      ],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Rule name")).toHaveValue(
+        "Assign the database team",
+      );
+    });
+
+    // Not in the record: not counted as set, and drawn off - not as its column starts.
+    expect(screen.getByTestId("folded-section-item")).toHaveAttribute(
+      "data-item-set",
+      "false",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "More fields" }));
+    expect(switchNamed("Notify Owners")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
   });
 });
 

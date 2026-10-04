@@ -25,7 +25,7 @@ Grafana 的 webhook 酬載遵循 Alertmanager 的格式——`status`、一個 `
 
 1. 前往 **監控器 → 建立監控器**，選擇 **傳入請求**。開啟它，點擊左側選單中的 **Documentation** 以複製 URL。
 2. 開啟監控器的 **Criteria**，把 **Filter Type** 設為 `JavaScript Expression`，**Value** 設為 `"{{requestBody.status}}" === "firing"`。
-3. 相符時建立事件，選擇要呼叫的 **On-Call Policies**，並在 **Advanced Options** 下開啟 **Auto Resolve Incident**。
+3. 相符時建立事件，選擇要呼叫的 **On-Call Policies**，並在 **More fields** 下開啟 **Auto Resolve Incident**。
 4. 在 **Settings** 下開啟 **Group incidents and alerts by a payload field**，並設定：
 
    | 欄位                               | 值                                  |
@@ -89,7 +89,7 @@ Grafana 的 webhook 酬載遵循 Alertmanager 的格式——`status`、一個 `
 ## 疑難排解
 
 - **什麼都沒收到** —— 確認 Grafana 能連到該 URL（檢查 Grafana 的伺服器記錄檔），若使用選項 2 還要確認工作流程處於 **已啟用** 狀態。OneUptime 會在驗證之前就以空的 `200` 回應每個傳入請求，因此 Grafana 記錄檔中的 `200` 並不能確認酬載已被接受。
-- **事件會開啟但從不關閉** —— 檢查條件中的復原欄位與值，以及事件 **Advanced Options** 下的 **Auto Resolve Incident** 是否開啟。比較區分大小寫。
+- **事件會開啟但從不關閉** —— 檢查條件中的復原欄位與值，以及事件 **More fields** 下的 **Auto Resolve Incident** 是否開啟。比較區分大小寫。
 - **一份滿是警示的酬載只產生一個事件** —— 你以一個在通知內部不會變化的標籤分組。請改以 `requestBody.alerts[*].fingerprint` 分組。
 - **事件文字中出現原始的 `{{...}}` 佔位符** —— 路徑沒有解析成功，未解析的佔位符會被原樣保留而非清空。請引用你所用警示版本中確實存在的欄位；若使用了選項 2，可在 **記錄檔** 分頁檢視觸發器的輸出。
 

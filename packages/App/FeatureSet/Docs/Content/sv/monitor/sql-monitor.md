@@ -57,7 +57,7 @@ Skapa en ny monitor och välj **SQL-fråga** som monitortyp, fyll sedan i anslut
 - **SQL-fråga** – den skrivskyddade frågan som ska köras (se Skriva frågan).
 - **Använd SSL/TLS** – aktivera för att ansluta via TLS. När det är aktiverat kan du stänga av **Verifiera servercertifikat** om databasen använder ett självsignerat certifikat.
 
-### Avancerade alternativ
+### Fler fält
 
 - **Anslutningstimeout (ms)** – hur länge det ska väntas på att en anslutning upprättas. Standard `10000`, maximum `30000`.
 - **Satstimeout (ms)** – den hårda gränsen för hur länge frågan får köras. Standard `15000`, maximum `60000`.

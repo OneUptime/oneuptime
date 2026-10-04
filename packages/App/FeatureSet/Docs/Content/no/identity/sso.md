@@ -28,7 +28,7 @@ SSO-integrasjon gir følgende fordeler:
    - Skriv inn **Utsteder** (Entity ID) fra identitetsleverandøren din
    - Lim inn **Offentlig sertifikat** fra identitetsleverandøren din
    - I steget **Pålogging** starter **Team** med prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene
-   - Resten fylles ut under **Avansert**: **Signaturmetode** (`RSA-SHA256`), **Digest-metode** (`SHA256`) og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis identitetsleverandøren din krever det
+   - Resten fylles ut under **Flere felt**: **Signaturmetode** (`RSA-SHA256`), **Digest-metode** (`SHA256`) og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis identitetsleverandøren din krever det
 
 3. **Hent OneUptime SSO-metadata**
    - Når du lagrer, åpnes dialogen **SSO Configuration**. Du kan åpne den igjen med knappen **Vis SSO-konfigurasjon**
@@ -55,7 +55,7 @@ Keycloak er en populær åpen kildekode-løsning for identitets- og tilgangsstyr
    - **Innloggings-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Utsteder**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Sertifikat**: Se [Trinn 2](#trinn-2-hent-keycloak-sertifikatet) nedenfor
-   - **Signaturmetode** og **Digest-metode**: allerede satt under **Avansert** (`RSA-SHA256` og `SHA256`)
+   - **Signaturmetode** og **Digest-metode**: allerede satt under **Flere felt** (`RSA-SHA256` og `SHA256`)
 4. Lagre konfigurasjonen
 
 ### Trinn 2: Hent Keycloak-sertifikatet
@@ -121,7 +121,7 @@ Microsoft Entra ID er Microsofts skybaserte identitets- og tilgangsstyringstjene
    - **Innloggings-URL**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-konfigurer-saml-sso-i-entra-id)
    - **Utsteder**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-konfigurer-saml-sso-i-entra-id)
    - **Sertifikat**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-konfigurer-saml-sso-i-entra-id)
-   - **Signaturmetode** og **Digest-metode**: allerede satt under **Avansert** (`RSA-SHA256` og `SHA256`)
+   - **Signaturmetode** og **Digest-metode**: allerede satt under **Flere felt** (`RSA-SHA256` og `SHA256`)
 4. Klikk **Vis SSO-konfig** og kopier **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du trenger disse for Entra ID
 
 ### Trinn 2: Opprett bedriftsapplikasjon i Microsoft Entra ID
@@ -205,7 +205,7 @@ Okta er en mye brukt identitetsplattform som gir robuste SAML SSO-funksjoner. F�
    - **Innloggings-URL**: Du henter dette fra Okta i [Trinn 3](#trinn-3-kopier-okta-saml-metadata-til-oneuptime)
    - **Utsteder**: Du henter dette fra Okta i [Trinn 3](#trinn-3-kopier-okta-saml-metadata-til-oneuptime)
    - **Sertifikat**: Du henter dette fra Okta i [Trinn 3](#trinn-3-kopier-okta-saml-metadata-til-oneuptime)
-   - **Signaturmetode** og **Digest-metode**: allerede satt under **Avansert** (`RSA-SHA256` og `SHA256`)
+   - **Signaturmetode** og **Digest-metode**: allerede satt under **Flere felt** (`RSA-SHA256` og `SHA256`)
 4. Klikk **Vis SSO-konfig** og kopier **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du trenger disse for Okta
 
 ### Trinn 2: Opprett SAML-applikasjon i Okta
@@ -285,7 +285,7 @@ OneUptimes SSO-implementasjon bruker SAML 2.0-protokollen og skal fungere med al
    - **Innloggings-URL** (SSO-endepunkt)
    - **Utsteder** (Entity ID for IdP)
    - **Offentlig sertifikat** (X.509-signeringssertifikat)
-4. **Signaturmetode** (`RSA-SHA256`) og **Digest-metode** (`SHA256`) er allerede satt under **Avansert**; endre dem bare hvis identitetsleverandøren din signerer annerledes
+4. **Signaturmetode** (`RSA-SHA256`) og **Digest-metode** (`SHA256`) er allerede satt under **Flere felt**; endre dem bare hvis identitetsleverandøren din signerer annerledes
 
 ## OpenID Connect (OIDC)
 
@@ -294,7 +294,7 @@ Et prosjekt kan også logge på via en OpenID Connect-leverandør, for eksempel 
 1. Registrer en app (en OIDC-klient) hos identitetsleverandøren din, og kopier **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**.
 2. Gå i OneUptime til **Prosjektinnstillinger** > **Sikkerhet** > **OIDC**, og klikk **Opprett OIDC**.
 3. Skriv inn et **Navn** (det folk ser på påloggingssiden), **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**. Du kan også lime inn leverandørens discovery-URL i **Utsteder-URL**.
-4. I trinnet **Pålogging** er **Team** allerede satt til prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene. Resten fylles ut under **Avansert**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis leverandøren krever det.
+4. I trinnet **Pålogging** er **Team** allerede satt til prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene. Resten fylles ut under **Flere felt**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis leverandøren krever det.
 5. Lagre. Dialogen **OIDC Configuration** åpnes med **Redirect URI**: legg den til i appens tillatte omdirigerings-URI-er. En ny leverandør er slått av til å begynne med; rediger den deretter og slå på **Aktivert**.
 6. Bruk lenken på kortet **Test OpenID Connect (OIDC)** for å logge på via leverandøren før du gjør SSO obligatorisk for prosjektet.
 

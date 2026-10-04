@@ -163,7 +163,7 @@ Le regole di escalation decidono chi viene chiamato quando qualcuno compone il n
 4. Compilare la regola. È un solo passaggio:
    - **Chi chiamare**: una pianificazione di reperibilità o una persona. Una pianificazione fa squillare il telefono di chi è reperibile in essa quando arriva la chiamata. Le persone sono i membri del progetto.
    - **Durata dello squillo (in secondi)**: per quanto tempo squilla il loro telefono prima che la chiamata passi alla regola successiva. Parte da 30 secondi, e Twilio accetta da 5 a 600.
-   - **Nome** e **Descrizione** sono facoltativi, sotto **Avanzato**. Una regola senza nome viene mostrata in base alla sua posizione nell'elenco: **Level 1**, **Level 2**.
+   - **Nome** e **Descrizione** sono facoltativi, sotto **Altri campi**. Una regola senza nome viene mostrata in base alla sua posizione nell'elenco: **Level 1**, **Level 2**.
 5. Salvarla e aggiungere una regola per ogni pianificazione o persona da provare dopo
 
 Le regole vengono chiamate dall'alto verso il basso nell'elenco, e una nuova regola viene aggiunta in fondo. Per cambiare l'ordine, trascinare una regola dalla maniglia in alto a sinistra; da tastiera, mettere a fuoco la maniglia, premere Spazio, spostarla con i tasti freccia e premere di nuovo Spazio.
@@ -216,7 +216,7 @@ Personalizzare i messaggi che i chiamanti sentono:
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Chi chiamare                      | Una pianificazione di reperibilità, che chiama chi è reperibile in essa, o una persona. Ogni regola chiama una delle due                                                          |
 | Durata dello squillo (in secondi) | Per quanto tempo squilla il telefono prima che la chiamata passi alla regola successiva (predefinito: 30; da 5 a 600)                                                            |
-| Nome e Descrizione                | Facoltativi, sotto Avanzato. Una regola senza nome viene mostrata come Level 1, Level 2 e così via, in base alla sua posizione nell'elenco                                       |
+| Nome e Descrizione                | Facoltativi, sotto Altri campi. Una regola senza nome viene mostrata come Level 1, Level 2 e così via, in base alla sua posizione nell'elenco                                       |
 | Ordine                            | La posizione della regola nell'elenco: le regole vengono chiamate dall'alto verso il basso. Si imposta trascinando le regole; tramite l'API, una nuova regola senza ordine va in fondo |
 
 Tramite l'API, una regola imposta `onCallDutyPolicyScheduleId` o `userId` (uno dei due, mai entrambi) e `escalateAfterSeconds`: la durata dello squillo, 30 se omessa.

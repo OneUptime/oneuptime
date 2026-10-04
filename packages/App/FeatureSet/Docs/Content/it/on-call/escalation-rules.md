@@ -6,7 +6,7 @@ Una policy di reperibilità avvisa le persone per livelli. Ogni regola di escala
 
 Quando crei una policy di reperibilità nella pagina **Policy di reperibilità**, il modulo chiede il suo **Nome** e **Chi viene avvisato per primo?**. La domanda usa lo stesso selettore di **Notifica**: pianificazioni di reperibilità, team e persone, quanti ne servono. Chi scegli forma la prima regola di escalation della policy, **Level 1**, che attende **30 minuti** una conferma prima di avvisare il livello successivo. La nuova policy si apre poi nella sua pagina **Regole di escalation**, dove puoi aggiungere altri livelli.
 
-**Chi viene avvisato per primo?** è facoltativo. Se lo lasci vuoto, la policy parte senza regole di escalation: non avvisa nessuno finché non ne aggiungi una, e la sua panoramica lo segnala. La descrizione e le etichette si trovano in **Avanzato**. La domanda viene posta solo a chi può aggiungere regole di escalation.
+**Chi viene avvisato per primo?** è facoltativo. Se lo lasci vuoto, la policy parte senza regole di escalation: non avvisa nessuno finché non ne aggiungi una, e la sua panoramica lo segnala. La descrizione e le etichette si trovano in **Altri campi**. La domanda viene posta solo a chi può aggiungere regole di escalation.
 
 ## Aggiungere una regola di escalation
 
@@ -18,12 +18,12 @@ Apri la policy di reperibilità, scegli **Regole di escalation** nel menu latera
   - Una **persona** viene avvisata direttamente.
 - **Escala dopo (in minuti)** — quanto attendere una conferma prima di avvisare il livello successivo. Parte da **30 minuti**; modificalo in base al livello.
 
-Tutto il resto si trova in **Avanzato**, chiuso finché non lo apri:
+Tutto il resto si trova in **Altri campi**, chiuso finché non lo apri:
 
 - **Nome** — facoltativo. Una regola senza nome prende il nome del suo livello: la prima regola di una policy è **Level 1**, la seconda **Level 2** e così via. Il campo del nome mostra il nome che la regola riceverà.
 - **Descrizione** — note facoltative, per esempio chi avvisa questo livello e perché.
 
-L'intestazione di **Avanzato** indica **Configurato** quando la regola ha una descrizione o un nome scelto da te.
+Da chiusa, l'intestazione di **Altri campi** nomina i due campi e mostra quelli che la regola ha: una descrizione o un nome scelto da te.
 
 ## Come i livelli avvisano le persone
 
@@ -35,7 +35,7 @@ Ogni persona avvisata da un livello viene raggiunta secondo le proprie regole di
 
 ## Modificare, riordinare ed eliminare le regole
 
-- **Edit rule** apre la stessa finestra di una pagina, compilata con la regola così com'è: i suoi destinatari, la sua attesa, e il nome e la descrizione in **Avanzato**. Aggiungi o rimuovi destinatari e salva. Svuotando il nome, la regola riprende il nome del suo livello.
+- **Edit rule** apre la stessa finestra di una pagina, compilata con la regola così com'è: i suoi destinatari, la sua attesa, e il nome e la descrizione in **Altri campi**. Aggiungi o rimuovi destinatari e salva. Svuotando il nome, la regola riprende il nome del suo livello.
 - **Move up** e **Move down** nel menu **⋯** di una regola ne cambiano il livello. Una regola che prende il nome dal suo livello mantiene un nome adatto alla sua posizione: quando **Level 3** sale oltre **Level 2**, le due si scambiano i nomi. Un nome scelto da te, come **Managers**, resta lo stesso ovunque vada la regola.
 - **Delete rule** chiede prima conferma e indica chi avvisa il livello. Eliminando un livello, i livelli sottostanti salgono e le regole che prendono il nome dal loro livello vengono rinominate di conseguenza.
 

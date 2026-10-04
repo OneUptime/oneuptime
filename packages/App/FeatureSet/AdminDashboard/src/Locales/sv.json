@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "Kontots lösenord, eller API-nyckeln som din leverantör ger dig för SMTP.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "Adressen som dina e-postmeddelanden kommer från. Din server måste tillåta att skicka från den; med Microsoft Graph är det brevlådan som skickar.",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Porten som din leverantör anger, vanligtvis 587. Port 465 är alltid krypterad.",
-  "Port 465 is always encrypted, but the certificate is not checked.": "Port 465 är alltid krypterad, men certifikatet kontrolleras inte."
+  "Port 465 is always encrypted, but the certificate is not checked.": "Port 465 är alltid krypterad, men certifikatet kontrolleras inte.",
+  "More fields": "Fler fält",
+  "More settings": "Fler inställningar",
+  "{{count}} more": "{{count}} till",
+  "{{count}} more_one": "{{count}} till",
+  "On": "På",
+  "Off": "Av"
 }

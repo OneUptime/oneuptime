@@ -163,7 +163,7 @@ Sökvägar måste börja med det bokstavliga prefixet `requestBody.`. En sökvä
 En webhook beskriver bara det som finns i den payloaden, så OneUptime löser aldrig en incident för att dess nyckel har slutat dyka upp. En incident löses bara när en payload uttryckligen säger att den nyckeln har återhämtat sig. Två saker måste båda vara uppfyllda:
 
 1. **Field that signals recovery** och **Value that means recovered** är satta och stämmer med payloaden. Jämförelsen är exakt och skiljer på gemener och versaler — `Resolved` matchar inte `resolved`.
-2. Kriteriets incident har **Auto Resolve Incident** påslaget, under **Advanced Options** i incidentformuläret. Utan det ignoreras matchande återhämtningshändelser och incidenterna förblir öppna. (Detsamma gäller varningar och **Auto Resolve Alert**.)
+2. Kriteriets incident har **Auto Resolve Incident** påslaget, under **More fields** i incidentformuläret. Utan det ignoreras matchande återhämtningshändelser och incidenterna förblir öppna. (Detsamma gäller varningar och **Auto Resolve Alert**.)
 
 **Max incidents per request** begränsar uthämtningen, inte bara skapandet. Nycklar bortom gränsen är osynliga även för återhämtning, så i en payload med fler unika nycklar än gränsen kommer ett larm som rapporterar `resolved` bortom den inte att stänga sin incident.
 

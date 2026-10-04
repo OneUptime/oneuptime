@@ -18,7 +18,7 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormFieldValueSet,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 
@@ -81,7 +81,7 @@ describe("the Create Team form", () => {
     expect(description!.collapsibleSection).toBeDefined();
     expect(description!.collapsibleSection!.id).toBe(ADVANCED_FORM_SECTION_ID);
     expect(description!.collapsibleSection!.title).toBe(
-      ADVANCED_FORM_SECTION_TITLE,
+      MORE_FIELDS_SECTION_TITLE,
     );
     // Folded on create; "Configured" says when something is typed in it.
     expect(description!.collapsibleSection!.openWhenConfigured).toBe(false);

@@ -155,7 +155,7 @@ A new rule is named after its pattern type ("Scrub email addresses") until you t
 - **Attributes** — only span attribute values
 - **Events** — only span event attribute values
 
-A **Sensitive Attribute Keys** rule always scrubs attribute and event attribute values, since it matches attribute keys. The action and the fields are under **Advanced** in the form.
+A **Sensitive Attribute Keys** rule always scrubs attribute and event attribute values, since it matches attribute keys. The action and the fields are under **More fields** in the form.
 `;
 
 const TraceScrubRules: FunctionComponent<

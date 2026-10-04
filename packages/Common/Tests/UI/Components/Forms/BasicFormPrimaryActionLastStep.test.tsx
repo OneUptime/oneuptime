@@ -6,7 +6,10 @@ import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
-import { getAdvancedFormSection } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  getAdvancedFormSection,
+} from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { JSONObject } from "../../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import "@testing-library/jest-dom";
@@ -534,10 +537,9 @@ describe("A stepped form on a page", () => {
       expect(activeStep()).toBe(DETAILS_STEP.title);
     });
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Advanced/ })).toHaveAttribute(
-        "aria-expanded",
-        "true",
-      );
+      expect(
+        screen.getByRole("button", { name: MORE_FIELDS_SECTION_TITLE }),
+      ).toHaveAttribute("aria-expanded", "true");
     });
     expect(await screen.findByText("Reference is required.")).toBeVisible();
     expect(onSubmit).not.toHaveBeenCalled();

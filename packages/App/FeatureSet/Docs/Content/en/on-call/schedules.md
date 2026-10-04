@@ -8,13 +8,13 @@ When you create a schedule on the **On-Call Schedules** page, the form asks for 
 
 **Who takes turns?** is optional. Leave it empty and the schedule starts without layers: it puts nobody on call until you add a layer on its **Layers** page. The question is asked only of people who may add layers.
 
-Everything else waits under **Advanced**, folded until you open it:
+Everything else waits under **More fields**, folded until you open it:
 
 - **Each turn lasts**: **1 day**, **1 week**, **2 weeks** or **1 month**, and **1 week** unless you change it. It is asked once somebody takes turns. Each person is on call that long, then the next one takes over, at the time of day the schedule was created.
 - **Timezone**: the timezone hand-off times and on-call hours are kept in. It starts at yours.
 - **Description** and **Labels**.
 
-While somebody takes turns and nothing under **Advanced** is changed, its folded header says what will happen: each person is on call for a week, then the next one takes over.
+While somebody takes turns and nothing under **More fields** is changed, its folded header says what will happen: each person is on call for a week, then the next one takes over.
 
 ## Layers
 

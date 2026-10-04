@@ -71,7 +71,7 @@ https://api.example.com/health?nocache={{random}}
 - **PATCH**
 - **HEAD**
 
-### 고급 옵션
+### 추가 필드
 
 #### 요청 헤더
 

@@ -253,7 +253,7 @@ function stepTitles(): Array<string> {
 
 // The Advanced header on the step on screen.
 function advancedHeader(): HTMLElement {
-  return within(dialog()).getByRole("button", { name: /^Advanced/ });
+  return within(dialog()).getByRole("button", { name: "More fields" });
 }
 
 function card(keyType: TelemetryIngestionKeyType): HTMLElement {

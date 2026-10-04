@@ -59,7 +59,7 @@ Você também pode usar `{{random}}` para uma string única em cada requisição
 https://example.com/health?nocache={{random}}
 ```
 
-### Opções Avançadas
+### Mais campos
 
 #### Não Seguir Redirecionamentos
 

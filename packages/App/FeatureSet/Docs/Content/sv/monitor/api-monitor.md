@@ -71,7 +71,7 @@ Välj HTTP-metod för förfrågan:
 - **PATCH**
 - **HEAD**
 
-### Avancerade alternativ
+### Fler fält
 
 #### Förfrågningshuvuden
 

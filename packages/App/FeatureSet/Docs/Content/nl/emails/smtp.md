@@ -15,7 +15,7 @@ Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > M
 1. **Server**: de **Naam** (alleen projectconfiguraties), **Hostnaam**, **Poort** (een nieuwe configuratie begint op `587`), **Gebruikersnaam** en **Wachtwoord**.
 2. **Afzender**: de **E-mail van** en **Van naam** waarvandaan uw e-mails komen.
 
-Al het andere is ingeklapt onder **Geavanceerd** aan het eind van de stap Server. Zolang het ingeklapt is, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist."
+Al het andere is ingeklapt onder **Meer velden** aan het eind van de stap Server. Zolang het ingeklapt is, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist."
 
 | Veld | Wat het doet |
 | --- | --- |
@@ -25,7 +25,7 @@ Al het andere is ingeklapt onder **Geavanceerd** aan het eind van de stap Server
 | **OAuth-velden** | Providertype, client-ID, clientgeheim, token-URL en scope, getoond zodra OAuth of Microsoft Graph is gekozen. |
 | **Beschrijving** | Een notitie voor uw team (alleen projectconfiguraties). |
 
-**Microsoft Graph.** Open **Geavanceerd**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in met de toepassingsmachtiging **Mail.Send**: de client-ID en het clientgeheim, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
+**Microsoft Graph.** Open **Meer velden**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in met de toepassingsmachtiging **Mail.Send**: de client-ID en het clientgeheim, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
 
 Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** op de rij of die werkt.
 
@@ -52,7 +52,7 @@ Bij het configureren van SMTP met OAuth-authenticatie in OneUptime heeft u het v
 | **Token URL**           | OAuth token-eindpunt-URL                                                                 |
 | **Bereik**              | Vereiste OAuth-bereik(en) voor SMTP-toegang                                              |
 
-Het **Authenticatietype** en de OAuth-velden staan onder **Geavanceerd** in de stap Server van het formulier.
+Het **Authenticatietype** en de OAuth-velden staan onder **Meer velden** in de stap Server van het formulier.
 
 ---
 

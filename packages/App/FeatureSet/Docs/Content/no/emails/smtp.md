@@ -15,7 +15,7 @@ Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Var
 1. **Server**: **Navn** (bare prosjektkonfigurasjoner), **Vertsnavn**, **Port** (en ny konfigurasjon starter på `587`), **Brukernavn** og **Passord**.
 2. **Avsender**: **E-post fra** og **Fra-navn** som e-postene dine kommer fra.
 
-Alt annet er felt sammen under **Avansert** på slutten av trinnet Server. Mens det er felt sammen, sier overskriften hvordan e-post sendes, for eksempel "E-post sendes via SMTP, med pålogging med brukernavn og passord. TLS er påkrevd."
+Alt annet er felt sammen under **Flere felt** på slutten av trinnet Server. Mens det er felt sammen, sier overskriften hvordan e-post sendes, for eksempel "E-post sendes via SMTP, med pålogging med brukernavn og passord. TLS er påkrevd."
 
 | Felt                   | Hva det gjør                                                                                                                                                                                                                                  |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Alt annet er felt sammen under **Avansert** på slutten av trinnet Server. Mens 
 | **OAuth-felt**         | Leverandørtype, klient-ID, klienthemmelighet, token-URL og omfang, som vises når OAuth eller Microsoft Graph er valgt.                                                                                                                        |
 | **Beskrivelse**        | Et notat til teamet ditt (bare prosjektkonfigurasjoner).                                                                                                                                                                                      |
 
-**Microsoft Graph.** Åpne **Avansert**, sett **Transport** til `Microsoft Graph`, og fyll inn en Azure-app med apptillatelsen **Mail.Send**: klient-ID-en og klienthemmeligheten, token-URL-en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. E-post sendes fra postkassen i **E-post fra**, som må være en lisensiert postkasse i leietakeren din.
+**Microsoft Graph.** Åpne **Flere felt**, sett **Transport** til `Microsoft Graph`, og fyll inn en Azure-app med apptillatelsen **Mail.Send**: klient-ID-en og klienthemmeligheten, token-URL-en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. E-post sendes fra postkassen i **E-post fra**, som må være en lisensiert postkasse i leietakeren din.
 
 Når en prosjektkonfigurasjon er lagret, sjekker **Send test-e-post** på raden at den fungerer.
 
@@ -52,7 +52,7 @@ Når du konfigurerer SMTP med OAuth-autentisering i OneUptime, trenger du:
 | **Token-URL**            | OAuth-tokenendepunkt-URL                                                             |
 | **Omfang**               | Påkrevde OAuth-omfang for SMTP-tilgang                                               |
 
-**Autentiseringstype** og OAuth-feltene ligger under **Avansert** i skjemaets trinn Server.
+**Autentiseringstype** og OAuth-feltene ligger under **Flere felt** i skjemaets trinn Server.
 
 ---
 

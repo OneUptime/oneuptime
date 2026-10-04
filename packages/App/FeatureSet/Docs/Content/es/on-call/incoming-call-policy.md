@@ -163,7 +163,7 @@ Las reglas de escalado deciden a quién se llama cuando alguien marca el número
 4. Completa la regla. Es un solo paso:
    - **A quién llamar**: una programación de guardia o una persona. Una programación hace sonar el teléfono de quien esté de guardia en ella cuando llega la llamada. Las personas son los miembros de tu proyecto.
    - **Duración del timbre (en segundos)**: cuánto tiempo suena su teléfono antes de que la llamada pase a la siguiente regla. Empieza en 30 segundos, y Twilio acepta de 5 a 600.
-   - **Nombre** y **Descripción** son opcionales y están en **Avanzado**. Una regla sin nombre se muestra según su lugar en la lista: **Level 1**, **Level 2**.
+   - **Nombre** y **Descripción** son opcionales y están en **Más campos**. Una regla sin nombre se muestra según su lugar en la lista: **Level 1**, **Level 2**.
 5. Guárdala y añade una regla por cada programación o persona que se deba probar después
 
 Las reglas se llaman de arriba abajo en la lista, y una regla nueva se añade al final. Para cambiar el orden, arrastra una regla por el asa de su esquina superior izquierda; con el teclado, enfoca el asa, pulsa Espacio, muévela con las flechas y vuelve a pulsar Espacio.
@@ -216,7 +216,7 @@ Personaliza los mensajes que escuchan los llamantes:
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A quién llamar                    | Una programación de guardia, que llama a quien esté de guardia en ella, o una persona. Cada regla llama a una de ellas                                            |
 | Duración del timbre (en segundos) | Cuánto tiempo suena el teléfono antes de que la llamada pase a la siguiente regla (predeterminado: 30; de 5 a 600)                                               |
-| Nombre y Descripción              | Opcionales, en Avanzado. Una regla sin nombre se muestra como Level 1, Level 2, etc., según su lugar en la lista                                                 |
+| Nombre y Descripción              | Opcionales, en Más campos. Una regla sin nombre se muestra como Level 1, Level 2, etc., según su lugar en la lista                                                 |
 | Orden                             | El lugar de la regla en la lista: las reglas se llaman de arriba abajo. Se cambia arrastrando las reglas; mediante la API, una regla nueva sin orden va al final |
 
 Mediante la API, una regla indica `onCallDutyPolicyScheduleId` o `userId` (uno de los dos, nunca ambos) y `escalateAfterSeconds`: la duración del timbre, 30 si se omite.

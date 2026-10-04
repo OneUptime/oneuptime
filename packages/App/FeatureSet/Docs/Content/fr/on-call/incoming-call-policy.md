@@ -163,7 +163,7 @@ Les règles d'escalade décident qui est appelé quand quelqu'un compose le num�
 4. Remplissez la règle. C'est une seule étape :
    - **Qui appeler** : un planning d'astreinte ou une personne. Un planning fait sonner la personne d'astreinte dans ce planning au moment de l'appel. Les personnes sont les membres de votre projet.
    - **Durée de sonnerie (en secondes)** : combien de temps leur téléphone sonne avant que l'appel passe à la règle suivante. Elle commence à 30 secondes, et Twilio accepte de 5 à 600.
-   - **Nom** et **Description** sont facultatifs, sous **Avancé**. Une règle sans nom est affichée selon sa place dans la liste : **Level 1**, **Level 2**.
+   - **Nom** et **Description** sont facultatifs, sous **Plus de champs**. Une règle sans nom est affichée selon sa place dans la liste : **Level 1**, **Level 2**.
 5. Enregistrez-la, puis ajoutez une règle pour chaque planning ou personne à essayer ensuite
 
 Les règles sont appelées du haut de la liste vers le bas, et une nouvelle règle est ajoutée à la fin. Pour changer l'ordre, faites glisser une règle par la poignée en haut à gauche ; au clavier, placez le focus sur la poignée, appuyez sur Espace, déplacez-la avec les flèches, puis appuyez de nouveau sur Espace.
@@ -216,7 +216,7 @@ Personnalisez les messages entendus par les appelants :
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Qui appeler                     | Un planning d'astreinte, qui appelle la personne d'astreinte, ou une personne. Chaque règle appelle l'un des deux                                                        |
 | Durée de sonnerie (en secondes) | Combien de temps le téléphone sonne avant que l'appel passe à la règle suivante (par défaut : 30 ; de 5 à 600)                                                          |
-| Nom et Description              | Facultatifs, sous Avancé. Une règle sans nom est affichée comme Level 1, Level 2 et ainsi de suite, selon sa place dans la liste                                       |
+| Nom et Description              | Facultatifs, sous Plus de champs. Une règle sans nom est affichée comme Level 1, Level 2 et ainsi de suite, selon sa place dans la liste                                       |
 | Ordre                           | La place de la règle dans la liste : les règles sont appelées de haut en bas. Se règle en faisant glisser les règles ; via l'API, une nouvelle règle sans ordre va à la fin |
 
 Via l'API, une règle définit `onCallDutyPolicyScheduleId` ou `userId` (l'un des deux, jamais les deux) et `escalateAfterSeconds` : la durée de sonnerie, 30 si elle est omise.

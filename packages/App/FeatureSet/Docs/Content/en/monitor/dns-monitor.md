@@ -45,7 +45,7 @@ DNS monitors query DNS servers for specific record types and evaluate the result
 | SRV         | Service locator records                     |
 | CAA         | Certificate Authority Authorization records |
 
-### Advanced Settings
+### More fields
 
 | Field        | Description                                                     | Default |
 | ------------ | --------------------------------------------------------------- | ------- |

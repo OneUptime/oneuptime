@@ -25,7 +25,7 @@ La carga útil del webhook de Grafana sigue el formato de Alertmanager — `stat
 
 1. Ve a **Monitores → Crear monitor** y elige **Solicitud entrante**. Ábrelo y haz clic en **Documentation** en el menú izquierdo para copiar la URL.
 2. Abre los **Criteria** del monitor y pon **Filter Type** en `JavaScript Expression` y **Value** en `"{{requestBody.status}}" === "firing"`.
-3. Declara un incidente al coincidir, elige las **On-Call Policies** a las que avisar y activa **Auto Resolve Incident** en **Advanced Options**.
+3. Declara un incidente al coincidir, elige las **On-Call Policies** a las que avisar y activa **Auto Resolve Incident** en **More fields**.
 4. En **Settings**, activa **Group incidents and alerts by a payload field** y define:
 
    | Campo                              | Valor                               |
@@ -89,7 +89,7 @@ Con la **Opción 2**, añade una segunda rama de **Condiciones** (`status == res
 ## Solución de problemas
 
 - **No llega nada** — confirma que Grafana puede alcanzar la URL (revisa los registros del servidor de Grafana) y, para la Opción 2, que el workflow esté **Habilitado**. OneUptime responde a cada solicitud entrante con un `200` vacío antes de validarla, así que un `200` en los registros de Grafana no confirma que la carga útil se haya aceptado.
-- **Los incidentes se abren pero nunca se cierran** — revisa el campo y el valor de recuperación en el criterio, y que **Auto Resolve Incident** esté activado en las **Advanced Options** del incidente. La comparación distingue mayúsculas de minúsculas.
+- **Los incidentes se abren pero nunca se cierran** — revisa el campo y el valor de recuperación en el criterio, y que **Auto Resolve Incident** esté activado en las **More fields** del incidente. La comparación distingue mayúsculas de minúsculas.
 - **Un solo incidente para una carga útil llena de alertas** — agrupaste por una etiqueta que no varía dentro de una notificación. Agrupa por `requestBody.alerts[*].fingerprint` en su lugar.
 - **El texto del incidente muestra marcadores `{{...}}` en crudo** — la ruta no se resolvió, y los marcadores sin resolver se dejan en su sitio en vez de vaciarse. Referencia campos que existan para tu versión de alertado; inspecciona la salida del disparador en la pestaña **Registros** si usaste la Opción 2.
 

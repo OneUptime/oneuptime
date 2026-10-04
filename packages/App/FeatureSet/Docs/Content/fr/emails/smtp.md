@@ -15,7 +15,7 @@ Ajoutez le serveur de messagerie d'un projet dans **Paramètres du projet > Noti
 1. **Serveur** : le **Nom** (configurations de projet uniquement), le **Nom d'hôte**, le **Port** (une nouvelle configuration commence sur `587`), le **Nom d'utilisateur** et le **Mot de passe**.
 2. **Expéditeur** : l'**E-mail de l'expéditeur** et le **Nom de l'expéditeur** dont proviennent vos e-mails.
 
-Tout le reste est replié sous **Avancé** à la fin de l'étape Serveur. Tant qu'il est replié, son en-tête indique comment les e-mails sont envoyés, par exemple « Les e-mails sont envoyés par SMTP, avec une connexion par nom d'utilisateur et mot de passe. TLS est obligatoire. »
+Tout le reste est replié sous **Plus de champs** à la fin de l'étape Serveur. Tant qu'il est replié, son en-tête indique comment les e-mails sont envoyés, par exemple « Les e-mails sont envoyés par SMTP, avec une connexion par nom d'utilisateur et mot de passe. TLS est obligatoire. »
 
 | Champ | Ce qu'il fait |
 | --- | --- |
@@ -25,7 +25,7 @@ Tout le reste est replié sous **Avancé** à la fin de l'étape Serveur. Tant q
 | **Champs OAuth** | Type de fournisseur, ID client, secret client, URL du jeton et portée, affichés dès que OAuth ou Microsoft Graph est choisi. |
 | **Description** | Une note pour votre équipe (configurations de projet uniquement). |
 
-**Microsoft Graph.** Ouvrez **Avancé**, réglez **Transport** sur `Microsoft Graph`, puis renseignez une application Azure disposant de l'autorisation d'application **Mail.Send** : son ID client et son secret client, l'URL du jeton `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` et la portée `https://graph.microsoft.com/.default`. Les e-mails partent de la boîte aux lettres de l'**E-mail de l'expéditeur**, qui doit être une boîte aux lettres sous licence de votre locataire.
+**Microsoft Graph.** Ouvrez **Plus de champs**, réglez **Transport** sur `Microsoft Graph`, puis renseignez une application Azure disposant de l'autorisation d'application **Mail.Send** : son ID client et son secret client, l'URL du jeton `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` et la portée `https://graph.microsoft.com/.default`. Les e-mails partent de la boîte aux lettres de l'**E-mail de l'expéditeur**, qui doit être une boîte aux lettres sous licence de votre locataire.
 
 Une fois une configuration de projet enregistrée, **Envoyer un e-mail de test** sur sa ligne vérifie qu'elle fonctionne.
 
@@ -52,7 +52,7 @@ Lors de la configuration de SMTP avec l'authentification OAuth dans OneUptime, v
 | **URL du jeton**              | URL du point de terminaison du jeton OAuth                                                                                 |
 | **Portée**                    | Portée(s) OAuth requise(s) pour l'accès SMTP                                                                               |
 
-Le **Type d'authentification** et les champs OAuth se trouvent sous **Avancé**, à l'étape Serveur du formulaire.
+Le **Type d'authentification** et les champs OAuth se trouvent sous **Plus de champs**, à l'étape Serveur du formulaire.
 
 ---
 

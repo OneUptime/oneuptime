@@ -255,7 +255,7 @@ test.describe("Monitor summary probe picker", () => {
       .click();
 
     /*
-     * Probes & Interval is the last step: the labels fold under Advanced on
+     * Probes & Interval is the last step: the labels fold under More fields on
      * Monitor Info, so there is no Labels step to walk on to.
      */
     await expect(

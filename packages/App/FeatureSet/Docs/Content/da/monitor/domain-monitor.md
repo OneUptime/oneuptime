@@ -28,7 +28,7 @@ Domænemonitoer forespørger WHOIS-data for dine domæner for at spore registrer
 | ---------- | ---------------------------------------------------- | -------- |
 | Domænenavn | Det domæne der skal overvåges (f.eks. `example.com`) | Ja       |
 
-### Avancerede indstillinger
+### Flere felter
 
 | Felt         | Beskrivelse                                                                | Standard |
 | ------------ | -------------------------------------------------------------------------- | -------- |

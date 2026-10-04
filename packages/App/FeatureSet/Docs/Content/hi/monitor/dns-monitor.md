@@ -45,7 +45,7 @@ DNS monitors specific record types के लिए DNS servers query करत�
 | SRV         | Service locator records                     |
 | CAA         | Certificate Authority Authorization records |
 
-### Advanced Settings
+### और फ़ील्ड
 
 | Field        | विवरण                                                              | Default |
 | ------------ | ------------------------------------------------------------------ | ------- |

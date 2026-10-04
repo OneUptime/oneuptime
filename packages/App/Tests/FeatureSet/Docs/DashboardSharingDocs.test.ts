@@ -6,7 +6,7 @@ import path from "path";
  * Who can view a dashboard is one choice on its Sharing page (also ⋯ ->
  * Share on the dashboard): only people in this project, anyone with the
  * link, or anyone with the link and a password, with the IP allowlist under
- * Advanced. It used to be "Authentication", under Advanced, with an "Is
+ * More settings. It used to be "Authentication", under Advanced, with an "Is
  * Visible to Public" switch, a "Master Password" card with a "Require Master
  * Password" switch, and an "IP Whitelist" card - and the English guides sent
  * readers to "Dashboard -> Settings" to "flip Public Dashboard on", which
@@ -137,16 +137,19 @@ describe("the English sharing guide", () => {
     );
   });
 
-  it("has the IP allowlist under Advanced on Sharing, with its Scale plan", () => {
+  it("has the IP allowlist under More settings on Sharing, with its Scale plan", () => {
     const allowlist: string = sectionOf(page, "IP allowlist");
 
     expect(allowlist).toContain(
-      "Under **Advanced** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column)",
+      "Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column)",
     );
     expect(allowlist).toContain(
       "It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud.",
     );
-    expect(allowlist).toContain("says **Configured**");
+    expect(allowlist).toContain(
+      "the folded **More settings** header shows **IP Allowlist** with the number of entries it holds",
+    );
+    expect(allowlist).not.toContain("**Configured**");
   });
 
   it("has the password section, named for the choice", () => {
@@ -206,7 +209,7 @@ describe("the English dashboards overview", () => {
     });
 
     expect(sharing).toContain(
-      "Who can view it, its public link, and an IP allowlist under Advanced.",
+      "Who can view it, its public link, and an IP allowlist under More settings.",
     );
     expect(settings).toContain("Duplicate, export, or archive the dashboard.");
     expect(settings).not.toContain("Public sharing");

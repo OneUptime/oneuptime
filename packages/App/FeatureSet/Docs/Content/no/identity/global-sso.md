@@ -21,8 +21,8 @@ Global SSO, inkludert bryteren «Require SSO for Login» for hele instansen, er 
 2. **Opprett en leverandør**
 
    - Klikk **Opprett Global SSO**.
-   - For SAML: skriv inn et **Navn**, **Sign On URL** og **Issuer** fra identitetsleverandøren din, og lim inn **Offentlig sertifikat**. Resten fylles ut under **Advanced**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes leverandørens side.
-   - For OIDC: skriv inn et **Name**, **Issuer URL** og **Client ID** og **Client Secret** for appen du har registrert i IdP-en din. Du kan også lime inn discovery-URL-en til IdP-en din i **Issuer URL**. Resten fylles ut under **Advanced**: **Discovery URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes leverandørens side.
+   - For SAML: skriv inn et **Navn**, **Sign On URL** og **Issuer** fra identitetsleverandøren din, og lim inn **Offentlig sertifikat**. Resten fylles ut under **More fields**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes leverandørens side.
+   - For OIDC: skriv inn et **Name**, **Issuer URL** og **Client ID** og **Client Secret** for appen du har registrert i IdP-en din. Du kan også lime inn discovery-URL-en til IdP-en din i **Issuer URL**. Resten fylles ut under **More fields**: **Discovery URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes leverandørens side.
 
 3. **Kopier OneUptime-URL-ene inn i identitetsleverandøren din**
 

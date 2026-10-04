@@ -27,7 +27,7 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 2. **SCIM-instellingen configureren**
 
    - Voer een **Naam** in. **Standaardteams** begint bij het ledenteam van uw project: nieuwe gebruikers worden aan deze teams toegevoegd
-   - Onder **Geavanceerd** staan **Gebruikers automatisch provisioneren** (gebruikers toevoegen wanneer ze in uw IdP worden toegewezen) en **Gebruikers automatisch deprovisioneren** (gebruikers verwijderen wanneer ze in uw IdP worden verwijderd) aan, en **Push-groepen inschakelen** uit. Wijzig ze daar als dat nodig is
+   - Onder **Meer velden** staan **Gebruikers automatisch provisioneren** (gebruikers toevoegen wanneer ze in uw IdP worden toegewezen) en **Gebruikers automatisch deprovisioneren** (gebruikers verwijderen wanneer ze in uw IdP worden verwijderd) aan, en **Push-groepen inschakelen** uit. Wijzig ze daar als dat nodig is
    - Sla op. Het venster met de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie opent meteen
 
 3. **Uw identiteitsprovider configureren**
@@ -74,7 +74,7 @@ Statuspagina-SCIM stelt identiteitsproviders in staat abonnees van privé-status
 
 2. **SCIM-instellingen configureren**
 
-   - Voer een **Naam** in. Onder **Geavanceerd** staan **Gebruikers automatisch provisioneren** (abonnees toevoegen wanneer ze in uw IdP worden toegewezen) en **Gebruikers automatisch deprovisioneren** (abonnees verwijderen wanneer ze in uw IdP worden verwijderd) aan. Wijzig ze daar als dat nodig is
+   - Voer een **Naam** in. Onder **Meer velden** staan **Gebruikers automatisch provisioneren** (abonnees toevoegen wanneer ze in uw IdP worden toegewezen) en **Gebruikers automatisch deprovisioneren** (abonnees verwijderen wanneer ze in uw IdP worden verwijderd) aan. Wijzig ze daar als dat nodig is
    - Sla op. Het venster met de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie opent meteen
 
 3. **Uw identiteitsprovider configureren**
@@ -122,8 +122,8 @@ Microsoft Entra ID biedt enterprise-grade identiteitsbeheer met robuuste SCIM-in
 4. Voer een beschrijvende naam in (bijv. "Microsoft Entra ID-inrichting")
 5. Controleer de opties:
    - **Standaardteams**: begint bij het ledenteam van uw project; nieuwe gebruikers worden aan deze teams toegevoegd
-   - **Gebruikers automatisch provisioneren** en **Gebruikers automatisch deprovisioneren**: aan, onder **Geavanceerd**
-   - **Push-groepen inschakelen**: onder **Geavanceerd**; schakel het in als u teamlidmaatschap wilt beheren via Entra ID-groepen
+   - **Gebruikers automatisch provisioneren** en **Gebruikers automatisch deprovisioneren**: aan, onder **Meer velden**
+   - **Push-groepen inschakelen**: onder **Meer velden**; schakel het in als u teamlidmaatschap wilt beheren via Entra ID-groepen
 6. Sla de configuratie op
 7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** uit het venster dat opent - u heeft deze nodig voor Entra ID
 
@@ -223,8 +223,8 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 4. Voer een beschrijvende naam in (bijv. "Okta-inrichting")
 5. Controleer de opties:
    - **Standaardteams**: begint bij het ledenteam van uw project; nieuwe gebruikers worden aan deze teams toegevoegd
-   - **Gebruikers automatisch provisioneren** en **Gebruikers automatisch deprovisioneren**: aan, onder **Geavanceerd**
-   - **Push-groepen inschakelen**: onder **Geavanceerd**; schakel het in als u teamlidmaatschap wilt beheren via Okta-groepen
+   - **Gebruikers automatisch provisioneren** en **Gebruikers automatisch deprovisioneren**: aan, onder **Meer velden**
+   - **Push-groepen inschakelen**: onder **Meer velden**; schakel het in als u teamlidmaatschap wilt beheren via Okta-groepen
 6. Sla de configuratie op
 7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** uit het venster dat opent - u heeft deze nodig voor Okta
 

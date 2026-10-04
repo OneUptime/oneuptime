@@ -235,6 +235,10 @@ import {
   TRACE_SCRUB_FIELDS,
   TRACE_SCRUB_PATTERN_TYPES,
 } from "../../../Types/Telemetry/ScrubRule";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 function dialog(): HTMLElement {
   return screen.getByTestId("modal");
@@ -294,7 +298,7 @@ async function submit(): Promise<void> {
 }
 
 function advancedHeader(): HTMLElement {
-  return within(dialog()).getByRole("button", { name: "Advanced" });
+  return within(dialog()).getByRole("button", { name: "More fields" });
 }
 
 // The line the folded Advanced header says what its defaults do with.
@@ -408,7 +412,7 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
     await waitFor(() => {
       expect(advancedSummary()).toBe(page.defaultsSummary);
     });
-    expect(within(dialog()).queryByText("Configured")).toBeNull();
+    expect(setChips(dialog())).toEqual([]);
   });
 
   test("names the rule after the pattern type, until somebody types a name", async () => {
@@ -588,7 +592,7 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
     await user.click(advancedHeader());
 
     await waitFor(() => {
-      expect(within(dialog()).getByText("Configured")).toBeInTheDocument();
+      expect(hasSetChip(dialog())).toBe(true);
     });
     expect(advancedSummary()).toBeNull();
 
@@ -626,7 +630,7 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
       await settle();
 
       expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-      expect(within(dialog()).queryByText("Configured")).toBeNull();
+      expect(setChips(dialog())).toEqual([]);
     });
 
     test("says Configured for a rule whose folded settings were changed", async () => {
@@ -639,7 +643,7 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
       await within(dialog()).findByDisplayValue("Card numbers");
 
       await waitFor(() => {
-        expect(within(dialog()).getByText("Configured")).toBeInTheDocument();
+        expect(hasSetChip(dialog())).toBe(true);
       });
     });
 
@@ -755,7 +759,7 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     expect(within(dialog()).getByText("Filter Query")).toBeInTheDocument();
     expect(within(dialog()).queryByRole("switch")).toBeNull();
     expect(
-      within(dialog()).queryByRole("button", { name: "Advanced" }),
+      within(dialog()).queryByRole("button", { name: "More fields" }),
     ).toBeNull();
 
     /*
@@ -831,7 +835,7 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     await user.click(advancedHeader());
 
     await waitFor(() => {
-      expect(within(dialog()).getByText("Configured")).toBeInTheDocument();
+      expect(hasSetChip(dialog())).toBe(true);
     });
     expect(advancedSummary()).toBeNull();
 

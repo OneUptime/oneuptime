@@ -28,7 +28,7 @@ Open **Incidents → All Incidents** and click **Declare Incident** at the top r
 
 Only the first step has required fields, plus any custom field your admins marked **Required on Create**, which the **Details** step asks for. Every step before the summary has a plain **Next**, and **Declare Incident** is on the summary, the last step. In a hurry, fill in **Incident Details** and press **Next** through the other steps without filling them in: attaching resources, adding on-call policies and assigning roles can also wait for the incident's own pages. Pressing **Enter** in a field walks on too; it never declares before the summary.
 
-**Advanced.** The options most incidents never need wait under an **Advanced** header at the end of their step, folded; click it to open them. While it is folded, the header says **Configured** when something in it is set — by a template, say, or by a private alert you are declaring from — and it opens by itself when something in it needs fixing. The summary lists an Advanced option only when it is set.
+**More fields.** The options most incidents never need wait under a **More fields** header at the end of their step, folded; click it to open them. While it is folded, the header names what is inside and shows each option that is set, with its value — set by a template, say, or by a private alert you are declaring from — and it opens by itself when something in it needs fixing. The summary lists one of those options only when it is set.
 
 ### Step 1 — Incident Details
 
@@ -36,7 +36,7 @@ Only the first step has required fields, plus any custom field your admins marke
 - **Incident Severity** — required. One of the severities configured for your project; new projects are seeded with **Critical Incident**, **Major Incident** and **Minor Incident**.
 - **Description** — optional, written in Markdown. This is the field that renders on the status page, so write it for customers rather than for your team. You can edit it later from **Description** in the incident side menu.
 
-Under **Advanced**:
+Under **More fields**:
 
 - **Declared At** — starts at the moment you opened the page. This is the timestamp every duration on the incident is measured from, so back-date it if you are recording something that started earlier.
 - **Initial State** — optional, and empty to start with. Left empty, the incident starts in the state flagged `isCreatedState`, which new projects seed as **Identified** — or in the template's initial state, when you declare from a template. Pick a later state only when you are recording an incident that was already past that point, acknowledged or resolved.
@@ -59,7 +59,7 @@ Under **Advanced**:
 - **Limit to these status pages** — optional. Left empty, the incident shows on, and notifies the subscribers of, every status page that lists its monitors. Pick pages here and only the picked pages among those are used; the **Labels** tab adds every page with a label at once. The form warns you when a picked page lists none of the incident's monitors, and when the incident is private, which hides it from every status page. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under it, and again on the summary before you submit, **Will notify** lists the status pages that will be told, with an "up to" subscriber count per channel, and the pages that will not be told and why. When nobody will be told (no monitor is attached, no status page lists the monitors, or the pages have no subscribers yet) it shows nothing, and it warns only when the incident's status page scope is the reason. On the summary, **Preview notification** shows the email each of those status pages' subscribers will get, and **Send test to me** sends it to your own account email; see [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent). Turn it off for internal noise you still want recorded. The incident then stays quiet by default: new public notes on it, and the state-change modal on its overview page (**Acknowledge**, **Resolve**, or picking another state), start with their own **Notify Status Page Subscribers** checkbox off. The manual form on the **State Timeline** page and the bulk **Change State** action in the incidents list still start with it on.
 
-Under **Advanced**:
+Under **More fields**:
 
 - **Change Monitor Status to** — optional. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. A monitor's status is shared by every status page that lists it, so with status pages picked above, the form reminds you that the change also shows on the pages you did not pick.
 
@@ -96,7 +96,7 @@ If you keep declaring the same shape of incident — the same title pattern, the
 
 Click **Create from Template** (the outline button next to **Declare Incident**) and a **Create Incident from Template** modal opens, with a **Select Incident Template** dropdown. Pick a template and the create form opens pre-filled; you can still change anything before submitting. If your project has no templates yet, you get a **No Incident Templates** modal instead, with a **Create Template** button that takes you to **Incidents → Settings → Incident Templates**.
 
-Templates are built with their own four-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call** — plus **Custom Fields** and **Custom Fields on Create** steps after **Resources Affected** when your project has incident custom fields. The template's **Owners** and **Labels** are under **Advanced** at the end of **Incident Details**. These are the fields:
+Templates are built with their own four-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call** — plus **Custom Fields** and **Custom Fields on Create** steps after **Resources Affected** when your project has incident custom fields. The template's **Owners** and **Labels** are under **More fields** at the end of **Incident Details**. These are the fields:
 
 | Field                           | Purpose                                                |
 | ------------------------------- | ------------------------------------------------------ |
@@ -136,7 +136,7 @@ Each entry has:
 - **On-Call → On-Call Policies** — policies executed when this incident is created.
 - **Incident Roles** — pre-assign team members to roles.
 - **Ownership & Labels → Owners** (people and teams, picked from one list), **Labels**.
-- **Advanced Options → Auto Resolve Incident** (resolves the incident automatically when the criteria stop matching), **Show Incident on Status Page**, **Private Incident** and **Remediation Notes**.
+- **More fields → Auto Resolve Incident** (resolves the incident automatically when the criteria stop matching), **Show Incident on Status Page**, **Private Incident** and **Remediation Notes**.
 
 For the full list of `{{variable}}` placeholders you can use in the title, description and remediation notes, see [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
 

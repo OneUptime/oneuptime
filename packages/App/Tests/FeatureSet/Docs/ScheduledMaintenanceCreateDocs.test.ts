@@ -103,12 +103,12 @@ describe("the scheduled maintenance create form in the docs", () => {
     expect(ENGLISH_GUIDE).toContain("the review step shows it too");
   });
 
-  test("puts the options the form folds under Advanced there", () => {
+  test("puts the options the form folds under More fields there", () => {
     expect(ENGLISH_GUIDE).toContain(
-      "**Change Monitor Status to** waits under **Advanced**",
+      "**Change Monitor Status to** waits under **More fields**",
     );
     expect(ENGLISH_GUIDE).toContain(
-      "**Owners** and **Labels** wait under **Advanced**",
+      "**Owners** and **Labels** wait under **More fields**",
     );
   });
 

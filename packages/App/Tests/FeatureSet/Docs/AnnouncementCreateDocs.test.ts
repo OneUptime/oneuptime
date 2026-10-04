@@ -5,6 +5,7 @@ import {
   SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
   SCHEDULE_SECTION_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -161,7 +162,7 @@ describe("the announcement forms in the docs", () => {
       for (const section of [
         SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
         SCHEDULE_SECTION_TITLE,
-        "Advanced",
+        MORE_FIELDS_SECTION_TITLE,
       ]) {
         const label: string = labelIn(language, section);
 

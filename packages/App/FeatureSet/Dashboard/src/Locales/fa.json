@@ -14074,7 +14074,7 @@
   "Older session by this user ({)": "Older session by this user ({)",
   "Ollama": "Ollama",
   "Oman": "Oman",
-  "On": "On",
+  "On": "روشن",
   "On (project switch not checked yet)": "On (project switch not checked yet)",
   "On Boot": "On Boot",
   "On Call Duty Policy Feed Event": "On Call Duty Policy Feed Event",
@@ -24686,5 +24686,10 @@
   "Precision": "دقت",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "میانگین زمان کارکرد منابع صفحه، که تا وقتی همه‌چیز عملیاتی است کنار وضعیت کلی آن نمایش داده می‌شود.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "زمانی که یک مانیتور در هر یک از این وضعیت‌ها می‌گذراند، از زمان کارکرد آن در این صفحه کم می‌شود.",
-  "New Scheduled Maintenance Event": "رویداد تعمیر و نگهداری زمان‌بندی‌شده جدید"
+  "New Scheduled Maintenance Event": "رویداد تعمیر و نگهداری زمان‌بندی‌شده جدید",
+  "Bar Color Rules": "قوانین رنگ نوار",
+  "More fields": "فیلدهای بیشتر",
+  "More settings": "تنظیمات بیشتر",
+  "{{count}} more": "{{count}} مورد دیگر",
+  "{{count}} more_one": "{{count}} مورد دیگر"
 }

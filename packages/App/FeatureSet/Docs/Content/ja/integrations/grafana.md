@@ -25,7 +25,7 @@ Grafana の Webhook ペイロードは Alertmanager の形式に従います —
 
 1. **モニター → モニターを作成** に移動して **受信リクエスト** を選びます。モニターを開き、左メニューの **Documentation** をクリックして URL をコピーします。
 2. モニターの **Criteria** を開き、**Filter Type** を `JavaScript Expression`、**Value** を `"{{requestBody.status}}" === "firing"` に設定します。
-3. 一致時にインシデントを作成し、呼び出す **On-Call Policies** を選び、**Advanced Options** で **Auto Resolve Incident** を有効にします。
+3. 一致時にインシデントを作成し、呼び出す **On-Call Policies** を選び、**More fields** で **Auto Resolve Incident** を有効にします。
 4. **Settings** で **Group incidents and alerts by a payload field** を有効にし、次を設定します。
 
    | フィールド                         | 値                                  |
@@ -89,7 +89,7 @@ Grafana の Webhook ペイロードは Alertmanager の形式に従います —
 ## トラブルシューティング
 
 - **何も届かない** — Grafana が URL に到達できることを確認し (Grafana のサーバーログを確認)、オプション 2 の場合はワークフローが **有効** であることを確認します。OneUptime は検証前にすべての受信リクエストへ空の `200` を返すため、Grafana のログにある `200` はペイロードが受理されたことを示しません。
-- **インシデントは作成されるがクローズされない** — 条件の復旧フィールドと値、そしてインシデントの **Advanced Options** で **Auto Resolve Incident** が有効かを確認します。比較は大文字と小文字を区別します。
+- **インシデントは作成されるがクローズされない** — 条件の復旧フィールドと値、そしてインシデントの **More fields** で **Auto Resolve Incident** が有効かを確認します。比較は大文字と小文字を区別します。
 - **アラートが多数入ったペイロードでインシデントが 1 件しかできない** — 通知内で変化しないラベルでグループ化しています。代わりに `requestBody.alerts[*].fingerprint` でグループ化してください。
 - **インシデントの本文に生の `{{...}}` プレースホルダーが表示される** — パスが解決されず、未解決のプレースホルダーは空にされずそのまま残ります。使用中のアラートのバージョンに存在するフィールドを参照してください。オプション 2 を使った場合は **ログ** タブでトリガーの出力を確認します。
 

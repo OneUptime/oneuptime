@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "アカウントのパスワード、またはプロバイダーから SMTP 用に発行された API キー。",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "メールの送信元アドレス。サーバーがこのアドレスからの送信を許可している必要があります。Microsoft Graph の場合は、送信を行うメールボックスです。",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "プロバイダーから指定されたポート。通常は 587 です。ポート 465 は常に暗号化されます。",
-  "Port 465 is always encrypted, but the certificate is not checked.": "ポート 465 は常に暗号化されますが、証明書は確認されません。"
+  "Port 465 is always encrypted, but the certificate is not checked.": "ポート 465 は常に暗号化されますが、証明書は確認されません。",
+  "More fields": "その他の項目",
+  "More settings": "その他の設定",
+  "{{count}} more": "他 {{count}} 件",
+  "{{count}} more_one": "他 {{count}} 件",
+  "On": "オン",
+  "Off": "オフ"
 }

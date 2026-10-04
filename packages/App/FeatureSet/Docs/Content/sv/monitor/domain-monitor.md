@@ -28,7 +28,7 @@ Domänmonitorer frågar WHOIS-data för dina domäner för att spåra registreri
 | --------- | ------------------------------------------ | ------------ |
 | Domännamn | Domänen att övervaka (t.ex. `example.com`) | Ja           |
 
-### Avancerade inställningar
+### Fler fält
 
 | Fält         | Beskrivning                                                                    | Standard |
 | ------------ | ------------------------------------------------------------------------------ | -------- |

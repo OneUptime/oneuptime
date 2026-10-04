@@ -71,7 +71,7 @@ Alertmanager는 `Content-Type: application/json` 을 보내며, OneUptime이 페
 
 - _When filters match, change monitor status_ 를 켜고 **Offline**(또는 Degraded)으로 설정합니다.
 - _When filters match, declare an incident_ 를 켭니다. **Title**, **Severity**, 호출할 **On-Call Policies** 를 설정하세요.
-- 그 인시던트의 **Advanced Options** 에서 **Auto Resolve Incident** 를 켭니다. 이것이 없으면 복구 알림이 무시되고 인시던트가 영원히 열려 있습니다.
+- 그 인시던트의 **More fields** 에서 **Auto Resolve Incident** 를 켭니다. 이것이 없으면 복구 알림이 무시되고 인시던트가 영원히 열려 있습니다.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## 문제 해결
 
 - **아무것도 도착하지 않음** — Alertmanager가 URL에 도달할 수 있는지 확인하고, 전달 오류가 있는지 로그를 확인하세요. OneUptime은 아무것도 검증하기 전에 모든 요청에 빈 `200` 으로 응답하므로 `200` 은 페이로드가 수락되었음을 보장하지 않습니다. 대신 모니터의 타임라인을 확인하세요.
-- **인시던트가 열리지만 닫히지 않음** — Alertmanager의 `send_resolved: true`, criteria의 복구 필드와 값(비교는 대소문자를 구분합니다), 인시던트의 **Advanced Options** 에 있는 **Auto Resolve Incident** 를 확인하세요. 더 미묘한 원인이 둘 있습니다. **Max incidents per request** 보다 많은 서로 다른 키를 담은 페이로드에서는 상한을 넘은 키가 복구에서도 보이지 않습니다. 그리고 인제스트 병합(아래)으로 버려진 것이 하필 `resolved` 알림이라면, Alertmanager는 발생 알림은 반복해도 해결 알림은 반복하지 않기 때문에 그 인시던트는 영구히 남습니다. 그런 인시던트는 손으로 닫으세요.
+- **인시던트가 열리지만 닫히지 않음** — Alertmanager의 `send_resolved: true`, criteria의 복구 필드와 값(비교는 대소문자를 구분합니다), 인시던트의 **More fields** 에 있는 **Auto Resolve Incident** 를 확인하세요. 더 미묘한 원인이 둘 있습니다. **Max incidents per request** 보다 많은 서로 다른 키를 담은 페이로드에서는 상한을 넘은 키가 복구에서도 보이지 않습니다. 그리고 인제스트 병합(아래)으로 버려진 것이 하필 `resolved` 알림이라면, Alertmanager는 발생 알림은 반복해도 해결 알림은 반복하지 않기 때문에 그 인시던트는 영구히 남습니다. 그런 인시던트는 손으로 닫으세요.
 - **인시던트가 전혀 없고 모니터 상태도 그대로임** — 그룹화 경로는 리터럴 `requestBody.` 로 시작해야 하며, 경로에서 와일드카드로 동작하는 것은 첫 번째 `[*]` 뿐입니다. 두 실수 모두 조용히 실패합니다.
 - **인시던트 텍스트에 원본 `{{...}}` 플레이스홀더가 보임** — 경로가 해석되지 않았고, OneUptime은 해석되지 않은 플레이스홀더를 비우지 않고 그대로 둡니다. 규칙마다 설정하는 어노테이션이 다르므로, 여러분의 규칙에 실제로 존재하는 필드를 참조하세요(`commonAnnotations` 대 알림별 `annotations`).
 - **알림이 가득한 페이로드인데 인시던트가 하나뿐임** — 알림 안에서 값이 달라지지 않는 레이블, 대개 라우트의 `group_by` 에도 들어 있는 레이블로 그룹화했습니다. 대신 `requestBody.alerts[*].fingerprint` 로 그룹화하세요.

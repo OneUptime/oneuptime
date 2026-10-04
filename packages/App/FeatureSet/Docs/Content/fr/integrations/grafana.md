@@ -25,7 +25,7 @@ La charge utile webhook de Grafana suit la forme Alertmanager — `status`, un t
 
 1. Allez dans **Moniteurs → Créer un moniteur** et choisissez **Requête entrante**. Ouvrez-le et cliquez sur **Documentation** dans le menu de gauche pour copier l'URL.
 2. Ouvrez les **Criteria** du moniteur et réglez **Filter Type** sur `JavaScript Expression` et **Value** sur `"{{requestBody.status}}" === "firing"`.
-3. Déclarez un incident en cas de correspondance, choisissez les **On-Call Policies** à alerter, et activez **Auto Resolve Incident** sous **Advanced Options**.
+3. Déclarez un incident en cas de correspondance, choisissez les **On-Call Policies** à alerter, et activez **Auto Resolve Incident** sous **More fields**.
 4. Sous **Settings**, activez **Group incidents and alerts by a payload field** et renseignez :
 
    | Champ                              | Valeur                              |
@@ -89,7 +89,7 @@ Avec l'**Option 2**, ajoutez une seconde branche **Conditions** (`status == reso
 ## Dépannage
 
 - **Rien n'arrive** — vérifiez que Grafana peut joindre l'URL (consultez les journaux serveur de Grafana) et, pour l'Option 2, que le workflow est **Activé**. OneUptime répond à chaque requête entrante par un `200` vide avant de la valider : un `200` dans les journaux de Grafana ne confirme donc pas que la charge utile a été acceptée.
-- **Les incidents s'ouvrent mais ne se ferment jamais** — vérifiez le champ et la valeur de rétablissement sur le critère, et que **Auto Resolve Incident** est activé sous les **Advanced Options** de l'incident. La comparaison est sensible à la casse.
+- **Les incidents s'ouvrent mais ne se ferment jamais** — vérifiez le champ et la valeur de rétablissement sur le critère, et que **Auto Resolve Incident** est activé sous les **More fields** de l'incident. La comparaison est sensible à la casse.
 - **Un seul incident pour une charge utile pleine d'alertes** — vous avez regroupé sur un label qui ne varie pas au sein d'une notification. Regroupez plutôt sur `requestBody.alerts[*].fingerprint`.
 - **Le texte de l'incident affiche des espaces réservés `{{...}}` bruts** — le chemin ne s'est pas résolu, et les espaces réservés non résolus sont laissés en place plutôt que vidés. Référencez des champs qui existent pour votre version d'alerting ; inspectez la sortie du déclencheur dans l'onglet **Journaux** si vous avez utilisé l'Option 2.
 

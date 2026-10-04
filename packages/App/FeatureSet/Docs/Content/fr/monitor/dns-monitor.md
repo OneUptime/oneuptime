@@ -45,7 +45,7 @@ Les moniteurs DNS interrogent les serveurs DNS pour des types d'enregistrements 
 | SRV                   | Enregistrements de localisation de service                 |
 | CAA                   | Enregistrements d'autorisation d'autorité de certification |
 
-### Paramètres avancés
+### Plus de champs
 
 | Champ                | Description                                                                        | Par défaut |
 | -------------------- | ---------------------------------------------------------------------------------- | ---------- |

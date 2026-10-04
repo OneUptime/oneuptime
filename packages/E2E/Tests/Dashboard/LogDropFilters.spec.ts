@@ -189,7 +189,7 @@ test.describe("Log Drop Filters", () => {
     /*
      * Step 2 — Action. Drop is the form's initial value, so submitting the
      * step as-is is exactly the reported reproduction: Logs -> Settings ->
-     * Drop filters -> Create. Enabled is folded under Advanced, on.
+     * Drop filters -> Create. Enabled is folded under More fields, on.
      */
     const form: Locator = page.locator(createFormSelector);
     await expect(

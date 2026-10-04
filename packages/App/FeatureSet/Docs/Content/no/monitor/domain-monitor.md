@@ -28,7 +28,7 @@ Domene-monitorer spør WHOIS-data for domenene dine for å spore registreringsde
 | ---------- | ------------------------------------------------- | ------- |
 | Domenenavn | Domenet som skal overvåkes (f.eks. `example.com`) | Ja      |
 
-### Avanserte innstillinger
+### Flere felt
 
 | Felt             | Beskrivelse                                                                  | Standard |
 | ---------------- | ---------------------------------------------------------------------------- | -------- |

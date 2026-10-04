@@ -163,7 +163,7 @@ Paths की शुरुआत अनिवार्य रूप से `reque
 कोई webhook केवल उसी payload की बात बताता है, इसलिए OneUptime किसी incident को इसलिए resolve नहीं करता कि उसकी key दिखनी बंद हो गई। incident तभी resolve होता है जब कोई payload स्पष्ट रूप से कहे कि वह key recover हो गई। दो बातें एक साथ सही होनी चाहिए:
 
 1. **Field that signals recovery** और **Value that means recovered** सेट हों और payload से मेल खाते हों। तुलना सटीक है और case का ध्यान रखती है — `Resolved` का `resolved` से मेल नहीं होता।
-2. criteria के incident में **Auto Resolve Incident** चालू हो, जो incident form में **Advanced Options** के नीचे है। इसके बिना मेल खाने वाले recovery events अनदेखे रह जाते हैं और incidents खुले ही रहते हैं। (alerts और **Auto Resolve Alert** पर भी यही लागू होता है।)
+2. criteria के incident में **Auto Resolve Incident** चालू हो, जो incident form में **More fields** के नीचे है। इसके बिना मेल खाने वाले recovery events अनदेखे रह जाते हैं और incidents खुले ही रहते हैं। (alerts और **Auto Resolve Alert** पर भी यही लागू होता है।)
 
 **Max incidents per request** केवल creation को नहीं, extraction को भी सीमित करता है। सीमा से आगे की keys recovery के लिए भी अदृश्य रहती हैं, इसलिए जिस payload में सीमा से अधिक अलग keys हों, उसमें सीमा से आगे `resolved` बताने वाला alert अपना incident बंद नहीं करेगा।
 

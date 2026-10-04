@@ -115,7 +115,7 @@ Eskaleringsregler avgör vem som ringas när någon ringer policyns nummer, uppi
 4. Fyll i regeln. Det är ett enda steg:
    - **Vem som ska ringas**: ett jourschema eller en person. Ett jourschema ringer den som har jour i det när samtalet kommer in. Personerna är medlemmarna i ditt projekt.
    - **Ringtid (i sekunder)**: hur länge deras telefon ringer innan samtalet går vidare till nästa regel. Den börjar på 30 sekunder, och Twilio tar 5 till 600.
-   - **Namn** och **Beskrivning** är valfria och ligger under **Avancerad**. En regel utan namn visas efter sin plats i listan: **Level 1**, **Level 2**.
+   - **Namn** och **Beskrivning** är valfria och ligger under **Fler fält**. En regel utan namn visas efter sin plats i listan: **Level 1**, **Level 2**.
 5. Spara den och lägg till en regel för varje jourschema eller person som ska prövas därefter
 
 Reglerna prövas uppifrån och ned i listan, och en ny regel läggs till sist. Dra en regel i handtaget uppe till vänster för att ändra ordningen; med tangentbordet fokuserar du handtaget, trycker på blanksteg, flyttar regeln med piltangenterna och trycker på blanksteg igen.
@@ -151,7 +151,7 @@ Anpassa meddelandena som uppringare hör:
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Vem som ska ringas   | Ett jourschema, som ringer den som har jour i det, eller en person. Varje regel ringer en av dem                                              |
 | Ringtid (i sekunder) | Hur länge telefonen ringer innan samtalet går vidare till nästa regel (standard: 30; från 5 till 600)                                         |
-| Namn och Beskrivning | Valfria, under Avancerad. En regel utan namn visas som Level 1, Level 2 och så vidare, efter sin plats i listan                               |
+| Namn och Beskrivning | Valfria, under Fler fält. En regel utan namn visas som Level 1, Level 2 och så vidare, efter sin plats i listan                               |
 | Ordning              | Regelns plats i listan: reglerna prövas uppifrån och ned. Ändras genom att dra reglerna; via API:et hamnar en ny regel utan ordning sist |
 
 Via API:et anger en regel `onCallDutyPolicyScheduleId` eller `userId` (en av dem, aldrig båda) och `escalateAfterSeconds`: ringtiden, 30 när den utelämnas.

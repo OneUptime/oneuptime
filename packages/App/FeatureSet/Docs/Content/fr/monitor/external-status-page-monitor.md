@@ -71,7 +71,7 @@ Si la page de statut rapporte plusieurs composants, vous pouvez optionnellement 
 
 Lorsqu'un groupe de composants est également défini, le filtre de nom de composant est appliqué **au sein** de ce groupe, ce qui vous permet de cibler un seul composant à l'intérieur d'un groupe plus large. Lorsqu'aucun des deux filtres n'est spécifié, tous les composants concernés sont surveillés.
 
-### Options avancées
+### Plus de champs
 
 #### Délai d'attente
 

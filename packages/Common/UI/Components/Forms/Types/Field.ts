@@ -21,6 +21,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
+import type IconProp from "../../../../Types/Icon/IconProp";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -96,11 +97,21 @@ export interface FormFieldCollapsibleSection<TEntity> {
   /*
    * Whether the section starts open when it is configured as the form
    * opens - an edit form, or a default that fills a field in. True when left
-   * out: a section of details someone wrote opens to show them. An Advanced
-   * section sets it to false: it always starts folded, and says
-   * "Configured" on its header instead.
+   * out: a section of details someone wrote opens to show them. A More
+   * fields section (getAdvancedFormSection) sets it to false: it always
+   * starts folded, and its header shows what is set instead.
    */
   openWhenConfigured?: boolean | undefined;
+  /*
+   * Folded, the header lists the fields the section holds by name - "Declared
+   * At · Initial State · Labels" - with the set ones as chips that say what
+   * they are set to. For a section whose title does not say what is in it:
+   * More fields. Left out, a folded header shows only the fields that are
+   * set (FoldedSection).
+   */
+  listFieldsWhileFolded?: boolean | undefined;
+  // Drawn in a tile before the title (More fields: IconProp.AdjustmentHorizontal).
+  icon?: IconProp | undefined;
   /*
    * What the folded fields are set to, in plain words, shown under the
    * title while the section is folded - so the form says what will happen
@@ -110,8 +121,9 @@ export interface FormFieldCollapsibleSection<TEntity> {
    * Worked out from the form's values as they are now, so it follows what
    * is ticked. Whole English sentences: each is looked up in the
    * translations on its own (keep them in translationKey() so the string
-   * extractor finds them). It takes the place of the "Configured" badge,
-   * which shows as usual while nothing is returned.
+   * extractor finds them). Drawn under what the section lists; a section
+   * that does not list its fields shows it in place of the chips of what is
+   * set, since the sentences already say it.
    */
   getSummary?:
     | ((values: FormValues<TEntity>) => Array<string> | undefined)
@@ -239,6 +251,23 @@ export default interface Field<TEntity> {
   getDefaultValue?:
     | ((item: FormValues<TEntity>) => boolean | string | Date | number)
     | undefined;
+  /*
+   * For a field whose default follows other fields - an OIDC discovery URL
+   * made from the issuer, a description made from the provider's name -
+   * whether the value it holds now is that default. Such a value is not
+   * one the user chose, so a folded section does not show it as set, and a
+   * review step does not list it (isFormFieldValueSet).
+   */
+  isAtDefault?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * The default of the column the field writes, as its model declares it -
+   * filled in by ModelForm, on Create and Edit alike, for a field that names
+   * no default of its own (Utils/CreateFormDefaults). Not a value the field
+   * starts with: an Edit form shows the record as it is. It is what a folded
+   * section compares with, so a switch that is on because its column starts
+   * on is not shown as set, and one turned off is (isFormFieldValueSet).
+   */
+  columnDefaultValue?: boolean | string | number | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
   /*

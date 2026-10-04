@@ -364,7 +364,7 @@ const OUTPUT_SECTIONS: Array<string> = [
   "Description",
   "Ownership & Labels",
   "On-Call",
-  "Advanced Options",
+  "More fields",
 ];
 
 async function setSection(
@@ -501,7 +501,7 @@ test("each output keeps title and severity beside collapsible optional sections"
     await expect(
       page.getByRole("combobox", { name: `${output} On-Call Duty Policies` }),
     ).toBeVisible();
-    await setSection(page, "Advanced Options", true);
+    await setSection(page, "More fields", true);
     await expect(toggle(page, `Auto Resolve ${output}`)).toHaveAttribute(
       "aria-checked",
       "true",
@@ -579,7 +579,7 @@ async function configureOutput(
   await selectOption(page, `${output} Labels`, values.label);
   await setSection(page, "On-Call", true);
   await selectOption(page, `${output} On-Call Duty Policies`, values.policy);
-  await setSection(page, "Advanced Options", true);
+  await setSection(page, "More fields", true);
   await toggle(page, `Auto Resolve ${output}`).click();
   await toggle(page, `Private ${output}`).click();
   await page
@@ -726,7 +726,7 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
         page.getByRole("button", { name: title, exact: true }),
       ).toHaveAttribute("aria-expanded", "true");
     }
-    for (const title of ["Description", "Advanced Options"]) {
+    for (const title of ["Description", "More fields"]) {
       await expect(
         page.getByRole("button", { name: title, exact: true }),
       ).toHaveAttribute("aria-expanded", "false");
@@ -737,12 +737,20 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   }
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
 
-  // A false auto-resolve value is configured; a truthy-only check loses it.
+  /*
+   * A false auto-resolve value is set; a truthy-only check loses it. More
+   * fields stays folded, as every More fields section does, and its header
+   * shows the switch as off.
+   */
   await openEditForm(page, "Slow burn");
   await reachOutputStep(page);
-  await expect(
-    page.getByRole("button", { name: "Advanced Options", exact: true }),
-  ).toHaveAttribute("aria-expanded", "true");
+  const alertMoreFields: Locator = page.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(alertMoreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(alertMoreFields).toContainText("Auto Resolve Alert: Off");
+  await alertMoreFields.click();
   await expect(toggle(page, "Auto Resolve Alert")).toHaveAttribute(
     "aria-checked",
     "false",
@@ -757,9 +765,13 @@ test("editing expands configured sections and keeps empty defaults collapsed", a
   await expect(
     page.getByRole("textbox", { name: "Incident Title" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Advanced Options", exact: true }),
-  ).toHaveAttribute("aria-expanded", "true");
+  const incidentMoreFields: Locator = page.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(incidentMoreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(incidentMoreFields).toContainText("Private Incident: On");
+  await incidentMoreFields.click();
   await expect(toggle(page, "Private Incident")).toHaveAttribute(
     "aria-checked",
     "true",

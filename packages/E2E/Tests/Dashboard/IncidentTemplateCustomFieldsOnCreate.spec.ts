@@ -705,7 +705,7 @@ test.describe("Incident template Custom Fields on Create", () => {
 
     /*
      * The step after it (On-Call) is optional - the owners and the labels
-     * fold under Advanced on Incident Details - but Create Incident Template
+     * fold under More fields on Incident Details - but Create Incident Template
      * is on the last step only: Next here.
      */
     await expect(submit).toHaveCount(0);

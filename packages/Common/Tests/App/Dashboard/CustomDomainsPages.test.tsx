@@ -52,7 +52,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { getJestSpyOn } from "../../Spy";
-import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 
 /*
  * Custom Domains, on a status page (Status Pages > <page> > Custom Domains)
@@ -915,7 +915,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       // One section: the same object on each field.
       expect(sections[1]).toBe(sections[0]);
       expect(sections[2]).toBe(sections[0]);
-      expect(sections[0]!.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+      expect(sections[0]!.title).toBe(MORE_FIELDS_SECTION_TITLE);
       expect(sections[0]!.openWhenConfigured).toBe(false);
 
       expect(fieldOf("subdomain").collapsibleSection).toBeUndefined();

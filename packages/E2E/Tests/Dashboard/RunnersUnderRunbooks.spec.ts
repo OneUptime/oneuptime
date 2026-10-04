@@ -127,7 +127,7 @@ test.describe("Runners live under Runbooks", () => {
 
       /*
        * Create a Runner through the form: Runner (the labels folded under
-       * Advanced at its end), then Capabilities.
+       * More fields at its end), then Capabilities.
        */
       await page
         .getByTestId("card-button")
@@ -146,7 +146,7 @@ test.describe("Runners live under Runbooks", () => {
       await expect(submit).toHaveCount(0);
       await expect(next).toHaveText("Next");
       await expect(
-        modal.getByRole("button", { name: "Advanced", exact: true }),
+        modal.getByRole("button", { name: "More fields", exact: true }),
       ).toHaveAttribute("aria-expanded", "false");
       await next.click();
       // Capabilities, the last step: nothing to walk on to.

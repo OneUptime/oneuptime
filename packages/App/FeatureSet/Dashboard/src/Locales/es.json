@@ -24686,5 +24686,10 @@
   "Precision": "Precisión",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "El tiempo de actividad medio de los recursos de la página, que se muestra junto a su estado general mientras todo está operativo.",
   "Time a monitor spends in any of these statuses counts against its uptime on this page.": "El tiempo que un monitor pasa en cualquiera de estos estados se descuenta de su tiempo de actividad en esta página.",
-  "New Scheduled Maintenance Event": "Nuevo evento de mantenimiento programado"
+  "New Scheduled Maintenance Event": "Nuevo evento de mantenimiento programado",
+  "Bar Color Rules": "Reglas de color de las barras",
+  "More fields": "Más campos",
+  "More settings": "Más ajustes",
+  "{{count}} more": "{{count}} más",
+  "{{count}} more_one": "{{count}} más"
 }

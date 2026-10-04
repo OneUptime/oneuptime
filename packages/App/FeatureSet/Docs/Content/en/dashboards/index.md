@@ -42,7 +42,7 @@ Open **Dashboards** in the left navigation.
 | **Advanced → Archived**        | Dashboards you archived. Unarchive them from here.                     |
 | **Dashboard → View**           | The canvas. Toggle between **Edit** and **View** in the header.        |
 | **Dashboard → Overview**       | Description, owners, and labels.                                       |
-| **Dashboard → Sharing**        | Who can view it, its public link, and an IP allowlist under Advanced.  |
+| **Dashboard → Sharing**        | Who can view it, its public link, and an IP allowlist under More settings. |
 | **Dashboard → Branding**       | Page title, description, logo, and favicon of the public dashboard.    |
 | **Dashboard → Custom Domains** | Host the public dashboard on your own domain.                          |
 | **Dashboard → Settings**       | Duplicate, export, or archive the dashboard.                           |

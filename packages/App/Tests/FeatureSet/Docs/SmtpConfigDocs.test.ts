@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -11,11 +12,11 @@ import path from "path";
  * own server in the Admin Dashboard - walks two steps: Server (the name, the
  * hostname, the port, the username and the password) and Sender (From Email,
  * From Name). Transport, Require TLS, the authentication type, the OAuth
- * fields and the description wait folded under Advanced
+ * fields and the description wait folded under More fields
  * (Common/UI/Components/SmtpConfig/SmtpConfigFormFields). The guide only
  * told people how to fill in OAuth, called the TLS switch "Secure (TLS)",
  * and said nothing of Microsoft Graph, whose Transport moved under
- * Advanced. These pin it to the forms: each language's guide says where
+ * More fields. These pin it to the forms: each language's guide says where
  * each setting is in the words that language's dashboard shows, quotes the
  * folded header as the dashboard words it, says what Require TLS does as
  * the switch's own help does, and walks a Microsoft Graph user to its
@@ -50,7 +51,7 @@ const PAGE: string = "emails/smtp.md";
 // The labels the guide names, as the forms write them in English.
 const STEP_SERVER: string = "Server";
 const STEP_SENDER: string = "Sender";
-const ADVANCED: string = "Advanced";
+const MORE_FIELDS: string = MORE_FIELDS_SECTION_TITLE;
 const REQUIRE_TLS: string = "Require TLS";
 const TRANSPORT: string = "Transport";
 const AUTHENTICATION_TYPE: string = "Authentication Type";
@@ -65,7 +66,7 @@ const LABELS: Array<string> = [
   "From Name",
   STEP_SERVER,
   STEP_SENDER,
-  ADVANCED,
+  MORE_FIELDS,
   TRANSPORT,
   REQUIRE_TLS,
   AUTHENTICATION_TYPE,
@@ -178,7 +179,7 @@ function addingSection(lang: string): string {
     return (
       section.body.includes(`**${words(STEP_SERVER)}**`) &&
       section.body.includes(`**${words(STEP_SENDER)}**`) &&
-      section.body.includes(`**${words(ADVANCED)}**`)
+      section.body.includes(`**${words(MORE_FIELDS)}**`)
     );
   });
 
@@ -284,7 +285,7 @@ describe("the SMTP guide says where each setting of the two-step form is", () =>
   );
 
   it.each(LANGUAGES)(
-    "%s: walks a Microsoft Graph user to Transport under Advanced, with the scope Graph takes",
+    "%s: walks a Microsoft Graph user to Transport under More fields, with the scope Graph takes",
     (lang: string) => {
       const words: (english: string) => string = dashboardWords(lang);
       const graph: string | undefined = addingSection(lang)
@@ -294,7 +295,7 @@ describe("the SMTP guide says where each setting of the two-step form is", () =>
         });
 
       expect(graph).toBeDefined();
-      expect(graph).toContain(`**${words(ADVANCED)}**`);
+      expect(graph).toContain(`**${words(MORE_FIELDS)}**`);
       expect(graph).toContain(`**${words(TRANSPORT)}**`);
       expect(graph).toContain("**Mail.Send**");
       expect(graph).toContain("`https://graph.microsoft.com/.default`");
@@ -306,7 +307,7 @@ describe("the SMTP guide says where each setting of the two-step form is", () =>
   );
 
   it.each(LANGUAGES)(
-    "%s: comes before the OAuth walkthroughs, which say the OAuth fields are under Advanced",
+    "%s: comes before the OAuth walkthroughs, which say the OAuth fields are under More fields",
     (lang: string) => {
       const words: (english: string) => string = dashboardWords(lang);
       const page: string = readPage(lang);
@@ -333,7 +334,7 @@ describe("the SMTP guide says where each setting of the two-step form is", () =>
           return (
             !line.startsWith("|") &&
             line.includes(`**${words(AUTHENTICATION_TYPE)}**`) &&
-            line.includes(`**${words(ADVANCED)}**`)
+            line.includes(`**${words(MORE_FIELDS)}**`)
           );
         }),
       ).toBe(true);

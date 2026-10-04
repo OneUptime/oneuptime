@@ -488,10 +488,10 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
       const { user } = renderStep(step(componentId as ComponentID));
 
       const advanced: HTMLElement | null = screen.queryByRole("button", {
-        name: /^Show \d+ advanced setting/,
+        name: "More fields",
       });
 
-      if (advanced) {
+      if (advanced && advanced.getAttribute("aria-expanded") !== "true") {
         await user.click(advanced);
       }
 
@@ -770,7 +770,7 @@ describe("ArgumentsForm — request headers", () => {
     const { user, onFormChange } = renderStep(step(ComponentID.ApiPost));
 
     await user.click(
-      screen.getByRole("button", { name: /^Show \d+ advanced setting/ }),
+      await screen.findByRole("button", { name: "More fields" }),
     );
     await user.click(
       await screen.findByRole("button", { name: "Add Request Headers" }),

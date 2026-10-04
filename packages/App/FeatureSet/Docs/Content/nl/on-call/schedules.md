@@ -8,13 +8,13 @@ Als u op de pagina **Bereikbaarheidsschema's** een schema maakt, vraagt het form
 
 **Wie wisselen elkaar af?** is optioneel. Laat u het leeg, dan begint het schema zonder lagen: het maakt niemand bereikbaar tot u een laag toevoegt op de pagina **Lagen**. De vraag wordt alleen gesteld aan wie lagen mag toevoegen.
 
-Al het andere staat onder **Geavanceerd**, ingeklapt tot u het opent:
+Al het andere staat onder **Meer velden**, ingeklapt tot u het opent:
 
 - **Elke beurt duurt**: **1 dag**, **1 week**, **2 weken** of **1 maand**, en **1 week** tenzij u het wijzigt. Het wordt gevraagd zodra er iemand is gekozen. Ieder is zo lang bereikbaar, daarna neemt de volgende het over, op het tijdstip waarop het schema is gemaakt.
 - **Tijdzone**: de tijdzone waarin overdrachtstijden en bereikbaarheidsuren gelden. Die begint op de uwe.
 - **Beschrijving** en **Labels**.
 
-Zolang er iemand is gekozen en onder **Geavanceerd** niets is gewijzigd, zegt de ingeklapte kop wat er gaat gebeuren: iedereen is een week bereikbaar, daarna neemt de volgende het over.
+Zolang er iemand is gekozen en onder **Meer velden** niets is gewijzigd, zegt de ingeklapte kop wat er gaat gebeuren: iedereen is een week bereikbaar, daarna neemt de volgende het over.
 
 ## Lagen
 

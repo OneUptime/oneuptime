@@ -25,7 +25,7 @@ Grafana의 webhook 페이로드는 Alertmanager 형태를 따릅니다 — `stat
 
 1. **모니터 → 모니터 생성** 으로 이동해 **수신 요청** 을 선택합니다. 모니터를 열고 왼쪽 메뉴에서 **Documentation** 을 클릭해 URL을 복사하세요.
 2. 모니터의 **Criteria** 를 열고 **Filter Type** 을 `JavaScript Expression`, **Value** 를 `"{{requestBody.status}}" === "firing"` 으로 설정합니다.
-3. 일치 시 인시던트를 선언하고, 호출할 **On-Call Policies** 를 선택한 뒤, **Advanced Options** 에서 **Auto Resolve Incident** 를 켭니다.
+3. 일치 시 인시던트를 선언하고, 호출할 **On-Call Policies** 를 선택한 뒤, **More fields** 에서 **Auto Resolve Incident** 를 켭니다.
 4. **Settings** 에서 **Group incidents and alerts by a payload field** 를 켜고 다음을 설정합니다.
 
    | 필드                               | 값                                  |
@@ -89,7 +89,7 @@ Grafana의 webhook 페이로드는 Alertmanager 형태를 따릅니다 — `stat
 ## 문제 해결
 
 - **아무것도 도착하지 않음** — Grafana가 URL에 도달할 수 있는지 확인하고(Grafana 서버 로그 확인), 옵션 2라면 워크플로가 **활성** 인지 확인하세요. OneUptime은 검증하기 전에 모든 수신 요청에 빈 `200` 으로 응답하므로, Grafana 로그의 `200` 은 페이로드가 수락되었음을 보장하지 않습니다.
-- **인시던트가 열리지만 닫히지 않음** — criteria의 복구 필드와 값, 그리고 인시던트의 **Advanced Options** 에서 **Auto Resolve Incident** 가 켜져 있는지 확인하세요. 비교는 대소문자를 구분합니다.
+- **인시던트가 열리지만 닫히지 않음** — criteria의 복구 필드와 값, 그리고 인시던트의 **More fields** 에서 **Auto Resolve Incident** 가 켜져 있는지 확인하세요. 비교는 대소문자를 구분합니다.
 - **알림이 가득한 페이로드인데 인시던트가 하나뿐임** — 알림 안에서 값이 달라지지 않는 레이블로 그룹화했습니다. 대신 `requestBody.alerts[*].fingerprint` 로 그룹화하세요.
 - **인시던트 텍스트에 원본 `{{...}}` 플레이스홀더가 보임** — 경로가 해석되지 않았고, 해석되지 않은 플레이스홀더는 비워지지 않고 그대로 남습니다. 사용 중인 알림 버전에 존재하는 필드를 참조하세요. 옵션 2를 사용했다면 **Logs** 탭에서 트리거 출력을 확인하세요.
 
