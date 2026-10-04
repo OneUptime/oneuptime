@@ -50,7 +50,7 @@ const NEW_STRINGS: Array<string> = [
   "Require TLS",
   // What each field is for.
   "The port your provider gives you, usually 587. Port 465 is always encrypted.",
-  "The account OneUptime signs in as, often the email address you send from.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.",
   "The account's password, or the API key your provider gives you for SMTP.",
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.",
   "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.",
@@ -62,6 +62,7 @@ const NEW_STRINGS: Array<string> = [
   "Mail is sent through Microsoft Graph, signing in with OAuth.",
   "TLS is required.",
   "TLS is used only if the server offers it.",
+  "Port 465 is always encrypted, but the certificate is not checked.",
 ];
 
 /*

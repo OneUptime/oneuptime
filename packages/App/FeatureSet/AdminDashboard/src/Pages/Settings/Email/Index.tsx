@@ -6,7 +6,9 @@ import { Green, Red } from "Common/Types/BrandColors";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
@@ -28,6 +30,20 @@ import GlobalConfig, {
 } from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * Server (hostname, port, username, password, and a folded Advanced
+ * section with the transport, TLS, sign-in type and OAuth), then Sender -
+ * the Dashboard's Custom SMTP form, from the same builder
+ * (Common/UI/Components/SmtpConfig), built once. An edit form of the one
+ * GlobalConfig row: nothing is filled in, so an instance saves what it
+ * holds.
+ */
+const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> =
+  getSmtpConfigFormSteps<GlobalConfig>();
+
+const SMTP_HOST_FORM_FIELDS: Array<ModelField<GlobalConfig>> =
+  getGlobalSmtpConfigFormFields();
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -186,16 +202,8 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.smtpEditButton")}
-          /*
-           * Server (hostname, port, username, password, and a folded
-           * Advanced section with the transport, TLS, sign-in type and
-           * OAuth), then Sender - the Dashboard's Custom SMTP form, from the
-           * same builder (Common/UI/Components/SmtpConfig). An edit form of
-           * the one GlobalConfig row: nothing is filled in, so an instance
-           * saves what it holds.
-           */
-          formSteps={getSmtpConfigFormSteps<GlobalConfig>()}
-          formFields={getGlobalSmtpConfigFormFields()}
+          formSteps={SMTP_HOST_FORM_STEPS}
+          formFields={SMTP_HOST_FORM_FIELDS}
           modelDetailProps={{
             modelType: GlobalConfig,
             id: "model-detail-global-config",

@@ -545,6 +545,40 @@ describe("Admin > Settings > Email > Host Settings", () => {
     expect(mockCreateOrUpdate).not.toHaveBeenCalled();
   });
 
+  test("a relay with no sign-in is summed up as one, as the mail service sends to it", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      smtpPort: 25,
+      smtpUsername: null,
+      smtpPassword: null,
+      isSMTPSecure: false,
+    };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+
+    expect(summaryOf(dialog)).toBe(
+      "Mail is sent over SMTP without signing in. TLS is used only if the server offers it.",
+    );
+  });
+
+  test("port 465 with Require TLS off is summed up as always encrypted", async () => {
+    stored = { ...SMTP_INSTANCE, isSMTPSecure: false };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+
+    expect(summaryOf(dialog)).toBe(
+      "Mail is sent over SMTP, signing in with the username and password. Port 465 is always encrypted, but the certificate is not checked.",
+    );
+  });
+
   test("a Microsoft Graph instance opens folded on Graph, and saves untouched without a server", async () => {
     stored = { ...GRAPH_INSTANCE };
 

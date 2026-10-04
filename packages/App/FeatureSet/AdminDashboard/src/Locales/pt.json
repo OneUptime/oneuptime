@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "O SMTP funciona com a maioria dos servidores de e-mail. Escolha Microsoft Graph se o seu tenant do Microsoft 365 tiver o SMTP AUTH desativado: o e-mail passa então pela API do Graph com um aplicativo que tem a permissão Mail.Send, e o nome do host, a porta e a senha não são usados.",
   "TLS is required.": "O TLS é obrigatório.",
   "TLS is used only if the server offers it.": "O TLS só é usado se o servidor oferecer.",
-  "The account OneUptime signs in as, often the email address you send from.": "A conta com a qual o OneUptime faz login, geralmente o endereço de e-mail de onde você envia.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "A conta com a qual o OneUptime faz login, geralmente o endereço de e-mail de onde você envia. Com OAuth, informe o endereço de e-mail da caixa de correio que envia.",
   "The account's password, or the API key your provider gives you for SMTP.": "A senha da conta ou a chave de API que seu provedor fornece para SMTP.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "O endereço de onde seus e-mails vêm. Seu servidor precisa permitir o envio a partir dele; no Microsoft Graph, é a caixa de correio que envia.",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "A porta informada pelo seu provedor, geralmente 587. A porta 465 é sempre criptografada."
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "A porta informada pelo seu provedor, geralmente 587. A porta 465 é sempre criptografada.",
+  "Port 465 is always encrypted, but the certificate is not checked.": "A porta 465 é sempre criptografada, mas o certificado não é verificado."
 }

@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP fungerer med de fleste mailservere. Vælg Microsoft Graph, hvis SMTP AUTH er slået fra i din Microsoft 365-lejer: mail sendes så gennem Graph API'et med en app, der har tilladelsen Mail.Send, og værtsnavn, port og adgangskode bruges ikke.",
   "TLS is required.": "TLS er påkrævet.",
   "TLS is used only if the server offers it.": "TLS bruges kun, hvis serveren tilbyder det.",
-  "The account OneUptime signs in as, often the email address you send from.": "Den konto, OneUptime logger ind med, ofte den e-mailadresse, du sender fra.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "Den konto, OneUptime logger ind med, ofte den e-mailadresse, du sender fra. Med OAuth skal du angive e-mailadressen på den postkasse, der sender.",
   "The account's password, or the API key your provider gives you for SMTP.": "Kontoens adgangskode eller den API-nøgle, din udbyder giver dig til SMTP.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "Adressen, dine e-mails kommer fra. Din server skal tillade afsendelse fra den; med Microsoft Graph er det den postkasse, der sender.",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Den port, din udbyder giver dig, normalt 587. Port 465 er altid krypteret."
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Den port, din udbyder giver dig, normalt 587. Port 465 er altid krypteret.",
+  "Port 465 is always encrypted, but the certificate is not checked.": "Port 465 er altid krypteret, men certifikatet kontrolleres ikke."
 }

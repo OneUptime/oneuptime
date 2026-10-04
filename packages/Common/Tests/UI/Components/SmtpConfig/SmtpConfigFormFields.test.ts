@@ -18,6 +18,7 @@ import { getCreateFormColumnDefault } from "../../../../UI/Components/Forms/Util
 import {
   DEFAULT_SMTP_PORT,
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  IMPLICIT_TLS_SMTP_PORT,
   PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES,
   PROJECT_SMTP_CONFIG_FORM_COLUMNS,
   SMTP_FROM_EMAIL_DESCRIPTION,
@@ -31,6 +32,7 @@ import {
   SMTP_SUMMARY_OAUTH,
   SMTP_SUMMARY_PASSWORD,
   SMTP_SUMMARY_TLS_OPTIONAL,
+  SMTP_SUMMARY_TLS_PORT_465_UNCHECKED,
   SMTP_SUMMARY_TLS_REQUIRED,
   SMTP_TRANSPORT_DESCRIPTION,
   SMTP_USERNAME_DESCRIPTION,
@@ -41,8 +43,11 @@ import {
   getSmtpAuthType,
   getSmtpConfigFormSteps,
   getSmtpServerColumnsGraphIgnores,
+  getSmtpSignInSentence,
+  getSmtpTlsSentence,
   getSmtpTransport,
   readSmtpFormValue,
+  readSmtpPort,
   showsSmtpOAuthCredentials,
   showsSmtpOAuthProviderType,
   showsSmtpPassword,
@@ -51,6 +56,7 @@ import {
   withoutValuesGraphIgnores,
 } from "../../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Port from "../../../../Types/Port";
 
 /*
  * The one builder behind both mail server forms - a project's Custom SMTP
@@ -350,17 +356,33 @@ describe("both forms", () => {
     const projectModel: ProjectSmtpConfig = new ProjectSmtpConfig();
     const globalModel: GlobalConfig = new GlobalConfig();
 
-    for (const column of Object.values(PROJECT)) {
+    // The column names: everything in the map but its one switch.
+    const columnsOf: (map: object) => Array<string> = (
+      map: object,
+    ): Array<string> => {
+      return Object.entries(map)
+        .filter(([key]: [string, unknown]): boolean => {
+          return key !== "sendsWithoutSignInWhenCredentialsAreBlank";
+        })
+        .map(([, value]: [string, unknown]): string => {
+          return String(value);
+        });
+    };
+
+    expect(columnsOf(PROJECT)).toHaveLength(15);
+    expect(columnsOf(GLOBAL)).toHaveLength(14);
+
+    for (const column of columnsOf(PROJECT)) {
       expect({
         column,
-        isColumn: Boolean(projectModel.getTableColumnMetadata(column!)),
+        isColumn: Boolean(projectModel.getTableColumnMetadata(column)),
       }).toEqual({ column, isColumn: true });
     }
 
-    for (const column of Object.values(GLOBAL)) {
+    for (const column of columnsOf(GLOBAL)) {
       expect({
         column,
-        isColumn: Boolean(globalModel.getTableColumnMetadata(column!)),
+        isColumn: Boolean(globalModel.getTableColumnMetadata(column)),
       }).toEqual({ column, isColumn: true });
     }
 
@@ -540,6 +562,10 @@ describe("both forms", () => {
     );
     // Not "Email used to log in to this SMTP Server": it is not.
     expect(SMTP_FROM_EMAIL_DESCRIPTION).not.toContain("log in");
+    // OAuth signs in as the mailbox that sends, as the old form said.
+    expect(SMTP_USERNAME_DESCRIPTION).toContain(
+      "With OAuth, enter the email address of the mailbox that sends.",
+    );
     expect(fieldFor(PROJECT_FIELDS, "fromEmail").title).toBe("From Email");
     expect(fieldFor(PROJECT_FIELDS, "username").title).toBe("Username");
   });
@@ -934,11 +960,103 @@ describe("the folded Advanced header", () => {
       ),
     ).toEqual([SMTP_SUMMARY_MICROSOFT_GRAPH]);
 
-    // An instance that never set the switch: the service sends without requiring TLS.
+    /*
+     * An instance that never set the switch nor a sign-in: the service sends
+     * without requiring TLS, and without signing in.
+     */
     expect(getSmtpAdvancedSummary({}, GLOBAL)).toEqual([
-      SMTP_SUMMARY_PASSWORD,
+      SMTP_SUMMARY_NO_SIGN_IN,
       SMTP_SUMMARY_TLS_OPTIONAL,
     ]);
+  });
+
+  /*
+   * The instance's server signs in only with both a username and a password
+   * (Notification/Config.ts, MailService.createTransporter); a project config
+   * is refused without them (ProjectSmtpConfigService.toEmailServer), so its
+   * header keeps naming the sign-in it needs.
+   */
+  test("says the instance sends without signing in until both a username and a password are set", () => {
+    const signIn: (values: Values) => string = (values: Values): string => {
+      return getSmtpSignInSentence(values, GLOBAL);
+    };
+
+    expect(GLOBAL.sendsWithoutSignInWhenCredentialsAreBlank).toBe(true);
+    expect(PROJECT.sendsWithoutSignInWhenCredentialsAreBlank).toBeUndefined();
+
+    expect(signIn({})).toBe(SMTP_SUMMARY_NO_SIGN_IN);
+    expect(signIn({ smtpUsername: "relay" })).toBe(SMTP_SUMMARY_NO_SIGN_IN);
+    expect(signIn({ smtpPassword: "secret" })).toBe(SMTP_SUMMARY_NO_SIGN_IN);
+    expect(signIn({ smtpUsername: "  ", smtpPassword: "secret" })).toBe(
+      SMTP_SUMMARY_NO_SIGN_IN,
+    );
+    expect(signIn({ smtpUsername: "relay", smtpPassword: "secret" })).toBe(
+      SMTP_SUMMARY_PASSWORD,
+    );
+    // OAuth and None say so whatever the credentials.
+    expect(signIn({ smtpAuthType: SMTPAuthenticationType.OAuth })).toBe(
+      SMTP_SUMMARY_OAUTH,
+    );
+    expect(
+      signIn({
+        smtpAuthType: SMTPAuthenticationType.None,
+        smtpUsername: "relay",
+        smtpPassword: "secret",
+      }),
+    ).toBe(SMTP_SUMMARY_NO_SIGN_IN);
+
+    // A project config names the sign-in it needs, filled in or not.
+    expect(getSmtpSignInSentence({}, PROJECT)).toBe(SMTP_SUMMARY_PASSWORD);
+    expect(
+      getSmtpSignInSentence({ username: "relay", password: "secret" }, PROJECT),
+    ).toBe(SMTP_SUMMARY_PASSWORD);
+  });
+
+  test("says what Require TLS comes to on port 465, which is always encrypted", () => {
+    expect(IMPLICIT_TLS_SMTP_PORT).toBe(465);
+
+    const tls: (values: Values) => string = (values: Values): string => {
+      return getSmtpTlsSentence(values, PROJECT);
+    };
+
+    // However the form holds the port.
+    for (const port of [465, "465", " 465 ", new Port(465)]) {
+      expect(tls({ port, secure: false })).toBe(
+        SMTP_SUMMARY_TLS_PORT_465_UNCHECKED,
+      );
+      expect(tls({ port, secure: true })).toBe(SMTP_SUMMARY_TLS_REQUIRED);
+    }
+
+    expect(tls({ port: { _type: "Port", value: 465 }, secure: null })).toBe(
+      SMTP_SUMMARY_TLS_PORT_465_UNCHECKED,
+    );
+
+    for (const port of [587, "25", undefined, null, "", "not a port"]) {
+      expect(tls({ port, secure: false })).toBe(SMTP_SUMMARY_TLS_OPTIONAL);
+    }
+
+    expect(SMTP_SUMMARY_TLS_PORT_465_UNCHECKED).toBe(
+      "Port 465 is always encrypted, but the certificate is not checked.",
+    );
+
+    expect(
+      getSmtpAdvancedSummary(
+        { smtpPort: 465, smtpUsername: "relay", smtpPassword: "secret" },
+        GLOBAL,
+      ),
+    ).toEqual([SMTP_SUMMARY_PASSWORD, SMTP_SUMMARY_TLS_PORT_465_UNCHECKED]);
+  });
+
+  test("reads the port as a number, or none", () => {
+    expect(readSmtpPort({ port: 587 }, PROJECT)).toBe(587);
+    expect(readSmtpPort({ port: "2525" }, PROJECT)).toBe(2525);
+    expect(readSmtpPort({ port: new Port(25) }, PROJECT)).toBe(25);
+    expect(
+      readSmtpPort({ smtpPort: { _type: "Port", value: 465 } }, GLOBAL),
+    ).toBe(465);
+    expect(readSmtpPort({}, PROJECT)).toBeNull();
+    expect(readSmtpPort({ port: "" }, PROJECT)).toBeNull();
+    expect(readSmtpPort({ port: "abc" }, PROJECT)).toBeNull();
   });
 
   test("is whole sentences, one each, never glued", () => {
@@ -949,6 +1067,7 @@ describe("the folded Advanced header", () => {
       SMTP_SUMMARY_MICROSOFT_GRAPH,
       SMTP_SUMMARY_TLS_REQUIRED,
       SMTP_SUMMARY_TLS_OPTIONAL,
+      SMTP_SUMMARY_TLS_PORT_465_UNCHECKED,
     ]) {
       expect(sentence).toMatch(/^[A-Z].*\.$/);
       expect(sentence).not.toContain("{{");

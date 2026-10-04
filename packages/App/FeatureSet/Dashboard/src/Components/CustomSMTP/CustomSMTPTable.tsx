@@ -9,7 +9,9 @@ import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
@@ -32,6 +34,18 @@ import React, {
   useEffect,
   useState,
 } from "react";
+
+/*
+ * Server (name, hostname, port, username, password, and a folded Advanced
+ * section with the transport, TLS, sign-in type, OAuth and description),
+ * then Sender. Built with the Admin Dashboard's instance mail server form
+ * from one builder (SmtpConfigFormFields), once.
+ */
+const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> =
+  getSmtpConfigFormSteps<ProjectSmtpConfig>();
+
+const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> =
+  getProjectSmtpConfigFormFields();
 
 const CustomSMTPTable: FunctionComponent = (): ReactElement => {
   const [showSMTPTestModal, setShowSMTPTestModal] = useState<boolean>(false);
@@ -87,16 +101,10 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
           description:
             "If you need OneUptime to send emails through your SMTP Server, please enter the server details here.",
         }}
-        /*
-         * Server (name, hostname, port, username, password, and a folded
-         * Advanced section with the transport, TLS, sign-in type, OAuth and
-         * description), then Sender. Built with the Admin Dashboard's
-         * instance mail server form from one builder (SmtpConfigFormFields).
-         */
-        formSteps={getSmtpConfigFormSteps<ProjectSmtpConfig>()}
+        formSteps={SMTP_CONFIG_FORM_STEPS}
         name="Settings > Custom SMTP Config"
         noItemsMessage={"No SMTP Server Configs found."}
-        formFields={getProjectSmtpConfigFormFields()}
+        formFields={SMTP_CONFIG_FORM_FIELDS}
         // Port 587 to start from: the column has no default.
         createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}
         /*

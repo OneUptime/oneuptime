@@ -10,7 +10,10 @@ import Field, { FormFieldCollapsibleSection } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
-import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
+import {
+  getAdvancedFormSection,
+  normalizeFormValue,
+} from "../Forms/Utils/AdvancedFormSection";
 
 /*
  * ADDING A MAIL SERVER ASKS FOR THE SERVER, THE SIGN-IN AND THE SENDER;
@@ -62,7 +65,10 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
  * so the scan counts it as one row.
  */
 
-// What the form has to know of a surface: the column it keeps each value in.
+/*
+ * What the form has to know of a surface: the column it keeps each value in,
+ * and how its mail service treats a blank sign-in.
+ */
 export interface SmtpConfigFormColumns<TEntity> {
   transportType: Extract<keyof TEntity, string>;
   hostname: Extract<keyof TEntity, string>;
@@ -84,6 +90,16 @@ export interface SmtpConfigFormColumns<TEntity> {
    * name, the first field, is getProjectSmtpConfigFormFields' own.)
    */
   configDescription?: Extract<keyof TEntity, string> | undefined;
+  /*
+   * The instance's server signs in with a username and password only when
+   * both are set, and sends without signing in otherwise
+   * (Notification/Config.ts, then MailService.createTransporter) - which is
+   * how a self-hosted relay that needs no sign-in has always run. A
+   * project's config is refused without them instead
+   * (ProjectSmtpConfigService.toEmailServer), so its header keeps saying
+   * what it signs in with.
+   */
+  sendsWithoutSignInWhenCredentialsAreBlank?: boolean | undefined;
 }
 
 // Settings > Notification Settings > Custom SMTP Configs.
@@ -126,8 +142,14 @@ export const GLOBAL_SMTP_CONFIG_FORM_COLUMNS: SmtpConfigFormColumns<GlobalConfig
     scope: "smtpScope",
     fromEmail: "smtpFromEmail",
     fromName: "smtpFromName",
+    sendsWithoutSignInWhenCredentialsAreBlank: true,
   };
 
+/*
+ * The two steps' ids. The fields write them out as strings, which is what
+ * Tests/Helpers/FormStepsScan reads a field's step from; the builder's
+ * tests hold every field to these two.
+ */
 export const SMTP_SERVER_STEP_ID: string = "server";
 
 export const SMTP_SENDER_STEP_ID: string = "sender";
@@ -139,12 +161,18 @@ export const SMTP_SENDER_STEP_ID: string = "sender";
  */
 export const DEFAULT_SMTP_PORT: number = 587;
 
+/*
+ * The port the mail service speaks TLS on from the first byte, whatever
+ * Require TLS says (App/Tests/Notification/SmtpRequireTlsMeaning pins it).
+ */
+export const IMPLICIT_TLS_SMTP_PORT: number = 465;
+
 export const SMTP_PORT_DESCRIPTION: string = translationKey(
   "The port your provider gives you, usually 587. Port 465 is always encrypted.",
 );
 
 export const SMTP_USERNAME_DESCRIPTION: string = translationKey(
-  "The account OneUptime signs in as, often the email address you send from.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.",
 );
 
 export const SMTP_PASSWORD_DESCRIPTION: string = translationKey(
@@ -198,6 +226,11 @@ export const SMTP_SUMMARY_TLS_OPTIONAL: string = translationKey(
   "TLS is used only if the server offers it.",
 );
 
+// Port 465 speaks TLS from the first byte; off only skips the certificate.
+export const SMTP_SUMMARY_TLS_PORT_465_UNCHECKED: string = translationKey(
+  "Port 465 is always encrypted, but the certificate is not checked.",
+);
+
 type ReadValueFunction = (values: unknown, key: string | undefined) => unknown;
 
 /*
@@ -212,18 +245,44 @@ export const readSmtpFormValue: ReadValueFunction = (
     return undefined;
   }
 
-  const value: unknown = (values as Record<string, unknown>)[key];
+  return normalizeFormValue((values as Record<string, unknown>)[key]);
+};
+
+/*
+ * The port as a number, however the form holds it: typed text, a number, a
+ * Port, or a Port as JSON. Null while there is none.
+ */
+export const readSmtpPort: <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+) => number | null = <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+): number | null => {
+  let port: unknown = readSmtpFormValue(values, columns.port);
 
   if (
-    value &&
-    typeof value === "object" &&
-    Object.prototype.hasOwnProperty.call(value, "value") &&
-    Object.prototype.hasOwnProperty.call(value, "label")
+    port &&
+    typeof port === "object" &&
+    Object.prototype.hasOwnProperty.call(port, "_type") &&
+    Object.prototype.hasOwnProperty.call(port, "value")
   ) {
-    return (value as { value: unknown }).value;
+    port = (port as { value: unknown }).value;
   }
 
-  return value;
+  if (port === undefined || port === null || String(port).trim() === "") {
+    return null;
+  }
+
+  const portNumber: number = Number(String(port).trim());
+
+  return Number.isFinite(portNumber) ? portNumber : null;
+};
+
+type IsFilledFunction = (value: unknown) => boolean;
+
+const isFilled: IsFilledFunction = (value: unknown): boolean => {
+  return value !== undefined && value !== null && String(value).trim() !== "";
 };
 
 /*
@@ -331,6 +390,64 @@ export const showsSmtpOAuthCredentials: ShowsFunction = <TEntity>(
   );
 };
 
+/*
+ * How an SMTP server is signed in to, as the mail service will: OAuth, no
+ * sign-in, or the username and password - which the instance's server
+ * uses only when both are set (sendsWithoutSignInWhenCredentialsAreBlank).
+ */
+export const getSmtpSignInSentence: <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+) => string = <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+): string => {
+  const authType: SMTPAuthenticationType = getSmtpAuthType(values, columns);
+
+  if (authType === SMTPAuthenticationType.OAuth) {
+    return SMTP_SUMMARY_OAUTH;
+  }
+
+  if (authType === SMTPAuthenticationType.None) {
+    return SMTP_SUMMARY_NO_SIGN_IN;
+  }
+
+  if (
+    columns.sendsWithoutSignInWhenCredentialsAreBlank &&
+    !(
+      isFilled(readSmtpFormValue(values, columns.username)) &&
+      isFilled(readSmtpFormValue(values, columns.password))
+    )
+  ) {
+    return SMTP_SUMMARY_NO_SIGN_IN;
+  }
+
+  return SMTP_SUMMARY_PASSWORD;
+};
+
+/*
+ * What Require TLS comes to on this port: required (with the certificate
+ * checked); port 465's TLS without the certificate checked; or STARTTLS
+ * only when the server offers it.
+ */
+export const getSmtpTlsSentence: <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+) => string = <TEntity>(
+  values: unknown,
+  columns: SmtpConfigFormColumns<TEntity>,
+): string => {
+  if (readSmtpFormValue(values, columns.secure) === true) {
+    return SMTP_SUMMARY_TLS_REQUIRED;
+  }
+
+  if (readSmtpPort(values, columns) === IMPLICIT_TLS_SMTP_PORT) {
+    return SMTP_SUMMARY_TLS_PORT_465_UNCHECKED;
+  }
+
+  return SMTP_SUMMARY_TLS_OPTIONAL;
+};
+
 /**
  * What the folded Advanced header says, in sentences that follow the form's
  * values: how mail is sent and signed in with, then - over SMTP - whether
@@ -348,21 +465,9 @@ export const getSmtpAdvancedSummary: <TEntity>(
     return [SMTP_SUMMARY_MICROSOFT_GRAPH];
   }
 
-  const authType: SMTPAuthenticationType = getSmtpAuthType(values, columns);
-
-  let howItSignsIn: string = SMTP_SUMMARY_PASSWORD;
-
-  if (authType === SMTPAuthenticationType.OAuth) {
-    howItSignsIn = SMTP_SUMMARY_OAUTH;
-  } else if (authType === SMTPAuthenticationType.None) {
-    howItSignsIn = SMTP_SUMMARY_NO_SIGN_IN;
-  }
-
   return [
-    howItSignsIn,
-    readSmtpFormValue(values, columns.secure) === true
-      ? SMTP_SUMMARY_TLS_REQUIRED
-      : SMTP_SUMMARY_TLS_OPTIONAL,
+    getSmtpSignInSentence(values, columns),
+    getSmtpTlsSentence(values, columns),
   ];
 };
 

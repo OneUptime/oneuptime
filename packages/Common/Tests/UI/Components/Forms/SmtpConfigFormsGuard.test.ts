@@ -81,9 +81,12 @@ const PROJECT_FORM: SmtpForm = {
   label: "ModelTable: Settings > Custom SMTP Config",
   host: "ModelTable",
   calls: [
-    "formSteps={getSmtpConfigFormSteps<ProjectSmtpConfig>()}",
-    "formFields={getProjectSmtpConfigFormFields()}",
+    "const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> = getSmtpConfigFormSteps<ProjectSmtpConfig>();",
+    "const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> = getProjectSmtpConfigFormFields();",
+    "formSteps={SMTP_CONFIG_FORM_STEPS}",
+    "formFields={SMTP_CONFIG_FORM_FIELDS}",
     "createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}",
+    "return withoutValuesGraphIgnores<ProjectSmtpConfig>( item, PROJECT_SMTP_CONFIG_FORM_COLUMNS, );",
   ],
   serverOpen: [
     "name",
@@ -102,8 +105,10 @@ const INSTANCE_FORM: SmtpForm = {
   label: "CardModelDetail: Host Settings",
   host: "CardModelDetail",
   calls: [
-    "formSteps={getSmtpConfigFormSteps<GlobalConfig>()}",
-    "formFields={getGlobalSmtpConfigFormFields()}",
+    "const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> = getSmtpConfigFormSteps<GlobalConfig>();",
+    "const SMTP_HOST_FORM_FIELDS: Array<ModelField<GlobalConfig>> = getGlobalSmtpConfigFormFields();",
+    "formSteps={SMTP_HOST_FORM_STEPS}",
+    "formFields={SMTP_HOST_FORM_FIELDS}",
   ],
   serverOpen: [
     "columns.hostname",

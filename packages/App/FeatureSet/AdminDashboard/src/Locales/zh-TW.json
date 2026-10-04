@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP 適用於大多數郵件伺服器。如果您的 Microsoft 365 租用戶已關閉 SMTP AUTH，請選擇 Microsoft Graph：郵件會透過具有 Mail.Send 權限的應用程式經由 Graph API 傳送，不會使用主機名稱、連接埠和密碼。",
   "TLS is required.": "需要 TLS。",
   "TLS is used only if the server offers it.": "只有在伺服器支援時才使用 TLS。",
-  "The account OneUptime signs in as, often the email address you send from.": "OneUptime 登入時使用的帳戶，通常是您寄件的電子郵件地址。",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "OneUptime 登入時使用的帳戶，通常是您寄件的電子郵件地址。使用 OAuth 時，請輸入寄件信箱的電子郵件地址。",
   "The account's password, or the API key your provider gives you for SMTP.": "帳戶密碼，或供應商為 SMTP 提供的 API 金鑰。",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "您的郵件寄件地址。您的伺服器必須允許從此地址寄件；使用 Microsoft Graph 時，這就是寄件的信箱。",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "供應商提供的連接埠，通常為 587。連接埠 465 一律加密。"
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "供應商提供的連接埠，通常為 587。連接埠 465 一律加密。",
+  "Port 465 is always encrypted, but the certificate is not checked.": "連接埠 465 一律加密，但不會檢查憑證。"
 }

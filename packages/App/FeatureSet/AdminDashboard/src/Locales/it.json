@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP funziona con la maggior parte dei server di posta. Scegli Microsoft Graph se nel tuo tenant Microsoft 365 SMTP AUTH è disattivato: la posta passa allora dall'API di Graph con un'app che ha l'autorizzazione Mail.Send, e nome host, porta e password non vengono usati.",
   "TLS is required.": "TLS è obbligatorio.",
   "TLS is used only if the server offers it.": "TLS viene usato solo se il server lo offre.",
-  "The account OneUptime signs in as, often the email address you send from.": "L'account con cui OneUptime accede, spesso l'indirizzo email da cui invii.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "L'account con cui OneUptime accede, spesso l'indirizzo email da cui invii. Con OAuth, inserisci l'indirizzo email della casella di posta che invia.",
   "The account's password, or the API key your provider gives you for SMTP.": "La password dell'account, o la chiave API che il tuo provider ti fornisce per SMTP.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "L'indirizzo da cui arrivano le tue email. Il tuo server deve consentire l'invio da questo indirizzo; con Microsoft Graph, è la casella di posta che invia.",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "La porta indicata dal tuo provider, di solito 587. La porta 465 è sempre cifrata."
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "La porta indicata dal tuo provider, di solito 587. La porta 465 è sempre cifrata.",
+  "Port 465 is always encrypted, but the certificate is not checked.": "La porta 465 è sempre cifrata, ma il certificato non viene verificato."
 }

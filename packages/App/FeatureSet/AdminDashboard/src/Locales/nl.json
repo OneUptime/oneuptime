@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP werkt met de meeste mailservers. Kies Microsoft Graph als SMTP AUTH in uw Microsoft 365-tenant is uitgeschakeld: e-mail gaat dan via de Graph API met een app die de machtiging Mail.Send heeft, en de hostnaam, poort en het wachtwoord worden niet gebruikt.",
   "TLS is required.": "TLS is vereist.",
   "TLS is used only if the server offers it.": "TLS wordt alleen gebruikt als de server het aanbiedt.",
-  "The account OneUptime signs in as, often the email address you send from.": "Het account waarmee OneUptime zich aanmeldt, vaak het e-mailadres waarvandaan u verzendt.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "Het account waarmee OneUptime zich aanmeldt, vaak het e-mailadres waarvandaan u verzendt. Vul bij OAuth het e-mailadres in van de mailbox die verzendt.",
   "The account's password, or the API key your provider gives you for SMTP.": "Het wachtwoord van het account, of de API-sleutel die uw provider u voor SMTP geeft.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "Het adres waarvandaan uw e-mails komen. Uw server moet verzenden vanaf dit adres toestaan; bij Microsoft Graph is het de mailbox die verzendt.",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "De poort die uw provider u geeft, meestal 587. Poort 465 is altijd versleuteld."
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "De poort die uw provider u geeft, meestal 587. Poort 465 is altijd versleuteld.",
+  "Port 465 is always encrypted, but the certificate is not checked.": "Poort 465 is altijd versleuteld, maar het certificaat wordt niet gecontroleerd."
 }

@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP अधिकांश मेल सर्वरों के साथ काम करता है। यदि आपके Microsoft 365 टेनेंट में SMTP AUTH बंद है, तो Microsoft Graph चुनें: तब मेल Mail.Send अनुमति वाले ऐप के साथ Graph API से जाता है, और होस्टनाम, पोर्ट और पासवर्ड का उपयोग नहीं होता।",
   "TLS is required.": "TLS आवश्यक है।",
   "TLS is used only if the server offers it.": "TLS का उपयोग केवल तभी होता है जब सर्वर इसकी पेशकश करे।",
-  "The account OneUptime signs in as, often the email address you send from.": "वह खाता जिससे OneUptime साइन इन करता है, अक्सर वही ईमेल पता जिससे आप भेजते हैं।",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "वह खाता जिससे OneUptime साइन इन करता है, अक्सर वही ईमेल पता जिससे आप भेजते हैं। OAuth के साथ, उस मेलबॉक्स का ईमेल पता दर्ज करें जो भेजता है।",
   "The account's password, or the API key your provider gives you for SMTP.": "खाते का पासवर्ड, या SMTP के लिए आपके प्रदाता द्वारा दी गई API कुंजी।",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "वह पता जिससे आपके ईमेल आते हैं। आपके सर्वर को इस पते से भेजने की अनुमति देनी होगी; Microsoft Graph के साथ, यह वह मेलबॉक्स है जो भेजता है।",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "आपके प्रदाता द्वारा दिया गया पोर्ट, आमतौर पर 587। पोर्ट 465 हमेशा एन्क्रिप्टेड होता है।"
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "आपके प्रदाता द्वारा दिया गया पोर्ट, आमतौर पर 587। पोर्ट 465 हमेशा एन्क्रिप्टेड होता है।",
+  "Port 465 is always encrypted, but the certificate is not checked.": "पोर्ट 465 हमेशा एन्क्रिप्टेड होता है, लेकिन प्रमाणपत्र की जाँच नहीं होती।"
 }

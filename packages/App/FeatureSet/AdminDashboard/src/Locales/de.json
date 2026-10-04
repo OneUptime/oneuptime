@@ -868,8 +868,9 @@
   "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP funktioniert mit den meisten Mailservern. Wählen Sie Microsoft Graph, wenn in Ihrem Microsoft 365-Mandanten SMTP AUTH deaktiviert ist: E-Mails laufen dann über die Graph-API mit einer App, die die Berechtigung Mail.Send hat, und Hostname, Port und Passwort werden nicht verwendet.",
   "TLS is required.": "TLS ist erforderlich.",
   "TLS is used only if the server offers it.": "TLS wird nur verwendet, wenn der Server es anbietet.",
-  "The account OneUptime signs in as, often the email address you send from.": "Das Konto, mit dem sich OneUptime anmeldet, oft die E-Mail-Adresse, von der Sie senden.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "Das Konto, mit dem sich OneUptime anmeldet, oft die E-Mail-Adresse, von der Sie senden. Bei OAuth geben Sie die E-Mail-Adresse des Postfachs ein, das sendet.",
   "The account's password, or the API key your provider gives you for SMTP.": "Das Passwort des Kontos oder der API-Schlüssel, den Ihr Anbieter Ihnen für SMTP gibt.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "Die Adresse, von der Ihre E-Mails kommen. Ihr Server muss das Senden von dieser Adresse erlauben; bei Microsoft Graph ist es das Postfach, das sendet.",
-  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Der Port, den Ihr Anbieter Ihnen nennt, meist 587. Port 465 ist immer verschlüsselt."
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Der Port, den Ihr Anbieter Ihnen nennt, meist 587. Port 465 ist immer verschlüsselt.",
+  "Port 465 is always encrypted, but the certificate is not checked.": "Port 465 ist immer verschlüsselt, aber das Zertifikat wird nicht geprüft."
 }
