@@ -6,10 +6,12 @@ import {
   getMeasurementMomentFormField,
   getMeasurementOccurrenceFormField,
   getMeasurementPresetFormField,
+  getMeasurementShowOnViewFormField,
   getMeasurementStateFormField,
   getMeasurementUnitFormField,
 } from "../../../Components/Measurement/MeasurementFormFields";
 import MeasurementSummaryElement from "../../../Components/Measurement/MeasurementSummaryElement";
+import { SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS } from "../../../Utils/Measurement/EventMeasurements";
 import { getMeasurementsHelpMarkdown } from "../../../Utils/Measurement/MeasurementHelp";
 import {
   SCHEDULED_MAINTENANCE_MEASUREMENT_FORM,
@@ -307,6 +309,13 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
           getMeasurementChartSummaryFormField<ScheduledMaintenanceMeasurement>({
             stepId: "moments",
             description: COPY.chartSummaryDescription,
+            collapsibleSection: advancedSection,
+          }),
+          getMeasurementShowOnViewFormField<ScheduledMaintenanceMeasurement>({
+            column: SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS.showOnViewColumn,
+            stepId: "moments",
+            title: COPY.showOnViewTitle,
+            description: COPY.showOnViewDescription,
             collapsibleSection: advancedSection,
           }),
         ]}

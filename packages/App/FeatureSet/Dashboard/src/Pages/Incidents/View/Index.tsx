@@ -107,6 +107,11 @@ import {
   splitVisibleItems,
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  INCIDENT_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -1464,6 +1469,22 @@ const IncidentView: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+
+          {/*
+           * The project's own measurements - time to mitigate, say - worked
+           * out for this incident, under its other facts. Drawn only when
+           * the project shows some on incident pages.
+           */}
+          <EventMeasurementsCard
+            source={INCIDENT_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(durationEndDate)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: incidentStateTimeline,
+              times: [incidentStartedAt],
+            })}
+            headerLayout="stacked"
           />
 
           <IncidentMemberRoleAssignment

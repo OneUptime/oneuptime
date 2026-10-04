@@ -106,6 +106,11 @@ import {
   getTimeToStateText,
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  ALERT_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -1256,6 +1261,21 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ],
               modelId: modelId,
             }}
+          />
+
+          {/*
+           * The project's own measurements worked out for this alert, under
+           * its other facts. Drawn only when the project shows some on alert
+           * pages.
+           */}
+          <EventMeasurementsCard
+            source={ALERT_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(durationEndDate)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: alertStateTimeline,
+            })}
+            headerLayout="stacked"
           />
 
           <CardModelDetail<Alert>
