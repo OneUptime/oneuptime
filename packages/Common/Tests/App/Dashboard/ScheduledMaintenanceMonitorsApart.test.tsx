@@ -453,7 +453,9 @@ function idsOf(items: unknown): Array<string> {
 }
 
 // Every affected-resource relation an event has, by the IDs it holds.
-function resourcesOf(event: ScheduledMaintenance): Record<string, Array<string>> {
+function resourcesOf(
+  event: ScheduledMaintenance,
+): Record<string, Array<string>> {
   return {
     monitors: idsOf(event.monitors),
     hosts: idsOf(event.hosts),
@@ -693,9 +695,7 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     await user.click(otherResourcesPicker());
     await screen.findByRole("option", { name: "db-primary" });
 
-    expect(listedModels()).toEqual(
-      expect.arrayContaining([Host, NetworkSite]),
-    );
+    expect(listedModels()).toEqual(expect.arrayContaining([Host, NetworkSite]));
     expect(listedModels()).not.toContain(Monitor);
     expect(screen.queryByRole("option", { name: "Checkout API" })).toBeNull();
   });

@@ -125,9 +125,11 @@ describe("the rules, on a scheduled maintenance event", () => {
     expect(sent).toBe(event);
     expect(sent.changeMonitorStatusToId?.toString()).toBe(STATUS_ID);
     expect(
-      (BaseModel.toJSON(sent, ScheduledMaintenance)["changeMonitorStatusTo"] as
-        | JSONObject
-        | undefined)?.["_id"],
+      (
+        BaseModel.toJSON(sent, ScheduledMaintenance)[
+          "changeMonitorStatusTo"
+        ] as JSONObject | undefined
+      )?.["_id"],
     ).toBe(STATUS_ID);
   });
 
@@ -166,8 +168,10 @@ describe("the columns the forms write", () => {
 
     expect(updatePermissions(event, "changeMonitorStatusTo")).toEqual([]);
     expect(
-      (event.getColumnAccessControlForAllColumns()["changeMonitorStatusTo"]
-        ?.create || []).length,
+      (
+        event.getColumnAccessControlForAllColumns()["changeMonitorStatusTo"]
+          ?.create || []
+      ).length,
     ).toBeGreaterThan(0);
   });
 
@@ -189,7 +193,10 @@ describe("the columns the forms write", () => {
 
   test("a template's status is chosen with the template, as an event's is", () => {
     expect(
-      updatePermissions(new ScheduledMaintenanceTemplate(), "changeMonitorStatusTo"),
+      updatePermissions(
+        new ScheduledMaintenanceTemplate(),
+        "changeMonitorStatusTo",
+      ),
     ).toEqual([]);
   });
 });
@@ -407,9 +414,9 @@ describe.each(FORMS)("$label", (form: ScheduledMaintenanceForm) => {
       );
 
       if (key !== "hosts") {
-        expect(
-          `${type}: ${source.includes(`field: { ${key}: true }, `)}`,
-        ).toBe(`${type}: true`);
+        expect(`${type}: ${source.includes(`field: { ${key}: true }, `)}`).toBe(
+          `${type}: true`,
+        );
       }
     }
   });

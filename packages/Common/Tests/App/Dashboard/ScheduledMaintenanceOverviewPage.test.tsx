@@ -1409,9 +1409,7 @@ describe("Scheduled maintenance overview page", () => {
       const monitors: Record<string, unknown> = pickerPropsOf(0);
       const others: Record<string, unknown> = pickerPropsOf(1);
 
-      expect(Object.keys(resources.formFields[0]!.field)).toEqual([
-        "monitors",
-      ]);
+      expect(Object.keys(resources.formFields[0]!.field)).toEqual(["monitors"]);
       expect(monitors["resourceTypes"]).toEqual(["Monitor"]);
       expect(monitors).toHaveProperty("monitors");
 
@@ -1459,21 +1457,24 @@ describe("Scheduled maintenance overview page", () => {
         payload[relation] = [`${relation}-id`];
       }
 
-      const writtenBy: (index: number) => Promise<Record<string, unknown>> =
-        async (index: number): Promise<Record<string, unknown>> => {
-          const setNewFormValues: MockFunction = getJestMockFunction();
+      const writtenBy: (
+        index: number,
+      ) => Promise<Record<string, unknown>> = async (
+        index: number,
+      ): Promise<Record<string, unknown>> => {
+        const setNewFormValues: MockFunction = getJestMockFunction();
 
-          cardProps("Affected Resources").formFields[index]!.onChange!(
-            payload,
-            { title: "kept" },
-            setNewFormValues,
-          );
-          await flush();
+        cardProps("Affected Resources").formFields[index]!.onChange!(
+          payload,
+          { title: "kept" },
+          setNewFormValues,
+        );
+        await flush();
 
-          expect(setNewFormValues).toHaveBeenCalledTimes(1);
+        expect(setNewFormValues).toHaveBeenCalledTimes(1);
 
-          return setNewFormValues.mock.calls[0]![0] as Record<string, unknown>;
-        };
+        return setNewFormValues.mock.calls[0]![0] as Record<string, unknown>;
+      };
 
       const byMonitors: Record<string, unknown> = await writtenBy(0);
 

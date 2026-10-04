@@ -443,9 +443,7 @@ describe("Create Scheduled Maintenance Template: Resources Affected", () => {
     expect(isBefore(status, others)).toBe(true);
     // No monitor picked, and still asked: it applies to those picked later.
     expect(statusDropdown()).toBeVisible();
-    expect(
-      within(status).getByText(TEMPLATE_STATUS_DESCRIPTION),
-    ).toBeVisible();
+    expect(within(status).getByText(TEMPLATE_STATUS_DESCRIPTION)).toBeVisible();
     expect(monitorsPicker()).toHaveAttribute(
       "placeholder",
       "Search monitors...",
@@ -565,7 +563,10 @@ describe("the template page's Affected Resources card", () => {
     return cards[cards.length - 1]!["formFields"] as Array<RecordedField>;
   }
 
-  function fieldNamed(fields: Array<RecordedField>, key: string): RecordedField {
+  function fieldNamed(
+    fields: Array<RecordedField>,
+    key: string,
+  ): RecordedField {
     const found: Array<RecordedField> = fields.filter(
       (field: RecordedField): boolean => {
         return keyOf(field) === key;
