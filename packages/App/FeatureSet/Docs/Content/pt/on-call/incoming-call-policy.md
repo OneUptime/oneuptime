@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime reproduz<br/>mensagem de saudação]
     D --> E[Carregar Regras de Escalonamento]
     E --> F{Regra 1:<br/>Tentar Usuário de Plantão}
-    F -->|Sem Resposta| G{Regra 2:<br/>Tentar Equipe de Backup}
+    F -->|Sem Resposta| G{Regra 2:<br/>Tentar Engenheiro de Backup}
     F -->|Respondido| H[Conectar Chamador<br/>ao Engenheiro]
     G -->|Sem Resposta| I{Regra 3:<br/>Tentar Gerente}
     G -->|Respondido| H
@@ -34,7 +34,7 @@ O recurso de Política de Chamadas de Entrada funciona:
 
 1. Recebendo chamadas de entrada em um número de telefone do Twilio
 2. Reproduzindo uma mensagem de saudação personalizável
-3. Roteando a chamada através de regras de escalonamento (equipes, escalas ou usuários)
+3. Roteando a chamada através de regras de escalonamento (agendamentos de plantão ou pessoas)
 4. Conectando o chamador ao primeiro engenheiro de plantão disponível
 5. Escalonando para a próxima regra se ninguém atender
 
@@ -50,13 +50,14 @@ Como você está auto-hospedando o OneUptime, precisará configurar sua própria
 
 1. Faça login no seu Painel do OneUptime
 2. Vá para **Configurações do projeto** > **Notificações** > **Configurações de notificação**
-3. Clique em **Create Custom Call/SMS Config**
+3. Em **Configuração do Twilio**, clique em **Create Twilio Config**
 4. Preencha os seguintes campos:
    - **Nome**: Um nome amigável (ex.: "Configuração Twilio de Produção")
    - **Descrição**: Descrição opcional
    - **SID da Conta Twilio**: Seu Account SID do Twilio (começa com `AC`)
    - **Token de Autenticação Twilio**: Seu Auth Token do Twilio
    - **Número de Telefone Principal do Twilio**: Um número de telefone da sua conta Twilio para chamadas de saída
+   - **Definir como padrão do projeto**: ativado na primeira configuração do Twilio do projeto, então os SMS e as chamadas para os membros do projeto também passam por esta conta. Desative-o se esta conta for apenas para chamadas recebidas.
 5. Clique em **Salvar**
 
 ## Passo 3: Criar uma Política de Chamadas de Entrada
@@ -106,26 +107,28 @@ O número de telefone será comprado da sua conta Twilio e o webhook será **con
 
 ## Passo 6: Configurar Regras de Escalonamento
 
-As regras de escalonamento determinam como as chamadas são roteadas:
+As regras de escalonamento decidem para quem ligar quando alguém disca o número da política, de cima para baixo na lista:
 
 1. Abra sua Política de Chamadas de Entrada
 2. Vá para a aba **Regras de escalonamento**
-3. Clique em **Add Escalation Rule**
-4. Configure a regra:
-   - **Ordem**: A ordem de prioridade (números menores são tentados primeiro)
-   - **Escalonar após (segundos)**: Quanto tempo aguardar antes de escalonar
-   - **Agendamento de Plantão**: Selecione uma escala para rotear para quem está de plantão
-   - **Equipes**: Selecione equipes específicas
-   - **Usuários**: Selecione usuários específicos
-5. Adicione regras de escalonamento adicionais conforme necessário
+3. Clique em **Adicionar regra de escalonamento**
+4. Preencha a regra. É um único passo:
+   - **Para quem ligar**: um agendamento de plantão ou uma pessoa. Um agendamento faz tocar o telefone de quem estiver de plantão nele quando a chamada chegar. As pessoas são os membros do seu projeto.
+   - **Tempo de toque (em segundos)**: por quanto tempo o telefone delas toca antes de a chamada passar para a próxima regra. Começa em 30 segundos, e o Twilio aceita de 5 a 600.
+   - **Nome** e **Descrição** são opcionais e ficam em **Avançado**. Uma regra sem nome aparece conforme sua posição na lista: **Level 1**, **Level 2**.
+5. Salve-a e adicione uma regra para cada agendamento ou pessoa a tentar em seguida
+
+As regras são chamadas de cima para baixo na lista, e uma regra nova é adicionada ao final. Para mudar a ordem, arraste uma regra pela alça no canto superior esquerdo; pelo teclado, foque a alça, pressione Espaço, mova-a com as setas e pressione Espaço novamente.
+
+> **Cuidado com a caixa postal**: mantenha o **Tempo de toque** menor do que o tempo que o telefone da pessoa leva para mandar uma chamada não atendida para a caixa postal. Se a caixa postal atender primeiro, quem liga é conectado a ela e a chamada não passa para a próxima regra. O Twilio acrescenta alguns segundos a cada toque.
 
 ### Exemplo de Regra de Escalonamento
 
-| Ordem | Escalonar Após | Alvo                         |
-| ----- | -------------- | ---------------------------- |
-| 1     | 30 segundos    | Escala de Plantão Primária   |
-| 2     | 30 segundos    | Escala de Plantão Secundária |
-| 3     | 30 segundos    | Líder de Engenharia          |
+| Nível   | Para quem ligar                   | Tempo de toque |
+| ------- | --------------------------------- | -------------- |
+| Level 1 | Agendamento de plantão principal  | 30 segundos    |
+| Level 2 | Agendamento de plantão secundário | 30 segundos    |
+| Level 3 | Líder de engenharia (uma pessoa)  | 30 segundos    |
 
 ## Passo 7: Configurar Mensagens de Voz (Opcional)
 
@@ -152,13 +155,14 @@ Personalize as mensagens que os chamadores ouvem:
 
 ### Configurações de Regra de Escalonamento
 
-| Configuração           | Descrição                                                     |
-| ---------------------- | ------------------------------------------------------------- |
-| Order                  | Ordem de prioridade (1 = maior prioridade)                    |
-| Escalate After Seconds | Tempo de espera antes de tentar a próxima regra (padrão: 30s) |
-| On-Call Schedule       | Rotear para quem está de plantão no momento                   |
-| Teams                  | Rotear para todos os membros das equipes selecionadas         |
-| Users                  | Rotear para usuários específicos                              |
+| Configuração                 | Descrição                                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Para quem ligar              | Um agendamento de plantão, que liga para quem estiver de plantão nele, ou uma pessoa. Cada regra liga para um deles                                    |
+| Tempo de toque (em segundos) | Por quanto tempo o telefone toca antes de a chamada passar para a próxima regra (padrão: 30; de 5 a 600)                                               |
+| Nome e Descrição             | Opcionais, em Avançado. Uma regra sem nome aparece como Level 1, Level 2 e assim por diante, conforme sua posição na lista                            |
+| Ordem                        | A posição da regra na lista: as regras são chamadas de cima para baixo. Muda-se arrastando as regras; pela API, uma regra nova sem ordem vai para o final |
+
+Pela API, uma regra define `onCallDutyPolicyScheduleId` ou `userId` (um deles, nunca os dois) e `escalateAfterSeconds`: o tempo de toque, 30 quando omitido.
 
 ## Visualizando Logs de Chamadas
 
@@ -211,6 +215,7 @@ Se você não precisar mais de um número de telefone:
 - Verifique se as regras de escalonamento estão adequadamente configuradas
 - Certifique-se de que as escalas de plantão têm usuários atribuídos para o horário atual
 - Verifique se a política está habilitada
+- Se as chamadas caem na caixa postal de um engenheiro, defina o **Tempo de toque** da regra abaixo do tempo que o telefone dele leva para ir para a caixa postal
 
 ### Problemas de qualidade de áudio
 

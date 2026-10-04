@@ -5,6 +5,11 @@ import Model from "../../Models/DatabaseModels/IoTFleet";
 import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
+import UpdateBy from "../Types/Database/UpdateBy";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -20,9 +25,30 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "iot-fleet-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+/*
+ * An IoT fleet is matched to its telemetry by its name (iot.fleet.name),
+ * so a rename is held to the rules a new IoT fleet is: no spaces around
+ * it, never blank, and never another IoT fleet's name
+ * (DiscoveredResourceUpdate).
+ */
+const IOT_FLEET_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "IoT fleet",
+});
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: IOT_FLEET_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()

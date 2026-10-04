@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import SessionReplayRetentionSettingsCard from "../../../Components/SessionReplay/SessionReplayRetentionSettingsCard";
 import PageMap from "../../../Utils/PageMap";
@@ -18,6 +19,32 @@ const RumApplicationSettings: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * The service.name its SDK reports never changes: it is shown, never
+       * edited (its column takes no updates).
+       */}
+      <ResourceDetailsCard<RumApplication>
+        modelType={RumApplication}
+        modelId={modelId}
+        id="rum-application-details"
+        title="Application Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Display Name",
+          description:
+            "Shown everywhere this resource appears. Telemetry is not matched by the display name, so renaming is safe.",
+          placeholder: "Storefront",
+        }}
+        descriptionField={{
+          placeholder: "Customer-facing storefront web app",
+        }}
+        identityFields={[
+          {
+            column: "appIdentifier",
+            title: "App Name (service.name)",
+          },
+        ]}
+      />
       <TelemetryResourceRetentionSettings<RumApplication>
         modelType={RumApplication}
         modelId={modelId}

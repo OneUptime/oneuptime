@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime reproduce<br/>el mensaje de bienvenida]
     D --> E[Carga reglas de escalada]
     E --> F{Regla 1:<br/>Intenta usuario de guardia}
-    F -->|Sin respuesta| G{Regla 2:<br/>Intenta equipo de respaldo}
+    F -->|Sin respuesta| G{Regla 2:<br/>Intenta ingeniero de respaldo}
     F -->|Respondida| H[Conecta al llamante<br/>con el ingeniero]
     G -->|Sin respuesta| I{Regla 3:<br/>Intenta gerente}
     G -->|Respondida| H
@@ -70,7 +70,7 @@ La función de Política de llamadas entrantes funciona mediante:
 
 1. Recibir llamadas entrantes en un número de teléfono de Twilio
 2. Reproducir un mensaje de bienvenida personalizable
-3. Enrutar la llamada a través de reglas de escalada (equipos, horarios o usuarios)
+3. Enrutar la llamada a través de reglas de escalada (programaciones de guardia o personas)
 4. Conectar al llamante con el primer ingeniero de guardia disponible
 5. Escalar a la siguiente regla si nadie responde
 
@@ -86,13 +86,14 @@ Dado que estás auto-alojando OneUptime, necesitarás configurar tu propia cuent
 
 1. Inicia sesión en tu panel de OneUptime
 2. Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de Notificación**
-3. Haz clic en **Crear configuración personalizada de llamadas/SMS**
+3. En **Configuración de Twilio**, haz clic en **Crear configuración de Twilio**
 4. Completa los siguientes campos:
    - **Nombre**: Un nombre descriptivo (por ejemplo, "Configuración de Twilio para producción")
    - **Descripción**: Descripción opcional
    - **SID de cuenta de Twilio**: Tu SID de cuenta de Twilio (comienza con `AC`)
    - **Token de autenticación de Twilio**: Tu token de autenticación de Twilio
    - **Número de teléfono principal de Twilio**: Un número de teléfono de tu cuenta de Twilio para llamadas salientes
+   - **Establecer como predeterminado del proyecto**: activado en la primera configuración de Twilio del proyecto, así que los SMS y las llamadas a los miembros del proyecto también pasan por esta cuenta. Desactívalo si esta cuenta es solo para llamadas entrantes.
 5. Haz clic en **Guardar**
 
 ## Paso 3: Crear una Política de llamadas entrantes
@@ -154,35 +155,37 @@ flowchart LR
 
 ## Paso 6: Configurar las reglas de escalada
 
-Las reglas de escalada determinan cómo se enrutan las llamadas:
+Las reglas de escalado deciden a quién se llama cuando alguien marca el número de la política, de arriba abajo en la lista:
 
-1. Abre tu Política de llamadas entrantes
+1. Abre tu política de llamadas entrantes
 2. Ve a la pestaña **Reglas de escalado**
-3. Haz clic en **Agregar regla de escalada**
-4. Configura la regla:
-   - **Orden**: El orden de prioridad (los números menores se prueban primero)
-   - **Escalar después de (segundos)**: Cuánto tiempo esperar antes de escalar
-   - **Programación de guardia**: Selecciona un horario para enrutar a quien esté de guardia
-   - **Equipos**: Selecciona equipos específicos
-   - **Usuarios**: Selecciona usuarios específicos
-5. Agrega reglas de escalada adicionales según sea necesario
+3. Haz clic en **Añadir regla de escalado**
+4. Completa la regla. Es un solo paso:
+   - **A quién llamar**: una programación de guardia o una persona. Una programación hace sonar el teléfono de quien esté de guardia en ella cuando llega la llamada. Las personas son los miembros de tu proyecto.
+   - **Duración del timbre (en segundos)**: cuánto tiempo suena su teléfono antes de que la llamada pase a la siguiente regla. Empieza en 30 segundos, y Twilio acepta de 5 a 600.
+   - **Nombre** y **Descripción** son opcionales y están en **Avanzado**. Una regla sin nombre se muestra según su lugar en la lista: **Level 1**, **Level 2**.
+5. Guárdala y añade una regla por cada programación o persona que se deba probar después
+
+Las reglas se llaman de arriba abajo en la lista, y una regla nueva se añade al final. Para cambiar el orden, arrastra una regla por el asa de su esquina superior izquierda; con el teclado, enfoca el asa, pulsa Espacio, muévela con las flechas y vuelve a pulsar Espacio.
+
+> **Ojo con el buzón de voz**: mantén la **Duración del timbre** por debajo del tiempo que tarda el teléfono de la persona en enviar una llamada no contestada al buzón de voz. Si el buzón contesta antes, quien llama queda conectado a él y la llamada no pasa a la siguiente regla. Twilio añade unos segundos propios a cada timbre.
 
 ### Ejemplo de regla de escalada
 
 ```mermaid
 flowchart TD
     subgraph "Cadena de escalada"
-        A[Regla 1: Guardia primario<br/>Esperar 30 segundos] --> B[Regla 2: Guardia secundario<br/>Esperar 30 segundos]
-        B --> C[Regla 3: Jefe de ingeniería<br/>Esperar 30 segundos]
+        A[Level 1: Programación de guardia principal<br/>Sonar 30 segundos] --> B[Level 2: Programación de guardia secundaria<br/>Sonar 30 segundos]
+        B --> C[Level 3: Responsable de ingeniería<br/>Sonar 30 segundos]
         C --> D[Mensaje sin respuesta]
     end
 ```
 
-| Orden | Escalar después de | Destino                       |
-| ----- | ------------------ | ----------------------------- |
-| 1     | 30 segundos        | Horario de guardia primario   |
-| 2     | 30 segundos        | Horario de guardia secundario |
-| 3     | 30 segundos        | Jefe del equipo de ingeniería |
+| Nivel   | A quién llamar                          | Duración del timbre |
+| ------- | --------------------------------------- | ------------------- |
+| Level 1 | Programación de guardia principal       | 30 segundos         |
+| Level 2 | Programación de guardia secundaria      | 30 segundos         |
+| Level 3 | Responsable de ingeniería (una persona) | 30 segundos         |
 
 ## Paso 7: Configurar mensajes de voz (opcional)
 
@@ -209,13 +212,14 @@ Personaliza los mensajes que escuchan los llamantes:
 
 ### Ajustes de la regla de escalada
 
-| Ajuste                      | Descripción                                                               |
-| --------------------------- | ------------------------------------------------------------------------- |
-| Orden                       | Orden de prioridad (1 = prioridad más alta)                               |
-| Escalar después de segundos | Tiempo de espera antes de probar la siguiente regla (predeterminado: 30s) |
-| Horario de guardia          | Enrutar a quien esté actualmente de guardia                               |
-| Equipos                     | Enrutar a todos los miembros de los equipos seleccionados                 |
-| Usuarios                    | Enrutar a usuarios específicos                                            |
+| Ajuste                            | Descripción                                                                                                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A quién llamar                    | Una programación de guardia, que llama a quien esté de guardia en ella, o una persona. Cada regla llama a una de ellas                                            |
+| Duración del timbre (en segundos) | Cuánto tiempo suena el teléfono antes de que la llamada pase a la siguiente regla (predeterminado: 30; de 5 a 600)                                               |
+| Nombre y Descripción              | Opcionales, en Avanzado. Una regla sin nombre se muestra como Level 1, Level 2, etc., según su lugar en la lista                                                 |
+| Orden                             | El lugar de la regla en la lista: las reglas se llaman de arriba abajo. Se cambia arrastrando las reglas; mediante la API, una regla nueva sin orden va al final |
+
+Mediante la API, una regla indica `onCallDutyPolicyScheduleId` o `userId` (uno de los dos, nunca ambos) y `escalateAfterSeconds`: la duración del timbre, 30 si se omite.
 
 ## Ver registros de llamadas
 
@@ -268,6 +272,7 @@ Si ya no necesitas un número de teléfono:
 - Comprueba que las reglas de escalada estén correctamente configuradas
 - Asegúrate de que los horarios de guardia tengan usuarios asignados para el momento actual
 - Verifica que la política esté habilitada
+- Si las llamadas acaban en el buzón de voz de un ingeniero, ajusta la **Duración del timbre** de la regla por debajo del tiempo que tarda su teléfono en pasar al buzón de voz
 
 ### Problemas de calidad de audio
 

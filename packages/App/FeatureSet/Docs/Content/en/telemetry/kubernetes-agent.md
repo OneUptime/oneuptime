@@ -851,7 +851,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
 ### No metrics appearing
 
 1. First rule out a rejected ingestion key — it's the most common cause and is easy to miss from the agent side. See [Agent shows "Disconnected"](#agent-shows-disconnected) above (or just run the diagnostic script).
-2. Check that the cluster identifier matches the value you passed as `clusterName`
+2. Check that the cluster's **Cluster Name (clusterName)** matches the value you passed as `clusterName`. It is on the cluster's **Settings** page, in **Cluster Details**; to correct it, choose **Edit Details** and open **Advanced**
 3. Verify the RBAC permissions: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Check the OTel collector logs for export errors
 

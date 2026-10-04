@@ -82,7 +82,7 @@ Abonnenter hører om de tre hændelsestyper ovenfor, men hver kilde har sin egen
 
 ### Notifikationer om meddelelser
 
-Meddelelsen selv bærer **Skal abonnenter på statussiden underrettes?** (`shouldStatusPageSubscribersBeNotified`), som på oprettelsesformularen vises som afkrydsningsfeltet **Underret statussideabonnenter** og er slået til som standard. Nævner meddelelsen monitorer under **Berørte overvågninger (valgfrit)**, afgrænses notifikationen til dem; lad feltet stå tomt, og alle abonnenter får besked.
+Meddelelsen selv bærer **Skal abonnenter på statussiden underrettes?** (`shouldStatusPageSubscribersBeNotified`), som på oprettelsesformularen vises som afkrydsningsfeltet **Underret statussideabonnenter** under **Tidsplan og notifikationer** og er slået til som standard. Abonnenter hører om den én gang, når meddelelsen begynder at blive vist, så valget træffes ved oprettelsen, og en redigering ændrer det ikke. Nævner meddelelsen monitorer under **Berørte monitorer**, afgrænses notifikationen til dem; lad feltet stå tomt, og alle abonnenter får besked.
 
 ### Planlagte vedligeholdelsesbegivenheder
 
@@ -114,12 +114,14 @@ Egen SMTP er værd at få på plads tidligt, hvis du har e-mailabonnenter: post 
 
 En meddelelse er en post på projektniveau (modellen `StatusPageAnnouncement`), som du breder ud til en eller flere statussider, eventuelt afgrænset til bestemte monitorer, med et vindue, hvor den vises.
 
-Du opretter en fra **Statussider → Mere → Meddelelser**, eller fra **Meddelelser** i en enkelt statussides sidemenu. Oprettelsesformularen er en guide i fire trin:
+Du opretter en fra **Statussider → Mere → Meddelelser**, eller fra **Meddelelser** i en enkelt statussides sidemenu. Oprettet fra en statusside er den side allerede valgt, så en titel og en beskrivelse er alt, der skal til, og **Opret meddelelse** fører dig tilbage til sidens liste **Meddelelser** (eller til projektets liste, hvis du fravalgte siden undervejs). Oprettelsesformularen har to trin og derefter en oversigt:
 
-1. **Grundlæggende oplysninger** — **Meddelelsestitel** (påkrævet, mindst to tegn), **Beskrivelse** (Markdown, valgfri) og **Vedhæftninger** til filer, der skal ligge sammen med meddelelsen på statussiden.
-2. **Statussider** — **Vis meddelelse på disse statussider**, en påkrævet flervalgsliste. Én meddelelse kan ramme flere sider på én gang.
-3. **Berørte ressourcer** — **Berørte overvågninger (valgfrit)**. Vælger du ingen, får alle abonnenter besked.
-4. **Tidsplan og indstillinger** — **Begynd at vise meddelelse den** (påkrævet, står som standard til nu), **Stop visning af meddelelse kl.** (valgfri) og **Underret statussideabonnenter** (slået til som standard).
+1. **Meddelelse** — **Titel** (påkrævet, mindst to tegn) og **Beskrivelse** (Markdown, påkrævet: det er teksten, folk læser på statussiden). **Vedhæftninger** til filer, der skal ligge sammen med meddelelsen på statussiden, ligger under **Avanceret**.
+2. **Statussider** — **Vis meddelelse på disse statussider**, et påkrævet flervalg (én meddelelse kan ramme flere sider på én gang), og **Berørte monitorer**: vælger du ingen, får alle abonnenter besked. Når du har valgt monitorer, foreslår formularen under valget af sider de statussider, der viser dem: "Statussider, der viser de berørte monitorer:" efterfulgt af hver sides navn. Klik på et navn for at tilføje siden, eller på **Tilføj alle**; intet vælges for dig. Herunder er **Tidsplan og notifikationer** foldet sammen til én linje, der siger, hvad der vil ske: "Vises nu og bliver stående, indtil du afslutter den. Abonnenter underrettes, når den begynder at blive vist." Fold den ud for at ændre **Begynd at vise meddelelse den** (som standard nu), **Stop visning af meddelelse kl.** (tomt: meddelelsen bliver stående, indtil du angiver en slutning) eller **Underret statussideabonnenter** (slået til som standard). Linjen følger dine svar. Slutningen skal ligge efter starten og, for en ny meddelelse, stadig ligge ude i fremtiden: en meddelelse, der allerede er slut, ville aldrig blive vist.
+
+Oversigten viser den samme linje. **Opret fra skabelon** udfylder formularen ud fra en skabelon; oprettet fra en statusside bevares skabelonens egne statussider ved siden af den side.
+
+Selve meddelelsens side redigerer den i de samme to trin. **Underret abonnenter om denne opdatering** står under beskrivelsen, og **Tidsplan** rummer start og slutning. At angive en slutning, der er passeret, er måden at tage en meddelelse ned på.
 
 Besøgende læser meddelelser på `/announcements`, delt op i **Aktive meddelelser** og **Tidligere meddelelser**, hver stemplet med **Annonceret den**. Meddelelser, der er live lige nu, hænges desuden op øverst på oversigtssiden. Er der intet at vise, står der *Ingen meddelelser* med en note om, at der ikke er offentliggjort nogen endnu.
 
@@ -141,7 +143,7 @@ Om meddelelser overhovedet vises, indstilles i kortet **Hvad din statusside vise
 
 ## Meddelelsesskabeloner
 
-Slår du den samme slags opslag op igen og igen — et månedligt vedligeholdelsesvarsel, en tilbagevendende forringelse hos en tredjepart — så lav den på forhånd. **Statussider → Indstillinger → Meddelelsesskabeloner** rummer modellen `StatusPageAnnouncementTemplate`, og dens formular beder om **Skabelonnavn**, **Skabelonbeskrivelse**, **Meddelelsestitel**, **Beskrivelse**, **Vis meddelelse på disse statussider**, **Berørte overvågninger (valgfrit)** og **Underret abonnenter**, så både udbredelsen og beslutningen om at underrette træffes én gang i stedet for hver gang.
+Slår du den samme slags opslag op igen og igen — et månedligt vedligeholdelsesvarsel, en tilbagevendende forringelse hos en tredjepart — så lav den på forhånd. **Statussider → Indstillinger → Meddelelsesskabeloner** rummer modellen `StatusPageAnnouncementTemplate`. Dens formular går gennem **Skabeloninformation** (**Skabelonnavn**, **Skabelonbeskrivelse**) og derefter meddelelsens egne trin: **Meddelelse** (**Titel**, **Beskrivelse**) og **Statussider** (**Vis meddelelse på disse statussider**, **Berørte monitorer** og **Underret statussideabonnenter**, slået til som standard), så både udbredelsen og beslutningen om at underrette træffes én gang i stedet for hver gang. En skabelon har ingen tidsplan: en meddelelse, der oprettes ud fra den, vises fra oprettelsen, medmindre du ændrer det under **Tidsplan og notifikationer**.
 
 ## Webhook-abonnenter og SSRF-beskyttelse
 

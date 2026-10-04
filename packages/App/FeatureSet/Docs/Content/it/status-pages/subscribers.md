@@ -82,7 +82,7 @@ Gli iscritti ricevono notizie sui tre tipi di evento visti sopra, ma ogni sorgen
 
 ### Notifiche degli annunci
 
-L'annuncio stesso porta il campo **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), esposto nel modulo di creazione come casella **Notifica gli iscritti alla pagina di stato** e attivo per impostazione predefinita. Se l'annuncio indica dei monitor sotto **Monitor interessati (facoltativo)**, la notifica è limitata a quei monitor; lascialo vuoto e vengono avvisati tutti gli iscritti.
+L'annuncio stesso porta il campo **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), esposto nel modulo di creazione come casella **Notifica gli iscritti alla pagina di stato** dentro **Pianificazione e notifiche** e attivo per impostazione predefinita. Gli iscritti vengono avvisati una sola volta, quando l'annuncio inizia a essere mostrato: la scelta si fa quindi alla creazione e una modifica non la cambia. Se l'annuncio indica dei monitor sotto **Monitor interessati**, la notifica è limitata a quei monitor; lascialo vuoto e vengono avvisati tutti gli iscritti.
 
 ### Eventi di manutenzione programmata
 
@@ -114,12 +114,14 @@ Se hai iscritti via email, vale la pena configurare presto l'SMTP personalizzato
 
 Un annuncio è un record a livello di progetto (il modello `StatusPageAnnouncement`) che distribuisci a una o più pagine di stato, eventualmente limitato a monitor specifici, con una finestra temporale durante la quale viene mostrato.
 
-Ne crei uno da **Pagine di stato → Altro → Annunci**, oppure da **Annunci** nel menu laterale di una singola pagina di stato. Il modulo di creazione è una procedura guidata in quattro passaggi:
+Ne crei uno da **Pagine di stato → Altro → Annunci**, oppure da **Annunci** nel menu laterale di una singola pagina di stato. Creato da una pagina di stato, quella pagina è già selezionata, quindi bastano un titolo e una descrizione, e **Crea annuncio** ti riporta all'elenco **Annunci** di quella pagina (o all'elenco del progetto, se nel frattempo l'hai deselezionata). Il modulo di creazione ha due passaggi, poi un riepilogo:
 
-1. **Informazioni di base** — **Titolo dell'annuncio** (obbligatorio, almeno due caratteri), **Descrizione** (Markdown, facoltativa) e **Allegati** per i file che devono essere disponibili insieme all'annuncio sulla pagina di stato.
-2. **Pagine di stato** — **Mostra annuncio su queste pagine di stato**, una selezione multipla obbligatoria. Un solo annuncio può raggiungere più pagine in una volta.
-3. **Risorse interessate** — **Monitor interessati (facoltativo)**. Se non ne selezioni nessuno, vengono avvisati tutti gli iscritti.
-4. **Pianificazione e impostazioni** — **Inizia a mostrare l'annuncio alle** (obbligatorio, per impostazione predefinita adesso), **Termina la visualizzazione dell'annuncio il** (facoltativo) e **Notifica gli iscritti alla pagina di stato** (attivo per impostazione predefinita).
+1. **Annuncio** — **Titolo** (obbligatorio, almeno due caratteri) e **Descrizione** (Markdown, obbligatoria: è il testo che si legge sulla pagina di stato). Gli **Allegati**, per i file che devono essere disponibili insieme all'annuncio sulla pagina di stato, si trovano sotto **Avanzato**.
+2. **Pagine di stato** — **Mostra annuncio su queste pagine di stato**, una selezione multipla obbligatoria (un solo annuncio può raggiungere più pagine in una volta), e **Monitor interessati**: se non ne selezioni nessuno, vengono avvisati tutti gli iscritti. Appena scegli dei monitor, il modulo suggerisce sotto la selezione delle pagine le pagine di stato che li mostrano: «Pagine di stato che mostrano i monitor interessati:» seguito dal nome di ogni pagina. Fai clic su un nome per aggiungere quella pagina, oppure su **Aggiungi tutte**; nulla viene scelto al posto tuo. Sotto, **Pianificazione e notifiche** è richiuso in una riga che dice cosa succederà: «Viene mostrato subito e resta visibile finché non lo termini. Gli iscritti vengono notificati quando inizia a essere mostrato.» Aprilo per cambiare **Inizia a mostrare l'annuncio alle** (per impostazione predefinita adesso), **Termina la visualizzazione dell'annuncio il** (vuoto: l'annuncio resta visibile finché non imposti una fine) o **Notifica gli iscritti alla pagina di stato** (attivo per impostazione predefinita). La riga segue le tue risposte. La fine deve venire dopo l'inizio e, per un nuovo annuncio, essere ancora da venire: un annuncio già terminato non verrebbe mai mostrato.
+
+Il riepilogo mostra la stessa riga. **Crea da modello** compila il modulo a partire da un modello; creato da una pagina di stato, le pagine di stato del modello restano accanto a quella pagina.
+
+La pagina dell'annuncio lo modifica con gli stessi due passaggi. **Notifica gli iscritti di questo aggiornamento** si trova sotto la descrizione, e **Pianificazione** contiene l'inizio e la fine. Impostare una fine già passata è il modo per ritirare un annuncio.
 
 I visitatori leggono gli annunci su `/announcements`, divisi tra **Annunci attivi** e **Annunci passati**, ciascuno con la data di **Annunciato il**. Gli annunci attivi in questo momento vengono anche fissati in cima alla pagina panoramica. Quando non c'è nulla da mostrare, la pagina dice *Nessun annuncio* con la nota che finora non ne è stato pubblicato nessuno.
 
@@ -141,7 +143,7 @@ Se gli annunci compaiano o meno si imposta nella scheda **Cosa mostra la tua pag
 
 ## Modelli di annunci
 
-Se pubblichi ripetutamente lo stesso tipo di avviso — il preavviso mensile di manutenzione, il degrado ricorrente di un servizio esterno — preparalo in anticipo. **Pagine di stato → Impostazioni → Modelli di annunci** contiene il modello `StatusPageAnnouncementTemplate`, e il suo modulo chiede **Nome del modello**, **Descrizione del modello**, **Titolo dell'annuncio**, **Descrizione**, **Mostra annuncio su queste pagine di stato**, **Monitor interessati (facoltativo)** e **Notifica agli iscritti**: così la distribuzione e la decisione sulla notifica si prendono una volta sola invece che ogni volta.
+Se pubblichi ripetutamente lo stesso tipo di avviso — il preavviso mensile di manutenzione, il degrado ricorrente di un servizio esterno — preparalo in anticipo. **Pagine di stato → Impostazioni → Modelli di annunci** contiene il modello `StatusPageAnnouncementTemplate`. Il suo modulo passa per **Informazioni del modello** (**Nome del modello**, **Descrizione del modello**) e poi per i passaggi dell'annuncio stesso: **Annuncio** (**Titolo**, **Descrizione**) e **Pagine di stato** (**Mostra annuncio su queste pagine di stato**, **Monitor interessati** e **Notifica gli iscritti alla pagina di stato**, attivo per impostazione predefinita): così la distribuzione e la decisione sulla notifica si prendono una volta sola invece che ogni volta. Un modello non ha pianificazione: un annuncio creato da esso viene mostrato appena creato, a meno che tu non lo cambi sotto **Pianificazione e notifiche**.
 
 ## Iscritti webhook e protezione SSRF
 

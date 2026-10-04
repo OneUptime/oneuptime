@@ -36,15 +36,18 @@ See [Widgets](/docs/dashboards/widgets) for the full list and what each one show
 
 Open **Dashboards** in the left navigation.
 
-| Page                     | What you do there                                                      |
-| ------------------------ | ---------------------------------------------------------------------- |
-| **Dashboards**           | Your list of dashboards. Create a new one, search, or filter by label. |
-| **Advanced → Archived**  | Dashboards you archived. Unarchive them from here.                     |
-| **Dashboard → View**     | The canvas. Toggle between **Edit** and **View** in the header.        |
-| **Dashboard → Overview** | Description, owners, and labels.                                       |
-| **Dashboard → Settings** | Public sharing, password, IP allowlist, custom domain, branding.       |
-| **Dashboard → Owners**   | Users and teams with explicit access.                                  |
-| **Dashboard → Delete**   | Remove the dashboard.                                                  |
+| Page                           | What you do there                                                      |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| **Dashboards**                 | Your list of dashboards. Create a new one, search, or filter by label. |
+| **Advanced → Archived**        | Dashboards you archived. Unarchive them from here.                     |
+| **Dashboard → View**           | The canvas. Toggle between **Edit** and **View** in the header.        |
+| **Dashboard → Overview**       | Description, owners, and labels.                                       |
+| **Dashboard → Sharing**        | Who can view it, its public link, and an IP allowlist under Advanced.  |
+| **Dashboard → Branding**       | Page title, description, logo, and favicon of the public dashboard.    |
+| **Dashboard → Custom Domains** | Host the public dashboard on your own domain.                          |
+| **Dashboard → Settings**       | Duplicate, export, or archive the dashboard.                           |
+| **Dashboard → Owners**         | Users and teams with explicit access.                                  |
+| **Dashboard → Delete**         | Remove the dashboard.                                                  |
 
 ## Building a dashboard
 
@@ -52,7 +55,7 @@ Open **Dashboards** in the left navigation.
 2. **Add widgets** — choose a widget type, configure its data, drag it where you want.
 3. **(Optional) Add variables** — for example, a `service` dropdown so the same dashboard works for every service.
 4. **Set the time range** — defaults are fine; tune later.
-5. **(Optional) Share publicly** — flip the switch in Settings, add a password or IP allowlist if needed.
+5. **(Optional) Share publicly** — pick **⋯ → Share** on the dashboard and choose who can view it: anyone with the link, or anyone with the link and a password.
 6. **(Optional) Custom domain** — host the dashboard on `status.your-domain.com`.
 
 ## A quick example

@@ -111,8 +111,8 @@ const GERMAN: Record<string, string> = {
     "+ {{count}} weitere Vertretungen später in diesem Zeitraum.",
   "+ {{count}} more overrides scheduled later in this window._one":
     "+ {{count}} weitere Vertretung später in diesem Zeitraum.",
-  Overridden: "Vertreten",
-  "Alerts go here": "Alarme gehen hierhin",
+  Away: "Abwesend",
+  Covering: "Vertritt",
   // OnCallPolicy/OnCallScheduleLayer/FinalScheduleSummary.tsx
   "Fully covered for the next {{window}}":
     "Für die nächsten {{window}} vollständig abgedeckt",
@@ -406,7 +406,8 @@ describe("user overrides in German", () => {
     expect(normalizedText(container)).toContain(
       "+ 1 weitere Vertretung später in diesem Zeitraum.",
     );
-    expect(screen.getAllByText("Vertreten")).toHaveLength(4);
+    expect(screen.getAllByText("Abwesend")).toHaveLength(4);
+    expect(screen.getAllByText("Vertritt")).toHaveLength(4);
     expect(screen.getAllByText("Globale Vertretung")).toHaveLength(4);
     expect(normalizedText(container)).not.toContain("user override");
   });

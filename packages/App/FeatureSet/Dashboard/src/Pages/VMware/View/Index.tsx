@@ -5,8 +5,7 @@ import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -2558,39 +2557,26 @@ const VMwareVCenterOverview: FunctionComponent<
       {/* Top Resource Consumers */}
       {renderTopConsumers()}
 
-      {/* vCenter Details */}
+      {/*
+       * vCenter Details: read here, edited in one place - the same card at
+       * the top of the vCenter's Settings page (ResourceDetailsCard).
+       */}
       <CardModelDetail<VMwareVCenter>
         name="vCenter Details"
         refresher={detailsRefresher}
         cardProps={{
           title: "vCenter Details",
           description: "Basic information about this vCenter.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.VMWARE_VCENTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        editButtonText="Edit vCenter"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "prod-vcenter",
-            description:
-              "This should match the vmware.vcenter.name resource attribute reported by the VMware Agent (its VMWARE_VCENTER_NAME).",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production vCenter Server in the US East datacenter",
-          },
-          getLabelsFormField<VMwareVCenter>(),
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: VMwareVCenter,

@@ -8,6 +8,7 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import { compileScrubRuleCustomRegex } from "Common/Types/Telemetry/ScrubRule";
 
 interface CompiledRule {
   rule: LogScrubRule;
@@ -106,14 +107,14 @@ export class LogScrubRuleService {
     customRegex?: string,
   ): RegExp | null {
     if (patternType === LogScrubPatternType.Custom) {
-      if (!customRegex) {
-        return null;
-      }
-      try {
-        return new RegExp(customRegex, "g");
-      } catch {
-        return null;
-      }
+      /*
+       * Null for a pattern that is empty or does not compile: the rule
+       * scrubs nothing. The API refuses to save such a rule, and the rules
+       * table flags the ones saved before it did - all three judge the
+       * pattern with Common/Types/Telemetry/ScrubRule, so they cannot
+       * disagree on what ingest does with it.
+       */
+      return compileScrubRuleCustomRegex(customRegex);
     }
 
     /*

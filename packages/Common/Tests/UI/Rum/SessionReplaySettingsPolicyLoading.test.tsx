@@ -546,6 +546,103 @@ describe("Replay Policy page: the Recording pill", () => {
   });
 });
 
+/*
+ * The page used to open on a blue "Recording must also be allowed for the
+ * project" banner, on every visit, although the project's switch is on
+ * unless someone turned it off. It opens on the health card now, and the
+ * health card is what says the switch is off, with the way to turn it on.
+ */
+// RUM > Settings > Session Replay, where the project's switch is.
+const PROJECT_REPLAY_SETTINGS_PATH: RegExp = /\/rum\/settings\/session-replay$/;
+
+function healthCardElement(): HTMLElement {
+  return screen
+    .getByTestId("health-card")
+    .closest('[data-testid="card"]') as HTMLElement;
+}
+
+function expectNothingAboveTheHealthCard(): void {
+  const healthCard: HTMLElement = healthCardElement();
+
+  expect(document.querySelector('[data-testid="card"]')).toBe(healthCard);
+
+  for (const alert of screen.queryAllByRole("alert")) {
+    expect(
+      healthCard.compareDocumentPosition(alert) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBe(0);
+  }
+
+  expect(
+    screen.queryByText("Recording must also be allowed for the project"),
+  ).toBeNull();
+}
+
+describe("Replay Policy page: no banner, the health card speaks for the project switch", () => {
+  it("opens on the health card while the project allows recording", async () => {
+    const health: HealthControl = holdHealth();
+
+    renderPage();
+
+    await waitForPolicyRows();
+
+    await act(async (): Promise<void> => {
+      health.release(wireStatus());
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("health-card")).toHaveAttribute(
+          "data-state",
+          "healthy",
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expectNothingAboveTheHealthCard();
+    expect(
+      within(healthCardElement()).queryByTestId("health-action"),
+    ).toBeNull();
+  });
+
+  it("says the project switch is off, with Turn it on, only when it is", async () => {
+    const health: HealthControl = holdHealth();
+
+    renderPage();
+
+    await waitForPolicyRows();
+
+    await act(async (): Promise<void> => {
+      health.release(wireStatus({ isProjectAllowed: false }));
+    });
+
+    // The installation test below draws the same diagnosis; this is the card's.
+    await waitFor(
+      () => {
+        expect(
+          within(healthCardElement()).getByTestId("health-diagnosis"),
+        ).toHaveAttribute("data-state", "disabled-project");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const card: HTMLElement = healthCardElement();
+
+    expect(card).toHaveTextContent(
+      "Session replay is switched off for this project",
+    );
+
+    const action: HTMLElement = within(card).getByTestId("health-action");
+
+    expect(action).toHaveTextContent("Turn it on");
+    expect(action.closest("a")?.getAttribute("href") || "").toMatch(
+      PROJECT_REPLAY_SETTINGS_PATH,
+    );
+    expectNothingAboveTheHealthCard();
+  });
+});
+
 describe("EffectiveRecordingStatePill (standalone)", () => {
   it("updates when the shared poller answers, sharing one request with another subscriber", async () => {
     const health: HealthControl = holdHealth();

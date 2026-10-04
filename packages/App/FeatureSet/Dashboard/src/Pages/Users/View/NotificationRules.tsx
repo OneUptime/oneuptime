@@ -18,8 +18,8 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
  * diagnosis nobody could still see, and the diagnosis was the part that
  * mattered.
  *
- * It is six pages now, under Users > View > On-Call, and this one sends its
- * visitors to the overview. The route is kept rather than deleted because it is
+ * It is three pages now, under Users > View > On-Call (the rules on one of
+ * them, a tab per kind), and this one sends its visitors to the overview. The route is kept rather than deleted because it is
  * the URL people bookmarked, pasted into tickets and linked from chat, and a
  * 404 for those readers would be a worse outcome than an extra hop.
  *

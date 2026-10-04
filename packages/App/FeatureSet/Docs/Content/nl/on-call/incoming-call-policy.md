@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime plays<br/>greeting message]
     D --> E[Load Escalation Rules]
     E --> F{Rule 1:<br/>Try On-Call User}
-    F -->|No Answer| G{Rule 2:<br/>Try Backup Team}
+    F -->|No Answer| G{Rule 2:<br/>Try Backup Engineer}
     F -->|Answered| H[Connect Caller<br/>to Engineer]
     G -->|No Answer| I{Rule 3:<br/>Try Manager}
     G -->|Answered| H
@@ -70,7 +70,7 @@ De functie Inkomend belbeleid werkt door:
 
 1. Inkomende gesprekken te ontvangen op een Twilio-telefoonnummer
 2. Een aanpasbaar begroetingsbericht af te spelen
-3. Het gesprek te routeren via escalatieregels (teams, schema's of gebruikers)
+3. Het gesprek te routeren via escalatieregels (bereikbaarheidsschema's of personen)
 4. De beller te verbinden met de eerste beschikbare piket-engineer
 5. Te escaleren naar de volgende regel als niemand opneemt
 
@@ -86,13 +86,14 @@ Omdat u OneUptime zelf host, moet u uw eigen Twilio-account configureren. Dit ge
 
 1. Log in op uw OneUptime-dashboard
 2. Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**
-3. Klik op **Aangepaste bel/SMS-configuratie aanmaken**
+3. Klik onder **Twilio-configuratie** op **Create Twilio Config**
 4. Vul de volgende velden in:
    - **Naam**: Een beschrijvende naam (bijv. "Productie Twilio-configuratie")
    - **Beschrijving**: Optionele beschrijving
    - **Twilio Account SID**: Uw Twilio Account SID (begint met `AC`)
    - **Twilio Auth Token**: Uw Twilio Auth Token
    - **Twilio primair telefoonnummer**: Een telefoonnummer van uw Twilio-account voor uitgaande gesprekken
+   - **Instellen als projectstandaard**: staat aan bij de eerste Twilio-configuratie van het project, zodat sms-berichten en oproepen aan projectleden ook via dit account gaan. Schakel het uit als dit account alleen voor inkomende oproepen is.
 5. Klik op **Opslaan**
 
 ## Stap 3: Een inkomend belbeleid aanmaken
@@ -154,35 +155,37 @@ flowchart LR
 
 ## Stap 6: Escalatieregels configureren
 
-Escalatieregels bepalen hoe gesprekken worden gerouteerd:
+Escalatieregels bepalen wie er gebeld wordt wanneer iemand het nummer van het beleid belt, van boven naar beneden in de lijst:
 
 1. Open uw inkomend belbeleid
 2. Ga naar het tabblad **Escalatieregels**
 3. Klik op **Escalatieregel toevoegen**
-4. Configureer de regel:
-   - **Volgorde**: De prioriteitsvolgorde (lagere nummers worden eerst geprobeerd)
-   - **Escaleren na (seconden)**: Hoe lang te wachten voordat er wordt geëscaleerd
-   - **Bereikbaarheidsschema**: Selecteer een schema om te routeren naar wie er op dat moment piket heeft
-   - **Teams**: Selecteer specifieke teams
-   - **Gebruikers**: Selecteer specifieke gebruikers
-5. Voeg indien nodig aanvullende escalatieregels toe
+4. Vul de regel in. Het is één stap:
+   - **Wie er gebeld wordt**: een bereikbaarheidsschema of één persoon. Een schema laat de telefoon overgaan van wie er op dat moment dienst heeft in dat schema. Personen zijn de leden van uw project.
+   - **Overgaan gedurende (in seconden)**: hoe lang hun telefoon overgaat voordat de oproep naar de volgende regel gaat. Dit begint op 30 seconden, en Twilio accepteert 5 tot 600.
+   - **Naam** en **Beschrijving** zijn optioneel en staan onder **Geavanceerd**. Een regel zonder naam wordt getoond volgens zijn plaats in de lijst: **Level 1**, **Level 2**.
+5. Sla de regel op en voeg een regel toe voor elk schema of elke persoon die daarna geprobeerd moet worden
+
+Regels worden van boven naar beneden gebeld, en een nieuwe regel komt onderaan. Sleep een regel aan de greep linksboven om de volgorde te wijzigen; met het toetsenbord focust u de greep, drukt u op Spatie, verplaatst u de regel met de pijltjestoetsen en drukt u nogmaals op Spatie.
+
+> **Let op voicemail**: houd **Overgaan gedurende** korter dan de tijd waarna de telefoon van de persoon een onbeantwoorde oproep naar de voicemail stuurt. Neemt de voicemail eerst op, dan wordt de beller daarmee verbonden en gaat de oproep niet naar de volgende regel. Twilio voegt bij elke oproep zelf een paar seconden toe.
 
 ### Voorbeeld van escalatieregel
 
 ```mermaid
 flowchart TD
     subgraph "Escalation Chain"
-        A[Rule 1: Primary On-Call<br/>Wait 30 seconds] --> B[Rule 2: Secondary On-Call<br/>Wait 30 seconds]
-        B --> C[Rule 3: Engineering Lead<br/>Wait 30 seconds]
+        A[Level 1: Primary on-call schedule<br/>Ring for 30 seconds] --> B[Level 2: Secondary on-call schedule<br/>Ring for 30 seconds]
+        B --> C[Level 3: Engineering lead<br/>Ring for 30 seconds]
         C --> D[No Answer Message]
     end
 ```
 
-| Volgorde | Escaleren na | Doel                  |
-| -------- | ------------ | --------------------- |
-| 1        | 30 seconden  | Primair piketschema   |
-| 2        | 30 seconden  | Secundair piketschema |
-| 3        | 30 seconden  | Technisch teamleider  |
+| Niveau  | Wie er gebeld wordt             | Overgaan gedurende |
+| ------- | ------------------------------- | ------------------ |
+| Level 1 | Primair bereikbaarheidsschema   | 30 seconden        |
+| Level 2 | Secundair bereikbaarheidsschema | 30 seconden        |
+| Level 3 | Engineeringleider (een persoon) | 30 seconden        |
 
 ## Stap 7: Gespreksberichten configureren (optioneel)
 
@@ -209,13 +212,14 @@ Pas de berichten aan die bellers horen:
 
 ### Escalatieregelinstellingen
 
-| Instelling              | Beschrijving                                                          |
-| ----------------------- | --------------------------------------------------------------------- |
-| Volgorde                | Prioriteitsvolgorde (1 = hoogste prioriteit)                          |
-| Escaleren na (seconden) | Wachttijd voordat de volgende regel wordt geprobeerd (standaard: 30s) |
-| Piketschema             | Routeren naar wie op dat moment piket heeft                           |
-| Teams                   | Routeren naar alle leden van geselecteerde teams                      |
-| Gebruikers              | Routeren naar specifieke gebruikers                                   |
+| Instelling                       | Beschrijving                                                                                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wie er gebeld wordt              | Een bereikbaarheidsschema, dat belt wie er dienst heeft, of één persoon. Elke regel belt een van beide                                                        |
+| Overgaan gedurende (in seconden) | Hoe lang de telefoon overgaat voordat de oproep naar de volgende regel gaat (standaard: 30; van 5 tot 600)                                                    |
+| Naam en Beschrijving             | Optioneel, onder Geavanceerd. Een regel zonder naam wordt getoond als Level 1, Level 2 enzovoort, volgens zijn plaats in de lijst                             |
+| Volgorde                         | De plaats van de regel in de lijst: regels worden van boven naar beneden gebeld. Wijzig die door de regels te slepen; via de API komt een nieuwe regel zonder volgorde onderaan |
+
+Via de API stelt een regel `onCallDutyPolicyScheduleId` of `userId` in (een van beide, nooit allebei) en `escalateAfterSeconds`: hoe lang de telefoon overgaat, 30 als die wordt weggelaten.
 
 ## Gesprekslogboeken bekijken
 
@@ -268,6 +272,7 @@ Als u een telefoonnummer niet meer nodig heeft:
 - Controleer of escalatieregels correct zijn geconfigureerd
 - Zorg dat piketschema's gebruikers hebben toegewezen voor het huidige tijdstip
 - Verifieer dat het beleid is ingeschakeld
+- Komen oproepen op de voicemail van een engineer terecht, stel **Overgaan gedurende** van de regel dan korter in dan de tijd waarna hun telefoon naar de voicemail gaat
 
 ### Audiokwaliteitsproblemen
 

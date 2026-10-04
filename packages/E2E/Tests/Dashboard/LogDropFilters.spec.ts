@@ -94,8 +94,9 @@ test.describe("Log Drop Filters", () => {
   });
 
   /*
-   * Opens the create modal and fills the first two steps, which are
-   * identical for both actions: a name, then a real filter condition.
+   * Opens the create modal and fills its first step, Match, which is
+   * identical for both actions: a name and a real filter condition. Then
+   * walks on to the Action step.
    *
    * The Filter Query field is a custom query builder, not an input. Its
    * first condition starts as `severityText = <nothing>` and only emits a
@@ -125,26 +126,24 @@ test.describe("Log Drop Filters", () => {
 
     /*
      * The one button that reads Next walks the wizard. A create wizard
-     * offers its action as soon as every step left is optional: on Filter
-     * Conditions the main button already reads Create Log Drop Filter, the
-     * Action step having its default, and a plain Next beside it walks on.
+     * offers its action as soon as every step left is optional: on Match
+     * the main button already reads Create Log Drop Filter, the Action step
+     * having its default (Drop), and a plain Next beside it walks on.
      */
     const nextButton: Locator = modal.getByRole("button", {
       name: "Next",
       exact: true,
     });
 
-    // Step 1 — Basic Info.
-    await form.getByLabel("Name").fill(name);
-    await nextButton.click();
-
     /*
-     * Step 2 — Filter Conditions. The step renders exactly one condition
-     * row, and BasicForm renders only the current step's fields, so the
-     * three comboboxes on screen are this row's Field, Operator and Value in
-     * DOM order. Value is the one to set; Field and Operator already default
-     * to Severity / equals.
+     * Step 1 — Match: the name, then the filter query. The step renders
+     * exactly one condition row, and BasicForm renders only the current
+     * step's fields, so the three comboboxes on screen are this row's Field,
+     * Operator and Value in DOM order (the name is a text box). Value is the
+     * one to set; Field and Operator already default to Severity / equals.
      */
+    await form.getByLabel("Name").fill(name);
+
     const valueDropdown: Locator = form.getByRole("combobox").nth(2);
     await valueDropdown.waitFor({ state: "visible", timeout: 30000 });
     await valueDropdown.click();
@@ -190,9 +189,9 @@ test.describe("Log Drop Filters", () => {
     await openCreateModalAndFillConditions(ctx.dropFilterName);
 
     /*
-     * Step 3 — Action. Drop is the form's initial value, so submitting the
+     * Step 2 — Action. Drop is the form's initial value, so submitting the
      * step as-is is exactly the reported reproduction: Logs -> Settings ->
-     * Drop filters -> Create.
+     * Drop filters -> Create. Enabled is folded under Advanced, on.
      */
     const form: Locator = page.locator(createFormSelector);
     await expect(
@@ -232,7 +231,7 @@ test.describe("Log Drop Filters", () => {
 
     await openCreateModalAndFillConditions(ctx.sampleFilterName);
 
-    // Step 3 — Action: switch to Sample, which reveals the percentage field.
+    // Step 2 — Action: switch to Sample, which reveals the percentage field.
     const form: Locator = page.locator(createFormSelector);
     const actionDropdown: Locator = form.getByRole("combobox").first();
     await actionDropdown.waitFor({ state: "visible", timeout: 30000 });

@@ -10,7 +10,7 @@ Quando crei una policy di reperibilità nella pagina **Policy di reperibilità**
 
 ## Aggiungere una regola di escalation
 
-Apri la policy di reperibilità, scegli **Regole di escalation** nel menu laterale e fai clic su **Add Escalation Rule**. La finestra è un'unica pagina breve con due domande:
+Apri la policy di reperibilità, scegli **Regole di escalation** nel menu laterale e fai clic su **Aggiungi regola di escalation**. La finestra è un'unica pagina breve con due domande:
 
 - **Notifica** — chi viene avvisato a questo livello. Un solo selettore comprende pianificazioni di reperibilità, team e persone: fai clic su **Aggiungi destinatario**, cerca e scegli quanti ne servono. Ne serve almeno uno.
   - Una **pianificazione di reperibilità** avvisa chi è reperibile quando il livello viene eseguito, non una persona fissa.
@@ -30,6 +30,8 @@ L'intestazione di **Avanzato** indica **Configurato** quando la regola ha una de
 Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i suoi destinatari. Se nessuno conferma entro la sua attesa, viene avvisato **Level 2**, e così via lungo l'elenco. Trascorsa l'attesa dell'ultimo livello senza conferma, la policy ricomincia da **Level 1** se il suo **Criterio di ripetizione** (sotto le regole) prevede la ripetizione, per tutte le volte consentite, altrimenti si ferma.
 
 Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala: quando viene avvisato ogni livello, chi avvisa e cosa succede dopo l'ultimo. Un livello i cui destinatari non possono essere avvisati tutti lo segnala sulla sua scheda; fai clic sull'etichetta per vedere chi e perché.
+
+Ogni persona avvisata da un livello viene raggiunta secondo le proprie regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso, e un riquadro per ogni gravità che indica quale metodo di notifica viene usato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**.
 
 ## Modificare, riordinare ed eliminare le regole
 

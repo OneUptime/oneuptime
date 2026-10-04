@@ -26,6 +26,11 @@ import {
   INVENTORY_ITEMS_TABLE_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryFacets";
 import InventoryItems from "../../../../App/FeatureSet/Dashboard/src/Pages/Inventory/Items";
+import InventoryArchived, {
+  INVENTORY_ARCHIVED_DESCRIPTION,
+  INVENTORY_ARCHIVED_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Inventory/Archived";
+import IconProp from "../../../Types/Icon/IconProp";
 import useResourceOwners, {
   ResourceFacet,
   UseResourceOwnersResult,
@@ -61,7 +66,15 @@ interface CapturedTableProps {
     isFiltered?: boolean | undefined;
     onClearFilters?: (() => void) | undefined;
     title?: string | undefined;
+    description?: string | ReactElement | undefined;
+    icon?: IconProp | undefined;
+    actions?: Array<{ title: string; dataTestId?: string | undefined }>;
   };
+  cardProps: {
+    title?: string | undefined;
+    description?: string | undefined;
+  };
+  isCreateable: boolean;
   id: string;
 }
 
@@ -691,6 +704,93 @@ describe("inventory facet persistence and embedded scopes", () => {
       "facets",
       getTable().currentFacetState,
     );
+  });
+});
+
+/*
+ * Inventory > Archived opened on a blue "These are hidden, not gone" banner,
+ * every visit. The card's description says it now, the way every other
+ * Archived page does, and an empty archive says "No archived items" over
+ * that description - not the main list's "Nothing here yet" with its setup
+ * guide, which nothing in the archive comes from.
+ */
+describe("each view's empty state", () => {
+  test("the main list's empty state points at the setup guide", () => {
+    renderInventory();
+
+    const emptyState: CapturedTableProps["emptyState"] = getTable().emptyState;
+
+    expect(emptyState.title).toBe("Nothing here yet.");
+    expect(emptyState.icon).toBe(IconProp.Cube);
+    expect(emptyState.description).toContain(
+      "Items appear here on their own as you send OpenTelemetry data",
+    );
+    expect(
+      (emptyState.actions || []).map(
+        (action: { dataTestId?: string | undefined }): string | undefined => {
+          return action.dataTestId;
+        },
+      ),
+    ).toEqual(["inventory-setup-guide"]);
+    expect(getTable().isCreateable).toBe(true);
+  });
+
+  test("an empty archive reads 'No archived items' over the card's description, with no setup guide", () => {
+    renderInventory({
+      archivedOnly: true,
+      cardTitle: INVENTORY_ARCHIVED_TITLE,
+      cardDescription: INVENTORY_ARCHIVED_DESCRIPTION,
+    });
+
+    const emptyState: CapturedTableProps["emptyState"] = getTable().emptyState;
+
+    expect(emptyState.title).toBe("No archived items.");
+    expect(emptyState.icon).toBe(IconProp.Archive);
+    // Left out, so the empty state says what the card's description says.
+    expect(emptyState.description).toBeUndefined();
+    expect(emptyState.actions).toBeUndefined();
+    expect(getTable().cardProps.description).toBe(
+      INVENTORY_ARCHIVED_DESCRIPTION,
+    );
+    // Nothing is created in the archive.
+    expect(getTable().isCreateable).toBe(false);
+  });
+
+  test("a facet that matches nothing in the archive still says nothing matches", () => {
+    renderInventory({ archivedOnly: true });
+    selectOption("Type", "Host");
+
+    const emptyState: CapturedTableProps["emptyState"] = getTable().emptyState;
+
+    expect(emptyState.isFiltered).toBe(true);
+    expect(emptyState.onClearFilters).toBeDefined();
+    expect(emptyState.title).toBe("No archived items.");
+  });
+
+  test("the Archived page draws no banner, and its card says archived items are hidden, not gone", () => {
+    render(
+      <MemoryRouter>
+        <InventoryArchived
+          pageRoute={
+            new Route(`/dashboard/${PROJECT_ID.toString()}/inventory/archived`)
+          }
+          currentProject={null}
+          hasPaymentMethod={false}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("These are hidden, not gone"),
+    ).not.toBeInTheDocument();
+    expect(getTable().id).toBe(INVENTORY_ARCHIVED_TABLE_ID);
+    expect(getTable().query["isArchived"]).toBe(true);
+    expect(getTable().cardProps).toEqual({
+      title: "Archived Items",
+      description:
+        "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.",
+    });
   });
 });
 

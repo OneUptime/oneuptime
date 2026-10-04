@@ -682,15 +682,16 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     NAME_DESCRIPTION,
     LABELS_ONLY,
   ),
+  /*
+   * The details card on the Settings page of every resource telemetry
+   * discovers (ResourceDetailsCard): the name and description, the labels
+   * folded with the identifier a person may change. The Proxmox, VMware,
+   * Kubernetes and Service Overviews' edit dialogs are gone: their cards
+   * link here (ResourceDetailsOnePlaceGuard).
+   */
   onePage(
-    `${DASHBOARD}/Pages/Proxmox/View/Index.tsx`,
-    "CardModelDetail: Cluster Details",
-    NAME_DESCRIPTION,
-    LABELS_ONLY,
-  ),
-  onePage(
-    `${DASHBOARD}/Pages/VMware/View/Index.tsx`,
-    "CardModelDetail: vCenter Details",
+    `${DASHBOARD}/Components/TelemetryResource/ResourceDetailsCard.tsx`,
+    "CardModelDetail #1",
     NAME_DESCRIPTION,
     LABELS_ONLY,
   ),
@@ -721,28 +722,14 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
 
   /*
    * Edit dialogs of four fields: the one people rarely change folds with the
-   * labels - Private Alert (as Create Alert folds it), the cluster identifier
-   * (it has to match the agent), the tech stack (also on Settings, and read
-   * from telemetry when blank), a workflow's Enabled switch (the builder
-   * turns workflows on and off).
+   * labels - Private Alert (as Create Alert folds it), a workflow's Enabled
+   * switch (the builder turns workflows on and off).
    */
   onePage(
     `${DASHBOARD}/Pages/Alerts/View/Index.tsx`,
     "CardModelDetail: Alert Details",
     ["title", "alertSeverity"],
     ["labels", "isPrivate"],
-  ),
-  onePage(
-    `${DASHBOARD}/Pages/Kubernetes/View/Index.tsx`,
-    "CardModelDetail: Cluster Details",
-    NAME_DESCRIPTION,
-    ["clusterIdentifier", "labels"],
-  ),
-  onePage(
-    `${DASHBOARD}/Pages/Service/View/Index.tsx`,
-    "CardModelDetail: Service > Service Details",
-    NAME_DESCRIPTION,
-    ["techStack", "labels"],
   ),
   onePage(
     `${DASHBOARD}/Pages/Workflow/View/Index.tsx`,
@@ -932,14 +919,16 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     steps: ["messaging-system", "queue-info"],
     rows: { "queue-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
   },
-  {
-    file: `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
-    label: "CardModelDetail: Repository > Repository Details",
-    steps: ["repository-info", "source"],
-    rows: {
-      "repository-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY },
-    },
-  },
+  /*
+   * A repository's details, one page: where its code lives is the GitHub
+   * App's (read-only), its main branch is on its Settings page.
+   */
+  onePage(
+    `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
+    "CardModelDetail: Repository > Repository Details",
+    NAME_DESCRIPTION,
+    LABELS_ONLY,
+  ),
   /*
    * SLO create is one page: the name and the target, and everything that
    * starts from a default folded with the labels (SloFormFields.ts).
@@ -958,16 +947,19 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     ],
   ),
   {
-    file: `${DASHBOARD}/Pages/NetworkDevice/View/Index.tsx`,
-    label: "CardModelDetail: Network Device Details",
-    // The site joins the device's details; it shared a last step with labels.
-    steps: ["device-details", "address"],
+    /*
+     * A device's details are edited in one place, here: the site and the
+     * labels joined its Device Details step when the Overview's own edit
+     * dialog went.
+     */
+    file: `${DASHBOARD}/Pages/NetworkDevice/View/Settings.tsx`,
+    label: "CardModelDetail: Device Settings",
+    steps: ["device-details", "address", "monitoring", "snmp"],
     rows: {
       "device-details": {
-        open: ["name", "description", "site"],
+        open: ["name", "networkDeviceRole", "description", "site"],
         folded: LABELS_ONLY,
       },
-      address: { open: ["hostname", "macAddress"], folded: [] },
     },
   },
 ];

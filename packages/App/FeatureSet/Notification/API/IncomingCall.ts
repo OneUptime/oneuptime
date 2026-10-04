@@ -9,6 +9,7 @@ import {
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
 import { IncomingCallStatusMessage } from "Common/Types/IncomingCall/MissedIncomingCall";
+import { getIncomingCallRingSeconds } from "Common/Types/IncomingCall/IncomingCallRingTime";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import IncomingCallPolicyService from "Common/Server/Services/IncomingCallPolicyService";
@@ -368,7 +369,7 @@ router.post(
         greetingMessage,
         userToCall.phoneNumber.toString(),
         callLog.routingPhoneNumber?.toString() || callData.calledPhoneNumber,
-        firstRule.escalateAfterSeconds || 30,
+        getIncomingCallRingSeconds(firstRule.escalateAfterSeconds),
         statusCallbackUrl,
       );
 
@@ -958,7 +959,7 @@ async function dialNextUser(
       callLog.routingPhoneNumber?.toString() ||
       policy.routingPhoneNumber?.toString() ||
       "",
-    timeoutSeconds: rule.escalateAfterSeconds || 30,
+    timeoutSeconds: getIncomingCallRingSeconds(rule.escalateAfterSeconds),
     statusCallbackUrl,
   });
 

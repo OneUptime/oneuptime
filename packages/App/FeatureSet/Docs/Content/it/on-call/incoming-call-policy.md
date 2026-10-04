@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime riproduce<br/>messaggio di benvenuto]
     D --> E[Carica Regole di Escalation]
     E --> F{Regola 1:<br/>Prova Utente Di Guardia}
-    F -->|Nessuna Risposta| G{Regola 2:<br/>Prova Team di Backup}
+    F -->|Nessuna Risposta| G{Regola 2:<br/>Prova Ingegnere di Backup}
     F -->|Ha Risposto| H[Connette il Chiamante<br/>all'Ingegnere]
     G -->|Nessuna Risposta| I{Regola 3:<br/>Prova il Responsabile}
     G -->|Ha Risposto| H
@@ -70,7 +70,7 @@ La funzionalità Policy di Chiamata In Entrata funziona:
 
 1. Ricevendo le chiamate in entrata su un numero di telefono Twilio
 2. Riproducendo un messaggio di benvenuto personalizzabile
-3. Instradando la chiamata attraverso le regole di escalation (team, pianificazioni o utenti)
+3. Instradando la chiamata attraverso le regole di escalation (pianificazioni di reperibilità o persone)
 4. Connettendo il chiamante al primo ingegnere di guardia disponibile
 5. Escalando alla regola successiva se nessuno risponde
 
@@ -86,13 +86,14 @@ Poiché si ospita OneUptime autonomamente, sarà necessario configurare il propr
 
 1. Accedere al Dashboard di OneUptime
 2. Accedere a **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**
-3. Fare clic su **Crea Config Chiamata/SMS Personalizzata**
+3. In **Configurazione Twilio**, fare clic su **Create Twilio Config**
 4. Compilare i seguenti campi:
    - **Nome**: Un nome descrittivo (ad es. "Config Twilio Produzione")
    - **Descrizione**: Descrizione opzionale
    - **Twilio Account SID**: Il proprio Twilio Account SID (inizia con `AC`)
    - **Twilio Auth Token**: Il proprio Twilio Auth Token
    - **Numero di telefono principale Twilio**: Un numero di telefono dal proprio account Twilio per le chiamate in uscita
+   - **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, quindi anche gli SMS e le chiamate ai membri del progetto passano da questo account. Disattivarlo se questo account serve solo per le chiamate in arrivo.
 5. Fare clic su **Salva**
 
 ## Fase 3: Creare una Policy di Chiamata In Entrata
@@ -154,35 +155,37 @@ flowchart LR
 
 ## Fase 6: Configurare le Regole di Escalation
 
-Le regole di escalation determinano come vengono instradate le chiamate:
+Le regole di escalation decidono chi viene chiamato quando qualcuno compone il numero della policy, dall'alto verso il basso nell'elenco:
 
-1. Aprire la Policy di Chiamata In Entrata
-2. Accedere alla scheda **Regole di escalation**
-3. Fare clic su **Aggiungi Regola Escalation**
-4. Configurare la regola:
-   - **Ordine**: L'ordine di priorità (i numeri più bassi vengono provati prima)
-   - **Escala dopo (secondi)**: Quanto tempo attendere prima di eseguire l'escalation
-   - **Pianificazione di reperibilità**: Selezionare una pianificazione per instradare a chi è di guardia
-   - **Team**: Selezionare team specifici
-   - **Utenti**: Selezionare utenti specifici
-5. Aggiungere ulteriori regole di escalation secondo necessità
+1. Aprire la propria Policy di Chiamata In Entrata
+2. Andare alla scheda **Regole di escalation**
+3. Fare clic su **Aggiungi regola di escalation**
+4. Compilare la regola. È un solo passaggio:
+   - **Chi chiamare**: una pianificazione di reperibilità o una persona. Una pianificazione fa squillare il telefono di chi è reperibile in essa quando arriva la chiamata. Le persone sono i membri del progetto.
+   - **Durata dello squillo (in secondi)**: per quanto tempo squilla il loro telefono prima che la chiamata passi alla regola successiva. Parte da 30 secondi, e Twilio accetta da 5 a 600.
+   - **Nome** e **Descrizione** sono facoltativi, sotto **Avanzato**. Una regola senza nome viene mostrata in base alla sua posizione nell'elenco: **Level 1**, **Level 2**.
+5. Salvarla e aggiungere una regola per ogni pianificazione o persona da provare dopo
+
+Le regole vengono chiamate dall'alto verso il basso nell'elenco, e una nuova regola viene aggiunta in fondo. Per cambiare l'ordine, trascinare una regola dalla maniglia in alto a sinistra; da tastiera, mettere a fuoco la maniglia, premere Spazio, spostarla con i tasti freccia e premere di nuovo Spazio.
+
+> **Attenzione alla segreteria**: mantenere la **Durata dello squillo** più breve del tempo dopo cui il telefono della persona invia una chiamata senza risposta alla segreteria. Se risponde prima la segreteria, chi chiama viene collegato a essa e la chiamata non passa alla regola successiva. Twilio aggiunge qualche secondo a ogni squillo.
 
 ### Esempio di Regola di Escalation
 
 ```mermaid
 flowchart TD
     subgraph "Catena di Escalation"
-        A[Regola 1: Di Guardia Primario<br/>Attendi 30 secondi] --> B[Regola 2: Di Guardia Secondario<br/>Attendi 30 secondi]
-        B --> C[Regola 3: Lead Ingegneria<br/>Attendi 30 secondi]
+        A[Level 1: Pianificazione di reperibilità principale<br/>Squilla 30 secondi] --> B[Level 2: Pianificazione di reperibilità secondaria<br/>Squilla 30 secondi]
+        B --> C[Level 3: Responsabile tecnico<br/>Squilla 30 secondi]
         C --> D[Messaggio Nessuna Risposta]
     end
 ```
 
-| Ordine | Escalation Dopo | Target                               |
-| ------ | --------------- | ------------------------------------ |
-| 1      | 30 secondi      | Pianificazione Di Guardia Primario   |
-| 2      | 30 secondi      | Pianificazione Di Guardia Secondario |
-| 3      | 30 secondi      | Lead Team Ingegneria                 |
+| Livello | Chi chiamare                              | Durata dello squillo |
+| ------- | ----------------------------------------- | -------------------- |
+| Level 1 | Pianificazione di reperibilità principale | 30 secondi           |
+| Level 2 | Pianificazione di reperibilità secondaria | 30 secondi           |
+| Level 3 | Responsabile tecnico (una persona)        | 30 secondi           |
 
 ## Fase 7: Configurare i Messaggi Vocali (Opzionale)
 
@@ -209,13 +212,14 @@ Personalizzare i messaggi che i chiamanti sentono:
 
 ### Impostazioni Regola Escalation
 
-| Impostazione              | Descrizione                                                              |
-| ------------------------- | ------------------------------------------------------------------------ |
-| Ordine                    | Ordine di priorità (1 = priorità più alta)                               |
-| Escalation Dopo Secondi   | Tempo di attesa prima di provare la regola successiva (predefinito: 30s) |
-| Pianificazione Di Guardia | Instrada a chi è attualmente di guardia                                  |
-| Team                      | Instrada a tutti i membri dei team selezionati                           |
-| Utenti                    | Instrada a utenti specifici                                              |
+| Impostazione                      | Descrizione                                                                                                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chi chiamare                      | Una pianificazione di reperibilità, che chiama chi è reperibile in essa, o una persona. Ogni regola chiama una delle due                                                          |
+| Durata dello squillo (in secondi) | Per quanto tempo squilla il telefono prima che la chiamata passi alla regola successiva (predefinito: 30; da 5 a 600)                                                            |
+| Nome e Descrizione                | Facoltativi, sotto Avanzato. Una regola senza nome viene mostrata come Level 1, Level 2 e così via, in base alla sua posizione nell'elenco                                       |
+| Ordine                            | La posizione della regola nell'elenco: le regole vengono chiamate dall'alto verso il basso. Si imposta trascinando le regole; tramite l'API, una nuova regola senza ordine va in fondo |
+
+Tramite l'API, una regola imposta `onCallDutyPolicyScheduleId` o `userId` (uno dei due, mai entrambi) e `escalateAfterSeconds`: la durata dello squillo, 30 se omessa.
 
 ## Visualizzazione dei Log delle Chiamate
 
@@ -268,6 +272,7 @@ Se non si ha più bisogno di un numero di telefono:
 - Verificare che le regole di escalation siano configurate correttamente
 - Assicurarsi che le pianificazioni di guardia abbiano utenti assegnati per l'orario corrente
 - Verificare che la policy sia abilitata
+- Se le chiamate finiscono nella segreteria di un ingegnere, impostare la **Durata dello squillo** della regola al di sotto del tempo dopo cui il suo telefono passa alla segreteria
 
 ### Problemi di qualità audio
 

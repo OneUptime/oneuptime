@@ -670,14 +670,15 @@ describe("setup checklist page - acting on a step", () => {
     fireEvent.click(screen.getByTestId("setup-checklist-step-incident-rules"));
 
     const expected: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route,
+      RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
     );
 
+    // The first tab, Incidents, is the page's bare address.
     expect(navigateMock).toHaveBeenCalledTimes(1);
     expect(String(navigateMock.mock.calls[0]![0])).toBe(String(expected));
   });
 
-  test("the alert rules step goes to the alert page, not the incident page", async (): Promise<void> => {
+  test("the alert rules step opens the alerts tab, not the incidents tab", async (): Promise<void> => {
     const withUncoveredAlert: JSONArray = [
       ...coverageJson({ includeAlerts: false }),
       {
@@ -702,10 +703,12 @@ describe("setup checklist page - acting on a step", () => {
     fireEvent.click(screen.getByTestId("setup-checklist-step-alert-rules"));
 
     const expected: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
+      RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
     );
 
-    expect(String(navigateMock.mock.calls[0]![0])).toBe(String(expected));
+    expect(String(navigateMock.mock.calls[0]![0])).toBe(
+      `${String(expected)}?type=alerts`,
+    );
   });
 
   test("a completed step is inert", async (): Promise<void> => {

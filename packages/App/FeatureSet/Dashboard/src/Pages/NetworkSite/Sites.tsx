@@ -412,7 +412,12 @@ const NetworkSites: FunctionComponent<
         id={NETWORK_SITES_TABLE_ID}
         userPreferencesKey={NETWORK_SITES_TABLE_ID}
         isDeleteable={true}
-        isEditable={true}
+        /*
+         * No Edit on the rows: a site is edited in one place, the Site
+         * Settings card on its Settings page (open the site, then
+         * Settings). These steps are the Create form's.
+         */
+        isEditable={false}
         isCreateable={true}
         isViewable={true}
         showRefreshButton={true}

@@ -719,7 +719,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### कोई metrics दिखाई नहीं दे रहे
 
 1. पहले एक अस्वीकृत ingestion key को खारिज करें — यह सबसे आम कारण है और एजेंट पक्ष से आसानी से छूट जाता है। ऊपर [एजेंट "डिस्कनेक्टेड" दिखाता है](#एजेंट-डिस्कनेक्टेड-दिखाता-है) देखें (या बस diagnostic स्क्रिप्ट चलाएँ)।
-2. जाँचें कि क्लस्टर पहचानकर्ता उस मान से मेल खाता है जिसे आपने `clusterName` के रूप में पास किया था
+2. जाँचें कि क्लस्टर का **क्लस्टर नाम (clusterName)** उस मान से मेल खाता है जिसे आपने `clusterName` के रूप में पास किया था। यह क्लस्टर के **Settings** पेज पर **Cluster Details** में है; इसे ठीक करने के लिए **Edit Details** चुनें और **Advanced** खोलें
 3. RBAC अनुमतियाँ सत्यापित करें: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. export त्रुटियों के लिए OTel collector logs जाँचें
 

@@ -890,6 +890,10 @@
           "type": "boolean",
           "description": "Drop an application's eBPF database call (db.system.name set, not SERVER) that has no parent: background work such as queue workers polling Redis, pool pings, cron jobs. Trade-off: a database that only such work talks to is no longer discovered from traces and shows on the service map as a remote endpoint. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
         },
+        "dropNodeInspectorMetrics": {
+          "type": "boolean",
+          "description": "Drop the http.server.* datapoints OBI v0.14 records for its own Node.js agent injection: GET on port 9229 with route /json/list, /json/version, or /* answered 101 (OBI's default route naming; nothing is dropped with ebpf.nodejs.enabled false). A datapoint has no client address, so an app's own GET /json/list or /json/version on port 9229, and its own WebSocket upgrades there that OBI names /*, are dropped too. Only OBI's http.server.* datapoints are considered: its span metrics still count the injection. OneUptime drops the injection's spans on ingest."
+        },
         "logToTraceCorrelation": {
           "type": "boolean",
           "description": "Inject trace_id / span_id into JSON log lines from instrumented processes (via OBI's log enricher) and lift them onto the LogRecord in the filelog pipeline so trace ↔ log click-through works. Non-JSON logs pass through unchanged. **Off by default** — the log enricher rewrites the application's stdout buffer in-process and is incompatible with LD_PRELOAD-based APM agents (Dynatrace OneAgent, New Relic, AppDynamics, Datadog, Instana); enabling it inside a process that already has one of those agents typically crashes the application with SIGSEGV. Opt in only when no LD_PRELOAD APM agent runs in the same pods (or scope `logEnricher.services` to skip those pods)."

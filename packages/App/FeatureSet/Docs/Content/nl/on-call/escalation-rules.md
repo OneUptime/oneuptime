@@ -10,7 +10,7 @@ Wanneer u op de pagina **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid maakt
 
 ## Een escalatieregel toevoegen
 
-Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu en klik op **Add Escalation Rule**. Het dialoogvenster is één korte pagina met twee vragen:
+Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu en klik op **Escalatieregel toevoegen**. Het dialoogvenster is één korte pagina met twee vragen:
 
 - **Op de hoogte stellen** — wie op dit niveau wordt opgeroepen. Eén kiezer omvat bereikbaarheidsschema's, teams en personen: klik op **Ontvanger toevoegen**, zoek en kies er zoveel als nodig. Er is er minstens één nodig.
   - Een **bereikbaarheidsschema** roept op wie er dienst heeft wanneer het niveau wordt uitgevoerd, niet een vaste persoon.
@@ -30,6 +30,8 @@ De kop van **Geavanceerd** toont **Ingesteld** wanneer de regel een beschrijving
 Wanneer een incident of waarschuwing het beleid bereikt, roept **Level 1** meteen zijn ontvangers op. Als niemand binnen de wachttijd bevestigt, wordt **Level 2** opgeroepen, enzovoort de lijst af. Is de wachttijd van het laatste niveau verstreken zonder bevestiging, dan begint het beleid opnieuw bij **Level 1** als het **Herhaalbeleid** (onder de regels) herhalen voorschrijft, zo vaak als dat toestaat, en anders stopt het.
 
 Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wanneer elk niveau wordt opgeroepen, wie het oproept en wat er na het laatste gebeurt. Een niveau waarvan niet alle ontvangers kunnen worden opgeroepen, meldt dat op zijn kaart; klik op het label om te zien wie en waarom.
+
+Hoe iedere persoon die een niveau oproept wordt bereikt, bepalen diens eigen bereikbaarheidsregels: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt gebruikt. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**.
 
 ## Regels bewerken, herordenen en verwijderen
 

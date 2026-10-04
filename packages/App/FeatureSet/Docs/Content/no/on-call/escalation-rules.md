@@ -10,7 +10,7 @@ Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør s
 
 ## Legg til en eskaleringsregel
 
-Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Add Escalation Rule**. Dialogen er én kort side med to spørsmål:
+Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side med to spørsmål:
 
 - **Varsle** — hvem som varsles på dette nivået. Én velger dekker vaktplaner, team og personer: klikk på **Legg til mottaker**, søk og velg så mange du trenger. Minst én må med.
   - En **vaktplan** varsler den som har vakt når nivået kjører, ikke en fast person.
@@ -30,6 +30,8 @@ Overskriften på **Avansert** viser **Konfigurert** når regelen har en beskrive
 Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottakerne sine med en gang. Hvis ingen bekrefter innen ventetiden, varsles **Level 2**, og så videre nedover listen. Når ventetiden for det siste nivået har gått uten bekreftelse, starter retningslinjen på nytt fra **Level 1** hvis **Gjentakelsesretningslinje** (under reglene) sier at den skal gjentas, så mange ganger den tillater, og ellers stopper den.
 
 Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert nivå varsles, hvem det varsler og hva som skjer etter det siste. Et nivå der ikke alle mottakerne kan varsles, sier fra om det på kortet sitt; klikk på merket for å se hvem og hvorfor.
+
+Hvordan hver person et nivå varsler blir nådd, bestemmer personens egne vaktregler: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder og et kort per alvorlighetsgrad som viser hvilken varselmetode som brukes og etter hvor lang tid. En prosjektadministrator kan se og endre et medlems regler under **Brukere** > medlemmet > **Vaktregler**.
 
 ## Rediger, omorganiser og slett regler
 

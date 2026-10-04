@@ -5,9 +5,12 @@ import AcmeCertificateService from "../../../Server/Services/AcmeCertificateServ
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Domain from "../../../Server/Types/Domain";
 import GreenlockUtil from "../../../Server/Utils/Greenlock/Greenlock";
+import { CertificateOrderOutcome } from "../../../Server/Utils/Greenlock/CertificateOrder";
+import CertificateOrderFailures from "../../../Server/Utils/Greenlock/CertificateOrderFailures";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import { useInMemoryRedis } from "../Utils/Greenlock/InMemoryRedis";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -19,8 +22,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * Every order spends from the Let's Encrypt account the whole installation
  * shares, so what these pin hardest is WHICH domains each sweep may order for
  * and HOW MANY per run. No database, no network and no CA: the service's own
- * reads and writes, the certificate table, the HTTPS probe and orderCert are
- * all spied on.
+ * reads and writes, the certificate table, the HTTPS probe and the order
+ * (orderCertIfMissing, which takes the name's lock and the sweeps' shared
+ * budget - see CertificateOrder.test.ts) are all spied on.
  */
 
 type DomainRow = {
@@ -29,11 +33,13 @@ type DomainRow = {
   fullDomain: string;
   cnameVerificationToken?: string;
   isSslProvisioned?: boolean;
+  isSslOrdered?: boolean;
+  isCustomCertificate?: boolean;
 };
 
 function makeDomain(
   fullDomain: string,
-  extra: { isSslProvisioned?: boolean } = {},
+  extra: { isSslProvisioned?: boolean; isCustomCertificate?: boolean } = {},
 ): DomainRow {
   const id: ObjectID = ObjectID.generate();
 
@@ -121,22 +127,34 @@ function withCertificates(
 type Service = {
   findByCalls: Array<FindByCall>;
   ordered: Array<string>;
+  // Whether each of those orders drew from the sweeps' shared budget.
+  fromSweep: Array<boolean>;
+  // Whether each was told its CNAME was verified a moment ago.
+  cnameVerifiedJustNow: Array<boolean>;
   // Domains recorded as ordered without a new order.
   recordedAsOrdered: Array<string>;
+  // The writes that recorded them: one per run, for all of them.
+  recordingWrites: Array<{
+    query: Record<string, unknown>;
+    data: Record<string, unknown>;
+  }>;
 };
 
 /*
- * Domain rows the service reads, the domains handed to orderCert, and the
- * rows marked ordered. Any failure is per domain.
+ * Domain rows the service reads, the domains handed to orderCertIfMissing,
+ * and the rows marked ordered. Any failure is per domain.
  */
 function setUpService(data: {
   rows: Array<DomainRow>;
-  failOrdersFor?: Array<string>;
+  failOrdersFor?: Array<string> | undefined;
 }): Service {
   const service: Service = {
     findByCalls: [],
     ordered: [],
+    fromSweep: [],
+    cnameVerifiedJustNow: [],
     recordedAsOrdered: [],
+    recordingWrites: [],
   };
 
   const byId: Map<string, DomainRow> = new Map<string, DomainRow>(
@@ -152,15 +170,45 @@ function setUpService(data: {
     return data.rows.slice(0, call.limit);
   }) as never);
 
-  jest.spyOn(DashboardDomainService, "orderCert").mockImplementation((async (
-    domain: DomainRow,
-  ): Promise<void> => {
-    service.ordered.push(domain.fullDomain);
+  jest
+    .spyOn(DashboardDomainService, "orderCertIfMissing")
+    .mockImplementation((async (
+      domain: DomainRow,
+      options?: { fromSweep?: boolean; cnameVerifiedJustNow?: boolean },
+    ): Promise<CertificateOrderOutcome> => {
+      service.ordered.push(domain.fullDomain);
+      service.fromSweep.push(Boolean(options?.fromSweep));
+      service.cnameVerifiedJustNow.push(Boolean(options?.cnameVerifiedJustNow));
 
-    if ((data.failOrdersFor || []).includes(domain.fullDomain)) {
-      throw new Error(`CA refused the order for ${domain.fullDomain}`);
-    }
-  }) as never);
+      if ((data.failOrdersFor || []).includes(domain.fullDomain)) {
+        throw new Error(`CA refused the order for ${domain.fullDomain}`);
+      }
+
+      return CertificateOrderOutcome.Ordered;
+    }) as never);
+
+  // Domains with a certificate are recorded in one write, by id.
+  jest
+    .spyOn(DashboardDomainService, "updateBy")
+    .mockImplementation((async (update: {
+      query: Record<string, unknown>;
+      data: { isSslOrdered?: boolean };
+    }): Promise<number> => {
+      service.recordingWrites.push({
+        query: update.query,
+        data: update.data as Record<string, unknown>,
+      });
+
+      const ids: Array<string> = inList(update.query["_id"]);
+
+      if (update.data.isSslOrdered === true) {
+        for (const id of ids) {
+          service.recordedAsOrdered.push(byId.get(id)?.fullDomain || "unknown");
+        }
+      }
+
+      return ids.length;
+    }) as never);
 
   jest
     .spyOn(DashboardDomainService, "updateOneById")
@@ -529,6 +577,112 @@ describe("DashboardDomainService.checkOrderStatus", () => {
   });
 });
 
+/*
+ * What the dashboard sweeps now share with the status page ones: one order
+ * door (orderCertIfMissing - the name's lock, a look at the certificate
+ * table under it, and one budget for both sweeps), one write to record the
+ * domains that already have a certificate, and a domain whose orders keep
+ * failing waiting longer after each failure.
+ */
+describe("DashboardDomainService sweeps, the way status page sweeps order", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("both sweeps order through orderCertIfMissing, drawing from the sweeps' shared budget", async () => {
+    atRun(0);
+    withCertificates({});
+    const service: Service = setUpService({
+      rows: [makeDomain("a.example.com"), makeDomain("b.example.com")],
+    });
+
+    await DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+    await DashboardDomainService.checkOrderStatus();
+
+    expect(service.ordered.sort()).toEqual([
+      "a.example.com",
+      "a.example.com",
+      "b.example.com",
+      "b.example.com",
+    ]);
+    expect(service.fromSweep).toEqual([true, true, true, true]);
+    expect(DashboardDomainServiceClass.SWEEP_ORDER_BUDGET).toBe(
+      "DashboardDomainSweeps",
+    );
+  });
+
+  test("records every domain that has a certificate in one write, only while it is still verified", async () => {
+    atRun(0);
+    withCertificates({ "a.example.com": 40, "b.example.com": 50 });
+    const rows: Array<DomainRow> = [
+      makeDomain("a.example.com"),
+      makeDomain("b.example.com"),
+      makeDomain("c.example.com"),
+    ];
+    const service: Service = setUpService({ rows });
+
+    await DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    expect(service.recordingWrites).toHaveLength(1);
+    expect(service.recordingWrites[0]!.query).toEqual({
+      _id: { inList: [rows[0]!._id, rows[1]!._id] },
+      isCnameVerified: true,
+      isSslOrdered: false,
+    });
+    expect(service.recordingWrites[0]!.data).toEqual({ isSslOrdered: true });
+    expect(service.ordered).toEqual(["c.example.com"]);
+  });
+
+  test("the sweeps read whether each domain serves an upload, so the order needs no second read", async () => {
+    atRun(0);
+    withCertificates({});
+    const service: Service = setUpService({
+      rows: [makeDomain("a.example.com")],
+    });
+
+    await DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+    await DashboardDomainService.checkOrderStatus();
+
+    for (const call of service.findByCalls) {
+      expect(call.select["isCustomCertificate"]).toBe(true);
+    }
+  });
+
+  test.each([
+    ["the first-order sweep", "orderSSLForDomainsWhichAreNotOrderedYet"],
+    ["the re-order sweep", "checkOrderStatus"],
+  ])(
+    "%s skips a domain waiting after a failed order, and its slot goes to another",
+    async (_name: string, sweep: string) => {
+      const now: Date = atRun(0);
+      withCertificates({});
+      useInMemoryRedis();
+
+      await CertificateOrderFailures.record({
+        domain: "failing.example.com",
+        error: "Unable to order certificate for failing.example.com.",
+        now: now,
+      });
+
+      const service: Service = setUpService({
+        rows: [
+          makeDomain("failing.example.com"),
+          ...manyDomains("w", DashboardDomainServiceClass.ORDER_MAX_PER_RUN),
+        ],
+      });
+
+      await (
+        DashboardDomainService as unknown as Record<string, () => Promise<void>>
+      )[sweep]!();
+
+      expect(service.ordered).toHaveLength(
+        DashboardDomainServiceClass.ORDER_MAX_PER_RUN,
+      );
+      expect(service.ordered).not.toContain("failing.example.com");
+    },
+  );
+});
+
 describe("DashboardDomainService.updateSslProvisioningStatusForAllDomains", () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -732,9 +886,52 @@ describe("DashboardDomainService.verifyCnameWhoseCnameisNotVerified", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * The domains the sweep reads, and the CNAME check of each: verified, not
+   * yet, or a check that throws.
+   */
+  function setUpVerifySweep(data: {
+    rows: Array<DomainRow>;
+    verified: Array<string>;
+    throwsFor?: Array<string>;
+    certificates?: Record<string, number | null>;
+    failOrdersFor?: Array<string>;
+  }): { service: Service; checked: Array<string> } {
+    atRun(0);
+    withCertificates(data.certificates || {});
+
+    const service: Service = setUpService({
+      rows: data.rows,
+      failOrdersFor: data.failOrdersFor,
+    });
+
+    const checked: Array<string> = [];
+
+    jest
+      .spyOn(DashboardDomainService, "isCnameValid")
+      .mockImplementation((async (fullDomain: string): Promise<boolean> => {
+        checked.push(fullDomain);
+
+        if ((data.throwsFor || []).includes(fullDomain)) {
+          throw new Error("DNS lookup failed");
+        }
+
+        return data.verified.includes(fullDomain);
+      }) as never);
+
+    return { service, checked };
+  }
+
   test("checks every unverified domain and keeps going past one that throws", async () => {
     const checked: Array<string> = [];
     const findByCalls: Array<FindByCall> = [];
+
+    atRun(0);
+    withCertificates({});
+
+    jest
+      .spyOn(DashboardDomainService, "orderCertIfMissing")
+      .mockResolvedValue(CertificateOrderOutcome.Ordered as never);
 
     jest.spyOn(DashboardDomainService, "findBy").mockImplementation((async (
       call: FindByCall,
@@ -776,6 +973,13 @@ describe("DashboardDomainService.verifyCnameWhoseCnameisNotVerified", () => {
     let mostInFlight: number = 0;
     let checked: number = 0;
 
+    atRun(0);
+    withCertificates({});
+
+    jest
+      .spyOn(DashboardDomainService, "orderCertIfMissing")
+      .mockResolvedValue(CertificateOrderOutcome.Ordered as never);
+
     jest.spyOn(DashboardDomainService, "findBy").mockResolvedValue(
       Array.from({ length: total }, (_value: unknown, index: number) => {
         return makeDomain(`d${index}.example.com`);
@@ -801,5 +1005,138 @@ describe("DashboardDomainService.verifyCnameWhoseCnameisNotVerified", () => {
     expect(mostInFlight).toBe(
       DashboardDomainServiceClass.DOMAIN_CHECK_CONCURRENCY,
     );
+  });
+
+  /*
+   * As the status page sweep does: a domain whose record went live is
+   * ordered in the run that verifies it, rather than at the order sweep's
+   * next run - so its certificate is usually live within 15 minutes whether
+   * or not anyone clicked Check now.
+   */
+  test("orders the certificate of each domain it verifies, in the same run, from the sweeps' budget, without checking the record again", async () => {
+    const { service, checked } = setUpVerifySweep({
+      rows: [makeDomain("a.example.com"), makeDomain("b.example.com")],
+      verified: ["a.example.com", "b.example.com"],
+    });
+
+    await DashboardDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(service.ordered.sort()).toEqual(["a.example.com", "b.example.com"]);
+    expect(service.fromSweep).toEqual([true, true]);
+    expect(service.cnameVerifiedJustNow).toEqual([true, true]);
+    // One check per domain: the order does not check it again.
+    expect(checked.sort()).toEqual(["a.example.com", "b.example.com"]);
+  });
+
+  test("a domain still not verified, or one whose check threw, is not ordered", async () => {
+    const { service } = setUpVerifySweep({
+      rows: [
+        makeDomain("live.example.com"),
+        makeDomain("not-yet.example.com"),
+        makeDomain("broken.example.com"),
+      ],
+      verified: ["live.example.com"],
+      throwsFor: ["broken.example.com"],
+    });
+
+    await DashboardDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(service.ordered).toEqual(["live.example.com"]);
+  });
+
+  test("a domain on an uploaded certificate is verified, and nothing is ordered for it", async () => {
+    const { service, checked } = setUpVerifySweep({
+      rows: [makeDomain("upload.example.com", { isCustomCertificate: true })],
+      verified: ["upload.example.com"],
+    });
+
+    await DashboardDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(checked).toEqual(["upload.example.com"]);
+    expect(service.ordered).toEqual([]);
+  });
+
+  test("reads whether each domain serves an upload, and whether it is recorded as ordered", async () => {
+    const { service } = setUpVerifySweep({ rows: [], verified: [] });
+
+    await DashboardDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(service.findByCalls[0]!.query).toEqual({ isCnameVerified: false });
+    expect(service.findByCalls[0]!.select).toEqual({
+      _id: true,
+      fullDomain: true,
+      isCustomCertificate: true,
+      isSslOrdered: true,
+    });
+  });
+
+  test("orders at most ORDER_MAX_PER_RUN of the domains it verified", async () => {
+    const rows: Array<DomainRow> = manyDomains(
+      "v",
+      DashboardDomainServiceClass.ORDER_MAX_PER_RUN + 3,
+    );
+
+    const { service } = setUpVerifySweep({
+      rows: rows,
+      verified: domainsOf(rows),
+    });
+
+    await DashboardDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(service.ordered).toHaveLength(
+      DashboardDomainServiceClass.ORDER_MAX_PER_RUN,
+    );
+  });
+
+  /*
+   * The domain whose CNAME check failed for a moment - which marked it
+   * unverified and unordered - and passes again: its certificate is still
+   * good, and is only recorded as ordered.
+   */
+  test("a domain verified again with its certificate in place is recorded as ordered, not ordered again", async () => {
+    const { service } = setUpVerifySweep({
+      rows: [makeDomain("back.example.com"), makeDomain("new.example.com")],
+      verified: ["back.example.com", "new.example.com"],
+      certificates: { "back.example.com": 40 },
+    });
+
+    await DashboardDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(service.recordedAsOrdered).toEqual(["back.example.com"]);
+    expect(service.ordered).toEqual(["new.example.com"]);
+  });
+
+  test("an order that fails does not fail the sweep, and the others are still ordered", async () => {
+    const { service } = setUpVerifySweep({
+      rows: [makeDomain("a.example.com"), makeDomain("broken.example.com")],
+      verified: ["a.example.com", "broken.example.com"],
+      failOrdersFor: ["broken.example.com"],
+    });
+
+    await expect(
+      DashboardDomainService.verifyCnameWhoseCnameisNotVerified(),
+    ).resolves.toBeUndefined();
+
+    expect(service.ordered.sort()).toEqual([
+      "a.example.com",
+      "broken.example.com",
+    ]);
+  });
+
+  test("a certificate lookup that fails leaves the orders to the order sweep, and does not fail the run", async () => {
+    const { service } = setUpVerifySweep({
+      rows: [makeDomain("a.example.com")],
+      verified: ["a.example.com"],
+    });
+
+    jest
+      .spyOn(GreenlockUtil, "findCertificatesByDomain")
+      .mockRejectedValue(new Error("database is down") as never);
+
+    await expect(
+      DashboardDomainService.verifyCnameWhoseCnameisNotVerified(),
+    ).resolves.toBeUndefined();
+
+    expect(service.ordered).toEqual([]);
   });
 });

@@ -10,7 +10,7 @@ Når du opretter en vagtpolitik på siden **Vagtpolitikker**, beder formularen o
 
 ## Tilføj en eskaleringsregel
 
-Åbn vagtpolitikken, vælg **Eskaleringsregler** i sidemenuen, og klik på **Add Escalation Rule**. Dialogen er én kort side med to spørgsmål:
+Åbn vagtpolitikken, vælg **Eskaleringsregler** i sidemenuen, og klik på **Tilføj eskaleringsregel**. Dialogen er én kort side med to spørgsmål:
 
 - **Underret** — hvem der tilkaldes på dette niveau. Én vælger dækker vagtplaner, teams og personer: klik på **Tilføj modtager**, søg, og vælg så mange, du har brug for. Der skal være mindst én.
   - En **vagtplan** tilkalder den, der har vagt, når niveauet kører, ikke en fast person.
@@ -30,6 +30,8 @@ Overskriften på **Avanceret** viser **Konfigureret**, når reglen har en beskri
 Når en hændelse eller en advarsel når politikken, tilkalder **Level 1** sine modtagere med det samme. Hvis ingen kvitterer inden for ventetiden, tilkaldes **Level 2**, og så videre ned gennem listen. Når det sidste niveaus ventetid er gået uden kvittering, starter politikken forfra fra **Level 1**, hvis dens **Gentagelsespolitik** (under reglerne) siger, at den skal gentages, så mange gange som den tillader, og ellers stopper den.
 
 Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår hvert niveau tilkaldes, hvem det tilkalder, og hvad der sker efter det sidste. Et niveau, hvor ikke alle modtagere kan tilkaldes, siger det på sit kort; klik på mærkatet for at se hvem og hvorfor.
+
+Hvordan hver person, et niveau tilkalder, bliver nået, bestemmer vedkommendes egne vagtregler: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der bruges og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**.
 
 ## Rediger, omordn og slet regler
 

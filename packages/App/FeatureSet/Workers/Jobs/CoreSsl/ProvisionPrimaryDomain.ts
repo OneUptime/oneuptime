@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import { EVERY_DAY, EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
+import { EVERY_FIFTEEN_MINUTE, EVERY_HOUR } from "Common/Utils/CronTime";
 import {
   Host,
   ProvisionSsl,
@@ -9,15 +9,25 @@ import logger from "Common/Server/Utils/Logger";
 import Domain from "Common/Types/Domain";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
 import GreenlockUtil from "Common/Server/Utils/Greenlock/Greenlock";
+import { CertificateOrderReason } from "Common/Server/Utils/Greenlock/CertificateOrderBudget";
+import { CertificateOrderOutcome } from "Common/Server/Utils/Greenlock/CertificateOrderOutcome";
 import OneUptimeDate from "Common/Types/Date";
 import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 
 const JOB_NAME: string = "CoreSSL:EnsurePrimaryHostCertificate";
 
+/*
+ * Every hour: a run does nothing but read the host's certificate while it
+ * has more than 30 days left. The order is placed like every other one -
+ * under the name's lock, within the installation's Let's Encrypt budget -
+ * and an order that is not placed now (another order of the host running,
+ * the window's orders used up, Redis away for a moment) is placed by the
+ * next run, an hour later rather than a day.
+ */
 RunCron(
   JOB_NAME,
   {
-    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_DAY,
+    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_HOUR,
     runOnStartup: true,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },
@@ -77,12 +87,31 @@ RunCron(
         `${JOB_NAME}: ordering or renewing certificate for ${hostnameOnly}.`,
       );
 
-      await GreenlockUtil.orderCert({
+      /*
+       * The installation's own host: there is no CNAME to check. Like every
+       * order, it takes the name's order lock and one unit of the
+       * installation's Let's Encrypt budget, with a renewal's priority: the
+       * installation's own certificate comes before new custom domains.
+       */
+      const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
         domain: hostnameOnly,
-        validateCname: async () => {
-          return true;
-        },
+        reason: CertificateOrderReason.PrimaryHost,
+        validateCname: null,
       });
+
+      if (outcome === CertificateOrderOutcome.NotOrderedNow) {
+        logger.debug(
+          `${JOB_NAME}: another worker is ordering the certificate for ${hostnameOnly} right now.`,
+        );
+        return;
+      }
+
+      if (outcome === CertificateOrderOutcome.LimitReached) {
+        logger.warn(
+          `${JOB_NAME}: not ordering the certificate for ${hostnameOnly} now: this installation's Let's Encrypt orders for the next few minutes are used up. The next run orders it.`,
+        );
+        return;
+      }
 
       logger.info(
         `${JOB_NAME}: certificate successfully issued or renewed for ${hostnameOnly}.`,

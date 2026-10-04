@@ -2,9 +2,9 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
-  STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
-  StatusPageCustomDomainCopy,
-} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
+  CUSTOM_DOMAIN_STATUS,
+  CustomDomainCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 
 /*
  * The English docs for status page custom domains, held to the flow they
@@ -83,7 +83,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(CUSTOM_DOMAINS).toContain("**Project Settings → Domains**");
     expect(PAGE).not.toContain("More → Project Settings → Custom Domains");
     expect(CUSTOM_DOMAINS).toContain(
-      `**${StatusPageCustomDomainCopy.domainFieldSideLink}**`,
+      `**${CustomDomainCopy.domainFieldSideLink}**`,
     );
   });
 
@@ -93,9 +93,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(adding).toContain("The dialog is one page");
     expect(adding).not.toMatch(/two steps|\*\*Basic\*\*|\*\*More\*\*/);
     expect(adding).toContain("**Advanced**");
-    expect(adding).toContain(
-      StatusPageCustomDomainCopy.advancedSummaryFreeCertificate,
-    );
+    expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**Upload Custom Certificate**");
     expect(adding).toContain("**DNS Setup** opens");
   });
@@ -113,7 +111,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(dnsSetup).toContain("`CNAME`");
     expect(dnsSetup).toContain("copy button");
     expect(dnsSetup).toContain("**Check now**");
-    expect(dnsSetup).toContain(StatusPageCustomDomainCopy.dnsSetupVerified);
+    expect(dnsSetup).toContain(CustomDomainCopy.dnsSetupVerified);
     expect(dnsSetup).toContain("ALIAS, ANAME or CNAME flattening");
   });
 
@@ -127,6 +125,25 @@ describe("Status page custom domains (English docs)", () => {
     expect(certificates).toContain("Let's Encrypt");
   });
 
+  /*
+   * A domain whose order keeps failing is no longer retried every 15
+   * minutes, a failure shows in the Status column, every order shares one
+   * budget with renewals first, and a DNS blip during a renewal keeps the
+   * certificate (custom-domain-ssl-hardening).
+   */
+  it("says how a failed order is shown and retried, and that renewals come first", () => {
+    const certificates: string = section(
+      "## SSL certificates",
+      "## Reissuing a certificate",
+    );
+
+    expect(certificates).not.toContain("tries again every 15 minutes");
+    expect(certificates).toContain("keeps trying on its own");
+    expect(certificates).toContain("Status column says so");
+    expect(certificates).toContain("renewals always come first");
+    expect(certificates).toContain("the certificate keeps serving");
+  });
+
   it("keeps Reissue SSL, and says when it appears", () => {
     const reissue: string = section(
       "## Reissuing a certificate",
@@ -137,6 +154,23 @@ describe("Status page custom domains (English docs)", () => {
     expect(reissue).toContain(
       "which happens on its own once its CNAME record is verified",
     );
+  });
+
+  /*
+   * Dashboards -> a dashboard -> Custom Domains is under the dashboard's
+   * Branding section, and works the same way: the reissue paragraph says
+   * where, and sends readers to the dashboard guide.
+   */
+  it("sends readers to dashboard custom domains by their menu path", () => {
+    const reissue: string = section(
+      "## Reissuing a certificate",
+      "## Reading the domain Status column",
+    );
+
+    expect(reissue).toContain(
+      "**Dashboards → your dashboard → Branding → Custom Domains**",
+    );
+    expect(reissue).toContain("(/docs/dashboards/sharing#custom-domains)");
   });
 
   it("reads the Status column exactly as the page writes it", () => {
@@ -158,9 +192,7 @@ describe("Status page custom domains (English docs)", () => {
         return line.split("|")[1]!.trim();
       });
 
-    expect(rows.sort()).toEqual(
-      Object.values(STATUS_PAGE_CUSTOM_DOMAIN_STATUS).sort(),
-    );
+    expect(rows.sort()).toEqual(Object.values(CUSTOM_DOMAIN_STATUS).sort());
     expect(table).not.toContain("Action Required");
   });
 });

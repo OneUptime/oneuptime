@@ -36,16 +36,16 @@ const NOTIFICATION_RULE_READ_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * The six pages of the On-Call section, in the order somebody diagnosing and
+ * The three pages of the On-Call section, in the order somebody diagnosing and
  * then repairing a responder needs them.
  *
  * Readiness first because it is the page that says whether anything is wrong at
  * all. Notification methods second because a rule with nothing to point at is
  * not a rule — a responder with no verified method cannot be fixed by any
- * amount of rule editing. Then the four rule types, in the same order and under
- * the same names the self-serve settings menu uses, so an administrator
- * repairing somebody else's configuration navigates the shape they already know
- * from their own.
+ * amount of rule editing. Then the rules: one page with a tab per kind, under
+ * the same name and drawn by the same component as in the member's own User
+ * Settings, so an administrator repairing somebody else's configuration
+ * navigates the shape they already know from their own.
  */
 interface OnCallMenuEntry {
   pageMapKey: PageMap;
@@ -65,24 +65,9 @@ const ON_CALL_MENU_ENTRIES: Array<OnCallMenuEntry> = [
     icon: IconProp.Bell,
   },
   {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES,
-    title: "Incident On-Call Rules",
-    icon: IconProp.Alert,
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES,
-    title: "Incident Episode On-Call Rules",
-    icon: IconProp.Squares,
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_ALERT_ON_CALL_RULES,
-    title: "Alert On-Call Rules",
-    icon: IconProp.ExclaimationCircle,
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES,
-    title: "Alert Episode On-Call Rules",
-    icon: IconProp.Squares,
+    pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
+    title: "On-Call Rules",
+    icon: IconProp.BellRinging,
   },
 ];
 

@@ -719,7 +719,7 @@ La raison la plus courante — en particulier après une réinstallation — est
 ### Aucune métrique n'apparaît
 
 1. Excluez d'abord une clé d'ingestion rejetée — c'est la cause la plus courante et elle passe facilement inaperçue du côté de l'agent. Consultez [L'agent affiche « Disconnected »](#lagent-affiche-disconnected) ci-dessus (ou exécutez simplement le script de diagnostic).
-2. Vérifiez que l'identifiant du cluster correspond à la valeur que vous avez transmise comme `clusterName`
+2. Vérifiez que le **nom du cluster (clusterName)** correspond à la valeur que vous avez transmise comme `clusterName`. Il figure sur la page **Settings** du cluster, dans **Cluster Details** ; pour le corriger, choisissez **Edit Details** et ouvrez **Advanced**
 3. Vérifiez les autorisations RBAC : `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Vérifiez les journaux du collecteur OTel pour repérer des erreurs d'export
 

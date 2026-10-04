@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime spiller av<br/>velkomstmelding]
     D --> E[Last eskaleringsregler]
     E --> F{Regel 1:<br/>Prøv vaktperson}
-    F -->|Ikke svart| G{Regel 2:<br/>Prøv backup-team}
+    F -->|Ikke svart| G{Regel 2:<br/>Prøv backup-ingeniør}
     F -->|Svart| H[Koble innringer<br/>til ingeniør]
     G -->|Ikke svart| I{Regel 3:<br/>Prøv leder}
     G -->|Svart| H
@@ -70,7 +70,7 @@ Funksjonen for innkommende samtalepolicy fungerer ved å:
 
 1. Motta innkommende samtaler på et Twilio-telefonnummer
 2. Spille av en tilpassbar velkomstmelding
-3. Rute samtalen gjennom eskaleringsregler (team, vakter eller brukere)
+3. Rute samtalen gjennom eskaleringsregler (vaktplaner eller personer)
 4. Koble innringeren til den første tilgjengelige vakthavende ingeniøren
 5. Eskalere til neste regel hvis ingen svarer
 
@@ -86,13 +86,14 @@ Siden du selvhoster OneUptime, må du konfigurere din egen Twilio-konto. Dette g
 
 1. Logg inn på OneUptime-dashbordet ditt
 2. Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**
-3. Klikk **Create Custom Call/SMS Config**
+3. Klikk **Create Twilio Config** under **Twilio-konfigurasjon**
 4. Fyll inn følgende felt:
    - **Navn**: Et vennlig navn (f.eks. "Production Twilio Config")
    - **Beskrivelse**: Valgfri beskrivelse
    - **Twilio Account SID**: Din Twilio Account SID (starter med `AC`)
    - **Twilio Auth Token**: Din Twilio Auth Token
    - **Twilio primært telefonnummer**: Et telefonnummer fra din Twilio-konto for utgående anrop
+   - **Angi som prosjektstandard**: slått på for prosjektets første Twilio-konfigurasjon, så SMS-er og anrop til prosjektmedlemmer også går gjennom denne kontoen. Slå den av hvis kontoen bare er for innkommende anrop.
 5. Klikk **Lagre**
 
 ## Trinn 3: Opprett en innkommende samtalepolicy
@@ -154,35 +155,37 @@ flowchart LR
 
 ## Trinn 6: Konfigurer eskaleringsregler
 
-Eskaleringsregler bestemmer hvordan samtaler rutes:
+Eskaleringsregler bestemmer hvem som ringes når noen ringer policyens nummer, fra toppen av listen og nedover:
 
-1. Åpne innkommende samtalepolicyen
+1. Åpne den innkommende samtalepolicyen din
 2. Gå til fanen **Eskaleringsregler**
-3. Klikk **Add Escalation Rule**
-4. Konfigurer regelen:
-   - **Rekkefølge**: Prioritetsrekkefølge (lavere tall prøves først)
-   - **Eskaler etter (sekunder)**: Hvor lenge det ventes før eskalering
-   - **Vakttidsplan**: Velg en vakt for å rute til den som er vakthavende
-   - **Team**: Velg spesifikke team
-   - **Brukere**: Velg spesifikke brukere
-5. Legg til ytterligere eskaleringsregler etter behov
+3. Klikk **Legg til eskaleringsregel**
+4. Fyll ut regelen. Det er ett trinn:
+   - **Hvem som skal ringes**: en vaktplan eller én person. En vaktplan ringer den som har vakt i den når samtalen kommer inn. Personene er medlemmene i prosjektet ditt.
+   - **Ringetid (i sekunder)**: hvor lenge telefonen deres ringer før samtalen går videre til neste regel. Den starter på 30 sekunder, og Twilio godtar 5 til 600.
+   - **Navn** og **Beskrivelse** er valgfrie og ligger under **Avansert**. En regel uten navn vises etter plassen sin i listen: **Level 1**, **Level 2**.
+5. Lagre den, og legg til en regel for hver vaktplan eller person som skal prøves deretter
+
+Reglene ringes fra toppen av listen og nedover, og en ny regel legges til nederst. Dra en regel i håndtaket øverst til venstre for å endre rekkefølgen; med tastaturet setter du fokus på håndtaket, trykker mellomrom, flytter regelen med piltastene og trykker mellomrom igjen.
+
+> **Pass på talepost**: hold **Ringetid** kortere enn tiden personens telefon bruker før den sender et ubesvart anrop til talepost. Hvis taleposten svarer først, kobles den som ringer til den, og samtalen går ikke videre til neste regel. Twilio legger selv til noen sekunder på hver ringing.
 
 ### Eksempel på eskaleringsregel
 
 ```mermaid
 flowchart TD
     subgraph "Eskaleringskjede"
-        A[Regel 1: Primær vaktperson<br/>Vent 30 sekunder] --> B[Regel 2: Sekundær vaktperson<br/>Vent 30 sekunder]
-        B --> C[Regel 3: Teknisk leder<br/>Vent 30 sekunder]
+        A[Level 1: Primær vaktplan<br/>Ring i 30 sekunder] --> B[Level 2: Sekundær vaktplan<br/>Ring i 30 sekunder]
+        B --> C[Level 3: Teknisk leder<br/>Ring i 30 sekunder]
         C --> D[Melding om ingen svar]
     end
 ```
 
-| Rekkefølge | Eskaler etter | Mål               |
-| ---------- | ------------- | ----------------- |
-| 1          | 30 sekunder   | Primær vaktplan   |
-| 2          | 30 sekunder   | Sekundær vaktplan |
-| 3          | 30 sekunder   | Teknisk teamleder |
+| Nivå    | Hvem som skal ringes      | Ringetid    |
+| ------- | ------------------------- | ----------- |
+| Level 1 | Primær vaktplan           | 30 sekunder |
+| Level 2 | Sekundær vaktplan         | 30 sekunder |
+| Level 3 | Teknisk leder (en person) | 30 sekunder |
 
 ## Trinn 7: Konfigurer talemeldinger (valgfritt)
 
@@ -209,13 +212,14 @@ Tilpass meldingene innringere hører:
 
 ### Innstillinger for eskaleringsregel
 
-| Innstilling            | Beskrivelse                                      |
-| ---------------------- | ------------------------------------------------ |
-| Order                  | Prioritetsrekkefølge (1 = høyest prioritet)      |
-| Escalate After Seconds | Ventetid før neste regel prøves (standard: 30 s) |
-| On-Call Schedule       | Rute til den som for øyeblikket er vakthavende   |
-| Teams                  | Rute til alle medlemmer av valgte team           |
-| Users                  | Rute til spesifikke brukere                      |
+| Innstilling           | Beskrivelse                                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hvem som skal ringes  | En vaktplan, som ringer den som har vakt i den, eller én person. Hver regel ringer én av dem                                                       |
+| Ringetid (i sekunder) | Hvor lenge telefonen ringer før samtalen går videre til neste regel (standard: 30; fra 5 til 600)                                                  |
+| Navn og Beskrivelse   | Valgfrie, under Avansert. En regel uten navn vises som Level 1, Level 2 og så videre etter plassen sin i listen                                   |
+| Rekkefølge            | Regelens plass i listen: reglene ringes fra toppen og nedover. Endres ved å dra reglene; via API-et havner en ny regel uten rekkefølge nederst |
+
+Via API-et angir en regel `onCallDutyPolicyScheduleId` eller `userId` (én av dem, aldri begge) og `escalateAfterSeconds`: ringetiden, 30 når den utelates.
 
 ## Vise samtalelogger
 
@@ -268,6 +272,7 @@ Hvis du ikke lenger trenger et telefonnummer:
 - Sjekk at eskaleringsregler er korrekt konfigurert
 - Sørg for at vaktplaner har brukere tildelt for gjeldende tid
 - Verifiser at policyen er aktivert
+- Hvis samtaler havner i en ingeniørs talepost, sett regelens **Ringetid** lavere enn tiden telefonen bruker før den går til talepost
 
 ### Lydkvalitetsproblemer
 

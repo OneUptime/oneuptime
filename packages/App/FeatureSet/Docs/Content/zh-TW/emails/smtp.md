@@ -6,7 +6,28 @@ OneUptime 支援透過自訂 SMTP 伺服器寄送電子郵件，提供三種驗�
 - **OAuth 2.0** - 適用於 Microsoft 365 與 Google Workspace 的現代驗證方式
 - **無** - 適用於不需要驗證的轉送（relay）伺服器
 
-本指南說明如何為 Microsoft 365 與 Google Workspace 設定 OAuth 2.0 驗證。
+下方第一節說明每項設定的位置。本指南其餘部分介紹 Microsoft 365 與 Google Workspace 的 OAuth 2.0 驗證。
+
+## 新增 SMTP 伺服器
+
+在 **專案設定 > 通知 > 通知設定** 的 **自訂 SMTP 設定** 卡片中新增專案的郵件伺服器。在自行託管的安裝中，OneUptime 本身用來寄信的伺服器在 **Admin Dashboard > 設定 > 電子郵件** 的 **自訂電子郵件和 SMTP 設定** 卡片中設定。兩個表單都分兩個步驟詢問相同的內容：
+
+1. **伺服器**：**名稱**（僅限專案設定）、**主機名稱**、**連接埠**（新設定從 `587` 開始）、**使用者名稱** 和 **密碼**。
+2. **寄件者**：您的郵件所用的 **寄件者電子郵件** 和 **寄件人名稱**。
+
+其餘所有選項都收合在伺服器步驟最後的 **進階** 中。收合時，其標題會說明郵件的傳送方式，例如：「透過 SMTP 傳送郵件，使用使用者名稱和密碼登入。需要 TLS。」
+
+| 欄位           | 作用                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **傳輸**       | `SMTP`（預設），或適用於已關閉 SMTP AUTH 之 Microsoft 365 租用戶的 `Microsoft Graph`。選擇 Microsoft Graph 會隱藏主機名稱、連接埠、使用者名稱和密碼，並顯示 OAuth 欄位。 |
+| **要求 TLS**   | 新的專案設定中預設開啟。郵件只會透過使用有效憑證的加密連線傳送。關閉時，只有在伺服器支援時才會加密郵件，且不會檢查憑證。連接埠 465 一律加密。                            |
+| **驗證類型**   | `Username and Password`（預設）、`OAuth`，或用於不需登入之轉送伺服器的 `None`。                                                                                          |
+| **OAuth 欄位** | 提供者類型、用戶端 ID、用戶端密碼、權杖 URL 和範圍，在選擇 OAuth 或 Microsoft Graph 後顯示。                                                                             |
+| **描述**       | 給團隊的備註（僅限專案設定）。                                                                                                                                           |
+
+**Microsoft Graph。** 開啟 **進階**，將 **傳輸** 設為 `Microsoft Graph`，然後填入具有 **Mail.Send** 應用程式權限的 Azure 應用程式：其用戶端 ID 和用戶端密碼、權杖 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及範圍 `https://graph.microsoft.com/.default`。郵件會從 **寄件者電子郵件** 的信箱寄出，該信箱必須是您租用戶中已授權的信箱。
+
+儲存專案設定後，可使用其所在列的 **傳送測試電子郵件** 確認它是否正常運作。
 
 ## OAuth 2.0 驗證
 
@@ -30,6 +51,8 @@ OAuth 2.0 提供了一種更安全的方式來向電子郵件伺服器進行驗�
 | **用戶端密鑰**       | 來自你 OAuth 供應商的用戶端密鑰（Google 則為私密金鑰）                        |
 | **Token URL**        | OAuth 權杖端點 URL                                                            |
 | **範圍**             | 存取 SMTP 所需的 OAuth 範圍（scope）                                          |
+
+**驗證類型** 和 OAuth 欄位位於表單伺服器步驟的 **進階** 中。
 
 ---
 
@@ -120,7 +143,7 @@ Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal
 | Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
 | Scope               | `https://outlook.office365.com/.default`                          |
 | From Email          | 與 Username 相同                                                  |
-| Secure (TLS)        | 啟用                                                              |
+| 要求 TLS            | 啟用                                                              |
 
 請將 `<tenant-id>` 替換為來自步驟 1 的 Directory (tenant) ID。
 
@@ -202,7 +225,7 @@ Google Workspace 需要一個具備網域層級委派（domain-wide delegation�
 | Token URL           | `https://oauth2.googleapis.com/token`                                                                                          |
 | Scope               | `https://mail.google.com/`                                                                                                     |
 | From Email          | 與 Username 相同                                                                                                               |
-| Secure (TLS)        | 啟用                                                                                                                           |
+| 要求 TLS            | 啟用                                                                                                                           |
 
 **重要：** 對於 Google（JWT Bearer），Client ID 是**服務帳戶電子郵件**（`client_email`），而非數字 `client_id`。服務帳戶會模擬 Username 欄位中指定的使用者來寄送電子郵件。
 

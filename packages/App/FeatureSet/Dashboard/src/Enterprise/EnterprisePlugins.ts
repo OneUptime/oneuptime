@@ -74,6 +74,12 @@ export interface TelemetryResourceRetentionSettingsProps {
   resourceName: string;
   // Prefix of the cards' ids: "<prefix>-telemetry-retention(-overrides)".
   modelDetailIdPrefix: string;
+  /*
+   * Which of the resource's telemetry the retention covers, when that is not
+   * simply everything collected from it. English: the card translates it and
+   * says it in its description, after its own first sentence.
+   */
+  scopeNote?: string | undefined;
 }
 
 export interface DashboardEnterprisePlugins {

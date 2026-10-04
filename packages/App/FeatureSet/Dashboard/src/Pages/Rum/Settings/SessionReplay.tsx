@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -38,6 +37,11 @@ import SessionReplayAllowedCard from "../../../Components/SessionReplay/SessionR
  * here as well, with an application picker that defaulted to the first
  * application alphabetically; a link from application B's empty list
  * landed on A's test. They are gone from here on purpose.
+ *
+ * The roster's description says so. A blue banner between the switch and
+ * the roster used to say it again on every visit; banners are for
+ * exceptions someone has to act on, so it went
+ * (App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
  */
 
 /*
@@ -77,13 +81,6 @@ const RumSessionReplaySettings: FunctionComponent<
         projectId={ProjectUtil.getCurrentProjectId()!}
       />
 
-      <Alert
-        type={AlertType.INFO}
-        dataTestId="project-replay-pointer"
-        strongTitle="Looking for the installation test, recording health or targeted capture?"
-        title="They live on each application's Replay Policy page (open an application below), so every check runs against the application you are actually setting up."
-      />
-
       <ModelTable<RumApplication>
         modelType={RumApplication}
         id="rum-application-session-replay-roster-table"
@@ -109,7 +106,7 @@ const RumSessionReplaySettings: FunctionComponent<
         cardProps={{
           title: "Per-application Policy",
           description:
-            "Masking, consent, sampling and retention are configured on each application. This is a read-only roster - open an application to change its policy or test its installation.",
+            "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.",
         }}
         noItemsMessage="No RUM applications yet. Create one under Real User Monitoring first."
         filters={[

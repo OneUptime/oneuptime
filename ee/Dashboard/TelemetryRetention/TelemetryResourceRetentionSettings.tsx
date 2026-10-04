@@ -9,6 +9,8 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import {
   EnterpriseLicenseMode,
@@ -35,6 +37,12 @@ import TelemetryRetentionLicenseNotice from "./TelemetryRetentionLicenseNotice";
  * or with one that leaves retention overrides out, the server stops applying
  * the overrides and refuses to set new ones: the notice says so and the
  * cards become read-only.
+ *
+ * A page whose retention covers only part of what is collected from the
+ * resource passes a scope note (a database's covers its engine metrics and
+ * logs, not the traces of the queries sent to it). It is said in the first
+ * card's description, after its own sentence: where the reader decides on a
+ * retention, not in a banner above the cards.
  */
 const TelemetryResourceRetentionSettings: FunctionComponent<
   TelemetryResourceRetentionSettingsProps
@@ -43,6 +51,9 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
     LicensedFeature.TelemetryRetention,
   );
   const isEditable: boolean = !isEnterpriseConfigurationReadOnly(licenseMode);
+  const translator: Translator = useTranslator();
+
+  const defaultRetentionDescription: string = `Set the default retention for telemetry collected from this ${props.resourceName}.`;
 
   return (
     <Fragment>
@@ -51,7 +62,17 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
         name="Telemetry Data Retention"
         cardProps={{
           title: "Telemetry Data Retention",
-          description: `Set the default retention for telemetry collected from this ${props.resourceName}.`,
+          // Two whole sentences, each looked up on its own.
+          description: props.scopeNote ? (
+            <Fragment>
+              {translator.translateText(defaultRetentionDescription)}{" "}
+              <span data-testid="telemetry-retention-scope-note">
+                {translator.translateText(props.scopeNote)}
+              </span>
+            </Fragment>
+          ) : (
+            defaultRetentionDescription
+          ),
         }}
         isEditable={isEditable}
         editButtonText="Edit Retention"

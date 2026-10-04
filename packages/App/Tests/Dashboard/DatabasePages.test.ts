@@ -714,7 +714,7 @@ describe("Settings, Delete and Documentation", () => {
     const card: string = between(
       code,
       "<CardModelDetail<DatabaseServer>",
-      "<Alert",
+      "<TelemetryResourceRetentionSettings",
     );
 
     expect(card).toContain("isEditable={true}");
@@ -737,28 +737,60 @@ describe("Settings, Delete and Documentation", () => {
     expect(card).toContain("modelType: DatabaseServer,");
     expect(card).toContain("modelId: modelId,");
     expect(code.indexOf("<CardModelDetail<DatabaseServer>")).toBeLessThan(
-      code.indexOf("DATABASE_RETENTION_SCOPE_NOTE}"),
+      code.indexOf("<TelemetryResourceRetentionSettings<DatabaseServer>"),
     );
   });
 
-  test("Settings: scoped retention copy, retention, then the archive card", () => {
+  /*
+   * Which telemetry a database's retention covers used to be a blue "Which
+   * telemetry this covers." banner above the retention cards, on every
+   * visit. It is the retention card's own description now: the shell hands
+   * it to the cards as scopeNote (the Enterprise card says it after its
+   * first sentence; ee/Tests/UI/TelemetryRetention pins that).
+   */
+  test("Settings: retention with its scope note, then the archive card, and no banner", () => {
     const code: string = readCode("Pages/Database/View/Settings.tsx");
-    const note: number = code.indexOf("DATABASE_RETENTION_SCOPE_NOTE}");
-    const retention: number = code.indexOf(
+    const retentionStart: number = code.indexOf(
       "<TelemetryResourceRetentionSettings<DatabaseServer>",
+    );
+    const retention: string = between(
+      code,
+      "<TelemetryResourceRetentionSettings<DatabaseServer>",
+      "/>",
     );
     const archive: number = code.indexOf(
       "<ArchiveResourceCard<DatabaseServer>",
     );
 
-    expect(note).toBeGreaterThan(-1);
-    expect(retention).toBeGreaterThan(note);
-    expect(archive).toBeGreaterThan(retention);
-    expect(code).toContain('modelDetailIdPrefix="database-server"');
+    expect(retentionStart).toBeGreaterThan(-1);
+    expect(retention).toContain("scopeNote={DATABASE_RETENTION_SCOPE_NOTE}");
+    expect(retention).toContain('modelDetailIdPrefix="database-server"');
+    expect(archive).toBeGreaterThan(retentionStart);
     expect(code).toContain("RouteMap[PageMap.DATABASE_SERVERS] as Route");
-    expect(readSource("Pages/Database/View/Settings.tsx")).toContain(
-      "The traces of the queries your applications send it belong to the calling services",
+    expect(code).not.toContain("<Alert");
+    expect(code).not.toContain("Which telemetry this covers.");
+
+    // One whole note, wrapped so the extractor gives it a locale key.
+    expect(code).toContain(
+      'DATABASE_RETENTION_SCOPE_NOTE: string = translationKey( "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.", );',
     );
+  });
+
+  test("Settings: the retention shell passes the scope note on to the Enterprise cards", () => {
+    const shell: string = readCode(
+      "Components/TelemetryResource/TelemetryResourceRetentionSettings.tsx",
+    );
+    const contract: string = readCode("Enterprise/EnterprisePlugins.ts");
+
+    expect(shell).toContain("scopeNote?: string | undefined;");
+    expect(shell).toContain("scopeNote: props.scopeNote,");
+    expect(
+      between(
+        contract,
+        "export interface TelemetryResourceRetentionSettingsProps {",
+        "export interface DashboardEnterprisePlugins",
+      ),
+    ).toContain("scopeNote?: string | undefined;");
   });
 
   test("Delete warns that discovered databases come back and points at archiving", () => {

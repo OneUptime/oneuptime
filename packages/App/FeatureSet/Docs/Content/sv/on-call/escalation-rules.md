@@ -10,7 +10,7 @@ När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efte
 
 ## Lägg till en eskaleringsregel
 
-Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Add Escalation Rule**. Dialogen är en kort sida med två frågor:
+Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida med två frågor:
 
 - **Avisera** — vem som larmas på den här nivån. En väljare omfattar jourscheman, team och personer: klicka på **Lägg till mottagare**, sök och välj så många du behöver. Minst en krävs.
   - Ett **jourschema** larmar den som har jour när nivån körs, inte en fast person.
@@ -30,6 +30,8 @@ Rubriken för **Avancerad** visar **Konfigurerat** när regeln har en beskrivnin
 När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen kvitterar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan kvittering börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger den tillåter, och annars slutar den.
 
 Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå där inte alla mottagare kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför.
+
+Hur varje person som en nivå larmar nås bestäms av personens egna jourregler: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som används och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**.
 
 ## Redigera, ordna om och ta bort regler
 

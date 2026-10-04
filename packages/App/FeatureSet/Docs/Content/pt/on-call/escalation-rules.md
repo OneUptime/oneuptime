@@ -10,7 +10,7 @@ Ao criar uma política de plantão na página **Políticas de plantão**, o form
 
 ## Adicionar uma regra de escalonamento
 
-Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral e clique em **Add Escalation Rule**. A caixa de diálogo é uma única página curta com duas perguntas:
+Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral e clique em **Adicionar regra de escalonamento**. A caixa de diálogo é uma única página curta com duas perguntas:
 
 - **Notificar** — quem é acionado neste nível. Um único seletor reúne agendamentos de plantão, equipes e pessoas: clique em **Adicionar destinatário**, pesquise e escolha quantos precisar. É preciso pelo menos um.
   - Um **agendamento de plantão** aciona quem estiver de plantão quando o nível é executado, não uma pessoa fixa.
@@ -30,6 +30,8 @@ O cabeçalho de **Avançado** mostra **Configurado** quando a regra tem uma desc
 Quando um incidente ou alerta chega à política, **Level 1** aciona seus destinatários imediatamente. Se ninguém confirmar dentro da espera, **Level 2** é acionado, e assim por diante. Depois que a espera do último nível passa sem confirmação, a política recomeça em **Level 1** se a sua **Política de Repetição** (abaixo das regras) mandar repetir, quantas vezes ela permitir, e caso contrário para.
 
 O resumo no topo da página **Regras de escalonamento** mostra toda a escada: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa no seu cartão; clique no rótulo para ver quem e por quê.
+
+Cada pessoa acionada por um nível é contatada conforme as próprias regras de plantão: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por gravidade que indica qual método de notificação é usado e depois de quanto tempo. Um administrador do projeto pode ver e alterar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**.
 
 ## Editar, reordenar e excluir regras
 

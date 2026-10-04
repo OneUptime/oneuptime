@@ -222,20 +222,34 @@ export class Service extends DatabaseService<Model> {
   }
 
   public sendVerificationCode(item: Model, code: string): void {
-    // Send verification SMS
-    SmsService.sendSms(
-      {
-        to: item.phone!,
-        message:
-          "This message is from OneUptime. Your verification code for incoming call routing is " +
-          code,
-      },
-      {
-        projectId: item.projectId,
-        isSensitive: true,
-        userId: item.userId!,
-      },
-    ).catch((err: Error) => {
+    /*
+     * Sent through the project's default Twilio config when it has one, like
+     * every other SMS and call to the project's members (UserSmsService's
+     * codes among them). Sent without it, the code went out through the
+     * global config and was paid from the project's balance - the balance
+     * onBeforeCreate does not even check when the project has its own.
+     */
+    (async () => {
+      const projectTwilioConfig: TwilioConfig | undefined =
+        await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+          item.projectId,
+        );
+
+      await SmsService.sendSms(
+        {
+          to: item.phone!,
+          message:
+            "This message is from OneUptime. Your verification code for incoming call routing is " +
+            code,
+        },
+        {
+          projectId: item.projectId,
+          customTwilioConfig: projectTwilioConfig,
+          isSensitive: true,
+          userId: item.userId!,
+        },
+      );
+    })().catch((err: Error) => {
       logger.error(err);
     });
   }

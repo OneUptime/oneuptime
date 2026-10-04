@@ -13,6 +13,7 @@ import {
   DropdownOptionGroup,
   DropdownValue,
 } from "../Dropdown/Dropdown";
+import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
@@ -34,7 +35,7 @@ import {
 } from "./Utils/FinishFromAnyStep";
 import {
   getPeoplePickerValueKeys,
-  toPeoplePickerIds,
+  toPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
@@ -521,6 +522,44 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     };
 
     /*
+     * A field's footer setting the field's value (FieldFooterProps): the way
+     * FormField stores a pick - the field's own onChange first, with the
+     * values as they are and, for a dropdown, what the pick changed as its
+     * options name it (DropdownChange) - then the value itself.
+     */
+    const setFieldValueFromFooter: (
+      field: Field<T>,
+      fieldName: string,
+      value: JSONValue,
+    ) => void = (
+      field: Field<T>,
+      fieldName: string,
+      value: JSONValue,
+    ): void => {
+      if (field.onChange) {
+        field.onChange(
+          value,
+          refCurrentValue.current,
+          (values: FormValues<T>) => {
+            refCurrentValue.current = values;
+            setCurrentValue(refCurrentValue.current);
+          },
+          isDropdownField(field)
+            ? getDropdownChange({
+                options: field.dropdownOptions,
+                value: value,
+                previousValue: (
+                  refCurrentValue.current as Record<string, unknown>
+                )[fieldName],
+              })
+            : undefined,
+        );
+      }
+
+      setFieldValue(fieldName, value);
+    };
+
+    /*
      * Hands the form's values to onSubmit, normalised for the API. Called once
      * every step that is going to be validated has been.
      */
@@ -829,7 +868,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
          * A people picker keeps its picks in form values of its own (owners
          * in ownerUsers and ownerTeams). Whatever the form started with -
          * ObjectIDs, related rows, ids - is held as plain ids, which is what
-         * the picker writes, so an untouched picker sends what it shows.
+         * the picker writes, so an untouched picker sends what it shows. A
+         * picker that takes one pick holds one id: an edit form's userId
+         * column arrives as an ObjectID and is sent back as its id.
          */
         if (
           field.fieldType === FormFieldSchemaType.PeoplePicker &&
@@ -839,7 +880,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             const startValue: unknown = (values as any)[valueKey];
 
             if (startValue !== undefined && startValue !== null) {
-              (values as any)[valueKey] = toPeoplePickerIds(startValue);
+              (values as any)[valueKey] = toPeoplePickerFormValue(
+                field.peoplePicker,
+                startValue,
+              );
             }
           }
         }
@@ -1090,6 +1134,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 touched[fieldName]
                                   ? errors[fieldName] || undefined
                                   : undefined,
+                                {
+                                  setValue: (value: JSONValue): void => {
+                                    setFieldValueFromFooter(
+                                      field,
+                                      fieldName,
+                                      value,
+                                    );
+                                  },
+                                },
                               )}
                           </div>
                         </Fragment>
