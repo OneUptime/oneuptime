@@ -21,6 +21,8 @@ import path from "path";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import DetailIdLine from "../../../../UI/Components/Detail/DetailIdLine";
+import DetailRecordLine from "../../../../UI/Components/Detail/DetailRecordLine";
+import { RecordTimeKind } from "../../../../UI/Components/Detail/DetailRecordTime";
 import ObjectIDView from "../../../../UI/Components/ObjectID/ObjectIDView";
 
 /*
@@ -51,7 +53,13 @@ const LINE_STRINGS: Array<string> = [
   "Copied to clipboard",
   "Copy failed",
   "Click to copy",
+  // The words before the times that share the line (DetailRecordLine).
+  "Created",
+  "Updated",
 ];
+
+// The words the times on the line add, which every language must have.
+const TIME_WORDS: Array<string> = ["Created", "Updated"];
 
 const RECORD_ID: string = "3f2a8b1c-9d4e-4b7a-a1c2-7e5f6d8c9b0a";
 
@@ -134,6 +142,69 @@ describe("the ID line's words", () => {
         expect({ key, german: GERMAN[key] }).not.toEqual({ key, german: key });
       }
     }
+  });
+});
+
+describe("the words before the times on the line", () => {
+  test("are translated in every language the Dashboard ships", () => {
+    const codes: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(codes.length).toBeGreaterThanOrEqual(16);
+
+    for (const code of codes) {
+      const locale: Record<string, string> = readLocale(code);
+
+      for (const word of TIME_WORDS) {
+        expect({ code, word, has: typeof locale[word] }).toEqual({
+          code,
+          word,
+          has: "string",
+        });
+        expect({ code, word, same: locale[word] === word }).toEqual({
+          code,
+          word,
+          same: false,
+        });
+      }
+    }
+  });
+
+  test("read in German on the line", () => {
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {}),
+    );
+    inGerman(
+      <DetailRecordLine
+        recordId={RECORD_ID}
+        times={[
+          {
+            kind: RecordTimeKind.Created,
+            date: new Date("2026-09-30T13:25:13.000Z"),
+          },
+          {
+            kind: RecordTimeKind.Updated,
+            date: new Date("2026-10-01T08:12:47.000Z"),
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("detail-created-at-label")).toHaveTextContent(
+      GERMAN["Created"] as string,
+    );
+    expect(screen.getByTestId("detail-updated-at-label")).toHaveTextContent(
+      GERMAN["Updated"] as string,
+    );
+    expect(screen.getByTestId("detail-id-label")).toHaveTextContent(
+      GERMAN["ID"] as string,
+    );
   });
 });
 

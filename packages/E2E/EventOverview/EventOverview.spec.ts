@@ -190,6 +190,12 @@ interface EventPage {
   detailLabels: ReadonlyArray<string>;
   // The record's own ID, on the small line the details card ends with.
   recordId: string;
+  /*
+   * When the record was created, on that same line after the ID, for the
+   * cards that show it. An incident's card says when it was declared, as a
+   * field, instead.
+   */
+  recordCreated?: string | undefined;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -302,7 +308,6 @@ const ALERT_PAGE: EventPage = {
   rightColumn: ["Alert Details", "Measurements", "Affected Resources"],
   detailsCard: "Alert Details",
   detailLabels: [
-    "Created At",
     "Created By",
     "Monitor",
     "Episode",
@@ -311,6 +316,7 @@ const ALERT_PAGE: EventPage = {
     "Alert Number",
   ],
   recordId: ALERT_ID,
+  recordCreated: "Sep 14 2026, 06:06 PM GMT",
 };
 
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
@@ -360,7 +366,6 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   detailLabels: [
     "Starts At",
     "Ends At",
-    "Created At",
     "Shown on Status Pages",
     "Subscriber Reminders",
     "Subscriber Notifications",
@@ -368,6 +373,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Scheduled Maintenance Number",
   ],
   recordId: SCHEDULED_MAINTENANCE_ID,
+  recordCreated: "Sep 10 2026, 09:00 AM GMT",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -408,10 +414,10 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:56 PM GMT",
 };
 
 const ALERT_EPISODE_PAGE: EventPage = {
@@ -452,10 +458,10 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:40 PM GMT",
 };
 
 const EVENT_PAGES: ReadonlyArray<EventPage> = [
@@ -5396,6 +5402,56 @@ async function expectRightColumn(
     idLine,
     "the ID line ends the card",
   );
+
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't
+   * take space up top." When the record was created is not a row of the
+   * card: it follows the ID on the same small line, and moves under the ID
+   * - whole - only when the narrow column has no room for both.
+   */
+  const recordLine: Locator = details.getByTestId("detail-record-line");
+  const created: Locator = recordLine.getByTestId("detail-created-at");
+  await expect(recordLine).toContainText("ID");
+  expect(await detailLabels(details)).not.toContain("Created At");
+  if (!eventPage.recordCreated) {
+    await expect(created).toHaveCount(0);
+    return;
+  }
+  await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+    "Created",
+  );
+  await expect(created.getByTestId("detail-created-at-value")).toHaveText(
+    eventPage.recordCreated,
+  );
+  const lineBox: Box = await documentBox(recordLine);
+  const idBox: Box = await documentBox(idLine);
+  const createdBox: Box = await documentBox(created);
+  if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+    expect(
+      Math.abs(
+        createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+      ),
+      "Created sits level with the ID when both fit",
+    ).toBeLessThanOrEqual(2);
+    expect(createdBox.x, "after the ID").toBeGreaterThan(idBox.x + idBox.width);
+  } else {
+    expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+      idBox.y + idBox.height - 1,
+    );
+    expect(
+      Math.abs(createdBox.x - idBox.x),
+      "flush with the ID",
+    ).toBeLessThanOrEqual(1);
+  }
+  // Inside the card, under its last field.
+  expect(createdBox.x + createdBox.width).toBeLessThanOrEqual(
+    lineBox.x + lineBox.width + 1,
+  );
+  await expectAbove(
+    details.locator("label").last(),
+    created,
+    "Created is on the line under the fields",
+  );
 }
 
 test.describe("incident and alert overview", () => {
@@ -5508,6 +5564,28 @@ test.describe("incident and alert overview", () => {
       );
     });
   }
+
+  test("alert-overview gives its creation time to the second on hover", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    const created: Locator = card(page, ALERT_PAGE.detailsCard).getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(created).toHaveText("Sep 14 2026, 06:06 PM GMT");
+    await expect(created).toHaveAttribute(
+      "datetime",
+      "2026-09-14T18:06:00.000Z",
+    );
+    await created.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Sep 14 2026, 06:06:00 PM GMT",
+    );
+  });
 
   test("incident links in the hero facts open the monitors", async ({
     page,

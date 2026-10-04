@@ -97,7 +97,11 @@ const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 interface DetailItem {
   title?: string | undefined;
   owner?: string | undefined;
-  createdAt?: Date | undefined;
+  /*
+   * A date that is one of the record's facts. The record's own createdAt
+   * would leave the grid for the line under it (DetailCreatedOnIdLine).
+   */
+  declaredAt?: Date | undefined;
   apiKey?: string | undefined;
   notes?: string | undefined;
 }
@@ -105,7 +109,7 @@ interface DetailItem {
 const ITEM: DetailItem = {
   title: "Checkout latency",
   owner: "Payments team",
-  createdAt: new Date("2026-09-14T18:01:00.000Z"),
+  declaredAt: new Date("2026-09-14T18:01:00.000Z"),
   apiKey: "abc-123",
 };
 
@@ -366,7 +370,7 @@ describe("DetailStyle.Compact values", () => {
       style: DetailStyle.Compact,
       fields: [
         {
-          key: "createdAt",
+          key: "declaredAt",
           title: "Declared at",
           fieldType: FieldType.DateTime,
         },
