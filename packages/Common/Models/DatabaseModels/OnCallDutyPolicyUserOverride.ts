@@ -77,7 +77,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   pluralName: "User Overrides",
   icon: IconProp.Call,
   tableDescription:
-    "Manage on-call duty user overrides, for example if the user is on leave you can override the on-call duty policy for that user so all the alerts will be routed to the other user.",
+    "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.",
 })
 export default class OnCallDutyPolicyUserOverride extends BaseModel {
   @ColumnAccessControl({
@@ -191,7 +191,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Policy",
     description:
-      "Relation to On-Call Policy where this escalation rule belongs.",
+      "The on-call policy this override applies to. Empty for a global override, which applies to every on-call policy.",
   })
   @ManyToOne(
     () => {
@@ -235,7 +235,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
     description:
-      "ID of your On-Call Policy where this escalation rule belongs.",
+      "ID of the on-call policy this override applies to. Leave it empty for a global override, which applies to every on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -321,6 +321,13 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   public createdByUserId?: ObjectID = undefined;
 
+  /*
+   * The person who is AWAY: alerts that would page them go to the
+   * routeAlertsToUser instead while the override is in force. Paging looks
+   * overrides up by this column (OnCallDutyPolicyEscalationRuleService.
+   * getRouteAlertToUserId), and schedules swap this person out
+   * (UserOverrideUtil). The dashboard asks for it as "Who is away?".
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -348,7 +355,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: User,
     title: "Override User",
     description:
-      "Relation to User who is being overridden by this object (if this object was created by a User)",
+      "The user who is away. While the override is in force, alerts that would page this user go to the Route Alerts To User instead.",
   })
   @ManyToOne(
     () => {
@@ -390,7 +397,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     required: true,
     title: "Override User ID",
     description:
-      "User ID who is being overridden by this object (if this object was created by a User)",
+      "ID of the user who is away. While the override is in force, alerts that would page this user go to the user in Route Alerts To User ID instead.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -399,6 +406,10 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   public overrideUserId?: ObjectID = undefined;
 
+  /*
+   * The person who COVERS: they get the overrideUser's alerts while the
+   * override is in force. The dashboard asks for it as "Who covers?".
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -426,7 +437,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: User,
     title: "Route Alerts To User",
     description:
-      "Relation to User who is being overridden by this object (if this object was created by a User)",
+      "The user who covers. While the override is in force, this user gets the alerts that would page the Override User.",
   })
   @ManyToOne(
     () => {
@@ -468,7 +479,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     required: true,
     title: "Route Alerts To User ID",
     description:
-      "User ID who is being overridden by this object (if this object was created by a User)",
+      "ID of the user who covers. While the override is in force, this user gets the alerts that would page the user in Override User ID.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -481,7 +492,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     title: "Start At",
     type: TableColumnType.Date,
     required: true,
-    description: "When does this start?",
+    description:
+      "When the override starts sending the Override User's alerts to the Route Alerts To User.",
   })
   @ColumnAccessControl({
     create: [
@@ -514,7 +526,8 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     title: "Ends At",
     type: TableColumnType.Date,
     required: true,
-    description: "When does this end?",
+    description:
+      "When the override ends, which has to be after it starts. From then on, alerts page the Override User again.",
   })
   @ColumnAccessControl({
     create: [

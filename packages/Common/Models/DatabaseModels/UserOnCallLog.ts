@@ -885,7 +885,8 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Overridden by User",
-    description: "Relation to User who overrode this alert",
+    description:
+      "The user this alert would have paged, when a user override sent it to this log's user instead because they were away. Empty when no override applied.",
   })
   @ManyToOne(
     () => {
@@ -909,7 +910,8 @@ export default class UserOnCallLog extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Overridden by User ID",
-    description: "User ID who overrode this alert",
+    description:
+      "ID of the user this alert would have paged, when a user override sent it to this log's user instead because they were away. Empty when no override applied.",
     example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({

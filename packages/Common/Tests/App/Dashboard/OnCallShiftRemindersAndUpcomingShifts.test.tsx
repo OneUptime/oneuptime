@@ -28,7 +28,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * a reason, before the round trip), and a duplicate lead time is caught
  * locally. Upcoming shifts: the window sent is the 30-day one, rows are
  * grouped by day, the "covering for" and policy-variant facts survive to the
- * DOM, and every row can reach "Get cover".
+ * DOM, and each of your own shifts can reach "Get cover" - Add User
+ * Override for that shift, in its project - while one you are covering for
+ * someone else cannot (overrides do not chain).
  */
 
 const getMock: MockFunction = getJestMockFunction();
@@ -564,15 +566,23 @@ describe("UpcomingShiftsCard", () => {
     expect(screen.getByText("Secondary")).toBeInTheDocument();
     expect(screen.getByText(/Payments/)).toBeInTheDocument();
 
-    const expectedOverridesRoute: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route,
-    );
+    /*
+     * "Get cover" on the two shifts that are Jane's own, none on the one she
+     * covers for Bob. The first opens Add User Override on the global
+     * overrides page of the shift's project, for that shift's window.
+     */
     const coverLinks: Array<HTMLElement> = screen.getAllByText("Get cover");
-    expect(coverLinks.length).toBe(3);
+    expect(coverLinks.length).toBe(2);
     expect(coverLinks[0]!.closest("a")).toHaveAttribute(
       "href",
-      expectedOverridesRoute.toString(),
+      `/dashboard/${PROJECT_ID.toString()}/on-call-duty/user-overrides?coverStartsAt=2026-09-01T07%3A00%3A00.000Z&coverEndsAt=2026-09-01T15%3A00%3A00.000Z`,
     );
+
+    const coveringRow: HTMLElement = screen
+      .getByText("Covering for Bob")
+      .closest("[data-testid='upcoming-shift-row']") as HTMLElement;
+
+    expect(within(coveringRow).queryByText("Get cover")).toBeNull();
 
     expect(screen.getByText(STANDING_ASSIGNMENTS_COPY)).toBeInTheDocument();
   });
