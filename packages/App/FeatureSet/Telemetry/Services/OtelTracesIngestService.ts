@@ -732,10 +732,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                    * OBI v0.14 reports a Kafka / MQTT / NATS exchange it saw
                    * on the receiving side (a broker, a subscriber handed a
                    * delivery) as PRODUCER / CONSUMER; v0.13 and every
-                   * consumer of span kinds here treat it as SERVER. Decided
-                   * before the evaluation row, so drop filters, scrub rules,
-                   * pipelines and the entity keys all see the stored kind.
-                   * See ObiReceivingSideMessagingSpan.
+                   * consumer of span kinds here treat it as SERVER, so it is
+                   * stored as SERVER — except a NATS client's split delivery
+                   * naming its broker, kept CONSUMER (the cases are in
+                   * ObiReceivingSideMessagingSpan). Decided before the
+                   * evaluation row, so drop filters, scrub rules, pipelines
+                   * and the entity keys all see the stored kind.
                    */
                   const spanKind: SpanKind =
                     normalizeObiReceivingSideMessagingSpanKind({
