@@ -1,10 +1,16 @@
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
   checkScrubRuleCustomRegex,
   SCRUB_RULE_CUSTOM_PATTERN_TYPE,
+  SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE,
   ScrubRuleCustomRegexCheck,
   ScrubRuleCustomRegexProblem,
 } from "../../Types/Telemetry/ScrubRule";
+import FindBy from "../Types/Database/FindBy";
+import Select from "../Types/Database/Select";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { isSqlExpressionValue } from "./DropFilterValidation";
 
 /*
@@ -20,7 +26,9 @@ import { isSqlExpressionValue } from "./DropFilterValidation";
  *   - a pattern type ingest does not know ("Email" for "email"): skipped the
  *     same way;
  *   - a fields-to-scrub value ingest does not know: the rule matches, but
- *     scrubs none of the record's fields.
+ *     scrubs none of the record's fields. (A sensitive-keys rule is the
+ *     exception: ingest runs it on attributes whatever its fields say, so
+ *     its fields are not judged.)
  *
  * The user believed the data was masked when it was not. The API boundary is
  * the only place a person is there to read why, so it is refused there, on
@@ -37,7 +45,6 @@ import { isSqlExpressionValue } from "./DropFilterValidation";
  * is not refused: ingest redacts with it, which is safe.
  */
 
-// A rule's columns that decide whether it scrubs anything; a model has them.
 export interface ScrubRuleCandidate {
   patternType?: unknown;
   customRegex?: unknown;
@@ -120,7 +127,14 @@ export function validateScrubRule(
   options: ScrubRuleValidationOptions,
 ): void {
   validateScrubRulePatternType(candidate.patternType, options);
-  validateScrubRuleFieldsToScrub(candidate.fieldsToScrub, options);
+
+  /*
+   * A sensitive-keys rule reads attribute keys, so ingest runs it on
+   * attributes whatever its fields say - and the form does not ask for them.
+   */
+  if (candidate.patternType !== SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
+    validateScrubRuleFieldsToScrub(candidate.fieldsToScrub, options);
+  }
 
   if (candidate.patternType !== SCRUB_RULE_CUSTOM_PATTERN_TYPE) {
     return;
@@ -152,21 +166,34 @@ export function validateScrubRuleCreate(
 
 /*
  * An update: every row it matches, with the incoming values laid over what
- * is stored. The rows are read only when the update touches a column that
- * decides whether the rule scrubs anything, so renaming a rule, switching it
- * off or dragging it to another place in the list costs no read - and is
- * never held up by a rule that was saved broken before this check existed.
+ * is stored.
+ *
+ * The services call this from onBeforeUpdateUniqueCheck, which runs once the
+ * caller has passed the permission checks, with the query already narrowed to
+ * the rows they may write - so the rows read here, as root, are never another
+ * project's, and a refusal never tells a caller about a rule they may not
+ * see. The rows are read only when the update touches a column that decides
+ * whether the rule scrubs anything, so renaming a rule, switching it off or
+ * dragging it to another place in the list costs no read - and is never held
+ * up by a rule that was saved broken before this check existed.
  */
-export async function validateScrubRuleUpdate(data: {
-  // The update's values (UpdateBy.data).
-  incoming: Partial<Record<keyof ScrubRuleCandidate, unknown>>;
-  // The rows the update matches, with the three validated columns.
-  findStoredRows: () => Promise<Array<ScrubRuleCandidate>>;
+export async function validateScrubRuleUpdate<
+  TModel extends BaseModel & ScrubRuleCandidate,
+>(data: {
+  updateBy: UpdateBy<TModel>;
+  // The service's own findBy.
+  findBy: (findBy: FindBy<TModel>) => Promise<Array<TModel>>;
   options: ScrubRuleValidationOptions;
 }): Promise<void> {
+  const incoming: ScrubRuleCandidate = {
+    patternType: (data.updateBy.data as ScrubRuleCandidate).patternType,
+    customRegex: (data.updateBy.data as ScrubRuleCandidate).customRegex,
+    fieldsToScrub: (data.updateBy.data as ScrubRuleCandidate).fieldsToScrub,
+  };
+
   const touchesValidatedColumns: boolean = SCRUB_RULE_VALIDATED_COLUMNS.some(
     (column: keyof ScrubRuleCandidate): boolean => {
-      return data.incoming[column] !== undefined;
+      return incoming[column] !== undefined;
     },
   );
 
@@ -178,28 +205,41 @@ export async function validateScrubRuleUpdate(data: {
   if (
     SCRUB_RULE_VALIDATED_COLUMNS.some(
       (column: keyof ScrubRuleCandidate): boolean => {
-        return isSqlExpressionValue(data.incoming[column]);
+        return isSqlExpressionValue(incoming[column]);
       },
     )
   ) {
     return;
   }
 
-  const storedRows: Array<ScrubRuleCandidate> = await data.findStoredRows();
+  const storedRows: Array<TModel> = await data.findBy({
+    query: data.updateBy.query,
+    skip: 0,
+    limit: LIMIT_MAX,
+    select: {
+      _id: true,
+      patternType: true,
+      customRegex: true,
+      fieldsToScrub: true,
+    } as Select<TModel>,
+    props: {
+      isRoot: true,
+    },
+  });
 
   for (const stored of storedRows) {
     const merged: ScrubRuleCandidate = {
       patternType:
-        data.incoming.patternType !== undefined
-          ? data.incoming.patternType
+        incoming.patternType !== undefined
+          ? incoming.patternType
           : stored.patternType,
       customRegex:
-        data.incoming.customRegex !== undefined
-          ? data.incoming.customRegex
+        incoming.customRegex !== undefined
+          ? incoming.customRegex
           : stored.customRegex,
       fieldsToScrub:
-        data.incoming.fieldsToScrub !== undefined
-          ? data.incoming.fieldsToScrub
+        incoming.fieldsToScrub !== undefined
+          ? incoming.fieldsToScrub
           : stored.fieldsToScrub,
     };
 

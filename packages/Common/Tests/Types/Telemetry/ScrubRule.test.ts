@@ -200,6 +200,41 @@ describe("checkScrubRuleCustomRegex - what may be saved", () => {
   });
 
   /*
+   * These match no text on their own, only a position inside a record - and
+   * a global replace puts the replacement at every such position.
+   */
+  test("calls a pattern that matches a position inside text a mistake too", () => {
+    for (const matchesPosition of [
+      "\\b",
+      "(?=@)",
+      "(?<=:)\\s*",
+      "x*(?=y)",
+      "\\B",
+      "(?<=\\d)",
+    ]) {
+      expect(problemOf(matchesPosition)).toBe(
+        ScrubRuleCustomRegexProblem.MatchesEmptyText,
+      );
+    }
+
+    // What one of them does to a record.
+    expect("a@b: c xy".replace(new RegExp("\\b", "g"), "#")).toBe(
+      "#a#@#b#: #c# #xy#",
+    );
+  });
+
+  test("keeps a pattern that only uses a position to find text", () => {
+    for (const pattern of [
+      "(?<=password=)\\S+",
+      "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+      "(?=SECRET)[A-Z-]+",
+      "^Bearer \\S+$",
+    ]) {
+      expect(problemOf(pattern)).toBeNull();
+    }
+  });
+
+  /*
    * Why it is refused: a global replace with a pattern that matches empty
    * text puts the replacement between every character.
    */
@@ -255,36 +290,75 @@ describe("getRegexSyntaxErrorReason", () => {
 describe("doesScrubRuleScrubNothing - the rules table's flag", () => {
   const known: ReadonlyArray<string> = LOG_SCRUB_PATTERN_TYPES;
 
+  function scrubsNothing(rule: {
+    patternType: unknown;
+    customRegex?: unknown;
+    fieldsToScrub?: unknown;
+  }): boolean {
+    return doesScrubRuleScrubNothing({
+      patternType: rule.patternType,
+      customRegex: rule.customRegex,
+      fieldsToScrub: rule.fieldsToScrub,
+      knownPatternTypes: known,
+      knownFieldsToScrub: LOG_SCRUB_FIELDS,
+    });
+  }
+
   test("flags a custom rule with no pattern, or one that does not compile", () => {
     for (const customRegex of [undefined, null, "", "(", "[a-"]) {
       expect(
-        doesScrubRuleScrubNothing({
-          patternType: LogScrubPatternType.Custom,
-          customRegex,
-          knownPatternTypes: known,
-        }),
+        scrubsNothing({ patternType: LogScrubPatternType.Custom, customRegex }),
       ).toBe(true);
     }
   });
 
   test("flags a pattern type ingest does not know", () => {
     for (const patternType of ["Email", "emails", "", undefined, null, 7]) {
+      expect(scrubsNothing({ patternType })).toBe(true);
+    }
+  });
+
+  /*
+   * Ingest scrubs the body for "body" or "both" and the attributes for
+   * "attributes" or "both": any other value scrubs neither.
+   */
+  test("flags fields to scrub ingest does not know", () => {
+    for (const fieldsToScrub of ["Body", "all", "everything"]) {
       expect(
-        doesScrubRuleScrubNothing({
-          patternType,
-          customRegex: undefined,
-          knownPatternTypes: known,
+        scrubsNothing({
+          patternType: LogScrubPatternType.Email,
+          fieldsToScrub,
         }),
       ).toBe(true);
     }
   });
 
+  test("does not flag fields to scrub left empty, which ingest reads as every field", () => {
+    for (const fieldsToScrub of [undefined, null, ""]) {
+      expect(
+        scrubsNothing({
+          patternType: LogScrubPatternType.Email,
+          fieldsToScrub,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("does not flag a sensitive-keys rule's fields, which ingest ignores", () => {
+    expect(
+      scrubsNothing({
+        patternType: LogScrubPatternType.SensitiveKeys,
+        fieldsToScrub: "Body",
+      }),
+    ).toBe(false);
+  });
+
   test("does not flag a working custom rule", () => {
     expect(
-      doesScrubRuleScrubNothing({
+      scrubsNothing({
         patternType: LogScrubPatternType.Custom,
         customRegex: "SECRET-[0-9]+",
-        knownPatternTypes: known,
+        fieldsToScrub: "both",
       }),
     ).toBe(false);
   });
@@ -295,13 +369,7 @@ describe("doesScrubRuleScrubNothing - the rules table's flag", () => {
         continue;
       }
 
-      expect(
-        doesScrubRuleScrubNothing({
-          patternType,
-          customRegex: "",
-          knownPatternTypes: known,
-        }),
-      ).toBe(false);
+      expect(scrubsNothing({ patternType, customRegex: "" })).toBe(false);
     }
   });
 });

@@ -61,8 +61,6 @@ import {
  * belongs to - so one page (LongFormStepsGuard: LONG_FORMS_WITHOUT_STEPS).
  */
 
-export type ScrubRuleRecords = "logs" | "spans";
-
 /*
  * The names a rule starts with, after its pattern type: what it does, in the
  * reader's language, until its creator names it.
@@ -233,7 +231,6 @@ const isLeftAt: IsLeftAtFunction = (
 };
 
 export interface ScrubRuleFormOptions {
-  records: ScrubRuleRecords;
   defaults: ScrubRuleDefaults;
   // The choices of Fields to Scrub, the default first.
   fieldsToScrubOptions: Array<DropdownOption>;
@@ -258,7 +255,9 @@ export const getScrubRuleAdvancedSummary: (
     string,
     unknown
   >;
-  const sensitiveKeys: boolean = isSensitiveKeysPattern(values);
+  const sensitiveKeys: boolean = isSensitiveKeysPattern(
+    formValues as FormValues<LogScrubRule>,
+  );
   const description: unknown = formValues["description"];
 
   const isAtDefaults: boolean =
@@ -281,7 +280,6 @@ export const getScrubRuleAdvancedSummary: (
 };
 
 export const LOG_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
-  records: "logs",
   defaults: LOG_SCRUB_RULE_DEFAULTS,
   fieldsToScrubOptions: [
     { label: "Both (Body & Attributes)", value: LogScrubField.Both },
@@ -295,7 +293,6 @@ export const LOG_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
 };
 
 export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
-  records: "spans",
   defaults: TRACE_SCRUB_RULE_DEFAULTS,
   fieldsToScrubOptions: [
     { label: "All (Name, Attributes & Events)", value: TraceScrubField.All },

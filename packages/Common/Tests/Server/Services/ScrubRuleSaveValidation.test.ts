@@ -60,6 +60,7 @@ import {
 } from "../../../Types/Telemetry/ScrubRule";
 import TraceScrubPatternType from "../../../Types/Trace/TraceScrubPatternType";
 import { getJestSpyOn } from "../../Spy";
+import { inspect } from "util";
 
 /*
  * Contract under test - a log or trace scrub rule is refused unless ingest
@@ -102,6 +103,7 @@ interface Suite {
   validFieldsToScrub: string;
   otherFieldsToScrub: string;
   createPermission: Permission;
+  editPermission: Permission;
 }
 
 /*
@@ -120,6 +122,7 @@ const SUITES: Array<Suite> = [
     validFieldsToScrub: "both",
     otherFieldsToScrub: "body",
     createPermission: Permission.CreateProjectLogScrubRule,
+    editPermission: Permission.EditProjectLogScrubRule,
   },
   {
     name: "TraceScrubRuleService",
@@ -132,6 +135,7 @@ const SUITES: Array<Suite> = [
     validFieldsToScrub: "all",
     otherFieldsToScrub: "events",
     createPermission: Permission.CreateProjectTraceScrubRule,
+    editPermission: Permission.EditProjectTraceScrubRule,
   },
 ];
 
@@ -410,6 +414,36 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
         ),
       ).resolves.toBeDefined();
     });
+
+    test("does not judge the fields of a sensitive-keys rule, which ingest ignores", async () => {
+      await expect(
+        suite.service.onBeforeCreate(
+          createBy({
+            patternType: suite.sensitiveKeysPatternType,
+            fieldsToScrub: "everything",
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    test("leaves updates to the check that runs after the permission checks", async () => {
+      /*
+       * onBeforeUpdate runs before any permission check, so a read there
+       * would see rows the caller may not: the service does not override it.
+       */
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          Object.getPrototypeOf(suite.service),
+          "onBeforeUpdate",
+        ),
+      ).toBe(false);
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          Object.getPrototypeOf(suite.service),
+          "onBeforeUpdateUniqueCheck",
+        ),
+      ).toBe(true);
+    });
   });
 
   describe("on update", () => {
@@ -431,8 +465,8 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
         { scrubAction: "mask" },
       ]) {
         await expect(
-          suite.service.onBeforeUpdate(updateBy(patch)),
-        ).resolves.toBeDefined();
+          suite.service.onBeforeUpdateUniqueCheck(updateBy(patch)),
+        ).resolves.toBeUndefined();
       }
 
       expect(findBy).not.toHaveBeenCalled();
@@ -447,8 +481,10 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       ]);
 
       await expect(
-        suite.service.onBeforeUpdate(updateBy({ customRegex: "token=\\w+" })),
-      ).resolves.toBeDefined();
+        suite.service.onBeforeUpdateUniqueCheck(
+          updateBy({ customRegex: "token=\\w+" }),
+        ),
+      ).resolves.toBeUndefined();
     });
 
     test("REGRESSION: refuses blanking the pattern of a custom rule", async () => {
@@ -461,7 +497,7 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
 
       for (const customRegex of ["", null]) {
         await expect(
-          suite.service.onBeforeUpdate(updateBy({ customRegex })),
+          suite.service.onBeforeUpdateUniqueCheck(updateBy({ customRegex })),
         ).rejects.toThrow(BadDataException);
       }
     });
@@ -474,7 +510,7 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       mockStoredRows([storedRow({ patternType: suite.emailPatternType })]);
 
       await expect(
-        suite.service.onBeforeUpdate(
+        suite.service.onBeforeUpdateUniqueCheck(
           updateBy({ patternType: suite.customPatternType }),
         ),
       ).rejects.toThrow(/needs a regular expression/);
@@ -484,13 +520,13 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       mockStoredRows([storedRow({ patternType: suite.emailPatternType })]);
 
       await expect(
-        suite.service.onBeforeUpdate(
+        suite.service.onBeforeUpdateUniqueCheck(
           updateBy({
             patternType: suite.customPatternType,
             customRegex: VALID_REGEX,
           }),
         ),
-      ).resolves.toBeDefined();
+      ).resolves.toBeUndefined();
     });
 
     test("accepts switching a broken custom rule to a built-in pattern type", async () => {
@@ -499,10 +535,10 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       ]);
 
       await expect(
-        suite.service.onBeforeUpdate(
+        suite.service.onBeforeUpdateUniqueCheck(
           updateBy({ patternType: suite.emailPatternType }),
         ),
-      ).resolves.toBeDefined();
+      ).resolves.toBeUndefined();
     });
 
     /*
@@ -515,20 +551,48 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       ]);
 
       await expect(
-        suite.service.onBeforeUpdate(
+        suite.service.onBeforeUpdateUniqueCheck(
           updateBy({ fieldsToScrub: suite.otherFieldsToScrub }),
         ),
       ).rejects.toThrow(BadDataException);
+    });
+
+    /*
+     * The edit dialog sends every column it selected, the hidden Fields to
+     * Scrub of a sensitive-keys rule included: a value ingest ignores is
+     * never what holds such a rule up.
+     */
+    test("does not judge the fields of a sensitive-keys rule, which ingest ignores", async () => {
+      mockStoredRows([
+        storedRow({
+          patternType: suite.sensitiveKeysPatternType,
+          fieldsToScrub: "Both",
+        }),
+      ]);
+
+      await expect(
+        suite.service.onBeforeUpdateUniqueCheck(
+          updateBy({
+            name: "Secrets",
+            patternType: suite.sensitiveKeysPatternType,
+            fieldsToScrub: "Both",
+          }),
+        ),
+      ).resolves.toBeUndefined();
     });
 
     test("refuses an unknown pattern type or fields-to-scrub value", async () => {
       mockStoredRows([storedRow({ patternType: suite.emailPatternType })]);
 
       await expect(
-        suite.service.onBeforeUpdate(updateBy({ patternType: "ssn-us" })),
+        suite.service.onBeforeUpdateUniqueCheck(
+          updateBy({ patternType: "ssn-us" }),
+        ),
       ).rejects.toThrow(BadDataException);
       await expect(
-        suite.service.onBeforeUpdate(updateBy({ fieldsToScrub: "nothing" })),
+        suite.service.onBeforeUpdateUniqueCheck(
+          updateBy({ fieldsToScrub: "nothing" }),
+        ),
       ).rejects.toThrow(BadDataException);
     });
 
@@ -545,7 +609,7 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       mockStoredRows([healthy, wouldBreak]);
 
       await expect(
-        suite.service.onBeforeUpdate(
+        suite.service.onBeforeUpdateUniqueCheck(
           updateBy({ patternType: suite.customPatternType }),
         ),
       ).rejects.toThrow(BadDataException);
@@ -555,8 +619,8 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       mockStoredRows([]);
 
       await expect(
-        suite.service.onBeforeUpdate(updateBy({ customRegex: "" })),
-      ).resolves.toBeDefined();
+        suite.service.onBeforeUpdateUniqueCheck(updateBy({ customRegex: "" })),
+      ).resolves.toBeUndefined();
     });
 
     test("skips a column set to a raw SQL expression, which cannot be judged", async () => {
@@ -565,14 +629,14 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
       ]);
 
       await expect(
-        suite.service.onBeforeUpdate(
+        suite.service.onBeforeUpdateUniqueCheck(
           updateBy({
             customRegex: () => {
               return "'x'";
             },
           }),
         ),
-      ).resolves.toBeDefined();
+      ).resolves.toBeUndefined();
 
       expect(findBy).not.toHaveBeenCalled();
     });
@@ -585,7 +649,9 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
         }),
       ]);
 
-      await suite.service.onBeforeUpdate(updateBy({ customRegex: "\\w+@x" }));
+      await suite.service.onBeforeUpdateUniqueCheck(
+        updateBy({ customRegex: "\\w+@x" }),
+      );
 
       expect(findBy).toHaveBeenCalledTimes(1);
       const request: any = findBy.mock.calls[0]![0];
@@ -793,6 +859,89 @@ describe.each(SUITES)(
       ).rejects.toThrow(BadDataException);
 
       expect(getRepository).not.toHaveBeenCalled();
+    });
+
+    function projectMember(
+      permissions: Array<Permission>,
+    ): DatabaseCommonInteractionProps {
+      return {
+        userId: USER_ID,
+        tenantId: PROJECT_ID,
+        currentPlan: PlanType.Free,
+        userGlobalAccessPermission: {
+          projectIds: [PROJECT_ID],
+          globalPermissions: [Permission.Public, Permission.User],
+          _type: "UserGlobalAccessPermission",
+        },
+        userTenantAccessPermission: {
+          [PROJECT_ID.toString()]: {
+            projectId: PROJECT_ID,
+            permissions: permissions.map((permission: Permission) => {
+              return {
+                permission,
+                labelIds: [],
+                isBlockPermission: false,
+                _type: "UserPermission",
+              };
+            }),
+            _type: "UserTenantAccessPermission",
+          },
+        },
+      } as DatabaseCommonInteractionProps;
+    }
+
+    /*
+     * The stored rows are read once the permission checks have narrowed the
+     * update to the caller's own project, so a refusal never tells anyone
+     * about another project's rule.
+     */
+    test("reads the stored rule only within the caller's project", async () => {
+      const stored: any = new suite.modelType();
+      stored._id = RULE_ID.toString();
+      stored.patternType = suite.customPatternType;
+      stored.customRegex = VALID_REGEX;
+
+      const findBy: jest.SpyInstance = getJestSpyOn(
+        suite.service,
+        "findBy",
+      ).mockResolvedValue([stored] as never);
+
+      await expect(
+        suite.service.updateOneById({
+          id: RULE_ID,
+          data: { customRegex: "" },
+          props: projectMember([
+            Permission.ProjectMember,
+            suite.editPermission,
+          ]),
+        }),
+      ).rejects.toThrow(/needs a regular expression/);
+
+      expect(findBy).toHaveBeenCalledTimes(1);
+      const request: any = findBy.mock.calls[0]![0];
+      expect(request.query["_id"]?.toString()).toBe(RULE_ID.toString());
+      // The tenant scope the permission check added: this project only.
+      expect(request.query["projectId"]).toBeDefined();
+      expect(inspect(request.query["projectId"], { depth: 4 })).toContain(
+        PROJECT_ID.toString(),
+      );
+    });
+
+    test("reads nothing for a caller who may not edit scrub rules", async () => {
+      const findBy: jest.SpyInstance = getJestSpyOn(
+        suite.service,
+        "findBy",
+      ).mockResolvedValue([] as never);
+
+      await expect(
+        suite.service.updateOneById({
+          id: RULE_ID,
+          data: { customRegex: "" },
+          props: projectMember([Permission.ProjectMember]),
+        }),
+      ).rejects.toThrow();
+
+      expect(findBy).not.toHaveBeenCalled();
     });
   },
 );

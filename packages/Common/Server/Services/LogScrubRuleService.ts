@@ -1,9 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/LogScrubRule";
 import CreateBy from "../Types/Database/CreateBy";
+import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import { OnCreate } from "../Types/Database/Hooks";
 import {
   LOG_SCRUB_FIELDS,
   LOG_SCRUB_PATTERN_TYPES,
@@ -33,47 +33,27 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    validateScrubRuleCreate(
-      {
-        patternType: createBy.data.patternType,
-        customRegex: createBy.data.customRegex,
-        fieldsToScrub: createBy.data.fieldsToScrub,
-      },
-      VALIDATION_OPTIONS,
-    );
+    validateScrubRuleCreate(createBy.data, VALIDATION_OPTIONS);
 
     return { createBy, carryForward: null };
   }
 
-  protected override async onBeforeUpdate(
+  /*
+   * An update is judged on the rows it matches, once the caller has passed
+   * the permission checks and the query is narrowed to the rows they may
+   * write - so the stored rows read to merge it over are never another
+   * project's.
+   */
+  protected override async onBeforeUpdateUniqueCheck(
     updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    await validateScrubRuleUpdate({
-      incoming: {
-        patternType: updateBy.data.patternType,
-        customRegex: updateBy.data.customRegex,
-        fieldsToScrub: updateBy.data.fieldsToScrub,
-      },
-      findStoredRows: async (): Promise<Array<Model>> => {
-        return await this.findBy({
-          query: updateBy.query,
-          skip: 0,
-          limit: LIMIT_MAX,
-          select: {
-            _id: true,
-            patternType: true,
-            customRegex: true,
-            fieldsToScrub: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+  ): Promise<void> {
+    await validateScrubRuleUpdate<Model>({
+      updateBy: updateBy,
+      findBy: async (findBy: FindBy<Model>): Promise<Array<Model>> => {
+        return await this.findBy(findBy);
       },
       options: VALIDATION_OPTIONS,
     });
-
-    return { updateBy, carryForward: null };
   }
 }
 

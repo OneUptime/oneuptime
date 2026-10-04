@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -120,16 +119,15 @@ const ADVANCED: FormFieldCollapsibleSection<LogPipeline> =
 
 type GetPipelineRouteFunction = (item: LogPipeline) => Route;
 
+// The new pipeline's page, as the table's View opens it.
 const getPipelineRoute: GetPipelineRouteFunction = (
   item: LogPipeline,
 ): Route => {
-  return new Route(
-    RouteUtil.populateRouteParams(
-      RouteMap[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] as Route,
-      {
-        modelId: new ObjectID(item._id as string),
-      },
-    ).toString(),
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.LOGS_SETTINGS_PIPELINE_VIEW] as Route,
+    {
+      modelId: item._id as string,
+    },
   );
 };
 

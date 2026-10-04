@@ -25,8 +25,6 @@ import {
   validateScrubRule,
 } from "../../../Server/Utils/ScrubRuleValidation";
 import {
-  DROP_FILTER_ACTION_STEP_ID,
-  DROP_FILTER_MATCH_STEP_ID,
   getDropFilterAdvancedSummary,
   getDropFilterFormSteps,
   getLogDropFilterFormFields,
@@ -275,8 +273,12 @@ describe("the scrub rule form", () => {
       TRACE_SCRUB_RULE_DEFAULTS,
     );
     expect(LOG_SCRUB_RULE_FORM_OPTIONS.defaults).toBe(LOG_SCRUB_RULE_DEFAULTS);
-    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.records).toBe("spans");
-    expect(LOG_SCRUB_RULE_FORM_OPTIONS.records).toBe("logs");
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.defaultsSummary).toBe(
+      TRACE_SCRUB_RULE_DEFAULTS_SUMMARY,
+    );
+    expect(LOG_SCRUB_RULE_FORM_OPTIONS.defaultsSummary).toBe(
+      LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
+    );
   });
 
   test("both pages build their form from the same fields", () => {
@@ -537,8 +539,8 @@ describe("the drop filter form", () => {
         return [step.id, step.title];
       }),
     ).toEqual([
-      [DROP_FILTER_MATCH_STEP_ID, "Match"],
-      [DROP_FILTER_ACTION_STEP_ID, "Action"],
+      ["match", "Match"],
+      ["action", "Action"],
     ]);
   });
 
@@ -547,7 +549,7 @@ describe("the drop filter form", () => {
       expect(
         fields
           .filter((field: ModelField<LogDropFilter>): boolean => {
-            return field.stepId === DROP_FILTER_MATCH_STEP_ID;
+            return field.stepId === "match";
           })
           .map(keyOf),
       ).toEqual(["name", "filterQuery"]);
@@ -556,7 +558,7 @@ describe("the drop filter form", () => {
     test("asks what happens on Action, with the description and Enabled folded", () => {
       const onAction: Array<ModelField<LogDropFilter>> = fields.filter(
         (field: ModelField<LogDropFilter>): boolean => {
-          return field.stepId === DROP_FILTER_ACTION_STEP_ID;
+          return field.stepId === "action";
         },
       );
 
@@ -580,10 +582,7 @@ describe("the drop filter form", () => {
 
     test("puts every field on one of the two steps", () => {
       for (const field of fields) {
-        expect([
-          DROP_FILTER_MATCH_STEP_ID,
-          DROP_FILTER_ACTION_STEP_ID,
-        ]).toContain(field.stepId);
+        expect(["match", "action"]).toContain(field.stepId);
       }
     });
 

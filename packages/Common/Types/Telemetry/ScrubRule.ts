@@ -156,29 +156,78 @@ export function checkScrubRuleCustomRegex(
     };
   }
 
-  regex.lastIndex = 0;
-
-  if (regex.exec("") !== null) {
+  if (matchesEmptyText(regex)) {
     return { problem: ScrubRuleCustomRegexProblem.MatchesEmptyText };
   }
 
   return null;
 }
 
+/*
+ * Text that holds the characters scrubbed values sit among - letters,
+ * digits, spaces, separators, an address, a key and its value - so a
+ * pattern that matches nothing but a position somewhere in a record ("\b",
+ * "(?=@)", "(?<=:)\s*", "x*(?=y)") is caught as surely as one that matches
+ * empty text on its own ("\d*").
+ */
+const EMPTY_MATCH_PROBES: ReadonlyArray<string> = [
+  "",
+  "a",
+  "token=abc123; user@example.com",
+  "key: value, x y z",
+  "Aa1 -_.,:;=/\\@#$%&*+?!()[]{}<>'\"`|^~\t\n",
+];
+
+// Whether a compiled pattern ever matches no text at all.
+function matchesEmptyText(regex: RegExp): boolean {
+  // matchAll takes a global pattern only.
+  const global: RegExp = regex.global
+    ? regex
+    : new RegExp(regex.source, `${regex.flags}g`);
+
+  for (const probe of EMPTY_MATCH_PROBES) {
+    // matchAll steps past an empty match, so this always ends.
+    for (const match of probe.matchAll(global)) {
+      if (match[0] === "") {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 /**
  * Whether a stored rule scrubs nothing at all: ingest skips a rule of a
- * pattern type it does not know, and a custom rule whose pattern is empty or
- * does not compile. The rules tables flag such rules, saved before the
- * server refused them, so nobody takes them for protection.
+ * pattern type it does not know and a custom rule whose pattern is empty or
+ * does not compile, and a rule whose fields-to-scrub it does not know
+ * matches but scrubs none of the record's fields (a sensitive-keys rule
+ * aside: it always scrubs attributes). The rules tables flag such rules,
+ * saved before the server refused them, so nobody takes them for protection.
  */
 export function doesScrubRuleScrubNothing(data: {
   patternType: unknown;
   customRegex: unknown;
+  fieldsToScrub: unknown;
   knownPatternTypes: ReadonlyArray<string>;
+  knownFieldsToScrub: ReadonlyArray<string>;
 }): boolean {
   if (
     typeof data.patternType !== "string" ||
     !data.knownPatternTypes.includes(data.patternType)
+  ) {
+    return true;
+  }
+
+  /*
+   * Left empty, ingest scrubs every field; a value it does not know, none of
+   * them.
+   */
+  if (
+    data.patternType !== SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE &&
+    typeof data.fieldsToScrub === "string" &&
+    data.fieldsToScrub.length > 0 &&
+    !data.knownFieldsToScrub.includes(data.fieldsToScrub)
   ) {
     return true;
   }

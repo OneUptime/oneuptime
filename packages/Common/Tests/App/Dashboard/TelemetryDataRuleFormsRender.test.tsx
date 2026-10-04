@@ -18,6 +18,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { SpyInstance } from "jest-mock";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "../../../Types/API/Route";
@@ -229,7 +230,9 @@ import TraceScrubRule from "../../../Models/DatabaseModels/TraceScrubRule";
 import { Blue500 } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
+  LOG_SCRUB_FIELDS,
   LOG_SCRUB_PATTERN_TYPES,
+  TRACE_SCRUB_FIELDS,
   TRACE_SCRUB_PATTERN_TYPES,
 } from "../../../Types/Telemetry/ScrubRule";
 
@@ -278,14 +281,10 @@ async function pickOption(
   await user.click(options[options.length - 1]!);
 }
 
+// What ModelForm handed the API: the model, read by its columns.
 function sentModel(): JSONObject {
-  const model: unknown = (
-    createOrUpdateMock.mock.calls[0]?.[0] as { model: unknown }
-  ).model;
-
-  return (model as BaseModel).toJSON
-    ? ((model as BaseModel).toJSON() as unknown as JSONObject)
-    : (model as JSONObject);
+  return (createOrUpdateMock.mock.calls[0]?.[0] as { model: unknown })
+    .model as JSONObject;
 }
 
 async function submit(): Promise<void> {
@@ -876,7 +875,7 @@ describe.each(PIPELINE_PAGES)("$name", (page: PipelinePage) => {
   });
 
   test("creates the pipeline without asking whether it is on, and opens its page", async () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {
         return undefined;
@@ -929,14 +928,19 @@ describe("the rules table's pattern type", () => {
   function renderPill(
     patternType: string | undefined,
     customRegex: string | undefined,
-    knownPatternTypes: ReadonlyArray<string> = LOG_SCRUB_PATTERN_TYPES,
+    fieldsToScrub: string | undefined = "both",
+    trace: boolean = false,
   ): void {
     render(
       <ScrubRulePatternPill
         patternType={patternType}
         customRegex={customRegex}
+        fieldsToScrub={fieldsToScrub}
         patternTypes={LOG_PATTERN_PILLS}
-        knownPatternTypes={knownPatternTypes}
+        knownPatternTypes={
+          trace ? TRACE_SCRUB_PATTERN_TYPES : LOG_SCRUB_PATTERN_TYPES
+        }
+        knownFieldsToScrub={trace ? TRACE_SCRUB_FIELDS : LOG_SCRUB_FIELDS}
       />,
     );
   }
@@ -969,8 +973,28 @@ describe("the rules table's pattern type", () => {
     },
   );
 
+  test("flags a rule whose fields to scrub ingest does not know", () => {
+    renderPill("email", undefined, "Body");
+
+    expect(screen.getByTestId("scrub-rule-scrubs-nothing")).toHaveTextContent(
+      "Scrubs nothing",
+    );
+  });
+
+  test("does not flag a sensitive-keys rule's fields, which ingest ignores", () => {
+    renderPill("sensitiveKeys", undefined, "Body");
+
+    expect(screen.queryByTestId("scrub-rule-scrubs-nothing")).toBeNull();
+  });
+
+  test("reads a trace rule's fields as a trace rule's", () => {
+    renderPill("email", undefined, "all", true);
+
+    expect(screen.queryByTestId("scrub-rule-scrubs-nothing")).toBeNull();
+  });
+
   test("draws the pattern type's own pill beside the flag", () => {
-    renderPill("custom", "", TRACE_SCRUB_PATTERN_TYPES);
+    renderPill("custom", "", "all", true);
 
     expect(screen.getByText("Custom Regex")).toBeInTheDocument();
     expect(screen.getByText("Scrubs nothing")).toBeInTheDocument();

@@ -46,15 +46,6 @@ import React, { ReactElement } from "react";
  * walks on to Action for Sample.
  */
 
-/*
- * The steps' ids, written out where they are used too, so the form scan
- * (Tests/Helpers/FormStepsScan) can tell which step each field is on.
- */
-export const DROP_FILTER_MATCH_STEP_ID: string = "match";
-export const DROP_FILTER_ACTION_STEP_ID: string = "action";
-
-export type DropFilterRecords = "logs" | "spans";
-
 export const LOG_DROP_FILTER_DEFAULTS_SUMMARY: string = translationKey(
   "The filter applies to new logs within a minute of being created.",
 );
@@ -64,7 +55,6 @@ export const TRACE_DROP_FILTER_DEFAULTS_SUMMARY: string = translationKey(
 );
 
 export interface DropFilterFormOptions {
-  records: DropFilterRecords;
   filterConfig: FilterBuilderConfig;
   namePlaceholder: string;
   filterQueryHelp: string;
@@ -75,7 +65,6 @@ export interface DropFilterFormOptions {
 }
 
 export const LOG_DROP_FILTER_FORM_OPTIONS: DropFilterFormOptions = {
-  records: "logs",
   filterConfig: LogFilterConfig,
   namePlaceholder: translationKey("e.g. Drop Debug Logs"),
   filterQueryHelp: translationKey(
@@ -91,7 +80,6 @@ export const LOG_DROP_FILTER_FORM_OPTIONS: DropFilterFormOptions = {
 };
 
 export const TRACE_DROP_FILTER_FORM_OPTIONS: DropFilterFormOptions = {
-  records: "spans",
   filterConfig: TraceFilterConfig,
   namePlaceholder: translationKey("e.g. Drop Healthcheck Spans"),
   filterQueryHelp: translationKey(
@@ -137,6 +125,10 @@ export const getDropFilterFormSteps: <
 >() => Array<FormStep<TFilter>> = <
   TFilter extends LogDropFilter | TraceDropFilter,
 >(): Array<FormStep<TFilter>> => {
+  /*
+   * The ids are written out here and on every field, so the form scan
+   * (Tests/Helpers/FormStepsScan) can tell which step each field is on.
+   */
   return [
     { title: "Match", id: "match" },
     { title: "Action", id: "action" },

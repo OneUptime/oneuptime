@@ -8,6 +8,7 @@ import {
   checkScrubRuleCustomRegex,
   compileScrubRuleCustomRegex,
   doesScrubRuleScrubNothing,
+  LOG_SCRUB_FIELDS,
   LOG_SCRUB_PATTERN_TYPES,
   LOG_SCRUB_RULE_DEFAULTS,
   TRACE_SCRUB_PATTERN_TYPES,
@@ -106,7 +107,9 @@ describe.each(ENGINES)(
           const flagged: boolean = doesScrubRuleScrubNothing({
             patternType,
             customRegex: pattern,
+            fieldsToScrub: undefined,
             knownPatternTypes: patternTypes,
+            knownFieldsToScrub: [],
           });
 
           expect(getRegexForPattern(patternType, pattern) === null).toBe(
@@ -151,6 +154,43 @@ describe("a custom rule ingest scrubs with", () => {
 
     expect(row["body"]).toBe("token [REDACTED] and [REDACTED]");
     expect((row["attributes"] as JSONObject)["note"]).toBe("[REDACTED]");
+  });
+
+  /*
+   * The table's other flag: a rule whose fields-to-scrub ingest does not
+   * know matches, but scrubs none of the log's fields.
+   */
+  test("scrubs nothing for fields to scrub it does not know, as the table says", () => {
+    const rule: LogScrubRule = new LogScrubRule();
+    rule.patternType = LogScrubPatternType.Email;
+    rule.scrubAction = LogScrubAction.Redact;
+    rule.fieldsToScrub = "Body";
+
+    const regex: RegExp | null = (
+      LogScrubRuleService as unknown as {
+        getRegexForPattern: GetRegexForPattern;
+      }
+    ).getRegexForPattern("email", undefined);
+
+    const row: JSONObject = LogScrubRuleService.scrubLog(
+      {
+        body: "mail jane@example.com",
+        attributes: { user: "jane@example.com" },
+      },
+      [{ rule, regex: regex as RegExp }],
+    );
+
+    expect(row["body"]).toBe("mail jane@example.com");
+    expect((row["attributes"] as JSONObject)["user"]).toBe("jane@example.com");
+    expect(
+      doesScrubRuleScrubNothing({
+        patternType: rule.patternType,
+        customRegex: undefined,
+        fieldsToScrub: rule.fieldsToScrub,
+        knownPatternTypes: LOG_SCRUB_PATTERN_TYPES,
+        knownFieldsToScrub: LOG_SCRUB_FIELDS,
+      }),
+    ).toBe(true);
   });
 
   test("the trace engine reads the same pattern types", () => {

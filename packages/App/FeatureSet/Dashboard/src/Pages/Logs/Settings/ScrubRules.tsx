@@ -18,7 +18,10 @@ import {
   Teal500,
   Indigo500,
 } from "Common/Types/BrandColors";
-import { LOG_SCRUB_PATTERN_TYPES } from "Common/Types/Telemetry/ScrubRule";
+import {
+  LOG_SCRUB_FIELDS,
+  LOG_SCRUB_PATTERN_TYPES,
+} from "Common/Types/Telemetry/ScrubRule";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -238,8 +241,8 @@ const LogScrubRules: FunctionComponent<
       noItemsMessage={"No scrub rules found."}
       formFields={formFields}
       /*
-       * The pattern itself, so a custom rule ingest cannot use is flagged
-       * in its row (ScrubRulePatternPill).
+       * The pattern itself, so a rule that scrubs nothing - a custom one
+       * ingest cannot use - is flagged in its row (ScrubRulePatternPill).
        */
       selectMoreFields={{
         customRegex: true,
@@ -310,8 +313,10 @@ const LogScrubRules: FunctionComponent<
               <ScrubRulePatternPill
                 patternType={item.patternType}
                 customRegex={item.customRegex}
+                fieldsToScrub={item.fieldsToScrub}
                 patternTypes={patternTypeConfig}
                 knownPatternTypes={LOG_SCRUB_PATTERN_TYPES}
+                knownFieldsToScrub={LOG_SCRUB_FIELDS}
               />
             );
           },

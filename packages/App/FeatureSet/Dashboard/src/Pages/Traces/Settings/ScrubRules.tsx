@@ -18,7 +18,10 @@ import {
   Teal500,
   Indigo500,
 } from "Common/Types/BrandColors";
-import { TRACE_SCRUB_PATTERN_TYPES } from "Common/Types/Telemetry/ScrubRule";
+import {
+  TRACE_SCRUB_FIELDS,
+  TRACE_SCRUB_PATTERN_TYPES,
+} from "Common/Types/Telemetry/ScrubRule";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -205,8 +208,8 @@ const TraceScrubRules: FunctionComponent<
       noItemsMessage={"No scrub rules found."}
       formFields={formFields}
       /*
-       * The pattern itself, so a custom rule ingest cannot use is flagged
-       * in its row (ScrubRulePatternPill).
+       * The pattern itself, so a rule that scrubs nothing - a custom one
+       * ingest cannot use - is flagged in its row (ScrubRulePatternPill).
        */
       selectMoreFields={{
         customRegex: true,
@@ -265,8 +268,10 @@ const TraceScrubRules: FunctionComponent<
               <ScrubRulePatternPill
                 patternType={item.patternType}
                 customRegex={item.customRegex}
+                fieldsToScrub={item.fieldsToScrub}
                 patternTypes={patternTypeConfig}
                 knownPatternTypes={TRACE_SCRUB_PATTERN_TYPES}
+                knownFieldsToScrub={TRACE_SCRUB_FIELDS}
               />
             );
           },
