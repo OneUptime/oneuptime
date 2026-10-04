@@ -223,6 +223,11 @@ import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import UserUtil from "../../../UI/Utils/User";
+import {
+  getByTextOutsideFoldedHeaders,
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const WAIT_FOR_TIMEOUT: number = 20000;
 
@@ -360,9 +365,12 @@ async function openEditDialog(editButton: string): Promise<HTMLElement> {
   return screen.getByTestId("modal");
 }
 
-// The open label of a field: its title, then " (Optional)" when it is.
+/*
+ * The open label of a field: its title, then " (Optional)" when it is - not
+ * the name a folded More fields header lists while it is folded.
+ */
 function label(dialog: HTMLElement, title: string): HTMLElement {
-  return within(dialog).getByText(title);
+  return getByTextOutsideFoldedHeaders(dialog, title);
 }
 
 function advancedHeader(dialog: HTMLElement, title: string): HTMLElement {
@@ -436,12 +444,12 @@ describe("Settings > Call & SMS", () => {
     expect(label(dialog, "Primary Twilio Phone Number")).toBeVisible();
 
     // Folded: the header shows, the field does not, until it is opened.
-    const header: HTMLElement = advancedHeader(dialog, "Advanced");
+    const header: HTMLElement = advancedHeader(dialog, "More fields");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(label(dialog, "Secondary Twilio Phone Numbers")).not.toBeVisible();
     // Nothing set in it, so nothing to call out.
-    expect(within(header).queryByText("Configured")).toBeNull();
+    expect(setChips(header)).toEqual([]);
 
     fireEvent.click(header);
 
@@ -493,7 +501,7 @@ describe("Settings > Call & SMS", () => {
     expect(saved["twilioSecondaryPhoneNumbers"] || "").toBe("");
   });
 
-  test("says Advanced is configured when extra numbers are saved, in the reader's language", async () => {
+  test("shows the extra numbers as set when they are saved, in the reader's language", async () => {
     stored[new GlobalConfig().tableName || ""]!["twilioSecondaryPhoneNumbers"] =
       "+441234567890, +461234567890";
 
@@ -513,13 +521,15 @@ describe("Settings > Call & SMS", () => {
 
     const header: HTMLElement = advancedHeader(
       dialog,
-      text(GERMAN, "Advanced"),
+      text(GERMAN, "More fields"),
     );
 
-    expect(text(GERMAN, "Advanced")).toBe("Erweitert");
-    expect(text(GERMAN, "Configured")).toBe("Konfiguriert");
+    expect(text(GERMAN, "More fields")).toBe("Weitere Felder");
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(within(header).getByText("Konfiguriert")).toBeVisible();
+    // The folded header names the numbers in German, as a chip: they are set.
+    expect(setChips(header)).toEqual([
+      text(GERMAN, "Secondary Twilio Phone Numbers"),
+    ]);
     expect(
       label(dialog, text(GERMAN, "Secondary Twilio Phone Numbers")),
     ).not.toBeVisible();
@@ -555,10 +565,10 @@ describe("Settings > WhatsApp", () => {
     expectNoSteps(dialog);
     expect(label(dialog, "Phone Number ID")).toBeVisible();
 
-    const header: HTMLElement = advancedHeader(dialog, "Advanced");
+    const header: HTMLElement = advancedHeader(dialog, "More fields");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(within(header).queryByText("Configured")).toBeNull();
+    expect(setChips(header)).toEqual([]);
 
     for (const title of FOLDED) {
       expect(label(dialog, title)).not.toBeVisible();
@@ -572,7 +582,7 @@ describe("Settings > WhatsApp", () => {
     }
   });
 
-  test("says Advanced is configured once the webhook is set up", async () => {
+  test("shows the webhook settings as set once the webhook is set up", async () => {
     stored[new GlobalConfig().tableName || ""] = {
       metaWhatsAppPhoneNumberId: "123456789012345",
       metaWhatsAppWebhookVerifyToken: "a-strong-verify-token",
@@ -590,23 +600,23 @@ describe("Settings > WhatsApp", () => {
     );
     await settle();
 
-    expect(
-      within(advancedHeader(dialog, "Advanced")).getByText("Configured"),
-    ).toBeVisible();
+    expect(hasSetChip(advancedHeader(dialog, "More fields"))).toBe(true);
   });
 
-  test("the setup guide says the webhook settings are under Advanced", async () => {
+  test("the setup guide says the webhook settings are under More fields", async () => {
     await renderWithLocale(<WhatsAppSettings />);
 
     const guide: string = screen.getByTestId("setup-guide").textContent || "";
 
     expect(guide).toContain(
-      "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save. The Business Account ID, App ID and App Secret from the next steps go under **Advanced** in the same form.",
+      "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save. The Business Account ID, App ID and App Secret from the next steps go under **More fields** in the same form.",
     );
     expect(guide).toContain(
-      "open **Settings → WhatsApp → Meta WhatsApp Settings**, expand **Advanced** and enter a strong value in **Webhook Verify Token**",
+      "open **Settings → WhatsApp → Meta WhatsApp Settings**, expand **More fields** and enter a strong value in **Webhook Verify Token**",
     );
-    expect(guide).toContain("Save the **App Secret** under **Advanced**");
+    expect(guide).toContain("Save the **App Secret** under **More fields**");
+    // The fold is not called Advanced any more, here either.
+    expect(guide).not.toContain("**Advanced**");
     // No step tells anyone to look for the verify token beside the token.
     expect(guide).not.toContain(
       "Paste the access token, phone number ID, and webhook verify token",
@@ -774,7 +784,7 @@ describe("Settings > Global LLM Providers", () => {
     expect(label(dialog, "Model Name")).toBeVisible();
     expect(label(dialog, "Base URL")).toBeVisible();
 
-    const header: HTMLElement = advancedHeader(dialog, "Advanced");
+    const header: HTMLElement = advancedHeader(dialog, "More fields");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(label(dialog, "Additional Parameters")).not.toBeVisible();
@@ -782,7 +792,7 @@ describe("Settings > Global LLM Providers", () => {
       label(dialog, "Cost Per Million Tokens (USD Cents)"),
     ).not.toBeVisible();
     // A free provider, the default, is nothing to call out.
-    expect(within(header).queryByText("Configured")).toBeNull();
+    expect(setChips(header)).toEqual([]);
 
     fireEvent.click(header);
 
@@ -840,7 +850,7 @@ describe("Settings > Global LLM Providers", () => {
       { timeout: WAIT_FOR_TIMEOUT },
     );
 
-    fireEvent.click(advancedHeader(dialog, "Advanced"));
+    fireEvent.click(advancedHeader(dialog, "More fields"));
 
     expect(label(dialog, "Additional Parameters")).toBeVisible();
     expect(
@@ -883,14 +893,14 @@ describe("Settings > Global LLM Providers", () => {
         { timeout: WAIT_FOR_TIMEOUT },
       );
 
-      const header: HTMLElement = advancedHeader(dialog, "Advanced");
+      const header: HTMLElement = advancedHeader(dialog, "More fields");
 
       expect(header).toHaveAttribute("aria-expanded", "false");
 
       if (configured) {
-        expect(within(header).getByText("Configured")).toBeVisible();
+        expect(hasSetChip(header)).toBe(true);
       } else {
-        expect(within(header).queryByText("Configured")).toBeNull();
+        expect(setChips(header)).toEqual([]);
       }
     },
   );

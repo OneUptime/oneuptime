@@ -33,8 +33,9 @@ import {
  *      getAdvancedFormSection - which is what lists its fields and draws its
  *      icon;
  *   4. the old way of showing extra options - an "Advanced: ..." link that
- *      reveals an "Advanced Options" box, or a "Show/Hide Advanced Options"
- *      button - outside the forms listed below with the reason they keep it.
+ *      reveals an "Advanced Options" box, a "Show/Hide Advanced Options"
+ *      button, a "Show N advanced settings" link - outside the forms listed
+ *      below with the reason they keep it.
  * Wizard steps titled Advanced or More are AdvancedStepsGuard's.
  */
 
@@ -76,19 +77,31 @@ export const OLD_ADVANCED_TOGGLE_ALLOWED: Array<ListedFile> = [
   "Components/Form/Monitor/TraceMonitor/TraceMonitorStepForm.tsx",
   "Components/Form/Monitor/ExceptionMonitor/ExceptionMonitorStepForm.tsx",
   "Components/Form/Monitor/SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx",
-].map((file: string): ListedFile => {
-  return {
-    file: `${DASHBOARD}/${file}`,
-    reason:
-      "A telemetry monitor's extra filters (attributes, services, severities) are folded under the shared More fields section by the task telemetry-monitor-filters-advanced-section; until then they keep their Show / Hide Advanced Options button.",
-  };
-});
+]
+  .map((file: string): ListedFile => {
+    return {
+      file: `${DASHBOARD}/${file}`,
+      reason:
+        "A telemetry monitor's extra filters (attributes, services, severities) are folded under the shared More fields section by the task telemetry-monitor-filters-advanced-section; until then they keep their Show / Hide Advanced Options button.",
+    };
+  })
+  .concat([
+    {
+      file: `${DASHBOARD}/Utils/GroupingRule/GroupingRuleSetup.ts`,
+      reason:
+        "Grouping rules' Show advanced settings is a switch that adds the rule's optional wizard steps (Episode Lifecycle, Details, On-Call & Ownership), not a fold of fields: a step cannot sit in a folded section. Its wording is the maintainer's call.",
+    },
+  ]);
 
 // "Advanced: Port, Timeout and Retries" - the link that opened a box.
 const ADVANCED_LINK_TITLE: RegExp = /^\s*Advanced\s*:/i;
 
-// The box's heading, and the telemetry forms' toggle.
-const ADVANCED_OPTIONS_TEXT: RegExp = /\b(?:Show |Hide )?Advanced Options\b/i;
+/*
+ * The box's heading, the telemetry forms' toggle, and the workflow step's
+ * "Show 3 advanced settings" link it once had.
+ */
+const ADVANCED_OPTIONS_TEXT: RegExp =
+  /\b(?:(?:Show |Hide )?Advanced Options|(?:Show|Hide)\b[^.]*\badvanced settings?)\b/i;
 
 // A FormFieldCollapsibleSection, told apart from steps and menu sections.
 const SECTION_ONLY_PROPERTIES: ReadonlySet<string> = new Set<string>([
@@ -450,6 +463,7 @@ describe("the detector", () => {
       const link = <Button title="Advanced: Port, Timeout and Retries" />;
       const heading = <h4>{translator.translateText("Advanced Options")}</h4>;
       const toggle = <Button title={show ? "Hide Advanced Options" : "Show Advanced Options"} />;
+      const link = translatePlural({ one: "Show {{count}} advanced setting", other: "Show {{count}} advanced settings" }, 2);
     `);
 
     expect(
@@ -461,6 +475,8 @@ describe("the detector", () => {
       "Advanced Options",
       "Hide Advanced Options",
       "Show Advanced Options",
+      "Show {{count}} advanced setting",
+      "Show {{count}} advanced settings",
     ]);
   });
 });

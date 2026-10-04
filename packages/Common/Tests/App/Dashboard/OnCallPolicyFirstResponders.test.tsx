@@ -369,7 +369,7 @@ async function submit(modal: HTMLElement): Promise<void> {
 }
 
 function advancedHeader(modal: HTMLElement): HTMLElement {
-  return within(modal).getByRole("button", { name: /^Advanced/ });
+  return within(modal).getByRole("button", { name: "More fields" });
 }
 
 function chipIds(): Array<string | null> {

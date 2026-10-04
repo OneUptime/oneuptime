@@ -171,6 +171,12 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import TimezoneUtil from "../../../UI/Utils/Timezone";
 import { getJestSpyOn } from "../../Spy";
+import {
+  getByTextOutsideFoldedHeaders,
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -387,7 +393,7 @@ async function submit(modal: HTMLElement): Promise<void> {
 }
 
 function advancedHeader(modal: HTMLElement): HTMLElement {
-  return within(modal).getByRole("button", { name: /^Advanced/ });
+  return within(modal).getByRole("button", { name: "More fields" });
 }
 
 function chipIds(): Array<string | null> {
@@ -457,11 +463,19 @@ describe("the Create On-Call Schedule form", () => {
     const modal: HTMLElement = await openCreateForm();
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader(modal))).toEqual([]);
     // Nothing to sum up with nobody picked.
     expect(within(modal).queryByText(DEFAULT_SUMMARY)).toBeNull();
 
-    expect(within(modal).getByText("Timezone")).not.toBeVisible();
+    // Folded, the header names them; the fields themselves are hidden.
+    expect(listedNames(advancedHeader(modal))).toEqual([
+      "Timezone",
+      "Description",
+      "Labels",
+    ]);
+    expect(
+      getByTextOutsideFoldedHeaders(modal, "Timezone"),
+    ).not.toBeVisible();
     expect(within(modal).getByPlaceholderText("Description")).not.toBeVisible();
     expect(
       within(modal).getByText(LABELS_FORM_FIELD_DESCRIPTION),
@@ -499,7 +513,7 @@ describe("the Create On-Call Schedule form", () => {
 
     // Folded, the section says what the default will do.
     expect(await within(modal).findByText(DEFAULT_SUMMARY)).toBeVisible();
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader(modal))).toEqual([]);
 
     fireEvent.click(advancedHeader(modal));
 
@@ -585,7 +599,7 @@ describe("creating the schedule", () => {
 
     // No longer the default: the header says so.
     await user.click(advancedHeader(modal));
-    expect(advancedHeader(modal)).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader(modal))).toBe(true);
     expect(within(modal).queryByText(DEFAULT_SUMMARY)).toBeNull();
 
     await submit(modal);

@@ -457,7 +457,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     ).toHaveValue("postmaster@example.com");
     expect(within(dialog).getByPlaceholderText("Password")).toBeVisible();
 
-    const header: HTMLElement = advancedHeader(dialog, "Advanced");
+    const header: HTMLElement = advancedHeader(dialog, "More fields");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(summaryOf(dialog)).toBe(
@@ -598,7 +598,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
 
     expect(within(dialog).queryByPlaceholderText("smtp.server.com")).toBeNull();
     expect(within(dialog).queryByPlaceholderText("587")).toBeNull();
-    expect(advancedHeader(dialog, "Advanced")).toHaveAttribute(
+    expect(advancedHeader(dialog, "More fields")).toHaveAttribute(
       "aria-expanded",
       "false",
     );
@@ -634,7 +634,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     await waitForField(dialog, "smtp.server.com");
 
     await act(async () => {
-      fireEvent.click(advancedHeader(dialog, "Advanced"));
+      fireEvent.click(advancedHeader(dialog, "More fields"));
     });
     await act(async () => {
       fireEvent.click(
@@ -766,7 +766,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     expect(summaryOf(dialog)).not.toContain("Mail is sent");
 
     await act(async () => {
-      fireEvent.click(advancedHeader(dialog, text(GERMAN, "Advanced")));
+      fireEvent.click(advancedHeader(dialog, text(GERMAN, "More fields")));
     });
 
     expect(

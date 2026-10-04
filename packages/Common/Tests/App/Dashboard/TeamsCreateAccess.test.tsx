@@ -184,6 +184,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { getJestSpyOn } from "../../Spy";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -342,7 +343,7 @@ function accessCardValues(modal: HTMLElement): Array<string> {
 }
 
 function advancedHeader(modal: HTMLElement): HTMLElement {
-  return within(modal).getByRole("button", { name: /^Advanced/ });
+  return within(modal).getByRole("button", { name: "More fields" });
 }
 
 async function submit(modal: HTMLElement): Promise<void> {
@@ -376,7 +377,7 @@ describe("the Create Team form", () => {
     ).toBeInTheDocument();
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader(modal))).toEqual([]);
     expect(
       within(modal).getByPlaceholderText("Team Description"),
     ).not.toBeVisible();
@@ -432,7 +433,7 @@ describe("the Create Team form", () => {
     fireEvent.click(advancedHeader(modal));
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader(modal)).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader(modal))).toBe(true);
   });
 });
 

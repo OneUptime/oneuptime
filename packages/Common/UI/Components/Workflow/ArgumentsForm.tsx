@@ -4,7 +4,11 @@ import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "../Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "../Forms/Types/Field";
+import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
 import ConditionEditor from "./Condition/ConditionEditor";
 import CronScheduleField from "./CronScheduleField";
@@ -180,12 +184,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   >({});
 
   /*
-   * Arguments flagged isAdvanced are collapsed behind a disclosure, so the
-   * settings panel opens on the two or three fields that actually decide what
-   * the step does rather than on every knob it has. A required argument is
-   * never collapsed no matter how it is flagged: BasicForm skips validation
-   * for a field hidden by showIf, so hiding a required one would let an
-   * incomplete step save cleanly.
+   * Arguments flagged isAdvanced are folded under More fields, as every
+   * form's rarely needed options are (getAdvancedFormSection), so the
+   * settings panel opens on the two or three fields that actually decide
+   * what the step does rather than on every knob it has. The folded header
+   * names them and shows the ones that hold a value, so an existing
+   * configuration is never hidden from the person who comes back to read
+   * it. A required argument is never folded, however it is flagged: it
+   * belongs with the fields a step cannot do without.
    */
   const collapsibleAdvancedArguments: Array<Argument> = (
     component.metadata.arguments || []
@@ -193,35 +199,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return Boolean(arg.isAdvanced) && !arg.required;
   });
 
-  const hasValueForArgument: (arg: Argument) => boolean = (
-    arg: Argument,
-  ): boolean => {
-    const value: unknown = component.arguments
-      ? component.arguments[arg.id]
-      : undefined;
-
-    if (value === undefined || value === null) {
-      return false;
-    }
-
-    if (typeof value === "string") {
-      return value.trim() !== "";
-    }
-
-    if (typeof value === "object") {
-      return Object.keys(value as JSONObject).length > 0;
-    }
-
-    return true;
-  };
-
-  /*
-   * Open on load when something down there is already set, so an existing
-   * configuration is never hidden from the person who comes back to read it.
-   */
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(
-    collapsibleAdvancedArguments.some(hasValueForArgument),
-  );
+  // One More fields section for the step's folded arguments.
+  const moreFieldsSection: FormFieldCollapsibleSection<JSONObject> =
+    getAdvancedFormSection<JSONObject>({ id: "workflow-step-more-fields" });
 
   const isCollapsibleAdvanced: (arg: Argument) => boolean = (
     arg: Argument,
@@ -255,9 +235,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * Everyday settings first, collapsible ones last, each group keeping its
-   * declared order. Without this an advanced argument declared in the middle
-   * would pop into the middle of the form when the disclosure opens.
+   * Everyday settings first, folded ones last, each group keeping its
+   * declared order: the fields of a folded section are one run at the end
+   * of the form.
    */
   const orderedArguments: Array<Argument> = [
     ...(component.metadata.arguments || []).filter((arg: Argument) => {
@@ -265,9 +245,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     }),
     ...collapsibleAdvancedArguments,
   ];
-
-  const firstAdvancedArgumentIndex: number =
-    orderedArguments.length - collapsibleAdvancedArguments.length;
 
   /*
    * Workflows in the current project, used to populate dropdowns for any
@@ -821,19 +798,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
                   return {
                     title: `${arg.name}`,
-                    /*
-                     * The heading sits on the first advanced field, so the
-                     * disclosure reads as a labelled section rather than as a
-                     * run of extra inputs appearing out of nowhere.
-                     */
-                    sectionTitle:
-                      isAdvanced && argIndex === firstAdvancedArgumentIndex
-                        ? "Advanced"
-                        : undefined,
-                    showIf: isAdvanced
-                      ? (): boolean => {
-                          return showAdvanced;
-                        }
+                    collapsibleSection: isAdvanced
+                      ? moreFieldsSection
                       : undefined,
                     description: describeArgument(translator, arg),
                     field: {
@@ -868,28 +834,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             />
           )}
 
-        {collapsibleAdvancedArguments.length > 0 && (
-          <div className="mt-3">
-            <button
-              type="button"
-              aria-expanded={showAdvanced}
-              className="text-sm underline text-blue-500 hover:text-blue-600 cursor-pointer"
-              onClick={() => {
-                setShowAdvanced(!showAdvanced);
-              }}
-            >
-              {showAdvanced
-                ? translator.translateText("Hide advanced settings")
-                : translator.translatePlural(
-                    {
-                      one: "Show {{count}} advanced setting",
-                      other: "Show {{count}} advanced settings",
-                    },
-                    collapsibleAdvancedArguments.length,
-                  )}
-            </button>
-          </div>
-        )}
       </div>
     </ValuePickerProvider>
   );

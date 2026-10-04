@@ -232,6 +232,7 @@ import IncidentCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import Route from "../../../Types/API/Route";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 interface MonitorFieldRow {
   name: string;
@@ -384,11 +385,11 @@ describe("Create New Incident Custom Field", () => {
     });
 
     const advanced: HTMLElement = await within(form).findByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(within(form).queryByText("Configured")).toBeNull();
+    expect(setChips(form)).toEqual([]);
     expect(
       within(form).getByRole("switch", {
         name: "Show on Create",
@@ -530,11 +531,11 @@ describe("Edit Incident Custom Field", () => {
     ).toHaveValue("Vendor");
 
     const advanced: HTMLElement = within(form).getByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     await waitFor(() => {
-      expect(within(form).getByText("Configured")).toBeVisible();
+      expect(hasSetChip(form)).toBe(true);
     });
     expect(advanced).toHaveAttribute("aria-expanded", "false");
   });
@@ -548,7 +549,7 @@ describe("Edit Incident Custom Field", () => {
 
     await within(form).findByRole("textbox", { name: "Field Name" });
 
-    await user.click(within(form).getByRole("button", { name: "Advanced" }));
+    await user.click(within(form).getByRole("button", { name: "More fields" }));
 
     expect(within(form).getByText("Map Value From")).toBeVisible();
     expect(
@@ -632,7 +633,7 @@ describe("Create Mapped Custom Field", () => {
       null,
     );
     expect(within(form).queryByText("Map Value From")).toBeNull();
-    expect(within(form).queryByRole("button", { name: "Advanced" })).toBeNull();
+    expect(within(form).queryByRole("button", { name: "More fields" })).toBeNull();
     expect(
       within(form).queryByRole("navigation", { name: "Progress" }),
     ).toBeNull();

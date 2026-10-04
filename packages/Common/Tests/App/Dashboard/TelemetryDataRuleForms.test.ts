@@ -160,7 +160,7 @@ describe("the scrub rule form", () => {
           }),
         );
         expect(sections.size).toBe(1);
-        expect(folded[0]!.collapsibleSection!.title).toBe("Advanced");
+        expect(folded[0]!.collapsibleSection!.title).toBe("More fields");
         expect(folded[0]!.collapsibleSection!.openWhenConfigured).toBe(false);
       });
 

@@ -504,8 +504,8 @@ describe("an Edit form", () => {
   });
 });
 
-describe("a folded Advanced section", () => {
-  test("does not say Configured over a switch nobody changed, and does once someone does", async () => {
+describe("a folded More fields section", () => {
+  test("does not show a switch nobody changed as set, and does once someone does", async () => {
     const advanced: ReturnType<typeof getAdvancedFormSection> =
       getAdvancedFormSection<IncidentOwnerRule>();
 
@@ -518,10 +518,14 @@ describe("a folded Advanced section", () => {
     });
 
     const header: HTMLElement = screen.getByRole("button", {
-      name: /Advanced/,
+      name: "More fields",
     });
 
     expect(header).toHaveAttribute("aria-expanded", "false");
+    // Named on the header, not set: it is at the column's default.
+    expect(
+      within(header).getByTestId("folded-section-item"),
+    ).toHaveAttribute("data-item-set", "false");
     expect(screen.queryByText("Configured")).not.toBeInTheDocument();
 
     // Open, switch it off, fold it again: now something is set.
@@ -534,8 +538,14 @@ describe("a folded Advanced section", () => {
     fireEvent.click(header);
 
     await waitFor(() => {
-      expect(within(header).getByText("Configured")).toBeInTheDocument();
+      expect(within(header).getByTestId("folded-section-item")).toHaveTextContent(
+        "Notify Owners: Off",
+      );
     });
+    expect(within(header).getByTestId("folded-section-item")).toHaveAttribute(
+      "data-item-set",
+      "true",
+    );
   });
 });
 

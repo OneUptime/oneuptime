@@ -172,6 +172,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const SLO_DEFAULTS_SUMMARY: string =
   "Measured over a rolling 30-day window, and At Risk when less than 20% of the error budget is left.";
@@ -469,7 +470,7 @@ async function renderSloCreate(): Promise<void> {
 }
 
 function advancedHeader(): HTMLElement {
-  return within(dialog()).getByRole("button", { name: "Advanced" });
+  return within(dialog()).getByRole("button", { name: "More fields" });
 }
 
 function sloField(placeholder: string): HTMLInputElement {
@@ -498,7 +499,7 @@ describe("SLO create", () => {
       within(dialog()).getByTestId("collapsible-section-summary"),
     ).toHaveTextContent(SLO_DEFAULTS_SUMMARY);
     // The summary says it; no "Configured" for defaults.
-    expect(within(dialog()).queryByText("Configured")).toBeNull();
+    expect(setChips(dialog())).toEqual([]);
 
     expect(sloField("99.9% availability for the public API")).not.toBeVisible();
     expect(sloField("20")).not.toBeVisible();
@@ -526,7 +527,7 @@ describe("SLO create", () => {
     expect(
       within(dialog()).queryByTestId("collapsible-section-summary"),
     ).toBeNull();
-    expect(within(dialog()).getByText("Configured")).toBeInTheDocument();
+    expect(hasSetChip(dialog())).toBe(true);
   });
 
   test("creates with only a name typed: the suggested target and the column defaults", async () => {

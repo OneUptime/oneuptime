@@ -232,6 +232,11 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     return false;
   }
 
+  // A default that follows other fields: the field says when it holds it.
+  if (field.isAtDefault && field.isAtDefault(values)) {
+    return false;
+  }
+
   const value: unknown = normalizeFormValue(formValues[fieldName]);
 
   let defaultValue: unknown = field.defaultValue;

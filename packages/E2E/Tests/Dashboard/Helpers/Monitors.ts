@@ -10,7 +10,7 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  * The dashboard "Create Monitor" form (#create-monitor-form) is a multi-step
  * ModelForm:
  *   1. monitor-info  — name + monitorType CardSelect, and the optional labels
- *                      folded under Advanced at the end of the step (the
+ *                      folded under More fields at the end of the step (the
  *                      one step every monitor type walks)
  *   2. criteria      — per-monitor-type destination/config form (skipped for
  *                      Manual). A default offline/online criteria pair is
@@ -249,7 +249,7 @@ const selectMonitoringInterval: (data: {
 
 /*
  * Selects zero or more monitor labels on Monitor Info, where they fold under
- * Advanced at the end of the step. Opening the section and waiting for the
+ * More fields at the end of the step. Opening the section and waiting for the
  * combobox even when no labels are requested makes every create recipe prove
  * the field is reachable on the step every monitor type walks.
  */
@@ -262,11 +262,12 @@ export const selectMonitorLabels: (data: {
 }): Promise<void> => {
   const form: Locator = data.page.locator(monitorCreateFormSelector);
   /*
-   * The section's header is a button named by its title alone: the
-   * "Configured" badge a template's labels bring sits outside the name.
+   * The section's header is a button named by its title alone: what it
+   * lists while folded - Labels, and how many a template's labels bring -
+   * describes the button, outside its name.
    */
   const advanced: Locator = form.getByRole("button", {
-    name: "Advanced",
+    name: "More fields",
     exact: true,
   });
   await advanced.waitFor({ state: "visible", timeout: 30000 });
@@ -363,7 +364,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type, and the labels under Advanced at the end of it.
+  // Step 1: name + type, and the labels under More fields at its end.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
   await selectMonitorLabels({ page, labelNames: data.labelNames });
@@ -568,7 +569,7 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type, and the labels under Advanced at the end of it.
+  // Step 1: name + type, and the labels under More fields at its end.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
   await selectMonitorLabels({ page });

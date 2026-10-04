@@ -519,7 +519,7 @@ describe("A stepped form on a page, finished from any step", () => {
     });
   });
 
-  test("the action opens a folded Advanced section on the step on screen when a field in it fails", async () => {
+  test("the action opens a folded More fields section on the step on screen when a field in it fails", async () => {
     const advanced: ReturnType<typeof getAdvancedFormSection> =
       getAdvancedFormSection<JSONObject>();
 
@@ -541,7 +541,7 @@ describe("A stepped form on a page, finished from any step", () => {
     });
 
     const header: HTMLElement = await screen.findByRole("button", {
-      name: /Advanced/,
+      name: "More fields",
     });
     expect(header).toHaveAttribute("aria-expanded", "false");
 

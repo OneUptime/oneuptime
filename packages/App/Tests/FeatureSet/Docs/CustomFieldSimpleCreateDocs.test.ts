@@ -5,7 +5,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
-import { ADVANCED_FORM_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -111,7 +111,7 @@ describe("the incident custom field docs describe the simple form", () => {
         "Field Name",
         "Field Description",
         "Field Type",
-        ADVANCED_FORM_SECTION_TITLE,
+        MORE_FIELDS_SECTION_TITLE,
         "Configured",
         CustomFieldFormCopy.createMappedFieldTitle,
         "Create Incident Custom Field",
@@ -173,7 +173,7 @@ describe("the incident custom field docs describe the simple form", () => {
         "Field Name",
         "Field Description",
         CustomFieldFormCopy.mapValueFromTitle,
-        ADVANCED_FORM_SECTION_TITLE,
+        MORE_FIELDS_SECTION_TITLE,
         "Edit",
       ]) {
         expect({ language, name, named: names.has(name) }).toEqual({
@@ -239,7 +239,7 @@ describe("the LLM provider docs say what is under Advanced", () => {
     const bullet: string | undefined = markdown
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith(`- **${ADVANCED_FORM_SECTION_TITLE}**`);
+        return line.startsWith(`- **${MORE_FIELDS_SECTION_TITLE}**`);
       });
 
     expect(bullet).toBeDefined();

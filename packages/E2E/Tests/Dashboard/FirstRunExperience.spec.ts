@@ -247,7 +247,7 @@ test.describe("First run: a brand-new project", () => {
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill(websiteMonitorName);
     await selectMonitorTypeCard({ page, cardValue: "Website" });
-    // The labels wait under Advanced on this first step.
+    // The labels wait under More fields on this first step.
     await selectMonitorLabels({ page });
     await clickNext({ page });
 

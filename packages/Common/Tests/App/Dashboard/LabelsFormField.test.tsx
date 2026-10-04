@@ -152,7 +152,7 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   getAdvancedFormSection,
   isFormFieldValueSet,
   isFormSectionConfigured,
@@ -162,6 +162,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const TEMPLATE_ID: ObjectID = new ObjectID(
   "0193c0de-0000-4aaa-8bbb-000000000100",
@@ -228,11 +229,11 @@ async function renderForm(data: {
    * name and the folded section, so nothing below races them under load.
    */
   await screen.findByPlaceholderText("Template Name");
-  await screen.findByRole("button", { name: ADVANCED_FORM_SECTION_TITLE });
+  await screen.findByRole("button", { name: MORE_FIELDS_SECTION_TITLE });
 }
 
 function advancedHeader(): HTMLElement {
-  return screen.getByRole("button", { name: ADVANCED_FORM_SECTION_TITLE });
+  return screen.getByRole("button", { name: MORE_FIELDS_SECTION_TITLE });
 }
 
 function labelsInput(): HTMLElement {
@@ -271,15 +272,16 @@ describe("getLabelsFormField", () => {
     expect(LABELS_FORM_FIELD_DESCRIPTION).not.toContain("advanced");
   });
 
-  test("folds under an Advanced section of its own, closed even on Edit", () => {
+  test("folds under a More fields section of its own, closed even on Edit", () => {
     const section: FormFieldCollapsibleSection<IncidentTemplate> | undefined =
       getLabelsFormField<IncidentTemplate>().collapsibleSection;
 
-    expect(section).toEqual({
-      id: ADVANCED_FORM_SECTION_ID,
-      title: ADVANCED_FORM_SECTION_TITLE,
-      openWhenConfigured: false,
-    });
+    expect(section).toEqual(getAdvancedFormSection<IncidentTemplate>());
+    expect(section?.id).toBe(ADVANCED_FORM_SECTION_ID);
+    expect(section?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+    expect(section?.openWhenConfigured).toBe(false);
+    // Folded, its header names the labels field, and how many are picked.
+    expect(section?.listFieldsWhileFolded).toBe(true);
   });
 
   test("folds into the form's own Advanced section when handed one, as that very section", () => {
@@ -410,7 +412,7 @@ describe("the Labels field in a real form", () => {
     await renderForm({ formType: FormType.Create });
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
     expect(labelsInput()).not.toBeVisible();
     expect(screen.getByText(LABELS_FORM_FIELD_DESCRIPTION)).not.toBeVisible();
 
@@ -441,7 +443,7 @@ describe("the Labels field in a real form", () => {
     });
 
     await waitFor(() => {
-      expect(advancedHeader()).toHaveTextContent("Configured");
+      expect(hasSetChip(advancedHeader())).toBe(true);
     });
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(labelsInput()).not.toBeVisible();
@@ -521,7 +523,7 @@ describe("the Labels field in a real form", () => {
       );
     });
     await waitFor(() => {
-      expect(advancedHeader()).toHaveTextContent("Configured");
+      expect(hasSetChip(advancedHeader())).toBe(true);
     });
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(
@@ -549,6 +551,6 @@ describe("the Labels field in a real form", () => {
       );
     });
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 });

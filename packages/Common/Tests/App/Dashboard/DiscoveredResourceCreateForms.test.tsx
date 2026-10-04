@@ -231,6 +231,7 @@ import {
   getAdvancedFormSection,
   isFormFieldValueSet,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -644,7 +645,7 @@ async function renderCreateForm(data: {
 }
 
 function advancedButton(): HTMLElement {
-  return screen.getByRole("button", { name: /^Advanced/ });
+  return screen.getByRole("button", { name: "More fields" });
 }
 
 beforeEach(() => {
@@ -702,7 +703,7 @@ describe.each(IDENTITY_PAGES)(
 
       expect(advancedButton()).toHaveAttribute("aria-expanded", "false");
       expect(displayNameInput()).not.toBeVisible();
-      expect(screen.queryByText("Configured")).toBeNull();
+      expect(setChips()).toEqual([]);
 
       // No Name of its own to fill in.
       expect(screen.queryByText("Name", { exact: true })).toBeNull();
@@ -732,7 +733,7 @@ describe.each(IDENTITY_PAGES)(
 
       // A followed name is not "something set": folded, the header stays plain.
       await user.click(advancedButton());
-      expect(screen.queryByText("Configured")).toBeNull();
+      expect(setChips()).toEqual([]);
     });
 
     test("stops following once a display name of one's own is typed", async () => {
@@ -766,7 +767,7 @@ describe.each(IDENTITY_PAGES)(
 
       // A name of one's own is something set: folded, the header says so.
       await user.click(advancedButton());
-      expect(screen.getByText("Configured")).toBeVisible();
+      expect(hasSetChip()).toBe(true);
     });
 
     test("creates the resource with the identifier and the name made from it", async () => {

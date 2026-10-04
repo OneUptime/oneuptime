@@ -251,6 +251,14 @@ export default interface Field<TEntity> {
   getDefaultValue?:
     | ((item: FormValues<TEntity>) => boolean | string | Date | number)
     | undefined;
+  /*
+   * For a field whose default follows other fields - an OIDC discovery URL
+   * made from the issuer, a description made from the provider's name -
+   * whether the value it holds now is that default. Such a value is not
+   * one the user chose, so a folded section does not show it as set, and a
+   * review step does not list it (isFormFieldValueSet).
+   */
+  isAtDefault?: ((values: FormValues<TEntity>) => boolean) | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
   /*

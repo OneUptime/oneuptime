@@ -141,7 +141,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   CustomFieldFormCopy,
   getCustomFieldTypeOptions,
@@ -502,7 +502,7 @@ describe.each(SETTINGS_PAGES)(
       expect(sections.size).toBeLessThanOrEqual(1);
 
       for (const section of sections) {
-        expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+        expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
         expect(section.openWhenConfigured).toBe(false);
         // "Configured" is worked out from the fields in it.
         expect(section.isConfigured).toBeUndefined();

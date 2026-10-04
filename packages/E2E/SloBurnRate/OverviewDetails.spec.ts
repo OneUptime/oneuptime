@@ -192,19 +192,20 @@ for (const width of [1440, 390]) {
       }),
     ).toHaveValue(DESCRIPTION);
     /*
-     * The labels fold under Advanced, as on the create form, and the folded
-     * header says this SLO has some. This save leaves them folded: folded
+     * The labels fold under More fields, as on the create form, and the
+     * folded header shows how many this SLO has. This save leaves them folded: folded
      * values are saved all the same, so the card keeps both labels.
      */
     const advanced: Locator = dialog.getByRole("button", {
-      name: /^Advanced/,
+      name: "More fields",
+      exact: true,
     });
     const labels: Locator = dialog.getByRole("combobox", {
       name: "Labels (Optional)",
       exact: true,
     });
     await expect(advanced).toHaveAttribute("aria-expanded", "false");
-    await expect(advanced).toContainText("Configured");
+    await expect(advanced).toContainText("Labels: 2");
     await expect(labels).toBeHidden();
     await dialog
       .getByRole("textbox", { name: "Name", exact: true })
@@ -237,7 +238,7 @@ for (const width of [1440, 390]) {
       dialog.getByRole("textbox", { name: "Name", exact: true }),
     ).toHaveValue("Purchase availability");
     // One click shows the labels that save kept, ready to change.
-    await expect(advanced).toContainText("Configured");
+    await expect(advanced).toContainText("Labels: 2");
     await advanced.click();
     await expect(advanced).toHaveAttribute("aria-expanded", "true");
     await expect(labels).toBeVisible();

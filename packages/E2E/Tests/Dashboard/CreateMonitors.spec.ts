@@ -31,7 +31,7 @@ test.describe.configure({ mode: "serial" });
 const recipes: Array<MonitorTypeRecipe> = [
   /*
    * Manual skips criteria and interval: Monitor Info, with the labels under
-   * Advanced, is its only step.
+   * More fields, is its only step.
    */
   {
     label: "Manual",

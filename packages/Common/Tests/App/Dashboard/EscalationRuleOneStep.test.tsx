@@ -141,6 +141,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -441,7 +442,7 @@ function chipIds(): Array<string | null> {
 }
 
 function advancedHeader(): HTMLElement {
-  return screen.getByRole("button", { name: /^Advanced/ });
+  return screen.getByRole("button", { name: "More fields" });
 }
 
 function idOf(value: unknown): string {
@@ -510,7 +511,7 @@ describe("adding an escalation rule", () => {
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     // A new rule has nothing of its own under Advanced yet.
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
 
     // Two rules exist, so this one will be the third level.
     const name: HTMLElement = screen.getByPlaceholderText("Level 3");
@@ -713,7 +714,7 @@ describe("editing an escalation rule", () => {
       (screen.getByPlaceholderText("Level 1") as HTMLInputElement).value,
     ).toBe("First Responders");
     // A name somebody chose is something of theirs under Advanced.
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
 
     // Opened from what the page holds: the rule is not read again.
@@ -729,7 +730,7 @@ describe("editing an escalation rule", () => {
     });
     await openEditDialog(cards[0]!);
 
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 
   test("saving reconciles the rule's join rows with the picker", async () => {

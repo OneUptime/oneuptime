@@ -52,7 +52,7 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -60,6 +60,11 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
 import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
+import {
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.mock("react-i18next", () => {
   return {
@@ -353,7 +358,7 @@ function switchesIn(testId: string): Array<HTMLElement> {
 }
 
 function advancedHeader(): HTMLElement {
-  return screen.getByRole("button", { name: ADVANCED_FORM_SECTION_TITLE });
+  return screen.getByRole("button", { name: MORE_SETTINGS_SECTION_TITLE });
 }
 
 // The Advanced cards: their titles, once the section is open.
@@ -509,7 +514,7 @@ describe("Incidents → Settings → AI", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 
   test.each([
@@ -528,7 +533,7 @@ describe("Incidents → Settings → AI", () => {
     ["a daily token limit of 0", { incidentAiDailyAutonomousTokenLimit: 0 }],
     ["a daily fix limit", { incidentAiDailyFixTaskLimit: 12 }],
   ])(
-    "with %s set, folded Advanced says Configured and what is in it",
+    "with %s set, folded More settings names its cards and shows the one that holds it",
     async (_name: string, values: Record<string, unknown>) => {
       stored = projectWith(values);
 
@@ -536,15 +541,17 @@ describe("Incidents → Settings → AI", () => {
 
       await waitFor(
         () => {
-          expect(advancedHeader()).toHaveTextContent("Configured");
+          expect(hasSetChip(advancedHeader())).toBe(true);
         },
         { timeout: WAIT_TIMEOUT },
       );
-      expect(
-        screen.getByTestId("collapsible-section-summary"),
-      ).toHaveTextContent(
-        AI_LANE_PAGE_COPY[AiLane.Incident].advancedDescription,
-      );
+      // Its three cards, by name: one of them a chip.
+      expect(listedNames(advancedHeader())).toEqual([
+        "Which incidents are investigated",
+        "Investigation limits",
+        "Daily limits",
+      ]);
+      expect(setChips(advancedHeader())).toHaveLength(1);
       expect(advancedHeader()).not.toHaveTextContent(
         "nothing limits how much OneUptime AI does",
       );
@@ -569,7 +576,7 @@ describe("Incidents → Settings → AI", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 
   test("Advanced holds three cards, each with its own Edit, showing no limit when none is set", async () => {
@@ -867,7 +874,7 @@ describe("Alerts → Settings → AI", () => {
 
     await waitFor(
       () => {
-        expect(advancedHeader()).toHaveTextContent("Configured");
+        expect(hasSetChip(advancedHeader())).toBe(true);
       },
       { timeout: WAIT_TIMEOUT },
     );

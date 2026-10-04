@@ -112,6 +112,7 @@ import Permission from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 type RoleRow = {
   _id: string;
@@ -224,7 +225,7 @@ const dialog: () => HTMLElement = (): HTMLElement => {
 };
 
 const advancedHeader: () => HTMLElement | null = (): HTMLElement | null => {
-  return within(dialog()).queryByRole("button", { name: /^Advanced/ });
+  return within(dialog()).queryByRole("button", { name: "More fields" });
 };
 
 const multipleUsersSwitch: () => HTMLElement | null =
@@ -496,7 +497,7 @@ describe("creating a role", () => {
 
     expect(advanced).not.toBeNull();
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(advanced).not.toHaveTextContent("Configured");
+    expect(setChips(advanced)).toEqual([]);
 
     // Folded: in the form, but hidden until Advanced is opened.
     const toggle: HTMLElement | null = multipleUsersSwitch();
@@ -604,7 +605,7 @@ describe("editing a role", () => {
     await openEdit(RESPONDER);
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
     expect(multipleUsersSwitch()).toHaveAttribute("aria-checked", "false");
   });
 
@@ -615,7 +616,7 @@ describe("editing a role", () => {
     await openEdit(OBSERVER);
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
     expect(multipleUsersSwitch()).toHaveAttribute("aria-checked", "true");
   });
 

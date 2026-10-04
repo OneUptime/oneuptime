@@ -139,6 +139,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const NOW: Date = new Date("2026-10-03T09:20:00.000Z");
 const TEMPLATE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -574,10 +575,10 @@ describe("Create Scheduled Maintenance Event", () => {
   test("Event folds Owners and Labels under Advanced, at the end of the step", async () => {
     await renderPage();
 
-    const advanced: HTMLElement = sectionHeader("Advanced");
+    const advanced: HTMLElement = sectionHeader("More fields");
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
     expect(fieldLabelsIn(sectionBody(advanced))).toEqual(["Owners", "Labels"]);
 
     const labelsLabel: HTMLElement = within(sectionBody(advanced)).getByText(
@@ -624,10 +625,10 @@ describe("Create Scheduled Maintenance Event", () => {
     ]);
 
     // Change Monitor Status to is the one field folded under Advanced here.
-    const advanced: HTMLElement = sectionHeader("Advanced");
+    const advanced: HTMLElement = sectionHeader("More fields");
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
     expect(fieldLabelsIn(sectionBody(advanced))).toEqual([
       "Change Monitor Status to",
     ]);
@@ -674,7 +675,7 @@ describe("Create Scheduled Maintenance Event", () => {
       "Subscribers of the event's status pages are notified when it is scheduled and when it ends.",
     );
     // The line says what is set; no "Configured" badge repeats it.
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
 
     fireEvent.click(createButton());
 

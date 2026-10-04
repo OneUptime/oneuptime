@@ -370,7 +370,7 @@ describe("Create Scheduled Maintenance Template", () => {
     await act(async () => {});
 
     const eventAdvanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     expect(eventAdvanced).toHaveAttribute("aria-expanded", "false");
@@ -391,7 +391,7 @@ describe("Create Scheduled Maintenance Template", () => {
     );
 
     const resourcesAdvanced: HTMLElement = screen.getByRole("button", {
-      name: "Advanced",
+      name: "More fields",
     });
 
     expect(resourcesAdvanced).toHaveAttribute("aria-expanded", "false");

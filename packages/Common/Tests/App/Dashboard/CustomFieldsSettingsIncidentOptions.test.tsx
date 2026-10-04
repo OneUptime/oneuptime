@@ -197,7 +197,7 @@ describe("incident custom field settings", () => {
     ]);
 
     for (const key of INCIDENT_SETTINGS) {
-      expect(formField(key)?.collapsibleSection?.title).toBe("Advanced");
+      expect(formField(key)?.collapsibleSection?.title).toBe("More fields");
     }
   });
 

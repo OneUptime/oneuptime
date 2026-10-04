@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 
 /*
  * The extra numbers bought for other countries, which few installations
- * have: folded under Advanced, below the three values the Twilio console
+ * have: folded under More fields, below the three values the Twilio console
  * shows together.
  */
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =

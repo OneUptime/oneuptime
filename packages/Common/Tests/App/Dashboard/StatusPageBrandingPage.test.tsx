@@ -97,11 +97,16 @@ import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "../../../Types/StatusPage/StatusPageLanguage";
-import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -214,7 +219,7 @@ function advancedSection(): HTMLElement {
 
 function advancedHeader(): HTMLElement {
   return within(advancedSection()).getByRole("button", {
-    name: ADVANCED_FORM_SECTION_TITLE,
+    name: MORE_SETTINGS_SECTION_TITLE,
   });
 }
 
@@ -285,17 +290,25 @@ describe("the Branding page", () => {
     }
   });
 
-  test("the Advanced section starts folded, says what is in it, and opens", async () => {
+  test("the More settings section starts folded, names its cards, and opens onto what it is for", async () => {
     await renderPage();
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(advancedSection()).toHaveTextContent(
-      StatusPageBrandingCopy.advancedDescription,
-    );
+    // Folded, its header names the four cards it holds, none of them set.
+    expect(listedNames(advancedHeader())).toEqual([
+      "Default Bar Color",
+      "Bar Color Rules",
+      "Languages",
+      "Search Engine Indexing",
+    ]);
+    expect(setChips(advancedHeader())).toEqual([]);
 
     fireEvent.click(advancedHeader());
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "true");
+    expect(advancedSection()).toHaveTextContent(
+      StatusPageBrandingCopy.advancedDescription,
+    );
   });
 
   test("every card keeps the analytics name it had on its old screen", async () => {
@@ -608,13 +621,13 @@ describe("Configured, on the folded Advanced section", () => {
     );
     await indexingIs(true);
 
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 
   test("is not said before anything has loaded", async () => {
     await renderPage();
 
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 
   test.each([
@@ -662,33 +675,33 @@ describe("Configured, on the folded Advanced section", () => {
 
     await setUp();
 
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
   });
 
   test("follows the cards: flipping indexing back on, or deleting the last rule, takes it away", async () => {
     await renderPage();
 
     await indexingIs(false);
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     await indexingIs(true);
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
 
     await rulesFetched(2);
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     await rulesFetched(0);
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 
   test("is said only while folded: open, the cards say it themselves", async () => {
     await renderPage();
 
     await rulesFetched(3);
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     fireEvent.click(advancedHeader());
 
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
   });
 });

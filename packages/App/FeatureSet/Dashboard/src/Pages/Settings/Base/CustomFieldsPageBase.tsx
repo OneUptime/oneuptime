@@ -105,7 +105,7 @@ from the matching field on a related resource — today that is: ${sourceNames}.
 Choose **${CustomFieldFormCopy.createMappedFieldTitle}** in the card's More (…)
 menu, and pick the field to copy. The new field takes that field's type and,
 for a dropdown, its options. A field you create with **Create** is typed in by
-hand; its **Edit** form can map it later, under **Advanced**.
+hand; its **Edit** form can map it later, under **More fields**.
 
 **When it is copied**
 

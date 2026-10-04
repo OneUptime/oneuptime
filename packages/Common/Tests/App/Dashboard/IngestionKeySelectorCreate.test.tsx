@@ -288,7 +288,7 @@ describe("Creating an ingestion key from a setup guide", () => {
         within(dialog()).queryByTestId("card-select-option-Browser"),
       ).not.toBeInTheDocument();
       expect(
-        within(dialog()).getByRole("button", { name: /^Advanced/ }),
+        within(dialog()).getByRole("button", { name: "More fields" }),
       ).toHaveAttribute("aria-expanded", "false");
       expect(
         within(dialog()).getByPlaceholderText("Ingestion Key Description"),
@@ -449,7 +449,7 @@ describe("Creating an ingestion key from a setup guide", () => {
       );
 
       await user.click(
-        within(dialog()).getByRole("button", { name: /^Advanced/ }),
+        within(dialog()).getByRole("button", { name: "More fields" }),
       );
       fireEvent.change(
         within(dialog()).getByPlaceholderText("storefront-web"),

@@ -283,7 +283,7 @@ describe("Telemetry ingestion key create form", () => {
         expect(description.collapsibleSection?.id).toBe(
           ADVANCED_FORM_SECTION_ID,
         );
-        expect(description.collapsibleSection?.title).toBe("Advanced");
+        expect(description.collapsibleSection?.title).toBe("More fields");
         expect(description.collapsibleSection?.openWhenConfigured).toBe(false);
         expect(pinned.collapsibleSection).toBe(description.collapsibleSection);
       }

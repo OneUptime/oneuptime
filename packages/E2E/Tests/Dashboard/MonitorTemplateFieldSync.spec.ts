@@ -324,7 +324,7 @@ test.describe("Monitor template field sync settings", () => {
     await next.click();
     /*
      * Probes & Interval is the last step: the template's labels fold under
-     * Advanced on Monitor Info rather than walk a step of their own.
+     * More fields on Monitor Info rather than walk a step of their own.
      */
     await expect(
       createForm.getByText("Monitoring Interval", { exact: true }),
