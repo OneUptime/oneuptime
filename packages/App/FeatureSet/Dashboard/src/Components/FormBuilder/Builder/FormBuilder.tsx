@@ -1,3 +1,9 @@
+import FormBrandingSection from "../Branding/FormBrandingSection";
+import {
+  FORM_BRANDING_SELECT,
+  FormBrandingValues,
+  readFormBrandingValues,
+} from "../Branding/FormBrandingValues";
 import {
   loadFormCustomFields,
   loadFormRecordOptions,
@@ -97,6 +103,11 @@ import useAsyncEffect from "use-async-effect";
  * request - the server checks them against the form's target, and says what
  * is wrong if anything is. Closing or reloading the tab with unsaved changes
  * asks first.
+ *
+ * Over the questions, folded, is the form's Branding (FormBrandingSection):
+ * its logo and favicon, the OneUptime ones until it has its own. They are
+ * saved on their own, from the section's dialog, and never touch a draft of
+ * the questions; Preview draws the logo as the page will.
  */
 
 export interface ComponentProps {
@@ -136,6 +147,9 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   const [hasJustSaved, setHasJustSaved] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
   const [isEditingDetails, setIsEditingDetails] = useState<boolean>(false);
+  // The logo, its alt text and the favicon: the Branding section's.
+  const [branding, setBranding] = useState<FormBrandingValues>({});
+  const [brandingError, setBrandingError] = useState<string>("");
 
   // Sources whose records are loaded or on their way, so each loads once.
   const requestedSourcesRef: React.MutableRefObject<
@@ -209,6 +223,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
           targetType: true,
           fields: true,
           targetSettings: true,
+          ...FORM_BRANDING_SELECT,
         },
       });
 
@@ -226,6 +241,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
         name: loaded.name || "",
         description: loaded.description || "",
       });
+      setBranding(readFormBrandingValues(loaded));
       setSavedFields(questions);
       setFields(questions);
       setCustomFields(await loadFormCustomFields(target));
@@ -331,6 +347,27 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // The branding again, after the Branding section saved it.
+  const reloadBranding: () => Promise<void> = async (): Promise<void> => {
+    try {
+      const loaded: Form | null = await ModelAPI.getItem<Form>({
+        modelType: Form,
+        id: props.formId,
+        select: FORM_BRANDING_SELECT,
+      });
+
+      if (!loaded) {
+        return;
+      }
+
+      setBranding(readFormBrandingValues(loaded));
+      setBrandingError("");
+    } catch (err) {
+      // Said in the Branding section: the questions were not touched.
+      setBrandingError(API.getFriendlyMessage(err));
+    }
+  };
+
   const save: () => Promise<void> = async (): Promise<void> => {
     const problem: string | null = validateFormFields({
       value: fields,
@@ -428,6 +465,17 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      <FormBrandingSection
+        formId={props.formId}
+        formName={details.name}
+        values={branding}
+        isReadOnly={isReadOnly}
+        error={brandingError}
+        onSaved={() => {
+          void reloadBranding();
+        }}
+      />
+
       <Card
         title={FormsCopy.builderTitle}
         description={FormsCopy.builderDescription}
@@ -699,6 +747,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
           customFields={customFields}
           recordOptions={recordOptions}
           defaultOptionValues={defaultOptionValues}
+          branding={branding}
           onClose={() => {
             setIsPreviewOpen(false);
           }}

@@ -24844,5 +24844,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Hur ofta en rapport skickas, till exempel varje månad eller varannan vecka.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Följande rapporter skickas vid samma tid. Välj den 1:a i en månad för att skicka den 1:a varje månad.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Slå på detta för att skicka prenumeranter en rapport via e-post igen, enligt samma schema som tidigare.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Slå på detta för att skicka prenumeranter en rapport via e-post den 1:a varje månad kl. 09:00 om föregående månad. Du kan ändra schemat när det är påslaget."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Slå på detta för att skicka prenumeranter en rapport via e-post den 1:a varje månad kl. 09:00 om föregående månad. Du kan ändra schemat när det är påslaget.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Din logotyp överst på formulärets sida och din favicon i webbläsarfliken.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Formuläret visar OneUptimes logotyp och favicon tills du laddar upp dina egna.",
+  "The form shows the OneUptime logo until you upload yours.": "Formuläret visar OneUptimes logotyp tills du laddar upp din egen.",
+  "The form shows the OneUptime favicon until you upload yours.": "Formuläret visar OneUptimes favicon tills du laddar upp din egen.",
+  "Edit Branding": "Redigera varumärke",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Visas överst på formulärets sida ovanför namnet i stället för OneUptimes logotyp. En PNG-, JPEG-, GIF-, WebP- eller SVG-bild på högst 512 KB.",
+  "The OneUptime logo, until you upload yours.": "OneUptimes logotyp, tills du laddar upp din egen.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Vad logotypen säger, uppläst av skärmläsare: oftast organisationens namn. Lämna det tomt så hoppar skärmläsare över logotypen.",
+  "Your organization's name": "Organisationens namn",
+  "None. Screen readers skip the logo.": "Ingen. Skärmläsare hoppar över logotypen.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "Ikonen i webbläsarfliken medan formuläret är öppet, i stället för OneUptimes favicon. En kvadratisk PNG-, SVG- eller ICO-bild på högst 128 KB fungerar bäst.",
+  "The OneUptime favicon, until you upload yours.": "OneUptimes favicon, tills du laddar upp din egen.",
+  "Upload favicon": "Ladda upp favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" överskrider gränsen på {{size}}.",
+  "Max {{size}} each.": "Högst {{size}} per fil.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "De här filerna överskrider gränsen på {{size}}: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Högst {{size}} per fil."
 }

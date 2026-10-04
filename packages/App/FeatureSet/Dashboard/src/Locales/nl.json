@@ -24844,5 +24844,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Hoe vaak een rapport wordt verstuurd, bijvoorbeeld elke maand of elke 2 weken.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Volgende rapporten gaan op hetzelfde tijdstip uit. Kies de 1e van een maand om op de 1e van elke maand te versturen.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Zet dit aan om abonnees weer een rapport per e-mail te sturen, volgens hetzelfde schema als eerder.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Zet dit aan om abonnees op de 1e van elke maand om 09:00 een rapport per e-mail over de vorige maand te sturen. U kunt het schema wijzigen zodra het aan staat."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Zet dit aan om abonnees op de 1e van elke maand om 09:00 een rapport per e-mail over de vorige maand te sturen. U kunt het schema wijzigen zodra het aan staat.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Uw logo bovenaan de pagina van het formulier en uw favicon in het browsertabblad.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Het formulier toont het logo en de favicon van OneUptime tot u uw eigen exemplaren uploadt.",
+  "The form shows the OneUptime logo until you upload yours.": "Het formulier toont het logo van OneUptime tot u uw eigen logo uploadt.",
+  "The form shows the OneUptime favicon until you upload yours.": "Het formulier toont de favicon van OneUptime tot u uw eigen favicon uploadt.",
+  "Edit Branding": "Huisstijl bewerken",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Wordt bovenaan de pagina van het formulier getoond, boven de naam, in plaats van het logo van OneUptime. Een PNG-, JPEG-, GIF-, WebP- of SVG-afbeelding van maximaal 512 KB.",
+  "The OneUptime logo, until you upload yours.": "Het logo van OneUptime, tot u uw eigen logo uploadt.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Wat het logo zegt, voorgelezen door schermlezers: meestal de naam van uw organisatie. Laat het leeg en schermlezers slaan het logo over.",
+  "Your organization's name": "Naam van uw organisatie",
+  "None. Screen readers skip the logo.": "Geen. Schermlezers slaan het logo over.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "Het pictogram in het browsertabblad zolang het formulier open is, in plaats van de favicon van OneUptime. Een vierkante PNG-, SVG- of ICO-afbeelding van maximaal 128 KB werkt het best.",
+  "The OneUptime favicon, until you upload yours.": "De favicon van OneUptime, tot u uw eigen favicon uploadt.",
+  "Upload favicon": "Favicon uploaden",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" is groter dan de limiet van {{size}}.",
+  "Max {{size}} each.": "Maximaal {{size}} per bestand.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "Deze bestanden zijn groter dan de limiet van {{size}}: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Maximaal {{size}} per bestand."
 }

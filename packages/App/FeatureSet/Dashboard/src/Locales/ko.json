@@ -24844,5 +24844,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "보고서를 보내는 주기입니다. 예: 매월, 2주마다.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "이후 보고서는 같은 시각에 발송됩니다. 매월 1일에 보내려면 어느 달의 1일을 선택하세요.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "켜면 이전과 같은 일정으로 구독자에게 이메일 보고서를 다시 보냅니다.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "켜면 매월 1일 09:00에 지난달 보고서를 구독자에게 이메일로 보냅니다. 켠 후에 일정을 바꿀 수 있습니다."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "켜면 매월 1일 09:00에 지난달 보고서를 구독자에게 이메일로 보냅니다. 켠 후에 일정을 바꿀 수 있습니다.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "양식 페이지 맨 위의 로고와 브라우저 탭의 파비콘입니다.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "직접 업로드하기 전까지 양식에는 OneUptime 로고와 파비콘이 표시됩니다.",
+  "The form shows the OneUptime logo until you upload yours.": "직접 업로드하기 전까지 양식에는 OneUptime 로고가 표시됩니다.",
+  "The form shows the OneUptime favicon until you upload yours.": "직접 업로드하기 전까지 양식에는 OneUptime 파비콘이 표시됩니다.",
+  "Edit Branding": "브랜딩 편집",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "양식 페이지 맨 위, 이름 위에 OneUptime 로고 대신 표시됩니다. 512KB 이하의 PNG, JPEG, GIF, WebP 또는 SVG 이미지를 사용하세요.",
+  "The OneUptime logo, until you upload yours.": "직접 업로드하기 전까지는 OneUptime 로고입니다.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "스크린 리더가 읽어 주는 로고의 내용으로, 보통 조직 이름입니다. 비워 두면 스크린 리더가 로고를 건너뜁니다.",
+  "Your organization's name": "조직 이름",
+  "None. Screen readers skip the logo.": "없음. 스크린 리더가 로고를 건너뜁니다.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "양식이 열려 있는 동안 OneUptime 파비콘 대신 브라우저 탭에 표시되는 아이콘입니다. 128KB 이하의 정사각형 PNG, SVG 또는 ICO 이미지가 가장 좋습니다.",
+  "The OneUptime favicon, until you upload yours.": "직접 업로드하기 전까지는 OneUptime 파비콘입니다.",
+  "Upload favicon": "파비콘 업로드",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" 파일이 {{size}} 제한을 초과합니다.",
+  "Max {{size}} each.": "파일당 최대 {{size}}.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "다음 파일이 {{size}} 제한을 초과합니다: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "형식: {{types}}. 파일당 최대 {{size}}."
 }

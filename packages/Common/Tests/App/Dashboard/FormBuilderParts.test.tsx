@@ -57,6 +57,9 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import FormPreviewModal from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/FormPreviewModal";
+import { FormBrandingValues } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingValues";
+import File from "../../../Models/DatabaseModels/File";
+import MimeType from "../../../Types/File/MimeType";
 import QuestionCard from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/QuestionCard";
 import QuestionPalette, {
   PaletteItem,
@@ -662,7 +665,10 @@ describe("the preview", () => {
     onClose = getJestMockFunction();
   });
 
-  async function renderPreview(fields: Array<FormField>): Promise<void> {
+  async function renderPreview(
+    fields: Array<FormField>,
+    branding?: FormBrandingValues,
+  ): Promise<void> {
     await act(async () => {
       render(
         <FormPreviewModal
@@ -677,6 +683,7 @@ describe("the preview", () => {
             ],
           }}
           defaultOptionValues={{ incidentSeverityId: SEVERITY_ID }}
+          branding={branding}
           onClose={() => {
             onClose();
           }}
@@ -776,6 +783,36 @@ describe("the preview", () => {
     await waitFor(() => {
       expect(screen.getByTestId("form-preview-field-what")).toHaveValue("");
     });
+  });
+
+  test("draws the OneUptime logo over the form's name, as the page does without one", async () => {
+    await renderPreview([TITLE]);
+
+    const logo: HTMLElement = within(
+      screen.getByTestId("form-preview"),
+    ).getByTestId("form-logo");
+
+    expect(logo).toHaveAttribute("data-logo", "oneuptime");
+    expect(logo).toHaveAttribute("alt", "OneUptime");
+  });
+
+  test("draws the form's own logo, with its alt text, as the page does", async () => {
+    const logo: File = new File();
+    logo.fileType = MimeType.png;
+    logo.file = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+
+    await renderPreview([TITLE], { logoFile: logo, logoAltText: "Acme Inc." });
+
+    const drawn: HTMLElement = within(
+      screen.getByTestId("form-preview"),
+    ).getByTestId("form-logo");
+
+    expect(drawn).toHaveAttribute("data-logo", "form");
+    expect(drawn).toHaveAttribute(
+      "src",
+      `data:image/png;base64,${Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64")}`,
+    );
+    expect(drawn).toHaveAttribute("alt", "Acme Inc.");
   });
 
   test("Close closes it", async () => {

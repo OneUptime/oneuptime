@@ -1,3 +1,4 @@
+import { FormBrandingValues } from "../Branding/FormBrandingValues";
 import FormsCopy from "../FormsCopy";
 import { FormField } from "Common/Types/Form/FormField";
 import {
@@ -20,6 +21,7 @@ import {
   buildPublicFormFields,
   getPublicFormInitialValues,
 } from "Common/UI/Components/PublicForm/PublicFormFields";
+import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
@@ -33,7 +35,9 @@ import React, {
  * built - saved or not. Drawn by buildPublicForm and buildPublicFormFields,
  * exactly as the public page draws the saved form, so the browser's checks
  * (a required answer, an email that is one address) run here too. Nothing is
- * ever sent: submitting says so, and offers to fill the form in again.
+ * ever sent: submitting says so, and offers to fill the form in again. Its
+ * logo is the form's own, or the OneUptime logo, drawn by the component the
+ * page draws it with.
  */
 
 export interface ComponentProps {
@@ -46,6 +50,8 @@ export interface ComponentProps {
     Record<FormTargetOptionsSource, Array<FormRecordOption>>
   >;
   defaultOptionValues?: Partial<Record<string, string>> | undefined;
+  // The form's logo, its alt text and its favicon, as saved.
+  branding?: FormBrandingValues | undefined;
   onClose: () => void;
 }
 
@@ -69,6 +75,9 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
         description: props.description,
         fields: props.fields,
         targetType: props.targetType,
+        logoFile: props.branding?.logoFile,
+        logoAltText: props.branding?.logoAltText,
+        faviconFile: props.branding?.faviconFile,
       },
       customFields: props.customFields,
       recordOptions: props.recordOptions,
@@ -83,6 +92,7 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
     props.customFields,
     props.recordOptions,
     props.defaultOptionValues,
+    props.branding,
   ]);
 
   return (
@@ -98,7 +108,11 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
         data-testid="form-preview"
       >
         <div className="mx-auto max-w-2xl">
-          <h2 className="text-center text-2xl font-semibold tracking-tight text-gray-900 [overflow-wrap:anywhere]">
+          <PublicFormLogo
+            logo={built.form.logo}
+            altText={built.form.logoAltText}
+          />
+          <h2 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 [overflow-wrap:anywhere]">
             {built.form.name}
           </h2>
 

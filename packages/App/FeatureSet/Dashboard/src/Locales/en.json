@@ -24844,5 +24844,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "How often a report goes out, such as every month or every 2 weeks.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Turn this on to email subscribers a report again, on the same schedule as before.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Your logo at the top of the form's page, and your favicon in the browser tab.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "The form shows the OneUptime logo and favicon until you upload your own.",
+  "The form shows the OneUptime logo until you upload yours.": "The form shows the OneUptime logo until you upload yours.",
+  "The form shows the OneUptime favicon until you upload yours.": "The form shows the OneUptime favicon until you upload yours.",
+  "Edit Branding": "Edit Branding",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.",
+  "The OneUptime logo, until you upload yours.": "The OneUptime logo, until you upload yours.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.",
+  "Your organization's name": "Your organization's name",
+  "None. Screen readers skip the logo.": "None. Screen readers skip the logo.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.",
+  "The OneUptime favicon, until you upload yours.": "The OneUptime favicon, until you upload yours.",
+  "Upload favicon": "Upload favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" exceeds the {{size}} limit.",
+  "Max {{size}} each.": "Max {{size}} each.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "These files exceed the {{size}} limit: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Types: {{types}}. Max {{size}} each."
 }
