@@ -433,6 +433,12 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         {!isLoading && !loadError && schemaList.length > 0 && model && (
           <Detail
             id={props.name}
+            /*
+             * The values of the record's custom fields, keyed by the names
+             * people gave them: one called "createdAt" is theirs to read as
+             * that, not the record's own creation time for the ID line.
+             */
+            showRecordLine={false}
             item={getDisplayValues()}
             fields={schemaList.map((schemaItem: BaseModel) => {
               const isDropdown: boolean =
