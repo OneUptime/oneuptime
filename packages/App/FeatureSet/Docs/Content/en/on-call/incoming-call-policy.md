@@ -87,13 +87,14 @@ Since you're self-hosting OneUptime, you'll need to configure your own Twilio ac
 
 1. Log in to your OneUptime Dashboard
 2. Go to **Project Settings** > **Notifications** > **Notification Settings**
-3. Click **Create Custom Call/SMS Config**
+3. In **Twilio Config**, click **Create Twilio Config**
 4. Fill in the following fields:
    - **Name**: A friendly name (e.g., "Production Twilio Config")
    - **Description**: Optional description
    - **Twilio Account SID**: Your Twilio Account SID (starts with `AC`)
    - **Twilio Auth Token**: Your Twilio Auth Token
    - **Twilio Primary Phone Number**: A phone number from your Twilio account for outbound calls
+   - **Set as Project Default**: on for the project's first Twilio config, so the SMS and calls to the project's members go through this account too. Turn it off if this account is only for incoming calls.
 5. Click **Save**
 
 ## Step 3: Create an Incoming Call Policy

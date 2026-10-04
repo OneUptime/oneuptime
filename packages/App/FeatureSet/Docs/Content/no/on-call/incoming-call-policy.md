@@ -86,13 +86,14 @@ Siden du selvhoster OneUptime, må du konfigurere din egen Twilio-konto. Dette g
 
 1. Logg inn på OneUptime-dashbordet ditt
 2. Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**
-3. Klikk **Create Custom Call/SMS Config**
+3. Klikk **Create Twilio Config** under **Twilio-konfigurasjon**
 4. Fyll inn følgende felt:
    - **Navn**: Et vennlig navn (f.eks. "Production Twilio Config")
    - **Beskrivelse**: Valgfri beskrivelse
    - **Twilio Account SID**: Din Twilio Account SID (starter med `AC`)
    - **Twilio Auth Token**: Din Twilio Auth Token
    - **Twilio primært telefonnummer**: Et telefonnummer fra din Twilio-konto for utgående anrop
+   - **Angi som prosjektstandard**: slått på for prosjektets første Twilio-konfigurasjon, så SMS-er og anrop til prosjektmedlemmer også går gjennom denne kontoen. Slå den av hvis kontoen bare er for innkommende anrop.
 5. Klikk **Lagre**
 
 ## Trinn 3: Opprett en innkommende samtalepolicy

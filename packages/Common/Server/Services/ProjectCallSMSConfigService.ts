@@ -17,6 +17,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import Query from "../Types/Database/Query";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -27,10 +29,42 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (createBy.data.isProjectDefault && createBy.data.projectId) {
+    /*
+     * This hook can change the project's other configs (only one of them is
+     * the default), so it first makes sure the caller may create a config at
+     * all, as onBeforeDelete does for a delete. DatabaseService asks the same
+     * again before it saves; for a root caller this returns at once.
+     */
+    ModelPermission.checkCreatePermissions(
+      Model,
+      createBy.data,
+      createBy.props,
+    );
+
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    /*
+     * A project's first Twilio config becomes its default, so SMS and calls
+     * to the project's members go through it as soon as it is saved: adding
+     * your own Twilio account is asking for exactly that, and a config that
+     * nothing uses until someone finds a switch is a trap. Only when the
+     * caller leaves the choice out - an explicit false (the dashboard's
+     * switch turned off, an API call, Terraform, which always sends one) is
+     * kept. A project that already has a config keeps the one it uses.
+     */
+    if (
+      projectId &&
+      !this.isProjectDefaultChoiceGiven(createBy.data.isProjectDefault)
+    ) {
+      if (await this.isFirstConfigOfProject(projectId)) {
+        createBy.data.isProjectDefault = true;
+      }
+    }
+
+    if (createBy.data.isProjectDefault && projectId) {
       await this.updateBy({
         query: {
-          projectId: createBy.data.projectId,
+          projectId: projectId,
           isProjectDefault: true,
         },
         data: {
@@ -47,13 +81,52 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: [] };
   }
 
+  /*
+   * Whether a create says whether the config is the project default. Null
+   * says nothing either: DatabaseService stores the column default for it.
+   */
+  private isProjectDefaultChoiceGiven(
+    isProjectDefault: boolean | null | undefined,
+  ): boolean {
+    return isProjectDefault !== undefined && isProjectDefault !== null;
+  }
+
+  // Whether the project has no Twilio config yet, so this one is its first.
+  private async isFirstConfigOfProject(projectId: ObjectID): Promise<boolean> {
+    const configCount: PositiveNumber = await this.countBy({
+      query: {
+        projectId: projectId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return configCount.toNumber() === 0;
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.isProjectDefault === true) {
+      /*
+       * Making one config the default takes it from the others in its
+       * project, so the rows are looked up through what the caller may
+       * update, before anything else is read or changed. DatabaseService
+       * scopes the update itself the same way afterwards; for a root caller
+       * the query comes back as it is.
+       */
+      const updatableQuery: Query<Model> =
+        await ModelPermission.checkUpdateQueryPermissions(
+          Model,
+          updateBy.query,
+          updateBy.data,
+          updateBy.props,
+        );
+
       const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
+        query: updatableQuery,
         select: {
           _id: true,
           projectId: true,

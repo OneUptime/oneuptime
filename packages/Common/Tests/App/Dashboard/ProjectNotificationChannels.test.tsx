@@ -1171,8 +1171,12 @@ describe("the Notification Channels card on Project Settings", () => {
       PROJECT_NOTIFICATION_CHANNELS_CARD_TEST_ID,
     );
 
+    /*
+     * A Twilio config pays for SMS and calls only while it is the project
+     * default, so that is what the note names.
+     */
     expect(card).toHaveTextContent(
-      "Paid from the project's balance, unless the project has its own Twilio Config.",
+      "Paid from the project's balance, unless the project has a default Twilio Config.",
     );
 
     cleanup();
