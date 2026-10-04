@@ -1,5 +1,8 @@
+import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import CollapsibleSection from "../CollapsibleSection/CollapsibleSection";
+import { translationKey } from "../../Utils/TranslateTemplate";
+import FoldedSection from "../FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "../FoldedSection/FoldedSectionItem";
 import {
   OpenFormSectionsContext,
   ReportFormSectionOpenFunction,
@@ -14,6 +17,23 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * A form's folded section (FormFieldCollapsibleSection), drawn as a
+ * FoldedSection: "More fields" (getAdvancedFormSection) and every other
+ * section a form folds its fields into - "Subscriber Notifications",
+ * "Layout", "Add a public note".
+ *
+ * Folded, its header says what is inside:
+ *   - a section that lists its fields (More fields, whose title says
+ *     nothing of what it holds) names them, the set ones as chips that say
+ *     what they are set to, with its summary sentences under them;
+ *   - any other section shows its summary sentences when it has them - they
+ *     say what is set already - and otherwise the chips of its set fields;
+ *   - a section that says it is configured but has no set field to show
+ *     (its own isConfigured knows better than its fields) says
+ *     "Configured".
+ */
+
 export interface ComponentProps {
   title: string;
   description?: string | undefined;
@@ -27,8 +47,8 @@ export interface ComponentProps {
   /*
    * Whether being configured opens the section: when the form opens with a
    * value in it, and when a default arrives after the fields have loaded.
-   * True when left out. An Advanced section passes false and stays folded,
-   * saying "Configured" on its header instead (see
+   * True when left out. A More fields section passes false and stays
+   * folded, showing what is set on its header instead (see
    * FormFieldCollapsibleSection.openWhenConfigured).
    */
   openWhenConfigured?: boolean | undefined;
@@ -38,11 +58,21 @@ export interface ComponentProps {
   /*
    * What the folded fields are set to (FormFieldCollapsibleSection
    * .getSummary): whole English sentences, each looked up on its own, shown
-   * under the title while the section is folded in place of "Configured".
+   * on the folded header.
    */
   summary?: Array<string> | undefined;
+  /*
+   * The section's fields as the folded header lists them
+   * (Forms/Utils/FoldedFormFields): every field, set or not, in order.
+   */
+  items?: Array<FoldedSectionItem> | undefined;
+  // List every field while folded (More fields), not only the set ones.
+  listFieldsWhileFolded?: boolean | undefined;
+  icon?: IconProp | undefined;
   children: ReactElement;
 }
+
+export const CONFIGURED_BADGE: string = translationKey("Configured");
 
 const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -108,29 +138,44 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
     })
     .join(" ");
 
+  const allItems: Array<FoldedSectionItem> = props.items || [];
+
+  /*
+   * A section that lists its fields shows them all. Any other section shows
+   * its sentences when it has them - they already say what is set - and
+   * otherwise only its set fields.
+   */
+  const items: Array<FoldedSectionItem> = props.listFieldsWhileFolded
+    ? allItems
+    : summary
+      ? []
+      : allItems.filter((item: FoldedSectionItem): boolean => {
+          return item.isSet;
+        });
+
+  const hasSetItem: boolean = items.some((item: FoldedSectionItem) => {
+    return item.isSet;
+  });
+
   return (
-    <CollapsibleSection
-      title={translateString(props.title) ?? props.title}
-      description={
-        props.description
-          ? translateString(props.description) ?? props.description
+    <FoldedSection
+      title={props.title}
+      description={props.description}
+      icon={props.icon}
+      items={items}
+      summary={summary || undefined}
+      badge={
+        props.isConfigured && !hasSetItem && !summary
+          ? CONFIGURED_BADGE
           : undefined
       }
-      collapsedDescription={summary || undefined}
-      variant="bordered"
       className={props.className}
       isCollapsed={isCollapsed}
       onToggle={setIsCollapsed}
-      badge={
-        // A summary already says what is set; the badge would only repeat it.
-        props.isConfigured && !summary
-          ? translateString("Configured") ?? "Configured"
-          : undefined
-      }
     >
       {/* Keep editors mounted without leaving collapsed controls focusable. */}
       <div hidden={isCollapsed}>{props.children}</div>
-    </CollapsibleSection>
+    </FoldedSection>
   );
 };
 
