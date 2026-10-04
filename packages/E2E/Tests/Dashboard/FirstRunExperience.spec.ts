@@ -254,12 +254,10 @@ test.describe("First run: a brand-new project", () => {
     await waitForCriteriaStepReady({ page });
     await fillDestination({ page, value: "https://example.com" });
     /*
-     * Every step after the criteria is optional - the monitor could be
-     * created from here - so Next walks on to look at the interval.
+     * Every step after the criteria is optional, but Create Monitor is on
+     * the last step only: Next walks on to look at the interval.
      */
-    await expect(page.getByTestId("Create Monitor")).toHaveText(
-      "Create Monitor",
-    );
+    await expect(page.getByTestId("Create Monitor")).toHaveCount(0);
     await clickNext({ page });
 
     // The step opens on the default: nothing to choose.

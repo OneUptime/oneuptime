@@ -80,16 +80,17 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
     );
 
     /*
-     * On the Free plan the dialog walks on to a Billing step, whose pricing
-     * has to be shown before the key can be created: until then the main
-     * button reads Next. Everywhere else the first page creates the key.
+     * On the Free plan the dialog walks on to a Billing step, the last one,
+     * whose pricing is shown before the key can be created: until then the
+     * footer has a plain Next and no Create. Everywhere else the first page
+     * is the only one, and creates the key.
      */
     const billingStep: Locator = modal
       .getByRole("navigation", { name: "Progress" })
       .getByText("Billing", { exact: true });
     if ((await billingStep.count()) > 0) {
-      await expect(submitButton).toHaveText("Next");
-      await submitButton.click();
+      await expect(submitButton).toHaveCount(0);
+      await modal.getByTestId("modal-footer-next-button").click();
       await expect(
         modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();

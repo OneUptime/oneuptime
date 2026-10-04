@@ -494,8 +494,15 @@ describe("Creating an ingestion key from a setup guide", () => {
               }),
           ).toEqual(["Key", "Billing"]);
         });
-        expect(mainButton()).toHaveTextContent("Next");
-        await user.click(mainButton());
+        // Create is on Billing, the last step, only: a plain Next here.
+        expect(
+          within(dialog()).queryByTestId("modal-footer-submit-button"),
+        ).not.toBeInTheDocument();
+        const next: HTMLElement = within(dialog()).getByTestId(
+          "modal-footer-next-button",
+        );
+        expect(next).toHaveTextContent("Next");
+        await user.click(next);
 
         const notice: HTMLElement = await within(dialog()).findByRole(
           "region",

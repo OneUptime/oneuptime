@@ -1809,7 +1809,7 @@ test.describe("Forms", () => {
     ).toHaveLength(2);
   });
 
-  test("D3. On Submit shows where each field comes from, and its settings save from the first step", async () => {
+  test("D3. On Submit shows where each field comes from, and a change on its first step saves from the last", async () => {
     test.setTimeout(240000);
     const page: Page = ctx.page;
 
@@ -1832,7 +1832,12 @@ test.describe("Forms", () => {
     await expect(severityRow).toContainText(ctx.formSeverityName);
     await expect(mapping.getByTestId("form-mapping-row-labels")).toBeVisible();
 
-    // Edit Settings: the Default Title, then Save Changes from that first step.
+    /*
+     * Edit Settings: the Default Title on the first step. Save Changes is on
+     * the last step only - the first shows a plain Next - and every step is
+     * filled in already, so the step list opens the last one (Owners) to
+     * save from.
+     */
     await mapping
       .getByRole("button", { name: "Edit Settings", exact: true })
       .click();
@@ -1841,6 +1846,16 @@ test.describe("Forms", () => {
     await modal
       .getByRole("textbox", { name: /^Default Title/ })
       .fill(defaultTitle);
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveCount(
+      0,
+    );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveText(
+      "Next",
+    );
+    await modal
+      .getByRole("navigation", { name: "Progress" })
+      .getByText("Owners", { exact: true })
+      .click();
     await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
       "Save Changes",
     );

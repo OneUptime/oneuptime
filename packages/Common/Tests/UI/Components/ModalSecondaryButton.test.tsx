@@ -102,6 +102,62 @@ describe("Modal secondaryButton", () => {
     expect(onNext).not.toHaveBeenCalled();
   });
 
+  test("on a step that is not the last: Cancel and a plain Next, no submit button, nothing primary", () => {
+    render(
+      <Modal
+        title="Create Probe"
+        submitButtonText="Create Probe"
+        onClose={getJestMockFunction()}
+        secondaryButton={{
+          title: "Next",
+          dataTestId: "modal-footer-next-button",
+          onClick: getJestMockFunction(),
+        }}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    expect(
+      footerButtons().map((button: HTMLElement): string => {
+        return button.textContent || "";
+      }),
+    ).toEqual(["Cancel", "Next"]);
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
+
+    for (const button of footerButtons()) {
+      expect(button.className).not.toContain(PRIMARY_CLASS);
+    }
+  });
+
+  test("is drawn even when the footer has nothing else: no Cancel, no submit button", async () => {
+    const onNext: MockFunction = getJestMockFunction();
+
+    render(
+      <Modal
+        title="Create LLM Provider"
+        secondaryButton={{
+          title: "Next",
+          dataTestId: "modal-footer-next-button",
+          onClick: onNext,
+        }}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    const next: HTMLElement = screen.getByTestId("modal-footer-next-button");
+
+    expect(next).toHaveTextContent("Next");
+    expect(next.className).toContain(PLAIN_CLASS);
+
+    await userEvent.click(next);
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
   test("is not drawn unless asked for", () => {
     render(
       <Modal
