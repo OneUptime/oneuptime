@@ -17,7 +17,6 @@ import {
 import {
   filterPaletteCommands,
   getPaletteSectionId,
-  normalizePaletteQuery,
   PaletteCommandMatch,
 } from "./PaletteFilter";
 import {
@@ -54,6 +53,7 @@ interface FlatEntry {
   description?: string | undefined;
   icon?: IconProp | undefined;
   iconColor?: string | undefined;
+  breadcrumb?: Array<string> | undefined;
   shortcut?: Array<KeyboardShortcutKey> | undefined;
   /** The id recorded into recents — only static commands carry one. */
   recentCommandId: string | null;
@@ -71,6 +71,13 @@ interface PaletteSectionView {
 }
 
 const EMPTY_PROVIDERS: Array<PaletteSearchProvider> = [];
+
+/*
+ * The most commands a search lists, best first. A letter or two can match
+ * hundreds of pages; the best fifty are plenty to choose from, and typing on
+ * narrows them.
+ */
+export const PALETTE_SEARCH_RESULT_LIMIT: number = 50;
 
 type HasPendingSectionFunction = (
   sections: Array<PaletteSectionView>,
@@ -99,6 +106,7 @@ const commandToEntry: CommandToEntryFunction = (
     description: command.description,
     icon: command.icon,
     iconColor: command.iconColor,
+    breadcrumb: command.breadcrumb,
     shortcut: command.shortcut,
     recentCommandId: command.id,
     onSelect: command.onSelect,
@@ -244,7 +252,11 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     query,
   );
 
-  const normalizedQuery: string = normalizePaletteQuery(query);
+  /*
+   * Browsing while the box is empty, searching once anything is typed: a
+   * query of only punctuation ("?") is a search that finds nothing.
+   */
+  const trimmedQuery: string = query.trim();
 
   const sections: Array<PaletteSectionView> = useMemo(() => {
     const built: Array<PaletteSectionView> = [];
@@ -294,7 +306,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
       });
     };
 
-    if (!normalizedQuery) {
+    if (!trimmedQuery) {
       // Browsing: "Recent" first (when we have any), then the full catalog.
       if (recentCommandIds.length > 0) {
         const commandById: Map<string, PaletteCommand> = new Map();
@@ -328,7 +340,15 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
         }
       }
 
-      groupByCategory(props.commands).forEach(
+      /*
+       * Pages and the actions on them are offered while searching only:
+       * listed here they would be hundreds of rows to scroll past.
+       */
+      groupByCategory(
+        props.commands.filter((command: PaletteCommand): boolean => {
+          return !command.isSearchOnly;
+        }),
+      ).forEach(
         (group: { category: string; commands: Array<PaletteCommand> }) => {
           pushSection(
             getPaletteSectionId(group.category),
@@ -349,7 +369,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
       const matches: Array<PaletteCommandMatch> = filterPaletteCommands(
         props.commands,
         query,
-      );
+      ).slice(0, PALETTE_SEARCH_RESULT_LIMIT);
       groupByCategory(
         matches.map((match: PaletteCommandMatch) => {
           return match.command;
@@ -386,6 +406,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               description: result.description,
               icon: result.icon,
               iconColor: result.iconColor,
+              breadcrumb: undefined,
               shortcut: undefined,
               recentCommandId: null,
               onSelect: result.onSelect,
@@ -405,13 +426,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     });
 
     return built;
-  }, [
-    normalizedQuery,
-    query,
-    props.commands,
-    recentCommandIds,
-    providerSections,
-  ]);
+  }, [trimmedQuery, query, props.commands, recentCommandIds, providerSections]);
 
   // Flattened list in render order — the keyboard walks this.
   const flatEntries: Array<FlatEntry> = useMemo(() => {
@@ -692,6 +707,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
                               description: entry.description,
                               icon: entry.icon,
                               iconColor: entry.iconColor,
+                              breadcrumb: entry.breadcrumb,
                               shortcut: entry.shortcut,
                             }}
                             query={query}

@@ -238,6 +238,33 @@ describe("command palette wiring", () => {
     expect(PALETTE_HOST).toMatch(/isRoutePathNavigable\s*\(/);
   });
 
+  test("every page the menus link to comes from the page index, offered while searching only", () => {
+    /*
+     * One list (PageSearchIndex.ts) is what Search reads for pages: the
+     * host builds its rows from it through the pure helper, so the
+     * gating, breadcrumbs and translation the App tests pin are the ones
+     * the palette uses.
+     */
+    expect(PALETTE_HOST).toMatch(/getPageSearchAreas\s*\(\s*\)/);
+    expect(PALETTE_HOST).toMatch(/buildPageSearchCommandDescriptors\s*\(/);
+    expect(PALETTE_HOST).toMatch(/isSearchOnly:\s*true/);
+    expect(PALETTE_HOST).toMatch(/breadcrumb:\s*descriptor\.breadcrumb/);
+    expect(PALETTE_HOST).toMatch(/titleAliases:\s*descriptor\.titleAliases/);
+    // Billing pages follow the same switch as the Settings menu.
+    expect(PALETTE_HOST).toMatch(/isBillingEnabled:\s*BILLING_ENABLED/);
+    // Delete Project follows the project's delete permission.
+    expect(PALETTE_HOST).toMatch(/canDeleteProject\s*\(/);
+  });
+
+  test("equally good matches go products first, then pages, then actions", () => {
+    expect(PALETTE_HOST).toMatch(
+      /searchPriority:\s*PALETTE_SEARCH_PRIORITY\.product/,
+    );
+    expect(PALETTE_HOST).toMatch(
+      /searchPriority:\s*PALETTE_SEARCH_PRIORITY\.page/,
+    );
+  });
+
   test("entity search only exists with a project, through per-model providers", () => {
     expect(PALETTE_HOST).toMatch(/getCurrentProjectId\s*\(\s*\)/);
     // Every provider goes through the isolated, try/caught factory.

@@ -221,6 +221,7 @@
     "categories": {
       "account": "アカウント",
       "actions": "アクション",
+      "pages": "ページ",
       "quickLinks": "クイックリンク"
     },
     "sections": {
@@ -24809,5 +24810,6 @@
   "Your team's measurements, worked out for this alert.": "このアラートについて算出した、チームの測定値。",
   "Your team's measurements, worked out for this incident.": "このインシデントについて算出した、チームの測定値。",
   "Your team's measurements, worked out for this maintenance event.": "このメンテナンスイベントについて算出した、チームの測定値。",
-  "less than a minute": "1 分未満"
+  "less than a minute": "1 分未満",
+  "User Settings": "ユーザー設定"
 }

@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "सक्रिय घटनाएं",
+      "adminDashboard": "व्यवस्थापक डैशबोर्ड",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "अलर्ट बनाएं",
+      "createAnnouncement": "घोषणा बनाएँ",
+      "createMonitor": "मॉनिटर बनाएं",
+      "createScheduledMaintenance": "अनुसूचित रखरखाव बनाएं",
+      "darkTheme": "गहरे रंग वाली थीम पर जाएँ",
+      "declareIncident": "घटना घोषित करें",
+      "lightTheme": "हल्के रंग वाली थीम पर जाएँ",
+      "logOut": "लॉग आउट",
+      "myOnCallPolicies": "मेरी ऑन-कॉल नीतियाँ",
+      "projectInvitations": "प्रोजेक्ट आमंत्रण"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "खाता",
+      "actions": "क्रियाएँ",
+      "pages": "पेज",
+      "quickLinks": "त्वरित लिंक"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "अलर्ट",
+      "incidents": "घटनाएं",
+      "monitors": "मॉनिटर",
+      "onCallPolicies": "ऑन-कॉल नीतियां",
+      "statusPages": "स्थिति पृष्ठ"
     }
   },
   "keyboardShortcuts": {
@@ -24809,5 +24810,6 @@
   "Your team's measurements, worked out for this alert.": "इस अलर्ट के लिए निकाले गए आपकी टीम के माप।",
   "Your team's measurements, worked out for this incident.": "इस घटना के लिए निकाले गए आपकी टीम के माप।",
   "Your team's measurements, worked out for this maintenance event.": "इस रखरखाव इवेंट के लिए निकाले गए आपकी टीम के माप।",
-  "less than a minute": "एक मिनट से कम"
+  "less than a minute": "एक मिनट से कम",
+  "User Settings": "उपयोगकर्ता सेटिंग्स"
 }

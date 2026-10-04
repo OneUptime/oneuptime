@@ -44,3 +44,20 @@ Everything in OneUptime is under **Products** in the top bar. The menu always op
 - **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
 - **Your choices stay.** The menu remembers, on your browser, which of the other groups you opened or folded.
 - **On a phone**, the menu button lists the products the same way: the essentials first, and every other group as one line that opens on a tap.
+
+## Searching for a page, a setting or an action
+
+Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search icon in the top bar, and start typing. Search finds:
+
+- **Every page in the menus**, by the name the menu gives it: API Keys, Danger Zone, On-Call Schedules, Incident Severity, your own Notification Methods. Each result says where it lives, such as *Project Settings › Advanced*, so pages that share a name (Custom Fields in Incidents, Alerts and Monitors) are easy to tell apart.
+- **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
+- **Your monitors, incidents, alerts, status pages and on-call policies**, by name.
+
+Search reads what you type the way you mean it:
+
+- Case, accents, spaces and hyphens do not matter: *on-call*, *on call* and *oncall* find the same pages, and words can come in any order.
+- It knows other words for many pages: *pager* or *escalation* for On-Call Policies, *rota* for On-Call Schedules, *2fa* for two-factor authentication, *delete project* for the Danger Zone.
+- Add the product's name to narrow a search down: *incident custom fields* finds the Custom Fields page of Incidents.
+- A small typo, such as *incidnet*, still finds what you meant when nothing matches as typed.
+
+With the search box empty, Search lists the pages you opened recently, the actions, and the products.
