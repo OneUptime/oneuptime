@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React, { ReactElement } from "react";
 import { BrowserRouter, MemoryRouter } from "react-router-dom";
 import {
@@ -197,7 +198,10 @@ const openFacet: OpenFacetFunction = (label: string): HTMLElement => {
     fireEvent.click(chip);
   }
 
-  return chip.parentElement!.querySelector('[role="dialog"]') as HTMLElement;
+  // The chip's pill (its button and clear button), then what holds its popover.
+  return chip
+    .closest('[data-testid="filter-chip"]')!
+    .parentElement!.querySelector('[role="dialog"]') as HTMLElement;
 };
 
 type SelectOptionFunction = (label: string, option: string) => void;
@@ -552,18 +556,35 @@ describe("inventory Type and Status facet controls", () => {
     },
   );
 
-  test.each(["Enter", " "])(
+  /*
+   * The clear button is a real button beside the chip (no longer a span
+   * acting as one inside it), so the keys reach it the way a browser delivers
+   * them: focused with Tab, pressed with Enter or Space.
+   */
+  test.each(["{Enter}", " "])(
     "clears a selected Type with the %p key while preserving Status",
-    (key: string) => {
+    async (key: string) => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
       renderInventory();
       selectOption("Type", "Host");
       selectOption("Status", "Live");
-      fireEvent.keyDown(
-        screen.getByRole("button", { name: "Clear Type filter" }),
-        {
-          key: key,
-        },
-      );
+      /*
+       * The open Status popover moves focus to its search box a tick after it
+       * opens; let that happen first, as it would before anyone reached the
+       * clear button.
+       */
+      await act(async (): Promise<void> => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+      const clear: HTMLElement = screen.getByRole("button", {
+        name: "Clear Type filter",
+      });
+      act(() => {
+        clear.focus();
+      });
+      await user.keyboard(key);
 
       expect(getTable().query).not.toHaveProperty("entityType");
       expectIncluded("inventoryStatus", ["live"]);

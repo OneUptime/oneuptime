@@ -21,6 +21,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -673,6 +674,24 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     valueButtonRef.current?.focus();
   }, [isOpen]);
 
+  /*
+   * Clearing what a closed single-select shows takes away the value button
+   * and its Clear button, whichever of the two had focus, and puts the search
+   * input in their place. Focus follows to that input once it is mounted (see
+   * the effect after showSingleSelectedText), with the menu kept closed while
+   * it lands: clearing a field is not asking for a new pick, and a menu that
+   * opened by itself would keep Tab among its options instead of moving on to
+   * the next field. Without this focus went down with the pressed button, to
+   * the page.
+   */
+  const focusInputAfterClearRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const keepMenuClosedOnFocusRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  // Names the shown value to a screen reader (aria-describedby).
+  const valueLabelId: string = useId();
+
   useEffect(() => {
     return () => {
       if (debounceRef.current !== null) {
@@ -1315,6 +1334,32 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
 
+  useLayoutEffect(() => {
+    if (!focusInputAfterClearRef.current || showSingleSelectedText) {
+      return;
+    }
+
+    focusInputAfterClearRef.current = false;
+    // The focus event fires inside focus(), so the flag is read by then.
+    keepMenuClosedOnFocusRef.current = true;
+    inputRef.current?.focus();
+    keepMenuClosedOnFocusRef.current = false;
+  }, [showSingleSelectedText]);
+
+  /*
+   * Clears what a closed single-select shows: its Clear button, or Backspace
+   * or Delete on the value button, as in a text field. Focus then goes to the
+   * search input that takes the two buttons' place (focusInputAfterClearRef).
+   */
+  const clearShownValue: () => void = (): void => {
+    if (props.disabled) {
+      return;
+    }
+
+    focusInputAfterClearRef.current = true;
+    clearAll();
+  };
+
   /*
    * Escape while the menu is open closes just the menu, wherever focus is in
    * the dropdown: the search input, or - reached with Tab - an option, one of
@@ -1412,83 +1457,119 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       <div ref={controlRef} className="relative">
         {/*
          * Single-select shows the resolved label in-place when closed so the
-         * chrome looks like a static value field. Click anywhere on the
-         * container to start typing.
+         * chrome looks like a static value field. Click anywhere on it to
+         * start typing.
+         *
+         * The value button and its Clear button sit side by side. The Clear
+         * button used to be inside the value button: a button in a button is
+         * invalid HTML (React warned "<button> cannot appear as a descendant
+         * of <button>"), and a screen reader reads a button's content as part
+         * of the button, so the Clear button was lost to it. Now:
+         *
+         *   - this wrapper draws the field's box, so pointing at either
+         *     button lights its border, as pointing anywhere on the one
+         *     button did;
+         *   - the value button covers the whole box: its -1px margin and
+         *     clear 1px border lie over the wrapper's border, so its content
+         *     and its focus outline sit where they always did;
+         *   - it keeps an empty place where the Clear button was, and the
+         *     Clear button is laid over that place (right-8: the value
+         *     button's px-3, the chevron's w-4 and the gap-1 between them).
          */}
         {showSingleSelectedText && (
-          <button
-            ref={valueButtonRef}
-            type="button"
-            disabled={props.disabled}
-            aria-labelledby={props.ariaLabelledby}
-            onClick={(): void => {
-              if (props.disabled) {
-                return;
-              }
-              focusFieldAfterSwapRef.current = true;
-              setIsOpen(true);
-            }}
-            onFocus={() => {
-              props.onFocus?.();
-            }}
-            className={`flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm shadow-sm transition-colors ${
+          <div
+            data-testid="entity-dropdown-value"
+            className={`relative rounded-lg border bg-white shadow-sm transition-colors ${
               props.error
                 ? "border-red-400"
                 : "border-gray-300 hover:border-indigo-300"
-            } ${
-              props.disabled
-                ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                : ""
-            }`}
+            } ${props.disabled ? "bg-gray-100" : ""}`}
           >
-            <span className="flex items-center gap-2">
-              {(() => {
-                const colorStr: string | undefined = optionColorString(
-                  selectedOptions[0]!,
-                );
-                if (!colorStr) {
-                  return null;
+            <button
+              ref={valueButtonRef}
+              type="button"
+              disabled={props.disabled}
+              aria-labelledby={props.ariaLabelledby}
+              /*
+               * Named by the field's label, the button would otherwise never
+               * say what is picked.
+               */
+              aria-describedby={props.ariaLabelledby ? valueLabelId : undefined}
+              onClick={(): void => {
+                if (props.disabled) {
+                  return;
                 }
-                return (
+                focusFieldAfterSwapRef.current = true;
+                setIsOpen(true);
+              }}
+              onFocus={() => {
+                props.onFocus?.();
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
+                if (event.key !== "Backspace" && event.key !== "Delete") {
+                  return;
+                }
+                event.preventDefault();
+                clearShownValue();
+              }}
+              className={`-m-px flex w-[calc(100%+2px)] items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm ${
+                props.disabled ? "cursor-not-allowed text-gray-400" : ""
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {(() => {
+                  const colorStr: string | undefined = optionColorString(
+                    selectedOptions[0]!,
+                  );
+                  if (!colorStr) {
+                    return null;
+                  }
+                  return (
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-2.5 w-2.5 rounded-full border border-gray-200"
+                      style={{ backgroundColor: colorStr }}
+                    />
+                  );
+                })()}
+                <span id={valueLabelId} className="font-medium text-gray-900">
+                  {selectedOptions[0]!.label}
+                </span>
+              </span>
+              <div className="flex items-center gap-1 text-gray-400">
+                {!props.disabled && (
                   <span
                     aria-hidden="true"
-                    className="inline-block h-2.5 w-2.5 rounded-full border border-gray-200"
-                    style={{ backgroundColor: colorStr }}
+                    data-testid="entity-dropdown-clear-place"
+                    className="box-content block h-3.5 w-3.5 p-0.5"
                   />
-                );
-              })()}
-              <span className="font-medium text-gray-900">
-                {selectedOptions[0]!.label}
-              </span>
-            </span>
-            <div className="flex items-center gap-1 text-gray-400">
-              {!props.disabled && (
-                <button
-                  type="button"
-                  aria-label={translator.translateText("Clear selection")}
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
-                    e.stopPropagation();
-                    clearAll();
-                  }}
-                  className="rounded p-0.5 hover:bg-gray-100 hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                )}
+                <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
+              </div>
+            </button>
+            {!props.disabled && (
+              <button
+                type="button"
+                aria-label={translator.translateText("Clear selection")}
+                data-testid="entity-dropdown-clear"
+                onClick={clearShownValue}
+                className="absolute right-8 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  <svg
-                    className="h-3.5 w-3.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              )}
-              <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-            </div>
-          </button>
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         )}
 
         {!showSingleSelectedText && (
@@ -1525,7 +1606,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 setHighlightedIndex(-1);
               }}
               onFocus={() => {
-                setIsOpen(true);
+                // Not when focus lands here after a clear (clearShownValue).
+                if (!keepMenuClosedOnFocusRef.current) {
+                  setIsOpen(true);
+                }
                 props.onFocus?.();
               }}
               onBlur={() => {
