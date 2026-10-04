@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "Ни один статус не считается простоем, поэтому каждый процент безотказной работы на этой странице показывает 100%.",
   "Precision": "Точность",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "Средний процент безотказной работы ресурсов страницы. Показывается рядом с её общим статусом, пока всё работает.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Время, которое монитор проводит в любом из этих статусов, вычитается из его безотказной работы на этой странице."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Время, которое монитор проводит в любом из этих статусов, вычитается из его безотказной работы на этой странице.",
+  "New Scheduled Maintenance Event": "Новое событие планового обслуживания"
 }

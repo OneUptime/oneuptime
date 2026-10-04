@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "ダウンタイムとして扱うステータスがないため、このページの稼働率はすべて 100% と表示されます。",
   "Precision": "精度",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "ページのリソースの平均稼働率です。すべてが正常に稼働している間、全体のステータスの横に表示されます。",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "モニターがこれらのいずれかのステータスにある時間は、このページでの稼働率から差し引かれます。"
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "モニターがこれらのいずれかのステータスにある時間は、このページでの稼働率から差し引かれます。",
+  "New Scheduled Maintenance Event": "新しい定期メンテナンスイベント"
 }

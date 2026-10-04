@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ScheduledMaintenancesTable from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceTable";
+import { CreateFromRecordKind } from "../../../Components/CreateFromRecord/CreateFromRecord";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -37,7 +38,7 @@ const NetworkSiteScheduledMaintenance: FunctionComponent<
     <Fragment>
       <ScheduledMaintenancesTable
         query={query}
-        disableCreate={true}
+        createFrom={{ kind: CreateFromRecordKind.NetworkSite, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
         noItemsMessage="No scheduled maintenance events for this site. Attach this site to an event to exclude its planned downtime from uptime."
       />

@@ -1,5 +1,6 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncidentsTable from "../../../Components/Incident/IncidentsTable";
+import { CreateFromRecordKind } from "../../../Components/CreateFromRecord/CreateFromRecord";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -23,7 +24,10 @@ const DockerHostIncidents: FunctionComponent<
 
   return (
     <Fragment>
-      <IncidentsTable query={query} />
+      <IncidentsTable
+        query={query}
+        createFrom={{ kind: CreateFromRecordKind.DockerHost, id: modelId }}
+      />
     </Fragment>
   );
 };

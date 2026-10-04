@@ -12,6 +12,15 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  CreateFromRecordKind,
+  CreatedRecordKind,
+  getCreateFromRecordDefinition,
+  getCreateFromRecordQuery,
+  readCreateFromRecordId,
+} from "../CreateFromRecord/CreateFromRecord";
+
+export { readRecordIds } from "../CreateFromRecord/CreateFromRecord";
 
 /*
  * CREATING AN ANNOUNCEMENT IN TWO STEPS.
@@ -41,9 +50,12 @@ import {
  * and the review step after them. From a status page that page is already
  * picked (?statusPageId=, ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM), so a title
  * and a description are all it takes, and Create goes back to that page's
- * Announcements tab. The description is required on every announcement
- * form, as the server requires it (the forms used to call it optional, and
- * the request then failed at the end).
+ * Announcements tab. The page is carried, looked up and picked as every
+ * create page opened from a record's tab carries its record
+ * (Components/CreateFromRecord): first among the announcement's status
+ * pages, ahead of those its template names. The description is required on
+ * every announcement form, as the server requires it (the forms used to
+ * call it optional, and the request then failed at the end).
  *
  * The announcement's own Edit walks the same steps. Subscribers hear about
  * an announcement once, when it starts showing, so the notify switch takes
@@ -59,10 +71,11 @@ import {
 
 /*
  * The query parameters the create page reads: the status page whose
- * Announcements tab it was opened from, and the template picked in
- * "Create from Template".
+ * Announcements tab it was opened from (CreateFromRecord's, for a status
+ * page), and the template picked in "Create from Template".
  */
-export const ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM: string = "statusPageId";
+export const ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM: string =
+  getCreateFromRecordDefinition(CreateFromRecordKind.StatusPage).queryParam;
 
 export const ANNOUNCEMENT_TEMPLATE_QUERY_PARAM: string =
   "announcementTemplateId";
@@ -80,18 +93,11 @@ export interface AnnouncementCreateParams {
  * An ID read off the address (a status page's, a template's): a real UUID,
  * or null. Anything else - a half-copied link, a value someone typed - is
  * ignored rather than handed to the form, which would send it to the server.
+ * The one reader every create page uses.
  */
 export const readAnnouncementQueryId: (
   value: string | null | undefined,
-) => string | null = (value: string | null | undefined): string | null => {
-  if (!value) {
-    return null;
-  }
-
-  const trimmed: string = value.trim();
-
-  return ObjectID.isValidUUID(trimmed) ? trimmed : null;
-};
+) => string | null = readCreateFromRecordId;
 
 /*
  * The query string of the create page's address, for the buttons that open
@@ -103,15 +109,12 @@ export const getAnnouncementCreateQueryParams: (
 ) => Dictionary<string> = (
   params: AnnouncementCreateParams,
 ): Dictionary<string> => {
-  const query: Dictionary<string> = {};
-
-  const statusPageId: string | null = readAnnouncementQueryId(
-    params.statusPageId?.toString(),
+  const query: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.Announcement,
+    params.statusPageId
+      ? { kind: CreateFromRecordKind.StatusPage, id: params.statusPageId }
+      : null,
   );
-
-  if (statusPageId) {
-    query[ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM] = statusPageId;
-  }
 
   const announcementTemplateId: string | null = readAnnouncementQueryId(
     params.announcementTemplateId?.toString(),
@@ -122,65 +125,6 @@ export const getAnnouncementCreateQueryParams: (
   }
 
   return query;
-};
-
-/*
- * The status pages a new announcement starts with: the page it was created
- * from first, then those its template names, each once. Created from a
- * status page's tab, the announcement shows there - that is where the
- * person was, and where they land again after creating it.
- */
-export const getInitialAnnouncementStatusPageIds: (data: {
-  statusPageId?: string | null | undefined;
-  templateStatusPageIds?: Array<string> | undefined;
-}) => Array<string> = (data: {
-  statusPageId?: string | null | undefined;
-  templateStatusPageIds?: Array<string> | undefined;
-}): Array<string> => {
-  const ids: Array<string> = [];
-
-  for (const id of [data.statusPageId, ...(data.templateStatusPageIds || [])]) {
-    if (id && !ids.includes(id)) {
-      ids.push(id);
-    }
-  }
-
-  return ids;
-};
-
-/*
- * The IDs a list of related records holds, as a form value or a model has
- * it: bare ID strings (what a picker writes), ObjectIDs, or records with an
- * ID (a model's statusPages or monitors). Each once, in order.
- */
-export const readRecordIds: (value: unknown) => Array<string> = (
-  value: unknown,
-): Array<string> => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const ids: Array<string> = [];
-
-  for (const item of value) {
-    let id: string | null = null;
-
-    if (typeof item === "string") {
-      id = item;
-    } else if (item instanceof ObjectID) {
-      id = item.toString();
-    } else if (item && typeof item === "object") {
-      const record: Record<string, unknown> = item as Record<string, unknown>;
-      const recordId: unknown = record["_id"] || record["id"];
-      id = recordId ? String(recordId) : null;
-    }
-
-    if (id && !ids.includes(id)) {
-      ids.push(id);
-    }
-  }
-
-  return ids;
 };
 
 /*

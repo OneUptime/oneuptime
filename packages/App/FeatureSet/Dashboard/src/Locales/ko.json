@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "다운타임으로 계산되는 상태가 없어 이 페이지의 모든 가동 시간 비율이 100%로 표시됩니다.",
   "Precision": "정밀도",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "페이지 리소스의 평균 가동 시간으로, 모든 것이 정상 작동하는 동안 전체 상태 옆에 표시됩니다.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "모니터가 이 상태 중 하나에 머문 시간은 이 페이지에서 해당 모니터의 가동 시간에서 차감됩니다."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "모니터가 이 상태 중 하나에 머문 시간은 이 페이지에서 해당 모니터의 가동 시간에서 차감됩니다.",
+  "New Scheduled Maintenance Event": "새 예약 유지보수 이벤트"
 }
