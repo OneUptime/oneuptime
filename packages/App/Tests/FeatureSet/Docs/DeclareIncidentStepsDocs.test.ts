@@ -19,6 +19,8 @@ import path from "path";
  *   - have a section per step, and none for a step that is gone;
  *   - list, under each step's Advanced, exactly the fields the form folds
  *     there - and those fields nowhere else on the step;
+ *   - list Resources Affected's open fields as the form asks them: the
+ *     monitors, the status they change to, then the other resources;
  *   - name the step with the on-call policies as the form does, wherever
  *     another incident page points the reader at it.
  *
@@ -334,7 +336,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
     },
   );
 
-  it("the form folds Declared At, Initial State, Labels and Private Incident on its first step, and Change Monitor Status to on the next", () => {
+  it("the form folds Declared At, Initial State, Labels and Private Incident on its first step, and the status page limit and notifying subscribers on the next", () => {
     const folded: Array<string> = formFields()
       .filter((field: FormField): boolean => {
         return field.isFolded;
@@ -348,9 +350,47 @@ describe("the Declare Incident docs follow the form's steps", () => {
       "incident-details: Initial State",
       "incident-details: Labels",
       "incident-details: Private Incident",
-      "resources-affected: Change Monitor Status to",
+      "resources-affected: Limit to these status pages",
+      "resources-affected: Notify Status Page Subscribers",
     ]);
   });
+
+  /*
+   * "we also need to have monitors and other affected resources as
+   * seperate things (so change monitor sttate to makes more sense)" - the
+   * maintainer. The docs walk the step in the form's order.
+   */
+  it.each(LANGUAGES)(
+    "%s: Resources Affected lists the monitors, the status they change to, then the other resources",
+    (language: string) => {
+      const openOnTheForm: Array<string> = formFields()
+        .filter((field: FormField): boolean => {
+          return field.stepId === "resources-affected" && !field.isFolded;
+        })
+        .map((field: FormField): string => {
+          return field.title;
+        });
+
+      expect(openOnTheForm).toEqual([
+        "Monitors",
+        "Change Monitor Status to",
+        "Other Affected Resources",
+      ]);
+
+      const section: string = sectionOf(
+        readPage(DECLARING_PAGE, language),
+        STEP_HEADING[language]!(2, "Resources Affected"),
+      );
+      const underAdvanced: number = section.indexOf(
+        UNDER_ADVANCED[language] as string,
+      );
+
+      expect(underAdvanced).toBeGreaterThan(-1);
+      expect(listedFields(section.slice(0, underAdvanced))).toEqual(
+        openOnTheForm,
+      );
+    },
+  );
 
   it.each(LANGUAGES)(
     "%s: the other incident pages call the on-call step by its title",

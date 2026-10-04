@@ -19,44 +19,52 @@ Alla fyra skriver samma modell, så en incident som öppnats av en probe ser exa
 
 ## Deklarera en för hand
 
-Öppna **Incidenter → Alla incidenter** och klicka på **Deklarera incident** uppe till höger i listan **Incidenter**. Det tar dig till ett kort som heter **Deklarera ny incident**, som fördelar formuläret över fem steg: **Incidentdetaljer**, **Berörda resurser**, **Incidentroller**, **Jour** och **Mer**. Skicka-knappen på slutet lyder också **Deklarera incident**.
+Öppna **Incidenter → Alla incidenter** och klicka på **Deklarera incident** uppe till höger i listan **Incidenter**. Då kommer du till ett kort med rubriken **Deklarera ny incident**, som delar upp formuläret i tre steg: **Incidentdetaljer**, **Berörda resurser** och **Jour och roller**, och därefter en sammanfattning att granska. När ditt projekt frågar efter några av sina anpassade incidentfält när en incident skapas, kommer ett fjärde steg, **Detaljer**, direkt efter **Berörda resurser**.
 
-Bara det första steget har obligatoriska fält. Har du bråttom fyller du i **Incidentdetaljer** och skickar — du kan koppla på resurser, tilldela roller och lägga till jourpolicyer från incidentens egna sidor efteråt.
+Bara det första steget har obligatoriska fält, plus alla anpassade fält som dina administratörer har markerat som **Obligatoriskt vid skapande**. Du kan också bifoga resurser, lägga till jourpolicyer och tilldela roller efteråt, från incidentens egna sidor.
+
+**Avancerad.** Alternativen som de flesta incidenter aldrig behöver väntar ihopfällda under rubriken **Avancerad** i slutet av sitt steg; klicka på den för att öppna dem. Ihopfälld visar rubriken **Konfigurerat** när något i den är satt — av en mall, till exempel — och den öppnas av sig själv när något i den behöver rättas. Sammanfattningen visar bara ett ihopfällt alternativ när det är satt, utom **Meddela statussideprenumeranter**, som den alltid visar, med vilka som meddelas.
 
 ### Steg 1 — Incidentdetaljer
 
-- **Titel** — obligatorisk. Enradssammanfattningen som alla ser i listan, i Slack och (om incidenten är synlig) på din statussida. Platshållare: `Incident Title`.
-- **Beskrivning** — valfri, skriven i Markdown. Det här är fältet som renderas på statussidan, så skriv det för kunder snarare än för ditt team. Du kan redigera det senare från **Beskrivning** i incidentens sidomeny.
-- **Deklarerad den** — obligatorisk i formuläret, förifylld med nu. Det är tidsstämpeln som varje varaktighet på incidenten mäts från, så backdatera den om du registrerar något som började tidigare.
-- **Incidentallvar** — obligatorisk. En av allvarlighetsgraderna som konfigurerats för ditt projekt; nya projekt får **Kritisk incident**, **Stor incident** och **Mindre incident** från start.
-- **Incidentstatus** — valfri. Lämna den ifred så hamnar incidenten i tillståndet som bär flaggan `isCreatedState`, vilket i nya projekt är **Identifierad**. Sätt den bara när du registrerar en incident som redan hunnit förbi den punkten.
+- **Titel** — obligatoriskt. Sammanfattningen på en rad som alla ser i listan, i Slack och, om incidenten är synlig, på din statussida.
+- **Incidentallvar** — obligatoriskt. En av allvarlighetsgraderna som är konfigurerade för ditt projekt.
+- **Beskrivning** — valfri, skriven i Markdown. Det är detta statussidan visar, så skriv den för kunderna och inte för ditt team.
+
+Under **Avancerad**:
+
+- **Deklarerad den** — börjar i det ögonblick du öppnade sidan. All varaktighet för incidenten mäts härifrån; datera tillbaka den för att registrera en incident som började tidigare.
+- **Inledande tillstånd** — valfritt, och tomt från början. Lämnas det tomt startar incidenten i tillståndet med flaggan `isCreatedState`, eller i mallens inledande tillstånd. Välj bara ett senare tillstånd för att registrera en incident som redan är kvitterad eller löst.
+- **Etiketter** — valfritt. Etiketter samlar relaterade incidenter, och ett team som är begränsat till etiketter ser bara de incidenter som bär en av dess etiketter.
+- **Privat incident** — av som standard (`isPrivate`). En privat incident syns bara för sina ägare, projektadministratörer och projektägare, och är dold på alla statussidor.
 
 **Om tillståndsmenyn krånglar.** Om ditt projekt inte har något tillstånd som bär flaggan `isCreatedState` misslyckas skapandet och du får veta att du behöver lägga till ett skapat incidenttillstånd i inställningarna. Det händer normalt bara i projekt där tillstånden redigerats kraftigt — se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
 
 ### Steg 2 — Berörda resurser
 
-- **Berörda resurser** — en enda sökruta som kopplar på monitorer, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. Under ytan är de här separata relationer på incidenten (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` med flera), men formuläret slår ihop dem till en enda väljare.
-- **Change Monitor Status to** — valfritt. Väljer en monitorstatus som tillämpas på varje monitor som kopplats till den här incidenten, så att deklarera incidenten och markera monitorerna som försämrade blir en handling i stället för två.
+Monitorerna kommer först, för sig: statussidor ser en incident genom dess monitorer, och statusen som monitorerna byter till står direkt under dem.
+
+- **Monitorer** — en sökruta som bifogar de monitorer som incidenten påverkar (`monitors`). En statussida visar incidenten, och meddelar sina prenumeranter, när den listar en av dessa monitorer.
+- **Ändra övervakningsstatus till** — valfritt, och visas först när minst en monitor är vald. Sätter varje monitor i incidenten till en övervakningsstatus, så att det är en enda åtgärd att deklarera incidenten och markera dess monitorer som försämrade. En malls status visas så snart du väljer en monitor; utan vald monitor sparas ingen status.
+- **Andra påverkade resurser** — en andra sökruta för allt annat som incidenten påverkar: värdar, Kubernetes-kluster, Docker- och Podman-värdar, Proxmox-, Ceph- och Docker Swarm-kluster, vCenter, IoT-flottor, databaser och tjänster. Det är separata relationer på incidenten (`hosts`, `kubernetesClusters`, `services` med flera).
+
+Incidentens kort **Berörda resurser** frågar på samma sätt när du redigerar det senare.
+
+Under **Avancerad**:
+
+- **Begränsa till dessa statussidor** — valfritt. Lämnas det tomt visas incidenten på alla statussidor som listar dess monitorer, och meddelar deras prenumeranter; med valda sidor bara på dem bland dem. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
+- **Meddela statussideprenumeranter** — kryssruta, ikryssad som standard (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under den, och igen i sammanfattningen, visar formuläret vilka statussidor som meddelas och hur många prenumeranter var och en har; i sammanfattningen visar **Förhandsgranska avisering** e-postmeddelandet de får. Kryssa ur den för internt brus som du ändå vill registrera.
 
 **Koppla på monitorer även när det känns överflödigt.** Länken mellan en incident och en statussida går genom incidentens monitorer: en statussida visar en incident när en av sidans resurser är en av incidentens monitorer. En avisering om tillståndsändring till prenumeranter hoppas över helt när incidenten inte har några monitorer kopplade. Se [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups).
 
-### Steg 3 — Incidentroller
+### Steg 3 — Jour och roller
 
-- **Tilldela incidentroller** — tilldela teammedlemmar till rollerna ditt projekt definierar. Vissa roller tar mer än en användare.
-
-Rollerna själva konfigureras under **Incidenter → Inställningar → Incidentroller**, där du definierar rollerna som kan tilldelas under arbetet — Incidentansvarig, den som svarar, och vad din process nu kräver. Hoppar du över det här steget tilldelas en Incidentansvarig automatiskt vid första tillståndsändringen om ingen redan har rollen.
-
-### Steg 4 — Jour
-
-- **Jourpolicy** — en flerval av jourtjänstpolicyerna som ska köras när den här incidenten skapas. Det motsvarar `onCallDutyPolicies` på incidenten.
+- **Jourpolicy** — ett flerval av de jourpolicyer som körs när den här incidenten skapas (`onCallDutyPolicies`).
+- **Tilldela incidentroller** — vem som tar varje roll som ditt projekt definierar. En roll märkt **Primär** som du lämnar tom är din: du tar den när incidenten deklareras.
 
 Det här är det enda stället där en jourpolicy kopplas direkt till en incident. Allvarlighetsgrader bär ingen jourpolicy — allvarlighetsgrad är en etikett, och den påverkar larmning bara som *matchningskriterium* inuti en jourregel. Regler konfigurerade under **Incidenter → Regler → Jourregler** lägger sina policyer ovanpå det du väljer här; mängden som till slut körs är den avdubblettade unionen av båda.
 
-### Steg 5 — Mer
-
-- **Etiketter** — valfritt och en avancerad funktion: teammedlemmar med åtkomst till de här etiketterna är de som kommer åt incidenten.
-- **Meddela statussideprenumeranter** — kryssruta, påslagen som standard. Styr om prenumeranter får mejl om att incidenten skapats (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Slå av den för internt brus du ändå vill ha registrerat.
-- **Privat incident** — kryssruta, avslagen som standard (`isPrivate`). En privat incident syns bara för dess ägaranvändare, medlemmarna i dess ägarteam, projektadministratörer och projektägare — och den döljs från varje statussida, oavsett övriga inställningar. Incidentlistan markerar dem med en röd **Private**-etikett.
+Själva rollerna konfigureras under **Incidenter → Inställningar → Incidentroller**. Ett nytt projekt har en, Incident Commander; lägg till där vad din process behöver i övrigt.
 
 Flaggan **Should be visible on status page?** (`isVisibleOnStatusPage`) finns inte i guiden; den är sann som standard. Ändra den efteråt från **Inställningar** i incidentens sidomeny, där den heter **Synlig på statussidan**.
 
@@ -66,7 +74,7 @@ Om du gång på gång deklarerar samma sorts incident — samma titelmönster, s
 
 Klicka på **Skapa från mall** (konturknappen bredvid **Deklarera incident**) så öppnas dialogen **Skapa incident från mall**, med en rullgardin **Välj incidentmall**. Välj en mall så öppnas skapandeformuläret förifyllt; du kan fortfarande ändra vad som helst innan du skickar. Om ditt projekt inte har några mallar än får du i stället dialogen **No Incident Templates**, med en knapp **Create Template** som tar dig till **Incidenter → Inställningar → Incidentmallar**.
 
-Mallar byggs i en egen sexstegsguide — **Mallinformation**, **Incidentdetaljer**, **Berörda resurser**, **Jour**, **Ägare**, **Etiketter** — med de här fälten:
+Mallar byggs med en egen guide — **Mallinformation**, **Incidentdetaljer**, **Berörda resurser**, **Jour** — plus steg för anpassade fält när ditt projekt har sådana. Ägare och etiketter ligger under **Avancerad** i slutet av **Incidentdetaljer**. **Berörda resurser** frågar som deklarationsformuläret — **Monitorer**, sedan **Ändra övervakningsstatus till**, sedan **Andra påverkade resurser**, med **Begränsa till dessa statussidor** under **Avancerad** — förutom att en mall alltid frågar efter övervakningsstatus: den gäller även de monitorer som väljs när en incident deklareras från mallen. Det här är fälten:
 
 | Fält                         | Syfte                                                     |
 | ---------------------------- | --------------------------------------------------------- |
@@ -76,11 +84,12 @@ Mallar byggs i en egen sexstegsguide — **Mallinformation**, **Incidentdetaljer
 | **Beskrivning**              | Markdown-beskrivning som förifylls på incidenten.         |
 | **Incidentallvar**           | Allvarlighetsgrad som förifylls på incidenten.            |
 | **Inledande incidenttillstånd** | Tillståndet incidenter från den här mallen börjar i.   |
-| **Berörda resurser**         | Monitorer, värdar, kluster och tjänster att koppla på.    |
-| **Change Monitor Status to** | Monitorstatus att tillämpa på de kopplade monitorerna.    |
+| **Monitorer** | Monitorer att bifoga. |
+| **Ändra övervakningsstatus till** | Övervakningsstatus för incidentens monitorer, även de som väljs vid deklarationen. |
+| **Andra påverkade resurser** | Värdar, kluster och tjänster att bifoga. |
+| **Begränsa till dessa statussidor** | Statussidor som incidenten är begränsad till. |
 | **Jourpolicy**               | Policyer att köra när incidenten skapas.                  |
-| **Ägare – Team**             | Team som äger incidenter skapade från den här mallen.     |
-| **Ägare – Användare**        | Användare som äger incidenter skapade från den här mallen. |
+| **Ägare** | Personer och team som äger incidenter skapade från den här mallen, valda ur en enda lista. |
 | **Etiketter**                | Etiketter som sätts på incidenten.                        |
 
 Några snabba regler:

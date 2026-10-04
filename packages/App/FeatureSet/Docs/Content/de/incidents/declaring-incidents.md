@@ -19,44 +19,52 @@ Alle vier schreiben dasselbe Modell. Ein von einer Sonde eröffneter Vorfall sie
 
 ## Einen von Hand melden
 
-Öffnen Sie **Vorfälle → Alle Vorfälle** und klicken Sie oben rechts in der Liste **Vorfälle** auf **Vorfall melden**. Das bringt Sie zu einer Karte mit dem Titel **Neuen Vorfall melden**, die das Formular auf fünf Schritte verteilt: **Vorfalldetails**, **Betroffene Ressourcen**, **Vorfallsrollen**, **Bereitschaft** und **Mehr**. Die Absende-Schaltfläche am Ende heißt ebenfalls **Vorfall melden**.
+Öffnen Sie **Vorfälle → Alle Vorfälle** und klicken Sie oben rechts in der Liste **Vorfälle** auf **Vorfall melden**. Das bringt Sie zu einer Karte mit dem Titel **Neuen Vorfall melden**, die das Formular auf drei Schritte verteilt: **Vorfalldetails**, **Betroffene Ressourcen** und **Bereitschaft & Rollen**, danach eine Zusammenfassung zum Prüfen. Fragt Ihr Projekt beim Erstellen einige seiner benutzerdefinierten Vorfallfelder ab, folgt direkt nach **Betroffene Ressourcen** ein vierter Schritt, **Details**.
 
-Nur der erste Schritt hat Pflichtfelder. Wenn es eilt, füllen Sie **Vorfalldetails** aus und senden ab – Ressourcen anhängen, Rollen vergeben und Bereitschaftsrichtlinien ergänzen können Sie anschließend auf den Seiten des Vorfalls selbst.
+Nur der erste Schritt hat Pflichtfelder, dazu jedes benutzerdefinierte Feld, das Ihre Administratoren als **Beim Erstellen erforderlich** markiert haben. Ressourcen anhängen, Bereitschaftsrichtlinien ergänzen und Rollen vergeben können Sie auch anschließend auf den Seiten des Vorfalls selbst.
+
+**Erweitert.** Optionen, die die meisten Vorfälle nie brauchen, warten eingeklappt unter einer Überschrift **Erweitert** am Ende ihres Schritts; ein Klick darauf öffnet sie. Solange sie eingeklappt ist, zeigt die Überschrift **Konfiguriert**, wenn darin etwas gesetzt ist – etwa durch eine Vorlage –, und sie öffnet sich von selbst, wenn darin etwas korrigiert werden muss. Die Zusammenfassung führt eine eingeklappte Option nur auf, wenn sie gesetzt ist – außer **Statusseiten-Abonnenten benachrichtigen**, das sie immer aufführt, zusammen mit der Angabe, wer benachrichtigt wird.
 
 ### Schritt 1 – Vorfalldetails
 
-- **Titel** – Pflichtfeld. Die einzeilige Zusammenfassung, die alle in der Liste, in Slack und (wenn der Vorfall sichtbar ist) auf Ihrer Statusseite sehen. Platzhalter: `Incident Title`.
-- **Beschreibung** – optional, in Markdown geschrieben. Dieses Feld erscheint auf der Statusseite, schreiben Sie es also für Kunden und nicht für Ihr Team. Später bearbeiten Sie es über **Beschreibung** im Seitenmenü des Vorfalls.
-- **Erklärt am** – im Formular Pflicht, standardmäßig auf jetzt gesetzt. Von diesem Zeitstempel aus wird jede Dauer am Vorfall gemessen – datieren Sie ihn also zurück, wenn Sie etwas erfassen, das früher begonnen hat.
-- **Vorfallsschweregrad** – Pflichtfeld. Einer der für Ihr Projekt konfigurierten Schweregrade; neue Projekte starten mit **Critical Incident**, **Major Incident** und **Minor Incident**.
-- **Vorfallsstatus** – optional. Lassen Sie ihn unangetastet, landet der Vorfall in dem Status mit dem Flag `isCreatedState`, den neue Projekte als **Identified** anlegen. Setzen Sie ihn nur, wenn Sie einen Vorfall erfassen, der diesen Punkt schon hinter sich hatte.
+- **Titel** – Pflichtfeld. Die einzeilige Zusammenfassung, die alle in der Liste, in Slack und (wenn der Vorfall sichtbar ist) auf Ihrer Statusseite sehen.
+- **Vorfallsschweregrad** – Pflichtfeld. Einer der für Ihr Projekt konfigurierten Schweregrade.
+- **Beschreibung** – optional, in Markdown geschrieben. Dieses Feld erscheint auf der Statusseite, schreiben Sie es also für Kunden und nicht für Ihr Team.
+
+Unter **Erweitert**:
+
+- **Erklärt am** – beginnt mit dem Zeitpunkt, zu dem Sie die Seite geöffnet haben. Von ihm aus wird jede Dauer am Vorfall gemessen; datieren Sie ihn zurück, um einen Vorfall zu erfassen, der früher begonnen hat.
+- **Anfangsstatus** – optional und zunächst leer. Bleibt es leer, startet der Vorfall in dem Status mit dem Flag `isCreatedState` oder im Anfangsstatus der Vorlage. Wählen Sie einen späteren Status nur, um einen bereits bestätigten oder behobenen Vorfall zu erfassen.
+- **Beschriftungen** – optional. Beschriftungen gruppieren zusammengehörige Vorfälle, und ein auf Beschriftungen beschränktes Team sieht nur die Vorfälle mit einer seiner Beschriftungen.
+- **Privater Vorfall** – standardmäßig aus (`isPrivate`). Ein privater Vorfall ist nur für seine Eigentümer, Projektadministratoren und Projekteigentümer sichtbar und auf jeder Statusseite ausgeblendet.
 
 **Falls das Status-Dropdown Ärger macht.** Trägt in Ihrem Projekt kein Status das Flag `isCreatedState`, schlägt der Erstellungsaufruf fehl und weist Sie an, in den Einstellungen einen Erstellungsstatus anzulegen. Das passiert normalerweise nur in Projekten, deren Status stark bearbeitet wurden – siehe [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
 
 ### Schritt 2 – Betroffene Ressourcen
 
-- **Betroffene Ressourcen** – ein einziges Suchfeld, das Monitore, Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste anhängt. Unter der Haube sind das getrennte Beziehungen am Vorfall (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` und weitere), aber das Formular fasst sie zu einem Auswahlfeld zusammen.
-- **Überwachungsstatus ändern in** – optional. Wählt einen Monitor-Status, der auf jeden an diesem Vorfall hängenden Monitor angewendet wird, sodass den Vorfall zu melden und die Monitore als beeinträchtigt zu markieren ein Handgriff ist statt zwei.
+Die Monitore kommen zuerst und für sich: Statusseiten sehen einen Vorfall über seine Monitore, und der Status, in den die Monitore wechseln, steht direkt darunter.
+
+- **Monitore** – ein Suchfeld, das die vom Vorfall betroffenen Monitore anhängt (`monitors`). Eine Statusseite zeigt den Vorfall und benachrichtigt ihre Abonnenten, wenn sie einen dieser Monitore auflistet.
+- **Monitor-Status ändern in** – optional und erst sichtbar, sobald mindestens ein Monitor ausgewählt ist. Setzt jeden Monitor des Vorfalls auf einen Monitor-Status, sodass den Vorfall zu melden und seine Monitore als beeinträchtigt zu markieren ein Handgriff ist. Der Status einer Vorlage erscheint, sobald Sie einen Monitor auswählen; ohne ausgewählten Monitor wird kein Status gespeichert.
+- **Andere betroffene Ressourcen** – ein zweites Suchfeld für alles andere, was der Vorfall betrifft: Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Proxmox-, Ceph- und Docker-Swarm-Cluster, vCenter, IoT-Flotten, Datenbanken und Dienste. Es sind getrennte Beziehungen am Vorfall (`hosts`, `kubernetesClusters`, `services` und weitere).
+
+Die Karte **Betroffene Ressourcen** des Vorfalls fragt beim späteren Bearbeiten genauso.
+
+Unter **Erweitert**:
+
+- **Auf diese Statusseiten beschränken** – optional. Bleibt es leer, erscheint der Vorfall auf jeder Statusseite, die seine Monitore auflistet, und benachrichtigt deren Abonnenten; mit ausgewählten Seiten nur auf diesen Seiten unter ihnen. Siehe [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience).
+- **Statusseiten-Abonnenten benachrichtigen** – Kontrollkästchen, standardmäßig aktiv (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Darunter und noch einmal in der Zusammenfassung zeigt das Formular, welche Statusseiten benachrichtigt werden und wie viele Abonnenten jede hat; in der Zusammenfassung zeigt **Benachrichtigung ansehen** die E-Mail, die sie erhalten. Schalten Sie es ab für internes Rauschen, das Sie trotzdem festhalten wollen.
 
 **Hängen Sie Monitore an, auch wenn es überflüssig wirkt.** Die Verbindung zwischen einem Vorfall und einer Statusseite läuft über die Monitore des Vorfalls: Eine Statusseite zeigt einen Vorfall, wenn eine ihrer Ressourcen einer der Monitore des Vorfalls ist. Eine Statuswechsel-Benachrichtigung an Abonnenten unterbleibt vollständig, wenn am Vorfall keine Monitore hängen. Siehe [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups).
 
-### Schritt 3 – Vorfallsrollen
+### Schritt 3 – Bereitschaft & Rollen
 
-- **Vorfallrollen zuweisen** – weisen Sie Teammitglieder den Rollen zu, die Ihr Projekt definiert. Manche Rollen nehmen mehr als einen Benutzer auf.
-
-Die Rollen selbst konfigurieren Sie unter **Vorfälle → Einstellungen → Vorfallsrollen**, wo Sie festlegen, welche Rollen während der Reaktion vergeben werden können – Incident Commander, Responder und was Ihr Prozess sonst braucht. Überspringen Sie diesen Schritt, wird beim ersten Statuswechsel automatisch ein Incident Commander bestimmt, sofern die Rolle noch niemand innehat.
-
-### Schritt 4 – Bereitschaft
-
-- **Bereitschaftsrichtlinie** – eine Mehrfachauswahl der Bereitschaftsrichtlinien, die beim Anlegen dieses Vorfalls ausgeführt werden. Das entspricht `onCallDutyPolicies` am Vorfall.
+- **Bereitschaftsrichtlinie** – eine Mehrfachauswahl der Bereitschaftsrichtlinien, die beim Anlegen dieses Vorfalls ausgeführt werden (`onCallDutyPolicies`).
+- **Vorfallrollen zuweisen** – wer welche Rolle übernimmt, die Ihr Projekt definiert. Eine als **Primär** markierte Rolle, die Sie leer lassen, übernehmen Sie selbst, wenn der Vorfall gemeldet wird.
 
 Dies ist die einzige Stelle, an der eine Bereitschaftsrichtlinie direkt an einen Vorfall gehängt wird. Schweregrade tragen keine Bereitschaftsrichtlinie – ein Schweregrad ist eine Beschriftung und beeinflusst das Alarmieren nur als *Übereinstimmungskriterium* innerhalb einer Bereitschaftsregel. Regeln unter **Vorfälle → Regeln → Bereitschaftsregeln** legen ihre Richtlinien obendrauf; ausgeführt wird am Ende die dublettenfreie Vereinigung aus beidem.
 
-### Schritt 5 – Mehr
-
-- **Beschriftungen** – optional und eine fortgeschrittene Funktion: Teammitglieder mit Zugriff auf diese Beschriftungen sind diejenigen, die auf den Vorfall zugreifen können.
-- **Statusseiten-Abonnenten benachrichtigen** – Kontrollkästchen, standardmäßig aktiv. Steuert, ob Abonnenten per E-Mail über die Erstellung des Vorfalls informiert werden (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Schalten Sie es ab für internes Rauschen, das Sie trotzdem festhalten wollen.
-- **Privater Vorfall** – Kontrollkästchen, standardmäßig aus (`isPrivate`). Ein privater Vorfall ist nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadministratoren und Projekteigentümer sichtbar – und er ist auf jeder Statusseite ausgeblendet, unabhängig von jeder anderen Einstellung. Die Vorfallliste markiert diese mit einer roten **Private**-Pille.
+Die Rollen selbst konfigurieren Sie unter **Vorfälle → Einstellungen → Vorfallsrollen**. Ein neues Projekt hat eine, Incident Commander; legen Sie dort an, was Ihr Prozess sonst braucht.
 
 Das Flag **Should be visible on status page?** (`isVisibleOnStatusPage`) steht nicht im Assistenten; es ist standardmäßig aktiv. Ändern Sie es danach über **Einstellungen** im Seitenmenü des Vorfalls, wo es **Auf Statusseite sichtbar** heißt.
 
@@ -66,7 +74,7 @@ Wenn Sie immer wieder denselben Zuschnitt von Vorfall melden – dasselbe Titelm
 
 Klicken Sie auf **Aus Vorlage erstellen** (die Umriss-Schaltfläche neben **Vorfall melden**), und ein Dialog **Vorfall aus Vorlage erstellen** öffnet sich, mit einem Dropdown **Vorfallvorlage auswählen**. Wählen Sie eine Vorlage, und das Erstellungsformular öffnet sich vorbelegt; vor dem Absenden können Sie noch alles ändern. Hat Ihr Projekt noch keine Vorlagen, erscheint stattdessen ein Dialog **No Incident Templates** mit einer Schaltfläche **Create Template**, die Sie zu **Vorfälle → Einstellungen → Vorfall-Vorlagen** bringt.
 
-Vorlagen entstehen in einem eigenen sechsstufigen Assistenten – **Vorlageninformationen**, **Vorfalldetails**, **Betroffene Ressourcen**, **Bereitschaft**, **Eigentümer**, **Beschriftungen** – mit diesen Feldern:
+Vorlagen entstehen in einem eigenen Assistenten – **Vorlageninformationen**, **Vorfalldetails**, **Betroffene Ressourcen**, **Bereitschaft** –, dazu Schritte für benutzerdefinierte Felder, wenn Ihr Projekt welche hat. Eigentümer und Beschriftungen stehen unter **Erweitert** am Ende von **Vorfalldetails**. **Betroffene Ressourcen** fragt wie das Meldeformular – **Monitore**, dann **Monitor-Status ändern in**, dann **Andere betroffene Ressourcen**, mit **Auf diese Statusseiten beschränken** unter **Erweitert** –, nur fragt eine Vorlage den Monitor-Status immer ab: Er gilt auch für die Monitore, die beim Melden eines Vorfalls aus der Vorlage ausgewählt werden. Das sind die Felder:
 
 | Feld                              | Zweck                                                            |
 | --------------------------------- | ------------------------------------------------------------------ |
@@ -76,11 +84,12 @@ Vorlagen entstehen in einem eigenen sechsstufigen Assistenten – **Vorlageninfo
 | **Beschreibung**                  | Markdown-Beschreibung, die am Vorfall vorbelegt wird.             |
 | **Vorfallsschweregrad**           | Schweregrad, der am Vorfall vorbelegt wird.                       |
 | **Anfänglicher Vorfallstatus**    | Der Status, in dem Vorfälle aus dieser Vorlage starten.           |
-| **Betroffene Ressourcen**         | Monitore, Hosts, Cluster und Dienste, die angehängt werden.       |
-| **Überwachungsstatus ändern in**  | Monitor-Status, der auf die angehängten Monitore angewendet wird. |
+| **Monitore** | Monitore, die angehängt werden. |
+| **Monitor-Status ändern in** | Monitor-Status für die Monitore des Vorfalls, auch für die beim Melden ausgewählten. |
+| **Andere betroffene Ressourcen** | Hosts, Cluster und Dienste, die angehängt werden. |
+| **Auf diese Statusseiten beschränken** | Statusseiten, auf die der Vorfall beschränkt ist. |
 | **Bereitschaftsrichtlinie**       | Richtlinien, die beim Anlegen des Vorfalls ausgeführt werden.     |
-| **Eigentümer – Teams**            | Teams, denen aus dieser Vorlage erstellte Vorfälle gehören.       |
-| **Eigentümer – Benutzer**         | Benutzer, denen aus dieser Vorlage erstellte Vorfälle gehören.    |
+| **Eigentümer** | Personen und Teams, denen aus dieser Vorlage erstellte Vorfälle gehören, ausgewählt aus einer Liste. |
 | **Beschriftungen**                | Beschriftungen, die auf den Vorfall angewendet werden.            |
 
 Ein paar kurze Regeln:
