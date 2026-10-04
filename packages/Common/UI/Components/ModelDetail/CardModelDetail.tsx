@@ -9,7 +9,7 @@ import Card, {
   CardButtonSchema,
   ComponentProps as CardProps,
 } from "../Card/Card";
-import { FormType } from "../Forms/ModelForm";
+import { FormType, ModelFormOnBeforeUpdate } from "../Forms/ModelForm";
 import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
@@ -41,6 +41,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   editModalDescription?: undefined | string;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
   formFields?: undefined | Fields<TBaseModel>;
+  /*
+   * Called with the model the Edit dialog is about to save, the misc data
+   * and every value the form holds (ModelForm's onBeforeUpdate): what it
+   * returns is what is saved. The incident's Affected Resources card leaves
+   * out a monitor status when no monitor is left to put in it.
+   */
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   className?: string | undefined;
   name: string;
   modelAPI?: typeof ModelAPI | undefined;
@@ -213,6 +220,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             setShowModal(false);
           }}
           submitButtonText={`Save Changes`}
+          onBeforeUpdate={props.onBeforeUpdate}
           onSuccess={(item: TBaseModel) => {
             setShowModal(false);
             setRefresher(!refresher);

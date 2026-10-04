@@ -374,6 +374,19 @@ export default interface Field<TEntity> {
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
 
+  /*
+   * Listed on the review step (FormSummary) whatever it holds, even while it
+   * is folded into a collapsible section. A folded field is reviewed only
+   * when it holds something of the user's (isListedInFormSummary), which
+   * suits the options nobody touched; a default whose consequence should be
+   * read before saving says so here. Declare Incident's Notify Status Page
+   * Subscribers starts ticked under Advanced, and its review row says who
+   * will be emailed and previews what they will be sent. A field its showIf
+   * hides is still left out, and a section reviewed by its own summary line
+   * (FormFieldCollapsibleSection.getSummary) still stands in for its fields.
+   */
+  alwaysInSummary?: boolean | undefined;
+
   // If true, this field will span the full row in multi-column layouts.
   spanFullRow?: boolean | undefined;
 

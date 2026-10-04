@@ -20,9 +20,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The incident and scheduled maintenance wizards end on a review step that
- * lists what each earlier step picked. The "Resources Affected" step uses one
- * picker that writes to every resource relation the page hands it, and the
- * form holds what it picked as bare IDs. Its summary used to be hand-written
+ * lists what each earlier step picked. Their "Resources Affected" step asks
+ * with the affected resources picker - Declare Incident with two, its
+ * monitors apart from everything else - which writes to every resource
+ * relation the page hands it, and the form holds what it picked as bare IDs. Its summary used to be hand-written
  * per page: it named monitors but only counted every other type ("3 Podman
  * hosts"), so the one place meant to confirm the choice never said which
  * hosts or services were picked - and a type the summary forgot was not even
@@ -33,8 +34,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * types as the editor; the picker looks the names of bare IDs up, so every
  * picked resource is named.
  *
- * The invariant pinned here: every resource prop the editor picker is given
- * is named in the summary. These tests drive the real pages, with ModelForm
+ * The invariant pinned here: every resource prop an editor picker is given
+ * is named in its summary, and only those - a page with two pickers names
+ * each resource once. These tests drive the real pages, with ModelForm
  * mocked to capture the fields it is handed (as
  * CreateReviewStepSelectionSummary.test.tsx does), read the resource props
  * off the picker element the step renders, and render the step's summary
@@ -312,13 +314,21 @@ function nameLookupOf(prop: ResourceProp, ids: Array<string>): Lookup {
   };
 }
 
+type PickerUnderTest = {
+  // What the picker's summary says when nothing is picked.
+  nothingSelectedMessage: string;
+  // Offered by this picker, so the checks below are not vacuous.
+  mustOffer: Array<ResourceProp>;
+  // Never offered by this picker: another picker on the page asks for it.
+  mustNotOffer: Array<ResourceProp>;
+};
+
 type PageUnderTest = {
   name: string;
   component: React.FunctionComponent<PageComponentProps>;
   route: string;
-  nothingSelectedMessage: string;
-  // Offered on this page, so the checks below are not vacuous.
-  mustOffer: Array<ResourceProp>;
+  // The page's pickers, in the order its form lists them.
+  pickers: Array<PickerUnderTest>;
 };
 
 const PAGES: Array<PageUnderTest> = [
@@ -326,18 +336,75 @@ const PAGES: Array<PageUnderTest> = [
     name: "incident create",
     component: IncidentCreate,
     route: "/dashboard/incidents/create",
-    nothingSelectedMessage: "No resources affected by this incident.",
-    mustOffer: ["monitors", "podmanHosts", "databaseServers"],
+    /*
+     * The incident's monitors are picked on their own, and everything else
+     * in a second picker below them: each says what it picked.
+     */
+    pickers: [
+      {
+        nothingSelectedMessage: "No monitors affected by this incident.",
+        mustOffer: ["monitors"],
+        mustNotOffer: ["hosts", "podmanHosts", "databaseServers", "services"],
+      },
+      {
+        nothingSelectedMessage: "No other resources affected by this incident.",
+        mustOffer: ["hosts", "podmanHosts", "databaseServers", "services"],
+        mustNotOffer: ["monitors"],
+      },
+    ],
   },
   {
     name: "scheduled maintenance create",
     component: ScheduledMaintenanceCreate,
     route: "/dashboard/scheduled-maintenance-events/create",
-    nothingSelectedMessage:
-      "No resources affected by this scheduled maintenance event.",
-    mustOffer: ["monitors", "podmanHosts", "databaseServers", "networkSites"],
+    pickers: [
+      {
+        nothingSelectedMessage:
+          "No resources affected by this scheduled maintenance event.",
+        mustOffer: [
+          "monitors",
+          "podmanHosts",
+          "databaseServers",
+          "networkSites",
+        ],
+        mustNotOffer: [],
+      },
+    ],
   },
 ];
+
+type PickerCase = {
+  page: PageUnderTest;
+  picker: PickerUnderTest;
+  // Its place among the page's pickers.
+  index: number;
+  label: string;
+};
+
+const PICKER_CASES: Array<PickerCase> = PAGES.flatMap(
+  (page: PageUnderTest): Array<PickerCase> => {
+    return page.pickers.map(
+      (picker: PickerUnderTest, index: number): PickerCase => {
+        return {
+          page: page,
+          picker: picker,
+          index: index,
+          label: `${page.name} picker ${index + 1} of ${page.pickers.length}`,
+        };
+      },
+    );
+  },
+);
+
+// How each picked type reads on its chip, for the props these tests pick.
+const TYPE_LABELS: Partial<Record<ResourceProp, string>> = {
+  monitors: "Monitor",
+  hosts: "Host",
+  dockerHosts: "Docker Host",
+  podmanHosts: "Podman Host",
+  services: "Service",
+  databaseServers: "Database",
+};
 
 type PickerStep = {
   resourceProps: Array<ResourceProp>;
@@ -407,12 +474,14 @@ function findPickerSteps(form: CapturedFormProps): Array<PickerStep> {
   return steps;
 }
 
-async function openPickerStep(page: PageUnderTest): Promise<PickerStep> {
-  const steps: Array<PickerStep> = findPickerSteps(await openForm(page));
+async function openPickerStep(pickerCase: PickerCase): Promise<PickerStep> {
+  const steps: Array<PickerStep> = findPickerSteps(
+    await openForm(pickerCase.page),
+  );
 
-  expect(steps).toHaveLength(1);
+  expect(steps).toHaveLength(pickerCase.page.pickers.length);
 
-  return steps[0]!;
+  return steps[pickerCase.index]!;
 }
 
 function renderStepSummary(step: PickerStep, item: SummaryItem): RenderResult {
@@ -504,17 +573,36 @@ describe("the Resources Affected summary step", () => {
   });
 
   describe.each(PAGES)("on the $name page", (page: PageUnderTest) => {
-    test("finds the picker step, so the checks below are not vacuous", async () => {
+    test("finds every picker step, so the checks below are not vacuous", async () => {
       const steps: Array<PickerStep> = findPickerSteps(await openForm(page));
 
-      expect(steps).toHaveLength(1);
-      expect(steps[0]!.resourceProps).toEqual(
-        expect.arrayContaining(page.mustOffer),
-      );
+      expect(steps).toHaveLength(page.pickers.length);
+
+      page.pickers.forEach((picker: PickerUnderTest, index: number) => {
+        expect(steps[index]!.resourceProps).toEqual(
+          expect.arrayContaining(picker.mustOffer),
+        );
+
+        for (const prop of picker.mustNotOffer) {
+          expect(steps[index]!.resourceProps).not.toContain(prop);
+        }
+      });
     });
 
+    test("together, its pickers offer each type once", async () => {
+      const offered: Array<ResourceProp> = findPickerSteps(
+        await openForm(page),
+      ).flatMap((step: PickerStep): Array<ResourceProp> => {
+        return step.resourceProps;
+      });
+
+      expect(new Set(offered).size).toBe(offered.length);
+    });
+  });
+
+  describe.each(PICKER_CASES)("on the $label", (pickerCase: PickerCase) => {
     test("names a selection of every resource type the picker offers", async () => {
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
       const missing: Array<string> = [];
 
       for (const prop of step.resourceProps) {
@@ -531,7 +619,7 @@ describe("the Resources Affected summary step", () => {
 
         if (
           !named ||
-          NOTHING_SELECTED_PATTERN.test(text) ||
+          text.includes(pickerCase.picker.nothingSelectedMessage) ||
           isLookingUpNames(result.container) ||
           within(result.container).queryByTestId(
             "affected-resources-hidden-note",
@@ -547,7 +635,7 @@ describe("the Resources Affected summary step", () => {
     });
 
     test("looks each type's names up in its own model, for exactly the ids selected", async () => {
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
       const lookupsByProp: Record<string, Array<Lookup>> = {};
       const expectedByProp: Record<string, Array<Lookup>> = {};
 
@@ -570,16 +658,25 @@ describe("the Resources Affected summary step", () => {
     });
 
     test("names every resource of a mixed selection, each under its type", async () => {
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
 
       const picks: Array<{ prop: ResourceProp; label: string; count: number }> =
         [
-          { prop: "monitors", label: "Monitor", count: 1 },
-          { prop: "dockerHosts", label: "Docker Host", count: 2 },
-          { prop: "podmanHosts", label: "Podman Host", count: 4 },
-          { prop: "services", label: "Service", count: 1 },
-          { prop: "databaseServers", label: "Database", count: 2 },
-        ];
+          { prop: "monitors" as ResourceProp, count: 1 },
+          { prop: "dockerHosts" as ResourceProp, count: 2 },
+          { prop: "podmanHosts" as ResourceProp, count: 4 },
+          { prop: "services" as ResourceProp, count: 1 },
+          { prop: "databaseServers" as ResourceProp, count: 2 },
+        ]
+          .filter((pick: { prop: ResourceProp }): boolean => {
+            return step.resourceProps.includes(pick.prop);
+          })
+          .map((pick: { prop: ResourceProp; count: number }) => {
+            return { ...pick, label: TYPE_LABELS[pick.prop]! };
+          });
+
+      // Not vacuous: each picker offers at least one of these types.
+      expect(picks.length).toBeGreaterThan(0);
 
       const item: SummaryItem = {};
       const expectedLookups: Array<Lookup> = [];
@@ -603,7 +700,9 @@ describe("the Resources Affected summary step", () => {
         }
       }
 
-      expect(container.textContent).not.toMatch(NOTHING_SELECTED_PATTERN);
+      expect(container.textContent).not.toContain(
+        pickerCase.picker.nothingSelectedMessage,
+      );
 
       // One lookup per type, however many of that type were picked.
       expect(lookupsMade()).toHaveLength(expectedLookups.length);
@@ -611,7 +710,7 @@ describe("the Resources Affected summary step", () => {
     });
 
     test("keeps its nothing-selected sentence and looks nothing up when nothing is selected", async () => {
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
 
       const allEmpty: SummaryItem = {};
       for (const prop of RESOURCE_PROP_NAMES) {
@@ -625,7 +724,36 @@ describe("the Resources Affected summary step", () => {
 
         await nextTick();
 
-        expect(result.container).toHaveTextContent(page.nothingSelectedMessage);
+        expect(result.container).toHaveTextContent(
+          pickerCase.picker.nothingSelectedMessage,
+        );
+        result.unmount();
+      }
+
+      expect(lookupsMade()).toEqual([]);
+    });
+
+    /*
+     * What another picker on the page picked is that picker's to name: a
+     * summary that named it too would list it twice on the review step.
+     */
+    test("names only its own types, and says nothing was picked when only another picker's were", async () => {
+      const step: PickerStep = await openPickerStep(pickerCase);
+
+      for (const prop of pickerCase.picker.mustNotOffer) {
+        const selected: Array<string> = knownResources(prop, 1);
+        const result: RenderResult = await renderSummary(step, {
+          [prop]: selected,
+        });
+
+        await nextTick();
+
+        expect(result.container).toHaveTextContent(
+          pickerCase.picker.nothingSelectedMessage,
+        );
+        expect(within(result.container).queryByText(nameOf(selected[0]!))).toBe(
+          null,
+        );
         result.unmount();
       }
 
@@ -633,72 +761,64 @@ describe("the Resources Affected summary step", () => {
     });
 
     test("reads a resource the API cannot find as unknown instead of dropping it", async () => {
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
+      const prop: ResourceProp = pickerCase.picker.mustOffer[0]!;
 
-      const found: string = knownResources("podmanHosts", 1)[0]!;
+      const found: string = knownResources(prop, 1)[0]!;
       // Deleted, or not readable: the lookup does not return it.
       const gone: string = ObjectID.generate().toString();
 
       const { container } = await renderSummary(step, {
-        podmanHosts: [found, gone],
+        [prop]: [found, gone],
       });
 
       expect(within(container).getByText(nameOf(found))).toBeInTheDocument();
       expect(
-        within(container).getByText("Unknown Podman Host"),
+        within(container).getByText(`Unknown ${TYPE_LABELS[prop]!}`),
       ).toBeInTheDocument();
-      expect(container.textContent).not.toMatch(NOTHING_SELECTED_PATTERN);
-      expect(lookupsMade()).toEqual([
-        nameLookupOf("podmanHosts", [found, gone]),
-      ]);
+      expect(container.textContent).not.toContain(
+        pickerCase.picker.nothingSelectedMessage,
+      );
+      expect(lookupsMade()).toEqual([nameLookupOf(prop, [found, gone])]);
     });
 
     test("names resources that arrive with their name without looking them up", async () => {
       /*
-       * The alert prefill and incident templates hand the form resources as
-       * { _id, name } objects rather than bare ids. Those are named as they
-       * come; only a bare id among them is looked up.
+       * The alert prefill, incident templates and the record a page was
+       * opened from hand the form resources as { _id, name } objects rather
+       * than bare ids. Those are named as they come; only a bare id among
+       * them is looked up.
        */
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
+      const prop: ResourceProp = pickerCase.picker.mustOffer[0]!;
 
-      const namedMonitor: { _id: string; name: string } = {
+      const named: { _id: string; name: string } = {
         _id: ObjectID.generate().toString(),
-        name: "Checkout API monitor",
+        name: `Named ${prop} that arrived with its name`,
       };
-      const namedPodmanHost: { _id: string; name: string } = {
-        _id: ObjectID.generate().toString(),
-        name: "podman-edge-01",
-      };
-      const bareId: string = knownResources("podmanHosts", 1)[0]!;
+      const bareId: string = knownResources(prop, 1)[0]!;
 
       const { container } = await renderSummary(step, {
-        monitors: [namedMonitor],
-        podmanHosts: [namedPodmanHost, bareId],
+        [prop]: [named, bareId],
       });
 
-      expect(
-        within(container).getByText(namedMonitor.name),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByText(namedPodmanHost.name),
-      ).toBeInTheDocument();
+      expect(within(container).getByText(named.name)).toBeInTheDocument();
       expect(within(container).getByText(nameOf(bareId))).toBeInTheDocument();
-      expect(lookupsMade()).toEqual([nameLookupOf("podmanHosts", [bareId])]);
+      expect(lookupsMade()).toEqual([nameLookupOf(prop, [bareId])]);
     });
 
     test("is read-only: no search input and no remove buttons", async () => {
-      const step: PickerStep = await openPickerStep(page);
+      const step: PickerStep = await openPickerStep(pickerCase);
+      const prop: ResourceProp = pickerCase.picker.mustOffer[0]!;
 
-      const monitors: Array<string> = knownResources("monitors", 1);
-      const podmanHosts: Array<string> = knownResources("podmanHosts", 2);
+      const picked: Array<string> = knownResources(prop, 2);
 
       const { container } = await renderSummary(step, {
-        monitors: monitors,
-        podmanHosts: podmanHosts,
+        [prop]: picked,
       });
 
       // Not vacuous: the chips are there.
-      for (const id of [...monitors, ...podmanHosts]) {
+      for (const id of picked) {
         expect(within(container).getByText(nameOf(id))).toBeInTheDocument();
       }
 

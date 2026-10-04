@@ -211,7 +211,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
    * options few templates set, so they fold under Advanced at the end of
    * Incident Details - as a scheduled maintenance template folds its owners
    * and labels on its Event step - rather than walking two steps of one
-   * optional field each.
+   * optional field each. The status pages its incidents are limited to fold
+   * under Advanced at the end of Resources Affected, as on Declare Incident.
    */
   const advancedSection: FormFieldCollapsibleSection<IncidentTemplate> =
     getAdvancedFormSection<IncidentTemplate>();
@@ -413,14 +414,19 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               "Incidents declared from this template start with these labels.",
             collapsibleSection: advancedSection,
           }),
+          /*
+           * Split as Declare Incident is: the monitors on their own, the
+           * status they change to right under them, and everything else
+           * the incidents affect below.
+           */
           {
             field: {
               monitors: true,
             },
-            title: "Resources Affected",
+            title: "Monitors",
             stepId: "resources-affected",
             description:
-              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+              "Search and attach the monitors that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             // The picker writes only what is picked: the form can be finished without it.
@@ -432,13 +438,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               return (
                 <AffectedResourcesPicker
                   monitors={values.monitors as Array<Monitor>}
-                  hosts={values.hosts as Array<Host>}
-                  kubernetesClusters={
-                    values.kubernetesClusters as Array<KubernetesCluster>
-                  }
-                  dockerHosts={values.dockerHosts as Array<DockerHost>}
-                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                  services={values.services as Array<Service>}
+                  resourceTypes={["Monitor"]}
+                  ariaLabelledby={elementProps.ariaLabelledby}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
                   }}
@@ -450,12 +451,95 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               currentValues: FormValues<IncidentTemplate>,
               setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
             ) => {
+              // Only the monitors are this picker's to write.
               if (isAffectedResourcesPayload(value)) {
                 const payload: typeof value = value;
                 queueMicrotask(() => {
                   setNewFormValues({
                     ...currentValues,
                     monitors: payload.monitors,
+                  } as FormValues<IncidentTemplate>);
+                });
+              }
+            },
+          },
+          /*
+           * Always asked here, monitors picked or not: a template's status
+           * also applies to the monitors picked when an incident is
+           * declared from it, where Declare Incident shows it once the
+           * first monitor is picked.
+           */
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to",
+            stepId: "resources-affected",
+            description:
+              "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
+            },
+            required: false,
+            placeholder: "Monitor Status",
+          },
+          {
+            // Anchored on `hosts`; the payload is split back below.
+            field: {
+              hosts: true,
+            },
+            title: "Other Affected Resources",
+            stepId: "resources-affected",
+            description:
+              "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            // The picker writes only what is picked: the form can be finished without it.
+            customElementCanBeSkipped: true,
+            getCustomElement: (
+              values: FormValues<IncidentTemplate>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                  services={values.services as Array<Service>}
+                  resourceTypes={[
+                    "Host",
+                    "KubernetesCluster",
+                    "DockerHost",
+                    "PodmanHost",
+                    "Service",
+                  ]}
+                  ariaLabelledby={elementProps.ariaLabelledby}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<IncidentTemplate>,
+              setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
+            ) => {
+              // The monitors are the other picker's: not written here.
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
@@ -467,9 +551,9 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
           },
           /*
-           * The status pages incidents declared from this template are
-           * limited to - a 'Region East outage' template can carry the East
-           * site pages.
+           * Advanced: the status pages incidents declared from this template
+           * are limited to - a 'Region East outage' template can carry the
+           * East site pages.
            */
           {
             field: {
@@ -486,21 +570,13 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
+            collapsibleSection: advancedSection,
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
-           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           * kubernetesClusters/dockerHosts/podmanHosts/services on load and
+           * submit (hosts is the picker's anchor above).
            */
-          {
-            field: { hosts: true },
-            stepId: "resources-affected",
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
           {
             field: { kubernetesClusters: true },
             stepId: "resources-affected",
@@ -559,26 +635,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: "Select on-call policies",
-          },
-          {
-            field: {
-              changeMonitorStatusTo: true,
-            },
-            title: "Change Monitor Status to ",
-            stepId: "resources-affected",
-            description:
-              "This will change the status of all the monitors attached to this incident.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                priority: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Monitor Status",
           },
         ]}
         showRefreshButton={true}

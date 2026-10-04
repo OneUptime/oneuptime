@@ -615,29 +615,35 @@ describe("the create forms offer every resource they can be opened from", () => 
    * The picker shows only the types a page names in its list, and the page
    * writes back only what its onChange splits out and its hidden fields
    * register: a record of any other type would be dropped on save.
+   *
+   * A form can ask with more than one picker: Declare Incident asks for the
+   * incident's monitors on their own, and for everything else in a second
+   * picker, as the incident's Affected Resources Edit does. `lists` names
+   * the create page's lists in the order its pickers are drawn, and the
+   * Edit's pickers must offer the same lists in the same order.
    */
   const FORMS: Array<{
     created: CreatedRecordKind;
     file: string;
-    list: string;
+    lists: Array<string>;
     edit: string;
   }> = [
     {
       created: CreatedRecordKind.Incident,
       file: "Pages/Incidents/Create.tsx",
-      list: "AFFECTED_RESOURCE_TYPES",
-      edit: "Pages/Incidents/View/Index.tsx",
+      lists: ["MONITOR_RESOURCE_TYPES", "OTHER_AFFECTED_RESOURCE_TYPES"],
+      edit: "Components/Incident/IncidentAffectedResourcesFormFields.tsx",
     },
     {
       created: CreatedRecordKind.Alert,
       file: "Pages/Alerts/Create.tsx",
-      list: "OTHER_AFFECTED_RESOURCE_TYPES",
+      lists: ["OTHER_AFFECTED_RESOURCE_TYPES"],
       edit: "Pages/Alerts/View/Index.tsx",
     },
     {
       created: CreatedRecordKind.ScheduledMaintenance,
       file: "Pages/ScheduledMaintenanceEvents/Create.tsx",
-      list: "AFFECTED_RESOURCE_TYPES",
+      lists: ["AFFECTED_RESOURCE_TYPES"],
       edit: "Pages/ScheduledMaintenanceEvents/View/Index.tsx",
     },
   ];
@@ -661,9 +667,10 @@ describe("the create forms offer every resource they can be opened from", () => 
     );
   };
 
-  const typesInEditList: (file: string) => Array<string> = (
+  // Each of the Edit's pickers' lists, in the order they are drawn.
+  const typesInEditLists: (file: string) => Array<Array<string>> = (
     file: string,
-  ): Array<string> => {
+  ): Array<Array<string>> => {
     const blocks: Array<string> = Array.from(
       dense(file).matchAll(/resourceTypes=\{\[([^\]]*)\]\}/g),
     ).map((match: RegExpMatchArray): string => {
@@ -672,17 +679,31 @@ describe("the create forms offer every resource they can be opened from", () => 
 
     expect(blocks.length).toBeGreaterThan(0);
 
-    return Array.from(blocks[0]!.matchAll(/"(\w+)"/g)).map(
-      (match: RegExpMatchArray): string => {
-        return match[1]!;
-      },
-    );
+    return blocks.map((block: string): Array<string> => {
+      return Array.from(block.matchAll(/"(\w+)"/g)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      );
+    });
   };
 
   test.each(FORMS)(
-    "$file offers what the record's own Edit offers",
-    ({ file, list, edit }: { file: string; list: string; edit: string }) => {
-      expect(typesInCreateList(file, list)).toEqual(typesInEditList(edit));
+    "$file offers what the record's own Edit offers, picker by picker",
+    ({
+      file,
+      lists,
+      edit,
+    }: {
+      file: string;
+      lists: Array<string>;
+      edit: string;
+    }) => {
+      expect(
+        lists.map((list: string): Array<string> => {
+          return typesInCreateList(file, list);
+        }),
+      ).toEqual(typesInEditLists(edit));
     },
   );
 
@@ -691,14 +712,18 @@ describe("the create forms offer every resource they can be opened from", () => 
     ({
       created,
       file,
-      list,
+      lists,
     }: {
       created: CreatedRecordKind;
       file: string;
-      list: string;
+      lists: Array<string>;
     }) => {
       const source: string = tight(file);
-      const offered: Array<string> = typesInCreateList(file, list);
+      const offered: Array<string> = lists.flatMap(
+        (list: string): Array<string> => {
+          return typesInCreateList(file, list);
+        },
+      );
 
       for (const kind of getCreateFromRecordKinds(created)) {
         const key: string = getCreateFromRecordField(kind, created)!.key;
