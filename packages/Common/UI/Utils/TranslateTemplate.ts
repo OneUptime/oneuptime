@@ -223,6 +223,28 @@ export const getPluralCategory: (language: string, count: number) => string = (
 
 const PLACEHOLDER: RegExp = /\{\{\s*([\w.]+)\s*\}\}/g;
 
+/*
+ * The {{placeholders}} a template names, each once, in the order they first
+ * appear - read with the same rule fillTemplate fills them by. A caller that
+ * draws some of them as elements (TranslatedSentence's slots) passes exactly
+ * these: a slot the sentence lacks, or one left over, falls back to English.
+ */
+export const getTemplatePlaceholders: (template: string) => Array<string> = (
+  template: string,
+): Array<string> => {
+  const names: Array<string> = [];
+
+  for (const match of template.matchAll(PLACEHOLDER)) {
+    const name: string = match[1] || "";
+
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+
+  return names;
+};
+
 // Whether a template has words of its own besides its placeholders.
 const LETTER: RegExp = /\p{L}/u;
 

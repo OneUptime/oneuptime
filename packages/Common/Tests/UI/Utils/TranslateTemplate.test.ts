@@ -1,6 +1,7 @@
 import {
   TemplateAround,
   fillTemplate,
+  getTemplatePlaceholders,
   translateTemplate,
   translateTemplateAround,
 } from "../../../UI/Utils/TranslateTemplate";
@@ -39,6 +40,36 @@ describe("fillTemplate", () => {
     expect(fillTemplate(QUESTION, { name: "{{name}} $t(x)" })).toBe(
       "Are you sure you want to delete {{name}} $t(x)?",
     );
+  });
+});
+
+describe("getTemplatePlaceholders", () => {
+  test("names each placeholder once, in the order it first appears", () => {
+    expect(
+      getTemplatePlaceholders(
+        "Turn on {{enabled}} and point {{endpoints}} at {{enabled}}'s {{address}}.",
+      ),
+    ).toEqual(["enabled", "endpoints", "address"]);
+  });
+
+  test("reads placeholders the way fillTemplate fills them: spaces and dotted names", () => {
+    const template: string = "{{ name }} saw {{service.name}} at {{count}}";
+
+    expect(getTemplatePlaceholders(template)).toEqual([
+      "name",
+      "service.name",
+      "count",
+    ]);
+    expect(
+      fillTemplate(template, { name: "A", "service.name": "api", count: 2 }),
+    ).toBe("A saw api at 2");
+  });
+
+  test("a template without placeholders has none", () => {
+    expect(
+      getTemplatePlaceholders("No etcd metrics from this cluster"),
+    ).toEqual([]);
+    expect(getTemplatePlaceholders("{single} or {{}}")).toEqual([]);
   });
 });
 
