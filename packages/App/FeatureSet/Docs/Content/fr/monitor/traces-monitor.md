@@ -17,14 +17,15 @@ Les moniteurs de traces recherchent et comptent les spans correspondant à des f
 1. Allez dans **Moniteurs** dans le tableau de bord OneUptime
 2. Cliquez sur **Créer un moniteur**
 3. Sélectionnez **Traces** comme type de moniteur
-4. Sélectionnez les services de télémétrie à surveiller
-5. Configurez les filtres de spans et les critères selon vos besoins
+4. Choisissez les spans à compter : le nom du span, la fenêtre de temps et les statuts de span
+5. Pour les restreindre à des services de télémétrie, des entités d'infrastructure ou des attributs, ouvrez **Plus de champs** sous ces filtres
+6. Configurez les critères selon vos besoins
 
 ## Options de configuration
 
 ### Services de télémétrie
 
-Sélectionnez un ou plusieurs services depuis lesquels surveiller les traces. Les services doivent envoyer des traces à OneUptime via OpenTelemetry.
+Sélectionnez, dans **Plus de champs**, un ou plusieurs services depuis lesquels surveiller les traces. Laissez ce champ vide pour surveiller les spans de tous les services. Les services doivent envoyer des traces à OneUptime via OpenTelemetry.
 
 ### Filtres de spans
 

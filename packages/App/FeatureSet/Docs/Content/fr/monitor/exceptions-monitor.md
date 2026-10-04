@@ -18,14 +18,15 @@ Les moniteurs d'exceptions comptent et filtrent les exceptions correspondant à 
 1. Allez dans **Moniteurs** dans le tableau de bord OneUptime
 2. Cliquez sur **Créer un moniteur**
 3. Sélectionnez **Exceptions** comme type de moniteur
-4. Sélectionnez les services de télémétrie à surveiller
-5. Configurez les filtres d'exceptions et les critères selon vos besoins
+4. Choisissez les exceptions à compter : le message, les types d'exception, les environnements et la fenêtre de temps
+5. Pour les restreindre à des services de télémétrie ou des entités d'infrastructure, ou pour compter aussi les exceptions résolues et archivées, ouvrez **Plus de champs** sous ces filtres
+6. Configurez les critères selon vos besoins
 
 ## Options de configuration
 
 ### Services de télémétrie
 
-Sélectionnez un ou plusieurs services depuis lesquels surveiller les exceptions. Les services doivent envoyer des données d'exception à OneUptime via OpenTelemetry.
+Sélectionnez, dans **Plus de champs**, un ou plusieurs services depuis lesquels surveiller les exceptions. Laissez ce champ vide pour surveiller les exceptions de tous les services. Les services doivent envoyer des données d'exception à OneUptime via OpenTelemetry.
 
 ### Filtres d'exceptions
 

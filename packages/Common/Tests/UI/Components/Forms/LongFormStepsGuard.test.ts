@@ -102,7 +102,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       file: `${DASHBOARD}/Components/Form/Monitor/${file}`,
       form: `BasicForm: ${id}`,
       reason:
-        "A filter embedded in one step of the monitor form, which walks its own steps; a stepper inside a step would nest one wizard in another. Most of its fields only appear behind its own Advanced toggle.",
+        "A filter embedded in one step of the monitor form, which walks its own steps; a stepper inside a step would nest one wizard in another. Only the filters most monitors use are on screen (text, time window, and severity, span status, event class or exception type); the ones that scope it to a service, an entity or attributes fold under More fields.",
     };
   }),
   {

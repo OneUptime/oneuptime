@@ -18,14 +18,15 @@ Ausnahmen-Monitore zählen und filtern Ausnahmen, die bestimmten Kriterien entsp
 1. Gehen Sie zu **Monitore** im OneUptime-Dashboard
 2. Klicken Sie auf **Monitor erstellen**
 3. Wählen Sie **Ausnahmen** als Monitortyp
-4. Wählen Sie die zu überwachenden Telemetrie-Dienste aus
-5. Konfigurieren Sie bei Bedarf Ausnahmenfilter und Kriterien
+4. Legen Sie fest, welche Ausnahmen gezählt werden: die Nachricht, die Ausnahmetypen, die Umgebungen und das Zeitfenster
+5. Um sie auf Telemetrie-Dienste oder Infrastruktur-Entitäten einzugrenzen oder auch behobene und archivierte Ausnahmen zu zählen, öffnen Sie **Weitere Felder** unter diesen Filtern
+6. Konfigurieren Sie bei Bedarf die Kriterien
 
 ## Konfigurationsoptionen
 
 ### Telemetrie-Dienste
 
-Wählen Sie einen oder mehrere Dienste aus, von denen Ausnahmen überwacht werden sollen. Dienste müssen Ausnahmedaten über OpenTelemetry an OneUptime senden.
+Wählen Sie unter **Weitere Felder** einen oder mehrere Dienste aus, von denen Ausnahmen überwacht werden sollen. Lassen Sie das Feld leer, um Ausnahmen aller Dienste zu überwachen. Dienste müssen Ausnahmedaten über OpenTelemetry an OneUptime senden.
 
 ### Ausnahmenfilter
 
