@@ -24811,5 +24811,6 @@
   "Your team's measurements, worked out for this incident.": "Las mediciones de tu equipo, calculadas para este incidente.",
   "Your team's measurements, worked out for this maintenance event.": "Las mediciones de tu equipo, calculadas para este evento de mantenimiento.",
   "less than a minute": "menos de un minuto",
-  "User Settings": "Ajustes de usuario"
+  "User Settings": "Ajustes de usuario",
+  "Add a chart, a number or a list to start this dashboard.": "Añade un gráfico, un número o una lista para empezar este panel."
 }

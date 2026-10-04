@@ -24811,5 +24811,6 @@
   "Your team's measurements, worked out for this incident.": "このインシデントについて算出した、チームの測定値。",
   "Your team's measurements, worked out for this maintenance event.": "このメンテナンスイベントについて算出した、チームの測定値。",
   "less than a minute": "1 分未満",
-  "User Settings": "ユーザー設定"
+  "User Settings": "ユーザー設定",
+  "Add a chart, a number or a list to start this dashboard.": "チャート、数値、リストを追加して、このダッシュボードを作り始めましょう。"
 }

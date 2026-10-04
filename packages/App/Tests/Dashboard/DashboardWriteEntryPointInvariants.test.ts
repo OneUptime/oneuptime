@@ -33,6 +33,10 @@ const DASHBOARD_VIEW: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardView.tsx";
 const DASHBOARD_TOOLBAR: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardToolbar.tsx";
+const DASHBOARD_CANVAS: string =
+  "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx";
+const DASHBOARD_BLANK_CANVAS: string =
+  "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/BlankCanvas.tsx";
 
 describe("every entry point into a dashboard write is permission-gated", () => {
   test("the metric explorer gates Add to dashboard on Dashboard update", () => {
@@ -84,6 +88,37 @@ describe("every entry point into a dashboard write is permission-gated", () => {
     expect(source).toContain(
       "{!isSaving && isEditMode && props.canEditDashboard && (",
     );
+  });
+
+  /*
+   * An empty board - every dashboard made from Blank Dashboard opens on one -
+   * has an Add Widget of its own, which goes into edit mode with the widget
+   * catalog open. It is a way into edit mode like the toolbar's, so it is
+   * gated the same way: the canvas is handed no handler without the
+   * permission, and the handler refuses on its own as well.
+   */
+  test("the empty board's Add Widget is handed only to someone who may edit", () => {
+    const view: string = readSquashed(DASHBOARD_VIEW);
+
+    expect(view).toContain(
+      "onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}",
+    );
+    expect(view).toContain(
+      "const startWithFirstWidget: () => void = (): void => { if (!canEditDashboard) { return; }",
+    );
+    expect(view).toContain(
+      "const startEditing: () => void = (): void => { if (!canEditDashboard) { return; }",
+    );
+
+    const canvas: string = readSquashed(DASHBOARD_CANVAS);
+    expect(canvas).toContain("onAddWidgetClick={props.onAddWidgetClick}");
+
+    /* And the empty board draws it only when it was handed one. */
+    const blankCanvas: string = readSquashed(DASHBOARD_BLANK_CANVAS);
+    expect(blankCanvas).toContain(
+      "const offersAddWidget: boolean = !props.isEditMode && Boolean(props.onAddWidgetClick);",
+    );
+    expect(blankCanvas).toContain("{offersAddWidget ? (");
   });
 
   /*

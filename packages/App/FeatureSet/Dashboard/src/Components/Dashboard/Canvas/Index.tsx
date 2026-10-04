@@ -59,6 +59,11 @@ export interface ComponentProps {
     | undefined;
   onDashboardTimeRangeReset?: (() => void) | undefined;
   isDashboardTimeRangeZoomed?: boolean | undefined;
+  /*
+   * The empty board's own Add Widget (BlankCanvas). Handed in only to
+   * someone who may edit the dashboard.
+   */
+  onAddWidgetClick?: (() => void) | undefined;
 }
 
 /** Extra empty rows kept below the lowest widget while editing. */
@@ -363,7 +368,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     !props.dashboardViewConfig ||
     props.dashboardViewConfig.components.length === 0
   ) {
-    return <BlankCanvasElement isEditMode={props.isEditMode} />;
+    return (
+      <BlankCanvasElement
+        isEditMode={props.isEditMode}
+        onAddWidgetClick={props.onAddWidgetClick}
+      />
+    );
   }
 
   const canvas: ReactElement = (

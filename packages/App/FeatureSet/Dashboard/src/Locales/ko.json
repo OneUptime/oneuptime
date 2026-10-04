@@ -7740,7 +7740,7 @@
   "Add users as owners to your workflows.": "Add users as owners to your workflows.",
   "Add users to put them into this layer's on-call rotation.": "Add users to put them into this layer's on-call rotation.",
   "Add value": "Add value",
-  "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid.": "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid.",
+  "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid.": "위 툴바에서 첫 번째 위젯을 추가하세요. 위젯은 그리드 어디로든 드래그하고 크기를 조절할 수 있습니다.",
   "Add your on-call shifts to your calendar": "Add your on-call shifts to your calendar",
   "Add {{itemName}}": "{{itemName}} 추가",
   "Add, remove, and reorder visible columns.": "Add, remove, and reorder visible columns.",
@@ -13807,7 +13807,7 @@
   "No volumes reported yet. Make sure the Docker Swarm agent is sending metrics.": "No volumes reported yet. Make sure the Docker Swarm agent is sending metrics.",
   "No web vitals reported yet": "No web vitals reported yet",
   "No webhook logs.": "No webhook logs.",
-  "No widgets yet": "No widgets yet",
+  "No widgets yet": "아직 위젯이 없습니다",
   "No {{itemName}}": "{{itemName}} 없음",
   "No {{itemsName}} match your search or filters.": "검색어나 필터와 일치하는 {{itemsName}}이(가) 없습니다.",
   "No {{itemsName}} yet.": "아직 {{itemsName}}이(가) 없습니다.",
@@ -17726,7 +17726,7 @@
   "This build does not report a version number, so it cannot be compared against the latest OneUptime release.": "This build does not report a version number, so it cannot be compared against the latest OneUptime release.",
   "This chat's name could not be read just now": "This chat's name could not be read just now",
   "This criteria is disabled and will not be evaluated.": "This criteria is disabled and will not be evaluated.",
-  "This dashboard does not have any widgets.": "This dashboard does not have any widgets.",
+  "This dashboard does not have any widgets.": "이 대시보드에는 위젯이 없습니다.",
   "This database has no endpoints yet. Add the host:port your applications connect to.": "This database has no endpoints yet. Add the host:port your applications connect to.",
   "This database's page fills in from the traces of the applications that use it.": "This database's page fills in from the traces of the applications that use it.",
   "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here.": "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here.",
@@ -24811,5 +24811,6 @@
   "Your team's measurements, worked out for this incident.": "이 인시던트에 대해 계산한 팀의 측정값입니다.",
   "Your team's measurements, worked out for this maintenance event.": "이 유지 관리 이벤트에 대해 계산한 팀의 측정값입니다.",
   "less than a minute": "1분 미만",
-  "User Settings": "사용자 설정"
+  "User Settings": "사용자 설정",
+  "Add a chart, a number or a list to start this dashboard.": "차트, 숫자 또는 목록을 추가해 이 대시보드를 시작하세요."
 }

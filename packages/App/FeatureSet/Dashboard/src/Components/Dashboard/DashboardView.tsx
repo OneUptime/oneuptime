@@ -117,6 +117,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * The Add Widget dialog, opened by the toolbar's Add Widget while editing
+   * or by the empty board's own (startWithFirstWidget, below).
+   */
+  const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] =
+    useState<boolean>(false);
+
+  /*
    * The board's one time range, plus the undo that makes drag-to-zoom on a
    * panel reversible. A drag-selection on any time-series widget retimes
    * every widget; a double-click on one puts them all back.
@@ -495,6 +502,48 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     setSelectedComponentId(null);
   }, []);
 
+  /*
+   * Edit mode, from the toolbar's Edit Dashboard or the empty board's Add
+   * Widget. Readers get no editor: see `editGate` above.
+   */
+  const startEditing: () => void = (): void => {
+    if (!canEditDashboard) {
+      return;
+    }
+    setSaveError(null);
+    /*
+     * Editing hides the time-range picker and the reset button, so a
+     * board left zoomed would be stranded on a Custom window with no
+     * way out until the user leaves edit mode. Drop the zoom on the
+     * way in.
+     */
+    timeRangeZoom.resetZoom();
+    /*
+     * Heal any layout corruption (overlapping or out-of-bounds
+     * widgets saved by older builds) before editing starts, so
+     * every drag begins from a valid board.
+     */
+    setDashboardViewConfig(
+      DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig),
+    );
+    setDashboardMode(DashboardMode.Edit);
+  };
+
+  /*
+   * The empty board's Add Widget: a dashboard made from Blank Dashboard
+   * opens empty (Pages/Dashboards), and its next step is its first widget -
+   * so this goes straight to edit mode with the widget catalog open. Only
+   * someone who may edit gets the button (the canvas is handed no handler
+   * otherwise).
+   */
+  const startWithFirstWidget: () => void = (): void => {
+    if (!canEditDashboard) {
+      return;
+    }
+    startEditing();
+    setIsAddWidgetModalOpen(true);
+  };
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -577,29 +626,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         canEditDashboard={canEditDashboard}
         editDashboardDisabledReason={editGate.disabledReason}
         onShareClick={props.onShareClick}
-        onEditClick={() => {
-          // Readers get no editor. See `editGate` above.
-          if (!canEditDashboard) {
-            return;
-          }
-          setSaveError(null);
-          /*
-           * Editing hides the time-range picker and the reset button, so a
-           * board left zoomed would be stranded on a Custom window with no
-           * way out until the user leaves edit mode. Drop the zoom on the
-           * way in.
-           */
-          timeRangeZoom.resetZoom();
-          /*
-           * Heal any layout corruption (overlapping or out-of-bounds
-           * widgets saved by older builds) before editing starts, so
-           * every drag begins from a valid board.
-           */
-          setDashboardViewConfig(
-            DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig),
-          );
-          setDashboardMode(DashboardMode.Edit);
-        }}
+        onEditClick={startEditing}
+        isAddWidgetModalOpen={isAddWidgetModalOpen}
+        onAddWidgetModalOpenChange={setIsAddWidgetModalOpen}
         autoRefreshInterval={autoRefreshInterval}
         onAutoRefreshIntervalChange={(interval: AutoRefreshInterval) => {
           setAutoRefreshInterval(interval);
@@ -1010,6 +1039,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
           onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
           isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
+          onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
         />
       </div>
     </div>

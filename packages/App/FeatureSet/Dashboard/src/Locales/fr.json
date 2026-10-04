@@ -17726,7 +17726,7 @@
   "This build does not report a version number, so it cannot be compared against the latest OneUptime release.": "This build does not report a version number, so it cannot be compared against the latest OneUptime release.",
   "This chat's name could not be read just now": "This chat's name could not be read just now",
   "This criteria is disabled and will not be evaluated.": "This criteria is disabled and will not be evaluated.",
-  "This dashboard does not have any widgets.": "This dashboard does not have any widgets.",
+  "This dashboard does not have any widgets.": "Ce tableau de bord ne contient aucun widget.",
   "This database has no endpoints yet. Add the host:port your applications connect to.": "This database has no endpoints yet. Add the host:port your applications connect to.",
   "This database's page fills in from the traces of the applications that use it.": "This database's page fills in from the traces of the applications that use it.",
   "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here.": "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here.",
@@ -24811,5 +24811,6 @@
   "Your team's measurements, worked out for this incident.": "Les mesures de votre équipe, calculées pour cet incident.",
   "Your team's measurements, worked out for this maintenance event.": "Les mesures de votre équipe, calculées pour cet événement de maintenance.",
   "less than a minute": "moins d'une minute",
-  "User Settings": "Paramètres utilisateur"
+  "User Settings": "Paramètres utilisateur",
+  "Add a chart, a number or a list to start this dashboard.": "Ajoutez un graphique, un nombre ou une liste pour commencer ce tableau de bord."
 }
