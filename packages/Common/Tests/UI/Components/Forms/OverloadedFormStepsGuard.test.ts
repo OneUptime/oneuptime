@@ -138,6 +138,18 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
         "The target, its probe and three switches about the sweep, already grouped under the headings What to check and Device names. Where each switch sits is pinned by issues #3445, #3677 and #3678 (the method switch before the SNMP step it removes, the NetBIOS and naming switches on a step an ICMP-only scan keeps), and the create wizard and the Edit dialog must keep one layout between them.",
     };
   }),
+  /*
+   * The mail server forms (Common/UI/Components/SmtpConfig): Server, then
+   * Sender. The Admin Dashboard's instance server is the same step without
+   * the Name, five rows; SmtpConfigFormsGuard pins both.
+   */
+  {
+    file: `${DASHBOARD}/Components/CustomSMTP/CustomSMTPTable.tsx`,
+    form: "ModelTable: Settings > Custom SMTP Config",
+    step: "server",
+    reason:
+      "The config's name over the four values every provider's SMTP settings page lists together - hostname, port, username and password, copied across in one go and changed together when a password is rotated - and one folded Advanced header (transport, TLS, sign-in type, OAuth). Moving the sign-in to the Sender step would split that copy-and-paste across a Next, and moving the name would set 'Name' beside 'From Name'.",
+  },
 ];
 
 const VIRTUAL_ROOT: string = "/repo";

@@ -855,5 +855,22 @@
   "This action cannot be undone.": "این کار قابل بازگشت نیست.",
   "and {{remaining}} more": "و {{remaining}} مورد دیگر",
   "Type {{name}} to confirm.": "برای تأیید، {{name}} را تایپ کنید.",
-  "Configured": "پیکربندی‌شده"
+  "Configured": "پیکربندی‌شده",
+  "Server": "سرور",
+  "Username": "نام کاربری",
+  "Sender": "فرستنده",
+  "Require TLS": "الزام TLS",
+  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.": "ایمیل فقط از طریق اتصال رمزگذاری‌شده با گواهی معتبر ارسال می‌شود. وقتی این گزینه خاموش باشد، ایمیل فقط در صورتی رمزگذاری می‌شود که سرور آن را ارائه دهد و گواهی بررسی نمی‌شود. پورت ۴۶۵ همیشه رمزگذاری‌شده است.",
+  "Mail is sent over SMTP without signing in.": "ایمیل بدون ورود از طریق SMTP ارسال می‌شود.",
+  "Mail is sent over SMTP, signing in with OAuth.": "ایمیل از طریق SMTP ارسال می‌شود و ورود با OAuth انجام می‌شود.",
+  "Mail is sent over SMTP, signing in with the username and password.": "ایمیل از طریق SMTP ارسال می‌شود و ورود با نام کاربری و رمز عبور انجام می‌شود.",
+  "Mail is sent through Microsoft Graph, signing in with OAuth.": "ایمیل از طریق Microsoft Graph ارسال می‌شود و ورود با OAuth انجام می‌شود.",
+  "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP با بیشتر سرورهای ایمیل کار می‌کند. اگر در تننت Microsoft 365 شما SMTP AUTH خاموش است، Microsoft Graph را انتخاب کنید: در این صورت ایمیل از طریق Graph API و با برنامه‌ای که مجوز Mail.Send دارد ارسال می‌شود و نام میزبان، پورت و رمز عبور استفاده نمی‌شوند.",
+  "TLS is required.": "TLS الزامی است.",
+  "TLS is used only if the server offers it.": "TLS فقط در صورتی استفاده می‌شود که سرور آن را ارائه دهد.",
+  "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.": "حسابی که OneUptime با آن وارد می‌شود، معمولاً همان نشانی ایمیلی که از آن ارسال می‌کنید. با OAuth، نشانی ایمیل صندوق پستی‌ای را که ارسال می‌کند وارد کنید.",
+  "The account's password, or the API key your provider gives you for SMTP.": "رمز عبور حساب، یا کلید API که ارائه‌دهنده‌تان برای SMTP به شما می‌دهد.",
+  "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "نشانی‌ای که ایمیل‌های شما از آن ارسال می‌شوند. سرور شما باید ارسال از این نشانی را مجاز کند؛ در Microsoft Graph، این همان صندوق پستی است که ارسال می‌کند.",
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "پورتی که ارائه‌دهنده‌تان اعلام می‌کند، معمولاً ۵۸۷. پورت ۴۶۵ همیشه رمزگذاری‌شده است.",
+  "Port 465 is always encrypted, but the certificate is not checked.": "پورت ۴۶۵ همیشه رمزگذاری‌شده است، اما گواهی بررسی نمی‌شود."
 }

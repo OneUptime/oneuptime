@@ -225,6 +225,11 @@ const DASHBOARD_UI_NAMES: Array<string> = [
   "Days ahead",
   "Upcoming shifts",
   "Get cover",
+  // The Add User Override form "Get cover" opens, as it asks.
+  "Who is away?",
+  "Who covers?",
+  "Starts",
+  "Ends",
   "Remind me before shifts",
   "Regenerate link",
   "Only my shifts on this schedule",

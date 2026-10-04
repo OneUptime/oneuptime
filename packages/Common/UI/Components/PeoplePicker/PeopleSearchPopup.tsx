@@ -56,6 +56,11 @@ export interface ComponentProps {
   kinds: Array<PeoplePickerKind>;
   // Keys (getPeoplePickerOptionKey) of what is picked already.
   selectedKeys: Set<string>;
+  /*
+   * Keys of rows the list never shows, whatever is searched: someone
+   * another field already holds (the person who is away, in "Who covers?").
+   */
+  excludedKeys?: Set<string> | undefined;
   selectionMode: PeopleSearchSelectionMode;
   /*
    * A row was picked. isPicked says whether it was picked already (in toggle
@@ -104,6 +109,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   const listboxId: string = `${baseId}-listbox`;
 
   const kindsSignature: string = props.kinds.join(",");
+
+  // How many records the list leaves out, whatever is searched.
+  const excludedCount: number = props.excludedKeys?.size || 0;
 
   // A fresh list each time it opens.
   useEffect(() => {
@@ -163,7 +171,11 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
           return getPeoplePickerKindDefinition(kind).search({
             projectId: projectId,
             searchText: debouncedSearch,
-            limit: PEOPLE_PICKER_SEARCH_LIMIT,
+            /*
+             * One more for each record left out below, so the list still
+             * offers as many as it would without them.
+             */
+            limit: PEOPLE_PICKER_SEARCH_LIMIT + excludedCount,
           });
         },
       ),
@@ -196,7 +208,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, debouncedSearch, kindsSignature]);
+  }, [isOpen, debouncedSearch, kindsSignature, excludedCount]);
 
   const groups: Array<RowGroup> = useMemo((): Array<RowGroup> => {
     return props.kinds
@@ -209,12 +221,15 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               return false;
             }
 
+            const key: string = getPeoplePickerOptionKey(row.kind, row.id);
+
+            if (props.excludedKeys?.has(key)) {
+              return false;
+            }
+
             // Only the Owners page leaves out what is picked already.
             return (
-              props.selectionMode !== "add" ||
-              !props.selectedKeys.has(
-                getPeoplePickerOptionKey(row.kind, row.id),
-              )
+              props.selectionMode !== "add" || !props.selectedKeys.has(key)
             );
           }),
         };
@@ -222,7 +237,13 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       .filter((group: RowGroup): boolean => {
         return group.rows.length > 0;
       });
-  }, [rows, kindsSignature, props.selectedKeys, props.selectionMode]);
+  }, [
+    rows,
+    kindsSignature,
+    props.selectedKeys,
+    props.excludedKeys,
+    props.selectionMode,
+  ]);
 
   const visibleRows: Array<PeoplePickerOption> = useMemo(() => {
     return groups.flatMap((group: RowGroup): Array<PeoplePickerOption> => {

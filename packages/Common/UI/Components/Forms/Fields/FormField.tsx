@@ -50,6 +50,7 @@ import {
   getPeoplePickerKinds,
   PeoplePickerFormValue,
   PeoplePickerValue,
+  readPeoplePickerExcludedValue,
   readPeoplePickerFormValue,
   toPeoplePickerFormValues,
 } from "../../PeoplePicker/PeoplePickerTypes";
@@ -1011,7 +1012,8 @@ const FormField: <T extends GenericObject>(
            * people in ownerUsers and the teams in ownerTeams - so each is
            * written to the form on its own, as two dropdowns used to. A
            * picker that takes one pick writes each kind's one id, or null:
-           * the kind not picked is cleared.
+           * the kind not picked is cleared. Its search list leaves out what
+           * the form values its excludePicksOf names hold right now.
            */}
           {props.field.fieldType === FormFieldSchemaType.PeoplePicker &&
             props.field.peoplePicker && (
@@ -1043,6 +1045,10 @@ const FormField: <T extends GenericObject>(
                 searchPlaceholder={props.field.peoplePicker.searchPlaceholder}
                 emptyText={props.field.peoplePicker.emptyText}
                 isSinglePick={props.field.peoplePicker.isSinglePick}
+                excluded={readPeoplePickerExcludedValue(
+                  props.field.peoplePicker,
+                  props.currentValues,
+                )}
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaLabelledby={fieldLabelId}

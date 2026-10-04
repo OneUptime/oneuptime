@@ -6,7 +6,28 @@ OneUptime ondersteunt het verzenden van e-mails via aangepaste SMTP-servers met 
 - **OAuth 2.0** - Moderne authenticatie voor Microsoft 365 en Google Workspace
 - **Geen** - Voor relayservers waarvoor geen authenticatie vereist is
 
-Deze handleiding behandelt de configuratie van OAuth 2.0-authenticatie voor Microsoft 365 en Google Workspace.
+Het eerste gedeelte hieronder laat zien waar elke instelling staat. De rest van deze handleiding behandelt OAuth 2.0-authenticatie voor Microsoft 365 en Google Workspace.
+
+## Een SMTP-server toevoegen
+
+Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**. Bij een zelf gehoste installatie stelt u de server waarvandaan OneUptime zelf verzendt in via **Admin Dashboard > Instellingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen hetzelfde, in twee stappen:
+
+1. **Server**: de **Naam** (alleen projectconfiguraties), **Hostnaam**, **Poort** (een nieuwe configuratie begint op `587`), **Gebruikersnaam** en **Wachtwoord**.
+2. **Afzender**: de **E-mail van** en **Van naam** waarvandaan uw e-mails komen.
+
+Al het andere is ingeklapt onder **Geavanceerd** aan het eind van de stap Server. Zolang het ingeklapt is, zegt de kop hoe e-mail wordt verzonden, bijvoorbeeld "E-mail wordt via SMTP verzonden, met aanmelden met de gebruikersnaam en het wachtwoord. TLS is vereist."
+
+| Veld | Wat het doet |
+| --- | --- |
+| **Transport** | `SMTP` (standaard), of `Microsoft Graph` voor een Microsoft 365-tenant waarin SMTP AUTH is uitgeschakeld. Met Microsoft Graph worden de hostnaam, poort, gebruikersnaam en het wachtwoord verborgen en de OAuth-velden getoond. |
+| **TLS vereisen** | Aan bij een nieuwe projectconfiguratie. E-mail wordt alleen verzonden via een versleutelde verbinding met een geldig certificaat. Als dit uit staat, wordt e-mail alleen versleuteld als de server dat aanbiedt, en wordt het certificaat niet gecontroleerd. Poort 465 is altijd versleuteld. |
+| **Authenticatietype** | `Username and Password` (standaard), `OAuth`, of `None` voor een relay zonder aanmelding. |
+| **OAuth-velden** | Providertype, client-ID, clientgeheim, token-URL en scope, getoond zodra OAuth of Microsoft Graph is gekozen. |
+| **Beschrijving** | Een notitie voor uw team (alleen projectconfiguraties). |
+
+**Microsoft Graph.** Open **Geavanceerd**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in met de toepassingsmachtiging **Mail.Send**: de client-ID en het clientgeheim, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
+
+Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** op de rij of die werkt.
 
 ## OAuth 2.0-authenticatie
 
@@ -30,6 +51,8 @@ Bij het configureren van SMTP met OAuth-authenticatie in OneUptime heeft u het v
 | **Client-secret**       | Clientgeheim van uw OAuth-provider (voor Google: privésleutel)                           |
 | **Token URL**           | OAuth token-eindpunt-URL                                                                 |
 | **Bereik**              | Vereiste OAuth-bereik(en) voor SMTP-toegang                                              |
+
+Het **Authenticatietype** en de OAuth-velden staan onder **Geavanceerd** in de stap Server van het formulier.
 
 ---
 
@@ -120,7 +143,7 @@ Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
 | Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                      |
 | Bereik              | `https://outlook.office365.com/.default`                                               |
 | Van e-mail          | Gelijk aan gebruikersnaam                                                              |
-| Beveiligd (TLS)     | Ingeschakeld                                                                           |
+| TLS vereisen     | Ingeschakeld                                                                           |
 
 Vervang `<tenant-id>` door uw Map (tenant) ID uit stap 1.
 
@@ -202,7 +225,7 @@ Maak of bewerk in OneUptime een SMTP-configuratie met deze instellingen:
 | Token URL           | `https://oauth2.googleapis.com/token`                                                                                                                 |
 | Bereik              | `https://mail.google.com/`                                                                                                                            |
 | Van e-mail          | Gelijk aan gebruikersnaam                                                                                                                             |
-| Beveiligd (TLS)     | Ingeschakeld                                                                                                                                          |
+| TLS vereisen     | Ingeschakeld                                                                                                                                          |
 
 **Belangrijk:** Voor Google (JWT Bearer) is de Client ID het **e-mailadres van het serviceaccount** (`client_email`), NIET het numerieke `client_id`. Het serviceaccount zal de gebruiker nabootsen die is opgegeven in het veld Gebruikersnaam om e-mails te verzenden.
 

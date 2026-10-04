@@ -202,7 +202,15 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
       throw new BadDataException("Route alerts to user is required");
     }
 
-    if (overrideUserId.toString() === routeAlertsToUserId.toString()) {
+    /*
+     * Ids are compared without case, as Postgres compares uuids: the same
+     * person written twice in different case is still one person, and an
+     * override from someone to themselves reroutes nothing.
+     */
+    if (
+      overrideUserId.toString().toLowerCase() ===
+      routeAlertsToUserId.toString().toLowerCase()
+    ) {
       throw new BadDataException(
         "Override user and route alerts to user cannot be the same",
       );

@@ -116,9 +116,12 @@ type NormalizeValueFunction = (value: unknown) => unknown;
 
 /*
  * A dropdown can hold the option it was picked as ({ label, value }) rather
- * than its value; the value is what is compared.
+ * than its value; the value is what is compared. Exported for builders that
+ * read a form's values the same way (SmtpConfig/SmtpConfigFormFields).
  */
-const normalizeValue: NormalizeValueFunction = (value: unknown): unknown => {
+export const normalizeFormValue: NormalizeValueFunction = (
+  value: unknown,
+): unknown => {
   if (
     isPlainObject(value) &&
     Object.prototype.hasOwnProperty.call(value, "value") &&
@@ -199,7 +202,7 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     return false;
   }
 
-  const value: unknown = normalizeValue(formValues[fieldName]);
+  const value: unknown = normalizeFormValue(formValues[fieldName]);
 
   let defaultValue: unknown = field.defaultValue;
 
@@ -207,7 +210,7 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     defaultValue = field.getDefaultValue(values);
   }
 
-  defaultValue = normalizeValue(defaultValue);
+  defaultValue = normalizeFormValue(defaultValue);
 
   // Never touched: whatever it is, it is what the form starts with.
   if (value === undefined || value === null) {
