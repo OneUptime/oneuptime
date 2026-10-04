@@ -808,6 +808,27 @@ export const shouldEventMeasurementsTick: (
   });
 };
 
+/**
+ * A key that changes whenever an event's state timeline does - a state
+ * changed from the page's header adds an entry - and only then, so the
+ * Measurements card, whose values are worked out from that timeline, reads
+ * them again exactly when they can have changed: not when a note is added,
+ * a role is assigned or an AI report arrives.
+ */
+export const getEventMeasurementRefreshKey: (
+  timeline: Array<{ _id?: unknown; startsAt?: unknown }>,
+) => string = (
+  timeline: Array<{ _id?: unknown; startsAt?: unknown }>,
+): string => {
+  return timeline
+    .map((entry: { _id?: unknown; startsAt?: unknown }): string => {
+      const startsAt: Date | undefined = readDate(entry.startsAt);
+
+      return `${readId(entry._id) || ""}@${startsAt ? startsAt.getTime() : ""}`;
+    })
+    .join(",");
+};
+
 /*
  * How often a running clock moves: as often as the page's other live
  * durations (LiveDuration), which count in whole minutes too.

@@ -53,11 +53,13 @@ export interface ComponentProps {
    */
   isEventOver: boolean;
   /*
-   * Changes after the page's own state changes and edits; the card reads
-   * its values again, and once more a moment later (see
-   * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS).
+   * Changes when the event's state does (getEventMeasurementRefreshKey of
+   * its state timeline, or its current state): the card reads its values
+   * again, and once more a moment later (see
+   * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS). Nothing else on the page moves
+   * a measurement, so nothing else makes it read.
    */
-  refreshToken?: number | undefined;
+  refreshKey?: string | number | undefined;
   // "stacked" in the narrow right-hand column of an overview page.
   headerLayout?: CardHeaderLayout | undefined;
 }
@@ -117,9 +119,8 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
 
   // Bumped by every read and on unmount: only the newest read lands.
   const requestRef: MutableRefObject<number> = useRef<number>(0);
-  const settleTimerRef: MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null> =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
   // The event the last read was for: the same one again is a refresh.
   const lastReadEventIdRef: MutableRefObject<string | null> = useRef<
     string | null
@@ -223,7 +224,7 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
         });
       }, EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
     }
-  }, [eventIdString, props.refreshToken, isReadable]);
+  }, [eventIdString, props.refreshKey, isReadable]);
 
   useEffect(() => {
     return () => {
@@ -269,10 +270,7 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
       description={copy.eventCardDescription}
       headerLayout={props.headerLayout}
     >
-      <dl
-        className="divide-y divide-gray-100"
-        data-testid="event-measurements"
-      >
+      <dl className="divide-y divide-gray-100" data-testid="event-measurements">
         {readings.map((reading: EventMeasurementReading): ReactElement => {
           const display: EventMeasurementDisplay = getEventMeasurementDisplay({
             reading: reading,

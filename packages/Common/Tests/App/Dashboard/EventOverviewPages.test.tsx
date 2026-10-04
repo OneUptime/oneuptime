@@ -1284,7 +1284,7 @@ describe.each([
       source: EventMeasurementSource;
       eventId: ObjectID;
       isEventOver: boolean;
-      refreshToken: number;
+      refreshKey: string;
       headerLayout: string;
     }
 
@@ -1361,9 +1361,51 @@ describe.each([
       const after: MeasurementsProps =
         latestProps<MeasurementsProps>("Measurements");
 
-      expect(after.refreshToken).toBe(before.refreshToken + 1);
+      // The state timeline changed, so the key did: the card reads again.
+      expect(after.refreshKey).not.toBe(before.refreshKey);
       // The same card, told to read again: never unmounted.
       expect(mountCounts["Measurements"]).toBe(1);
+    });
+
+    /*
+     * Only a state change moves a measurement. An AI report arriving, a
+     * note, a role or a details edit refresh the feed or the page, and the
+     * card must not read its rows again for any of them.
+     */
+    test("nothing but a state change makes it read again", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const key: string =
+        latestProps<MeasurementsProps>("Measurements").refreshKey;
+
+      act(() => {
+        latestProps<InvestigationPanelProps>(
+          "InvestigationPanel",
+        ).onAnalysisAvailable();
+      });
+      await flush();
+
+      expect(latestProps<MeasurementsProps>("Measurements").refreshKey).toBe(
+        key,
+      );
+
+      // A details edit re-reads the page, the same timeline included.
+      act(() => {
+        latestProps<CardModelDetailProps>(
+          `CardModelDetail:${pageCase.detailsCardName}`,
+        ).onSaveSuccess!();
+      });
+      await waitFor(() => {
+        expect(countItemReads()).toBeGreaterThan(1);
+      });
+      await flush();
+
+      expect(latestProps<MeasurementsProps>("Measurements").refreshKey).toBe(
+        key,
+      );
     });
   });
 

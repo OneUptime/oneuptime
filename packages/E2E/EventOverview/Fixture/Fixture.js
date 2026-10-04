@@ -118,6 +118,8 @@ import AlertFeed, {
   AlertFeedEventType,
 } from "Common/Models/DatabaseModels/AlertFeed";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
+import AlertMeasurement from "Common/Models/DatabaseModels/AlertMeasurement";
+import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurementValue";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -137,6 +139,8 @@ import IncidentFeed, {
 } from "Common/Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
+import IncidentMeasurement from "Common/Models/DatabaseModels/IncidentMeasurement";
+import IncidentMeasurementValue from "Common/Models/DatabaseModels/IncidentMeasurementValue";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -156,6 +160,8 @@ import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/Schedu
 import ScheduledMaintenanceFeed, {
   ScheduledMaintenanceFeedEventType,
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
+import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -185,6 +191,7 @@ import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
+import MeasurementAnchorKind from "Common/Types/Measurement/MeasurementAnchorKind";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -197,6 +204,7 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 
@@ -312,6 +320,7 @@ const ID = {
   kubernetesCluster: (number) => uuid("85000000", number),
   slo: (number) => uuid("86000000", number),
   cluster: (number) => uuid("83000000", number),
+  measurement: (number) => uuid("87000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -1805,6 +1814,422 @@ for (const [eventType, markdown, color, when] of alertEpisodeFeed) {
 
 /*
  * ---------------------------------------------------------------------------
+ * Measurements
+ * ---------------------------------------------------------------------------
+ * The project's incident, alert and maintenance measurements, and each
+ * event's value of each one, worked out the way the workers do: the real
+ * MeasurementEvaluator over the event's own fixture timeline. A state
+ * changed from a hero works them out again (applyStateChange), as the
+ * server's timeline hook does, so the page's refresh reads the new values.
+ *
+ * ?measurements= picks the definitions:
+ *   - default: what the cards show on a typical day, plus one measurement
+ *     kept off event pages and one switched off, which the cards must not
+ *     ask for;
+ *   - none: no measurements at all (the cards draw nothing);
+ *   - states: the default ones plus one whose end is before its start
+ *     (Invalid) and one changed after the values were worked out (not
+ *     worked out yet).
+ */
+const MEASUREMENT_MODES = ["none", "states"];
+const measurementsMode = MEASUREMENT_MODES.includes(params.get("measurements"))
+  ? params.get("measurements")
+  : "default";
+
+/*
+ * A state the project added between Acknowledged and Resolved. Only a
+ * measurement points at it: it is not one of the incident states, so the
+ * hero's step rail and every state list stay as they are, and no fixture
+ * incident ever enters it.
+ */
+const mitigatedState = make(IncidentState, {
+  _id: ID.incidentState(9),
+  name: "Mitigated",
+  color: new Color("#0ea5e9"),
+  order: 2.5,
+});
+
+function measurementDefinition(modelType, number, fields) {
+  return {
+    _id: ID.measurement(number),
+    projectId: projectObjectId,
+    key: fields.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    metricName: `oneuptime.measurement.${number}`,
+    unit: "seconds",
+    aggregationType: "Avg",
+    startStateOccurrence: "First",
+    endStateOccurrence: "First",
+    isEnabled: true,
+    createdAt: new Date("2026-08-01T09:00:00.000Z"),
+    ...fields,
+  };
+}
+
+const incidentMeasurementDefinitions = [
+  measurementDefinition(IncidentMeasurement, 1, {
+    name: "Time to acknowledge",
+    order: 1,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Role Entered",
+    endIncidentStateRole: "Acknowledged",
+    showOnIncidentView: true,
+  }),
+  measurementDefinition(IncidentMeasurement, 2, {
+    name: "Time to mitigate",
+    order: 2,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Entered",
+    endIncidentState: mitigatedState,
+    endIncidentStateId: mitigatedState.id,
+    showOnIncidentView: true,
+  }),
+  measurementDefinition(IncidentMeasurement, 3, {
+    name: "Time to resolve",
+    order: 3,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Role Entered",
+    endIncidentStateRole: "Resolved",
+    showOnIncidentView: true,
+  }),
+  measurementDefinition(IncidentMeasurement, 4, {
+    name: "Time to postmortem",
+    order: 4,
+    startAnchorType: "State Role Entered",
+    startIncidentStateRole: "Resolved",
+    endAnchorType: "Postmortem Posted At",
+    showOnIncidentView: true,
+  }),
+  // Charted, but kept off the incident page.
+  measurementDefinition(IncidentMeasurement, 5, {
+    name: "Time to page",
+    order: 5,
+    startAnchorType: "Declared At",
+    endAnchorType: "State Role Entered",
+    endIncidentStateRole: "Acknowledged",
+    showOnIncidentView: false,
+  }),
+  // Switched off.
+  measurementDefinition(IncidentMeasurement, 6, {
+    name: "Time to detect",
+    order: 6,
+    startAnchorType: "Impact Started At",
+    endAnchorType: "Declared At",
+    isEnabled: false,
+    showOnIncidentView: true,
+  }),
+];
+
+if (measurementsMode === "states") {
+  incidentMeasurementDefinitions.push(
+    // Impact recorded at 17:58, before the 18:01 declaration: Invalid.
+    measurementDefinition(IncidentMeasurement, 7, {
+      name: "Time to impact",
+      order: 7,
+      startAnchorType: "Declared At",
+      endAnchorType: "Impact Started At",
+      showOnIncidentView: true,
+    }),
+    // Changed a minute from now: its values are the old measurement's.
+    measurementDefinition(IncidentMeasurement, 8, {
+      name: "Time to close",
+      order: 8,
+      startAnchorType: "Declared At",
+      endAnchorType: "State Role Entered",
+      endIncidentStateRole: "Resolved",
+      endStateOccurrence: "Last",
+      backfillRequestedAt: new Date(NOW.getTime() + MINUTE),
+      showOnIncidentView: true,
+    }),
+  );
+}
+
+const alertMeasurementDefinitions = [
+  measurementDefinition(AlertMeasurement, 11, {
+    name: "Time to acknowledge",
+    order: 1,
+    startAnchorType: "Created At",
+    endAnchorType: "State Role Entered",
+    endAlertStateRole: "Acknowledged",
+    showOnAlertView: true,
+  }),
+  measurementDefinition(AlertMeasurement, 12, {
+    name: "Time to resolve",
+    order: 2,
+    startAnchorType: "Created At",
+    endAnchorType: "State Role Entered",
+    endAlertStateRole: "Resolved",
+    unit: "minutes",
+    showOnAlertView: true,
+  }),
+];
+
+const scheduledMaintenanceMeasurementDefinitions = [
+  measurementDefinition(ScheduledMaintenanceMeasurement, 21, {
+    name: "Start delay",
+    order: 1,
+    startAnchorType: "Scheduled Starts At",
+    endAnchorType: "State Role Entered",
+    endScheduledMaintenanceStateRole: "Ongoing",
+    showOnScheduledMaintenanceView: true,
+  }),
+  measurementDefinition(ScheduledMaintenanceMeasurement, 22, {
+    name: "Overrun",
+    order: 2,
+    startAnchorType: "Scheduled Ends At",
+    endAnchorType: "State Role Entered",
+    endScheduledMaintenanceStateRole: "Ended",
+    showOnScheduledMaintenanceView: true,
+  }),
+  measurementDefinition(ScheduledMaintenanceMeasurement, 23, {
+    name: "Maintenance duration",
+    order: 3,
+    startAnchorType: "State Role Entered",
+    startScheduledMaintenanceStateRole: "Ongoing",
+    endAnchorType: "State Role Entered",
+    endScheduledMaintenanceStateRole: "Ended",
+    showOnScheduledMaintenanceView: true,
+  }),
+];
+
+/*
+ * Where each kind of event keeps its measurements, and what its anchors
+ * read from: the record's own times, and the roles its states play.
+ */
+const MEASUREMENT_DOMAINS = [
+  {
+    parent: Incident,
+    parentKey: "incidentId",
+    timeline: IncidentStateTimeline,
+    stateKey: "incidentStateId",
+    stateRelation: "incidentState",
+    definition: IncidentMeasurement,
+    value: IncidentMeasurementValue,
+    measurementKey: "incidentMeasurementId",
+    stateColumnPrefix: "Incident",
+    definitions: incidentMeasurementDefinitions,
+    timestamps: (record) => {
+      return {
+        "Declared At": record.declaredAt,
+        "Created At": record.createdAt,
+        "Timeline Start": record.declaredAt || record.createdAt,
+        "Impact Started At": record.impactStartedAt,
+        "Postmortem Posted At": record.postmortemPostedAt,
+      };
+    },
+    // Recorded after the fact: still to come once the incident is resolved.
+    laterTimestamps: ["Impact Started At", "Postmortem Posted At"],
+    roles: (state) => {
+      return [
+        state?.isCreatedState ? "Created" : null,
+        state?.isAcknowledgedState ? "Acknowledged" : null,
+        state?.isResolvedState ? "Resolved" : null,
+      ].filter(Boolean);
+    },
+  },
+  {
+    parent: Alert,
+    parentKey: "alertId",
+    timeline: AlertStateTimeline,
+    stateKey: "alertStateId",
+    stateRelation: "alertState",
+    definition: AlertMeasurement,
+    value: AlertMeasurementValue,
+    measurementKey: "alertMeasurementId",
+    stateColumnPrefix: "Alert",
+    definitions: alertMeasurementDefinitions,
+    timestamps: (record) => {
+      return {
+        "Created At": record.createdAt,
+        "Timeline Start": record.createdAt,
+        "Impact Started At": record.impactStartedAt,
+      };
+    },
+    laterTimestamps: ["Impact Started At"],
+    roles: (state) => {
+      return [
+        state?.isCreatedState ? "Created" : null,
+        state?.isAcknowledgedState ? "Acknowledged" : null,
+        state?.isResolvedState ? "Resolved" : null,
+      ].filter(Boolean);
+    },
+  },
+  {
+    parent: ScheduledMaintenance,
+    parentKey: "scheduledMaintenanceId",
+    timeline: ScheduledMaintenanceStateTimeline,
+    stateKey: "scheduledMaintenanceStateId",
+    stateRelation: "scheduledMaintenanceState",
+    definition: ScheduledMaintenanceMeasurement,
+    value: ScheduledMaintenanceMeasurementValue,
+    measurementKey: "scheduledMaintenanceMeasurementId",
+    stateColumnPrefix: "ScheduledMaintenance",
+    definitions: scheduledMaintenanceMeasurementDefinitions,
+    timestamps: (record) => {
+      return {
+        "Scheduled Starts At": record.startsAt,
+        "Scheduled Ends At": record.endsAt,
+        "Created At": record.createdAt,
+        "Timeline Start": record.createdAt,
+      };
+    },
+    laterTimestamps: [],
+    roles: (state) => {
+      return [
+        state?.isScheduledState ? "Scheduled" : null,
+        state?.isOngoingState ? "Ongoing" : null,
+        state?.isEndedState ? "Ended" : null,
+        state?.isResolvedState ? "Resolved" : null,
+      ].filter(Boolean);
+    },
+  },
+];
+
+// The anchor one end of a definition is, as the server's toAnchor builds it.
+function measurementAnchor(domain, record, definition, end) {
+  const anchorType = definition[`${end}AnchorType`];
+  const role = definition[`${end}${domain.stateColumnPrefix}StateRole`];
+  const state = definition[`${end}${domain.stateColumnPrefix}State`];
+  const occurrence = definition[`${end}StateOccurrence`] || "First";
+
+  if (anchorType === MeasurementAnchorKind.StateEntered) {
+    return {
+      kind: MeasurementAnchorKind.StateEntered,
+      label: state?.name || "The chosen state",
+      stateId: state?._id?.toString(),
+      stateOrder: state?.order,
+      occurrence,
+      isDanglingStateReference: !state,
+    };
+  }
+
+  if (anchorType === MeasurementAnchorKind.StateRoleEntered) {
+    return {
+      kind: MeasurementAnchorKind.StateRoleEntered,
+      label: `The ${String(role || "").toLowerCase()} state`,
+      stateRole: role,
+      occurrence,
+    };
+  }
+
+  return {
+    kind: MeasurementAnchorKind.Timestamp,
+    label: anchorType,
+    timestamp: domain.timestamps(record)[anchorType],
+    canResolveAfterTerminalState: domain.laterTimestamps.includes(anchorType),
+  };
+}
+
+let measurementValueCounter = 0;
+
+/*
+ * Works every measurement of one event out again from its timeline, and
+ * replaces its stored values, as IncidentMeasurementValueService and its
+ * twins do.
+ */
+function recomputeMeasurements(domain, parentId) {
+  const record = table(domain.parent).find((item) => {
+    return String(item._id) === String(parentId);
+  });
+  const definitions = table(domain.definition);
+
+  if (!record || definitions.length === 0) {
+    return;
+  }
+
+  const timeline = table(domain.timeline)
+    .filter((entry) => {
+      return String(entry[domain.parentKey]) === String(parentId);
+    })
+    .map((entry) => {
+      const state = entry[domain.stateRelation];
+      return {
+        id: String(entry._id),
+        stateId: String(entry[domain.stateKey]),
+        stateName: state?.name,
+        stateOrder: state?.order,
+        stateRoles: domain.roles(state),
+        startsAt: entry.startsAt,
+      };
+    });
+
+  const evaluations = MeasurementEvaluator.evaluate({
+    definitions: definitions.map((definition) => {
+      return {
+        id: String(definition._id),
+        name: definition.name,
+        start: measurementAnchor(domain, record, definition, "start"),
+        end: measurementAnchor(domain, record, definition, "end"),
+      };
+    }),
+    timeline,
+  });
+
+  const values = table(domain.value);
+
+  for (const evaluation of evaluations) {
+    const existing = values.findIndex((value) => {
+      return (
+        String(value[domain.parentKey]) === String(parentId) &&
+        String(value[domain.measurementKey]) === evaluation.measurementId
+      );
+    });
+
+    measurementValueCounter += 1;
+
+    const value = {
+      _id: uuid("91000000", measurementValueCounter),
+      projectId: projectObjectId,
+      [domain.parentKey]: new ObjectID(String(parentId)),
+      [domain.measurementKey]: new ObjectID(evaluation.measurementId),
+      status: evaluation.status,
+      statusMessage: evaluation.statusMessage,
+      startedAt: evaluation.startedAt
+        ? new Date(evaluation.startedAt)
+        : undefined,
+      endedAt: evaluation.endedAt ? new Date(evaluation.endedAt) : undefined,
+      valueInSeconds: evaluation.valueInSeconds,
+      computedAt: NOW,
+    };
+
+    if (existing >= 0) {
+      values.splice(existing, 1, value);
+    } else {
+      values.push(value);
+    }
+  }
+}
+
+// The state timeline model a state change was written to: which domain.
+function recomputeMeasurementsAfterStateChange(timelineModelName, parentId) {
+  const domain = MEASUREMENT_DOMAINS.find((item) => {
+    return tableName(item.timeline) === timelineModelName;
+  });
+
+  if (domain) {
+    recomputeMeasurements(domain, parentId);
+  }
+}
+
+for (const domain of MEASUREMENT_DOMAINS) {
+  // Registered even when empty: the pages read them, and that is modelled.
+  table(domain.definition);
+  table(domain.value);
+
+  if (measurementsMode === "none") {
+    continue;
+  }
+
+  for (const definition of domain.definitions) {
+    table(domain.definition).push(definition);
+  }
+
+  for (const record of table(domain.parent)) {
+    recomputeMeasurements(domain, record._id);
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * AI investigations
  * ---------------------------------------------------------------------------
  */
@@ -3171,6 +3596,23 @@ function applyStateChange(modelName, record) {
   }
 }
 
+/*
+ * The server works an event's measurements out again once its new timeline
+ * entry is saved; so does the fixture, once the record is in its table.
+ */
+function recomputeAfterStateChange(modelName, record) {
+  const model = STATE_TIMELINE_MODELS.find((item) => {
+    return tableName(item.timeline) === modelName;
+  });
+  if (!model || !record[model.parentKey]) {
+    return;
+  }
+  recomputeMeasurementsAfterStateChange(
+    modelName,
+    String(record[model.parentKey]),
+  );
+}
+
 ModelAPI.createOrUpdate = async (options) => {
   const modelName = tableName(options.modelType);
   const data = BaseModel.toJSON(options.model, options.modelType);
@@ -3189,6 +3631,7 @@ ModelAPI.createOrUpdate = async (options) => {
   if (tables.has(modelName)) {
     tables.get(modelName).records.push(record);
   }
+  recomputeAfterStateChange(modelName, record);
   const created = make(options.modelType, record);
   return new HTTPResponse(
     200,

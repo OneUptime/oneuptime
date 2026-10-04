@@ -16,6 +16,7 @@ import {
   getEventMeasurementDefinitionsRequest,
   getEventMeasurementDisplay,
   getEventMeasurementReadings,
+  getEventMeasurementRefreshKey,
   getEventMeasurementValuesRequest,
   isEventMeasurementValueCurrent,
   roundMeasurementAmount,
@@ -153,7 +154,9 @@ const SOURCES: Array<SourceCase> = [
 ];
 
 // The top-level columns a select names (a relation's own select aside).
-type SelectedColumnsFunction = (select: Record<string, unknown>) => Array<string>;
+type SelectedColumnsFunction = (
+  select: Record<string, unknown>,
+) => Array<string>;
 
 const selectedColumns: SelectedColumnsFunction = (
   select: Record<string, unknown>,
@@ -170,9 +173,7 @@ describe.each(SOURCES)(
       expect(entry.source.showOnViewColumn).toBe(entry.showOnViewColumn);
       expect(entry.source.eventIdColumn).toBe(entry.eventIdColumn);
       expect(entry.source.measurementIdColumn).toBe(entry.measurementIdColumn);
-      expect(EVENT_MEASUREMENT_SOURCES[entry.source.domain]).toBe(
-        entry.source,
-      );
+      expect(EVENT_MEASUREMENT_SOURCES[entry.source.domain]).toBe(entry.source);
     });
 
     test("the switch is a real column, on by default as the server has it", () => {
@@ -304,7 +305,9 @@ describe.each(SOURCES)(
  * A measurement as the API hands it back, for an incident: Declared →
  * Acknowledged unless a test says otherwise.
  */
-type MeasurementFunction = (overrides?: Record<string, unknown>) => MeasurementValues;
+type MeasurementFunction = (
+  overrides?: Record<string, unknown>,
+) => MeasurementValues;
 
 const incidentMeasurement: MeasurementFunction = (
   overrides?: Record<string, unknown>,
@@ -349,16 +352,13 @@ const readOne: ReadOneFunction = (data: {
   isEventOver?: boolean;
   now?: Date;
 }): EventMeasurementReading => {
-  const readings: Array<EventMeasurementReading> = getEventMeasurementReadings(
-    {
-      source: INCIDENT_EVENT_MEASUREMENTS,
-      measurements: [data.measurement || incidentMeasurement()],
-      values:
-        data.value === null ? [] : [data.value || incidentValue()],
-      isEventOver: Boolean(data.isEventOver),
-      now: data.now || NOW,
-    },
-  );
+  const readings: Array<EventMeasurementReading> = getEventMeasurementReadings({
+    source: INCIDENT_EVENT_MEASUREMENTS,
+    measurements: [data.measurement || incidentMeasurement()],
+    values: data.value === null ? [] : [data.value || incidentValue()],
+    isEventOver: Boolean(data.isEventOver),
+    now: data.now || NOW,
+  });
 
   expect(readings).toHaveLength(1);
 
@@ -574,7 +574,9 @@ describe("how a stored value reads", () => {
       });
 
       expect(reading.state).toBe(EventMeasurementState.NotStarted);
-      expect(reading.reason).toBe("Impact Started At has not been recorded yet");
+      expect(reading.reason).toBe(
+        "Impact Started At has not been recorded yet",
+      );
     });
 
     /*
@@ -900,7 +902,11 @@ describe("what a row says", () => {
       "Not started yet",
       EventMeasurementTone.State,
     ],
-    [EventMeasurementState.NotReached, "Not reached", EventMeasurementTone.State],
+    [
+      EventMeasurementState.NotReached,
+      "Not reached",
+      EventMeasurementTone.State,
+    ],
     [
       EventMeasurementState.NotMeasured,
       "Not measured",
@@ -918,12 +924,13 @@ describe("what a row says", () => {
       text: string,
       tone: EventMeasurementTone,
     ) => {
-      expect(display({ state: state, reason: "Why, in the server's words" }))
-        .toEqual(
-          state === EventMeasurementState.NotReached
-            ? { text, tone }
-            : { text, tone, reason: "Why, in the server's words" },
-        );
+      expect(
+        display({ state: state, reason: "Why, in the server's words" }),
+      ).toEqual(
+        state === EventMeasurementState.NotReached
+          ? { text, tone }
+          : { text, tone, reason: "Why, in the server's words" },
+      );
     },
   );
 
@@ -966,6 +973,47 @@ describe("the page's clock", () => {
     expect(EVENT_MEASUREMENT_TICK_INTERVAL_IN_MS).toBe(30 * 1000);
   });
 
+  test("reads again when the state timeline changes, and only then", () => {
+    const created: { _id: string; startsAt: Date } = {
+      _id: "a1",
+      startsAt: minutesAgo(19),
+    };
+    const acknowledged: { _id: string; startsAt: Date } = {
+      _id: "a2",
+      startsAt: minutesAgo(16),
+    };
+
+    const key: string = getEventMeasurementRefreshKey([created, acknowledged]);
+
+    // The same timeline, read again into new objects: the same key.
+    expect(
+      getEventMeasurementRefreshKey([
+        { ...created, startsAt: new Date(created.startsAt.getTime()) },
+        { ...acknowledged },
+      ]),
+    ).toBe(key);
+    // A state change adds an entry.
+    expect(
+      getEventMeasurementRefreshKey([
+        created,
+        acknowledged,
+        { _id: "a3", startsAt: NOW },
+      ]),
+    ).not.toBe(key);
+    // An entry's time corrected moves the values too.
+    expect(
+      getEventMeasurementRefreshKey([
+        created,
+        { ...acknowledged, startsAt: minutesAgo(17) },
+      ]),
+    ).not.toBe(key);
+    // Entries without ids still tell themselves apart by time.
+    expect(
+      getEventMeasurementRefreshKey([{ startsAt: minutesAgo(19) }]),
+    ).not.toBe(getEventMeasurementRefreshKey([{ startsAt: minutesAgo(18) }]));
+    expect(getEventMeasurementRefreshKey([])).toBe("");
+  });
+
   test("reads again a few seconds after a refresh, for what the server worked out meanwhile", () => {
     expect(EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS).toBeGreaterThanOrEqual(1000);
     expect(EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS).toBeLessThanOrEqual(10000);
@@ -1004,7 +1052,9 @@ describe("the words", () => {
       expect(markdown).toContain(
         `in a **${MEASUREMENT_VALUE_COPY.cardTitle}** card`,
       );
-      expect(markdown).toContain("page shows it (it does, unless you turn that off)");
+      expect(markdown).toContain(
+        "page shows it (it does, unless you turn that off)",
+      );
     }
   });
 });

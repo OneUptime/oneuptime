@@ -79,7 +79,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
       ) => string | undefined = (
         value: string | undefined,
       ): string | undefined => {
-        return value === undefined ? undefined : (mockLocale[value] ?? value);
+        return value === undefined ? undefined : mockLocale[value] ?? value;
       };
 
       return {
@@ -288,7 +288,7 @@ interface CardOptions {
   source?: EventMeasurementSource;
   eventId?: ObjectID;
   isEventOver?: boolean;
-  refreshToken?: number;
+  refreshKey?: string;
 }
 
 type CardElementFunction = (options?: CardOptions) => ReactElement;
@@ -301,7 +301,7 @@ const cardElement: CardElementFunction = (
       source={options?.source || INCIDENT_EVENT_MEASUREMENTS}
       eventId={options?.eventId || INCIDENT_ID}
       isEventOver={Boolean(options?.isEventOver)}
-      refreshToken={options?.refreshToken ?? 0}
+      refreshKey={options?.refreshKey ?? "created,acknowledged"}
       headerLayout="stacked"
     />
   );
@@ -581,13 +581,13 @@ describe("EventMeasurementsCard", () => {
     expect(listRequests()).toHaveLength(2);
   });
 
-  test("reads again when the page refreshes, and once more a moment later", async () => {
+  test("reads again when the event's state changes, and once more a moment later", async () => {
     const view: RenderResult = await renderCard();
 
     expect(listRequests()).toHaveLength(2);
 
-    // The page acknowledged... the server has not worked it out yet.
-    view.rerender(cardElement({ refreshToken: 1 }));
+    // The page resolved the incident... the server has not worked it out yet.
+    view.rerender(cardElement({ refreshKey: "created,acknowledged,resolved" }));
     await flush();
 
     expect(listRequests()).toHaveLength(4);
@@ -622,6 +622,20 @@ describe("EventMeasurementsCard", () => {
     await flush();
 
     expect(listRequests()).toHaveLength(6);
+  });
+
+  test("a page re-render with the same state reads nothing again", async () => {
+    const view: RenderResult = await renderCard();
+
+    view.rerender(cardElement({ refreshKey: "created,acknowledged" }));
+    await flush();
+
+    await act(async () => {
+      jest.advanceTimersByTime(5 * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
+    });
+    await flush();
+
+    expect(listRequests()).toHaveLength(2);
   });
 
   test("the first read is no refresh: no extra read follows it", async () => {
@@ -671,7 +685,7 @@ describe("EventMeasurementsCard", () => {
       return Promise.reject(new Error("Gateway timeout"));
     }) as never);
 
-    view.rerender(cardElement({ refreshToken: 1 }));
+    view.rerender(cardElement({ refreshKey: "created,acknowledged,resolved" }));
     await flush();
 
     expect(rows()).toHaveLength(5);
@@ -740,7 +754,7 @@ describe("EventMeasurementsCard", () => {
   test("once gone, it reads nothing more", async () => {
     const view: RenderResult = await renderCard();
 
-    view.rerender(cardElement({ refreshToken: 1 }));
+    view.rerender(cardElement({ refreshKey: "created,acknowledged,resolved" }));
     await flush();
 
     const readsBefore: number = listRequests().length;
@@ -839,7 +853,9 @@ describe("EventMeasurementsCard", () => {
       screen.getByRole("heading", { level: 2, name: "Messungen" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Die Messungen Ihres Teams, berechnet für diesen Vorfall."),
+      screen.getByText(
+        "Die Messungen Ihres Teams, berechnet für diesen Vorfall.",
+      ),
     ).toBeInTheDocument();
     expect(rows().slice(0, 4)).toEqual([
       expect.objectContaining({

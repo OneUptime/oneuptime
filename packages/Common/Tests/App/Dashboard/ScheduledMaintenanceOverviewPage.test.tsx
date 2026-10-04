@@ -379,6 +379,8 @@ function makeEvent(overrides?: {
   createdBy?: User | null;
   // In the project's completed state.
   isCompleted?: boolean;
+  // The id of the state it is in.
+  stateId?: string;
 }): ScheduledMaintenance {
   const now: number = Date.now();
   const event: ScheduledMaintenance = new ScheduledMaintenance();
@@ -406,9 +408,14 @@ function makeEvent(overrides?: {
     event.createdByUser = user;
   }
 
-  if (overrides?.isCompleted !== undefined) {
+  if (overrides?.isCompleted !== undefined || overrides?.stateId) {
     const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
-    state.isResolvedState = overrides.isCompleted;
+    state.isResolvedState = Boolean(overrides?.isCompleted);
+
+    if (overrides?.stateId) {
+      state._id = overrides.stateId;
+    }
+
     event.currentScheduledMaintenanceState = state;
   }
 
@@ -529,8 +536,8 @@ describe("Scheduled maintenance overview page", () => {
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
-        // Whether it is completed, for the Measurements card.
-        currentScheduledMaintenanceState: { isResolvedState: true },
+        // Its state and whether it is completed, for the Measurements card.
+        currentScheduledMaintenanceState: { _id: true, isResolvedState: true },
       });
     });
 
@@ -1159,9 +1166,12 @@ describe("Scheduled maintenance overview page", () => {
       source: unknown;
       eventId: ObjectID;
       isEventOver: boolean;
-      refreshToken?: number;
+      refreshKey?: string;
       headerLayout?: string;
     }
+
+    const ONGOING_STATE_ID: string = "88888888-8888-4888-8888-888888888881";
+    const COMPLETED_STATE_ID: string = "88888888-8888-4888-8888-888888888882";
 
     test("sits in the right column, under the details card and before the custom fields", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
@@ -1208,7 +1218,11 @@ describe("Scheduled maintenance overview page", () => {
 
     test.each([
       { label: "a scheduled event", isCompleted: undefined, isOver: false },
-      { label: "an event in a state not completed", isCompleted: false, isOver: false },
+      {
+        label: "an event in a state not completed",
+        isCompleted: false,
+        isOver: false,
+      },
       { label: "a completed event", isCompleted: true, isOver: true },
     ])(
       "tells the card whether the event is over: $label",
@@ -1234,10 +1248,17 @@ describe("Scheduled maintenance overview page", () => {
       },
     );
 
-    test("reads again after a state change, and follows the event once it is completed", async () => {
+    test("reads again when the event moves to another state, and follows it once it is completed", async () => {
       getItemMock
-        .mockResolvedValueOnce(makeEvent() as never)
-        .mockResolvedValueOnce(makeEvent({ isCompleted: true }) as never);
+        .mockResolvedValueOnce(
+          makeEvent({ isCompleted: false, stateId: ONGOING_STATE_ID }) as never,
+        )
+        .mockResolvedValueOnce(
+          makeEvent({
+            isCompleted: true,
+            stateId: COMPLETED_STATE_ID,
+          }) as never,
+        );
 
       await renderPage();
 
@@ -1245,7 +1266,7 @@ describe("Scheduled maintenance overview page", () => {
         measurementsCardRenderMock,
       );
 
-      expect(before.refreshToken).toBe(0);
+      expect(before.refreshKey).toBe(ONGOING_STATE_ID);
       expect(before.isEventOver).toBe(false);
 
       fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
@@ -1255,8 +1276,31 @@ describe("Scheduled maintenance overview page", () => {
         measurementsCardRenderMock,
       );
 
-      expect(after.refreshToken).toBe(1);
+      expect(after.refreshKey).toBe(COMPLETED_STATE_ID);
       expect(after.isEventOver).toBe(true);
+    });
+
+    test("an edit that leaves the state alone does not make it read again", async () => {
+      getItemMock.mockResolvedValue(
+        makeEvent({ isCompleted: false, stateId: ONGOING_STATE_ID }) as never,
+      );
+
+      await renderPage();
+
+      await act(async () => {
+        (
+          cardProps("Scheduled Maintenance Details") as unknown as {
+            onSaveSuccess: () => void;
+          }
+        ).onSaveSuccess();
+      });
+      await flush();
+
+      // The feed reads again; the measurements have nothing new to read.
+      expect(lastProps<FeedProps>(feedRenderMock).refreshToken).toBe(1);
+      expect(
+        lastProps<MeasurementsCardProps>(measurementsCardRenderMock).refreshKey,
+      ).toBe(ONGOING_STATE_ID);
     });
   });
 

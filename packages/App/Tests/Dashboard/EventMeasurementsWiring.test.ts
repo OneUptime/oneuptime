@@ -10,7 +10,8 @@ import path from "path";
  *   - each overview page draws the Measurements card in its right-hand
  *     column, straight under its details card - out of the hero and the stat
  *     bar, whose layout the EventOverview suites pin - with the event's id,
- *     whether the event is over, and the feed's refresh token;
+ *     whether the event is over, and a key that changes with its state (and
+ *     nothing else: an AI report or a note moves no measurement);
  *   - each Measurements settings page offers the switch that puts a
  *     measurement on those pages, folded under More fields;
  *   - every colour the card draws is re-coloured by Theme.css for the dark
@@ -62,7 +63,11 @@ const readSource: ReadFunction = (...parts: Array<string>): string => {
     .replace(/ \)/g, ")");
 };
 
-type IndexOfFunction = (source: string, needle: string, from?: number) => number;
+type IndexOfFunction = (
+  source: string,
+  needle: string,
+  from?: number,
+) => number;
 
 const indexOf: IndexOfFunction = (
   source: string,
@@ -87,7 +92,10 @@ const count: CountFunction = (source: string, needle: string): number => {
 type ElementAtFunction = (source: string, start: number) => string;
 
 // The JSX element that starts at `start`, up to its self-closing "/>".
-const elementAt: ElementAtFunction = (source: string, start: number): string => {
+const elementAt: ElementAtFunction = (
+  source: string,
+  start: number,
+): string => {
   return source.slice(start, indexOf(source, "/>", start) + 2);
 };
 
@@ -99,6 +107,7 @@ interface OverviewPage {
   detailsCard: string;
   nextCard: string;
   isEventOver: RegExp;
+  refreshKey: string;
 }
 
 const OVERVIEW_PAGES: Array<OverviewPage> = [
@@ -109,6 +118,8 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     detailsCard: 'name="Incident Details"',
     nextCard: "<IncidentMemberRoleAssignment",
     isEventOver: /isEventOver=\{Boolean\(durationEndDate\)\}/,
+    refreshKey:
+      "refreshKey={getEventMeasurementRefreshKey(incidentStateTimeline)}",
   },
   {
     label: "alert",
@@ -117,6 +128,8 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     detailsCard: 'name="Alert Details"',
     nextCard: 'name="Affected Resources"',
     isEventOver: /isEventOver=\{Boolean\(durationEndDate\)\}/,
+    refreshKey:
+      "refreshKey={getEventMeasurementRefreshKey(alertStateTimeline)}",
   },
   {
     label: "scheduled maintenance",
@@ -126,6 +139,8 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     nextCard: "<OverviewCustomFields",
     isEventOver:
       /isEventOver=\{Boolean\(scheduledMaintenance\?\.currentScheduledMaintenanceState ?\?\.isResolvedState,?\)\}/,
+    refreshKey:
+      "refreshKey={scheduledMaintenance?.currentScheduledMaintenanceState?._id?.toString()}",
   },
 ];
 
@@ -134,21 +149,28 @@ describe.each(OVERVIEW_PAGES)(
   (page: OverviewPage) => {
     const view: string = readSource(...page.file);
 
-    test("is drawn once, for this kind of event, with the event's id and the feed's refresh token", () => {
+    test("is drawn once, for this kind of event, with the event's id and a key that follows its state", () => {
       expect(count(view, "<EventMeasurementsCard")).toBe(1);
 
-      const card: string = elementAt(view, indexOf(view, "<EventMeasurementsCard"));
+      const card: string = elementAt(
+        view,
+        indexOf(view, "<EventMeasurementsCard"),
+      );
 
       expect(card).toContain(`source={${page.source}}`);
       expect(card).toContain("eventId={modelId}");
-      expect(card).toContain("refreshToken={feedRefreshToken}");
+      expect(card).toContain(page.refreshKey);
+      // Not the feed's token: an AI report or a note moves no measurement.
+      expect(card).not.toContain("feedRefreshToken");
       expect(card).toContain('headerLayout="stacked"');
       expect(card).toMatch(page.isEventOver);
       expect(view).toContain(
         'import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";',
       );
-      expect(view).toContain(
-        `import { ${page.source} } from "../../../Utils/Measurement/EventMeasurements";`,
+      expect(view).toMatch(
+        new RegExp(
+          `import \\{[^}]*\\b${page.source}\\b[^}]*\\} from "\\.\\./\\.\\./\\.\\./Utils/Measurement/EventMeasurements";`,
+        ),
       );
     });
 
@@ -193,7 +215,7 @@ test("the maintenance page reads whether the event is completed with the event i
   );
 
   expect(fetch).toContain(
-    "currentScheduledMaintenanceState: { isResolvedState: true, },",
+    "currentScheduledMaintenanceState: { _id: true, isResolvedState: true, },",
   );
 });
 
@@ -276,7 +298,9 @@ describe("the Measurements card itself", () => {
     expect(card).toContain(
       "if (!isReadable || readings.length === 0) { return <></>; }",
     );
-    expect(card).not.toMatch(/<Alert\b|<AlertBanner\b|ComponentLoader|PageLoader/);
+    expect(card).not.toMatch(
+      /<Alert\b|<AlertBanner\b|ComponentLoader|PageLoader/,
+    );
   });
 
   test("is a card of the page: one Card, no box inside it", () => {

@@ -280,8 +280,13 @@ const ScheduledMaintenanceView: FunctionComponent<
                 name: true,
                 email: true,
               },
-              // Completed: the measurements card stops waiting on its states.
+              /*
+               * For the Measurements card: whether the event is completed
+               * (nothing it waits for comes after that), and which state it
+               * is in (a new one is when its values can have changed).
+               */
               currentScheduledMaintenanceState: {
+                _id: true,
                 isResolvedState: true,
               },
             },
@@ -779,7 +784,7 @@ const ScheduledMaintenanceView: FunctionComponent<
               scheduledMaintenance?.currentScheduledMaintenanceState
                 ?.isResolvedState,
             )}
-            refreshToken={feedRefreshToken}
+            refreshKey={scheduledMaintenance?.currentScheduledMaintenanceState?._id?.toString()}
             headerLayout="stacked"
           />
 

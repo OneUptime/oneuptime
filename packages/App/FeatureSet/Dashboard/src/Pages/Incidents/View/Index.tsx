@@ -108,7 +108,10 @@ import {
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
-import { INCIDENT_EVENT_MEASUREMENTS } from "../../../Utils/Measurement/EventMeasurements";
+import {
+  INCIDENT_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -1477,7 +1480,7 @@ const IncidentView: FunctionComponent<
             source={INCIDENT_EVENT_MEASUREMENTS}
             eventId={modelId}
             isEventOver={Boolean(durationEndDate)}
-            refreshToken={feedRefreshToken}
+            refreshKey={getEventMeasurementRefreshKey(incidentStateTimeline)}
             headerLayout="stacked"
           />
 
