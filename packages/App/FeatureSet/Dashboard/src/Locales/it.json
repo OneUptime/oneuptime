@@ -24876,5 +24876,10 @@
   "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "Cerca e allega host, cluster, host di container, database, flotte IoT, siti di rete o servizi interessati da questa manutenzione programmata. Allegare un sito di rete copre tutti i siti sottostanti.",
   "Search and attach the monitors affected by this scheduled maintenance.": "Cerca e allega i monitor interessati da questa manutenzione programmata.",
   "Search and attach the monitors that events created from this template should pre-populate.": "Cerca e allega i monitor che gli eventi creati da questo modello dovrebbero precompilare.",
-  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Quando l'evento inizia, i suoi monitor passano a questo stato e tornano operativi quando termina."
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "Quando l'evento inizia, i suoi monitor passano a questo stato e tornano operativi quando termina.",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "Come combinare i filtri soprastanti. 'Tutti' richiede che ogni filtro corrisponda (AND). 'Qualsiasi' richiede che almeno un filtro corrisponda (OR).",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Lascia vuoto per una regola valida per ogni servizio. Le regole per un singolo servizio vengono eseguite prima di quelle a livello di progetto.",
+  "Only for one service": "Solo per un servizio",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "La regola si applica a ogni servizio ed entra in vigore entro un minuto dal salvataggio.",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "La regola scrive la sua metrica ogni minuto, iniziando entro un minuto dal salvataggio."
 }

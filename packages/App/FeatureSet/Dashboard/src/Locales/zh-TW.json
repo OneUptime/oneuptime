@@ -24876,5 +24876,10 @@
   "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.": "搜尋並附加受此排定維護影響的主機、叢集、容器主機、資料庫、IoT 裝置群、網路站點或服務。附加一個網路站點即涵蓋其下的所有站點。",
   "Search and attach the monitors affected by this scheduled maintenance.": "搜尋並附加受此排定維護影響的監測器。",
   "Search and attach the monitors that events created from this template should pre-populate.": "搜尋並附加從此範本建立的事件應預先填入的監測器。",
-  "When the event starts, its monitors change to this status, and back to operational when it ends.": "事件開始時，其監測器會變更為此狀態，並在事件結束時恢復為運作中。"
+  "When the event starts, its monitors change to this status, and back to operational when it ends.": "事件開始時，其監測器會變更為此狀態，並在事件結束時恢復為運作中。",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "如何組合以上的篩選器。「全部」要求每個篩選器都相符（AND）。「任何」要求至少一個篩選器相符（OR）。",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "留空則規則套用於所有服務。單一服務的規則會先於全專案規則執行。",
+  "Only for one service": "僅限一個服務",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "此規則套用於所有服務，並會在儲存後一分鐘內生效。",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "此規則會在儲存後一分鐘內開始，每分鐘寫入一次其指標。"
 }
