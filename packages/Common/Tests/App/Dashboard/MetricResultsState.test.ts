@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  getMetricCardGroupState,
   getMetricResultsState,
   getNextMetricCardGroupMemberState,
   hasMetricDataPoints,
@@ -188,5 +189,60 @@ describe("a group of cards that share one explanation for being empty", () => {
       ]),
     ).toBe(true);
     expect(isMetricCardGroupChecking([EMPTY, EMPTY])).toBe(false);
+  });
+});
+
+describe("a group inside another group counts as one of its cards", () => {
+  const settledAs: (
+    state: MetricResultsState,
+    isLoading?: boolean,
+  ) => MetricCardGroupMemberState = (
+    state: MetricResultsState,
+    isLoading: boolean = false,
+  ): MetricCardGroupMemberState => {
+    return { settled: state, isLoading: isLoading };
+  };
+
+  test("a group with no cards takes no part", () => {
+    expect(getMetricCardGroupState([])).toBeNull();
+  });
+
+  test("Empty only while it is explaining itself: every card settled empty", () => {
+    expect(
+      getMetricCardGroupState([
+        settledAs(MetricResultsState.Empty),
+        settledAs(MetricResultsState.Empty),
+      ]),
+    ).toBe(MetricResultsState.Empty);
+  });
+
+  test("Loading while any card loads, so the outer group keeps what it last knew", () => {
+    expect(
+      getMetricCardGroupState([
+        settledAs(MetricResultsState.Empty),
+        settledAs(MetricResultsState.Empty, true),
+      ]),
+    ).toBe(MetricResultsState.Loading);
+    expect(
+      getMetricCardGroupState([
+        settledAs(MetricResultsState.HasData),
+        { settled: null, isLoading: true },
+      ]),
+    ).toBe(MetricResultsState.Loading);
+  });
+
+  test("HasData when any card has data, Error when the rest failed", () => {
+    expect(
+      getMetricCardGroupState([
+        settledAs(MetricResultsState.Empty),
+        settledAs(MetricResultsState.HasData),
+      ]),
+    ).toBe(MetricResultsState.HasData);
+    expect(
+      getMetricCardGroupState([
+        settledAs(MetricResultsState.Empty),
+        settledAs(MetricResultsState.Error),
+      ]),
+    ).toBe(MetricResultsState.Error);
   });
 });

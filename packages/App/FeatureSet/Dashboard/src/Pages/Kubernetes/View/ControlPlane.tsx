@@ -806,6 +806,45 @@ const KubernetesClusterControlPlane: FunctionComponent<
   };
 
   /*
+   * The card a group draws in place of its empty charts: the cards' own
+   * heading and the page's range, with the setup hint for `source` in its
+   * body. Its header Refresh already resolves the range again, so it only
+   * asks the group to reload past the cache; Check again does both.
+   */
+  const renderSetupHint: (args: {
+    title: ReactElement;
+    description?: string | undefined;
+    source: KubernetesMetricsSource;
+    group: EmbeddedMetricCardGroupEmptyStateProps;
+  }) => ReactElement = (args: {
+    title: ReactElement;
+    description?: string | undefined;
+    source: KubernetesMetricsSource;
+    group: EmbeddedMetricCardGroupEmptyStateProps;
+  }): ReactElement => {
+    return (
+      <EmbeddedMetricCard
+        title={args.title}
+        description={args.description}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+        onRefresh={args.group.checkAgain}
+      >
+        <KubernetesMetricsSetupEmptyState
+          source={args.source}
+          clusterName={clusterIdentifier}
+          isChecking={args.group.isChecking}
+          onCheckAgain={() => {
+            resolveTimeRangeAgain();
+            args.group.checkAgain();
+          }}
+        />
+      </EmbeddedMetricCard>
+    );
+  };
+
+  /*
    * Each tab says how its metrics are collected only once its charts have
    * loaded and found nothing (EmbeddedMetricCardGroup), in place of the
    * charts and with the card's own heading and range. A cluster that sends
@@ -820,27 +859,15 @@ const KubernetesClusterControlPlane: FunctionComponent<
           <EmbeddedMetricCardGroup
             key={tab.name}
             dataTestId={`control-plane-${tab.source}`}
-            onCheckAgain={resolveTimeRangeAgain}
             renderEmptyState={(
               group: EmbeddedMetricCardGroupEmptyStateProps,
             ): ReactElement => {
-              return (
-                <EmbeddedMetricCard
-                  title={getSectionTitle(tab.icon, tab.name)}
-                  description={tab.description}
-                  timeRange={timeRange}
-                  onTimeRangeChange={handleTimeRangeChange}
-                  startAndEndDate={startAndEndDate}
-                  onRefresh={group.checkAgain}
-                >
-                  <KubernetesMetricsSetupEmptyState
-                    source={tab.source}
-                    clusterName={clusterIdentifier}
-                    isChecking={group.isChecking}
-                    onCheckAgain={group.checkAgain}
-                  />
-                </EmbeddedMetricCard>
-              );
+              return renderSetupHint({
+                title: getSectionTitle(tab.icon, tab.name),
+                description: tab.description,
+                source: tab.source,
+                group: group,
+              });
             }}
           >
             <EmbeddedMetricCard

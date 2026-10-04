@@ -474,6 +474,196 @@ describe("the cards inside", () => {
   });
 });
 
+describe("groups nest", () => {
+  /*
+   * The Istio tab's shape: the tab's cards in one group, and the Pilot card
+   * - metrics the agent never scrapes - in a group of its own inside it.
+   */
+  function Tab(): React.ReactElement {
+    return (
+      <EmbeddedMetricCardGroup
+        dataTestId="tab"
+        renderEmptyState={(group: EmbeddedMetricCardGroupEmptyStateProps) => {
+          return (
+            <div data-testid="tab-hint">
+              <button type="button" onClick={group.checkAgain}>
+                Check the tab again
+              </button>
+            </div>
+          );
+        }}
+      >
+        <EmbeddedMetricCard
+          title="traffic"
+          queryConfigs={queries("traffic")}
+          defaultTimeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+        />
+        <EmbeddedMetricCardGroup
+          dataTestId="pilot"
+          renderEmptyState={(group: EmbeddedMetricCardGroupEmptyStateProps) => {
+            return (
+              <div
+                data-testid="pilot-hint"
+                data-checking={String(group.isChecking)}
+              />
+            );
+          }}
+        >
+          <EmbeddedMetricCard
+            title="pilot"
+            queryConfigs={queries("pilot")}
+            defaultTimeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+          />
+        </EmbeddedMetricCardGroup>
+      </EmbeddedMetricCardGroup>
+    );
+  }
+
+  function visible(testId: string): boolean {
+    const element: HTMLElement | null = screen.queryByTestId(testId);
+    return Boolean(element && element.closest("[hidden]") === null);
+  }
+
+  test("the inner card explains itself while the outer cards have data", () => {
+    mockAnswers["traffic"] = "has-data";
+    mockAnswers["pilot"] = "empty";
+
+    render(<Tab />);
+
+    expect(visible("tab-hint")).toBe(false);
+    expect(visible("pilot-hint")).toBe(true);
+    expect(screen.getByTestId("tab-cards")).toBeVisible();
+    expect(screen.getByTestId("pilot-cards")).not.toBeVisible();
+  });
+
+  test("the inner group is one card of the outer: with everything empty, only the outer explains", () => {
+    mockAnswers["traffic"] = "empty";
+    mockAnswers["pilot"] = "empty";
+
+    render(<Tab />);
+
+    expect(visible("tab-hint")).toBe(true);
+    expect(visible("pilot-hint")).toBe(false);
+    expect(screen.getByTestId("tab-cards")).not.toBeVisible();
+  });
+
+  test("data in the inner card keeps the outer group's cards on screen", () => {
+    mockAnswers["traffic"] = "empty";
+    mockAnswers["pilot"] = "has-data";
+
+    render(<Tab />);
+
+    expect(visible("tab-hint")).toBe(false);
+    expect(visible("pilot-hint")).toBe(false);
+    expect(screen.getByTestId("pilot-cards")).toBeVisible();
+  });
+
+  test("an inner card still on its first load keeps the outer group from explaining itself", () => {
+    mockAnswers["traffic"] = "empty";
+    mockAnswers["pilot"] = "manual";
+
+    render(<Tab />);
+
+    expect(visible("tab-hint")).toBe(false);
+
+    settle("pilot", "empty");
+
+    expect(visible("tab-hint")).toBe(true);
+  });
+
+  test("checking the outer group again reloads the inner card too", () => {
+    mockAnswers["traffic"] = "empty";
+    mockAnswers["pilot"] = "empty";
+
+    render(<Tab />);
+
+    expect(mockViews["pilot"]!.refreshNonce).toBe(0);
+
+    mockAnswers["pilot"] = "has-data";
+    fireEvent.click(
+      screen.getByRole("button", { name: "Check the tab again" }),
+    );
+
+    expect(mockViews["traffic"]!.refreshNonce).toBe(1);
+    expect(mockViews["pilot"]!.refreshNonce).toBe(1);
+    expect(visible("tab-hint")).toBe(false);
+    expect(screen.getByTestId("pilot-cards")).toBeVisible();
+  });
+});
+
+describe("a card that changes what it draws", () => {
+  function OneGroup(props: {
+    second: "queries" | "custom" | "nothing";
+  }): React.ReactElement {
+    return (
+      <EmbeddedMetricCardGroup renderEmptyState={renderEmptyState}>
+        <EmbeddedMetricCard
+          title="etcd"
+          queryConfigs={queries("etcd")}
+          defaultTimeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+        />
+        <EmbeddedMetricCard
+          title="wal"
+          queryConfigs={props.second === "queries" ? queries("wal") : undefined}
+          defaultTimeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+        >
+          {props.second === "custom" ? (
+            <div data-testid="custom-chart" />
+          ) : undefined}
+        </EmbeddedMetricCard>
+      </EmbeddedMetricCardGroup>
+    );
+  }
+
+  test("trading its queries for custom charts, it counts as data from then on", () => {
+    mockAnswers["etcd"] = "empty";
+    mockAnswers["wal"] = "empty";
+
+    const view: ReturnType<typeof render> = render(
+      <OneGroup second="queries" />,
+    );
+
+    expect(hint()).toBeInTheDocument();
+
+    view.rerender(<OneGroup second="custom" />);
+
+    expect(hint()).toBeNull();
+    expect(screen.getByTestId("custom-chart")).toBeVisible();
+  });
+
+  test("drawing nothing at all, it leaves the group and its old answer goes with it", () => {
+    mockAnswers["etcd"] = "empty";
+    mockAnswers["wal"] = "has-data";
+
+    const view: ReturnType<typeof render> = render(
+      <OneGroup second="queries" />,
+    );
+
+    expect(hint()).toBeNull();
+
+    view.rerender(<OneGroup second="nothing" />);
+
+    // Only etcd is left, and it is empty.
+    expect(hint()).toBeInTheDocument();
+  });
+
+  test("taking queries back, it reports what they find", () => {
+    mockAnswers["etcd"] = "empty";
+    mockAnswers["wal"] = "has-data";
+
+    const view: ReturnType<typeof render> = render(
+      <OneGroup second="custom" />,
+    );
+
+    expect(hint()).toBeNull();
+
+    mockAnswers["wal"] = "empty";
+    view.rerender(<OneGroup second="queries" />);
+
+    expect(hint()).toBeInTheDocument();
+  });
+});
+
 describe("cards outside a group", () => {
   test("refresh only on their own Refresh, as before", () => {
     mockAnswers["etcd"] = "empty";

@@ -132,3 +132,35 @@ export function isMetricCardGroupChecking(
     return member.isLoading;
   });
 }
+
+/*
+ * What a group inside another group has to show, as one member of the outer
+ * group: Loading while any of its cards loads (the outer group keeps what it
+ * last settled on), Empty when it is explaining itself, HasData when any card
+ * has data, Error otherwise. A group without cards (null) takes no part.
+ */
+export function getMetricCardGroupState(
+  members: Array<MetricCardGroupMemberState>,
+): MetricResultsState | null {
+  if (members.length === 0) {
+    return null;
+  }
+
+  if (
+    members.some((member: MetricCardGroupMemberState): boolean => {
+      return member.isLoading || member.settled === null;
+    })
+  ) {
+    return MetricResultsState.Loading;
+  }
+
+  if (isMetricCardGroupEmpty(members)) {
+    return MetricResultsState.Empty;
+  }
+
+  return members.some((member: MetricCardGroupMemberState): boolean => {
+    return member.settled === MetricResultsState.HasData;
+  })
+    ? MetricResultsState.HasData
+    : MetricResultsState.Error;
+}

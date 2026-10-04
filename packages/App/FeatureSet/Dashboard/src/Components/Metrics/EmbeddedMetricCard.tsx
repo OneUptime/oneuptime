@@ -218,6 +218,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
    * something to show: a group never hides it as empty.
    */
   const memberId: string = useId();
+  const hasQueries: boolean = props.queryConfigs !== undefined;
   const hasOwnCharts: boolean = Boolean(
     props.children || props.renderExtraCharts,
   );
@@ -230,6 +231,9 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   const latestHasOwnCharts: React.MutableRefObject<boolean> =
     useRef<boolean>(hasOwnCharts);
   latestHasOwnCharts.current = hasOwnCharts;
+  // The query charts' latest state; null while the card has none.
+  const latestQueryState: React.MutableRefObject<MetricResultsState | null> =
+    useRef<MetricResultsState | null>(null);
 
   const reportToGroup:
     | ((memberId: string, state: MetricResultsState) => void)
@@ -237,32 +241,60 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   const removeFromGroup: ((memberId: string) => void) | undefined =
     group?.remove;
 
+  const reportQueryState: (state: MetricResultsState) => void = useCallback(
+    (state: MetricResultsState): void => {
+      reportToGroup?.(
+        memberId,
+        latestHasOwnCharts.current && state !== MetricResultsState.Loading
+          ? MetricResultsState.HasData
+          : state,
+      );
+    },
+    [reportToGroup, memberId],
+  );
+
   const handleResultsStateChange: (state: MetricResultsState) => void =
     useCallback(
       (state: MetricResultsState): void => {
+        latestQueryState.current = state;
         latestOnResultsStateChange.current?.(state);
-        reportToGroup?.(
-          memberId,
-          latestHasOwnCharts.current && state !== MetricResultsState.Loading
-            ? MetricResultsState.HasData
-            : state,
-        );
+        reportQueryState(state);
       },
-      [reportToGroup, memberId],
+      [reportQueryState],
     );
 
   /*
-   * A card of custom charts only has no query state to report, but the
-   * group must not hide it with the rest: it counts as having data. A card
-   * with nothing to chart (a note, such as the group's own empty state)
-   * takes no part.
+   * What the card counts as in its group whenever what it draws changes,
+   * so nothing it reported before outlives what it reported about:
+   * - with queries: what the query charts last found (MetricView reports
+   *   each change itself; this re-reads it when custom charts come or go);
+   * - custom charts only: data, as the group cannot see into them;
+   * - nothing to chart (a note, such as a group's own empty state): no
+   *   part in the group at all.
    */
-  const hasQueries: boolean = props.queryConfigs !== undefined;
   useEffect(() => {
-    if (!hasQueries && hasOwnCharts) {
-      reportToGroup?.(memberId, MetricResultsState.HasData);
+    if (hasQueries) {
+      if (latestQueryState.current !== null) {
+        reportQueryState(latestQueryState.current);
+      }
+      return;
     }
-  }, [reportToGroup, memberId, hasQueries, hasOwnCharts]);
+
+    latestQueryState.current = null;
+
+    if (hasOwnCharts) {
+      reportToGroup?.(memberId, MetricResultsState.HasData);
+    } else {
+      removeFromGroup?.(memberId);
+    }
+  }, [
+    hasQueries,
+    hasOwnCharts,
+    reportQueryState,
+    reportToGroup,
+    removeFromGroup,
+    memberId,
+  ]);
 
   useEffect(() => {
     return () => {

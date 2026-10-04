@@ -797,6 +797,12 @@ interface ServiceMeshCard {
   title: string;
   description: string;
   getQueries: (cluster: string) => Array<MetricQueryConfigData>;
+  /*
+   * Metrics the agent does not collect even with the mesh's scrape on (it
+   * reads the sidecars, not the control plane). The card explains that in
+   * place of its charts when they are empty, next to cards that have data.
+   */
+  notCollected?: KubernetesMetricsSource | undefined;
 }
 
 interface ServiceMeshTab {
@@ -851,6 +857,7 @@ const SERVICE_MESH_TABS: Array<ServiceMeshTab> = [
         description:
           "Istio Pilot manages xDS configuration distribution to all Envoy proxies. Monitors push throughput, errors, convergence time, and listener conflicts.",
         getQueries: getIstioPilotQueries,
+        notCollected: KubernetesMetricsSource.Istiod,
       },
       {
         icon: IconProp.Globe,
@@ -878,6 +885,7 @@ const SERVICE_MESH_TABS: Array<ServiceMeshTab> = [
         description:
           "Linkerd control plane components: identity (mTLS certificate issuance), destination (service discovery), and proxy injector (sidecar injection).",
         getQueries: getLinkerdControlPlaneQueries,
+        notCollected: KubernetesMetricsSource.LinkerdControlPlane,
       },
     ],
   },
@@ -963,6 +971,45 @@ const KubernetesClusterServiceMesh: FunctionComponent<
   };
 
   /*
+   * The card a group draws in place of its empty charts: the cards' own
+   * heading and the page's range, with the setup hint for `source` in its
+   * body. Its header Refresh already resolves the range again, so it only
+   * asks the group to reload past the cache; Check again does both.
+   */
+  const renderSetupHint: (args: {
+    title: ReactElement;
+    description?: string | undefined;
+    source: KubernetesMetricsSource;
+    group: EmbeddedMetricCardGroupEmptyStateProps;
+  }) => ReactElement = (args: {
+    title: ReactElement;
+    description?: string | undefined;
+    source: KubernetesMetricsSource;
+    group: EmbeddedMetricCardGroupEmptyStateProps;
+  }): ReactElement => {
+    return (
+      <EmbeddedMetricCard
+        title={args.title}
+        description={args.description}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+        onRefresh={args.group.checkAgain}
+      >
+        <KubernetesMetricsSetupEmptyState
+          source={args.source}
+          clusterName={clusterIdentifier}
+          isChecking={args.group.isChecking}
+          onCheckAgain={() => {
+            resolveTimeRangeAgain();
+            args.group.checkAgain();
+          }}
+        />
+      </EmbeddedMetricCard>
+    );
+  };
+
+  /*
    * A mesh's tab says how its metrics are collected only once every one of
    * its cards has loaded and found nothing (EmbeddedMetricCardGroup): once,
    * in place of the cards, never above charts that have data. Keyed by tab,
@@ -975,30 +1022,18 @@ const KubernetesClusterServiceMesh: FunctionComponent<
         <EmbeddedMetricCardGroup
           key={tab.name}
           dataTestId={`service-mesh-${tab.source}`}
-          onCheckAgain={resolveTimeRangeAgain}
           renderEmptyState={(
             group: EmbeddedMetricCardGroupEmptyStateProps,
           ): ReactElement => {
-            return (
-              <EmbeddedMetricCard
-                title={getSectionTitle(IconProp.FlowDiagram, tab.name)}
-                timeRange={timeRange}
-                onTimeRangeChange={handleTimeRangeChange}
-                startAndEndDate={startAndEndDate}
-                onRefresh={group.checkAgain}
-              >
-                <KubernetesMetricsSetupEmptyState
-                  source={tab.source}
-                  clusterName={clusterIdentifier}
-                  isChecking={group.isChecking}
-                  onCheckAgain={group.checkAgain}
-                />
-              </EmbeddedMetricCard>
-            );
+            return renderSetupHint({
+              title: getSectionTitle(IconProp.FlowDiagram, tab.name),
+              source: tab.source,
+              group: group,
+            });
           }}
         >
           {tab.cards.map((card: ServiceMeshCard): ReactElement => {
-            return (
+            const metricCard: ReactElement = (
               <EmbeddedMetricCard
                 key={card.title}
                 title={getSectionTitle(card.icon, card.title)}
@@ -1008,6 +1043,37 @@ const KubernetesClusterServiceMesh: FunctionComponent<
                 onTimeRangeChange={handleTimeRangeChange}
                 startAndEndDate={startAndEndDate}
               />
+            );
+
+            const notCollected: KubernetesMetricsSource | undefined =
+              card.notCollected;
+
+            if (!notCollected) {
+              return metricCard;
+            }
+
+            /*
+             * A group of its own inside the tab's: it explains this card
+             * while the tab's other cards have data, and counts as one of
+             * the tab's cards otherwise.
+             */
+            return (
+              <EmbeddedMetricCardGroup
+                key={card.title}
+                dataTestId={`service-mesh-${notCollected}`}
+                renderEmptyState={(
+                  group: EmbeddedMetricCardGroupEmptyStateProps,
+                ): ReactElement => {
+                  return renderSetupHint({
+                    title: getSectionTitle(card.icon, card.title),
+                    description: card.description,
+                    source: notCollected,
+                    group: group,
+                  });
+                }}
+              >
+                {metricCard}
+              </EmbeddedMetricCardGroup>
             );
           })}
         </EmbeddedMetricCardGroup>

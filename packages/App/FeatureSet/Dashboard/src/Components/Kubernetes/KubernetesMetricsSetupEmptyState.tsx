@@ -9,7 +9,10 @@ import TableEmptyState, {
 } from "Common/UI/Components/Table/TableEmptyState";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import Navigation from "Common/UI/Utils/Navigation";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getTemplatePlaceholders,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   CLUSTER_NAME_PLACEHOLDER,
   KubernetesMetricsSetup,
@@ -44,20 +47,6 @@ export interface ComponentProps {
   onCheckAgain: () => void;
 }
 
-const PLACEHOLDER: RegExp = /\{\{(\w+)\}\}/g;
-
-// The {{placeholders}} of an English template, each once, in order.
-function getPlaceholders(template: string): Array<string> {
-  const names: Array<string> = [];
-  for (const match of template.matchAll(PLACEHOLDER)) {
-    const name: string = match[1] || "";
-    if (name && !names.includes(name)) {
-      names.push(name);
-    }
-  }
-  return names;
-}
-
 function getCodeElement(text: string): ReactElement {
   return (
     <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-700">
@@ -77,7 +66,7 @@ const KubernetesMetricsSetupEmptyState: FunctionComponent<ComponentProps> = (
    * to plain English when a slot is missing from it, or one is left over.
    */
   const slots: Record<string, ReactNode> = {};
-  for (const placeholder of getPlaceholders(setup.description)) {
+  for (const placeholder of getTemplatePlaceholders(setup.description)) {
     const code: string | undefined =
       placeholder === CLUSTER_NAME_PLACEHOLDER
         ? props.clusterName

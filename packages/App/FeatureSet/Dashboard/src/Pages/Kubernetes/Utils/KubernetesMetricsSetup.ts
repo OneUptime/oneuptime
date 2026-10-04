@@ -28,11 +28,23 @@ export enum KubernetesMetricsSource {
   KubeProxy = "kube-proxy",
   Cilium = "cilium",
   Istio = "istio",
+  // The Istio tab's Pilot (istiod) card: the agent reads the sidecars only.
+  Istiod = "istiod",
   Linkerd = "linkerd",
+  // The Linkerd tab's control plane card: the agent reads the proxies only.
+  LinkerdControlPlane = "linkerd-control-plane",
 }
 
+/*
+ * The English page, named outright. A docs link without a language is sent
+ * to the reader's Accept-Language copy of the page, and the sections these
+ * hints link to (CoreDNS, service mesh, what the agent does not collect) are
+ * on the English page only; a translated heading also slugs to another
+ * anchor. So a German reader would land at the top of a page that does not
+ * say what the hint says.
+ */
 export const KUBERNETES_AGENT_DOCS_ROUTE: string =
-  "/docs/telemetry/kubernetes-agent";
+  "/docs/en/telemetry/kubernetes-agent";
 
 export const KUBERNETES_CONTROL_PLANE_DOCS_ROUTE: string = `${KUBERNETES_AGENT_DOCS_ROUTE}#enable-control-plane-monitoring`;
 export const KUBERNETES_COREDNS_DOCS_ROUTE: string = `${KUBERNETES_AGENT_DOCS_ROUTE}#enable-coredns-metrics`;
@@ -88,8 +100,14 @@ const KUBERNETES_METRICS_SETUPS: Record<
   [KubernetesMetricsSource.Etcd]: {
     source: KubernetesMetricsSource.Etcd,
     title: translationKey("No etcd metrics from this cluster"),
+    /*
+     * The chart's etcd job is HTTPS only (an http:// endpoint is scraped as
+     * https) and sends no client certificate, so etcd's usual metrics
+     * ports - plain HTTP on 2381, or 2379 behind client certificates - are
+     * out of its reach.
+     */
     description: translationKey(
-      "Turn on {{enabled}} and point {{endpoints}} at an etcd metrics address the agent's pod can reach. Managed clusters such as EKS, GKE and AKS don't expose etcd.",
+      "Turn on {{enabled}} and point {{endpoints}} at an HTTPS etcd metrics address the agent's pod can reach without a client certificate. Managed clusters such as EKS, GKE and AKS don't expose etcd.",
     ),
     code: {
       enabled: CONTROL_PLANE_ENABLED,
@@ -145,7 +163,7 @@ const KUBERNETES_METRICS_SETUPS: Record<
     source: KubernetesMetricsSource.CoreDns,
     title: translationKey("No CoreDNS metrics from this cluster"),
     description: translationKey(
-      "Turn on {{enabled}}. If your cluster's CoreDNS is not kube-dns in kube-system on port 9153, also set {{namespace}}, {{service}} and {{port}}.",
+      "Turn on {{enabled}}. If your cluster's CoreDNS is not kube-dns in kube-system on port 9153, also set {{namespace}}, {{service}} and {{port}}. GKE runs kube-dns or Cloud DNS instead of CoreDNS, so this stays empty there.",
     ),
     code: {
       enabled: "coreDns.enabled",
@@ -197,6 +215,18 @@ const KUBERNETES_METRICS_SETUPS: Record<
     ],
     docsRoute: KUBERNETES_SERVICE_MESH_DOCS_ROUTE,
   },
+  [KubernetesMetricsSource.Istiod]: {
+    source: KubernetesMetricsSource.Istiod,
+    title: translationKey("No istiod metrics from this cluster"),
+    description: translationKey(
+      "The kubernetes-agent reads the Istio sidecars, not istiod, so it doesn't collect these. They appear here when another collector sends them to OneUptime with {{attribute}} set to {{clusterName}}.",
+    ),
+    code: {
+      attribute: KUBERNETES_CLUSTER_NAME_ATTRIBUTE,
+    },
+    helmFlags: [],
+    docsRoute: KUBERNETES_NOT_COLLECTED_DOCS_ROUTE,
+  },
   [KubernetesMetricsSource.Linkerd]: {
     source: KubernetesMetricsSource.Linkerd,
     title: translationKey("No Linkerd metrics from this cluster"),
@@ -213,6 +243,18 @@ const KUBERNETES_METRICS_SETUPS: Record<
       "--set serviceMesh.provider=linkerd",
     ],
     docsRoute: KUBERNETES_SERVICE_MESH_DOCS_ROUTE,
+  },
+  [KubernetesMetricsSource.LinkerdControlPlane]: {
+    source: KubernetesMetricsSource.LinkerdControlPlane,
+    title: translationKey("No Linkerd control plane metrics from this cluster"),
+    description: translationKey(
+      "The kubernetes-agent reads the Linkerd proxies, not the control plane's own components, so it doesn't collect these. They appear here when another collector sends them to OneUptime with {{attribute}} set to {{clusterName}}.",
+    ),
+    code: {
+      attribute: KUBERNETES_CLUSTER_NAME_ATTRIBUTE,
+    },
+    helmFlags: [],
+    docsRoute: KUBERNETES_NOT_COLLECTED_DOCS_ROUTE,
   },
 };
 

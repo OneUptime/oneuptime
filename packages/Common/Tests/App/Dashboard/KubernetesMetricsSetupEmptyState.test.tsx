@@ -180,7 +180,7 @@ describe("the actions", () => {
     expect(onCheckAgain).toHaveBeenCalledTimes(1);
   });
 
-  test("while checking it says so and cannot be pressed again", () => {
+  test("while checking it says so, keeps its focus, and pressing it again does nothing", () => {
     const onCheckAgain: MockFunction = getJestMockFunction();
     const hint: HTMLElement = renderHint(KubernetesMetricsSource.Istio, {
       isChecking: true,
@@ -193,7 +193,10 @@ describe("the actions", () => {
       `${SETUP}-check-again`,
     );
     expect(button).toHaveTextContent("Checking…");
-    expect(button).toBeDisabled();
+    // Not disabled: a disabled button would drop the keyboard focus.
+    expect(button).toBeEnabled();
+    button.focus();
+    expect(button).toHaveFocus();
 
     fireEvent.click(button);
 
@@ -203,19 +206,27 @@ describe("the actions", () => {
   test.each([
     [
       KubernetesMetricsSource.Scheduler,
-      "/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring",
+      "/docs/en/telemetry/kubernetes-agent#enable-control-plane-monitoring",
     ],
     [
       KubernetesMetricsSource.CoreDns,
-      "/docs/telemetry/kubernetes-agent#enable-coredns-metrics",
+      "/docs/en/telemetry/kubernetes-agent#enable-coredns-metrics",
     ],
     [
       KubernetesMetricsSource.Linkerd,
-      "/docs/telemetry/kubernetes-agent#enable-service-mesh-metrics",
+      "/docs/en/telemetry/kubernetes-agent#enable-service-mesh-metrics",
     ],
     [
       KubernetesMetricsSource.Cilium,
-      "/docs/telemetry/kubernetes-agent#metrics-the-agent-does-not-collect",
+      "/docs/en/telemetry/kubernetes-agent#metrics-the-agent-does-not-collect",
+    ],
+    [
+      KubernetesMetricsSource.Istiod,
+      "/docs/en/telemetry/kubernetes-agent#metrics-the-agent-does-not-collect",
+    ],
+    [
+      KubernetesMetricsSource.LinkerdControlPlane,
+      "/docs/en/telemetry/kubernetes-agent#metrics-the-agent-does-not-collect",
     ],
   ])(
     "%s: View Documentation opens its docs section in a new tab",

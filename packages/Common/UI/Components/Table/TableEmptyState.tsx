@@ -47,7 +47,8 @@ export interface TableEmptyStateAction {
   tooltip?: string | undefined;
   /*
    * The action is running (checking again, say): a spinner in place of its
-   * icon, and it cannot be pressed twice.
+   * icon, and pressing it again does nothing. It stays focusable - a
+   * disabled button drops the keyboard focus of whoever just pressed it.
    */
   isLoading?: boolean | undefined;
   dataTestId?: string | undefined;
@@ -218,13 +219,24 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
               action.style === TableEmptyStateActionStyle.Link;
 
             return (
+              /*
+               * Keyed by what the action is, not by its words: an action
+               * whose title changes while it runs ("Check again" to
+               * "Checking…") stays the same button, and keeps the focus.
+               */
               <div
-                key={`${action.title}-${index}`}
+                key={action.dataTestId || `action-${index}`}
                 className={isLink ? "" : "w-full sm:w-auto"}
+                aria-busy={action.isLoading ? true : undefined}
               >
                 <Button
                   title={action.title}
-                  icon={action.icon}
+                  /*
+                   * A running action spins in place of its icon but is not
+                   * disabled: a disabled button would drop the focus of
+                   * whoever just pressed it. Pressing it again does nothing.
+                   */
+                  icon={action.isLoading ? IconProp.Spinner : action.icon}
                   buttonStyle={
                     isLink ? ButtonStyleType.LINK : ButtonStyleType.NORMAL
                   }
@@ -232,11 +244,10 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
                    * A locked button is dimmed, so it does not read as the
                    * way forward the note under it says it is not.
                    */
-                  className={
+                  className={`${
                     isLink ? "text-sm font-medium" : "disabled:opacity-60"
-                  }
+                  }${action.isLoading ? " cursor-wait [&_svg]:animate-spin" : ""}`}
                   disabled={action.disabled}
-                  isLoading={action.isLoading}
                   tooltip={action.tooltip}
                   dataTestId={action.dataTestId}
                   onClick={() => {

@@ -3,14 +3,18 @@ import React, {
   ReactElement,
   ReactNode,
   useCallback,
+  useEffect,
+  useId,
   useMemo,
   useState,
 } from "react";
 import {
   EmbeddedMetricCardGroupContext,
   EmbeddedMetricCardGroupContextValue,
+  useEmbeddedMetricCardGroup,
 } from "./EmbeddedMetricCardGroupContext";
 import {
+  getMetricCardGroupState,
   getNextMetricCardGroupMemberState,
   isMetricCardGroupChecking,
   isMetricCardGroupEmpty,
@@ -34,6 +38,12 @@ import {
  * Only cards with queries take part (a card that draws charts of its own
  * always counts as having something to show). Key the group by what it
  * shows - a tab's name, say - so a group reused for other cards starts over.
+ *
+ * Groups nest. A card with its own reason for being empty (a component the
+ * agent never scrapes, next to cards it does) goes in a group of its own
+ * inside the outer one: it explains itself while the outer group's cards
+ * have data, it counts as one card of the outer group (empty only when it is
+ * explaining itself), and checking the outer group again reloads it too.
  */
 
 export interface EmbeddedMetricCardGroupEmptyStateProps {
@@ -67,7 +77,12 @@ const EmbeddedMetricCardGroup: FunctionComponent<ComponentProps> = (
   const [members, setMembers] = useState<
     Record<string, MetricCardGroupMemberState>
   >({});
-  const [refreshNonce, setRefreshNonce] = useState<number>(0);
+  const [ownRefreshNonce, setRefreshNonce] = useState<number>(0);
+
+  // The group this one sits in, if any (see "Groups nest" above).
+  const parent: EmbeddedMetricCardGroupContextValue | null =
+    useEmbeddedMetricCardGroup();
+  const refreshNonce: number = ownRefreshNonce + (parent?.refreshNonce || 0);
 
   const report: (memberId: string, state: MetricResultsState) => void =
     useCallback((memberId: string, state: MetricResultsState): void => {
@@ -122,6 +137,30 @@ const EmbeddedMetricCardGroup: FunctionComponent<ComponentProps> = (
     Object.values(members);
   const isEmpty: boolean = isMetricCardGroupEmpty(memberStates);
   const isChecking: boolean = isMetricCardGroupChecking(memberStates);
+
+  // Inside another group, this whole group is one of its cards.
+  const groupState: MetricResultsState | null =
+    getMetricCardGroupState(memberStates);
+  const memberIdInParent: string = useId();
+  const reportToParent:
+    | ((memberId: string, state: MetricResultsState) => void)
+    | undefined = parent?.report;
+  const removeFromParent: ((memberId: string) => void) | undefined =
+    parent?.remove;
+
+  useEffect(() => {
+    if (groupState === null) {
+      removeFromParent?.(memberIdInParent);
+      return;
+    }
+    reportToParent?.(memberIdInParent, groupState);
+  }, [reportToParent, removeFromParent, memberIdInParent, groupState]);
+
+  useEffect(() => {
+    return () => {
+      removeFromParent?.(memberIdInParent);
+    };
+  }, [removeFromParent, memberIdInParent]);
 
   const onCheckAgain: (() => void) | undefined = props.onCheckAgain;
 

@@ -180,13 +180,19 @@ async function openTab(name: string): Promise<void> {
   await settle();
 }
 
-// Every setup hint on screen, by the source it explains.
+/*
+ * Every setup hint a reader can see, by the source it explains. A group
+ * hides its cards - and a group nested among them - while it explains
+ * itself, so a hint inside a hidden subtree does not count.
+ */
 function hints(): Array<string> {
-  return Array.from(document.querySelectorAll("[data-metrics-source]")).map(
-    (hint: Element): string => {
+  return Array.from(document.querySelectorAll("[data-metrics-source]"))
+    .filter((hint: Element): boolean => {
+      return hint.closest("[hidden]") === null;
+    })
+    .map((hint: Element): string => {
       return hint.getAttribute("data-metrics-source") || "";
-    },
-  );
+    });
 }
 
 function hintFor(source: string): HTMLElement {
@@ -398,7 +404,7 @@ describe("Control Plane", () => {
     },
   );
 
-  test("CoreDNS no longer claims to be available on every cluster", async () => {
+  test("CoreDNS no longer claims to be available on every cluster, and says GKE has none", async () => {
     mockAnswers = [["coredns_", "empty"]];
 
     await renderControlPlane();
@@ -407,7 +413,41 @@ describe("Control Plane", () => {
     expect(hintFor("coredns")).not.toHaveTextContent(
       "available on all clusters",
     );
+    expect(hintFor("coredns")).toHaveTextContent(
+      "GKE runs kube-dns or Cloud DNS instead of CoreDNS",
+    );
     expect(commandIn(hintFor("coredns"))).not.toContain("controlPlane");
+  });
+
+  test("the etcd hint asks for the only kind of address the agent can scrape", async () => {
+    mockAnswers = [["etcd_", "empty"]];
+
+    await renderControlPlane();
+
+    expect(hintFor("etcd")).toHaveTextContent(
+      "an HTTPS etcd metrics address the agent's pod can reach without a client certificate",
+    );
+  });
+
+  test("the hint card's own Refresh checks again too", async () => {
+    mockAnswers = [["etcd_", "empty"]];
+
+    await renderControlPlane();
+
+    const before: StandInView = {
+      ...mockViews["etcd_mvcc_db_total_size_in_bytes"]!,
+    };
+    jest.setSystemTime(new Date(NOW.getTime() + 2 * 60 * 1000));
+
+    const hintCard: HTMLElement = hintFor("etcd").closest(
+      '[data-testid="card"]',
+    )!;
+    fireEvent.click(within(hintCard).getByRole("button", { name: "Refresh" }));
+    await settle();
+
+    const after: StandInView = mockViews["etcd_mvcc_db_total_size_in_bytes"]!;
+    expect(after.windowEnd).toBe(before.windowEnd + 2 * 60 * 1000);
+    expect(after.refreshNonce).toBe(before.refreshNonce + 1);
   });
 
   test("kube-proxy says plainly that the agent does not collect it, with no command to run", async () => {
@@ -463,12 +503,15 @@ describe("Control Plane", () => {
     expect(after.windowEnd).toBe(before.windowEnd + 5 * 60 * 1000);
     expect(after.refreshNonce).toBe(before.refreshNonce + 1);
 
-    // Still explained, and saying it is checking.
+    /*
+     * Still explained, and saying it is checking - on the same button, which
+     * keeps the keyboard focus of whoever pressed it.
+     */
     const checking: HTMLElement = within(hintFor("etcd")).getByTestId(
       `${SETUP}-check-again`,
     );
     expect(checking).toHaveTextContent("Checking…");
-    expect(checking).toBeDisabled();
+    expect(checking).toBeEnabled();
 
     act(() => {
       after.report?.("has-data");
@@ -490,8 +533,9 @@ describe("Control Plane", () => {
       Route,
       { openInNewTab: boolean },
     ];
+    // The English page, where the section is (see KUBERNETES_AGENT_DOCS_ROUTE).
     expect(route.toString()).toBe(
-      "/docs/telemetry/kubernetes-agent#enable-control-plane-monitoring",
+      "/docs/en/telemetry/kubernetes-agent#enable-control-plane-monitoring",
     );
     expect(options).toEqual({ openInNewTab: true });
   });
@@ -530,7 +574,7 @@ describe("Service Mesh", () => {
     noOldBanner();
   });
 
-  test("a mesh whose sidecars report keeps its charts, even with an empty istiod card", async () => {
+  test("a mesh whose sidecars report keeps its charts; the istiod card says why it is empty", async () => {
     mockAnswers = [
       ["cilium_", "empty"],
       ["hubble_", "empty"],
@@ -542,8 +586,60 @@ describe("Service Mesh", () => {
     await renderServiceMesh();
     await openTab("Istio");
 
-    expect(hints()).toEqual([]);
+    // Not the tab's setup hint: the mesh is set up.
+    expect(hints()).toEqual(["istiod"]);
     expect(chartsVisible("istio_")).toBe(true);
+    expect(chartsVisible("envoy_")).toBe(true);
+    expect(chartsVisible("pilot_")).toBe(false);
+
+    const hint: HTMLElement = hintFor("istiod");
+    expect(
+      within(hint).getByRole("heading", {
+        name: "No istiod metrics from this cluster",
+      }),
+    ).toBeInTheDocument();
+    expect(hint).toHaveTextContent("reads the Istio sidecars, not istiod");
+    expect(codeIn(hint)).toEqual(["k8s.cluster.name", CLUSTER]);
+    expect(commandIn(hint)).toBeNull();
+    // In the Pilot card's own place, under its heading.
+    expect(
+      within(hint.closest('[data-testid="card"]')!).getByText(
+        "Control Plane — Pilot (istiod)",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("Linkerd's control plane card says the same when the proxies report", async () => {
+    mockAnswers = [
+      ["cilium_", "manual"],
+      ["hubble_", "manual"],
+      ["request_total", "has-data"],
+      ["identity_", "empty"],
+    ];
+
+    await renderServiceMesh();
+    await openTab("Linkerd");
+
+    expect(hints()).toEqual(["linkerd-control-plane"]);
+    expect(chartsVisible("request_total")).toBe(true);
+    expect(hintFor("linkerd-control-plane")).toHaveTextContent(
+      "reads the Linkerd proxies, not the control plane's own components",
+    );
+  });
+
+  test("an istiod card with data keeps the tab's charts even when the sidecars send nothing", async () => {
+    mockAnswers = [
+      ["cilium_", "manual"],
+      ["hubble_", "manual"],
+      ["istio_", "empty"],
+      ["pilot_", "has-data"],
+      ["envoy_", "empty"],
+    ];
+
+    await renderServiceMesh();
+    await openTab("Istio");
+
+    expect(hints()).toEqual([]);
     expect(chartsVisible("pilot_")).toBe(true);
   });
 
@@ -566,7 +662,8 @@ describe("Service Mesh", () => {
 
       const hint: HTMLElement = hintFor(provider);
 
-      expect(hints()).toHaveLength(1);
+      // The tab's hint only: its control plane card's note is hidden with it.
+      expect(hints()).toEqual([provider]);
       expect(codeIn(hint)).toEqual([
         "serviceMesh.enabled",
         "serviceMesh.provider",
@@ -617,7 +714,7 @@ describe("Service Mesh", () => {
 
     const [route] = mockNavigate.mock.calls[0] as [Route];
     expect(route.toString()).toBe(
-      "/docs/telemetry/kubernetes-agent#enable-service-mesh-metrics",
+      "/docs/en/telemetry/kubernetes-agent#enable-service-mesh-metrics",
     );
   });
 });

@@ -462,63 +462,98 @@ describe("the body", () => {
 });
 
 describe("an action that is running", () => {
-  test("shows a spinner, cannot be pressed twice, and keeps its title", () => {
-    let clicks: number = 0;
-
-    render(
+  function CheckAgain(props: {
+    isLoading: boolean;
+    onClick: () => void;
+  }): React.ReactElement {
+    return (
       <TableEmptyState
         kind={TableEmptyStateKind.Empty}
         title="No etcd metrics from this cluster"
         actions={[
           {
-            title: "Checking…",
+            title: props.isLoading ? "Checking…" : "Check again",
             icon: IconProp.Refresh,
-            isLoading: true,
+            isLoading: props.isLoading,
             dataTestId: "check-again",
-            onClick: () => {
-              clicks++;
-            },
+            onClick: props.onClick,
+          },
+          {
+            title: "View Documentation",
+            style: TableEmptyStateActionStyle.Link,
+            dataTestId: "docs",
+            onClick: () => {},
           },
         ]}
+      />
+    );
+  }
+
+  test("spins in place of its icon, says it is busy, and pressing it again does nothing", () => {
+    let clicks: number = 0;
+
+    render(
+      <CheckAgain
+        isLoading={true}
+        onClick={() => {
+          clicks++;
+        }}
       />,
     );
 
     const button: HTMLElement = screen.getByTestId("check-again");
 
-    expect(button).toBeDisabled();
     expect(button).toHaveTextContent("Checking…");
-    expect(
-      button.querySelector(`[data-icon="${IconProp.Spinner}"]`) ||
-        button.querySelector(".animate-spin"),
-    ).not.toBeNull();
+    // The spinner (a ring, unlike the refresh arrows), turned by the button.
+    expect(button.querySelector("svg circle")).not.toBeNull();
+    expect(button.className).toContain("[&_svg]:animate-spin");
+    expect(button.closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
 
     fireEvent.click(button);
     expect(clicks).toBe(0);
   });
 
-  test("works again once it has finished", () => {
-    let clicks: number = 0;
+  test("stays focusable while it runs: a disabled button drops the focus of whoever pressed it", () => {
+    render(<CheckAgain isLoading={true} onClick={() => {}} />);
 
-    render(
-      <TableEmptyState
-        kind={TableEmptyStateKind.Empty}
-        title="No etcd metrics from this cluster"
-        actions={[
-          {
-            title: "Check again",
-            icon: IconProp.Refresh,
-            isLoading: false,
-            dataTestId: "check-again",
-            onClick: () => {
-              clicks++;
-            },
-          },
-        ]}
-      />,
+    const button: HTMLElement = screen.getByTestId("check-again");
+
+    expect(button).toBeEnabled();
+    button.focus();
+    expect(button).toHaveFocus();
+  });
+
+  test("keeps the focus, and stays the same button, while its title changes and back", () => {
+    let clicks: number = 0;
+    const onClick: () => void = () => {
+      clicks++;
+    };
+    const view: ReturnType<typeof render> = render(
+      <CheckAgain isLoading={false} onClick={onClick} />,
     );
 
-    fireEvent.click(screen.getByTestId("check-again"));
+    const button: HTMLElement = screen.getByTestId("check-again");
+    button.focus();
+    fireEvent.click(button);
     expect(clicks).toBe(1);
+
+    view.rerender(<CheckAgain isLoading={true} onClick={onClick} />);
+
+    expect(screen.getByTestId("check-again")).toBe(button);
+    expect(button).toHaveTextContent("Checking…");
+    expect(button).toHaveFocus();
+
+    view.rerender(<CheckAgain isLoading={false} onClick={onClick} />);
+
+    expect(screen.getByTestId("check-again")).toBe(button);
+    expect(button).toHaveTextContent("Check again");
+    expect(button).toHaveFocus();
+    expect(button.closest("[aria-busy]")).toBeNull();
+    expect(button.querySelector("svg circle")).toBeNull();
+    expect(button.className).not.toContain("animate-spin");
+
+    fireEvent.click(button);
+    expect(clicks).toBe(2);
   });
 });
 
