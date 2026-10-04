@@ -37,6 +37,16 @@ interface FilterRow {
   filter: MetricPipelineRuleFilterCondition;
 }
 
+type SerializeFunction = (
+  filters: Array<MetricPipelineRuleFilterCondition>,
+) => string;
+
+const serialize: SerializeFunction = (
+  filters: Array<MetricPipelineRuleFilterCondition>,
+): string => {
+  return JSON.stringify(filters);
+};
+
 const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -57,13 +67,34 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * The filters the form holds already. Only a change is reported: the
+   * form takes a value reported before it has filled in its defaults as the
+   * user's own and fills in no defaults after it (BasicForm), so reporting
+   * the filters it was handed - on mount, or as each row draws itself -
+   * left a new rule with no Filter Condition and switched off, though its
+   * switch showed on.
+   */
+  const reportedFilters: MutableRefObject<string> = useRef<string>(
+    serialize(props.value || []),
+  );
+
   useEffect(() => {
+    const filters: Array<MetricPipelineRuleFilterCondition> = rows.map(
+      (row: FilterRow): MetricPipelineRuleFilterCondition => {
+        return row.filter;
+      },
+    );
+    const serialized: string = serialize(filters);
+
+    if (serialized === reportedFilters.current) {
+      return;
+    }
+
+    reportedFilters.current = serialized;
+
     if (props.onChange) {
-      props.onChange(
-        rows.map((row: FilterRow): MetricPipelineRuleFilterCondition => {
-          return row.filter;
-        }),
-      );
+      props.onChange(filters);
     }
   }, [rows]);
 

@@ -275,6 +275,8 @@ const MetricPipelineRules: FunctionComponent<
       enableDragAndDrop={true}
       dragDropIndexField="sortOrder"
       createEditModalWidth={ModalWidth.Large}
+      // No filters yet: the rule matches every data point until some are added.
+      createInitialValues={{ filters: [] }}
       cardProps={{
         title: "Metric Pipeline Rules",
         description:

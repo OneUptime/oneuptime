@@ -764,7 +764,52 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         return;
       }
 
-      if (isInitialValuesSet.current || hasUserEdited.current) {
+      if (isInitialValuesSet.current) {
+        return;
+      }
+
+      /*
+       * A field wrote a value before the defaults were filled in: a custom
+       * element that reports what it holds as soon as it is drawn (its
+       * effect runs before this one). Nothing it wrote, and nothing typed,
+       * is re-seeded - the form keeps every value it holds - but the fields
+       * still empty get their defaults, as they would have without it.
+       * Skipping them drew a switch on (its default) and sent it off, and
+       * never sent a hidden field's default at all.
+       */
+      if (hasUserEdited.current) {
+        if (formFields.length === 0) {
+          return;
+        }
+
+        const filledIn: FormValues<T> = {
+          ...refCurrentValue.current,
+        } as FormValues<T>;
+        let didFillIn: boolean = false;
+
+        for (const field of formFields) {
+          const fieldName: string = field.name!;
+
+          if ((filledIn as any)[fieldName] !== undefined) {
+            continue;
+          }
+
+          if (field.defaultValue) {
+            (filledIn as any)[fieldName] = field.defaultValue;
+            didFillIn = true;
+          } else if (field.getDefaultValue) {
+            (filledIn as any)[fieldName] = field.getDefaultValue(filledIn);
+            didFillIn = true;
+          }
+        }
+
+        isInitialValuesSet.current = true;
+
+        if (didFillIn) {
+          refCurrentValue.current = filledIn;
+          setCurrentValue(refCurrentValue.current);
+        }
+
         return;
       }
 
