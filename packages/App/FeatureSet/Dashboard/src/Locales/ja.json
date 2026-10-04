@@ -221,6 +221,7 @@
     "categories": {
       "account": "アカウント",
       "actions": "アクション",
+      "pages": "ページ",
       "quickLinks": "クイックリンク"
     },
     "sections": {
@@ -24810,6 +24811,7 @@
   "Your team's measurements, worked out for this incident.": "このインシデントについて算出した、チームの測定値。",
   "Your team's measurements, worked out for this maintenance event.": "このメンテナンスイベントについて算出した、チームの測定値。",
   "less than a minute": "1 分未満",
+  "User Settings": "ユーザー設定",
   "Your logo at the top of the form's page, and your favicon in the browser tab.": "フォームのページ上部に表示するロゴと、ブラウザーのタブに表示するファビコンです。",
   "The form shows the OneUptime logo and favicon until you upload your own.": "独自のものをアップロードするまで、フォームには OneUptime のロゴとファビコンが表示されます。",
   "The form shows the OneUptime logo until you upload yours.": "独自のロゴをアップロードするまで、フォームには OneUptime のロゴが表示されます。",

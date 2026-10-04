@@ -76,6 +76,11 @@ export interface PaletteRowItem {
   description?: string | undefined;
   icon?: IconProp | undefined;
   iconColor?: string | undefined;
+  /**
+   * Where the item lives ("Project Settings", "Advanced"). Shown under the
+   * title in place of the description.
+   */
+  breadcrumb?: Array<string> | undefined;
   shortcut?: Array<KeyboardShortcutKey> | undefined;
 }
 
@@ -152,10 +157,37 @@ const PaletteRow: FunctionComponent<ComponentProps> = (
         <p className="truncate text-sm font-medium text-gray-900">
           {highlightMatch(item.title, props.query)}
         </p>
-        {item.description && (
-          <p className="truncate text-xs text-gray-500">
-            {highlightMatch(item.description, props.query)}
+        {item.breadcrumb && item.breadcrumb.length > 0 ? (
+          <p
+            data-testid={`command-palette-option-${item.id}-breadcrumb`}
+            className="truncate text-xs text-gray-500"
+          >
+            {item.breadcrumb.map((crumb: string, index: number) => {
+              return (
+                <React.Fragment key={index}>
+                  {index > 0 && (
+                    <>
+                      {/*
+                       * The arrow is drawn for the eye; a screen reader
+                       * hears a comma between the names instead.
+                       */}
+                      <span aria-hidden="true" className="px-1 text-gray-400">
+                        ›
+                      </span>
+                      <span className="sr-only">, </span>
+                    </>
+                  )}
+                  {highlightMatch(crumb, props.query)}
+                </React.Fragment>
+              );
+            })}
           </p>
+        ) : (
+          item.description && (
+            <p className="truncate text-xs text-gray-500">
+              {highlightMatch(item.description, props.query)}
+            </p>
+          )
         )}
       </div>
       {item.shortcut && item.shortcut.length > 0 && (

@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Incidentes ativos",
+      "adminDashboard": "Painel de administração",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Criar alerta",
+      "createAnnouncement": "Criar anúncio",
+      "createMonitor": "Criar monitor",
+      "createScheduledMaintenance": "Criar manutenção programada",
+      "darkTheme": "Mudar para o tema escuro",
+      "declareIncident": "Declarar incidente",
+      "lightTheme": "Mudar para o tema claro",
+      "logOut": "Sair",
+      "myOnCallPolicies": "Minhas Políticas de Plantão",
+      "projectInvitations": "Convites do projeto"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "Conta",
+      "actions": "Ações",
+      "pages": "Páginas",
+      "quickLinks": "Links rápidos"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Alertas",
+      "incidents": "Incidentes",
+      "monitors": "Monitores",
+      "onCallPolicies": "Políticas de plantão",
+      "statusPages": "Páginas de status"
     }
   },
   "keyboardShortcuts": {
@@ -24810,6 +24811,7 @@
   "Your team's measurements, worked out for this incident.": "As medições da sua equipe, calculadas para este incidente.",
   "Your team's measurements, worked out for this maintenance event.": "As medições da sua equipe, calculadas para este evento de manutenção.",
   "less than a minute": "menos de um minuto",
+  "User Settings": "Configurações do usuário",
   "Your logo at the top of the form's page, and your favicon in the browser tab.": "O seu logotipo no topo da página do formulário e o seu favicon na aba do navegador.",
   "The form shows the OneUptime logo and favicon until you upload your own.": "O formulário mostra o logotipo e o favicon da OneUptime até que você carregue os seus.",
   "The form shows the OneUptime logo until you upload yours.": "O formulário mostra o logotipo da OneUptime até que você carregue o seu.",

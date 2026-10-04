@@ -19,9 +19,13 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import DashboardCommandPalette from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
+import { slugifyPaletteCommandId } from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 
 /*
@@ -41,9 +45,12 @@ import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 const navigateMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
+const getCurrentProjectMock: MockFunction = getJestMockFunction();
 const getAllPermissionsMock: MockFunction = getJestMockFunction();
 const isMasterAdminMock: MockFunction = getJestMockFunction();
 let navigationTranslations: Record<string, string> = {};
+let isBillingEnabled: boolean = false;
+let pageSearchAreasBuilds: number = 0;
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -120,9 +127,56 @@ jest.mock("../../../UI/Utils/Project", () => {
       getCurrentProjectId: (...args: Array<unknown>) => {
         return getCurrentProjectIdMock(...args);
       },
+      getCurrentProject: (...args: Array<unknown>) => {
+        return getCurrentProjectMock(...args);
+      },
     },
   };
 });
+
+/*
+ * Billing pages exist only where billing is on. A getter in a factory
+ * object is copied once, so it is defined on the copy instead.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+  const config: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(config, "BILLING_ENABLED", {
+    enumerable: true,
+    get: (): boolean => {
+      return isBillingEnabled;
+    },
+  });
+
+  return config;
+});
+
+/*
+ * Counts how often the page rows are built: a re-render of an open Search
+ * reuses them, and a change in what the user may do rebuilds them.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex",
+    ) as Record<string, unknown>;
+    const getPageSearchAreas: () => unknown = actual[
+      "getPageSearchAreas"
+    ] as () => unknown;
+
+    return {
+      ...actual,
+      getPageSearchAreas: (): unknown => {
+        pageSearchAreasBuilds++;
+        return getPageSearchAreas();
+      },
+    };
+  },
+);
 
 function palette(): HTMLElement | null {
   return screen.queryByTestId("command-palette");
@@ -167,9 +221,12 @@ beforeEach(() => {
     "navbar.items.servicesTitle": "Services",
   };
   getCurrentProjectIdMock.mockReturnValue(null);
+  getCurrentProjectMock.mockReturnValue(null);
   getAllPermissionsMock.mockReturnValue([]);
   isMasterAdminMock.mockReturnValue(false);
   getListMock.mockResolvedValue({ data: [], count: 0 } as never);
+  isBillingEnabled = false;
+  pageSearchAreasBuilds = 0;
 });
 
 afterEach(() => {
@@ -179,6 +236,7 @@ afterEach(() => {
   navigateMock.mockReset();
   getListMock.mockReset();
   getCurrentProjectIdMock.mockReset();
+  getCurrentProjectMock.mockReset();
   getAllPermissionsMock.mockReset();
   isMasterAdminMock.mockReset();
 });
@@ -389,6 +447,348 @@ describe("DashboardCommandPalette navigation keyword search", () => {
       expect(navigateMock).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * "If I search for API keys or if I search for Delete Project, we do not
+ * have that in search. Can you please index more pages that are part of
+ * project settings or other pages, for example, on call schedules, on-call
+ * policy, and all that stuff?" (the maintainer)
+ */
+describe("DashboardCommandPalette finds every page the menus link to", () => {
+  // The row of a page, by its PageMap key: ids come from the route template.
+  const pageOptionTestId: (pageKey: PageMap, queryString?: string) => string = (
+    pageKey: PageMap,
+    queryString?: string,
+  ): string => {
+    return `command-palette-option-${slugifyPaletteCommandId(
+      "page",
+      RouteMap[pageKey]!.toString() + (queryString || ""),
+    )}`;
+  };
+
+  const search: (query: string) => void = (query: string): void => {
+    pressChord({ key: "k", metaKey: true });
+    fireEvent.change(screen.getByTestId("command-palette-input"), {
+      target: { value: query },
+    });
+  };
+
+  const optionTestIds: () => Array<string> = (): Array<string> => {
+    return screen.getAllByRole("option").map((option: HTMLElement): string => {
+      return option.getAttribute("data-testid") || "";
+    });
+  };
+
+  const breadcrumbOf: (optionTestId: string) => string = (
+    optionTestId: string,
+  ): string => {
+    // What the eye reads: the crumbs joined by the drawn arrows.
+    const breadcrumb: HTMLElement = screen.getByTestId(
+      `${optionTestId}-breadcrumb`,
+    );
+    return Array.from(breadcrumb.childNodes)
+      .filter((node: ChildNode): boolean => {
+        return !(
+          node instanceof HTMLElement && node.classList.contains("sr-only")
+        );
+      })
+      .map((node: ChildNode): string => {
+        return node.textContent || "";
+      })
+      .join("")
+      .replace(/›/g, " › ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  beforeEach(() => {
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+    // The products menu's names, as en.json holds them.
+    navigationTranslations = {
+      ...navigationTranslations,
+      "navbar.items.projectSettingsTitle": "Project Settings",
+      "navbar.items.incidentsTitle": "Incidents",
+      "navbar.items.alertsTitle": "Alerts",
+      "navbar.items.onCallDutyTitle": "On-Call Duty",
+    };
+  });
+
+  test("'api keys' opens API Keys, shown under Project Settings > Advanced", () => {
+    render(<DashboardCommandPalette />);
+    search("api keys");
+
+    const apiKeys: string = pageOptionTestId(PageMap.SETTINGS_APIKEYS);
+
+    // The best match is first, so Enter opens it.
+    expect(optionTestIds()[0]).toBe(apiKeys);
+    expect(screen.getByTestId(apiKeys)).toHaveTextContent("API Keys");
+    expect(breadcrumbOf(apiKeys)).toBe("Project Settings › Advanced");
+    expect(
+      screen.getByTestId("command-palette-section-pages"),
+    ).toContainElement(screen.getByTestId(apiKeys));
+
+    fireEvent.keyDown(screen.getByTestId("command-palette-input"), {
+      key: "Enter",
+    });
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/project-a/settings/api-keys"),
+    );
+    expect(palette()).not.toBeInTheDocument();
+  });
+
+  test("'delete project' offers Delete Project to someone who may delete it, and opens the Danger Zone", () => {
+    getAllPermissionsMock.mockReturnValue([Permission.ProjectOwner]);
+    render(<DashboardCommandPalette />);
+    search("delete project");
+
+    const action: string = "command-palette-option-page-action-delete-project";
+
+    expect(optionTestIds()[0]).toBe(action);
+    expect(screen.getByTestId(action)).toHaveTextContent("Delete Project");
+    expect(breadcrumbOf(action)).toBe("Project Settings › Danger Zone");
+    expect(
+      screen.getByTestId("command-palette-section-actions"),
+    ).toContainElement(screen.getByTestId(action));
+    // The page itself is offered too, after the action.
+    expect(optionTestIds()).toContain(
+      pageOptionTestId(PageMap.SETTINGS_DANGERZONE),
+    );
+
+    fireEvent.click(screen.getByTestId(action));
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/project-a/settings/danger-zone"),
+    );
+  });
+
+  test("Delete Project is not offered without the permission; the Danger Zone page still is", () => {
+    getAllPermissionsMock.mockReturnValue([Permission.ProjectMember]);
+    render(<DashboardCommandPalette />);
+    search("delete project");
+
+    expect(optionTestIds()).not.toContain(
+      "command-palette-option-page-action-delete-project",
+    );
+    expect(optionTestIds()[0]).toBe(
+      pageOptionTestId(PageMap.SETTINGS_DANGERZONE),
+    );
+  });
+
+  test("a master admin may always delete the project", () => {
+    isMasterAdminMock.mockReturnValue(true);
+    render(<DashboardCommandPalette />);
+    search("delete project");
+
+    expect(optionTestIds()[0]).toBe(
+      "command-palette-option-page-action-delete-project",
+    );
+  });
+
+  test.each([
+    ["on-call schedules", PageMap.ON_CALL_DUTY_SCHEDULES],
+    ["on call schedule", PageMap.ON_CALL_DUTY_SCHEDULES],
+    ["rota", PageMap.ON_CALL_DUTY_SCHEDULES],
+    ["on-call policy", PageMap.ON_CALL_DUTY_POLICIES],
+    ["escalation policies", PageMap.ON_CALL_DUTY_POLICIES],
+    ["sso", PageMap.SETTINGS_SSO],
+    ["saml", PageMap.SETTINGS_SSO],
+    ["labels", PageMap.SETTINGS_LABELS],
+    ["ingestion keys", PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS],
+    ["2fa", PageMap.USER_TWO_FACTOR_AUTH],
+    ["change password", PageMap.USER_PROFILE_PASSWORD],
+    ["incident severity", PageMap.INCIDENTS_SETTINGS_SEVERITY],
+    ["incident custom fields", PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS],
+    ["notification methods", PageMap.USER_SETTINGS_NOTIFICATION_METHODS],
+    ["scrub rules", PageMap.LOGS_SETTINGS_SCRUB_RULES],
+  ])("'%s' opens %s first", (query: string, pageKey: PageMap) => {
+    render(<DashboardCommandPalette />);
+    search(query);
+
+    expect(optionTestIds()[0]).toBe(pageOptionTestId(pageKey));
+  });
+
+  test("pages with one title are told apart by where they live", () => {
+    render(<DashboardCommandPalette />);
+    search("custom fields");
+
+    const incidents: string = pageOptionTestId(
+      PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS,
+    );
+    const alerts: string = pageOptionTestId(
+      PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS,
+    );
+
+    expect(breadcrumbOf(incidents)).toBe("Incidents › Settings");
+    expect(breadcrumbOf(alerts)).toBe("Alerts › Settings");
+  });
+
+  test("pages are offered while searching only: browsing lists the products and actions", () => {
+    render(<DashboardCommandPalette />);
+    pressChord({ key: "k", metaKey: true });
+
+    expect(
+      screen.queryByTestId("command-palette-section-pages"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(pageOptionTestId(PageMap.SETTINGS_APIKEYS)),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("command-palette-section-actions"),
+    ).toBeInTheDocument();
+  });
+
+  test("a page opened from search is offered again under Recent", () => {
+    render(<DashboardCommandPalette />);
+    search("api keys");
+    fireEvent.click(
+      screen.getByTestId(pageOptionTestId(PageMap.SETTINGS_APIKEYS)),
+    );
+
+    pressChord({ key: "k", metaKey: true });
+
+    const recentApiKeys: string = pageOptionTestId(
+      PageMap.SETTINGS_APIKEYS,
+    ).replace("command-palette-option-", "command-palette-option-recent-");
+
+    expect(
+      screen.getByTestId("command-palette-section-recent"),
+    ).toContainElement(screen.getByTestId(recentApiKeys));
+    expect(breadcrumbOf(recentApiKeys)).toBe("Project Settings › Advanced");
+  });
+
+  test("billing pages are offered only where billing is on", () => {
+    render(<DashboardCommandPalette />);
+    search("invoices");
+
+    expect(
+      screen.queryByTestId(pageOptionTestId(PageMap.SETTINGS_BILLING_INVOICES)),
+    ).not.toBeInTheDocument();
+
+    cleanup();
+    isBillingEnabled = true;
+    render(<DashboardCommandPalette />);
+    search("invoices");
+
+    const invoices: string = pageOptionTestId(
+      PageMap.SETTINGS_BILLING_INVOICES,
+    );
+    expect(optionTestIds()[0]).toBe(invoices);
+    expect(breadcrumbOf(invoices)).toBe(
+      "Project Settings › Billing and Invoices",
+    );
+  });
+
+  test("Monitor Groups is offered only when the project has them turned on", () => {
+    render(<DashboardCommandPalette />);
+    search("monitor groups");
+
+    expect(
+      screen.queryByTestId(pageOptionTestId(PageMap.MONITOR_GROUPS)),
+    ).not.toBeInTheDocument();
+
+    cleanup();
+    getCurrentProjectMock.mockReturnValue({
+      isFeatureFlagMonitorGroupsEnabled: true,
+    });
+    render(<DashboardCommandPalette />);
+    search("monitor groups");
+
+    expect(optionTestIds()[0]).toBe(pageOptionTestId(PageMap.MONITOR_GROUPS));
+  });
+
+  test("a stored project that cannot be read leaves Monitor Groups out, and Search still works", () => {
+    getCurrentProjectMock.mockImplementation(() => {
+      throw new Error("Unreadable project in storage");
+    });
+    render(<DashboardCommandPalette />);
+    search("api keys");
+
+    expect(optionTestIds()[0]).toBe(pageOptionTestId(PageMap.SETTINGS_APIKEYS));
+  });
+
+  test("without a project only your own profile pages are offered", () => {
+    getCurrentProjectIdMock.mockReturnValue(null);
+    render(<DashboardCommandPalette />);
+
+    search("api keys");
+    expect(
+      screen.queryByTestId(pageOptionTestId(PageMap.SETTINGS_APIKEYS)),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("command-palette-input"), {
+      target: { value: "two-factor" },
+    });
+
+    const twoFactor: string = pageOptionTestId(PageMap.USER_TWO_FACTOR_AUTH);
+    expect(optionTestIds()[0]).toBe(twoFactor);
+    expect(breadcrumbOf(twoFactor)).toBe("User Profile › Security");
+
+    fireEvent.click(screen.getByTestId(twoFactor));
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/user-profile/two-factor-auth"),
+    );
+  });
+
+  test("a translated page is shown in the reader's language and still found by its English name", () => {
+    navigationTranslations = {
+      ...navigationTranslations,
+      "API Keys": "API-Schlüssel",
+      Advanced: "Erweitert",
+      "navbar.items.projectSettingsTitle": "Projekteinstellungen",
+    };
+    render(<DashboardCommandPalette />);
+    search("api keys");
+
+    const apiKeys: string = pageOptionTestId(PageMap.SETTINGS_APIKEYS);
+    expect(optionTestIds()[0]).toBe(apiKeys);
+    expect(screen.getByTestId(apiKeys)).toHaveTextContent("API-Schlüssel");
+    // The products menu's own name starts the breadcrumb.
+    expect(breadcrumbOf(apiKeys)).toBe("Projekteinstellungen › Erweitert");
+
+    fireEvent.change(screen.getByTestId("command-palette-input"), {
+      target: { value: "schlüssel" },
+    });
+    expect(optionTestIds()).toContain(apiKeys);
+  });
+
+  test("a re-render while Search is open keeps the page rows; new rights rebuild them", () => {
+    getAllPermissionsMock.mockReturnValue([Permission.ProjectMember]);
+    const view: ReturnType<typeof render> = render(<DashboardCommandPalette />);
+    // Nothing is built while Search is closed.
+    expect(pageSearchAreasBuilds).toBe(0);
+
+    search("delete project");
+
+    const action: string = "command-palette-option-page-action-delete-project";
+    expect(pageSearchAreasBuilds).toBe(1);
+    expect(optionTestIds()).not.toContain(action);
+
+    view.rerender(<DashboardCommandPalette />);
+    expect(pageSearchAreasBuilds).toBe(1);
+
+    // The rights arrive while Search is open: Delete Project is offered.
+    getAllPermissionsMock.mockReturnValue([Permission.ProjectOwner]);
+    view.rerender(<DashboardCommandPalette />);
+    expect(pageSearchAreasBuilds).toBe(2);
+    expect(optionTestIds()[0]).toBe(action);
+  });
+
+  test("after a project switch, a page opens in the project now open", () => {
+    const view: ReturnType<typeof render> = render(<DashboardCommandPalette />);
+    search("api keys");
+
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-b"));
+    view.rerender(<DashboardCommandPalette />);
+    fireEvent.click(
+      screen.getByTestId(pageOptionTestId(PageMap.SETTINGS_APIKEYS)),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/project-b/settings/api-keys"),
+    );
+  });
 });
 
 describe("dashboard Cmd/Ctrl+K ownership with the products menu mounted", () => {

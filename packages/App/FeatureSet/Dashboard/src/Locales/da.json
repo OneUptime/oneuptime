@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Aktive hændelser",
+      "adminDashboard": "Admin-dashboard",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Opret advarsel",
+      "createAnnouncement": "Opret meddelelse",
+      "createMonitor": "Opret monitor",
+      "createScheduledMaintenance": "Opret planlagt vedligeholdelse",
+      "darkTheme": "Skift til mørkt tema",
+      "declareIncident": "Erklær hændelse",
+      "lightTheme": "Skift til lyst tema",
+      "logOut": "Log ud",
+      "myOnCallPolicies": "Mine vagtpolitikker",
+      "projectInvitations": "Projektinvitationer"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "Konto",
+      "actions": "Handlinger",
+      "pages": "Sider",
+      "quickLinks": "Hurtige links"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Advarsler",
+      "incidents": "Hændelser",
+      "monitors": "Monitorer",
+      "onCallPolicies": "Vagtpolitikker",
+      "statusPages": "Statussider"
     }
   },
   "keyboardShortcuts": {
@@ -24810,6 +24811,7 @@
   "Your team's measurements, worked out for this incident.": "Jeres teams målinger, beregnet for denne hændelse.",
   "Your team's measurements, worked out for this maintenance event.": "Jeres teams målinger, beregnet for denne vedligeholdelseshændelse.",
   "less than a minute": "mindre end et minut",
+  "User Settings": "Brugerindstillinger",
   "Your logo at the top of the form's page, and your favicon in the browser tab.": "Dit logo øverst på formularens side og dit favicon i browserfanen.",
   "The form shows the OneUptime logo and favicon until you upload your own.": "Formularen viser OneUptimes logo og favicon, indtil du uploader dine egne.",
   "The form shows the OneUptime logo until you upload yours.": "Formularen viser OneUptimes logo, indtil du uploader dit eget.",

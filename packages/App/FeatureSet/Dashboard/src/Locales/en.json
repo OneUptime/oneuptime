@@ -221,6 +221,7 @@
     "categories": {
       "account": "Account",
       "actions": "Actions",
+      "pages": "Pages",
       "quickLinks": "Quick links"
     },
     "sections": {
@@ -24810,6 +24811,7 @@
   "Your team's measurements, worked out for this incident.": "Your team's measurements, worked out for this incident.",
   "Your team's measurements, worked out for this maintenance event.": "Your team's measurements, worked out for this maintenance event.",
   "less than a minute": "less than a minute",
+  "User Settings": "User Settings",
   "Your logo at the top of the form's page, and your favicon in the browser tab.": "Your logo at the top of the form's page, and your favicon in the browser tab.",
   "The form shows the OneUptime logo and favicon until you upload your own.": "The form shows the OneUptime logo and favicon until you upload your own.",
   "The form shows the OneUptime logo until you upload yours.": "The form shows the OneUptime logo until you upload yours.",

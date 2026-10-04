@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "進行中事件",
+      "adminDashboard": "管理員儀表板",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "建立警示",
+      "createAnnouncement": "建立公告",
+      "createMonitor": "建立監測器",
+      "createScheduledMaintenance": "建立排定維護",
+      "darkTheme": "切換至深色主題",
+      "declareIncident": "宣告事件",
+      "lightTheme": "切換至淺色主題",
+      "logOut": "登出",
+      "myOnCallPolicies": "我的待命策略",
+      "projectInvitations": "專案邀請"
     },
     "categories": {
-      "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "account": "帳戶",
+      "actions": "操作",
+      "pages": "頁面",
+      "quickLinks": "快速連結"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "警示",
+      "incidents": "事件",
+      "monitors": "監測器",
+      "onCallPolicies": "待命策略",
+      "statusPages": "狀態頁面"
     }
   },
   "keyboardShortcuts": {
@@ -24810,6 +24811,7 @@
   "Your team's measurements, worked out for this incident.": "為此事件計算的團隊測量。",
   "Your team's measurements, worked out for this maintenance event.": "為此維護事件計算的團隊測量。",
   "less than a minute": "不到 1 分鐘",
+  "User Settings": "使用者設定",
   "Your logo at the top of the form's page, and your favicon in the browser tab.": "表單頁面頂端的標誌，以及瀏覽器分頁上的 Favicon。",
   "The form shows the OneUptime logo and favicon until you upload your own.": "在您上傳自己的標誌和 Favicon 之前，表單會顯示 OneUptime 的標誌和 Favicon。",
   "The form shows the OneUptime logo until you upload yours.": "在您上傳自己的標誌之前，表單會顯示 OneUptime 的標誌。",

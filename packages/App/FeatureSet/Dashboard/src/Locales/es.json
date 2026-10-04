@@ -221,6 +221,7 @@
     "categories": {
       "account": "Cuenta",
       "actions": "Acciones",
+      "pages": "Páginas",
       "quickLinks": "Enlaces rápidos"
     },
     "sections": {
@@ -24810,6 +24811,7 @@
   "Your team's measurements, worked out for this incident.": "Las mediciones de tu equipo, calculadas para este incidente.",
   "Your team's measurements, worked out for this maintenance event.": "Las mediciones de tu equipo, calculadas para este evento de mantenimiento.",
   "less than a minute": "menos de un minuto",
+  "User Settings": "Ajustes de usuario",
   "Your logo at the top of the form's page, and your favicon in the browser tab.": "Su logotipo en la parte superior de la página del formulario y su favicon en la pestaña del navegador.",
   "The form shows the OneUptime logo and favicon until you upload your own.": "El formulario muestra el logotipo y el favicon de OneUptime hasta que suba los suyos.",
   "The form shows the OneUptime logo until you upload yours.": "El formulario muestra el logotipo de OneUptime hasta que suba el suyo.",
