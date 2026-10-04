@@ -4,7 +4,8 @@ import path from "path";
 import ts from "typescript";
 
 /*
- * The ID line in the dark theme.
+ * The ID line in the dark theme - the record's ID, and the Created and
+ * Updated times that share its line.
  *
  * The dark theme does not use Tailwind's dark: variants: Theme.css re-colours
  * the light utility classes under html.dark, one rule per class or family of
@@ -26,6 +27,14 @@ const ID_LINE: string = path.join(
   "DetailIdLine.tsx",
 );
 
+const RECORD_LINE: string = path.join(
+  COMMON,
+  "UI",
+  "Components",
+  "Detail",
+  "DetailRecordLine.tsx",
+);
+
 const DETAIL: string = path.join(
   COMMON,
   "UI",
@@ -45,13 +54,19 @@ interface SourceRange {
 }
 
 const RANGES: Array<SourceRange> = [
-  // The whole component.
+  // The ID, its copy button and what a copy says.
   { file: ID_LINE, start: "const DetailIdLine", end: "export default" },
-  // The divider Detail draws above it.
+  // The line that holds it, and the Created and Updated times on it.
+  {
+    file: RECORD_LINE,
+    start: "export const DetailRecordTimeElement",
+    end: "export default",
+  },
+  // The divider Detail draws above the line.
   {
     file: DETAIL,
-    start: "const idLineClassName",
-    end: "<DetailIdLine",
+    start: "const recordLineClassName",
+    end: "<DetailRecordLine",
   },
 ];
 
@@ -188,10 +203,10 @@ describe("the ID line in the dark theme", () => {
   test("reads the label, the ID, the button, the tick, the failure and the divider", () => {
     expect(colorTokens(RANGES)).toEqual(
       expect.arrayContaining([
-        // "ID" and its icon.
+        // "ID", "Created" and "Updated", and their icons.
         "text-gray-500",
         "text-gray-400",
-        // The ID.
+        // The ID and the times.
         "text-gray-600",
         "hover:text-gray-900",
         // The copy button and its tick.
@@ -203,6 +218,18 @@ describe("the ID line in the dark theme", () => {
         "text-red-600",
         // The divider above the line.
         "border-gray-100",
+      ]),
+    );
+  });
+
+  test("reads the times' classes too, not just the ID's", () => {
+    const timeTokens: Array<string> = colorTokens([RANGES[1]!]);
+
+    expect(timeTokens).toEqual(
+      expect.arrayContaining([
+        "text-gray-500",
+        "text-gray-400",
+        "text-gray-600",
       ]),
     );
   });

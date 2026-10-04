@@ -407,19 +407,29 @@ describe("MemberRoleAssignment header layout", () => {
     renderAssignment();
 
     expect(screen.getByText("Incident Roles")).toBeInTheDocument();
-    expect(screen.queryByTestId("card-header")).toBeNull();
+    expect(screen.getByTestId("card-header")).toHaveAttribute(
+      "data-header-layout",
+      "default",
+    );
   });
 
-  test("stacks the header, with Refresh on its own row, when asked", () => {
+  test("stacks the description under the header's row when asked, with Refresh on the title's row, at the right", () => {
     renderAssignment({ headerLayout: "stacked" });
 
     const header: HTMLElement = screen.getByTestId("card-header");
+    const titleRow: HTMLElement = screen.getByTestId("card-header-title-row");
 
     expect(header).toHaveAttribute("data-header-layout", "stacked");
     expect(
       within(screen.getByTestId("card-header-actions")).getByText("Refresh"),
     ).toBeInTheDocument();
-    expect(within(header).getByText("Incident Roles")).toBeInTheDocument();
+    expect(titleRow).toContainElement(
+      screen.getByTestId("card-header-actions"),
+    );
+    expect(within(titleRow).getByText("Incident Roles")).toBeInTheDocument();
+    expect(titleRow.lastElementChild).toBe(
+      screen.getByTestId("card-header-actions"),
+    );
   });
 
   test("the loading and error cards stack the same way", () => {

@@ -26,6 +26,24 @@ import ts from "typescript";
  *      the cards below, each kept for a reason;
  *   4. the shared Detail no longer moving the ID (the rendering itself is
  *      tested in Common/Tests/UI/Components/Detail).
+ *
+ * "Can you also show created along the same lines as ID so it doesn't take
+ * space up top. Please do this everywhere."
+ *
+ * So the line carries when the record was created, after the ID - and when
+ * it was last updated, on the cards that show that. Detail takes a
+ * FieldType.Date or FieldType.DateTime field on `createdAt` or `updatedAt`
+ * out of the grid and puts it there (Detail/DetailRecordTime.ts), and this
+ * also fails on:
+ *
+ *   5. a details field on `createdAt` or `updatedAt` that Detail would leave
+ *      in the grid - another type, no type, or drawn by the page's own
+ *      getElement - which is a Created row of its own again;
+ *   6. a details field titled "Created", "Created At", "Updated"... that
+ *      reads some other column, a Created row by another road;
+ *   7. showRecordLine={false} - a Detail that draws every field as a field -
+ *      anywhere but the custom fields card, whose keys people name;
+ *   8. the shared Detail no longer putting the times on the line.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "..", "..");
@@ -73,6 +91,32 @@ const ID_AS_FIELD: Record<string, string> = {
 // A title that names an ID: "Monitor ID", "ID".
 const TITLED_AS_AN_ID: RegExp = /\bID$/;
 
+// The columns every record keeps its creation and last update times in.
+const RECORD_TIME_COLUMNS: Array<string> = ["createdAt", "updatedAt"];
+
+// The types Detail moves a time on with (DetailRecordTime.ts).
+const RECORD_TIME_FIELD_TYPES: Array<string> = [
+  "FieldType.Date",
+  "FieldType.DateTime",
+];
+
+// A title that names the record's creation or update: "Created At".
+const TITLED_AS_A_RECORD_TIME: RegExp =
+  /^(Created|Updated|Last Updated|Date Created|Creation Date)( At| On| Date)?$/i;
+
+// The same words anywhere in a file, for the scan's cheap first pass.
+const TITLED_AS_A_RECORD_TIME_ANYWHERE: RegExp =
+  /(Created|Updated|Creation Date)/i;
+
+/*
+ * The Details that draw every field as a field, with no line under them.
+ * Each says why in a comment beside showRecordLine={false}.
+ */
+const RECORD_LINE_OFF: Record<string, string> = {
+  "packages/Common/UI/Components/CustomFields/CustomFieldsDetail.tsx":
+    "A record's custom fields are named by people: one called createdAt is theirs, not the record's own creation time.",
+};
+
 interface IdField {
   // Relative to the repository root, with forward slashes.
   file: string;
@@ -82,6 +126,23 @@ interface IdField {
   fieldType: string;
   hasGetElement: boolean;
   showIdAsField: boolean;
+}
+
+interface TimeField {
+  // Relative to the repository root, with forward slashes.
+  file: string;
+  line: number;
+  title: string;
+  // The column read: createdAt or updatedAt, or "" for another one.
+  column: string;
+  // The fieldType initializer as written, "" when there is none.
+  fieldType: string;
+  hasGetElement: boolean;
+}
+
+interface Use {
+  file: string;
+  line: number;
 }
 
 function listSourceFiles(directory: string): Array<string> {
@@ -164,10 +225,10 @@ function unwrap(expression: ts.Expression): ts.Expression {
 }
 
 /*
- * `field: { _id: true }` (ModelDetail) or `key: "_id"` (Detail): a field that
- * reads the record's own ID and nothing else.
+ * The one column a field reads: `field: { _id: true }` (ModelDetail) or
+ * `key: "_id"` (Detail). "" for a field that reads several, or none.
  */
-function selectsOnlyTheRecordId(object: ts.ObjectLiteralExpression): boolean {
+function onlyColumnSelected(object: ts.ObjectLiteralExpression): string {
   const field: ts.PropertyAssignment | undefined = findProperty(
     object,
     "field",
@@ -176,31 +237,65 @@ function selectsOnlyTheRecordId(object: ts.ObjectLiteralExpression): boolean {
   if (field) {
     const select: ts.Expression = unwrap(field.initializer);
 
-    return (
+    if (
       ts.isObjectLiteralExpression(select) &&
       select.properties.length === 1 &&
-      propertyName(select.properties[0]!) === "_id" &&
       ts.isPropertyAssignment(select.properties[0]!) &&
       (select.properties[0] as ts.PropertyAssignment).initializer.kind ===
         ts.SyntaxKind.TrueKeyword
-    );
+    ) {
+      return propertyName(select.properties[0]!) || "";
+    }
+
+    return "";
   }
 
   const key: ts.PropertyAssignment | undefined = findProperty(object, "key");
 
-  return Boolean(
-    key &&
-      ts.isStringLiteral(unwrap(key.initializer)) &&
-      (unwrap(key.initializer) as ts.StringLiteral).text === "_id",
+  if (key && ts.isStringLiteral(unwrap(key.initializer))) {
+    return (unwrap(key.initializer) as ts.StringLiteral).text;
+  }
+
+  return "";
+}
+
+// A field that reads the record's own ID and nothing else.
+function selectsOnlyTheRecordId(object: ts.ObjectLiteralExpression): boolean {
+  return onlyColumnSelected(object) === "_id";
+}
+
+function titleOf(
+  object: ts.ObjectLiteralExpression,
+  source: ts.SourceFile,
+): string {
+  const title: ts.PropertyAssignment | undefined = findProperty(
+    object,
+    "title",
   );
+  const titleExpression: ts.Expression | undefined = title
+    ? unwrap(title.initializer)
+    : undefined;
+
+  if (!titleExpression) {
+    return "";
+  }
+
+  return ts.isStringLiteral(titleExpression) ||
+    ts.isNoSubstitutionTemplateLiteral(titleExpression)
+    ? titleExpression.text
+    : titleExpression.getText(source);
 }
 
 function scan(): {
   idFields: Array<IdField>;
   showIdAsFieldUses: Array<{ file: string; line: number }>;
+  timeFields: Array<TimeField>;
+  recordLineOffUses: Array<Use>;
 } {
   const idFields: Array<IdField> = [];
   const showIdAsFieldUses: Array<{ file: string; line: number }> = [];
+  const timeFields: Array<TimeField> = [];
+  const recordLineOffUses: Array<Use> = [];
 
   const files: Array<string> = SCAN_DIRS.flatMap(
     (directory: string): Array<string> => {
@@ -212,7 +307,14 @@ function scan(): {
     const text: string = fs.readFileSync(file, "utf8");
 
     // Cheap first pass: only files that could hold one are parsed.
-    if (!text.includes("_id") && !text.includes("showIdAsField")) {
+    if (
+      !text.includes("_id") &&
+      !text.includes("showIdAsField") &&
+      !text.includes("createdAt") &&
+      !text.includes("updatedAt") &&
+      !text.includes("showRecordLine") &&
+      !TITLED_AS_A_RECORD_TIME_ANYWHERE.test(text)
+    ) {
       continue;
     }
 
@@ -225,9 +327,39 @@ function scan(): {
     );
 
     const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      // <Detail showRecordLine={false} />
+      if (
+        ts.isJsxAttribute(node) &&
+        node.name.getText(source) === "showRecordLine" &&
+        node.initializer &&
+        ts.isJsxExpression(node.initializer) &&
+        node.initializer.expression &&
+        unwrap(node.initializer.expression).kind === ts.SyntaxKind.FalseKeyword
+      ) {
+        recordLineOffUses.push({
+          file: relative(file),
+          line:
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
+        });
+      }
+
       if (ts.isObjectLiteralExpression(node)) {
         const line: number =
           source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+
+        // { ...props, showRecordLine: false }
+        const lineOff: ts.PropertyAssignment | undefined = findProperty(
+          node,
+          "showRecordLine",
+        );
+
+        if (
+          lineOff &&
+          unwrap(lineOff.initializer).kind === ts.SyntaxKind.FalseKeyword
+        ) {
+          recordLineOffUses.push({ file: relative(file), line });
+        }
 
         const optOut: ts.PropertyAssignment | undefined = findProperty(
           node,
@@ -277,6 +409,36 @@ function scan(): {
             ),
           });
         }
+
+        /*
+         * A details field that reads the record's creation or update time,
+         * or is titled as one: it has a title and reads a column, and is
+         * neither a table column or filter (`type`), a resource table's
+         * column (`getValue`) nor a form field.
+         */
+        const column: string = onlyColumnSelected(node);
+        const title: string = titleOf(node, source);
+        const readsAColumn: boolean =
+          hasMember(node, "field") || hasMember(node, "key");
+
+        if (
+          title &&
+          readsAColumn &&
+          !hasMember(node, "type") &&
+          !hasMember(node, "getValue") &&
+          !fieldTypeText.startsWith("FormFieldSchemaType") &&
+          (RECORD_TIME_COLUMNS.includes(column) ||
+            TITLED_AS_A_RECORD_TIME.test(title.trim()))
+        ) {
+          timeFields.push({
+            file: relative(file),
+            line,
+            title,
+            column: RECORD_TIME_COLUMNS.includes(column) ? column : "",
+            fieldType: fieldTypeText,
+            hasGetElement: hasMember(node, "getElement"),
+          });
+        }
       }
 
       ts.forEachChild(node, visit);
@@ -285,10 +447,10 @@ function scan(): {
     visit(source);
   }
 
-  return { idFields, showIdAsFieldUses };
+  return { idFields, showIdAsFieldUses, timeFields, recordLineOffUses };
 }
 
-const { idFields, showIdAsFieldUses } = scan();
+const { idFields, showIdAsFieldUses, timeFields, recordLineOffUses } = scan();
 
 function describeField(field: IdField): string {
   return `${field.file}:${field.line} "${field.title}" (${
@@ -409,11 +571,174 @@ describe("the shared Detail", () => {
     "utf8",
   );
 
+  const recordLine: string = fs.readFileSync(
+    path.join(
+      PACKAGES_DIR,
+      "Common",
+      "UI",
+      "Components",
+      "Detail",
+      "DetailRecordLine.tsx",
+    ),
+    "utf8",
+  );
+
   test("moves the record's ID to its ID line", () => {
     expect(detail).toContain(
       'import { getRecordIdText, isRecordIdField } from "./DetailRecordId";',
     );
-    expect(detail).toContain('import DetailIdLine from "./DetailIdLine";');
-    expect(detail).toMatch(/<DetailIdLine\s+recordId=\{recordId\}/);
+    expect(detail).toContain(
+      'import DetailRecordLine from "./DetailRecordLine";',
+    );
+    expect(detail).toMatch(/<DetailRecordLine\s+recordId=\{recordId\}/);
+    expect(recordLine).toContain('import DetailIdLine from "./DetailIdLine";');
+    expect(recordLine).toMatch(/<DetailIdLine\s+recordId=\{props\.recordId\}/);
+  });
+
+  test("moves the record's creation and update times to the same line", () => {
+    expect(detail).toMatch(
+      /import \{\s*getRecordTimes,\s*isRecordTimeField,\s*RecordTime,\s*\} from "\.\/DetailRecordTime";/,
+    );
+    expect(detail).toMatch(
+      /<DetailRecordLine\s+recordId=\{recordId\}\s+times=\{recordTimes\}/,
+    );
+    // Neither is left for the grid to draw.
+    expect(detail).toMatch(
+      /isRecordIdField\(field\) \|\| isRecordTimeField\(field\)/,
+    );
+  });
+});
+
+describe("when the record was created and last updated, on details cards", () => {
+  test("the scan finds the cards it is about", () => {
+    const createdAndUpdated: Array<TimeField> = timeFields.filter(
+      (field: TimeField): boolean => {
+        return field.column !== "";
+      },
+    );
+
+    // A dozen-odd overview, settings and template cards.
+    expect(createdAndUpdated.length).toBeGreaterThanOrEqual(13);
+
+    const titlesByFile: Array<string> = createdAndUpdated.map(
+      (field: TimeField): string => {
+        return `${field.file} ${field.column} ${field.title}`;
+      },
+    );
+
+    expect(titlesByFile).toEqual(
+      expect.arrayContaining([
+        // The card in the screenshot: a Created row above the ID line.
+        "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewDetailsCard.tsx createdAt Created",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index.tsx createdAt Created At",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/Index.tsx createdAt Created At",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Index.tsx createdAt Created At",
+        "packages/App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/Index.tsx createdAt Created At",
+        "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/AnnouncementView.tsx updatedAt Updated",
+        // A Detail drawn by hand, with no ID: its line is just Created.
+        "packages/App/FeatureSet/Dashboard/src/Pages/AIAgentTasks/View/Index.tsx createdAt Created At",
+      ]),
+    );
+    // The Community Edition checkout has no ee/, and must still pass.
+    expect(
+      titlesByFile.includes(
+        "ee/AdminDashboard/EnterpriseLicenses/Pages/View/Index.tsx createdAt Issued On",
+      ),
+    ).toBe(ENTERPRISE_PRESENT);
+  });
+
+  test("is a Date or DateTime field, so Detail draws it on the ID line instead of the grid", () => {
+    const rows: Array<string> = timeFields
+      .filter((field: TimeField): boolean => {
+        return (
+          field.column !== "" &&
+          (field.hasGetElement ||
+            !RECORD_TIME_FIELD_TYPES.includes(field.fieldType))
+        );
+      })
+      .map((field: TimeField): string => {
+        return `${field.file}:${field.line} "${field.title}" (${
+          field.fieldType || "no fieldType"
+        }${field.hasGetElement ? ", getElement" : ""})`;
+      });
+
+    expect(rows).toEqual([]);
+  });
+
+  test("is never a Created row read from another column", () => {
+    const rows: Array<string> = timeFields
+      .filter((field: TimeField): boolean => {
+        return field.column === "";
+      })
+      .map((field: TimeField): string => {
+        return `${field.file}:${field.line} "${field.title}"`;
+      });
+
+    expect(rows).toEqual([]);
+  });
+
+  test("the title check knows a Created row when it sees one", () => {
+    for (const title of [
+      "Created",
+      "Created At",
+      "Created On",
+      "Updated",
+      "Updated At",
+      "Last Updated",
+      "Date Created",
+      "Creation Date",
+    ]) {
+      expect({ title, matches: TITLED_AS_A_RECORD_TIME.test(title) }).toEqual({
+        title,
+        matches: true,
+      });
+    }
+
+    // Who, not when; and the record's own facts.
+    for (const title of [
+      "Created By",
+      "Created by User",
+      "Declared At",
+      "Starts At",
+      "Issued On",
+    ]) {
+      expect({ title, matches: TITLED_AS_A_RECORD_TIME.test(title) }).toEqual({
+        title,
+        matches: false,
+      });
+    }
+  });
+});
+
+describe("Details that switch the line off", () => {
+  test("are only the custom fields card", () => {
+    const files: Array<string> = Array.from(
+      new Set(
+        recordLineOffUses.map((use: Use): string => {
+          return use.file;
+        }),
+      ),
+    ).sort();
+
+    expect(files).toEqual(Object.keys(RECORD_LINE_OFF).sort());
+  });
+
+  test("say why, beside the switch", () => {
+    for (const file of Object.keys(RECORD_LINE_OFF)) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_DIR, file),
+        "utf8",
+      );
+      const switchAt: number = source.indexOf("showRecordLine={false}");
+      const commentEnd: number = source.lastIndexOf("*/", switchAt);
+      const tagStart: number = source.lastIndexOf("<Detail", switchAt);
+
+      expect({ file, found: switchAt > -1 }).toEqual({ file, found: true });
+      // A block comment between the tag's start and the switch.
+      expect({ file, explained: commentEnd > tagStart }).toEqual({
+        file,
+        explained: true,
+      });
+    }
   });
 });

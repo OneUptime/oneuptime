@@ -1192,12 +1192,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   return (
     <Card
-      title="AI Investigation"
       /*
-       * The status pill stays beside the title on a phone too, and ends at
-       * the edge the card's hairlines and the composer end at.
+       * The status pill is the header's right element: at the edge the
+       * card's hairlines and the composer end at, on the title's line - on a
+       * phone too, while the two fit (the default header).
        */
-      headerLayout="inline"
+      title="AI Investigation"
       bodyClassName="mt-6"
       description={
         subjectType === "incident"

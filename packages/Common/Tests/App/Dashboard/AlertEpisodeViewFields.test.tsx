@@ -149,6 +149,7 @@ import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -559,6 +560,7 @@ describe("Alert Episode overview: details column", () => {
       },
     );
 
+    // "Created At" is not a row any more: it is on the ID line below.
     expect(rowTitles).toEqual([
       "Episode Number",
       "Current State",
@@ -567,20 +569,44 @@ describe("Alert Episode overview: details column", () => {
       "Grouping Rule",
       "Created By",
       "On-Call Duty Policies",
-      "Created At",
       "Labels",
     ]);
 
     /*
      * The episode's ID used to be the last row, a full-width UUID pill. It
      * is the small line under the rows now: "ID", the start of the ID (all
-     * of it in the text, clipped), and a copy button.
+     * of it in the text, clipped), and a copy button. When the episode was
+     * created, a row of its own until then, sits on the same line after it.
      */
+    const recordLine: HTMLElement = screen.getByTestId("detail-record-line");
     const idLine: HTMLElement = screen.getByTestId("detail-id-line");
+    const created: HTMLElement = screen.getByTestId("detail-created-at");
 
-    expect(grid!.nextElementSibling).toBe(idLine);
-    expect(idLine.parentElement).toHaveAttribute("id", "model-detail-episodes");
-    expect(idLine).toHaveClass("mt-3", "border-t", "border-gray-100", "pt-3");
+    expect(grid!.nextElementSibling).toBe(recordLine);
+    expect(recordLine.parentElement).toHaveAttribute(
+      "id",
+      "model-detail-episodes",
+    );
+    expect(recordLine).toHaveClass(
+      "mt-3",
+      "border-t",
+      "border-gray-100",
+      "pt-3",
+    );
+    expect(Array.from(recordLine.children)).toEqual([idLine, created]);
+    expect(
+      within(created).getByTestId("detail-created-at-label"),
+    ).toHaveTextContent("Created");
+    expect(
+      within(created).getByTestId("detail-created-at-value"),
+    ).toHaveAttribute("datetime", "2026-01-01T00:00:00.000Z");
+    expect(
+      within(created).getByTestId("detail-created-at-value"),
+    ).toHaveTextContent(
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        new Date("2026-01-01T00:00:00.000Z"),
+      ),
+    );
     expect(within(idLine).getByTestId("detail-id-label")).toHaveTextContent(
       "ID",
     );
@@ -590,7 +616,7 @@ describe("Alert Episode overview: details column", () => {
     expect(
       within(idLine).getByRole("button", { name: "Copy ID to clipboard" }),
     ).toBeInTheDocument();
-    expect(idLine.querySelector("label")).toBeNull();
+    expect(recordLine.querySelector("label")).toBeNull();
     expectNoCrash();
   });
 
@@ -609,13 +635,17 @@ describe("Alert Episode overview: details column", () => {
   /*
    * The details card sits in a ~300px column. Its old side-by-side header put
    * "Edit Alert Episode" beside the title and squeezed the title and description
-   * into a column a word or two wide.
+   * into a column a word or two wide. Stacked, the title and a short Edit
+   * share the first row - Edit at the right - and the description runs under
+   * them. (Every card has a header now, so this one is found by its title.)
    */
   test("stacks the details card header and keeps a short, gated Edit button", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     const header: HTMLElement = await waitFor(() => {
-      return screen.getByTestId("card-header");
+      return screen
+        .getByText("Episode Details")
+        .closest("[data-testid='card-header']") as HTMLElement;
     });
 
     expect(header).toHaveAttribute("data-header-layout", "stacked");
@@ -625,11 +655,17 @@ describe("Alert Episode overview: details column", () => {
     ).toBeInTheDocument();
 
     const actions: HTMLElement = await waitFor(() => {
-      return screen.getByTestId("card-header-actions");
+      return within(header).getByTestId("card-header-actions");
     });
     const edit: HTMLElement = within(actions).getByRole("button", {
       name: "Edit",
     });
+
+    // Edit is on the title's row, after the title: at the right.
+    expect(within(header).getByTestId("card-header-title-row")).toBe(
+      actions.parentElement,
+    );
+    expect(actions.parentElement?.lastElementChild).toBe(actions);
 
     expect(edit).not.toBeDisabled();
     expect(screen.queryByText("Edit Alert Episode")).toBeNull();

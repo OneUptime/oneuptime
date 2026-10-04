@@ -180,6 +180,15 @@ function rowTitles(grid: HTMLElement): Array<string> {
   });
 }
 
+/*
+ * The line under the fields. It holds the ID - and when the record was
+ * created, where the card shows that (DetailCreatedOnIdLine.test.tsx) - and
+ * draws the one divider above them.
+ */
+function recordLine(): HTMLElement {
+  return screen.getByTestId("detail-record-line");
+}
+
 describe("the record's own ID leaves the grid", () => {
   test("is drawn on the ID line under the fields, not as the first field", () => {
     const detail: HTMLElement = renderDetail({
@@ -194,7 +203,8 @@ describe("the record's own ID leaves the grid", () => {
     expect(rowTitles(grid)).toEqual(["Name", "Description"]);
     // The field's title is not drawn anywhere: the line says "ID".
     expect(screen.queryByText("Status Page ID")).toBeNull();
-    expect(grid.nextElementSibling).toBe(line);
+    expect(grid.nextElementSibling).toBe(recordLine());
+    expect(recordLine().firstElementChild).toBe(line);
     expect(within(line).getByTestId("detail-id-value").textContent).toBe(
       RECORD_ID,
     );
@@ -259,9 +269,12 @@ describe("the record's own ID leaves the grid", () => {
     const line: HTMLElement = screen.getByTestId("detail-id-line");
 
     expect(detail.children).toHaveLength(1);
-    expect(detail.firstElementChild).toBe(line);
+    expect(detail.firstElementChild).toBe(recordLine());
+    expect(recordLine().children).toHaveLength(1);
+    expect(recordLine().firstElementChild).toBe(line);
+    expect(recordLine()).not.toHaveClass("border-t");
+    expect(recordLine()).not.toHaveClass("mt-4");
     expect(line).not.toHaveClass("border-t");
-    expect(line).not.toHaveClass("mt-4");
   });
 
   test("an ID declared twice is still one line", () => {
@@ -282,12 +295,14 @@ describe("the line sits in each style's rhythm", () => {
       columns: 1,
     });
 
-    expect(screen.getByTestId("detail-id-line")).toHaveClass(
+    expect(recordLine()).toHaveClass(
       "mt-3",
       "border-t",
       "border-gray-100",
       "pt-3",
     );
+    // One divider: the ID inside the line draws none of its own.
+    expect(screen.getByTestId("detail-id-line")).not.toHaveClass("border-t");
   });
 
   test.each([
@@ -303,10 +318,11 @@ describe("the line sits in each style's rhythm", () => {
         style,
       });
 
-      const line: HTMLElement = screen.getByTestId("detail-id-line");
+      const line: HTMLElement = recordLine();
 
       expect(line).toHaveClass("mt-4", "border-t", "border-gray-100", "pt-3");
       expect(detail.lastElementChild).toBe(line);
+      expect(line).toContainElement(screen.getByTestId("detail-id-line"));
     },
   );
 
@@ -339,6 +355,7 @@ describe("no line", () => {
     expect(grid).toHaveAttribute("id", "status-page-detail");
     expect(grid.className).toBe("grid grid-cols-1 gap-0 sm:grid-cols-1 w-full");
     expect(screen.queryByTestId("detail-id-line")).toBeNull();
+    expect(screen.queryByTestId("detail-record-line")).toBeNull();
   });
 
   test("an item without an ID draws no line and no empty row", () => {
@@ -566,7 +583,8 @@ describe("ModelDetail and CardModelDetail", () => {
       PROBE_ID.toString(),
     );
     expect(screen.queryByText("Probe ID")).toBeNull();
-    expect(line.parentElement).toHaveAttribute("id", "probe-detail");
+    expect(line.parentElement).toBe(recordLine());
+    expect(recordLine().parentElement).toHaveAttribute("id", "probe-detail");
 
     // It still asks for the ID, as it always did.
     const request: { select: Record<string, unknown> } = getItemMock.mock
@@ -611,10 +629,11 @@ describe("ModelDetail and CardModelDetail", () => {
     const detail: HTMLElement = document.getElementById(
       "probe-card-detail",
     ) as HTMLElement;
-    const line: HTMLElement = screen.getByTestId("detail-id-line");
+    const line: HTMLElement = recordLine();
 
     expect(detail.lastElementChild).toBe(line);
     expect(line).toHaveClass("mt-3", "border-t", "pt-3");
+    expect(line).toContainElement(screen.getByTestId("detail-id-line"));
     expect(screen.queryByText("Probe ID")).toBeNull();
   });
 

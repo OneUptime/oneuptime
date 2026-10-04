@@ -190,6 +190,12 @@ interface EventPage {
   detailLabels: ReadonlyArray<string>;
   // The record's own ID, on the small line the details card ends with.
   recordId: string;
+  /*
+   * When the record was created, on that same line after the ID, for the
+   * cards that show it. An incident's card says when it was declared, as a
+   * field, instead.
+   */
+  recordCreated?: string | undefined;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -302,7 +308,6 @@ const ALERT_PAGE: EventPage = {
   rightColumn: ["Alert Details", "Measurements", "Affected Resources"],
   detailsCard: "Alert Details",
   detailLabels: [
-    "Created At",
     "Created By",
     "Monitor",
     "Episode",
@@ -311,6 +316,7 @@ const ALERT_PAGE: EventPage = {
     "Alert Number",
   ],
   recordId: ALERT_ID,
+  recordCreated: "Sep 14 2026, 06:06 PM GMT",
 };
 
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
@@ -360,7 +366,6 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   detailLabels: [
     "Starts At",
     "Ends At",
-    "Created At",
     "Shown on Status Pages",
     "Subscriber Reminders",
     "Subscriber Notifications",
@@ -368,6 +373,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Scheduled Maintenance Number",
   ],
   recordId: SCHEDULED_MAINTENANCE_ID,
+  recordCreated: "Sep 10 2026, 09:00 AM GMT",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -408,10 +414,10 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:56 PM GMT",
 };
 
 const ALERT_EPISODE_PAGE: EventPage = {
@@ -452,10 +458,10 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:40 PM GMT",
 };
 
 const EVENT_PAGES: ReadonlyArray<EventPage> = [
@@ -699,6 +705,60 @@ async function expectAbove(
   expect(upperBox.y + upperBox.height, message).toBeLessThanOrEqual(
     lowerBox.y + 1,
   );
+}
+
+/*
+ * Where a card header keeps what the card offers (Edit, Create, the ⋯ menu,
+ * a status pill): at the header's right edge, and under the title only when
+ * it does not fit beside it - never under the description, never at the
+ * left, never centred. "Why are edit buttons not on the right?"
+ */
+async function expectHeaderActionsOnTheRight(
+  cardLocator: Locator,
+  label: string,
+  options?: { onTitleLine?: boolean | undefined } | undefined,
+): Promise<void> {
+  const header: Locator = cardLocator.getByTestId("card-header").first();
+  const title: Box = await documentBox(
+    header.getByTestId("card-details-heading"),
+  );
+  const actions: Box = await documentBox(
+    header.getByTestId("card-header-actions"),
+  );
+  const headerBox: Box = await documentBox(header);
+  const isOnTitleLine: boolean =
+    actions.y < title.y + title.height && actions.y + actions.height > title.y;
+
+  expect(
+    Math.abs(headerBox.x + headerBox.width - (actions.x + actions.width)),
+    `${label} ends at the header's right edge`,
+  ).toBeLessThanOrEqual(1);
+
+  if (isOnTitleLine) {
+    expect(actions.x, `${label} sits right of the title`).toBeGreaterThan(
+      title.x + 1,
+    );
+  } else {
+    expect(
+      actions.y,
+      `${label} is under the title when it is not beside it`,
+    ).toBeGreaterThanOrEqual(title.y + title.height - 1);
+  }
+
+  if (options?.onTitleLine !== undefined) {
+    expect(isOnTitleLine, `${label} on the title's line`).toBe(
+      options.onTitleLine,
+    );
+  }
+
+  // Never under the description: that comes after the actions, or beside them.
+  const description: Locator = header.getByTestId("card-description");
+  if ((await description.count()) > 0 && (await description.isVisible())) {
+    const descriptionBox: Box = await documentBox(description);
+    expect(actions.y, `${label} is not under the description`).toBeLessThan(
+      descriptionBox.y + 1,
+    );
+  }
 }
 
 function sideMenu(page: Page): Locator {
@@ -3850,9 +3910,10 @@ test.describe("one AI card: the investigation and the conversation", () => {
     );
     const section: Box = await documentBox(conversation(page));
 
+    // The default header: no layout of its own is needed any more.
     await expect(investigation.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",
-      "inline",
+      "default",
     );
     // Beside the title, on its line.
     expect(pill.y).toBeLessThan(title.y + title.height);
@@ -5067,7 +5128,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await expectNoHorizontalOverflow(page);
     });
 
-    test("the status pill sits beside the title when it fits and under it when it does not", async ({
+    test("the status pill sits beside the title when it fits and under it, at the right edge, when it does not", async ({
       page,
     }: {
       page: Page;
@@ -5088,7 +5149,11 @@ test.describe("one AI card: the investigation and the conversation", () => {
       // At the card's content edge, not centred under the title.
       expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
 
-      // "Preparing report…" does not: it goes under the title, at its left.
+      /*
+       * "Preparing report…" may not: then it goes under the title - still at
+       * the card's right edge, as every card header's actions do - and never
+       * to the left or the middle.
+       */
       investigation = await openCardState(page, CARD_STATES[7]!);
       title = await documentBox(
         investigation.getByRole("heading", { level: 2 }),
@@ -5100,11 +5165,9 @@ test.describe("one AI card: the investigation and the conversation", () => {
 
       // The title is never the one that gives way.
       expect(title.height).toBeLessThanOrEqual(26);
-      expect(pill.x + pill.width).toBeLessThanOrEqual(
-        section.x + section.width + 1,
-      );
+      expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
       if (pill.y >= title.y + title.height) {
-        expect(pill.x).toBeCloseTo(title.x, 0);
+        expect(pill.x).toBeGreaterThan(title.x);
       } else {
         expect(pill.x).toBeGreaterThan(title.x + title.width);
       }
@@ -5289,7 +5352,10 @@ async function expectRightColumn(
     expect(box.y, `${heading} order`).toBeGreaterThan(previousBottom);
     previousBottom = box.y + box.height - 1;
 
-    // Narrow column: the title gets the full width, actions go underneath.
+    /*
+     * Narrow column: the title and what the card offers share the first
+     * line, and the description runs under both, across the card's width.
+     */
     await expect(rightCard.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",
       "stacked",
@@ -5301,10 +5367,11 @@ async function expectRightColumn(
       .getByTestId("card-header-actions")
       .getByRole("button", { name: "Edit" }),
   ).toBeVisible();
-  await expectAbove(
-    details.getByRole("heading", { level: 2 }),
-    details.getByRole("button", { name: "Edit" }),
-    "Edit sits under the title",
+  // "Why are edit buttons not on the right?" On the title's line, at the right.
+  await expectHeaderActionsOnTheRight(
+    details,
+    `${eventPage.detailsCard}'s Edit`,
+    { onTitleLine: true },
   );
   expect(await detailLabels(details)).toEqual(eventPage.detailLabels);
 
@@ -5334,6 +5401,56 @@ async function expectRightColumn(
     details.locator("label").last(),
     idLine,
     "the ID line ends the card",
+  );
+
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't
+   * take space up top." When the record was created is not a row of the
+   * card: it follows the ID on the same small line, and moves under the ID
+   * - whole - only when the narrow column has no room for both.
+   */
+  const recordLine: Locator = details.getByTestId("detail-record-line");
+  const created: Locator = recordLine.getByTestId("detail-created-at");
+  await expect(recordLine).toContainText("ID");
+  expect(await detailLabels(details)).not.toContain("Created At");
+  if (!eventPage.recordCreated) {
+    await expect(created).toHaveCount(0);
+    return;
+  }
+  await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+    "Created",
+  );
+  await expect(created.getByTestId("detail-created-at-value")).toHaveText(
+    eventPage.recordCreated,
+  );
+  const lineBox: Box = await documentBox(recordLine);
+  const idBox: Box = await documentBox(idLine);
+  const createdBox: Box = await documentBox(created);
+  if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+    expect(
+      Math.abs(
+        createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+      ),
+      "Created sits level with the ID when both fit",
+    ).toBeLessThanOrEqual(2);
+    expect(createdBox.x, "after the ID").toBeGreaterThan(idBox.x + idBox.width);
+  } else {
+    expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+      idBox.y + idBox.height - 1,
+    );
+    expect(
+      Math.abs(createdBox.x - idBox.x),
+      "flush with the ID",
+    ).toBeLessThanOrEqual(1);
+  }
+  // Inside the card, under its last field.
+  expect(createdBox.x + createdBox.width).toBeLessThanOrEqual(
+    lineBox.x + lineBox.width + 1,
+  );
+  await expectAbove(
+    details.locator("label").last(),
+    created,
+    "Created is on the line under the fields",
   );
 }
 
@@ -5447,6 +5564,28 @@ test.describe("incident and alert overview", () => {
       );
     });
   }
+
+  test("alert-overview gives its creation time to the second on hover", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    const created: Locator = card(page, ALERT_PAGE.detailsCard).getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(created).toHaveText("Sep 14 2026, 06:06 PM GMT");
+    await expect(created).toHaveAttribute(
+      "datetime",
+      "2026-09-14T18:06:00.000Z",
+    );
+    await created.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Sep 14 2026, 06:06:00 PM GMT",
+    );
+  });
 
   test("incident links in the hero facts open the monitors", async ({
     page,
@@ -8460,6 +8599,48 @@ test.describe("responsive", () => {
     ).toBeLessThanOrEqual(1);
     expect(activityBox.x).toBeGreaterThan(evidenceBox.x + evidenceBox.width);
   });
+
+  /*
+   * "Why are edit buttons not on the right?" Every card on the page - the
+   * wide ones on the left, the narrow column on the right - keeps what it
+   * offers at its header's right edge: on the title's line on a desktop, and
+   * under the title, still at the right edge, only where the two do not fit.
+   * Never under the description, at the left, or in the middle.
+   */
+  for (const eventPage of EVENT_PAGES) {
+    for (const width of [1440, 1280, 390]) {
+      test(`${eventPage.name} keeps every card's actions at the right edge at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, eventPage);
+
+        const cards: Locator = page
+          .getByTestId("card")
+          .filter({ has: page.getByTestId("card-header-actions") })
+          .filter({ has: page.getByTestId("card-details-heading") });
+        const count: number = await cards.count();
+
+        expect(count, "cards with actions").toBeGreaterThan(1);
+
+        for (let index: number = 0; index < count; index++) {
+          const each: Locator = cards.nth(index);
+          const name: string = (
+            await each.getByTestId("card-details-heading").first().innerText()
+          ).trim();
+
+          await expectHeaderActionsOnTheRight(
+            each,
+            `${name} at ${width}px`,
+            width === 1440 ? { onTitleLine: true } : undefined,
+          );
+        }
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+  }
 
   for (const eventPage of EVENT_PAGES) {
     test(`${eventPage.name} right column is not cramped at 1280px`, async ({
