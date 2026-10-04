@@ -747,9 +747,9 @@ const NATS_SHAPES: Array<NatsShape> = [
       "B3-main, the ack nats-server read in that exchange, typed client-side",
     attributes: NATS_BROKER_CLIENT_TYPED_ACK,
     v014: SpanKind.Producer,
-    stored: SpanKind.Producer,
+    stored: SpanKind.Server,
     v013: SpanKind.Producer,
-    v013Stored: SpanKind.Producer,
+    v013Stored: SpanKind.Server,
   },
   {
     shape: "B4, a MSG nats-server wrote, typed client-side",
@@ -880,23 +880,21 @@ describe("every NATS span shape OBI emits", () => {
     },
   );
 
-  test("no shape of nats-server's is stored as CONSUMER; only the PUB it read beside a split delivery keeps a messaging client kind", () => {
-    for (const data of NATS_SHAPES) {
-      if (!data.shape.match(/\bB[1-4]\b/)) {
-        continue;
-      }
+  test("every shape of nats-server's is stored as SERVER, the PUB it read beside a split delivery too: the broker is no producer or consumer of a subject", () => {
+    const brokerShapes: Array<NatsShape> = NATS_SHAPES.filter(
+      (data: NatsShape): boolean => {
+        return data.shape.match(/\bB[1-4]\b/) !== null;
+      },
+    );
+    expect(brokerShapes).toHaveLength(9);
+    for (const data of brokerShapes) {
       expect({
         shape: data.shape,
         stored: normalizeObiReceivingSideMessagingSpanKind({
           kind: data.v014,
           attributes: data.attributes,
         }),
-      }).toEqual({
-        shape: data.shape,
-        stored: data.shape.startsWith("B3-main")
-          ? SpanKind.Producer
-          : SpanKind.Server,
-      });
+      }).toEqual({ shape: data.shape, stored: SpanKind.Server });
     }
   });
 });
@@ -911,9 +909,8 @@ describe("port evidence: which side OBI typed a span from", () => {
     ["a client's ack", NATS_CLIENT_ACK_PUBLISH],
     ["a client of a broker OBI cannot name", NATS_EXTERNAL_CLIENT_PUBLISH],
     ["an app whose service.name is the broker's", NATS_APP_NAMED_NATS_PUBLISH],
-    ["the ack a broker read, typed client-side", NATS_BROKER_CLIENT_TYPED_ACK],
   ])(
-    "client-typed (equal ports) is never receiving-side: %s — with or without service.peer.name",
+    "client-typed (equal ports, the broker's listening port) is never receiving-side: %s — with or without service.peer.name",
     (_label: string, span: Attributes) => {
       expect(isObiReceivingSideMessagingSpan(span)).toBe(false);
       expect(
@@ -1028,6 +1025,10 @@ describe("port evidence: which side OBI typed a span from", () => {
     ["4222", "37514", true],
     ["1", 65535, true],
     [65535, "1", true],
+    // Equal, but the far end's ephemeral port: a broker's publish.
+    ["37514", "37514", true],
+    [37514, "37514", true],
+    ["37514", 37514, true],
   ] as Array<[string | number, string | number, boolean]>)(
     "server.port %p and network.peer.port %p compare as numbers: receiving-side %p",
     (
@@ -1312,7 +1313,6 @@ describe("NATS deliveries (MSG / HMSG, operation process)", () => {
       }).toEqual({ system: system, clientTyped: false, clientSplit: true });
     }
     for (const operationType of [
-      "send",
       "receive",
       "settle",
       "unknown",
@@ -1338,6 +1338,17 @@ describe("NATS deliveries (MSG / HMSG, operation process)", () => {
         clientSplit: true,
       });
     }
+    /*
+     * A publish with B4's ports is the PUB a broker read beside a split
+     * delivery (B3-main): receiving-side by its ports, not as a MSG.
+     */
+    expect(
+      isObiReceivingSideMessagingSpan(
+        withAttributes(NATS_BROKER_CLIENT_TYPED_DELIVERY, {
+          "messaging.operation.type": "send",
+        }),
+      ),
+    ).toBe(true);
   });
 
   test("still only OBI's spans", () => {
@@ -1448,22 +1459,6 @@ const KAFKA_AND_MQTT_SHAPES: Array<[string, boolean, Attributes]> = [
       "service.peer.name": "mosquitto",
     }),
   ],
-  /*
-   * mosquitto delivering a PUBLISH to a subscriber: OBI types it
-   * client-side (the broker writes it first), a PRODUCER in v0.13 too.
-   * Unlike a NATS MSG, an MQTT PUBLISH is written by clients and brokers
-   * alike, so it keeps OBI's kind.
-   */
-  [
-    "mosquitto's PUBLISH to a subscriber, typed client-side",
-    false,
-    withAttributes(mqttSpan("mosquitto", "mqtt-subscriber", PUBLISH), {
-      "server.port": "37910",
-      "network.peer.address": "10.244.1.78",
-      "network.peer.port": "37910",
-      "service.peer.name": "mqtt-subscriber",
-    }),
-  ],
 ];
 
 describe("Kafka and MQTT", () => {
@@ -1523,6 +1518,593 @@ describe("Kafka and MQTT", () => {
         normalizeObiReceivingSideMessagingSpanKind({
           kind: SpanKind.Producer,
           attributes: span,
+        }),
+      ).toBe(SpanKind.Producer);
+    }
+  });
+});
+
+/*
+ * The publishes OBI types client-side on a broker, by v0.13 and v0.14
+ * alike, as captured: mosquitto's PUBLISH to a subscriber, which it writes
+ * first, and the PUB nats-server read beside a split delivery (B3-main,
+ * NATS_BROKER_CLIENT_TYPED_ACK above). A client-typed span's server.* is the
+ * far end of the connection, here the subscriber at the ephemeral port it
+ * connected from; a client's own publish names its broker's listening port.
+ */
+const MQTT_BROKER_PUBLISH: Attributes = {
+  ...obiResource("mosquitto"),
+  "resource.k8s.node.name": "fu-nats-worker",
+  "server.port": "37910",
+  "messaging.system": "mqtt",
+  "messaging.destination.name": "sensors/temp",
+  "server.address": "mqtt-subscriber",
+  "messaging.operation.name": "publish",
+  "messaging.operation.type": "send",
+  "service.peer.name": "mqtt-subscriber",
+  "network.peer.address": "10.244.1.78",
+  "network.peer.port": "37910",
+  "span.metrics.skip": true,
+};
+// The same, from an install that does not select service.peer.name.
+const MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME: Attributes = withAttributes(
+  MQTT_BROKER_PUBLISH,
+  {
+    "server.port": "57566",
+    "network.peer.address": "10.244.1.221",
+    "network.peer.port": "57566",
+    "service.peer.name": undefined,
+  },
+);
+// The publisher's own PUBLISH, through mosquitto's Service.
+const MQTT_CLIENT_PUBLISH: Attributes = {
+  ...obiResource("mqtt-publisher"),
+  "resource.k8s.node.name": "fu-nats-worker",
+  "server.port": "1883",
+  "messaging.system": "mqtt",
+  "messaging.destination.name": "sensors/temp",
+  "server.address": "mosquitto",
+  "messaging.operation.name": "publish",
+  "messaging.operation.type": "send",
+  "service.peer.name": "mosquitto",
+  "network.peer.address": "10.96.56.243",
+  "network.peer.port": "1883",
+  "span.metrics.skip": true,
+};
+// The subscriber's SUBSCRIBE: only a client writes one.
+const MQTT_CLIENT_SUBSCRIBE: Attributes = withAttributes(MQTT_CLIENT_PUBLISH, {
+  "resource.service.name": "mqtt-subscriber",
+  "messaging.destination.name": "sensors/#",
+  "messaging.operation.name": "process",
+  "messaging.operation.type": "process",
+});
+// host-network B3-main: hn-responder's reply, read by the host-network broker.
+const NATS_HOSTNET_BROKER_CLIENT_TYPED_REPLY: Attributes = capturedNats({
+  service: "nats-hostnet",
+  serverAddress: "hn-responder",
+  serverPort: "58244",
+  peerAddress: "10.244.1.62",
+  peerPort: "58244",
+  operation: "publish",
+  subject: "_INBOX.A23D0L3935BPJJDC1JBZ3Y.A23D0L3935BPJJDC1JCJEV",
+  servicePeerName: "hn-responder",
+});
+// A host-network broker's client, through its Service (port 4223).
+const NATS_HOSTNET_CLIENT_PUBLISH: Attributes = capturedNats({
+  service: "hn-js-producer",
+  serverAddress: "nats-hostnet",
+  serverPort: "4223",
+  peerAddress: "10.96.140.12",
+  peerPort: "4223",
+  operation: "publish",
+  subject: "hn.orders.created",
+  servicePeerName: "nats-hostnet",
+});
+
+const BROKER_PUBLISHES: Array<[string, Attributes]> = [
+  ["mosquitto's PUBLISH to a subscriber", MQTT_BROKER_PUBLISH],
+  [
+    "mosquitto's PUBLISH to a subscriber, without service.peer.name",
+    MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME,
+  ],
+  [
+    "mosquitto's PUBLISH to a subscriber, with v0.13's peer.service",
+    withAttributes(MQTT_BROKER_PUBLISH, {
+      "service.peer.name": undefined,
+      "peer.service": "mqtt-subscriber",
+    }),
+  ],
+  ["the ack nats-server read (B3-main)", NATS_BROKER_CLIENT_TYPED_ACK],
+  [
+    "the ack nats-server read (B3-main), without service.peer.name",
+    withAttributes(NATS_BROKER_CLIENT_TYPED_ACK, {
+      "service.peer.name": undefined,
+    }),
+  ],
+  [
+    "the reply a host-network nats-server read (host-network B3-main)",
+    NATS_HOSTNET_BROKER_CLIENT_TYPED_REPLY,
+  ],
+];
+
+const CLIENT_PUBLISHES: Array<[string, SpanKind, Attributes]> = [
+  ["an MQTT publisher's PUBLISH", SpanKind.Producer, MQTT_CLIENT_PUBLISH],
+  [
+    "an MQTT publisher's PUBLISH, without service.peer.name",
+    SpanKind.Producer,
+    withAttributes(MQTT_CLIENT_PUBLISH, { "service.peer.name": undefined }),
+  ],
+  ["an MQTT subscriber's SUBSCRIBE", SpanKind.Consumer, MQTT_CLIENT_SUBSCRIBE],
+  ["a NATS client's publish (C1)", SpanKind.Producer, NATS_CLIENT_PUBLISH],
+  ["a NATS client's ack (C1)", SpanKind.Producer, NATS_CLIENT_ACK_PUBLISH],
+  [
+    "a NATS client of a broker OBI cannot name",
+    SpanKind.Producer,
+    NATS_EXTERNAL_CLIENT_PUBLISH,
+  ],
+  [
+    "a NATS client of a host-network broker",
+    SpanKind.Producer,
+    NATS_HOSTNET_CLIENT_PUBLISH,
+  ],
+  [
+    "an app named like its NATS broker, without service.peer.name",
+    SpanKind.Producer,
+    withAttributes(NATS_APP_NAMED_NATS_PUBLISH, {
+      "service.peer.name": undefined,
+    }),
+  ],
+];
+
+describe("a broker's publish OBI types client-side (an MQTT PUBLISH to a subscriber, NATS B3-main)", () => {
+  test.each(BROKER_PUBLISHES)(
+    "%s: equal ports in the ephemeral range, stored as SERVER from v0.13's and v0.14's PRODUCER",
+    (_label: string, span: Attributes) => {
+      expect(span["server.port"]).toBe(span["network.peer.port"]);
+      expect(Number(span["server.port"])).toBeGreaterThanOrEqual(
+        EPHEMERAL_PORT_RANGE_START,
+      );
+      expect(isObiReceivingSideMessagingSpan(span)).toBe(true);
+      for (const version of ["v0.13.0", "v0.14.0"]) {
+        expect({
+          version: version,
+          stored: normalizeObiReceivingSideMessagingSpanKind({
+            kind: SpanKind.Producer,
+            attributes: withAttributes(span, {
+              "resource.telemetry.distro.version": version,
+            }),
+          }),
+        }).toEqual({ version: version, stored: SpanKind.Server });
+      }
+      expect(
+        normalizeObiReceivingSideMessagingSpanKind({
+          kind: SpanKind.Server,
+          attributes: span,
+        }),
+      ).toBe(SpanKind.Server);
+    },
+  );
+
+  test.each(CLIENT_PUBLISHES)(
+    "%s keeps OBI's %s: its far end is the broker's listening port",
+    (_label: string, kind: SpanKind, span: Attributes) => {
+      expect(span["server.port"]).toBe(span["network.peer.port"]);
+      expect(Number(span["server.port"])).toBeLessThan(
+        EPHEMERAL_PORT_RANGE_START,
+      );
+      expect(isObiReceivingSideMessagingSpan(span)).toBe(false);
+      expect(
+        normalizeObiReceivingSideMessagingSpanKind({
+          kind: kind,
+          attributes: span,
+        }),
+      ).toBe(kind);
+    },
+  );
+
+  test.each([
+    ["1883", false],
+    ["8883", false],
+    ["4222", false],
+    // A NodePort (30000-32767) is below the range.
+    ["30000", false],
+    [String(EPHEMERAL_PORT_RANGE_START - 1), false],
+    [String(EPHEMERAL_PORT_RANGE_START), true],
+    // IANA's dynamic range (Windows, macOS), and the end of Linux's default.
+    ["49152", true],
+    ["60999", true],
+    ["65535", true],
+    [EPHEMERAL_PORT_RANGE_START - 1, false],
+    [EPHEMERAL_PORT_RANGE_START, true],
+  ] as Array<[string | number, boolean]>)(
+    "both ports %p: a broker's publish %p, for MQTT and NATS, with or without service.peer.name",
+    (port: string | number, expected: boolean) => {
+      for (const span of [
+        MQTT_BROKER_PUBLISH,
+        MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME,
+        NATS_BROKER_CLIENT_TYPED_ACK,
+        withAttributes(NATS_BROKER_CLIENT_TYPED_ACK, {
+          "service.peer.name": undefined,
+        }),
+      ]) {
+        expect({
+          system: span["messaging.system"],
+          peerName: span["service.peer.name"],
+          receivingSide: isObiReceivingSideMessagingSpan(
+            withAttributes(span, {
+              "server.port": port,
+              "network.peer.port": port,
+            }),
+          ),
+        }).toEqual({
+          system: span["messaging.system"],
+          peerName: span["service.peer.name"],
+          receivingSide: expected,
+        });
+      }
+    },
+  );
+
+  test("ports compare as numbers: an int64 as a string or a number is the same port", () => {
+    for (const [serverPort, peerPort] of [
+      ["37910", 37910],
+      [37910, "37910"],
+      [37910, 37910],
+    ] as Array<[string | number, string | number]>) {
+      expect(
+        isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_BROKER_PUBLISH, {
+            "server.port": serverPort,
+            "network.peer.port": peerPort,
+          }),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("a client of a broker listening in the ephemeral range is taken for the broker, the rule's documented trade-off; its SUBSCRIBE stays its own", () => {
+    // A port Docker published at random, a hostPort picked in the range.
+    for (const port of ["49154", "40000"]) {
+      expect({
+        port: port,
+        mqtt: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_CLIENT_PUBLISH, {
+            "server.port": port,
+            "network.peer.port": port,
+          }),
+        ),
+        nats: isObiReceivingSideMessagingSpan(
+          withAttributes(NATS_CLIENT_PUBLISH, {
+            "server.port": port,
+            "network.peer.port": port,
+          }),
+        ),
+        subscribe: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_CLIENT_SUBSCRIBE, {
+            "server.port": port,
+            "network.peer.port": port,
+          }),
+        ),
+      }).toEqual({ port: port, mqtt: true, nats: true, subscribe: false });
+    }
+  });
+
+  test("a subscriber whose port is below the range (a low ip_local_port_range, a port SNAT rewrote) leaves the broker's publish to it OBI's PRODUCER, as before", () => {
+    for (const port of ["20000", "1024"]) {
+      expect({
+        port: port,
+        stored: normalizeObiReceivingSideMessagingSpanKind({
+          kind: SpanKind.Producer,
+          attributes: withAttributes(MQTT_BROKER_PUBLISH, {
+            "server.port": port,
+            "network.peer.port": port,
+          }),
+        }),
+      }).toEqual({ port: port, stored: SpanKind.Producer });
+    }
+  });
+
+  test("unequal ports are not this rule's: with service.peer.name the span is a client's, without it OBI typed it receiving-side", () => {
+    for (const [serverPort, peerPort] of [
+      ["37910", "37911"],
+      ["37910", "1883"],
+      ["1883", "37910"],
+    ]) {
+      expect({
+        serverPort: serverPort,
+        peerPort: peerPort,
+        withPeerName: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_BROKER_PUBLISH, {
+            "server.port": serverPort,
+            "network.peer.port": peerPort,
+          }),
+        ),
+        withoutPeerName: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME, {
+            "server.port": serverPort,
+            "network.peer.port": peerPort,
+          }),
+        ),
+      }).toEqual({
+        serverPort: serverPort,
+        peerPort: peerPort,
+        withPeerName: false,
+        withoutPeerName: true,
+      });
+    }
+  });
+
+  test.each([
+    [undefined],
+    [null],
+    [""],
+    ["0"],
+    [0],
+    ["037910"],
+    ["37910.0"],
+    ["+37910"],
+    [" 37910"],
+    ["65536"],
+    [70000],
+    [37910.5],
+    [Number.NaN],
+    [["37910"]],
+    [{ intValue: "37910" }],
+    [true],
+  ])(
+    "%p is no port: as server.port OBI's PRODUCER is kept; as network.peer.port it is a dropped one, service.peer.name typing the span client-side, else the address (the subscriber) deciding",
+    (notAPort: unknown) => {
+      for (const span of [
+        MQTT_BROKER_PUBLISH,
+        MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME,
+        NATS_BROKER_CLIENT_TYPED_ACK,
+        withAttributes(NATS_BROKER_CLIENT_TYPED_ACK, {
+          "service.peer.name": undefined,
+        }),
+      ]) {
+        const peerName: boolean = span["service.peer.name"] !== undefined;
+        const stored: (key: string) => SpanKind = (key: string): SpanKind => {
+          return normalizeObiReceivingSideMessagingSpanKind({
+            kind: SpanKind.Producer,
+            attributes: withAttributes(span, { [key]: notAPort }),
+          });
+        };
+        expect({
+          system: span["messaging.system"],
+          peerName: peerName,
+          serverPort: stored("server.port"),
+          peerPort: stored("network.peer.port"),
+        }).toEqual({
+          system: span["messaging.system"],
+          peerName: peerName,
+          serverPort: SpanKind.Producer,
+          peerPort: peerName ? SpanKind.Server : SpanKind.Producer,
+        });
+      }
+    },
+  );
+
+  /*
+   * An attributes.select that leaves out network.peer.port. A span with
+   * service.peer.name is still known to be client-typed (OBI writes it on
+   * no other), so its server.port alone is the far end of the connection.
+   */
+  test("without network.peer.port, service.peer.name says the span is client-typed and server.port alone decides, at the same boundary", () => {
+    const dropped: (span: Attributes, port?: string) => Attributes = (
+      span: Attributes,
+      port?: string,
+    ): Attributes => {
+      return withAttributes(span, {
+        "network.peer.port": undefined,
+        ...(port === undefined ? {} : { "server.port": port }),
+      });
+    };
+    const storedAs: (span: Attributes, kind?: SpanKind) => SpanKind = (
+      span: Attributes,
+      kind: SpanKind = SpanKind.Producer,
+    ): SpanKind => {
+      return normalizeObiReceivingSideMessagingSpanKind({
+        kind: kind,
+        attributes: span,
+      });
+    };
+    const start: number = EPHEMERAL_PORT_RANGE_START;
+
+    for (const [label, span] of BROKER_PUBLISHES) {
+      const peerName: boolean =
+        span["service.peer.name"] !== undefined ||
+        span["peer.service"] !== undefined;
+      expect({
+        label: label,
+        captured: storedAs(dropped(span)),
+        atStart: storedAs(dropped(span, String(start))),
+        belowStart: storedAs(dropped(span, String(start - 1))),
+      }).toEqual({
+        label: label,
+        // Without a peer name the address decides: it names the subscriber.
+        captured: peerName ? SpanKind.Server : SpanKind.Producer,
+        atStart: peerName ? SpanKind.Server : SpanKind.Producer,
+        belowStart: SpanKind.Producer,
+      });
+    }
+    for (const [label, kind, span] of CLIENT_PUBLISHES) {
+      const namedLikeBroker: boolean =
+        span["server.address"] === span["resource.service.name"] &&
+        span["service.peer.name"] === undefined;
+      expect({ label: label, stored: storedAs(dropped(span), kind) }).toEqual({
+        label: label,
+        // The address rule's documented case, as before: no ports to read.
+        stored: namedLikeBroker ? SpanKind.Server : kind,
+      });
+    }
+
+    // The trade-off holds here too: a client of a broker listening in the range.
+    expect(storedAs(dropped(MQTT_CLIENT_PUBLISH, "49154"))).toBe(
+      SpanKind.Server,
+    );
+    expect(
+      storedAs(dropped(MQTT_CLIENT_SUBSCRIBE, "49154"), SpanKind.Consumer),
+    ).toBe(SpanKind.Consumer);
+    // Kafka is still never re-typed.
+    expect(
+      storedAs(
+        dropped(
+          withAttributes(KAFKA_APP_PRODUCE_WITH_PORTS, {
+            "service.peer.name": "kafka",
+          }),
+          "49154",
+        ),
+      ),
+    ).toBe(SpanKind.Producer);
+    // A peer name with a server.port that is no port: nothing to read.
+    expect(
+      storedAs(
+        withAttributes(MQTT_BROKER_PUBLISH, {
+          "server.port": "037910",
+          "network.peer.port": undefined,
+        }),
+      ),
+    ).toBe(SpanKind.Producer);
+  });
+
+  test("with neither port the address decides, as before: the publish names the subscriber, a broker's own receiving-side span itself", () => {
+    const noPorts: Record<string, unknown> = {
+      "server.port": undefined,
+      "network.peer.port": undefined,
+    };
+    for (const span of [
+      MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME,
+      // A peer name types it client-side, but names no port to read.
+      MQTT_BROKER_PUBLISH,
+      NATS_BROKER_CLIENT_TYPED_ACK,
+    ]) {
+      expect(
+        normalizeObiReceivingSideMessagingSpanKind({
+          kind: SpanKind.Producer,
+          attributes: withAttributes(span, noPorts),
+        }),
+      ).toBe(SpanKind.Producer);
+    }
+    expect(
+      isObiReceivingSideMessagingSpan(withAttributes(NATS_BROKER_PUB, noPorts)),
+    ).toBe(true);
+    expect(
+      isObiReceivingSideMessagingSpan(
+        withAttributes(
+          withAttributes(MQTT_BROKER_PUBLISH_WITHOUT_PEER_NAME, noPorts),
+          { "server.address": "mosquitto" },
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("server.address and network.peer.address play no part: the ports decide", () => {
+    for (const changes of [
+      { "server.address": "rewritten" },
+      { "server.address": "mosquitto" },
+      { "server.address": "fu-nats-worker" },
+      { "network.peer.address": "fd00:10:244:1::4e" },
+      { "network.peer.address": undefined },
+    ] as Array<Record<string, unknown>>) {
+      expect({
+        changes: changes,
+        receivingSide: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_BROKER_PUBLISH, changes),
+        ),
+      }).toEqual({ changes: changes, receivingSide: true });
+    }
+  });
+
+  test("a publish only: no other operation type, spelled exactly", () => {
+    for (const operationType of [
+      // A SUBSCRIBE, which only a client writes.
+      "process",
+      "receive",
+      "settle",
+      "unknown",
+      // The operation name, not its type.
+      "publish",
+      "Send",
+      " send",
+      "send ",
+      "",
+      null,
+      undefined,
+    ]) {
+      expect({
+        operationType: operationType,
+        mqtt: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_BROKER_PUBLISH, {
+            "messaging.operation.type": operationType,
+          }),
+        ),
+      }).toEqual({ operationType: operationType, mqtt: false });
+    }
+    // The same NATS span typed "process" is a MSG the broker wrote (B4).
+    expect(
+      isObiReceivingSideMessagingSpan(
+        withAttributes(NATS_BROKER_CLIENT_TYPED_ACK, {
+          "messaging.operation.type": "process",
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("MQTT and NATS only: Kafka is never re-typed, its clients often reaching a broker at a port published in the range", () => {
+    expect(
+      isObiReceivingSideMessagingSpan(
+        withAttributes(MQTT_BROKER_PUBLISH, { "messaging.system": "nats" }),
+      ),
+    ).toBe(true);
+    for (const system of ["kafka", "MQTT", "Nats", "amqp", "rabbitmq"]) {
+      expect({
+        system: system,
+        receivingSide: isObiReceivingSideMessagingSpan(
+          withAttributes(MQTT_BROKER_PUBLISH, { "messaging.system": system }),
+        ),
+      }).toEqual({ system: system, receivingSide: false });
+    }
+
+    // A Kafka client's produce and fetch through a Testcontainers mapping.
+    for (const operation of [PUBLISH, PROCESS]) {
+      for (const peerName of ["kafka", undefined]) {
+        const span: Attributes = withAttributes(KAFKA_APP_PRODUCE_WITH_PORTS, {
+          "server.port": "49154",
+          "network.peer.port": "49154",
+          "messaging.operation.name": operation.name,
+          "messaging.operation.type": operation.type,
+          "service.peer.name": peerName,
+        });
+        expect({
+          operation: operation.name,
+          peerName: peerName,
+          stored: normalizeObiReceivingSideMessagingSpanKind({
+            kind: SpanKind.Producer,
+            attributes: span,
+          }),
+        }).toEqual({
+          operation: operation.name,
+          peerName: peerName,
+          stored: SpanKind.Producer,
+        });
+      }
+    }
+    // A Kafka broker's spans are receiving-side by their unequal ports.
+    expect(
+      isObiReceivingSideMessagingSpan(KAFKA_BROKER_PRODUCE_WITH_PORTS),
+    ).toBe(true);
+  });
+
+  test("still only OBI's spans", () => {
+    for (const span of [MQTT_BROKER_PUBLISH, NATS_BROKER_CLIENT_TYPED_ACK]) {
+      const sdkSpan: Attributes = withAttributes(span, {
+        "resource.telemetry.distro.name": "opentelemetry-java-instrumentation",
+      });
+      expect(isObiReceivingSideMessagingSpan(sdkSpan)).toBe(false);
+      expect(
+        normalizeObiReceivingSideMessagingSpanKind({
+          kind: SpanKind.Producer,
+          attributes: sdkSpan,
         }),
       ).toBe(SpanKind.Producer);
     }

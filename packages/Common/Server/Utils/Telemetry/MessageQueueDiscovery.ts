@@ -132,11 +132,13 @@ const METRIC_TABLE: string = `oneuptime.${AnalyticsTableName.Metric}`;
  * subscriber handed a delivery): OBI v0.14 sends them as PRODUCER /
  * CONSUMER, and the App's trace ingest stores them as SERVER, as v0.13 sent
  * them (ObiReceivingSideMessagingSpan), so a broker does not count as a
- * producer or consumer of its own topics — except through an MQTT broker's
- * PUBLISH to a subscriber and the PUB a NATS broker read beside a split
- * delivery, which OBI types client-side and which keep OBI's PRODUCER. A
- * NATS client's split delivery naming its broker stays CONSUMER: it is the
- * subscriber's own consumption.
+ * producer or consumer of its own topics. Ingest stores as SERVER too the
+ * broker spans OBI types client-side, which v0.13 sent as PRODUCER /
+ * CONSUMER as well: a NATS MSG the broker wrote, and an MQTT PUBLISH it
+ * wrote to a subscriber or a NATS PUB it read beside a split delivery, told
+ * from a client's by the subscriber's ephemeral port. A NATS client's split
+ * delivery naming its broker stays CONSUMER: it is the subscriber's own
+ * consumption.
  */
 export const MESSAGE_QUEUE_DISCOVERY_EXCLUDED_SPAN_KIND: SpanKind =
   SpanKind.Server;
