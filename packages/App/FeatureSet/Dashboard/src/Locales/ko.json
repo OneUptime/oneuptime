@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "온콜 중에 이 심각도의 인시던트 에피소드가 {{name}}에게 할당되었을 때 알림을 받는 방법입니다.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "온콜 중에 이 심각도의 인시던트가 {{name}}에게 할당되었을 때 알림을 받는 방법입니다.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "인시던트, 경고 또는 그 에피소드가 {{name}}에게 할당되었을 때 심각도별로 알림을 받는 방법입니다.",
-  "On-call rules": "온콜 규칙"
+  "On-call rules": "온콜 규칙",
+  "No rule for this severity yet. Add one to choose how you are notified.": "이 심각도에 대한 규칙이 아직 없습니다. 규칙을 추가해 알림 받는 방법을 정하세요."
 }

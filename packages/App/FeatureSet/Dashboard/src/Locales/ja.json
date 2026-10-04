@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のインシデントエピソードが {{name}} に割り当てられたときの通知方法。",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のインシデントが {{name}} に割り当てられたときの通知方法。",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "インシデント、アラート、またはそのエピソードが {{name}} に割り当てられたときの、重大度ごとの通知方法。",
-  "On-call rules": "オンコールルール"
+  "On-call rules": "オンコールルール",
+  "No rule for this severity yet. Add one to choose how you are notified.": "この重大度のルールはまだありません。ルールを追加して、通知方法を選んでください。"
 }

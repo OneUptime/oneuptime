@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "وقتی در زمان آنکال یک اپیزود حادثه با این شدت به {{name}} واگذار می‌شود، چگونه به او اطلاع داده می‌شود.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "وقتی در زمان آنکال یک حادثه با این شدت به {{name}} واگذار می‌شود، چگونه به او اطلاع داده می‌شود.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "وقتی یک حادثه، یک هشدار یا یکی از اپیزودهای آن‌ها به {{name}} واگذار می‌شود، برای هر شدت چگونه به او اطلاع داده می‌شود.",
-  "On-call rules": "قواعد آنکال"
+  "On-call rules": "قواعد آنکال",
+  "No rule for this severity yet. Add one to choose how you are notified.": "هنوز هیچ قاعده‌ای برای این شدت وجود ندارد. یک قاعده اضافه کنید تا انتخاب کنید چگونه به شما اطلاع داده شود."
 }

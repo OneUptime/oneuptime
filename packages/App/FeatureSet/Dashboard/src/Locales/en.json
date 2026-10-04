@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.",
-  "On-call rules": "On-call rules"
+  "On-call rules": "On-call rules",
+  "No rule for this severity yet. Add one to choose how you are notified.": "No rule for this severity yet. Add one to choose how you are notified."
 }

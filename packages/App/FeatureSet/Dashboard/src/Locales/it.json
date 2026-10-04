@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Come {{name}} riceve le notifiche quando gli viene assegnato un episodio di incidente di questa gravità durante la reperibilità.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Come {{name}} riceve le notifiche quando gli viene assegnato un incidente di questa gravità durante la reperibilità.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Come {{name}} riceve le notifiche, per ogni gravità, quando gli viene assegnato un incidente, un avviso o uno dei loro episodi.",
-  "On-call rules": "Regole di reperibilità"
+  "On-call rules": "Regole di reperibilità",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Nessuna regola per questa gravità. Aggiungine una per scegliere come ricevere le notifiche."
 }

@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Wie {{name}} benachrichtigt wird, wenn der Person während ihrer Bereitschaft eine Vorfallsepisode mit diesem Schweregrad zugewiesen wird.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Wie {{name}} benachrichtigt wird, wenn der Person während ihrer Bereitschaft ein Vorfall mit diesem Schweregrad zugewiesen wird.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Wie {{name}} für jeden Schweregrad benachrichtigt wird, wenn der Person ein Vorfall, eine Warnung oder eine ihrer Episoden zugewiesen wird.",
-  "On-call rules": "Bereitschaftsregeln"
+  "On-call rules": "Bereitschaftsregeln",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Noch keine Regel für diesen Schweregrad. Fügen Sie eine hinzu, um festzulegen, wie Sie benachrichtigt werden."
 }

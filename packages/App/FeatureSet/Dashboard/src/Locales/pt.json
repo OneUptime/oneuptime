@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Como {{name}} recebe notificações quando um episódio de incidente desta gravidade lhe é atribuído durante o plantão.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Como {{name}} recebe notificações quando um incidente desta gravidade lhe é atribuído durante o plantão.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Como {{name}} recebe notificações, para cada gravidade, quando um incidente, um alerta ou um de seus episódios lhe é atribuído.",
-  "On-call rules": "Regras de plantão"
+  "On-call rules": "Regras de plantão",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Ainda não há nenhuma regra para esta gravidade. Adicione uma para escolher como você recebe notificações."
 }

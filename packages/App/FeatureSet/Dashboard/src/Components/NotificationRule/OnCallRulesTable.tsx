@@ -441,8 +441,15 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
 }
 
-const DEFAULT_NO_ITEMS_MESSAGE: string =
-  "No notification rules found for this user. Please add one to receive notifications.";
+/*
+ * What a severity with no rule says on your own page: the card's title and
+ * the tab above already say which severity and which kind. An admin's view
+ * of a member passes its own message, which can say what the project's
+ * fallback does with a missing rule.
+ */
+const DEFAULT_NO_ITEMS_MESSAGE: string = translationKey(
+  "No rule for this severity yet. Add one to choose how you are notified.",
+);
 
 /*
  * What an opt-out row is, said in the one cell where its absence of a method

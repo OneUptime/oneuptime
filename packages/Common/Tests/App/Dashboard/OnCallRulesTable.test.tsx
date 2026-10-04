@@ -1187,6 +1187,18 @@ describe("OnCallRulesTable", () => {
     },
   );
 
+  test("an empty card on your own page says what to do, about you, not 'this user'", async () => {
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Incidents));
+
+    for (const table of getCapturedTables()) {
+      expect(
+        (table as unknown as { noItemsMessage: string }).noItemsMessage,
+      ).toBe(
+        "No rule for this severity yet. Add one to choose how you are notified.",
+      );
+    }
+  });
+
   test("lists the severities most severe first, with their colours", async () => {
     await renderAndSettle(ownPageAt(OnCallRuleKind.Alerts));
 

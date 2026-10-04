@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的事件片段時，會如何收到通知。",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的事件時，會如何收到通知。",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "{{name}} 被指派事件、警示或其片段時，各嚴重程度會如何收到通知。",
-  "On-call rules": "待命規則"
+  "On-call rules": "待命規則",
+  "No rule for this severity yet. Add one to choose how you are notified.": "此嚴重程度還沒有規則。新增一條規則，選擇您接收通知的方式。"
 }

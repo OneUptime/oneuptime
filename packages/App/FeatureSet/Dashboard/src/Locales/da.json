@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Hvordan {{name}} får besked, når vedkommende under sin vagt får tildelt en hændelsesepisode med denne alvorlighed.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Hvordan {{name}} får besked, når vedkommende under sin vagt får tildelt en hændelse med denne alvorlighed.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Hvordan {{name}} får besked for hver alvorlighed, når vedkommende får tildelt en hændelse, en advarsel eller en af deres episoder.",
-  "On-call rules": "Vagtregler"
+  "On-call rules": "Vagtregler",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Ingen regel for denne alvorlighed endnu. Tilføj en for at vælge, hvordan du får besked."
 }

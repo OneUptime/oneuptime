@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Hoe {{name}} een melding krijgt wanneer deze persoon tijdens de bereikbaarheid een incidentepisode met deze ernst toegewezen krijgt.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Hoe {{name}} een melding krijgt wanneer deze persoon tijdens de bereikbaarheid een incident met deze ernst toegewezen krijgt.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Hoe {{name}} per ernst een melding krijgt wanneer deze persoon een incident, een waarschuwing of een van hun episodes toegewezen krijgt.",
-  "On-call rules": "Bereikbaarheidsregels"
+  "On-call rules": "Bereikbaarheidsregels",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Nog geen regel voor deze ernst. Voeg er een toe om te kiezen hoe u een melding krijgt."
 }

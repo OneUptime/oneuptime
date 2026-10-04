@@ -1190,8 +1190,13 @@ const RULE_TYPE_CASES: Array<RuleTypeCase> = [
 const ADMIN_PREFERENCES_PREFIX: string = "admin-user-notification-rules";
 const SELF_SERVE_PREFERENCES_PREFIX: string = "user-notification-rules-table";
 
+/*
+ * What a severity with no rule says on your own page. It used to read "No
+ * notification rules found for this user", which on your own settings page
+ * is about nobody in particular.
+ */
 const NO_ITEMS_MESSAGE: string =
-  "No notification rules found for this user. Please add one to receive notifications.";
+  "No rule for this severity yet. Add one to choose how you are notified.";
 
 beforeEach((): void => {
   capturedTables = [];

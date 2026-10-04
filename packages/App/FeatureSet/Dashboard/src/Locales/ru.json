@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Как {{name}} получает уведомления о назначенных во время дежурства эпизодах инцидентов с такой серьёзностью.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Как {{name}} получает уведомления о назначенных во время дежурства инцидентах с такой серьёзностью.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Как {{name}} получает уведомления для каждой серьёзности о назначенных инцидентах, оповещениях и их эпизодах.",
-  "On-call rules": "Правила дежурства"
+  "On-call rules": "Правила дежурства",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Для этой серьёзности пока нет правила. Добавьте его, чтобы выбрать, как вы получаете уведомления."
 }

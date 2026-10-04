@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "Comment {{name}} est notifié lorsqu'un épisode d'incident de cette gravité lui est attribué pendant son astreinte.",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "Comment {{name}} est notifié lorsqu'un incident de cette gravité lui est attribué pendant son astreinte.",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "Comment {{name}} est notifié, pour chaque gravité, lorsqu'un incident, une alerte ou l'un de leurs épisodes lui est attribué.",
-  "On-call rules": "Règles d'astreinte"
+  "On-call rules": "Règles d'astreinte",
+  "No rule for this severity yet. Add one to choose how you are notified.": "Aucune règle pour cette gravité pour l'instant. Ajoutez-en une pour choisir comment vous êtes notifié."
 }

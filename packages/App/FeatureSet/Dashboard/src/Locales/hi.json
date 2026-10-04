@@ -24655,5 +24655,6 @@
   "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "ऑन-कॉल के दौरान इस गंभीरता का कोई घटना एपिसोड {{name}} को सौंपे जाने पर उन्हें कैसे सूचित किया जाता है।",
   "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "ऑन-कॉल के दौरान इस गंभीरता की कोई घटना {{name}} को सौंपी जाने पर उन्हें कैसे सूचित किया जाता है।",
   "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "कोई घटना, अलर्ट या उनका कोई एपिसोड {{name}} को सौंपे जाने पर, हर गंभीरता के लिए उन्हें कैसे सूचित किया जाता है।",
-  "On-call rules": "ऑन-कॉल नियम"
+  "On-call rules": "ऑन-कॉल नियम",
+  "No rule for this severity yet. Add one to choose how you are notified.": "इस गंभीरता के लिए अभी कोई नियम नहीं है। आपको कैसे सूचित किया जाए, यह चुनने के लिए एक नियम जोड़ें।"
 }
