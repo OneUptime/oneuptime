@@ -54,6 +54,7 @@ analyzer's.
 | `E2E_REUSE_CLUSTER`                                          | `false`                     | `true` runs on an existing KinD cluster of that name (it uninstalls the previous run's release first) |
 | `E2E_KIND_CONFIG`                                            | `kind-config.yaml` here     | another KinD config, e.g. one with longer kubeadm timeouts on a loaded laptop                         |
 | `E2E_NODE_IMAGE`                                             | kind's own                  | KinD node image                                                                                       |
+| `E2E_K3S_VERSION`                                            | `v1.34.1+k3s1`              | k3s: the release to install                                                                           |
 | `E2E_OBI_IMAGE`                                              | the chart's                 | `repo:tag` of an OBI build to try instead of `ebpf.image`                                             |
 | `E2E_HELM_ARGS`                                              | none                        | extra `helm install` arguments, e.g. `--set profiling.obiProcessContext=false`                        |
 | `E2E_PROFILING`                                              | `true`                      | `false` skips the profiler half                                                                       |
@@ -120,11 +121,15 @@ OBI discovery.
    which maps `/otlp/v1/profiles` to the receiver's hardcoded
    `/v1development/profiles`) and the workloads
    ([`manifests/workloads.yaml`](manifests/workloads.yaml); the app's npm
-   dependencies are installed by an init container, so nothing is built).
+   dependencies are installed by an init container, so nothing is built). A
+   workload that is not Ready within 10 minutes stops the run, with its pods
+   described in `not-ready-<namespace>.txt`.
 5. `helm install`, wait for the DaemonSets and for OBI's "Script successfully
-   injected". On kind, with profiling on, start the root-namespace profiler
-   (below) here, so that it has caught up with the processes it samples before
-   the load. Then a 30 s warmup.
+   injected". An agent component that is not Ready within 5 minutes does not
+   stop the run: its logs are collected and the checks (OBI-1, PR-1) report
+   it. On kind, with profiling on, start the root-namespace profiler (below)
+   here, so that it has caught up with the processes it samples before the
+   load. Then a 30 s warmup.
 6. With profiling on, start [`manifests/ctxprobe.yaml`](manifests/ctxprobe.yaml)
    (bpftool on the apps node's pin). Run the load
    ([`apps/loadgen.js`](apps/loadgen.js): one process, 8 loops over the app's 4

@@ -88,6 +88,7 @@ AGENT_NS=oneuptime-agent
 REL=e2e
 FULL="${REL}-kubernetes-agent"
 HOST_PROFILER_NAME="${CLUSTER}-host-profiler"
+HOST_PROFILER_STARTED=false
 CREATED=false
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "${OUT}/run.log" >&2; }
@@ -103,9 +104,30 @@ k() {
   for i in 1 2 3 4 5; do
     kubectl --kubeconfig "${KC}" --request-timeout=120s "$@" && return 0
     [ "$i" = 5 ] && return 1
-    echo "kubectl $1 failed (attempt $i), retrying" >&2
+    echo "kubectl $* failed (attempt $i), retrying" >&2
     sleep $((i * 3))
   done
+}
+# Waits are retried only within one budget: a busy API server can drop the
+# call (as above), but a wait that timed out has spent its budget, and k would
+# wait it out five times over, past the CI job's timeout.
+wait_for() { # wait_for <seconds> <kubectl args...>: kubectl ... --timeout=<what is left>
+  local end left
+  end=$(($(date +%s) + $1))
+  shift
+  while left=$((end - $(date +%s))) && [ "${left}" -gt 0 ]; do
+    kubectl --kubeconfig "${KC}" "$@" --timeout="${left}s" && return 0
+    sleep 3
+  done
+  return 1
+}
+# A workload that never got Ready: nothing downstream of it measures
+# anything, so stop, with what its pods say (e.g. the app's npm install).
+not_ready() { # not_ready <namespace> <deploy/name>
+  local f="${OUT}/not-ready-$1.txt"
+  kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1" describe pods >"$f" 2>&1 || true
+  kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1" logs "$2" --all-containers --prefix >>"$f" 2>&1 || true
+  die "$2 in namespace $1 is not Ready; its pods are described in $f"
 }
 h() { helm --kubeconfig "${KC}" "$@"; }
 retry() { # retry <attempts> <cmd...>
@@ -195,7 +217,9 @@ platform_load_images() {
 }
 
 platform_down() {
-  docker rm -f -v "${HOST_PROFILER_NAME}" >/dev/null 2>&1 || true
+  # Only this run's: a run that stopped at "cluster exists" must not remove
+  # the root-namespace profiler of the run that owns the cluster.
+  [ "${HOST_PROFILER_STARTED}" != true ] || docker rm -f -v "${HOST_PROFILER_NAME}" >/dev/null 2>&1 || true
   [ "${CREATED}" = true ] && [ "${KEEP_CLUSTER}" != true ] || return 0
   case "${PLATFORM}" in
     kind)
@@ -318,9 +342,9 @@ for ns in sink shop loadgen; do
 done
 sed "s#otel/opentelemetry-collector-contrib:0.152.0#${SINK_IMAGE}#" "${HERE}/manifests/sink.yaml" | k apply -f - >/dev/null
 k apply -f "${HERE}/manifests/workloads.yaml" >/dev/null
-k -n sink rollout status deploy/sink --timeout=600s >/dev/null
-for d in redis postgres; do k -n data rollout status "deploy/$d" --timeout=600s >/dev/null; done
-for d in downstream app sleeper; do k -n shop rollout status "deploy/$d" --timeout=600s >/dev/null; done
+wait_for 600 -n sink rollout status deploy/sink >/dev/null || not_ready sink deploy/sink
+for d in redis postgres; do wait_for 600 -n data rollout status "deploy/$d" >/dev/null || not_ready data "deploy/$d"; done
+for d in downstream app sleeper; do wait_for 600 -n shop rollout status "deploy/$d" >/dev/null || not_ready shop "deploy/$d"; done
 k -n shop logs deploy/app -c app --tail=5 | tee -a "${OUT}/run.log" >&2
 
 # --- 4. the agent ---------------------------------------------------------------------
@@ -328,14 +352,21 @@ log "helm install ${CHART}"
 h install "${REL}" "${CHART}" -n "${AGENT_NS}" --create-namespace -f "${HERE}/values-e2e.yaml" \
   "${SET_ARGS[@]}" ${EXTRA_HELM[@]+"${EXTRA_HELM[@]}"} >"${OUT}/helm-install.txt" 2>&1 ||
   { cat "${OUT}/helm-install.txt" >&2; die "helm install failed"; }
-k -n "${AGENT_NS}" rollout status "ds/${FULL}-ebpf" --timeout=600s
-k -n "${AGENT_NS}" rollout status "deploy/${FULL}" --timeout=600s
-[ "${PROFILING}" != true ] || k -n "${AGENT_NS}" rollout status "ds/${FULL}-profiling" --timeout=600s
-OBI_APPS_POD="$(k -n "${AGENT_NS}" get pod -l component=ebpf-instrument --field-selector "spec.nodeName=${APPS_NODE}" -o jsonpath='{.items[0].metadata.name}')"
-log "waiting for OBI (${OBI_APPS_POD}) to inject its Node.js agent"
+# An agent component that is not Ready is what this test is here to catch:
+# go on, so that its logs are collected and the checks (OBI-1, PR-1, ...)
+# report it.
+wait_for 300 -n "${AGENT_NS}" rollout status "ds/${FULL}-ebpf" || log "OBI is not Ready"
+wait_for 300 -n "${AGENT_NS}" rollout status "deploy/${FULL}" || log "the agent collector is not Ready"
+[ "${PROFILING}" != true ] || wait_for 300 -n "${AGENT_NS}" rollout status "ds/${FULL}-profiling" ||
+  log "the profiler is not Ready"
+# (items[*], not items[0], which fails when the node has no OBI pod at all.)
+OBI_APPS_POD="$(k -n "${AGENT_NS}" get pod -l component=ebpf-instrument --field-selector "spec.nodeName=${APPS_NODE}" -o jsonpath='{.items[*].metadata.name}')"
+OBI_APPS_POD="${OBI_APPS_POD%% *}"
+log "waiting for OBI (${OBI_APPS_POD:-no pod on ${APPS_NODE}}) to inject its Node.js agent"
 # (Each poll reads the whole log into a variable first: `k ... | grep -q`
 # would SIGPIPE kubectl on a match, which k then retries and pipefail fails.)
 for i in $(seq 1 60); do
+  [ -n "${OBI_APPS_POD}" ] || break
   obi_log="$(kubectl --kubeconfig "${KC}" -n "${AGENT_NS}" logs "${OBI_APPS_POD}" 2>/dev/null || true)"
   case "${obi_log}" in *'Script successfully injected'*) break ;; esac
   sleep 5
@@ -372,6 +403,7 @@ PY
   # /out is an anonymous volume, copied out with `docker cp` below: the file
   # exporter writes 0600 as root, which the caller could not read through a
   # bind mount on a Linux host.
+  HOST_PROFILER_STARTED=true
   docker run -d --name "${HOST_PROFILER_NAME}" --privileged --pid=host \
     -v /out -v "${OUT}/host-profiler/config.yaml:/etc/profiler/config.yaml:ro" \
     -v /sys/kernel/debug:/sys/kernel/debug -v /sys/kernel/tracing:/sys/kernel/tracing \
@@ -410,13 +442,13 @@ fi
 log "load: ${LOAD_SECONDS}s, ${CONCURRENCY} loops, ${PAUSE_MS}ms pause"
 sed -e "s/@DURATION@/${LOAD_SECONDS}/" -e "s/@CONCURRENCY@/${CONCURRENCY}/" -e "s/@PAUSE_MS@/${PAUSE_MS}/" \
   "${HERE}/manifests/loadgen-job.yaml" | k apply -f - >/dev/null
-k -n loadgen wait --for=condition=complete job/loadgen --timeout="$((LOAD_SECONDS + 300))s" >/dev/null ||
+wait_for $((LOAD_SECONDS + 300)) -n loadgen wait --for=condition=complete job/loadgen >/dev/null ||
   log "the load generator did not complete"
 k -n loadgen logs job/loadgen >"${OUT}/loadgen.log" 2>&1 || true
 tail -1 "${OUT}/loadgen.log" | tee -a "${OUT}/run.log" >&2
 log "flush ${FLUSH}s"
 sleep "${FLUSH}"
-if docker inspect "${HOST_PROFILER_NAME}" >/dev/null 2>&1; then
+if [ "${HOST_PROFILER_STARTED}" = true ]; then
   docker stop -t 30 "${HOST_PROFILER_NAME}" >/dev/null 2>&1 || true
   docker logs "${HOST_PROFILER_NAME}" >"${OUT}/host-profiler/profiler.log" 2>&1 || true
   docker cp "${HOST_PROFILER_NAME}:/out/profiles-host.json" "${OUT}/host-profiler/profiles-host.json" >/dev/null 2>&1 ||
