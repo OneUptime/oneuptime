@@ -71,6 +71,7 @@ import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ObjectID from "../../../Types/ObjectID";
+import IconProp from "../../../Types/Icon/IconProp";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 
@@ -134,6 +135,7 @@ function PageWithLoadedButton(): ReactElement {
   const buttons: Array<CardButtonSchema> = [
     {
       title: "Generate with AI",
+      icon: IconProp.Bolt,
       onClick: () => {},
     },
   ];
@@ -141,6 +143,7 @@ function PageWithLoadedButton(): ReactElement {
   if (hasTemplates) {
     buttons.push({
       title: "Apply Template",
+      icon: IconProp.Template,
       onClick: () => {},
     });
   }
@@ -170,6 +173,7 @@ describe("CardModelDetail's page buttons", () => {
         buttons={[
           {
             title: "Generate with AI",
+            icon: IconProp.Bolt,
             onClick: () => {},
           },
         ]}

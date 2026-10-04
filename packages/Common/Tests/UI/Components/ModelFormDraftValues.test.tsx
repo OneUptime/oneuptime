@@ -1,9 +1,15 @@
 import "@testing-library/jest-dom";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
-import { afterEach } from "@jest/globals";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -162,10 +168,8 @@ async function save(): Promise<Record<string, unknown>> {
     { timeout: WAIT_TIMEOUT },
   );
 
-  return (
-    (createOrUpdateMock.mock.calls[0] as Array<{ model: Probe }>)[0]!
-      .model as unknown as Record<string, unknown>
-  );
+  return (createOrUpdateMock.mock.calls[0] as Array<{ model: Probe }>)[0]!
+    .model as unknown as Record<string, unknown>;
 }
 
 describe("ModelForm draftValues", () => {

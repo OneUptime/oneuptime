@@ -234,14 +234,12 @@ describe("the Postmortem card's buttons", () => {
       onGenerateWithAI: () => {},
       onApplyTemplate: () => {},
     });
-    const withoutTemplates: Array<CardButtonSchema> = getPostmortemCardButtons(
-      {
-        model: new Incident(),
-        hasTemplates: false,
-        onGenerateWithAI: () => {},
-        onApplyTemplate: () => {},
-      },
-    );
+    const withoutTemplates: Array<CardButtonSchema> = getPostmortemCardButtons({
+      model: new Incident(),
+      hasTemplates: false,
+      onGenerateWithAI: () => {},
+      onApplyTemplate: () => {},
+    });
 
     expect(titles(withTemplates)).toEqual([
       "Generate with AI",
@@ -340,11 +338,12 @@ describe("the incident postmortem form", () => {
   });
 
   test("asks Notify Subscribers and Published At only while publishing", () => {
-    const onlyWhilePublishing: Array<string> = INCIDENT_POSTMORTEM_FORM_FIELDS
-      .filter((field: Field<Incident>): boolean => {
-        return Boolean(field.showIf);
-      })
-      .map(fieldName);
+    const onlyWhilePublishing: Array<string> =
+      INCIDENT_POSTMORTEM_FORM_FIELDS.filter(
+        (field: Field<Incident>): boolean => {
+          return Boolean(field.showIf);
+        },
+      ).map(fieldName);
 
     expect(onlyWhilePublishing).toEqual([
       "notifySubscribersOnPostmortemPublished",

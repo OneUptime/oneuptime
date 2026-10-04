@@ -38,6 +38,9 @@ const STARTS_WITH_SEPARATOR: RegExp = new RegExp(`^${SEPARATOR}`);
 
 const WORD_CHARACTER: RegExp = /[A-Za-z0-9]/;
 
+// What the old no-templates dialogs said before naming Project Settings.
+const OLD_TEMPLATE_DIALOG_WORDS: RegExp = /templates have been created yet/i;
+
 interface MenuItem {
   title: string;
   // The page the item links to, as PageMap names it.
@@ -135,10 +138,7 @@ function getProductSettingsItems(product: string): Array<MenuItem> {
  * The longest of these titles the text starts with, as a whole name (not
  * "AI" out of "AI Features").
  */
-function findTitleAtStart(
-  text: string,
-  titles: Array<string>,
-): string | null {
+function findTitleAtStart(text: string, titles: Array<string>): string | null {
   let found: string | null = null;
 
   for (const title of titles) {
@@ -439,7 +439,7 @@ describe("paths in the Dashboard's copy", () => {
   test("no template dialog says templates are made in Project Settings", () => {
     const offenders: Array<string> = SOURCES.filter(
       (source: { file: string; text: string }): boolean => {
-        return /templates have been created yet/i.test(source.text);
+        return OLD_TEMPLATE_DIALOG_WORDS.test(source.text);
       },
     ).map((source: { file: string; text: string }): string => {
       return source.file;

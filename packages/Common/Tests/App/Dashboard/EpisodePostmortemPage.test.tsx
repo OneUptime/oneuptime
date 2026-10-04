@@ -219,9 +219,8 @@ async function savedEpisode(): Promise<Record<string, unknown>> {
     expect(createOrUpdateMock).toHaveBeenCalled();
   }, WAIT);
 
-  return (
-    createOrUpdateMock.mock.calls[0]![0] as { model: IncidentEpisode }
-  ).model as unknown as Record<string, unknown>;
+  return (createOrUpdateMock.mock.calls[0]![0] as { model: IncidentEpisode })
+    .model as unknown as Record<string, unknown>;
 }
 
 describe("an episode's Postmortem page", () => {

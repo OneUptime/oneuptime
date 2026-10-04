@@ -322,9 +322,8 @@ async function savedIncident(): Promise<Record<string, unknown>> {
     expect(createOrUpdateMock).toHaveBeenCalled();
   }, WAIT);
 
-  return (
-    createOrUpdateMock.mock.calls[0]![0] as { model: Incident }
-  ).model as unknown as Record<string, unknown>;
+  return (createOrUpdateMock.mock.calls[0]![0] as { model: Incident })
+    .model as unknown as Record<string, unknown>;
 }
 
 // The editor opens on the write-up; Next goes on to the Status Page step.
@@ -434,9 +433,7 @@ describe("Apply Template", () => {
     await screen.findByText("Edit Postmortem Note", { selector: "h3" }, WAIT);
     await goToStatusPageStep();
 
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     const saved: Record<string, unknown> = await savedIncident();
 
@@ -492,9 +489,7 @@ describe("Apply Template", () => {
     // The stored postmortem, not a blank one.
     expect(publishSwitch()).toHaveAttribute("aria-checked", "true");
 
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     const saved: Record<string, unknown> = await savedIncident();
 
@@ -550,9 +545,7 @@ describe("Generate with AI", () => {
 
     expect(publishSwitch()).toHaveAttribute("aria-checked", "true");
 
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     const saved: Record<string, unknown> = await savedIncident();
 
@@ -594,11 +587,7 @@ describe("the Status Page step of Edit Postmortem Note", () => {
     await renderPage();
 
     fireEvent.click(
-      await screen.findByRole(
-        "button",
-        { name: "Edit Postmortem Note" },
-        WAIT,
-      ),
+      await screen.findByRole("button", { name: "Edit Postmortem Note" }, WAIT),
     );
 
     await screen.findByText("Edit Postmortem Note", { selector: "h3" }, WAIT);
@@ -645,9 +634,7 @@ describe("the Status Page step of Edit Postmortem Note", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     const saved: Record<string, unknown> = await savedIncident();
 
@@ -679,9 +666,7 @@ describe("the Status Page step of Edit Postmortem Note", () => {
       expect(publishedAtInput()).toBeNull();
     }, WAIT);
 
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     const saved: Record<string, unknown> = await savedIncident();
 
@@ -704,9 +689,7 @@ describe("the Status Page step of Edit Postmortem Note", () => {
       expect(publishedAtInput()).toBeNull();
     }, WAIT);
 
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     const saved: Record<string, unknown> = await savedIncident();
 
@@ -723,7 +706,9 @@ describe("the Postmortem card", () => {
 
     await renderPage();
 
-    expect(screen.getByText("Postmortem visible on Status Page?")).toBeVisible();
+    expect(
+      screen.getByText("Postmortem visible on Status Page?"),
+    ).toBeVisible();
     expect(screen.queryByText("Postmortem Published At")).toBeNull();
     expect(screen.queryByText("Notify Subscribers")).toBeNull();
     expect(screen.queryByText("Subscriber Notification Status")).toBeNull();
@@ -752,8 +737,7 @@ describe("the Postmortem card", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      notify.compareDocumentPosition(status) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      notify.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       status.compareDocumentPosition(postedAt) &

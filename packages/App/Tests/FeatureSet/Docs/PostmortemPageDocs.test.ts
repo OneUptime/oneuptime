@@ -152,12 +152,16 @@ describe("the Postmortem page's docs", () => {
       return bullet.indexOf(label);
     });
 
-    expect(order.every((position: number): boolean => {
-      return position > -1;
-    })).toBe(true);
-    expect([...order].sort((a: number, b: number): number => {
-      return a - b;
-    })).toEqual(order);
+    expect(
+      order.every((position: number): boolean => {
+        return position > -1;
+      }),
+    ).toBe(true);
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
     expect(bullet).toContain("only while that is on");
     expect(bullet).toContain(
       "**Apply Template** — shown once the project has a postmortem template",
