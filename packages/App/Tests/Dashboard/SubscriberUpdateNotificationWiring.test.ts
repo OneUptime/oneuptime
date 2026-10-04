@@ -29,6 +29,11 @@ function readSource(...relativePath: Array<string>): string {
 interface PageCase {
   name: string;
   file: Array<string>;
+  /*
+   * The file the edit form's fields are written in, when not the page's own
+   * (the announcement's are shared with Create Announcement).
+   */
+  formFile?: Array<string>;
   modelType: string;
   statusColumn: string;
   messageColumn: string;
@@ -39,6 +44,7 @@ const PAGES: Array<PageCase> = [
   {
     name: "Announcement view",
     file: ["Pages", "StatusPages", "AnnouncementView.tsx"],
+    formFile: ["Components", "Announcement", "AnnouncementFormFields.tsx"],
     modelType: "StatusPageAnnouncement",
     statusColumn: "subscriberNotificationStatusOnAnnouncementUpdated",
     messageColumn: "subscriberNotificationStatusMessageOnAnnouncementUpdated",
@@ -104,9 +110,10 @@ const EVENT_NOTES_DIR: Array<string> = ["Components", "EventNotes"];
 
 describe.each(PAGES)("$name", (page: PageCase) => {
   const source: string = readSource(...page.file);
+  const formSource: string = readSource(...(page.formFile || page.file));
 
   test("offers the notify-about-this-update checkbox on its edit form", () => {
-    expect(source).toContain(
+    expect(formSource).toContain(
       `getNotifySubscribersOfUpdateFormField<${page.modelType}>(`,
     );
   });
@@ -283,23 +290,33 @@ describe("the announcement only offers the update checkbox when editing", () => 
     expect(
       readSource("Components", "Announcement", "AnnouncementsTable.tsx"),
     ).not.toContain("getNotifySubscribersOfUpdateFormField");
+
+    // The shared fields add it for the Edit only.
+    expect(
+      readSource("Components", "Announcement", "AnnouncementFormFields.tsx"),
+    ).toMatch(
+      /if \(kind === AnnouncementFormKind\.Edit\) \{ fields\.push\( getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(/,
+    );
+    expect(
+      readSource("Pages", "StatusPages", "AnnouncementView.tsx"),
+    ).toContain("return getAnnouncementFormFields(AnnouncementFormKind.Edit);");
   });
 
   test("the announcement edit form keeps its steps valid by placing the checkbox on a real step", () => {
     const source: string = readSource(
-      "Pages",
-      "StatusPages",
-      "AnnouncementView.tsx",
+      "Components",
+      "Announcement",
+      "AnnouncementFormFields.tsx",
     );
 
     /*
-     * On the Status Pages step, folded with the schedule in Schedule &
-     * Notifications, whose line says whether this edit is sent
-     * (Components/Announcement/AnnouncementForm).
+     * On the Announcement step, right under the description it is about,
+     * and drawn open: an edit that matters should not have to find it
+     * (Components/Announcement/AnnouncementFormFields).
      */
-    expect(source).toContain('id: "status-pages"');
+    expect(source).toContain('id: "announcement"');
     expect(source).toMatch(
-      /getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(\{ stepId: "status-pages", description: "[^"]+", collapsibleSection: detailsScheduleSection, \}\)/,
+      /getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(\{ stepId: "announcement", description: "[^"]+", \}\)/,
     );
   });
 });
@@ -351,11 +368,10 @@ describe("the update notification strings are translated", () => {
   }
 
   test("the pages and the feed use exactly these strings", () => {
-    const announcement: string = readRaw(
-      "Pages",
-      "StatusPages",
-      "AnnouncementView.tsx",
-    );
+    // The page draws the status; the shared fields hold the checkbox.
+    const announcement: string =
+      readRaw("Pages", "StatusPages", "AnnouncementView.tsx") +
+      readRaw("Components", "Announcement", "AnnouncementFormFields.tsx");
     const feed: string = readRaw(...EVENT_NOTES_DIR, "EventNotes.tsx");
     const util: string = readRaw(...EVENT_NOTES_DIR, "EventNotesUtil.ts");
 

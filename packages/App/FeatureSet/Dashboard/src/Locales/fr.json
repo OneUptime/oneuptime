@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "S'affiche dès maintenant et reste affichée jusqu'à ce que vous y mettiez fin.",
   "Shows now and stays until {{endsAt}}.": "S'affiche dès maintenant et reste affichée jusqu'au {{endsAt}}.",
   "Stopped showing at {{endsAt}}.": "N'est plus affichée depuis le {{endsAt}}.",
-  "Subscribers are not notified about this edit.": "Les abonnés ne sont pas notifiés de cette modification.",
   "Subscribers are not notified.": "Les abonnés ne sont pas notifiés.",
-  "Subscribers are notified about this edit.": "Les abonnés sont notifiés de cette modification.",
   "Subscribers are notified when it starts showing.": "Les abonnés sont notifiés dès qu'elle s'affiche.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Les abonnés de ces pages de statut sont informés dès qu'une annonce créée à partir de ce modèle s'affiche.",
   "Subscribers of these status pages are told when the announcement starts showing.": "Les abonnés de ces pages de statut sont informés dès que l'annonce s'affiche.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "Planification et notifications",
   "Who to call": "Qui appeler",
   "{{count}} seconds": "{{count}} secondes",
-  "{{count}} seconds_one": "{{count}} seconde"
+  "{{count}} seconds_one": "{{count}} seconde",
+  "End Showing Announcement At must be in the future.": "La fin de l'affichage doit être dans le futur.",
+  "When the announcement shows on its status pages.": "Quand l'annonce s'affiche sur ses pages de statut."
 }

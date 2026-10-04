@@ -133,12 +133,10 @@ import StatusPageAnnouncementTemplateView from "../../../../App/FeatureSet/Dashb
 import {
   ANNOUNCEMENT_TEMPLATE_FORM_STEPS,
   getAnnouncementTemplateFormFields,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Settings/StatusPageAnnouncementTemplates";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementFormFields";
 import {
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
-  ANNOUNCEMENT_UPDATE_NOTIFIED_SUMMARY,
-  ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ModelForm, {
@@ -263,6 +261,17 @@ function fieldLabelsIn(element: HTMLElement): Array<string> {
     });
 }
 
+// What the first save sent beside the record (the misc data props).
+function call0MiscData(): Record<string, unknown> {
+  return (
+    (
+      createOrUpdateMock.mock.calls[0]![0] as {
+        miscDataProps?: Record<string, unknown>;
+      }
+    ).miscDataProps || {}
+  );
+}
+
 function sectionLine(): string {
   return (
     screen.getByTestId("collapsible-section-summary").textContent || ""
@@ -379,20 +388,34 @@ describe("the announcement's details card Edit", () => {
     expect(folded).not.toContain("Title");
   });
 
-  test("has no notify switch; its line says whether this edit is sent", async () => {
+  test("asks under the description whether this edit is sent, unticked: a typo fix tells nobody", async () => {
+    await renderEditForm();
+
+    const updateBox: HTMLElement = screen.getByRole("checkbox", {
+      name: SubscriberUpdateNotification.formFieldTitle,
+    });
+
+    // On the Announcement step, drawn open, with the text it is about.
+    expect(updateBox).toBeVisible();
+    expect(updateBox).not.toBeChecked();
+    expect(
+      fieldLabelsIn(form()).indexOf(
+        SubscriberUpdateNotification.formFieldTitle,
+      ),
+    ).toBeGreaterThan(fieldLabelsIn(form()).indexOf("Description"));
+  });
+
+  test("has no notify switch: Schedule holds only the start and the end, and says when it shows", async () => {
     await renderEditForm();
     await goToNextStep("Status Pages");
 
-    const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
+    const schedule: HTMLElement = sectionHeader("Schedule");
 
     expect(schedule).toHaveAttribute("aria-expanded", "false");
-    expect(sectionLine()).toBe(
-      `${ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded} ${ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY}`,
-    );
+    expect(sectionLine()).toBe(ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded);
     expect(fieldLabelsIn(sectionBody(schedule))).toEqual([
       "Start Showing Announcement At",
       "End Showing Announcement At",
-      SubscriberUpdateNotification.formFieldTitle,
     ]);
     expect(
       screen.queryByRole("checkbox", {
@@ -400,31 +423,22 @@ describe("the announcement's details card Edit", () => {
         hidden: true,
       }),
     ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Schedule & Notifications" }),
+    ).toBeNull();
   });
 
-  test("ticking the update box says so, and the save asks for the update notification", async () => {
+  test("ticking the update box asks for the update notification with the save", async () => {
     await renderEditForm();
-    await goToNextStep("Status Pages");
 
-    const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
-
-    fireEvent.click(schedule);
-
-    const updateBox: HTMLElement = screen.getByRole("checkbox", {
-      name: SubscriberUpdateNotification.formFieldTitle,
-    });
-
-    // Every edit starts unticked: a typo fix tells nobody.
-    expect(updateBox).not.toBeChecked();
-
-    fireEvent.click(updateBox);
-    await act(async () => {});
-    fireEvent.click(schedule);
-
-    expect(sectionLine()).toBe(
-      `${ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded} ${ANNOUNCEMENT_UPDATE_NOTIFIED_SUMMARY}`,
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: SubscriberUpdateNotification.formFieldTitle,
+      }),
     );
+    await act(async () => {});
 
+    await goToNextStep("Status Pages");
     fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     await waitFor(() => {
@@ -467,16 +481,45 @@ describe("the announcement's details card Edit", () => {
         new Date("2026-10-03T08:00:00.000Z"),
       );
 
-    expect(sectionLine()).toBe(
-      `Stopped showing at ${endedAt}. ${ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY}`,
-    );
+    expect(sectionLine()).toBe(`Stopped showing at ${endedAt}.`);
+  });
+
+  test("an end that has passed is how an announcement is taken down: the Edit saves it", async () => {
+    await renderEditForm();
+    await goToNextStep("Status Pages");
+
+    const schedule: HTMLElement = sectionHeader("Schedule");
+
+    fireEvent.click(schedule);
+    fireEvent.change(labelledInput("End Showing Announcement At"), {
+      target: { value: "2026-10-03T09:00" },
+    });
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: StatusPageAnnouncement = (
+      createOrUpdateMock.mock.calls[0]![0] as { model: StatusPageAnnouncement }
+    ).model;
+
+    expect(
+      OneUptimeDate.fromString(
+        model.endAnnouncementAt as unknown as string,
+      ).toISOString(),
+    ).toBe("2026-10-03T09:00:00.000Z");
+    // Nobody is told about it unless the box under the description is ticked.
+    expect(call0MiscData()).toEqual({});
   });
 
   test("an end before the start is refused, and the section opens to say so", async () => {
     await renderEditForm();
     await goToNextStep("Status Pages");
 
-    const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
+    const schedule: HTMLElement = sectionHeader("Schedule");
 
     fireEvent.click(schedule);
     fireEvent.change(labelledInput("End Showing Announcement At"), {

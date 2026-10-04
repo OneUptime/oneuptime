@@ -3,40 +3,52 @@ import fs from "fs";
 import path from "path";
 import {
   FormFacts,
-  FormFieldFacts,
   SHORT_FORM_ROW_LIMIT,
   STEP_FIELD_LIMIT,
-  countFieldRows,
   countFormRows,
   scanFormFiles,
 } from "../../Helpers/FormStepsScan";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
+import SubscriberUpdateNotification from "../../../Types/StatusPage/SubscriberUpdateNotification";
+import { ModelField } from "../../../UI/Components/Forms/ModelForm";
+import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
-import { SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import {
+  AnnouncementFormKind,
+  SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
+  SCHEDULE_SECTION_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import {
+  ANNOUNCEMENT_FORM_STEPS,
+  ANNOUNCEMENT_TEMPLATE_FORM_STEPS,
+  getAnnouncementFormFields,
+  getAnnouncementTemplateFormFields,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementFormFields";
 
 /*
  * Creating an announcement takes two steps and a review: Announcement, then
  * Status Pages - the shape scheduled maintenance has had since #4291. The
- * four forms of an announcement put each field they hold on the same step:
+ * four forms of an announcement read their fields from one module
+ * (Components/Announcement/AnnouncementFormFields), and put each field
+ * they hold on the same step:
  *
  *   - Create Announcement (Pages/StatusPages/AnnouncementCreate.tsx), and
- *     the review step after it;
+ *     the review step after it: the schedule and the notify switch folded
+ *     in Schedule & Notifications;
  *   - the announcement's details card Edit (AnnouncementView.tsx), which
- *     cannot change the notify switch (its column takes no updates) and
- *     folds "Notify subscribers about this update" where the switch was;
+ *     cannot change the notify switch (its column takes no updates): it
+ *     asks "Notify subscribers about this update" under the description it
+ *     is about, and folds only the Schedule;
  *   - an announcement template's Create (the templates table) and Edit (the
  *     template's page), which add the template's own name and description in
- *     front, and have no schedule: their one notification switch is drawn
- *     open on Status Pages, since folding a single field behind a header
- *     would only add a click.
- *
- * So Title and Description open on Announcement, Attachments under
- * Advanced; the status pages and the monitors open on Status Pages, the
- * schedule and the notification answer folded in Schedule & Notifications;
- * and no step exists for one field.
+ *     front, and have no schedule: their one notify switch is drawn open on
+ *     Status Pages, since folding a single field behind a header would only
+ *     add a click.
  *
  * Later sweeps: these forms are done; keep them matching this, or change
  * this on purpose.
@@ -56,64 +68,38 @@ const CREATE_FILE: string = `${DASHBOARD}/Pages/StatusPages/AnnouncementCreate.t
 const VIEW_FILE: string = `${DASHBOARD}/Pages/StatusPages/AnnouncementView.tsx`;
 const TEMPLATES_FILE: string = `${DASHBOARD}/Pages/StatusPages/Settings/StatusPageAnnouncementTemplates.tsx`;
 const TEMPLATE_VIEW_FILE: string = `${DASHBOARD}/Pages/StatusPages/Settings/StatusPageAnnouncementTemplateView.tsx`;
-const FORM_MODULE_FILE: string = `${DASHBOARD}/Components/Announcement/AnnouncementForm.ts`;
+const FIELDS_FILE: string = `${DASHBOARD}/Components/Announcement/AnnouncementFormFields.tsx`;
+const RULES_FILE: string = `${DASHBOARD}/Components/Announcement/AnnouncementForm.ts`;
 
 const ADVANCED: string = ADVANCED_FORM_SECTION_TITLE;
-const SCHEDULE: string = SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE;
+const SCHEDULE_AND_NOTIFICATIONS: string =
+  SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE;
+const SCHEDULE: string = SCHEDULE_SECTION_TITLE;
 
 const NOTIFY_SWITCH: string = "shouldStatusPageSubscribersBeNotified";
 // The edit-only "Notify subscribers about this update" box (a misc key).
-const UPDATE_BOX: string = "SubscriberUpdateNotification.miscDataKey";
-
-/*
- * The section constants the pages fold fields with, by the name the source
- * gives them, and the call each must be built with (checked below).
- */
-const SECTION_CONSTANTS: Record<
-  string,
-  { title: string; builtWith: string; file: string }
-> = {
-  advancedSection: {
-    title: ADVANCED,
-    builtWith: "getAdvancedFormSection<StatusPageAnnouncement>()",
-    file: CREATE_FILE,
-  },
-  scheduleAndNotificationsSection: {
-    title: SCHEDULE,
-    builtWith:
-      "getScheduleAndNotificationsSection<StatusPageAnnouncement>(AnnouncementFormKind.Create)",
-    file: CREATE_FILE,
-  },
-  detailsAdvancedSection: {
-    title: ADVANCED,
-    builtWith: "getAdvancedFormSection<StatusPageAnnouncement>()",
-    file: VIEW_FILE,
-  },
-  detailsScheduleSection: {
-    title: SCHEDULE,
-    builtWith:
-      "getScheduleAndNotificationsSection<StatusPageAnnouncement>(AnnouncementFormKind.Edit)",
-    file: VIEW_FILE,
-  },
-};
+const UPDATE_BOX: string = SubscriberUpdateNotification.miscDataKey;
 
 // Which part of the announcement a step id stands for.
 const STEP_OF_THE_ANNOUNCEMENT: Record<string, string> = {
   "template-info": "the template",
   announcement: "what it says",
-  "status-pages": "where and when it shows, and who hears",
+  "status-pages": "where and when it shows",
 };
+
+// The schedule's section is called after what it holds in each form.
+const SCHEDULE_SECTIONS: Array<string> = [SCHEDULE_AND_NOTIFICATIONS, SCHEDULE];
 
 // A field as this test compares it: where it is and what it is folded in.
 interface Placement {
   key: string;
+  title: string;
   stepId: string;
   section: string;
 }
 
 interface FormShape {
   name: string;
-  form: FormFacts;
   steps: Array<string>;
   placements: Array<Placement>;
 }
@@ -130,52 +116,28 @@ function readSource(file: string): string {
   return compact(fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"));
 }
 
-const scannedForms: Array<FormFacts> = scanFormFiles({
-  repositoryRoot: REPOSITORY_ROOT,
-  files: [CREATE_FILE, VIEW_FILE, TEMPLATES_FILE, TEMPLATE_VIEW_FILE].map(
-    (file: string): string => {
-      return path.join(REPOSITORY_ROOT, file);
-    },
-  ),
-});
-
-function scannedForm(file: string, label: string): FormFacts {
-  const found: FormFacts | undefined = scannedForms.find(
-    (form: FormFacts): boolean => {
-      return form.file === file && form.label === label;
-    },
-  );
-
-  expect(`${file} ${label}: ${Boolean(found)}`).toBe(`${file} ${label}: true`);
-
-  return found!;
+function keyOf<T extends BaseModel>(field: ModelField<T>): string {
+  return field.overrideFieldKey || Object.keys(field.field || {})[0] || "";
 }
 
-function shapeOf(name: string, form: FormFacts): FormShape {
+function shapeOf<T extends BaseModel>(
+  name: string,
+  steps: Array<FormStep<T>>,
+  fields: Array<ModelField<T>>,
+): FormShape {
   return {
     name,
-    form,
-    steps: (form.steps || []).map(
-      (step: { id: string | null; title: string }): string => {
-        return `${step.id}: ${step.title}`;
-      },
-    ),
-    placements: form.fields
-      .filter((field: FormFieldFacts): boolean => {
-        return !field.isNeverShown;
-      })
-      .map((field: FormFieldFacts): Placement => {
-        const section: string = field.collapsibleSection
-          ? SECTION_CONSTANTS[field.collapsibleSection]?.title ||
-            `unknown section ${field.collapsibleSection}`
-          : "";
-
-        return {
-          key: field.key,
-          stepId: field.stepId || "",
-          section,
-        };
-      }),
+    steps: steps.map((step: FormStep<T>): string => {
+      return `${step.id}: ${step.title}`;
+    }),
+    placements: fields.map((field: ModelField<T>): Placement => {
+      return {
+        key: keyOf(field),
+        title: field.title || "",
+        stepId: field.stepId || "",
+        section: field.collapsibleSection?.title || "",
+      };
+    }),
   };
 }
 
@@ -209,112 +171,110 @@ function rowsByStep(shape: FormShape): Record<string, Array<string>> {
   return rows;
 }
 
+const CREATE_FIELDS: Array<ModelField<StatusPageAnnouncement>> =
+  getAnnouncementFormFields(AnnouncementFormKind.Create);
+
+const EDIT_FIELDS: Array<ModelField<StatusPageAnnouncement>> =
+  getAnnouncementFormFields(AnnouncementFormKind.Edit);
+
+const TEMPLATE_FIELDS: Array<ModelField<StatusPageAnnouncementTemplate>> =
+  getAnnouncementTemplateFormFields();
+
 const CREATE: FormShape = shapeOf(
   "Create Announcement",
-  scannedForm(CREATE_FILE, "ModelForm: Create New Announcement"),
+  ANNOUNCEMENT_FORM_STEPS,
+  CREATE_FIELDS,
 );
 
 const EDIT: FormShape = shapeOf(
   "the announcement's details card Edit",
-  scannedForm(VIEW_FILE, "CardModelDetail: Status Page Announcement Details"),
+  ANNOUNCEMENT_FORM_STEPS,
+  EDIT_FIELDS,
 );
 
-const TEMPLATE_CREATE: FormShape = shapeOf(
-  "Create Announcement Template",
-  scannedForm(
-    TEMPLATES_FILE,
-    "ModelTable: Settings > Status Page Announcement Templates",
-  ),
+const TEMPLATE: FormShape = shapeOf(
+  "an announcement template's Create and Edit",
+  ANNOUNCEMENT_TEMPLATE_FORM_STEPS,
+  TEMPLATE_FIELDS,
 );
 
-const TEMPLATE_EDIT: FormShape = shapeOf(
-  "the template's details card Edit",
-  scannedForm(
-    TEMPLATE_VIEW_FILE,
-    "CardModelDetail: Status Page Announcement Template Details",
-  ),
-);
-
-const ALL_FORMS: Array<FormShape> = [
-  CREATE,
-  EDIT,
-  TEMPLATE_CREATE,
-  TEMPLATE_EDIT,
-];
+const ALL_FORMS: Array<FormShape> = [CREATE, EDIT, TEMPLATE];
 
 const ANNOUNCEMENT_STEPS: Array<string> = [
   "announcement: Announcement",
   "status-pages: Status Pages",
 ];
 
-const ANNOUNCEMENT_ROWS: Array<string> = [
-  "title",
-  "description",
-  `${ADVANCED}: attachments`,
-];
+function fieldOf<T extends BaseModel>(
+  fields: Array<ModelField<T>>,
+  key: string,
+): ModelField<T> {
+  const found: ModelField<T> | undefined = fields.find(
+    (field: ModelField<T>): boolean => {
+      return keyOf(field) === key;
+    },
+  );
+
+  expect(`${key}: ${Boolean(found)}`).toBe(`${key}: true`);
+
+  return found!;
+}
+
+const scannedForms: Array<FormFacts> = scanFormFiles({
+  repositoryRoot: REPOSITORY_ROOT,
+  files: [CREATE_FILE, VIEW_FILE, TEMPLATES_FILE, TEMPLATE_VIEW_FILE].map(
+    (file: string): string => {
+      return path.join(REPOSITORY_ROOT, file);
+    },
+  ),
+});
+
+function scannedForm(file: string, label: string): FormFacts {
+  const found: FormFacts | undefined = scannedForms.find(
+    (form: FormFacts): boolean => {
+      return form.file === file && form.label === label;
+    },
+  );
+
+  expect(`${file} ${label}: ${Boolean(found)}`).toBe(`${file} ${label}: true`);
+
+  return found!;
+}
 
 describe("the announcement forms", () => {
-  test("are really read", () => {
-    for (const shape of ALL_FORMS) {
-      expect(`${shape.name}: ${shape.placements.length > 3}`).toBe(
-        `${shape.name}: true`,
-      );
-      expect(`${shape.name}: ${shape.form.uncountableReasons.join(", ")}`).toBe(
-        `${shape.name}: `,
-      );
-    }
-  });
-
   test("Create walks Announcement and Status Pages, then the review", () => {
     expect(CREATE.steps).toEqual(ANNOUNCEMENT_STEPS);
-    expect(readSource(CREATE_FILE)).toContain(
-      compact("summary={{ enabled: true }}"),
-    );
-
     expect(rowsByStep(CREATE)).toEqual({
-      announcement: ANNOUNCEMENT_ROWS,
+      announcement: ["title", "description", `${ADVANCED}: attachments`],
       "status-pages": [
         "statusPages",
         "monitors",
-        `${SCHEDULE}: showAnnouncementAt, endAnnouncementAt, ${NOTIFY_SWITCH}`,
+        `${SCHEDULE_AND_NOTIFICATIONS}: showAnnouncementAt, endAnnouncementAt, ${NOTIFY_SWITCH}`,
       ],
     });
-  });
 
-  test("Create starts now, with the subscribers told, and refuses an end before the start", () => {
     const source: string = readSource(CREATE_FILE);
 
+    expect(source).toContain(compact("steps={ANNOUNCEMENT_FORM_STEPS}"));
     expect(source).toContain(
-      compact(
-        "getDefaultValue: () => { return OneUptimeDate.getCurrentDate(); }",
-      ),
+      compact("return getAnnouncementFormFields(AnnouncementFormKind.Create);"),
     );
-    expect(source).toContain(
-      compact("return getAnnouncementEndsAtError(values);"),
-    );
-
-    const notify: FormFieldFacts | undefined = CREATE.form.fields.find(
-      (field: FormFieldFacts): boolean => {
-        return field.key === NOTIFY_SWITCH;
-      },
-    );
-
-    expect(notify?.defaultValue).toBe("true");
-    // The column's own default: the form starts where the API does.
-    expect(
-      new StatusPageAnnouncement().getTableColumnMetadata(NOTIFY_SWITCH)
-        .defaultValue,
-    ).toBe(true);
+    expect(source).toContain(compact("summary={{ enabled: true }}"));
   });
 
-  test("the details card Edit walks the same steps, with the update box where the switch was", () => {
+  test("the details card Edit walks the same steps, asking about this edit under the description", () => {
     expect(EDIT.steps).toEqual(ANNOUNCEMENT_STEPS);
     expect(rowsByStep(EDIT)).toEqual({
-      announcement: ANNOUNCEMENT_ROWS,
+      announcement: [
+        "title",
+        "description",
+        UPDATE_BOX,
+        `${ADVANCED}: attachments`,
+      ],
       "status-pages": [
         "statusPages",
         "monitors",
-        `${SCHEDULE}: showAnnouncementAt, endAnnouncementAt, ${UPDATE_BOX}`,
+        `${SCHEDULE}: showAnnouncementAt, endAnnouncementAt`,
       ],
     });
 
@@ -323,30 +283,28 @@ describe("the announcement forms", () => {
       new StatusPageAnnouncement().getColumnAccessControlForAllColumns();
 
     expect(accessControl[NOTIFY_SWITCH]?.update).toEqual([]);
-    expect(
-      EDIT.placements.map((placement: Placement): string => {
-        return placement.key;
-      }),
-    ).not.toContain(NOTIFY_SWITCH);
-    expect(readSource(VIEW_FILE)).toContain(
-      compact("return getAnnouncementEndsAtError(values);"),
+
+    const source: string = readSource(VIEW_FILE);
+
+    expect(source).toContain(compact("formSteps={ANNOUNCEMENT_FORM_STEPS}"));
+    expect(source).toContain(
+      compact("return getAnnouncementFormFields(AnnouncementFormKind.Edit);"),
     );
+    expect(source).toContain(compact("formFields={formFields}"));
   });
 
   test("a template walks the announcement's steps with its own name in front, on both its forms", () => {
-    for (const shape of [TEMPLATE_CREATE, TEMPLATE_EDIT]) {
-      expect(shape.steps).toEqual([
-        "template-info: Template Info",
-        ...ANNOUNCEMENT_STEPS,
-      ]);
-      expect(rowsByStep(shape)).toEqual({
-        "template-info": ["templateName", "templateDescription"],
-        // A template has no attachments.
-        announcement: ["title", "description"],
-        // No schedule: the one switch is drawn open, not folded alone.
-        "status-pages": ["statusPages", "monitors", NOTIFY_SWITCH],
-      });
-    }
+    expect(TEMPLATE.steps).toEqual([
+      "template-info: Template Info",
+      ...ANNOUNCEMENT_STEPS,
+    ]);
+    expect(rowsByStep(TEMPLATE)).toEqual({
+      "template-info": ["templateName", "templateDescription"],
+      // A template has no attachments.
+      announcement: ["title", "description"],
+      // No schedule: the one switch is drawn open, not folded alone.
+      "status-pages": ["statusPages", "monitors", NOTIFY_SWITCH],
+    });
 
     // The template's switch takes updates, so its Edit keeps it.
     expect(
@@ -355,7 +313,7 @@ describe("the announcement forms", () => {
       ]?.update?.length,
     ).toBeGreaterThan(0);
 
-    // Both read one list, so they cannot drift apart.
+    // Both forms read the one list, so they cannot drift apart.
     for (const file of [TEMPLATES_FILE, TEMPLATE_VIEW_FILE]) {
       const source: string = readSource(file);
 
@@ -363,8 +321,37 @@ describe("the announcement forms", () => {
         compact("formSteps={ANNOUNCEMENT_TEMPLATE_FORM_STEPS}"),
       );
       expect(source).toContain(
-        compact("formFields={getAnnouncementTemplateFormFields()}"),
+        compact("return getAnnouncementTemplateFormFields();"),
       );
+      expect(source).toContain(compact("formFields={formFields}"));
+    }
+  });
+
+  test("the pages hand the scanner a form it can read, long enough to walk steps", () => {
+    const forms: Array<FormFacts> = [
+      scannedForm(CREATE_FILE, "ModelForm: Create New Announcement"),
+      scannedForm(
+        VIEW_FILE,
+        "CardModelDetail: Status Page Announcement Details",
+      ),
+      scannedForm(
+        TEMPLATES_FILE,
+        "ModelTable: Settings > Status Page Announcement Templates",
+      ),
+      scannedForm(
+        TEMPLATE_VIEW_FILE,
+        "CardModelDetail: Status Page Announcement Template Details",
+      ),
+    ];
+
+    for (const form of forms) {
+      expect(`${form.label}: ${form.uncountableReasons.join(", ")}`).toBe(
+        `${form.label}: `,
+      );
+      expect(`${form.label}: ${form.hasSteps}`).toBe(`${form.label}: true`);
+      expect(
+        `${form.label}: ${(countFormRows(form) || 0) > SHORT_FORM_ROW_LIMIT}`,
+      ).toBe(`${form.label}: true`);
     }
   });
 
@@ -375,16 +362,16 @@ describe("the announcement forms", () => {
     for (const shape of ALL_FORMS) {
       for (const placement of shape.placements) {
         /*
+         * The schedule's section is one section, called after what it holds.
          * A template has no schedule, so its notify switch would be the only
-         * field in Schedule & Notifications: it is the one field drawn open
-         * there.
+         * field in it: it is the one field drawn open there.
          */
         const isTemplatesLoneSwitch: boolean =
-          (shape === TEMPLATE_CREATE || shape === TEMPLATE_EDIT) &&
-          placement.key === NOTIFY_SWITCH;
-        const section: string = isTemplatesLoneSwitch
-          ? SCHEDULE
-          : placement.section;
+          shape === TEMPLATE && placement.key === NOTIFY_SWITCH;
+        const section: string =
+          isTemplatesLoneSwitch || SCHEDULE_SECTIONS.includes(placement.section)
+            ? "the schedule"
+            : placement.section;
         const step: string =
           STEP_OF_THE_ANNOUNCEMENT[placement.stepId] ||
           `step ${placement.stepId}`;
@@ -408,13 +395,95 @@ describe("the announcement forms", () => {
 
     expect(problems).toEqual([]);
     expect(seen.get("title")?.at).toBe("what it says / -");
+    expect(seen.get(UPDATE_BOX)?.at).toBe("what it says / -");
     expect(seen.get("attachments")?.at).toBe(`what it says / ${ADVANCED}`);
-    expect(seen.get("statusPages")?.at).toBe(
-      "where and when it shows, and who hears / -",
-    );
+    expect(seen.get("statusPages")?.at).toBe("where and when it shows / -");
     expect(seen.get("showAnnouncementAt")?.at).toBe(
-      `where and when it shows, and who hears / ${SCHEDULE}`,
+      "where and when it shows / the schedule",
     );
+  });
+
+  test("name each field the same way in every form", () => {
+    const titles: Map<string, Set<string>> = new Map();
+
+    for (const shape of ALL_FORMS) {
+      for (const placement of shape.placements) {
+        const seen: Set<string> = titles.get(placement.key) || new Set();
+        seen.add(placement.title);
+        titles.set(placement.key, seen);
+      }
+    }
+
+    for (const [key, seen] of titles) {
+      expect(`${key}: ${Array.from(seen).join(" | ")}`).toBe(
+        `${key}: ${Array.from(seen)[0]}`,
+      );
+    }
+
+    expect(Array.from(titles.get("title")!)).toEqual(["Title"]);
+    // The label adds "(Optional)" itself: the title does not say it again.
+    expect(Array.from(titles.get("monitors")!)).toEqual(["Monitors Affected"]);
+    expect(Array.from(titles.get(NOTIFY_SWITCH)!)).toEqual([
+      "Notify Status Page Subscribers",
+    ]);
+  });
+
+  test("ask for a description on every form, as the server requires one", () => {
+    // The model's own rule: required, and NOT NULL.
+    expect(new StatusPageAnnouncement().getRequiredColumns().columns).toContain(
+      "description",
+    );
+    expect(
+      new StatusPageAnnouncementTemplate().getRequiredColumns().columns,
+    ).toContain("description");
+
+    expect(fieldOf(CREATE_FIELDS, "description").required).toBe(true);
+    expect(fieldOf(EDIT_FIELDS, "description").required).toBe(true);
+    expect(fieldOf(TEMPLATE_FIELDS, "description").required).toBe(true);
+
+    // The pages are required on the announcement; a template may leave them.
+    expect(fieldOf(CREATE_FIELDS, "statusPages").required).toBe(true);
+    expect(fieldOf(EDIT_FIELDS, "statusPages").required).toBe(true);
+    expect(fieldOf(TEMPLATE_FIELDS, "statusPages").required).toBe(false);
+  });
+
+  test("keep the rules templates already had, so no saved template is refused", () => {
+    // The announcement's title has always needed two characters...
+    expect(fieldOf(CREATE_FIELDS, "title").validation?.minLength).toBe(2);
+    expect(fieldOf(EDIT_FIELDS, "title").validation?.minLength).toBe(2);
+    // ...a template's never did.
+    expect(fieldOf(TEMPLATE_FIELDS, "title").validation?.minLength).toBe(
+      undefined,
+    );
+  });
+
+  test("Create starts now, with the subscribers told; an end has to come after the start, and on Create still be to come", () => {
+    const start: ModelField<StatusPageAnnouncement> = fieldOf(
+      CREATE_FIELDS,
+      "showAnnouncementAt",
+    );
+
+    expect(start.getDefaultValue).toBeDefined();
+    expect(fieldOf(CREATE_FIELDS, NOTIFY_SWITCH).defaultValue).toBe(true);
+    // The column's own default: the form starts where the API does.
+    expect(
+      new StatusPageAnnouncement().getTableColumnMetadata(NOTIFY_SWITCH)
+        .defaultValue,
+    ).toBe(true);
+
+    // Times as the date input holds what is typed into it: ISO strings.
+    const yesterday: FormValues<StatusPageAnnouncement> = {
+      showAnnouncementAt: "2020-01-01T08:00:00.000Z",
+      endAnnouncementAt: "2020-01-01T10:00:00.000Z",
+    } as unknown as FormValues<StatusPageAnnouncement>;
+
+    // An end that has passed: refused on Create, how an Edit takes it down.
+    expect(
+      fieldOf(CREATE_FIELDS, "endAnnouncementAt").customValidation!(yesterday),
+    ).toBe("End Showing Announcement At must be in the future.");
+    expect(
+      fieldOf(EDIT_FIELDS, "endAnnouncementAt").customValidation!(yesterday),
+    ).toBeNull();
   });
 
   test("have no step for one field, and none named after the old ones", () => {
@@ -436,76 +505,42 @@ describe("the announcement forms", () => {
         expect(`${shape.name} ${id}: ${(rows[id] || []).length > 1}`).toBe(
           `${shape.name} ${id}: true`,
         );
-      }
-    }
-  });
-
-  test(`keep every step to ${STEP_FIELD_LIMIT} rows or fewer, and are long enough to walk steps`, () => {
-    for (const shape of ALL_FORMS) {
-      for (const step of shape.form.steps || []) {
-        const onStep: Array<FormFieldFacts> = shape.form.fields.filter(
-          (field: FormFieldFacts): boolean => {
-            return field.stepId === step.id && !field.isNeverShown;
-          },
-        );
-
         expect(
-          `${shape.name} ${step.id}: ${countFieldRows(onStep) <= STEP_FIELD_LIMIT}`,
-        ).toBe(`${shape.name} ${step.id}: true`);
-      }
-
-      expect(
-        `${shape.name}: ${(countFormRows(shape.form) || 0) > SHORT_FORM_ROW_LIMIT}`,
-      ).toBe(`${shape.name}: true`);
-    }
-  });
-
-  test("name each field the same way in every form", () => {
-    const titles: Map<string, Set<string>> = new Map();
-
-    for (const shape of ALL_FORMS) {
-      for (const field of shape.form.fields) {
-        const seen: Set<string> = titles.get(field.key) || new Set<string>();
-        seen.add(field.title);
-        titles.set(field.key, seen);
+          `${shape.name} ${id}: ${(rows[id] || []).length <= STEP_FIELD_LIMIT}`,
+        ).toBe(`${shape.name} ${id}: true`);
       }
     }
-
-    for (const [key, seen] of titles) {
-      expect(`${key}: ${Array.from(seen).join(" | ")}`).toBe(
-        `${key}: ${Array.from(seen)[0]}`,
-      );
-    }
-
-    expect(Array.from(titles.get("title")!)).toEqual(["Title"]);
-    // The label adds "(Optional)" itself: the title does not say it again.
-    expect(Array.from(titles.get("monitors")!)).toEqual(["Monitors Affected"]);
-    expect(Array.from(titles.get(NOTIFY_SWITCH)!)).toEqual([
-      "Notify Status Page Subscribers",
-    ]);
   });
 
   test("fold their fields with the shared sections, built once", () => {
-    for (const [constant, spec] of Object.entries(SECTION_CONSTANTS)) {
-      const source: string = readSource(spec.file);
+    const source: string = readSource(FIELDS_FILE);
+
+    for (const [constant, builtWith] of [
+      ["advancedSection", "getAdvancedFormSection<StatusPageAnnouncement>()"],
+      [
+        "createScheduleSection",
+        "getAnnouncementScheduleSection<StatusPageAnnouncement>(AnnouncementFormKind.Create)",
+      ],
+      [
+        "editScheduleSection",
+        "getAnnouncementScheduleSection<StatusPageAnnouncement>(AnnouncementFormKind.Edit)",
+      ],
+    ] as Array<[string, string]>) {
       const declaration: string = compact(
-        `const ${constant}: FormFieldCollapsibleSection<StatusPageAnnouncement> = ${spec.builtWith};`,
+        `const ${constant}: FormFieldCollapsibleSection<StatusPageAnnouncement> = ${builtWith};`,
       );
 
-      expect(`${spec.file}: ${source.includes(declaration)}`).toBe(
-        `${spec.file}: true`,
+      expect(`${constant}: ${source.includes(declaration)}`).toBe(
+        `${constant}: true`,
       );
     }
 
-    /*
-     * The section always starts folded - its line says what is set - and
-     * says what it holds in that line.
-     */
-    const module: string = readSource(FORM_MODULE_FILE);
+    // The section always starts folded: its line says what is set.
+    const rules: string = readSource(RULES_FILE);
 
-    expect(module).toContain(compact("openWhenConfigured: false,"));
-    expect(module).toContain(
-      compact("return getScheduleAndNotificationsSummary(values, kind);"),
+    expect(rules).toContain(compact("openWhenConfigured: false,"));
+    expect(rules).toContain(
+      compact("return getAnnouncementScheduleSectionSummary(values, kind);"),
     );
   });
 });

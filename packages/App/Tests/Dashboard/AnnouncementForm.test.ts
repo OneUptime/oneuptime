@@ -1,6 +1,7 @@
 import {
   ANNOUNCEMENT_ENDS_AT_KEY,
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
+  ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
   ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
   ANNOUNCEMENT_STARTS_AT_KEY,
@@ -8,25 +9,27 @@ import {
   ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
   ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
   ANNOUNCEMENT_TEMPLATE_QUERY_PARAM,
-  ANNOUNCEMENT_UPDATE_NOTIFIED_SUMMARY,
-  ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY,
   AnnouncementFormKind,
   SCHEDULE_AND_NOTIFICATIONS_SECTION_ID,
   SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
+  SCHEDULE_SECTION_ID,
+  SCHEDULE_SECTION_TITLE,
   getAnnouncementCreateQueryParams,
   getAnnouncementEndsAtError,
   getAnnouncementNotificationSummary,
+  getAnnouncementScheduleSection,
+  getAnnouncementScheduleSectionSummary,
   getAnnouncementScheduleSummary,
   getInitialAnnouncementStatusPageIds,
-  getScheduleAndNotificationsSection,
-  getScheduleAndNotificationsSummary,
+  getStatusPageToReturnTo,
   readAnnouncementQueryId,
+  readRecordIds,
 } from "../../FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import Timezone from "Common/Types/Timezone";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -44,10 +47,11 @@ import path from "path";
 /*
  * Creating an announcement in two steps
  * (Components/Announcement/AnnouncementForm): the address the create page
- * is opened with, the pages a new announcement starts with, what the folded
- * Schedule & Notifications section says, when an end is refused, and that
- * every word of it is translated. The forms themselves are drawn for real
- * in Common's Tests/App/Dashboard/AnnouncementCreateForm.test.tsx and
+ * is opened with, the pages a new announcement starts with and where Create
+ * goes back to, what the folded schedule section says on Create and on
+ * Edit, when an end is refused, and that every word of it is translated.
+ * The forms themselves are drawn for real in Common's
+ * Tests/App/Dashboard/AnnouncementCreateForm.test.tsx and
  * AnnouncementEditAndTemplateForms.test.tsx, and their shape is pinned by
  * AnnouncementFormsStructure.test.ts.
  */
@@ -203,6 +207,53 @@ describe("the status pages a new announcement starts with", () => {
       [],
     );
   });
+
+  test("reads the IDs a picker writes, ObjectIDs and records alike, each once", () => {
+    const statusPage: StatusPage = new StatusPage();
+    statusPage._id = OTHER_STATUS_PAGE_ID;
+
+    expect(
+      readRecordIds([
+        STATUS_PAGE_ID,
+        new ObjectID(OTHER_STATUS_PAGE_ID),
+        statusPage,
+        { _id: TEMPLATE_ID },
+        STATUS_PAGE_ID,
+      ]),
+    ).toEqual([STATUS_PAGE_ID, OTHER_STATUS_PAGE_ID, TEMPLATE_ID]);
+    expect(readRecordIds(undefined)).toEqual([]);
+    expect(readRecordIds("not a list")).toEqual([]);
+    expect(readRecordIds([null, {}, ""])).toEqual([]);
+  });
+});
+
+describe("where Create goes back to", () => {
+  test("the status page's tab it was opened from, while the announcement shows there", () => {
+    expect(
+      getStatusPageToReturnTo({
+        fromStatusPageId: STATUS_PAGE_ID,
+        createdStatusPageIds: [OTHER_STATUS_PAGE_ID, STATUS_PAGE_ID],
+      }),
+    ).toBe(STATUS_PAGE_ID);
+  });
+
+  test("the project's list once that page was unpicked: its tab would not list it", () => {
+    expect(
+      getStatusPageToReturnTo({
+        fromStatusPageId: STATUS_PAGE_ID,
+        createdStatusPageIds: [OTHER_STATUS_PAGE_ID],
+      }),
+    ).toBeNull();
+  });
+
+  test("the project's list when it was opened from there", () => {
+    expect(
+      getStatusPageToReturnTo({
+        fromStatusPageId: null,
+        createdStatusPageIds: [STATUS_PAGE_ID],
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("when the announcement shows", () => {
@@ -278,55 +329,28 @@ describe("when the announcement shows", () => {
   });
 });
 
-describe("who is told", () => {
-  test("on Create, the subscribers are told unless the switch is off", () => {
+describe("who is told, on Create", () => {
+  test("the subscribers are told unless the switch is off", () => {
+    expect(getAnnouncementNotificationSummary({})).toBe(
+      ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
+    );
     expect(
-      getAnnouncementNotificationSummary({}, AnnouncementFormKind.Create),
-    ).toBe(ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY);
-    expect(
-      getAnnouncementNotificationSummary(
-        { [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: true },
-        AnnouncementFormKind.Create,
-      ),
+      getAnnouncementNotificationSummary({
+        [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: true,
+      }),
     ).toBe("Subscribers are notified when it starts showing.");
     expect(
-      getAnnouncementNotificationSummary(
-        { [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false },
-        AnnouncementFormKind.Create,
-      ),
+      getAnnouncementNotificationSummary({
+        [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false,
+      }),
     ).toBe("Subscribers are not notified.");
-  });
-
-  test("on Edit, only a ticked update box tells anyone", () => {
-    expect(
-      getAnnouncementNotificationSummary({}, AnnouncementFormKind.Edit),
-    ).toBe(ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY);
-    expect(
-      getAnnouncementNotificationSummary(
-        { [SubscriberUpdateNotification.miscDataKey]: false },
-        AnnouncementFormKind.Edit,
-      ),
-    ).toBe("Subscribers are not notified about this edit.");
-    expect(
-      getAnnouncementNotificationSummary(
-        { [SubscriberUpdateNotification.miscDataKey]: true },
-        AnnouncementFormKind.Edit,
-      ),
-    ).toBe("Subscribers are notified about this edit.");
-    // The switch an Edit cannot change says nothing there.
-    expect(
-      getAnnouncementNotificationSummary(
-        { [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false },
-        AnnouncementFormKind.Edit,
-      ),
-    ).toBe(ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY);
   });
 });
 
-describe("the Schedule & Notifications line", () => {
-  test("says when it shows, then who is told", () => {
+describe("the folded schedule section", () => {
+  test("on Create, says when it shows, then who is told", () => {
     expect(
-      getScheduleAndNotificationsSummary(
+      getAnnouncementScheduleSectionSummary(
         windowOf(NOW),
         AnnouncementFormKind.Create,
       ),
@@ -335,7 +359,7 @@ describe("the Schedule & Notifications line", () => {
       "Subscribers are notified when it starts showing.",
     ]);
     expect(
-      getScheduleAndNotificationsSummary(
+      getAnnouncementScheduleSectionSummary(
         {
           ...windowOf("2026-10-04T08:00:00.000Z"),
           [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false,
@@ -346,38 +370,56 @@ describe("the Schedule & Notifications line", () => {
       `Shows from ${at("2026-10-04T08:00:00.000Z")} and stays until you end it.`,
       ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
     ]);
-  });
-
-  test("still says who is told while the window cannot be read", () => {
+    // Still says who is told while the window cannot be read.
     expect(
-      getScheduleAndNotificationsSummary({}, AnnouncementFormKind.Edit),
-    ).toEqual([ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY]);
+      getAnnouncementScheduleSectionSummary({}, AnnouncementFormKind.Create),
+    ).toEqual([ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY]);
   });
 
-  test("the section always starts folded and says that line", () => {
-    for (const kind of [
-      AnnouncementFormKind.Create,
-      AnnouncementFormKind.Edit,
-    ]) {
-      const section: FormFieldCollapsibleSection<StatusPageAnnouncement> =
-        getScheduleAndNotificationsSection<StatusPageAnnouncement>(kind);
+  test("on Edit, says only when it shows: the notify switch takes no updates", () => {
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        { ...windowOf(NOW), [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false },
+        AnnouncementFormKind.Edit,
+      ),
+    ).toEqual([ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded]);
+    expect(
+      getAnnouncementScheduleSectionSummary({}, AnnouncementFormKind.Edit),
+    ).toEqual([]);
+  });
 
-      expect(section.id).toBe(SCHEDULE_AND_NOTIFICATIONS_SECTION_ID);
-      expect(section.title).toBe("Schedule & Notifications");
-      expect(section.title).toBe(SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE);
+  test("is Schedule & Notifications on Create and Schedule on Edit, always starting folded", () => {
+    const onCreate: FormFieldCollapsibleSection<StatusPageAnnouncement> =
+      getAnnouncementScheduleSection<StatusPageAnnouncement>(
+        AnnouncementFormKind.Create,
+      );
+    const onEdit: FormFieldCollapsibleSection<StatusPageAnnouncement> =
+      getAnnouncementScheduleSection<StatusPageAnnouncement>(
+        AnnouncementFormKind.Edit,
+      );
+
+    expect(onCreate.id).toBe(SCHEDULE_AND_NOTIFICATIONS_SECTION_ID);
+    expect(onCreate.title).toBe("Schedule & Notifications");
+    expect(onCreate.title).toBe(SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE);
+    expect(onEdit.id).toBe(SCHEDULE_SECTION_ID);
+    expect(onEdit.title).toBe("Schedule");
+    expect(onEdit.title).toBe(SCHEDULE_SECTION_TITLE);
+
+    for (const section of [onCreate, onEdit]) {
       expect(section.openWhenConfigured).toBe(false);
-      expect(
-        section.getSummary!(
-          windowOf(NOW) as FormValues<StatusPageAnnouncement>,
-        ),
-      ).toEqual(getScheduleAndNotificationsSummary(windowOf(NOW), kind));
     }
 
     expect(
-      getScheduleAndNotificationsSection<StatusPageAnnouncement>(
-        AnnouncementFormKind.Edit,
-      ).getSummary!({} as FormValues<StatusPageAnnouncement>),
-    ).toEqual([ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY]);
+      onCreate.getSummary!(windowOf(NOW) as FormValues<StatusPageAnnouncement>),
+    ).toEqual(
+      getAnnouncementScheduleSectionSummary(
+        windowOf(NOW),
+        AnnouncementFormKind.Create,
+      ),
+    );
+    expect(
+      onEdit.getSummary!(windowOf(NOW) as FormValues<StatusPageAnnouncement>),
+    ).toEqual([ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded]);
   });
 
   test("reads the columns the forms write", () => {
@@ -400,32 +442,72 @@ describe("the Schedule & Notifications line", () => {
 });
 
 describe("the end's own check", () => {
-  test("refuses an end that is not after the start", () => {
+  for (const kind of [AnnouncementFormKind.Create, AnnouncementFormKind.Edit]) {
+    test(`refuses an end that is not after the start (${kind})`, () => {
+      expect(
+        getAnnouncementEndsAtError(
+          windowOf("2026-10-04T08:00:00.000Z", "2026-10-04T07:00:00.000Z"),
+          kind,
+        ),
+      ).toBe(ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR);
+      expect(
+        getAnnouncementEndsAtError(
+          windowOf("2026-10-04T08:00:00.000Z", "2026-10-04T08:00:00.000Z"),
+          kind,
+        ),
+      ).toBe(
+        "End Showing Announcement At must be after Start Showing Announcement At.",
+      );
+    });
+
+    test(`lets an end still to come, or no end at all, through (${kind})`, () => {
+      expect(
+        getAnnouncementEndsAtError(
+          windowOf("2026-10-04T08:00:00.000Z", "2026-10-04T09:00:00.000Z"),
+          kind,
+        ),
+      ).toBeNull();
+      expect(getAnnouncementEndsAtError(windowOf(NOW), kind)).toBeNull();
+      expect(getAnnouncementEndsAtError(windowOf(NOW, ""), kind)).toBeNull();
+      // A missing start is the start's own business.
+      expect(
+        getAnnouncementEndsAtError(
+          windowOf("", "2026-10-04T09:00:00.000Z"),
+          kind,
+        ),
+      ).toBeNull();
+    });
+  }
+
+  test("Create refuses an end that has passed: the announcement would never show", () => {
     expect(
       getAnnouncementEndsAtError(
-        windowOf("2026-10-04T08:00:00.000Z", "2026-10-04T07:00:00.000Z"),
+        windowOf("2026-10-01T08:00:00.000Z", "2026-10-03T08:00:00.000Z"),
+        AnnouncementFormKind.Create,
+      ),
+    ).toBe(ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR);
+    // Ending right now has passed too.
+    expect(
+      getAnnouncementEndsAtError(
+        windowOf("2026-10-01T08:00:00.000Z", NOW),
+        AnnouncementFormKind.Create,
+      ),
+    ).toBe("End Showing Announcement At must be in the future.");
+    // An end before the start says that first.
+    expect(
+      getAnnouncementEndsAtError(
+        windowOf("2026-10-02T08:00:00.000Z", "2026-10-01T08:00:00.000Z"),
+        AnnouncementFormKind.Create,
       ),
     ).toBe(ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR);
-    expect(
-      getAnnouncementEndsAtError(
-        windowOf("2026-10-04T08:00:00.000Z", "2026-10-04T08:00:00.000Z"),
-      ),
-    ).toBe(
-      "End Showing Announcement At must be after Start Showing Announcement At.",
-    );
   });
 
-  test("lets an end after the start, or no end at all, through", () => {
+  test("an Edit may set an end that has passed: that is how an announcement is taken down", () => {
     expect(
       getAnnouncementEndsAtError(
-        windowOf("2026-10-04T08:00:00.000Z", "2026-10-04T09:00:00.000Z"),
+        windowOf("2026-10-01T08:00:00.000Z", "2026-10-03T08:00:00.000Z"),
+        AnnouncementFormKind.Edit,
       ),
-    ).toBeNull();
-    expect(getAnnouncementEndsAtError(windowOf(NOW))).toBeNull();
-    expect(getAnnouncementEndsAtError(windowOf(NOW, ""))).toBeNull();
-    // A missing start is the start's own business.
-    expect(
-      getAnnouncementEndsAtError(windowOf("", "2026-10-04T09:00:00.000Z")),
     ).toBeNull();
   });
 });
@@ -435,11 +517,13 @@ describe("every sentence of it is translated", () => {
     ...Object.values(ANNOUNCEMENT_SCHEDULE_SUMMARIES),
     ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
     ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
-    ANNOUNCEMENT_UPDATE_NOTIFIED_SUMMARY,
-    ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY,
     ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
+    ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
     SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
-    getScheduleAndNotificationsSection(AnnouncementFormKind.Create)
+    SCHEDULE_SECTION_TITLE,
+    getAnnouncementScheduleSection(AnnouncementFormKind.Create)
+      .description as string,
+    getAnnouncementScheduleSection(AnnouncementFormKind.Edit)
       .description as string,
   ];
 
@@ -451,6 +535,15 @@ describe("every sentence of it is translated", () => {
         `${sentence}: ${sentence}`,
       );
     }
+  });
+
+  test("the retired Edit sentences are gone with the box they described", () => {
+    expect(english["Subscribers are notified about this edit."]).toBe(
+      undefined,
+    );
+    expect(english["Subscribers are not notified about this edit."]).toBe(
+      undefined,
+    );
   });
 
   for (const locale of OTHER_LOCALES) {

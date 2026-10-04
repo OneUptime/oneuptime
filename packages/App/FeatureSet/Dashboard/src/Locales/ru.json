@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "Показывается сейчас и остаётся, пока вы его не завершите.",
   "Shows now and stays until {{endsAt}}.": "Показывается сейчас и остаётся до {{endsAt}}.",
   "Stopped showing at {{endsAt}}.": "Показ завершён {{endsAt}}.",
-  "Subscribers are not notified about this edit.": "Подписчики не получат уведомление об этом изменении.",
   "Subscribers are not notified.": "Подписчики не получат уведомление.",
-  "Subscribers are notified about this edit.": "Подписчики получат уведомление об этом изменении.",
   "Subscribers are notified when it starts showing.": "Подписчики получат уведомление, когда начнётся показ.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления, созданного по этому шаблону.",
   "Subscribers of these status pages are told when the announcement starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "Расписание и уведомления",
   "Who to call": "Кому звонить",
   "{{count}} seconds": "{{count}} сек.",
-  "{{count}} seconds_one": "{{count}} секунда"
+  "{{count}} seconds_one": "{{count}} секунда",
+  "End Showing Announcement At must be in the future.": "Окончание показа должно быть в будущем.",
+  "When the announcement shows on its status pages.": "Когда объявление показывается на своих страницах статуса."
 }

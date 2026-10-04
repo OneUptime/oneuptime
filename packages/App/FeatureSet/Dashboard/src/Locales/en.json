@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "Shows now and stays until you end it.",
   "Shows now and stays until {{endsAt}}.": "Shows now and stays until {{endsAt}}.",
   "Stopped showing at {{endsAt}}.": "Stopped showing at {{endsAt}}.",
-  "Subscribers are not notified about this edit.": "Subscribers are not notified about this edit.",
   "Subscribers are not notified.": "Subscribers are not notified.",
-  "Subscribers are notified about this edit.": "Subscribers are notified about this edit.",
   "Subscribers are notified when it starts showing.": "Subscribers are notified when it starts showing.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Subscribers of these status pages are told when an announcement made from this template starts showing.",
   "Subscribers of these status pages are told when the announcement starts showing.": "Subscribers of these status pages are told when the announcement starts showing.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "Schedule & Notifications",
   "Who to call": "Who to call",
   "{{count}} seconds": "{{count}} seconds",
-  "{{count}} seconds_one": "{{count}} second"
+  "{{count}} seconds_one": "{{count}} second",
+  "End Showing Announcement At must be in the future.": "End Showing Announcement At must be in the future.",
+  "When the announcement shows on its status pages.": "When the announcement shows on its status pages."
 }

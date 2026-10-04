@@ -5,7 +5,6 @@ import {
   isMaintenanceWindowInOrder,
   toMaintenanceDate,
 } from "Common/Types/ScheduledMaintenance/MaintenanceWindow";
-import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
@@ -29,7 +28,8 @@ import {
  * then dropped them on the project-wide list.
  *
  * It now walks two steps, each one a question, in the shape scheduled
- * maintenance has had since #4291:
+ * maintenance has had since #4291 (Components/Announcement/
+ * AnnouncementFormFields holds the fields):
  *
  *   1. Announcement - what it says: Title and Description, with
  *      Attachments folded under Advanced.
@@ -45,13 +45,16 @@ import {
  * form, as the server requires it (the forms used to call it optional, and
  * the request then failed at the end).
  *
- * The announcement's own Edit and the announcement template forms put the
- * fields they hold on the same steps: a template adds its name and
+ * The announcement's own Edit walks the same steps. Subscribers hear about
+ * an announcement once, when it starts showing, so the notify switch takes
+ * no updates and is not on the Edit; "Notify subscribers about this
+ * update" sits under the description it is about instead, and the folded
+ * section there holds only the Schedule. A template adds its name and
  * description in front, and has no schedule, so its one notification
  * switch is drawn open on its Status Pages step - folding a single field
  * behind a header would only add a click.
  *
- * React-free, so App's tests can read it; the pages hold the fields.
+ * React-free, so App's tests can read it.
  */
 
 /*
@@ -72,6 +75,23 @@ export interface AnnouncementCreateParams {
   statusPageId?: ObjectID | string | null | undefined;
   announcementTemplateId?: ObjectID | string | null | undefined;
 }
+
+/*
+ * An ID read off the address (a status page's, a template's): a real UUID,
+ * or null. Anything else - a half-copied link, a value someone typed - is
+ * ignored rather than handed to the form, which would send it to the server.
+ */
+export const readAnnouncementQueryId: (
+  value: string | null | undefined,
+) => string | null = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed: string = value.trim();
+
+  return ObjectID.isValidUUID(trimmed) ? trimmed : null;
+};
 
 /*
  * The query string of the create page's address, for the buttons that open
@@ -105,27 +125,10 @@ export const getAnnouncementCreateQueryParams: (
 };
 
 /*
- * An ID read off the address (a status page's, a template's): a real UUID,
- * or null. Anything else - a half-copied link, a value someone typed - is
- * ignored rather than handed to the form, which would send it to the server.
- */
-export const readAnnouncementQueryId: (
-  value: string | null | undefined,
-) => string | null = (value: string | null | undefined): string | null => {
-  if (!value) {
-    return null;
-  }
-
-  const trimmed: string = value.trim();
-
-  return ObjectID.isValidUUID(trimmed) ? trimmed : null;
-};
-
-/*
  * The status pages a new announcement starts with: the page it was created
  * from first, then those its template names, each once. Created from a
- * status page's tab, the announcement always shows there - that is where
- * the person was, and where they land again after creating it.
+ * status page's tab, the announcement shows there - that is where the
+ * person was, and where they land again after creating it.
  */
 export const getInitialAnnouncementStatusPageIds: (data: {
   statusPageId?: string | null | undefined;
@@ -146,15 +149,72 @@ export const getInitialAnnouncementStatusPageIds: (data: {
 };
 
 /*
- * THE SCHEDULE AND THE NOTIFICATIONS, FOLDED.
+ * The IDs a list of related records holds, as a form value or a model has
+ * it: bare ID strings (what a picker writes), ObjectIDs, or records with an
+ * ID (a model's statusPages or monitors). Each once, in order.
+ */
+export const readRecordIds: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids: Array<string> = [];
+
+  for (const item of value) {
+    let id: string | null = null;
+
+    if (typeof item === "string") {
+      id = item;
+    } else if (item instanceof ObjectID) {
+      id = item.toString();
+    } else if (item && typeof item === "object") {
+      const record: Record<string, unknown> = item as Record<string, unknown>;
+      const recordId: unknown = record["_id"] || record["id"];
+      id = recordId ? String(recordId) : null;
+    }
+
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
+};
+
+/*
+ * Where Create goes once the announcement is made: back to the
+ * Announcements tab of the status page it was opened from - but only while
+ * that page is still one it shows on. Unpicked on the way, the tab would
+ * not list it, and the announcement would look lost; the project's list
+ * (null) shows it.
+ */
+export const getStatusPageToReturnTo: (data: {
+  fromStatusPageId: string | null;
+  createdStatusPageIds: Array<string>;
+}) => string | null = (data: {
+  fromStatusPageId: string | null;
+  createdStatusPageIds: Array<string>;
+}): string | null => {
+  if (!data.fromStatusPageId) {
+    return null;
+  }
+
+  return data.createdStatusPageIds.includes(data.fromStatusPageId)
+    ? data.fromStatusPageId
+    : null;
+};
+
+/*
+ * THE SCHEDULE, FOLDED.
  *
  * Start Showing Announcement At (now), End Showing Announcement At (none:
- * it stays until someone ends it) and Notify Status Page Subscribers (on)
- * are what nearly every announcement wants, so they are folded into one
- * section whose line says what will happen. The announcement's Edit folds
- * its "Notify subscribers about this update" box there as well: the
- * notify switch itself cannot be changed after the announcement is created
- * (the column takes no updates).
+ * it stays until someone ends it) and, on Create, Notify Status Page
+ * Subscribers (on) are what nearly every announcement wants, so they are
+ * folded into one section whose line says what will happen. On Create it
+ * is Schedule & Notifications; on Edit, where the notify switch cannot
+ * change, it is Schedule.
  */
 export const SCHEDULE_AND_NOTIFICATIONS_SECTION_ID: string =
   "schedule-and-notifications";
@@ -163,7 +223,11 @@ export const SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE: string = translationKey(
   "Schedule & Notifications",
 );
 
-// The fields the section holds, by the columns (or the misc key) they write.
+export const SCHEDULE_SECTION_ID: string = "schedule";
+
+export const SCHEDULE_SECTION_TITLE: string = translationKey("Schedule");
+
+// The fields the section holds, by the columns they write.
 export const ANNOUNCEMENT_STARTS_AT_KEY: string = "showAnnouncementAt";
 
 export const ANNOUNCEMENT_ENDS_AT_KEY: string = "endAnnouncementAt";
@@ -171,10 +235,7 @@ export const ANNOUNCEMENT_ENDS_AT_KEY: string = "endAnnouncementAt";
 export const ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY: string =
   "shouldStatusPageSubscribersBeNotified";
 
-/*
- * Which form the section is in: on Create it reports the notify switch, on
- * Edit the "about this update" box.
- */
+// Which form the fields are for.
 export enum AnnouncementFormKind {
   Create = "create",
   Edit = "edit",
@@ -208,15 +269,6 @@ export const ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY: string = translationKey(
 
 export const ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY: string =
   translationKey("Subscribers are not notified.");
-
-// Who hears about this edit: the "about this update" box, on Edit.
-export const ANNOUNCEMENT_UPDATE_NOTIFIED_SUMMARY: string = translationKey(
-  "Subscribers are notified about this edit.",
-);
-
-export const ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY: string = translationKey(
-  "Subscribers are not notified about this edit.",
-);
 
 const readRecord: (values: unknown) => Record<string, unknown> = (
   values: unknown,
@@ -282,34 +334,24 @@ export const getAnnouncementScheduleSummary: (
 };
 
 /*
- * The sentence about who is told. On Create, a switch nobody has set is
- * on: that is the column's default, and what the server stores for it. On
- * Edit only a ticked box tells anyone.
+ * The sentence about who is told, on Create. A switch nobody has set is
+ * on: that is the column's default, and what the server stores for it.
  */
-export const getAnnouncementNotificationSummary: (
+export const getAnnouncementNotificationSummary: (values: unknown) => string = (
   values: unknown,
-  kind: AnnouncementFormKind,
-) => string = (values: unknown, kind: AnnouncementFormKind): string => {
-  const record: Record<string, unknown> = readRecord(values);
-
-  if (kind === AnnouncementFormKind.Edit) {
-    return record[SubscriberUpdateNotification.miscDataKey] === true
-      ? ANNOUNCEMENT_UPDATE_NOTIFIED_SUMMARY
-      : ANNOUNCEMENT_UPDATE_NOT_NOTIFIED_SUMMARY;
-  }
-
-  return record[ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY] === false
+): string => {
+  return readRecord(values)[ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY] === false
     ? ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY
     : ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY;
 };
 
 /*
  * The line the folded section shows, and the review step reviews it by:
- * when it shows, then who is told. Sentences without a value are English
- * translation keys, looked up where they are drawn; those with a time are
- * filled in already, in the reader's language.
+ * when it shows, then (on Create) who is told. Sentences without a value
+ * are English translation keys, looked up where they are drawn; those with
+ * a time are filled in already, in the reader's language.
  */
-export const getScheduleAndNotificationsSummary: (
+export const getAnnouncementScheduleSectionSummary: (
   values: unknown,
   kind: AnnouncementFormKind,
 ) => Array<string> = (
@@ -323,30 +365,36 @@ export const getScheduleAndNotificationsSummary: (
     sentences.push(schedule);
   }
 
-  sentences.push(getAnnouncementNotificationSummary(values, kind));
+  if (kind === AnnouncementFormKind.Create) {
+    sentences.push(getAnnouncementNotificationSummary(values));
+  }
 
   return sentences;
 };
 
 /*
- * The section the schedule and the notification answer are folded into. It
- * always starts folded, on Create and on Edit: its line says what is set,
- * so nothing is hidden, and it opens by itself when a field in it fails
- * its check.
+ * The section the schedule (and, on Create, the notify switch) is folded
+ * into. It always starts folded: its line says what is set, so nothing is
+ * hidden, and it opens by itself when a field in it fails its check.
  */
-export const getScheduleAndNotificationsSection: <TEntity>(
+export const getAnnouncementScheduleSection: <TEntity>(
   kind: AnnouncementFormKind,
 ) => FormFieldCollapsibleSection<TEntity> = <TEntity>(
   kind: AnnouncementFormKind,
 ): FormFieldCollapsibleSection<TEntity> => {
+  const isCreate: boolean = kind === AnnouncementFormKind.Create;
+
   return {
-    id: SCHEDULE_AND_NOTIFICATIONS_SECTION_ID,
-    title: SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
-    description:
-      "When the announcement shows on its status pages, and whether their subscribers hear about it.",
+    id: isCreate ? SCHEDULE_AND_NOTIFICATIONS_SECTION_ID : SCHEDULE_SECTION_ID,
+    title: isCreate
+      ? SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE
+      : SCHEDULE_SECTION_TITLE,
+    description: isCreate
+      ? "When the announcement shows on its status pages, and whether their subscribers hear about it."
+      : "When the announcement shows on its status pages.",
     openWhenConfigured: false,
     getSummary: (values: FormValues<TEntity>): Array<string> => {
-      return getScheduleAndNotificationsSummary(values, kind);
+      return getAnnouncementScheduleSectionSummary(values, kind);
     },
   };
 };
@@ -355,24 +403,47 @@ export const ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR: string = translationKey(
   "End Showing Announcement At must be after Start Showing Announcement At.",
 );
 
+export const ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR: string = translationKey(
+  "End Showing Announcement At must be in the future.",
+);
+
 /*
- * End Showing Announcement At's own check: an announcement that ends
- * before it starts never shows. Folded, the section opens by itself to say
- * so.
+ * End Showing Announcement At's own check. An announcement that ends before
+ * it starts never shows. A new one that has already ended would never show
+ * either, while its subscribers were still told about it - so Create asks
+ * for an end still to come. An Edit may set an end that has passed: that
+ * is how an announcement is taken down. Folded, the section opens by itself
+ * to say what is wrong.
  */
-export const getAnnouncementEndsAtError: (values: unknown) => string | null = (
+export const getAnnouncementEndsAtError: (
   values: unknown,
+  kind: AnnouncementFormKind,
+) => string | null = (
+  values: unknown,
+  kind: AnnouncementFormKind,
 ): string | null => {
   const record: Record<string, unknown> = readRecord(values);
 
   if (
-    isMaintenanceWindowInOrder({
+    !isMaintenanceWindowInOrder({
       startsAt: record[ANNOUNCEMENT_STARTS_AT_KEY],
       endsAt: record[ANNOUNCEMENT_ENDS_AT_KEY],
     })
   ) {
-    return null;
+    return translateValidationMessage(ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR);
   }
 
-  return translateValidationMessage(ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR);
+  const endsAt: Date | null = toMaintenanceDate(
+    record[ANNOUNCEMENT_ENDS_AT_KEY],
+  );
+
+  if (
+    kind === AnnouncementFormKind.Create &&
+    endsAt &&
+    endsAt.getTime() <= OneUptimeDate.getCurrentDate().getTime()
+  ) {
+    return translateValidationMessage(ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR);
+  }
+
+  return null;
 };

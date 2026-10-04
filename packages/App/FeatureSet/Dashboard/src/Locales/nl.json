@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "Wordt nu getoond en blijft staan tot u deze beëindigt.",
   "Shows now and stays until {{endsAt}}.": "Wordt nu getoond en blijft staan tot {{endsAt}}.",
   "Stopped showing at {{endsAt}}.": "Wordt sinds {{endsAt}} niet meer getoond.",
-  "Subscribers are not notified about this edit.": "Abonnees krijgen geen melding van deze wijziging.",
   "Subscribers are not notified.": "Abonnees krijgen geen melding.",
-  "Subscribers are notified about this edit.": "Abonnees krijgen een melding van deze wijziging.",
   "Subscribers are notified when it starts showing.": "Abonnees krijgen een melding zodra deze wordt getoond.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnees van deze statuspagina's krijgen een melding zodra een aankondiging op basis van dit sjabloon wordt getoond.",
   "Subscribers of these status pages are told when the announcement starts showing.": "Abonnees van deze statuspagina's krijgen een melding zodra de aankondiging wordt getoond.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "Schema & meldingen",
   "Who to call": "Wie er gebeld wordt",
   "{{count}} seconds": "{{count}} seconden",
-  "{{count}} seconds_one": "{{count}} seconde"
+  "{{count}} seconds_one": "{{count}} seconde",
+  "End Showing Announcement At must be in the future.": "Het einde van de weergave moet in de toekomst liggen.",
+  "When the announcement shows on its status pages.": "Wanneer de aankondiging op de statuspagina's wordt getoond."
 }

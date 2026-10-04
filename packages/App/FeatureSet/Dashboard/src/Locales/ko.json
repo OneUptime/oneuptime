@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "지금 표시되며 직접 종료할 때까지 계속 표시됩니다.",
   "Shows now and stays until {{endsAt}}.": "지금 표시되며 {{endsAt}}까지 계속 표시됩니다.",
   "Stopped showing at {{endsAt}}.": "{{endsAt}}에 표시가 종료되었습니다.",
-  "Subscribers are not notified about this edit.": "이 수정 사항은 구독자에게 알리지 않습니다.",
   "Subscribers are not notified.": "구독자에게 알리지 않습니다.",
-  "Subscribers are notified about this edit.": "이 수정 사항을 구독자에게 알립니다.",
   "Subscribers are notified when it starts showing.": "표시가 시작되면 구독자에게 알립니다.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "이 템플릿으로 만든 공지사항의 표시가 시작되면 이 상태 페이지의 구독자에게 알립니다.",
   "Subscribers of these status pages are told when the announcement starts showing.": "공지사항의 표시가 시작되면 이 상태 페이지의 구독자에게 알립니다.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "일정 및 알림",
   "Who to call": "전화할 대상",
   "{{count}} seconds": "{{count}}초",
-  "{{count}} seconds_one": "{{count}}초"
+  "{{count}} seconds_one": "{{count}}초",
+  "End Showing Announcement At must be in the future.": "표시 종료 시점은 미래여야 합니다.",
+  "When the announcement shows on its status pages.": "공지사항이 상태 페이지에 표시되는 시점입니다."
 }

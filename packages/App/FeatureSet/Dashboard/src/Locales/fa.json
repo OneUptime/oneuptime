@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "از همین حالا نمایش داده می‌شود و تا وقتی آن را پایان دهید می‌ماند.",
   "Shows now and stays until {{endsAt}}.": "از همین حالا نمایش داده می‌شود و تا {{endsAt}} می‌ماند.",
   "Stopped showing at {{endsAt}}.": "نمایش آن در {{endsAt}} پایان یافت.",
-  "Subscribers are not notified about this edit.": "مشترکان از این ویرایش مطلع نمی‌شوند.",
   "Subscribers are not notified.": "مشترکان مطلع نمی‌شوند.",
-  "Subscribers are notified about this edit.": "مشترکان از این ویرایش مطلع می‌شوند.",
   "Subscribers are notified when it starts showing.": "مشترکان هنگام شروع نمایش آن مطلع می‌شوند.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "مشترکان این صفحات وضعیت هنگام شروع نمایش اطلاعیه‌ای که از این قالب ساخته شده مطلع می‌شوند.",
   "Subscribers of these status pages are told when the announcement starts showing.": "مشترکان این صفحات وضعیت هنگام شروع نمایش اطلاعیه مطلع می‌شوند.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "زمان‌بندی و اعلان‌ها",
   "Who to call": "تماس با چه کسی",
   "{{count}} seconds": "{{count}} ثانیه",
-  "{{count}} seconds_one": "{{count}} ثانیه"
+  "{{count}} seconds_one": "{{count}} ثانیه",
+  "End Showing Announcement At must be in the future.": "زمان پایان نمایش اطلاعیه باید در آینده باشد.",
+  "When the announcement shows on its status pages.": "اطلاعیه چه زمانی روی صفحات وضعیتش نمایش داده می‌شود."
 }

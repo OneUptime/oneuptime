@@ -8,19 +8,31 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import {
   ANNOUNCEMENT_TEMPLATE_FORM_STEPS,
   getAnnouncementTemplateFormFields,
-} from "./StatusPageAnnouncementTemplates";
+} from "../../../Components/Announcement/AnnouncementFormFields";
 
 const StatusPageAnnouncementTemplateView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  // The steps and fields of the templates table's Create.
+  const formFields: Array<ModelField<StatusPageAnnouncementTemplate>> =
+    useMemo(() => {
+      return getAnnouncementTemplateFormFields();
+    }, []);
 
   return (
     <Fragment>
@@ -34,9 +46,8 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
-        // The steps and fields of the templates table's Create.
         formSteps={ANNOUNCEMENT_TEMPLATE_FORM_STEPS}
-        formFields={getAnnouncementTemplateFormFields()}
+        formFields={formFields}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: StatusPageAnnouncementTemplate,

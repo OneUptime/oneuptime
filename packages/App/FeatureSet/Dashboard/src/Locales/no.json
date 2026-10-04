@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "Vises nå og blir stående til du avslutter den.",
   "Shows now and stays until {{endsAt}}.": "Vises nå og blir stående til {{endsAt}}.",
   "Stopped showing at {{endsAt}}.": "Sluttet å vises {{endsAt}}.",
-  "Subscribers are not notified about this edit.": "Abonnenter varsles ikke om denne endringen.",
   "Subscribers are not notified.": "Abonnenter varsles ikke.",
-  "Subscribers are notified about this edit.": "Abonnenter varsles om denne endringen.",
   "Subscribers are notified when it starts showing.": "Abonnenter varsles når den begynner å vises.",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenter på disse statussidene varsles når en kunngjøring laget fra denne malen begynner å vises.",
   "Subscribers of these status pages are told when the announcement starts showing.": "Abonnenter på disse statussidene varsles når kunngjøringen begynner å vises.",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "Tidsplan og varsler",
   "Who to call": "Hvem som skal ringes",
   "{{count}} seconds": "{{count}} sekunder",
-  "{{count}} seconds_one": "{{count}} sekund"
+  "{{count}} seconds_one": "{{count}} sekund",
+  "End Showing Announcement At must be in the future.": "Slutten på visningen må være i fremtiden.",
+  "When the announcement shows on its status pages.": "Når kunngjøringen vises på statussidene sine."
 }

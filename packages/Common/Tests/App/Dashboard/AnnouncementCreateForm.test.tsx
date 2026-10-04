@@ -127,6 +127,7 @@ import AnnouncementCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/S
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
+  ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
   ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
   ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
@@ -145,6 +146,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 
 const NOW: Date = new Date("2026-10-03T09:20:00.000Z");
+const PROJECT_ID: string = "00000000-0000-4000-8000-000000000001";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 const OTHER_STATUS_PAGE_ID: string = "33333333-3333-4333-8333-333333333333";
 const TEMPLATE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -1002,23 +1004,111 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
     ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
   });
 
-  test("a template that cannot be read says so, as before", async () => {
+  test("a template that cannot be read says so above the form, which still opens with the page picked", async () => {
     queryInUrl = {
       statusPageId: STATUS_PAGE_ID,
       announcementTemplateId: TEMPLATE_ID,
     };
     templateOnServer = new Error("This template was deleted.");
 
-    render(
-      <MemoryRouter>
-        <AnnouncementCreate {...PAGE_PROPS} />
-      </MemoryRouter>,
-    );
+    await renderPage();
+
+    expect(screen.getByText("This template was deleted.")).toBeInTheDocument();
+    // Nothing of the template, but the page it was opened from is picked.
+    expect(labelledInput("Title").value).toBe("");
+    expect(createButton()).toBeInTheDocument();
+
+    await writeAnnouncement();
+    fireEvent.click(createButton());
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+    expect(idsOf(createdModel().statusPages)).toEqual([STATUS_PAGE_ID]);
+  });
+
+  test("an end that has already passed is refused: the announcement would never show", async () => {
+    await renderPage();
+    await writeAnnouncement();
+    await goToNextStep("Status Pages");
+
+    const schedule: HTMLElement = sectionHeader("Schedule & Notifications");
+
+    fireEvent.click(schedule);
+    fireEvent.change(startsAtInput(), {
+      target: { value: "2026-10-01T08:00" },
+    });
+    fireEvent.change(endsAtInput(), { target: { value: "2026-10-02T08:00" } });
+    await act(async () => {});
+    fireEvent.click(schedule);
+
+    fireEvent.click(createButton());
 
     expect(
-      await screen.findByText("This template was deleted."),
+      await screen.findByText(ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR),
     ).toBeInTheDocument();
-    expect(document.getElementById("create-announcement-form")).toBeNull();
+    await waitFor(() => {
+      expect(schedule).toHaveAttribute("aria-expanded", "true");
+    });
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("with that page unpicked on the way, Create goes to the project's list, which shows the announcement", async () => {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await renderPage();
+    await writeAnnouncement();
+    await goToNextStep("Status Pages");
+
+    // Another page instead of the one it was opened from.
+    await user.click(
+      screen.getByRole("combobox", {
+        name: /Show announcement on these status pages/,
+      }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: /Internal Status/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: /Remove Acme Public Status/ }),
+    );
+
+    fireEvent.click(createButton());
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+    expect(idsOf(createdModel().statusPages)).toEqual([OTHER_STATUS_PAGE_ID]);
+
+    await waitFor(() => {
+      expect(Navigation.navigate).toHaveBeenCalled();
+    });
+    expect(navigatedTo()).toMatch(/\/status-pages\/announcements$/);
+  });
+
+  test("the last crumb is this page, drawn as text, so the address keeps what it was opened with", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${PROJECT_ID}/status-pages/announcements/create?statusPageId=${STATUS_PAGE_ID}`,
+    );
+
+    try {
+      await renderPage();
+
+      const links: Array<{ title: string; href: string | null }> =
+        breadcrumbs();
+
+      expect(links[links.length - 1]).toEqual({
+        title: "Create Announcement",
+        href: null,
+      });
+      expect(links[2]!.href).toBe(
+        `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/announcements`,
+      );
+    } finally {
+      window.history.replaceState(null, "", "/");
+    }
   });
 
   test("an address that names no real page asks the server for nothing", async () => {

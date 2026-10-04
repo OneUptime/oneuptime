@@ -24601,9 +24601,7 @@
   "Shows now and stays until you end it.": "立即顯示，並一直顯示到您結束它為止。",
   "Shows now and stays until {{endsAt}}.": "立即顯示，並一直顯示到 {{endsAt}}。",
   "Stopped showing at {{endsAt}}.": "已於 {{endsAt}} 停止顯示。",
-  "Subscribers are not notified about this edit.": "不會就此次編輯通知訂閱者。",
   "Subscribers are not notified.": "不會通知訂閱者。",
-  "Subscribers are notified about this edit.": "會就此次編輯通知訂閱者。",
   "Subscribers are notified when it starts showing.": "開始顯示時會通知訂閱者。",
   "Subscribers of these status pages are told when an announcement made from this template starts showing.": "由此範本建立的公告開始顯示時，會通知這些狀態頁面的訂閱者。",
   "Subscribers of these status pages are told when the announcement starts showing.": "公告開始顯示時，會通知這些狀態頁面的訂閱者。",
@@ -24611,5 +24609,7 @@
   "Schedule & Notifications": "排程與通知",
   "Who to call": "呼叫對象",
   "{{count}} seconds": "{{count}} 秒",
-  "{{count}} seconds_one": "{{count}} 秒"
+  "{{count}} seconds_one": "{{count}} 秒",
+  "End Showing Announcement At must be in the future.": "公告顯示結束時間必須是未來的時間。",
+  "When the announcement shows on its status pages.": "公告何時顯示在其狀態頁面上。"
 }
