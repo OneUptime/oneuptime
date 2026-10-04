@@ -194,6 +194,8 @@ describe("the old default assignee's line in the dark theme", () => {
         "hover:bg-gray-50",
         // Remove.
         "hover:bg-gray-100",
+        // The names could not be loaded.
+        "text-red-600",
         // The keyboard focus ring.
         "focus-visible:ring-indigo-500",
       ]),

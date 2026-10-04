@@ -10,7 +10,9 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import GroupingRuleEpisodeOwners from "../Utils/Rules/GroupingRuleEpisodeOwners";
+import GroupingRuleEpisodeOwners, {
+  LegacyAssigneeInProject,
+} from "../Utils/Rules/GroupingRuleEpisodeOwners";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -804,16 +806,27 @@ class AlertGroupingEngineServiceClass {
 
     /*
      * The rule's default assignee, from before the rule asked for episode
-     * owners. Still copied for API readers of the episode, but no page,
-     * notification or worker reads it: owners are what make people
-     * responsible for the episode (below).
+     * owners. Still copied for API readers of the episode - while it names
+     * the project's own team and a member - but no page, notification or
+     * worker reads it: owners are what make people responsible for the
+     * episode (below).
      */
-    if (rule.defaultAssignToUserId) {
-      newEpisode.assignedToUserId = rule.defaultAssignToUserId;
-    }
+    if (rule.defaultAssignToUserId || rule.defaultAssignToTeamId) {
+      const assignee: LegacyAssigneeInProject =
+        await GroupingRuleEpisodeOwners.getLegacyAssigneeInProject({
+          projectId: alert.projectId!,
+          userId: rule.defaultAssignToUserId,
+          teamId: rule.defaultAssignToTeamId,
+          ruleName: rule.name || rule.id?.toString(),
+        });
 
-    if (rule.defaultAssignToTeamId) {
-      newEpisode.assignedToTeamId = rule.defaultAssignToTeamId;
+      if (assignee.userId) {
+        newEpisode.assignedToUserId = assignee.userId;
+      }
+
+      if (assignee.teamId) {
+        newEpisode.assignedToTeamId = assignee.teamId;
+      }
     }
 
     // Copy on-call policies from rule

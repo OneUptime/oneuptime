@@ -1639,6 +1639,7 @@ describe("episode owners and the old default assignee", () => {
       GROUPING_RULE_COPY.legacyAssigneeDescription,
       GROUPING_RULE_COPY.legacyAssigneeAddAsOwners,
       GROUPING_RULE_COPY.legacyAssigneeRemove,
+      GROUPING_RULE_COPY.legacyAssigneeLookupFailed,
     ]) {
       expect(strings).toContain(text);
     }

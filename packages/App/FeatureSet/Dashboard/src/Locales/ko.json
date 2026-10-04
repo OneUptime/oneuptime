@@ -24864,5 +24864,6 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" 파일이 {{size}} 제한을 초과합니다.",
   "Max {{size}} each.": "파일당 최대 {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "다음 파일이 {{size}} 제한을 초과합니다: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "형식: {{types}}. 파일당 최대 {{size}}."
+  "Types: {{types}}. Max {{size}} each.": "형식: {{types}}. 파일당 최대 {{size}}.",
+  "Their names could not be loaded.": "이름을 불러오지 못했습니다."
 }

@@ -183,6 +183,7 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
       "legacyAssigneeDescription",
       "legacyAssigneeAddAsOwners",
       "legacyAssigneeRemove",
+      "legacyAssigneeLookupFailed",
     ]) {
       expect(source).toContain(`translate(GROUPING_RULE_COPY.${key})`);
     }

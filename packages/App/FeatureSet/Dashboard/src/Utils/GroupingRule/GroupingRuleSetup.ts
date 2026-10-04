@@ -207,6 +207,7 @@ export const GROUPING_RULE_COPY: {
   legacyAssigneeDescription: string;
   legacyAssigneeAddAsOwners: string;
   legacyAssigneeRemove: string;
+  legacyAssigneeLookupFailed: string;
 } = {
   cardDescription: {
     [GroupingRuleKind.Incident]:
@@ -304,6 +305,8 @@ export const GROUPING_RULE_COPY: {
     "Set by an older version of this form and not shown anywhere. Add them as owners to make them responsible for the episodes this rule opens.",
   legacyAssigneeAddAsOwners: "Add as owners",
   legacyAssigneeRemove: "Remove",
+  // In place of the names, when looking them up failed.
+  legacyAssigneeLookupFailed: "Their names could not be loaded.",
 };
 
 export interface GroupingModeOption {

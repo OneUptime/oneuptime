@@ -44,7 +44,9 @@ interface AssigneePick {
  *
  * Someone who has left the project, or a team since deleted, is still named
  * (as unknown) but cannot become an owner: Add as owners adds the picks the
- * project still has, and is not offered when it has none of them.
+ * project still has, and is not offered when it has none of them. When the
+ * names cannot be looked up at all, the line says so and Add as owners adds
+ * both: the rule is checked when it is saved (GroupingRuleEpisodeOwners).
  */
 const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -74,8 +76,17 @@ const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
     value: value,
   });
 
-  // Still in the project: found when it was looked up.
-  const knownId: (kind: PeoplePickerKind) => string | null = (
+  /*
+   * The lookup failed: the names are not known, and neither is who is still
+   * in the project.
+   */
+  const lookupFailed: boolean = Boolean(lookup.error);
+
+  /*
+   * What Add as owners adds: a pick found in the project - or, when nothing
+   * could be looked up, every pick, which the save then checks.
+   */
+  const idToAdd: (kind: PeoplePickerKind) => string | null = (
     kind: PeoplePickerKind,
   ): string | null => {
     const pick: AssigneePick | undefined = picks.find(
@@ -88,6 +99,10 @@ const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
       return null;
     }
 
+    if (lookupFailed) {
+      return pick.id;
+    }
+
     const option: PeoplePickerOption | undefined = lookup.getOption(
       pick.kind,
       pick.id,
@@ -96,12 +111,14 @@ const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
     return option && !option.isUnknown ? pick.id : null;
   };
 
-  const isLookingUp: boolean = picks.some((pick: AssigneePick): boolean => {
-    return lookup.getOption(pick.kind, pick.id) === undefined;
-  });
+  const isLookingUp: boolean =
+    !lookupFailed &&
+    picks.some((pick: AssigneePick): boolean => {
+      return lookup.getOption(pick.kind, pick.id) === undefined;
+    });
 
-  const userId: string | null = knownId(PeoplePickerKind.User);
-  const teamId: string | null = knownId(PeoplePickerKind.Team);
+  const userId: string | null = idToAdd(PeoplePickerKind.User);
+  const teamId: string | null = idToAdd(PeoplePickerKind.Team);
   const canAddAsOwners: boolean = isLookingUp || Boolean(userId || teamId);
 
   return (
@@ -115,21 +132,31 @@ const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
       <p id={titleId} className="text-sm font-medium text-gray-900">
         {translate(GROUPING_RULE_COPY.legacyAssigneeTitle)}
       </p>
-      <div
-        className="mt-2 flex flex-wrap items-center gap-1.5"
-        data-testid="legacy-default-assignee-people"
-      >
-        {picks.map((pick: AssigneePick): ReactElement => {
-          return (
-            <PeopleChip
-              key={getPeoplePickerOptionKey(pick.kind, pick.id)}
-              kind={pick.kind}
-              id={pick.id}
-              option={lookup.getOption(pick.kind, pick.id)}
-            />
-          );
-        })}
-      </div>
+      {lookupFailed ? (
+        <p
+          role="alert"
+          className="mt-2 text-sm text-red-600"
+          data-testid="legacy-default-assignee-lookup-failed"
+        >
+          {translate(GROUPING_RULE_COPY.legacyAssigneeLookupFailed)}
+        </p>
+      ) : (
+        <div
+          className="mt-2 flex flex-wrap items-center gap-1.5"
+          data-testid="legacy-default-assignee-people"
+        >
+          {picks.map((pick: AssigneePick): ReactElement => {
+            return (
+              <PeopleChip
+                key={getPeoplePickerOptionKey(pick.kind, pick.id)}
+                kind={pick.kind}
+                id={pick.id}
+                option={lookup.getOption(pick.kind, pick.id)}
+              />
+            );
+          })}
+        </div>
+      )}
       <p id={descriptionId} className="mt-2 text-sm text-gray-600">
         {translate(GROUPING_RULE_COPY.legacyAssigneeDescription)}
       </p>

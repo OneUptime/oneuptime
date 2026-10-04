@@ -24864,5 +24864,6 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" overskrider grænsen på {{size}}.",
   "Max {{size}} each.": "Højst {{size}} pr. fil.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Disse filer overskrider grænsen på {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Højst {{size}} pr. fil."
+  "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Højst {{size}} pr. fil.",
+  "Their names could not be loaded.": "Deres navne kunne ikke indlæses."
 }

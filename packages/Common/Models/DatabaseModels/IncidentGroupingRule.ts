@@ -1378,7 +1378,7 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     modelType: User,
     title: "Default Assign To User",
     description:
-      "Kept for API compatibility: copied to the assignedToUser of each episode this rule opens, which OneUptime does not show anywhere. To make someone responsible for those episodes, use episodeOwnerUsers.",
+      "Kept for API compatibility: copied to the assignedToUser of each episode this rule opens while the user is a member of the project. OneUptime does not show it anywhere; to make someone responsible for those episodes, use episodeOwnerUsers.",
   })
   @ManyToOne(
     () => {
@@ -1459,7 +1459,7 @@ export default class IncidentGroupingRule extends RuleBaseModel {
     modelType: Team,
     title: "Default Assign To Team",
     description:
-      "Kept for API compatibility: copied to the assignedToTeam of each episode this rule opens, which OneUptime does not show anywhere. To make a team responsible for those episodes, use episodeOwnerTeams.",
+      "Kept for API compatibility: copied to the assignedToTeam of each episode this rule opens while the team belongs to the project. OneUptime does not show it anywhere; to make a team responsible for those episodes, use episodeOwnerTeams.",
   })
   @ManyToOne(
     () => {

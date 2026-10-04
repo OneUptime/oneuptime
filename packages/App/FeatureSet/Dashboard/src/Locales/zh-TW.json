@@ -24864,5 +24864,6 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」超過了 {{size}} 的上限。",
   "Max {{size}} each.": "每個檔案最大 {{size}}。",
   "These files exceed the {{size}} limit: {{fileNames}}.": "以下檔案超過了 {{size}} 的上限：{{fileNames}}。",
-  "Types: {{types}}. Max {{size}} each.": "類型：{{types}}。每個檔案最大 {{size}}。"
+  "Types: {{types}}. Max {{size}} each.": "類型：{{types}}。每個檔案最大 {{size}}。",
+  "Their names could not be loaded.": "無法載入他們的名稱。"
 }

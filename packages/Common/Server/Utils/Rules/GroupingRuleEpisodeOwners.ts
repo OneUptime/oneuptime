@@ -13,6 +13,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import ProjectScopedReferenceValidator, {
   HeldRelationIds,
+  resolveReferenceId,
   resolveReferenceIds,
 } from "../Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Logger";
@@ -26,7 +27,7 @@ import OwnerRuleAssignment, { OwnersToAssign } from "./OwnerRuleAssignment";
  * nothing between the rule and the owner rows asked who those people and
  * teams were. A team from another project, written to a rule through the
  * API, became an owner of this project's episode, and each of its members
- * was told about it.
+ * was sent the owner-added notification about it.
  *
  * Owners a rule sets follow the rule owners set by hand follow - the
  * episode's Owners page and the rule's own people picker offer only the
@@ -38,11 +39,22 @@ import OwnerRuleAssignment, { OwnersToAssign } from "./OwnerRuleAssignment";
  *     a rule that already names someone who has left can still be edited;
  *   - the engine, when it opens an episode, adds only the project's own
  *     teams (addOwnersToEpisode), and OwnerRuleAssignment.createOwner adds
- *     only users who are still members. A rule can outlive a member who
- *     left, or have been saved before the check above existed.
+ *     only users who are members by then. A rule can outlive a member who
+ *     left, name someone whose invitation is still pending (they become an
+ *     owner of the episodes opened once they have joined), or have been
+ *     saved before the check above existed.
+ *
+ * The rule's old default assignee (defaultAssignToTeamId,
+ * defaultAssignToUserId), which the engines still copy to the episode's
+ * assignedToTeam and assignedToUser for API readers, is copied only while it
+ * still names the project's own team and a member (getLegacyAssigneeInProject):
+ * the engine writes nothing as root that it would not let a person write.
  *
  * Errors echo the ids the caller sent, never a name: resolving an id from
- * outside the project into a team or a person would leak it.
+ * outside the project into a team or a person would leak it. (That is also
+ * why the teams are not checked with ProjectScopedReferenceValidator, whose
+ * message names a foreign record, nor with its filterUsableInProject, which
+ * reads one id at a time.)
  */
 
 export const EPISODE_OWNER_USERS_COLUMN: string = "episodeOwnerUsers";
@@ -102,6 +114,11 @@ const lookupIdsOf: LookupIdsFunction = (ids: Array<string>): Array<string> => {
     return ObjectID.isValidUUID(id);
   });
 };
+
+export interface LegacyAssigneeInProject {
+  userId: ObjectID | null;
+  teamId: ObjectID | null;
+}
 
 export default class GroupingRuleEpisodeOwners {
   /*
@@ -293,10 +310,11 @@ export default class GroupingRuleEpisodeOwners {
 
   /*
    * Makes the rule's people and teams owners of the episode it just opened,
-   * as root. Each is added once. A team from another project is skipped and
-   * logged; a user who is no longer a member is skipped by createOwner; one
-   * owner that cannot be added never stops the others. Resolves to the
-   * owners actually added.
+   * as root. Each is added once. A user who is not a member by now is
+   * skipped by createOwner, and a team from another project is skipped and
+   * logged. One owner that cannot be added never stops the others: people
+   * are added before the teams are looked up, and a failed lookup costs the
+   * teams only. Resolves to the owners actually added.
    */
   public static async addOwnersToEpisode<
     TOwnerUser extends BaseModel,
@@ -319,16 +337,75 @@ export default class GroupingRuleEpisodeOwners {
       projectId: data.projectId.toString(),
     };
 
-    const userIds: Array<string> = uniqueIds(data.users);
+    type AddOwnerFunction = <TOwner extends BaseModel>(owner: {
+      ownerService: DatabaseService<TOwner>;
+      ownerColumn: "userId" | "teamId";
+      ownerId: string;
+    }) => Promise<boolean>;
+
+    const addOwner: AddOwnerFunction = async <TOwner extends BaseModel>(owner: {
+      ownerService: DatabaseService<TOwner>;
+      ownerColumn: "userId" | "teamId";
+      ownerId: string;
+    }): Promise<boolean> => {
+      try {
+        return await OwnerRuleAssignment.createOwner({
+          ownerService: owner.ownerService,
+          owner: OwnerRuleAssignment.buildOwner({
+            ownerService: owner.ownerService,
+            ownerColumn: owner.ownerColumn,
+            ownerId: new ObjectID(owner.ownerId),
+            resourceIdColumn: data.episodeIdColumn,
+            resourceId: data.episodeId,
+            projectId: data.projectId,
+          }),
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (error) {
+        logger.error(
+          `Error adding owner ${owner.ownerColumn === "userId" ? "user" : "team"} ${owner.ownerId} to episode ${data.episodeId.toString()}: ${error}`,
+          logAttributes,
+        );
+
+        return false;
+      }
+    };
+
+    for (const userId of uniqueIds(data.users)) {
+      if (
+        await addOwner({
+          ownerService: data.ownerUserService,
+          ownerColumn: "userId",
+          ownerId: userId,
+        })
+      ) {
+        added.userIds.push(new ObjectID(userId));
+      }
+    }
+
     const namedTeamIds: Array<string> = uniqueIds(data.teams);
 
-    const teamIds: Array<string> =
-      namedTeamIds.length > 0
-        ? await GroupingRuleEpisodeOwners.getTeamIdsInProject({
-            projectId: data.projectId,
-            teamIds: namedTeamIds,
-          })
-        : [];
+    if (namedTeamIds.length === 0) {
+      return added;
+    }
+
+    let teamIds: Array<string> = [];
+
+    try {
+      teamIds = await GroupingRuleEpisodeOwners.getTeamIdsInProject({
+        projectId: data.projectId,
+        teamIds: namedTeamIds,
+      });
+    } catch (error) {
+      logger.error(
+        `Error reading the teams grouping rule ${data.ruleName || ""} names, so no team was made an owner of episode ${data.episodeId.toString()}: ${error}`,
+        logAttributes,
+      );
+
+      return added;
+    }
 
     const skippedTeamIds: Array<string> = namedTeamIds.filter(
       (id: string): boolean => {
@@ -343,63 +420,69 @@ export default class GroupingRuleEpisodeOwners {
       );
     }
 
-    for (const userId of userIds) {
-      try {
-        if (
-          await OwnerRuleAssignment.createOwner({
-            ownerService: data.ownerUserService,
-            owner: GroupingRuleEpisodeOwners.buildOwner({
-              ownerService: data.ownerUserService,
-              ownerColumn: "userId",
-              ownerId: userId,
-              episodeIdColumn: data.episodeIdColumn,
-              episodeId: data.episodeId,
-              projectId: data.projectId,
-            }),
-            props: {
-              isRoot: true,
-            },
-          })
-        ) {
-          added.userIds.push(new ObjectID(userId));
-        }
-      } catch (error) {
-        logger.error(
-          `Error adding owner user ${userId} to episode ${data.episodeId.toString()}: ${error}`,
-          logAttributes,
-        );
-      }
-    }
-
     for (const teamId of teamIds) {
-      try {
-        if (
-          await OwnerRuleAssignment.createOwner({
-            ownerService: data.ownerTeamService,
-            owner: GroupingRuleEpisodeOwners.buildOwner({
-              ownerService: data.ownerTeamService,
-              ownerColumn: "teamId",
-              ownerId: teamId,
-              episodeIdColumn: data.episodeIdColumn,
-              episodeId: data.episodeId,
-              projectId: data.projectId,
-            }),
-            props: {
-              isRoot: true,
-            },
-          })
-        ) {
-          added.teamIds.push(new ObjectID(teamId));
-        }
-      } catch (error) {
-        logger.error(
-          `Error adding owner team ${teamId} to episode ${data.episodeId.toString()}: ${error}`,
-          logAttributes,
-        );
+      if (
+        await addOwner({
+          ownerService: data.ownerTeamService,
+          ownerColumn: "teamId",
+          ownerId: teamId,
+        })
+      ) {
+        added.teamIds.push(new ObjectID(teamId));
       }
     }
 
     return added;
+  }
+
+  /*
+   * The rule's old default assignee, as the engine may copy it to a new
+   * episode: the team while it is the project's, the user while they are a
+   * member (accepted, as createOwner asks of an owner). Whatever else it
+   * names - another project's team, someone who has left - is left off the
+   * episode. Nothing shows the copy, so a failed lookup leaves both off
+   * rather than fail the episode.
+   */
+  public static async getLegacyAssigneeInProject(data: {
+    projectId: ObjectID;
+    userId: unknown;
+    teamId: unknown;
+    ruleName?: string | undefined;
+  }): Promise<LegacyAssigneeInProject> {
+    const result: LegacyAssigneeInProject = { userId: null, teamId: null };
+    const userId: string = resolveReferenceId(data.userId)?.toString() || "";
+    const teamId: string = resolveReferenceId(data.teamId)?.toString() || "";
+
+    if (!userId && !teamId) {
+      return result;
+    }
+
+    try {
+      const [teamIds, isMember]: [Array<string>, boolean] = await Promise.all([
+        teamId
+          ? GroupingRuleEpisodeOwners.getTeamIdsInProject({
+              projectId: data.projectId,
+              teamIds: [teamId],
+            })
+          : Promise.resolve([] as Array<string>),
+        userId && ObjectID.isValidUUID(userId)
+          ? TeamMemberService.isUserMemberOfProject({
+              projectId: data.projectId,
+              userId: new ObjectID(userId),
+            })
+          : Promise.resolve(false),
+      ]);
+
+      result.teamId = teamIds.length > 0 ? new ObjectID(teamId) : null;
+      result.userId = isMember ? new ObjectID(userId) : null;
+    } catch (error) {
+      logger.error(
+        `Error checking the default assignee of grouping rule ${data.ruleName || ""}; it was not copied to the episode: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    }
+
+    return result;
   }
 
   private static async assertOwnersInProject(data: {
@@ -408,22 +491,23 @@ export default class GroupingRuleEpisodeOwners {
     teamIds: Array<string>;
     subject: string;
   }): Promise<void> {
-    const teamsInProject: Set<string> = new Set<string>(
-      (
-        await GroupingRuleEpisodeOwners.getTeamIdsInProject({
+    const [teamsFound, usersFound]: [Array<string>, Array<string>] =
+      await Promise.all([
+        GroupingRuleEpisodeOwners.getTeamIdsInProject({
           projectId: data.projectId,
           teamIds: data.teamIds,
-        })
-      ).map(normalizeId),
-    );
-
-    const usersInProject: Set<string> = new Set<string>(
-      (
-        await GroupingRuleEpisodeOwners.getUserIdsInProject({
+        }),
+        GroupingRuleEpisodeOwners.getUserIdsInProject({
           projectId: data.projectId,
           userIds: data.userIds,
-        })
-      ).map(normalizeId),
+        }),
+      ]);
+
+    const teamsInProject: Set<string> = new Set<string>(
+      teamsFound.map(normalizeId),
+    );
+    const usersInProject: Set<string> = new Set<string>(
+      usersFound.map(normalizeId),
     );
 
     const foreignTeamIds: Array<string> = data.teamIds.filter(
@@ -463,22 +547,5 @@ export default class GroupingRuleEpisodeOwners {
     throw new BadDataException(
       `This ${data.subject} ${clauses.join(" It also ")} Please pick episode owners from this project and try again.`,
     );
-  }
-
-  private static buildOwner<TOwner extends BaseModel>(data: {
-    ownerService: DatabaseService<TOwner>;
-    ownerColumn: "userId" | "teamId";
-    ownerId: string;
-    episodeIdColumn: string;
-    episodeId: ObjectID;
-    projectId: ObjectID;
-  }): TOwner {
-    const owner: TOwner = new data.ownerService.modelType();
-
-    owner.setColumnValue("projectId", data.projectId);
-    owner.setColumnValue(data.episodeIdColumn, data.episodeId);
-    owner.setColumnValue(data.ownerColumn, new ObjectID(data.ownerId));
-
-    return owner;
   }
 }

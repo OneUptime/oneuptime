@@ -24864,5 +24864,6 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» превышает ограничение в {{size}}.",
   "Max {{size}} each.": "Не более {{size}} каждый.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый."
+  "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый.",
+  "Their names could not be loaded.": "Не удалось загрузить их имена."
 }

@@ -24864,5 +24864,6 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» از سقف {{size}} بزرگ‌تر است.",
   "Max {{size}} each.": "هر فایل حداکثر {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}."
+  "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}.",
+  "Their names could not be loaded.": "نام‌هایشان بارگیری نشد."
 }

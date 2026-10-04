@@ -269,7 +269,14 @@ export default class OwnerRuleAssignment {
     });
   }
 
-  private static buildOwner<TOwner extends BaseModel>(data: {
+  /*
+   * One owner row of the resource, for createOwner: the resource, the
+   * project and the user or team, and the notified flag and creator when
+   * given. Public so a caller that adds owners one at a time, each failure
+   * on its own (the grouping rule engines), builds the same rows addOwners
+   * does.
+   */
+  public static buildOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
     ownerColumn: "userId" | "teamId";
     ownerId: ObjectID;

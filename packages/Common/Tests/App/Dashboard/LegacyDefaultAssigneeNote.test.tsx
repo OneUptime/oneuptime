@@ -290,6 +290,40 @@ describe("LegacyDefaultAssigneeNote", () => {
     expect(within(note).getByRole("button", { name: "Remove" })).toBeEnabled();
   });
 
+  test("when the names cannot be loaded, it says so, and Add as owners hands over both for the save to check", async () => {
+    getListMock.mockImplementation((): Promise<unknown> => {
+      return Promise.reject(new Error("Network Error"));
+    });
+
+    const note: HTMLElement = renderNote({
+      userId: GONE_USER,
+      teamId: PLATFORM,
+    });
+
+    await waitFor(() => {
+      expect(within(note).getByRole("alert")).toHaveTextContent(
+        GROUPING_RULE_COPY.legacyAssigneeLookupFailed,
+      );
+    });
+
+    // No chips stuck on "Loading...".
+    expect(chipNames()).toEqual([]);
+
+    const add: HTMLElement = within(note).getByRole("button", {
+      name: "Add as owners",
+    });
+
+    expect(add).toBeEnabled();
+    fireEvent.click(add);
+
+    expect(lastChange()).toEqual({
+      action: LegacyDefaultAssigneeAction.AddAsOwners,
+      userId: GONE_USER,
+      teamId: PLATFORM,
+    });
+    expect(within(note).getByRole("button", { name: "Remove" })).toBeEnabled();
+  });
+
   test("its buttons never submit the form it sits in", async () => {
     const submit: MockFunction = getJestMockFunction();
 

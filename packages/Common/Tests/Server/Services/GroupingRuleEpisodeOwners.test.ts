@@ -450,15 +450,18 @@ describe.each(ENGINES)("the $label engine", (engine: EngineCase) => {
     expect(ownerIds(writtenTeams, "teamId")).toEqual([PLATFORM]);
   });
 
-  test("a failed team lookup costs the owners, never the episode", async () => {
-    jest.spyOn(logger, "error").mockImplementation((() => {
-      return undefined;
-    }) as never);
+  test("a failed team lookup costs the teams only: the people are still added, and the episode opens", async () => {
+    const error: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
     jest
       .spyOn(TeamService, "findBy")
       .mockRejectedValue(new Error("Database is down") as never);
 
     const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.episodeOwnerUsers = [user(ADA), user(BOB)];
     rule.episodeOwnerTeams = [team(PLATFORM)];
 
     const episode: BaseModel | null = await engine.createNewEpisode(
@@ -467,7 +470,13 @@ describe.each(ENGINES)("the $label engine", (engine: EngineCase) => {
     );
 
     expect(episode?.id?.toString()).toBe(EPISODE_ID.toString());
+    expect(ownerIds(writtenUsers, "userId")).toEqual([ADA, BOB]);
     expect(writtenTeams).toEqual([]);
+    expect(
+      error.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).includes("no team was made an owner");
+      }),
+    ).toBe(true);
   });
 
   test("a rule that names no owners asks nothing about them", async () => {
@@ -476,6 +485,51 @@ describe.each(ENGINES)("the $label engine", (engine: EngineCase) => {
     expect(teamQueries).toEqual([]);
     expect(writtenUsers).toEqual([]);
     expect(writtenTeams).toEqual([]);
+  });
+
+  test("the old default assignee is copied only while it names the project's team and a member", async () => {
+    const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.defaultAssignToUserId = new ObjectID(EVE);
+    rule.defaultAssignToTeamId = new ObjectID(FOREIGN_TEAM);
+
+    const episode: BaseModel | null = await engine.createNewEpisode(
+      engine.newRecord(),
+      rule,
+    );
+
+    const created: BaseModel = (
+      episodeCreate.mock.calls[0] as Array<{ data: BaseModel }>
+    )[0]!.data;
+
+    expect(episode).not.toBeNull();
+    expect(created.getColumnValue("assignedToUserId")).toBeNull();
+    expect(created.getColumnValue("assignedToTeamId")).toBeNull();
+    // Looked up pinned to the project, as owners are.
+    expect(String(teamQueries[0]!["projectId"])).toBe(PROJECT_ID.toString());
+  });
+
+  test("a failed check of the old default assignee leaves it off, and the episode still opens", async () => {
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockRejectedValue(new Error("Database is down") as never);
+
+    const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.defaultAssignToUserId = new ObjectID(BOB);
+
+    const episode: BaseModel | null = await engine.createNewEpisode(
+      engine.newRecord(),
+      rule,
+    );
+
+    const created: BaseModel = (
+      episodeCreate.mock.calls[0] as Array<{ data: BaseModel }>
+    )[0]!.data;
+
+    expect(episode?.id?.toString()).toBe(EPISODE_ID.toString());
+    expect(created.getColumnValue("assignedToUserId")).toBeNull();
   });
 
   test("the old default assignee is still copied to the episode, and never made an owner", async () => {
