@@ -40,26 +40,12 @@ export function getUsersBreadcrumbs(path: string): Array<Link> | undefined {
       "View User",
       "Notification Methods",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_ON_CALL_RULES, [
       "Project",
       "Users",
       "View User",
-      "Incident On-Call Rules",
+      "On-Call Rules",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES,
-      ["Project", "Users", "View User", "Incident Episode On-Call Rules"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_ALERT_ON_CALL_RULES, [
-      "Project",
-      "Users",
-      "View User",
-      "Alert On-Call Rules",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES,
-      ["Project", "Users", "View User", "Alert Episode On-Call Rules"],
-    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_CUSTOM_FIELDS, [
       "Project",
       "Users",

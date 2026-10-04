@@ -271,8 +271,6 @@ describe("User Settings: the checklist and how you are reached start open", () =
     expect(sectionStates()).toEqual([
       { title: "Get Started", expanded: true },
       { title: "Alerts & Notifications", expanded: true },
-      { title: "Incident On-Call", expanded: false },
-      { title: "Alert On-Call", expanded: false },
       { title: "On-Call Logs", expanded: false },
       { title: "Incoming Call Policy", expanded: false },
       { title: "Calendar", expanded: false },
@@ -291,17 +289,45 @@ describe("User Settings: the checklist and how you are reached start open", () =
     );
   });
 
+  /*
+   * Your on-call rules are one page, with a tab per kind, among the pages
+   * people come here for: it opens nothing folded, and no section of its
+   * own is left behind for it.
+   */
+  test("On-Call Rules sits in Alerts & Notifications, right after the methods it uses", async () => {
+    await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_SETUP);
+
+    expect(linksIn("Alerts & Notifications")).toEqual([
+      {
+        title: "Notification Methods",
+        href: routeFor(PageMap.USER_SETTINGS_NOTIFICATION_METHODS),
+      },
+      {
+        title: "On-Call Rules",
+        href: routeFor(PageMap.USER_SETTINGS_ON_CALL_RULES),
+      },
+      {
+        title: "Notification Settings",
+        href: routeFor(PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS),
+      },
+      {
+        title: "Email Preferences",
+        href: routeFor(PageMap.USER_SETTINGS_EMAIL_PREFERENCES),
+      },
+    ]);
+    expect(sectionTitlesInOrder()).not.toContain("Incident On-Call");
+    expect(sectionTitlesInOrder()).not.toContain("Alert On-Call");
+  });
+
+  test("the On-Call Rules page marks its entry and opens nothing folded", async () => {
+    await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_ON_CALL_RULES);
+
+    expect(activeLinkTitles()).toEqual(["On-Call Rules"]);
+    expect(isExpanded("Alerts & Notifications")).toBe(true);
+    expect(isExpanded("On-Call Logs")).toBe(false);
+  });
+
   test.each([
-    [
-      PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
-      "Incident On-Call",
-      "Incident On-Call Rules",
-    ],
-    [
-      PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES,
-      "Alert On-Call",
-      "Alert Episode On-Call Rules",
-    ],
     [PageMap.USER_SETTINGS_ON_CALL_LOGS, "On-Call Logs", "On-Call Logs"],
     [
       PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS,

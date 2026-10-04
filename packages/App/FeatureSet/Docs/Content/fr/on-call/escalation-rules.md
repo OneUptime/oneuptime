@@ -31,6 +31,8 @@ Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses in
 
 Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : quand chaque niveau est alerté, qui il alerte et ce qui se passe après le dernier. Un niveau dont tous les intervenants ne peuvent pas être alertés l'indique sur sa carte ; cliquez sur le libellé pour voir qui et pourquoi.
 
+Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Règles d'astreinte**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Règles d'astreinte**.
+
 ## Modifier, réordonner et supprimer des règles
 
 - **Modifier la règle** ouvre la même boîte de dialogue d'une page, remplie avec la règle telle qu'elle est : ses intervenants, son délai, ainsi que son nom et sa description sous **Avancé**. Ajoutez ou retirez des intervenants et enregistrez. Vider le nom redonne à la règle le nom de son niveau.
