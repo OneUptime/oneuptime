@@ -35,7 +35,8 @@ import path from "path";
  *   - every create page reads it the one way, waits for it, and picks it;
  *   - the create forms offer every resource their own Edit offers, so a
  *     record can be picked at all;
- *   - the layouts draw the create page's trail back through the tab.
+ *   - the trail back through the tab is drawn by the Page the create page
+ *     sits in, and a create page starts over when its address changes.
  *
  * Read from source: the pages are React components, which an App test must
  * not import (FeatureSetImportsStayReactFree).
@@ -724,31 +725,87 @@ describe("the create forms offer every resource they can be opened from", () => 
   );
 });
 
-describe("the layouts draw the create page's trail", () => {
-  test.each([
-    "Pages/Incidents/Layout.tsx",
-    "Pages/Alerts/Layout.tsx",
-    "Pages/ScheduledMaintenanceEvents/Layout.tsx",
-  ])(
-    "%s hands its outlet the slot, and draws the page's trail first",
-    (file: string) => {
-      const source: string = tight(file);
-
-      expect(source).toContain(
-        "constcreatePage:CreatePageBreadcrumbsSlot=useCreatePageBreadcrumbsSlot();",
-      );
-      expect(source).toContain("<Outletcontext={createPage.outletContext}/>");
-      expect(source).toMatch(
-        /breadcrumbLinks=\{createPage\.breadcrumbLinks\|\|get\w+Breadcrumbs\(path\)\}/,
-      );
-    },
+describe("the trail is drawn where the breadcrumbs are", () => {
+  const COMMON_PAGE: string = path.join(
+    DASHBOARD_SRC,
+    "..",
+    "..",
+    "..",
+    "..",
+    "Common",
+    "UI",
+    "Components",
+    "Page",
+    "Page.tsx",
   );
 
-  test("the create pages each sit in one of those layouts, or draw their own page", () => {
+  /*
+   * The create pages sit in their product's layout, whose Page draws the
+   * breadcrumbs. The Page itself takes a trail from the page inside it -
+   * once, for every layout - rather than each layout wiring it up.
+   */
+  test("the shared Page draws the trail a page inside it hands up, before its own", () => {
+    const source: string = fs
+      .readFileSync(COMMON_PAGE, "utf8")
+      .replace(/\s+/g, "");
+
+    expect(source).toContain(
+      "<PageBreadcrumbsContext.Providervalue={setInnerBreadcrumbLinks}>",
+    );
+    expect(source).toContain(
+      "constbreadcrumbLinks:Array<Link>|undefined=innerBreadcrumbLinks||props.breadcrumbLinks;",
+    );
+    expect(source).toContain("<Breadcrumbslinks={breadcrumbLinks}/>");
+  });
+
+  test("the record's trail is handed up by the one hook every create page uses", () => {
+    expect(
+      tight("Components/CreateFromRecord/useRecordToCreateFrom.ts"),
+    ).toContain("usePageBreadcrumbLinks(breadcrumbLinks);");
+  });
+
+  test("the layouts need no wiring of their own", () => {
+    for (const file of [
+      "Pages/Incidents/Layout.tsx",
+      "Pages/Alerts/Layout.tsx",
+      "Pages/ScheduledMaintenanceEvents/Layout.tsx",
+    ]) {
+      expect(dense(file)).not.toContain("CreateFromRecord");
+    }
+  });
+
+  test("a create page that draws its own Page draws the trail it is given", () => {
     // Announcements are drawn outside the status page layout, on a Page of their own.
     expect(tight("Pages/StatusPages/AnnouncementCreate.tsx")).toContain(
       "constbreadcrumbLinks:Array<Link>=recordToCreateFrom.breadcrumbLinks||[",
     );
+  });
+});
+
+describe("a create page starts over when its address changes", () => {
+  /*
+   * The page reads its address once and its form latches its first values:
+   * opened again on the same route at another address, it is drawn afresh.
+   */
+  test.each([
+    ["Routes/IncidentsRoutes.tsx", "IncidentCreate"],
+    ["Routes/AlertRoutes.tsx", "AlertCreate"],
+    [
+      "Routes/ScheduleMaintenanceEventsRoutes.tsx",
+      "ScheduledMaintenanceEventCreate",
+    ],
+    ["Routes/StatusPagesRoutes.tsx", "AnnouncementCreate"],
+  ])("%s keys %s by its address", (file: string, page: string) => {
+    const source: string = tight(file);
+
+    expect(source).toContain(`<RemountOnAddressChange><${page}{...props}`);
+    expect(countOf(source, `<${page}{...props}`)).toBe(1);
+  });
+
+  test("the key is the address's query", () => {
+    expect(
+      tight("Components/CreateFromRecord/RemountOnAddressChange.tsx"),
+    ).toContain("<Fragmentkey={location.search}>{props.children}</Fragment>");
   });
 });
 

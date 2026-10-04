@@ -479,7 +479,7 @@ describe("the form's starting values", () => {
     for (const asHeld of [MONITOR_ID, new ObjectID(MONITOR_ID), monitor]) {
       expect(
         pickRecordToCreateFrom({
-          values: { monitors: [asHeld] as Array<JSONObject> },
+          values: { monitors: [asHeld] as unknown as Array<JSONObject> },
           record: record(CreateFromRecordKind.Monitor, MONITOR_ID, "API"),
           created: CreatedRecordKind.Incident,
         })["monitors"],

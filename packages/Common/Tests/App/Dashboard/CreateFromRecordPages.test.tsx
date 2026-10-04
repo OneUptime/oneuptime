@@ -23,8 +23,10 @@ import React from "react";
 import {
   Location,
   MemoryRouter,
+  NavigateFunction,
   Route as RouterRoute,
   Routes,
+  useNavigate,
 } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -53,6 +55,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     record the viewer cannot read, or that is gone, leaves the form as the
  *     project's list opens it, without an error;
  *   - the breadcrumbs go back through the record's tab;
+ *   - opened again on the same route without the record (the command
+ *     palette's Declare Incident), the page starts over;
  *   - opened from a project's list, nothing is looked up and the page is as
  *     it always was.
  */
@@ -200,6 +204,7 @@ import AlertCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/C
 import AlertsLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Layout";
 import ScheduledMaintenanceCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Create";
 import ScheduledMaintenancesLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Layout";
+import RemountOnAddressChange from "../../../../App/FeatureSet/Dashboard/src/Components/CreateFromRecord/RemountOnAddressChange";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import LayoutPageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/LayoutPageComponentProps";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -812,6 +817,83 @@ describe("Create Scheduled Maintenance Event", () => {
 
     expect(lookupsOf(Monitor)).toHaveLength(0);
     expect(idsOf(sentModel<ScheduledMaintenance>().monitors)).toEqual([]);
+  });
+});
+
+describe("opened again on the same route at another address, the page starts over", () => {
+  let navigateTo: NavigateFunction | null = null;
+
+  const NavigatorProbe: React.FunctionComponent = (): null => {
+    navigateTo = useNavigate();
+    return null;
+  };
+
+  test("Declare Incident from a monitor, then the command palette's Declare Incident: nothing picked, the layout's own trail", async () => {
+    queryInUrl = { monitorId: MONITOR_ID };
+    window.history.replaceState(null, "", INCIDENT_CREATE_PATH);
+    Navigation.setLocation({
+      pathname: INCIDENT_CREATE_PATH,
+      search: "",
+      hash: "",
+      state: null,
+      key: "test",
+    } as Location);
+
+    await act(async (): Promise<void> => {
+      render(
+        <MemoryRouter
+          initialEntries={[`${INCIDENT_CREATE_PATH}?monitorId=${MONITOR_ID}`]}
+        >
+          <NavigatorProbe />
+          <Routes>
+            <RouterRoute
+              element={<IncidentsLayout {...PAGE_PROPS} hideSideMenu={true} />}
+            >
+              <RouterRoute
+                path={INCIDENT_CREATE_PATH}
+                element={
+                  <RemountOnAddressChange>
+                    <IncidentCreate {...PAGE_PROPS} />
+                  </RemountOnAddressChange>
+                }
+              />
+            </RouterRoute>
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(crumbTitles()).toEqual([
+        "Project",
+        "Monitors",
+        "View Monitor",
+        "Incidents",
+        "Declare New Incident",
+      ]);
+    });
+
+    // The same page, with no record in its address.
+    queryInUrl = {};
+
+    await act(async (): Promise<void> => {
+      navigateTo!(INCIDENT_CREATE_PATH);
+    });
+
+    await waitFor(() => {
+      expect(crumbTitles()).toEqual([
+        "Project",
+        "Incidents",
+        "Declare New Incident",
+      ]);
+    });
+
+    const user: UserEvent = userEvent.setup({ delay: null });
+
+    await fillDetails(user, /^Incident Severity/);
+    await submit("Declare Incident");
+
+    expect(idsOf(sentModel<Incident>().monitors)).toEqual([]);
   });
 });
 

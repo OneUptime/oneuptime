@@ -41,6 +41,7 @@ import ScheduledMaintenanceEventViewAILogs from "../Pages/ScheduledMaintenanceEv
 import ScheduledMaintenanceEventViewDescription from "../Pages/ScheduledMaintenanceEvents/View/Description";
 
 import ScheduledMaintenanceEventCreate from "../Pages/ScheduledMaintenanceEvents/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 // Settings Pages
 import ScheduledMaintenanceSettingsState from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceState";
@@ -201,12 +202,14 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
             ] || ""
           }
           element={
-            <ScheduledMaintenanceEventCreate
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
-              }
-            />
+            <RemountOnAddressChange>
+              <ScheduledMaintenanceEventCreate
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
+                }
+              />
+            </RemountOnAddressChange>
           }
         />
 

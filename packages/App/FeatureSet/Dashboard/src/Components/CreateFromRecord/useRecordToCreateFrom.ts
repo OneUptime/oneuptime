@@ -15,6 +15,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
+import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -28,12 +29,13 @@ import {
   getCreateFromRecordTrail,
   readCreateFromRecord,
 } from "./CreateFromRecord";
-import { useCreatePageBreadcrumbs } from "./CreatePageBreadcrumbs";
 
 /*
  * The record a create page was opened from (see CreateFromRecord): read off
  * the address once, looked up with the viewer's own permissions, and its
- * trail handed to the layout's breadcrumbs.
+ * trail handed to the breadcrumbs of the Page the create page is drawn in -
+ * its product's layout (usePageBreadcrumbLinks). A page that draws its own
+ * Page draws the trail it is given back.
  */
 
 const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
@@ -183,7 +185,7 @@ const useRecordToCreateFrom: (
     return record ? getCreateFromRecordBreadcrumbLinks(record, created) : null;
   }, [record]);
 
-  useCreatePageBreadcrumbs(breadcrumbLinks);
+  usePageBreadcrumbLinks(breadcrumbLinks);
 
   return {
     isLoading: isLoading,
