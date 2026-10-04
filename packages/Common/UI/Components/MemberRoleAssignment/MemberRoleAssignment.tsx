@@ -420,11 +420,12 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                                 {translator.translateText("Primary")}
                               </span>
                             )}
-                            {role.canAssignMultipleUsers && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                                {translator.translateText("Multiple")}
-                              </span>
-                            )}
+                            {/*
+                             * No "Multiple" tag: a role that takes several
+                             * people says so by its Add More button, as the
+                             * role picker on every form does by keeping its
+                             * picker.
+                             */}
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {translator.translatePlural(

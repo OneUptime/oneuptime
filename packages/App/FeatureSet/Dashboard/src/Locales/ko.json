@@ -18225,7 +18225,7 @@
   "Unknown Action": "Unknown Action",
   "Unknown Device": "Unknown Device",
   "Unknown Policy": "Unknown Policy",
-  "Unknown Role": "Unknown Role",
+  "Unknown Role": "알 수 없는 역할",
   "Unknown Service": "Unknown Service",
   "Unknown Team": "Unknown Team",
   "Unknown User": "Unknown User",
@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "{{role}}에서 {{member}} 제거",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24861,5 +24861,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" 파일이 {{size}} 제한을 초과합니다.",
   "Max {{size}} each.": "파일당 최대 {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "다음 파일이 {{size}} 제한을 초과합니다: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "형식: {{types}}. 파일당 최대 {{size}}."
+  "Types: {{types}}. Max {{size}} each.": "형식: {{types}}. 파일당 최대 {{size}}.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "이 템플릿으로 선언된 인시던트는 이 상태에서 시작합니다. 비워 두면 일반적인 시작 상태가 됩니다.",
+  "The usual starting state": "일반적인 시작 상태",
+  "Who takes each role on this incident.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다."
 }

@@ -36,9 +36,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import {
   buildCustomFieldModelFormFields,
@@ -71,10 +69,6 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const [createInitialValues, setCreateInitialValues] = useState<
-    FormValues<IncidentTemplate>
-  >({});
-
   /*
    * The project's incident custom fields, so a new template can set the
    * values its incidents start with - every field, not only the ones the
@@ -167,53 +161,26 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         ]
       : [];
 
-  const fetchFirstIncidentState: () => Promise<void> =
-    async (): Promise<void> => {
-      try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
-
-        const incidentStates: ListResult<IncidentState> =
-          await ModelAPI.getList<IncidentState>({
-            modelType: IncidentState,
-            query: {
-              projectId: projectId,
-            },
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-            },
-            sort: {
-              order: SortOrder.Ascending,
-            },
-          });
-
-        if (incidentStates.data.length > 0) {
-          setCreateInitialValues({
-            initialIncidentState: incidentStates.data[0]!._id?.toString(),
-          });
-        }
-      } catch {
-        // Silently fail
-      }
-    };
-
+  /*
+   * No state is looked up to start the form with. The form used to put the
+   * first state by order in Initial Incident State - not always the state
+   * the server starts an incident in, and a value every new template saved
+   * without anyone choosing it. Left empty, an incident declared from the
+   * template starts in the project's usual starting state (its created
+   * state), which is what IncidentService picks when none is given.
+   */
   useEffect(() => {
-    fetchFirstIncidentState();
     loadCustomFieldDefinitions();
   }, []);
 
   /*
-   * The owners and the labels of the incidents declared from a template are
-   * options few templates set, so they fold under Advanced at the end of
-   * Incident Details - as a scheduled maintenance template folds its owners
-   * and labels on its Event step - rather than walking two steps of one
-   * optional field each. The status pages its incidents are limited to fold
-   * under More fields at the end of Resources Affected, as on Declare
-   * Incident.
+   * The initial state, the owners and the labels of the incidents declared
+   * from a template are options few templates set, so they fold under More
+   * fields at the end of Incident Details - as Declare Incident folds its
+   * Initial State, and a scheduled maintenance template its owners and
+   * labels - rather than walking steps of one optional field each. The
+   * status pages its incidents are limited to fold under More fields at the
+   * end of Resources Affected, as on Declare Incident.
    */
   const advancedSection: FormFieldCollapsibleSection<IncidentTemplate> =
     getAdvancedFormSection<IncidentTemplate>();
@@ -244,7 +211,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        createInitialValues={createInitialValues}
         onBeforeCreate={async (
           item: IncidentTemplate,
           miscDataProps: JSONObject,
@@ -375,6 +341,10 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "Incident Severity",
           },
+          /*
+           * Starts empty, and says what empty means: the usual starting
+           * state, as on Declare Incident.
+           */
           {
             field: {
               initialIncidentState: true,
@@ -382,7 +352,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             title: "Initial Incident State",
             stepId: "incident-details",
             description:
-              "Select the initial state for incidents created from this template",
+              "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",
             fieldType: FormFieldSchemaType.Dropdown,
             /*
              * Listed in the order an incident moves through its states, each
@@ -397,7 +367,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               },
             },
             required: false,
-            placeholder: "Initial State",
+            placeholder: "The usual starting state",
+            collapsibleSection: advancedSection,
           },
           /*
            * People and teams in one picker, kept in ownerUsers / ownerTeams:

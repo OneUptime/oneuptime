@@ -18,12 +18,14 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
-import React from "react";
+import React, { ReactElement, useState } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The roles step of Declare Incident and Create Incident Episode: one card
- * per incident role, with a picker for who takes it.
+ * The one incident role picker: the roles step of Declare Incident and
+ * Create Incident Episode, and - through their adapters - a monitor rule's
+ * incident roles and a grouping rule's episode roles. One card per incident
+ * role, with a picker for who takes it.
  *
  * New projects have one role, Incident Commander, and whoever declares an
  * incident takes it when nobody is picked for it - the roles marked Primary.
@@ -33,7 +35,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * once it has one, which is all the tag ever told. Its text, the picker's
  * placeholder and the remove button's name are looked up in the reader's
  * language (each string here comes back wrapped in «», as a translation
- * would come back different from the English).
+ * would come back different from the English). Each picker is named by its
+ * role, and each remove button by the person and the role.
+ *
+ * A form that has the roles and the people already (the monitor criteria
+ * read them once for every rule) hands them in, and the picker reads
+ * neither again.
  *
  * The real component, with the network stubbed: the roles and the project's
  * people.
@@ -103,8 +110,9 @@ jest.mock("../../../UI/Utils/Translation", () => {
     "Select User",
     "Unknown User",
     "Only one user can be assigned to this role.",
-    "No incident roles found.",
-    "Remove",
+    "No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.",
+    "Remove {{member}} from {{role}}",
+    "Unknown Role",
     "Project not found",
   ];
 
@@ -126,11 +134,14 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import IncidentRoleFormField, {
+  IncidentRoleChoice,
   RoleAssignment,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentRoleFormField";
 import IncidentEpisodeRoleFormField from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentEpisode/IncidentEpisodeRoleFormField";
+import { INCIDENT_ROLE_CHOICE_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentRole/IncidentRoleAssignments";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 
 interface RoleRow {
   id: string;
@@ -314,7 +325,7 @@ describe("the incident roles picker", () => {
     expect(within(card).getAllByText("Alice")).toHaveLength(1);
   });
 
-  test("removing a person, by a button named in the reader's language, gives the picker back", async () => {
+  test("removing a person, by a button that names them and the role in the reader's language, gives the picker back", async () => {
     const { user } = await renderField();
 
     await screen.findByText("Incident Commander");
@@ -322,7 +333,7 @@ describe("the incident roles picker", () => {
 
     await user.click(
       within(cardOf("Incident Commander")).getByRole("button", {
-        name: "«Remove»",
+        name: "«Remove Alice from Incident Commander»",
       }),
     );
 
@@ -356,14 +367,40 @@ describe("the incident roles picker", () => {
     ).toBeInTheDocument();
   });
 
-  test("with no roles at all, says so in the reader's language", async () => {
+  test("with no roles at all, says where roles are made, in the reader's language", async () => {
     answerRoles([]);
 
     await renderField();
 
     expect(
-      await screen.findByText("«No incident roles found.»"),
+      await screen.findByText(
+        "«No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.»",
+      ),
     ).toBeInTheDocument();
+  });
+
+  test("reads the roles and the people at the same time, not one after the other", async () => {
+    let answerTheRoles: () => void = (): void => {};
+
+    getListMock.mockImplementation((() => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        answerTheRoles = (): void => {
+          resolve({ data: [], count: 0, skip: 0, limit: 0 });
+        };
+      });
+    }) as never);
+
+    await act(async (): Promise<void> => {
+      render(<IncidentRoleFormField />);
+    });
+
+    // The people are asked for while the roles are still on their way.
+    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(fetchUsersMock).toHaveBeenCalledTimes(1);
+
+    await act(async (): Promise<void> => {
+      answerTheRoles();
+    });
   });
 
   test("reads the project's roles once, with what the cards show", async () => {
@@ -375,13 +412,340 @@ describe("the incident roles picker", () => {
     expect(getListMock.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         modelType: IncidentRole,
-        select: expect.objectContaining({
-          name: true,
-          isPrimaryRole: true,
-          canAssignMultipleUsers: true,
-        }),
+        select: INCIDENT_ROLE_CHOICE_SELECT,
       }),
     );
+    expect(INCIDENT_ROLE_CHOICE_SELECT).toEqual(
+      expect.objectContaining({
+        name: true,
+        roleIcon: true,
+        isPrimaryRole: true,
+        canAssignMultipleUsers: true,
+      }),
+    );
+    expect(fetchUsersMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("names each role's picker by the role, for a screen reader", async () => {
+    await renderField();
+
+    await screen.findByText("Incident Commander");
+
+    expect(
+      within(cardOf("Incident Commander")).getByRole("combobox", {
+        name: "Incident Commander",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(cardOf("Responder")).getByRole("combobox", {
+        name: "Responder",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("starts from the value it is given, and adds a role picked for the first time after it", async () => {
+    let result: RenderResult | null = null;
+
+    await act(async (): Promise<void> => {
+      result = render(
+        <IncidentRoleFormField
+          initialValue={[{ roleId: RESPONDER_ID, userIds: [ALICE_ID, BOB_ID] }]}
+          onChange={(assignments: Array<RoleAssignment>) => {
+            changes.push(assignments);
+          }}
+        />,
+      );
+    });
+
+    await screen.findByText("Incident Commander");
+
+    const responder: HTMLElement = cardOf("Responder");
+
+    expect(within(responder).getByText("Alice")).toBeInTheDocument();
+    expect(within(responder).getByText("Bob")).toBeInTheDocument();
+    expect(changes).toHaveLength(0);
+
+    const user: UserEvent = userEvent.setup({ delay: null });
+
+    await pick(user, cardOf("Incident Commander"), "Bob");
+
+    expect(changes).toEqual([
+      [
+        { roleId: RESPONDER_ID, userIds: [ALICE_ID, BOB_ID] },
+        { roleId: COMMANDER_ID, userIds: [BOB_ID] },
+      ],
+    ]);
+
+    expect(result).not.toBeNull();
+  });
+
+  test("says why when the roles cannot be read", async () => {
+    getListMock.mockImplementation((() => {
+      return Promise.reject(new Error("The roles could not be read."));
+    }) as never);
+
+    await renderField();
+
+    expect(
+      await screen.findByText("The roles could not be read."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+});
+
+describe("a form that has the roles and the people already", () => {
+  const ROLES: Array<IncidentRoleChoice> = [
+    {
+      id: RESPONDER_ID,
+      name: "Responder",
+      color: "#0891b2",
+      canAssignMultipleUsers: true,
+    },
+    {
+      id: COMMANDER_ID,
+      name: "Incident Commander",
+      color: "#7c3aed",
+      icon: IconProp.ShieldCheck,
+      isPrimaryRole: true,
+      canAssignMultipleUsers: false,
+    },
+  ];
+
+  const USERS: Array<{ value: string; label: string }> = [
+    { value: ALICE_ID, label: "Alice" },
+    { value: BOB_ID, label: "Bob" },
+  ];
+
+  async function renderWith(
+    props: Partial<React.ComponentProps<typeof IncidentRoleFormField>>,
+  ): Promise<UserEvent> {
+    await act(async (): Promise<void> => {
+      render(
+        <IncidentRoleFormField
+          onChange={(assignments: Array<RoleAssignment>) => {
+            changes.push(assignments);
+          }}
+          {...props}
+        />,
+      );
+    });
+
+    return userEvent.setup({ delay: null });
+  }
+
+  test("reads neither, and draws the roles it is handed, primary first, with no loader", async () => {
+    await renderWith({ roles: ROLES, users: USERS });
+
+    // Drawn on the first render: nothing to wait for.
+    const cards: Array<HTMLElement> =
+      screen.getAllByTestId("incident-role-card");
+
+    expect(
+      cards.map((card: HTMLElement): string => {
+        return card.textContent || "";
+      }),
+    ).toEqual([
+      expect.stringContaining("Incident Commander"),
+      expect.stringContaining("Responder"),
+    ]);
+    expect(within(cards[0]!).getByText("«Primary»")).toBeInTheDocument();
+    expect(screen.queryByText(/Multiple/)).toBeNull();
+
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(fetchUsersMock).not.toHaveBeenCalled();
+  });
+
+  test("offers the people it is handed, and tells the form who was picked", async () => {
+    const user: UserEvent = await renderWith({ roles: ROLES, users: USERS });
+
+    await pick(user, cardOf("Responder"), "Bob");
+    await pick(user, cardOf("Responder"), "Alice");
+
+    expect(changes[changes.length - 1]).toEqual([
+      { roleId: RESPONDER_ID, userIds: [BOB_ID, ALICE_ID] },
+    ]);
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+
+  test("handed only the roles, it reads only the people", async () => {
+    await renderWith({ roles: ROLES });
+
+    await screen.findByText("Incident Commander");
+
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(fetchUsersMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("handed only the people, it reads only the roles", async () => {
+    await renderWith({ users: USERS });
+
+    await screen.findByText("Incident Commander");
+
+    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(fetchUsersMock).not.toHaveBeenCalled();
+  });
+
+  test("handed no roles at all, says where roles are made", async () => {
+    await renderWith({ roles: [], users: USERS });
+
+    expect(
+      screen.getByText(
+        "«No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.»",
+      ),
+    ).toBeInTheDocument();
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+
+  test("a role without a name is called Unknown Role, on its card, its picker and its remove buttons", async () => {
+    const user: UserEvent = await renderWith({
+      roles: [{ id: RESPONDER_ID, name: "", canAssignMultipleUsers: true }],
+      users: USERS,
+      initialValue: [{ roleId: RESPONDER_ID, userIds: [ALICE_ID] }],
+    });
+
+    const card: HTMLElement = screen.getByTestId("incident-role-card");
+
+    expect(within(card).getByText("«Unknown Role»")).toBeInTheDocument();
+    expect(
+      within(card).getByRole("combobox", { name: "«Unknown Role»" }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "«Remove Alice from «Unknown Role»»",
+      }),
+    );
+
+    expect(changes[changes.length - 1]).toEqual([]);
+  });
+
+  test("a role the project no longer has is dropped from the value at the next change", async () => {
+    const DELETED_ROLE_ID: string = "22222222-2222-4222-8222-000000000099";
+    const user: UserEvent = await renderWith({
+      roles: ROLES,
+      users: USERS,
+      initialValue: [
+        { roleId: DELETED_ROLE_ID, userIds: [ALICE_ID] },
+        { roleId: RESPONDER_ID, userIds: [BOB_ID] },
+      ],
+    });
+
+    // No card shows it, so nobody could take it off.
+    expect(screen.getAllByTestId("incident-role-card")).toHaveLength(2);
+
+    await pick(user, cardOf("Incident Commander"), "Alice");
+
+    expect(changes[changes.length - 1]).toEqual([
+      { roleId: RESPONDER_ID, userIds: [BOB_ID] },
+      { roleId: COMMANDER_ID, userIds: [ALICE_ID] },
+    ]);
+  });
+
+  test("two changes that land before the picker draws again both count", async () => {
+    await renderWith({
+      roles: ROLES,
+      users: USERS,
+      initialValue: [{ roleId: RESPONDER_ID, userIds: [ALICE_ID, BOB_ID] }],
+    });
+
+    const responder: HTMLElement = cardOf("Responder");
+    const removeAlice: HTMLElement = within(responder).getByRole("button", {
+      name: "«Remove Alice from Responder»",
+    });
+    const removeBob: HTMLElement = within(responder).getByRole("button", {
+      name: "«Remove Bob from Responder»",
+    });
+
+    // One batch: React draws once, after both clicks.
+    act(() => {
+      removeAlice.click();
+      removeBob.click();
+    });
+
+    expect(changes).toEqual([
+      [{ roleId: RESPONDER_ID, userIds: [BOB_ID] }],
+      [],
+    ]);
+    expect(within(cardOf("Responder")).queryByText("Alice")).toBeNull();
+    expect(within(cardOf("Responder")).queryByText("Bob")).toBeNull();
+  });
+});
+
+describe("telling the form", () => {
+  /*
+   * A form that keeps the picker's value in its own state, as the monitor
+   * criteria and the grouping rule do. The picker tells it from the pick
+   * itself - not from inside a state update, which React may run while it
+   * renders ("Cannot update a component while rendering a different
+   * component") - once per pick, with the whole list, Strict Mode or not.
+   */
+  const Host: () => ReactElement = (): ReactElement => {
+    const [value, setValue] = useState<Array<RoleAssignment>>([]);
+
+    return (
+      <div>
+        <p data-testid="host-value">{JSON.stringify(value)}</p>
+        <IncidentRoleFormField
+          onChange={(assignments: Array<RoleAssignment>) => {
+            changes.push(assignments);
+            setValue(assignments);
+          }}
+        />
+      </div>
+    );
+  };
+
+  test("once per pick, with the whole list, to a form that keeps it in its own state", async () => {
+    const consoleError: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    let errors: Array<string> = [];
+
+    try {
+      await act(async (): Promise<void> => {
+        // Strict Mode runs a state update twice: a pick must still tell once.
+        render(
+          <React.StrictMode>
+            <Host />
+          </React.StrictMode>,
+        );
+      });
+
+      await screen.findByText("Incident Commander");
+
+      const user: UserEvent = userEvent.setup({ delay: null });
+
+      await pick(user, cardOf("Responder"), "Alice");
+      await pick(user, cardOf("Incident Commander"), "Bob");
+
+      await user.click(
+        within(cardOf("Responder")).getByRole("button", {
+          name: "«Remove Alice from Responder»",
+        }),
+      );
+    } finally {
+      errors = consoleError.mock.calls.map((args: Array<unknown>): string => {
+        return args.map(String).join(" ");
+      });
+      consoleError.mockRestore();
+    }
+
+    expect(changes).toEqual([
+      [{ roleId: RESPONDER_ID, userIds: [ALICE_ID] }],
+      [
+        { roleId: RESPONDER_ID, userIds: [ALICE_ID] },
+        { roleId: COMMANDER_ID, userIds: [BOB_ID] },
+      ],
+      [{ roleId: COMMANDER_ID, userIds: [BOB_ID] }],
+    ]);
+    expect(screen.getByTestId("host-value")).toHaveTextContent(
+      JSON.stringify([{ roleId: COMMANDER_ID, userIds: [BOB_ID] }]),
+    );
+    expect(
+      errors.filter((message: string): boolean => {
+        return message.includes("Cannot update a component");
+      }),
+    ).toEqual([]);
   });
 });
 
