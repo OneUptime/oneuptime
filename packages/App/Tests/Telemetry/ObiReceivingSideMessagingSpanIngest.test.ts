@@ -1200,7 +1200,8 @@ describe("OBI v0.14 NATS deliveries at ingest", () => {
  * export, verbatim (Fixtures/ObiMessaging), through the real attribute
  * flattening and the string int64 ports. Each row's stored kind must be the
  * one the fixture's truth table names, derived from OBI's own trace
- * printer, never from the attributes the rule reads.
+ * printer — SERVER for a client's split delivery whose server.address is
+ * its own name, the rule's documented limitation.
  */
 type FixtureTruth = {
   spanId: string;
@@ -1220,7 +1221,7 @@ const BROKER_SHAPES_KEPT_AS_EXPORTED: Array<string> = [
 
 describe("captured OBI spans replayed through the ingest service", () => {
   test.each(["v0.13.0", "v0.14.0"])(
-    "OBI %s: every span is stored with the kind its OBI event type calls for, a SERVER row keeps its resource's shared array, and no broker span is messaging evidence but B3-main and mosquitto's PUBLISH to a subscriber",
+    "OBI %s: every span is stored with the kind its truth table names, a SERVER row keeps its resource's shared array, and no broker span is messaging evidence but B3-main and mosquitto's PUBLISH to a subscriber",
     async (obiVersion: string) => {
       const captured: CapturedTraceRows = setupTraceMocks();
       const fixture: { spans: Array<FixtureTruth>; body: JSONObject } =

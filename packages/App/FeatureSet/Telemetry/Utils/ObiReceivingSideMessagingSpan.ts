@@ -1,4 +1,5 @@
 import { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 
 /*
  * OBI (OpenTelemetry eBPF Instrumentation, the Kubernetes agent's tracer)
@@ -35,16 +36,17 @@ import { SpanKind } from "Common/Models/AnalyticsModels/Span";
  *     listening port; such a receiving-side span keeps OBI's kind.) Checked
  *     against OBI's own event type for 190,750 captured spans: no exception.
  *
- * Without both ports (an `attributes.select` without network.peer.port, a
- * peer OBI knows by name only) the address decides: OBI's `server.address`
- * names the server end of the connection, and a receiving-side span is one
- * whose server end is the reporting process (a delivery caught in a client
- * connection's response buffer is reversed to make it so), named the way
- * the process itself is — the Kubernetes store names a pod IP with the same
- * function that names the instrumented pod's service, and the name resolver
- * falls back to the process's own service name when the address names
- * nothing. So it equals the resource's `service.name`; on the client side
- * it names the broker.
+ * Without both ports (an `attributes.select` that leaves out
+ * network.peer.port, or network.peer.address, without which OBI writes
+ * neither; a peer OBI knows by name only) the address decides: OBI's
+ * `server.address` names the server end of the connection, and a
+ * receiving-side span is one whose server end is the reporting process (a
+ * delivery caught in a client connection's response buffer is reversed to
+ * make it so), named the way the process itself is — the Kubernetes store
+ * names a pod IP with the same function that names the instrumented pod's
+ * service, and the name resolver falls back to the process's own service
+ * name when the address names nothing. So it equals the resource's
+ * `service.name`; on the client side it names the broker.
  *
  * NATS needs two corrections, because OBI's NATS spans do not always carry
  * the side of the connection they were seen from (ebpf/common/
@@ -69,10 +71,11 @@ import { SpanKind } from "Common/Models/AnalyticsModels/Span";
  *     `network.peer.port` the client's ephemeral port — is the subscriber's,
  *     requester's or responder's own consumption of the subject. With an
  *     official nats-server (a Go program, which OBI traces with its Go
- *     tracer and so records no NATS span of) these are the only consumer
- *     spans a NATS subject gets; they keep OBI's CONSUMER. The two differ
- *     only in which end is the listening port, so the ephemeral range tells
- *     them apart (EPHEMERAL_PORT_MIN): a broker listening in that range, or
+ *     tracer: OBI v0.13 and v0.14 recorded no NATS span of nats-server 2.11
+ *     with it) these are the only consumer spans a NATS subject gets; they
+ *     keep OBI's CONSUMER. The two differ only in which end is the
+ *     listening port, so the ephemeral range tells them apart
+ *     (EPHEMERAL_PORT_RANGE_START): a broker listening in that range, or
  *     a client whose kernel hands out ports below it, has the client's
  *     split delivery stored as SERVER — v0.13's kind for it — and only both
  *     at once leave the broker's split delivery with OBI's CONSUMER. A
@@ -80,14 +83,17 @@ import { SpanKind } from "Common/Models/AnalyticsModels/Span";
  *     broker itself (on the host network, its node) as every receiving-side
  *     span does, so for a NATS delivery the address still matters.
  *
- * Two broker spans keep OBI's kind, as v0.13 sent them too, because nothing
- * in them tells the broker's from a client's: the PUB a NATS broker read in
- * the exchange whose MSG OBI split off (typed client-side, so a PRODUCER
- * naming the subscriber; its subject is mostly an ack or a reply inbox,
- * which queue discovery skips), and an MQTT broker's PUBLISH to a
- * subscriber, which OBI
- * types client-side because the broker writes it first — unlike a NATS MSG,
- * an MQTT PUBLISH is written by clients and brokers alike.
+ * Two broker spans keep OBI's kind, as v0.13 sent them too: the PUB a NATS
+ * broker read in the exchange whose MSG OBI split off (typed client-side,
+ * so a PRODUCER naming the subscriber; its subject is mostly an ack or a
+ * reply inbox, which queue discovery skips), and an MQTT broker's PUBLISH
+ * to a subscriber, which OBI types client-side because the broker writes it
+ * first. Neither frame tells them from a client's own span — a client
+ * writes a PUB, and an MQTT PUBLISH is written by clients and brokers
+ * alike — so nothing protocol-exact does. The ephemeral range could: their
+ * equal ports are the subscriber's ephemeral port where a client's are the
+ * broker's listening port. That heuristic is not applied to client-typed
+ * spans here.
  *
  * Verified against OBI v0.13.0 and v0.14.0: tracesgen.go (messaging
  * attributes, appendPeerService, networkPeerAttributes, spanKind),
@@ -123,14 +129,6 @@ export const OBI_TELEMETRY_DISTRO_NAME: string =
  */
 export const OBI_RECEIVING_SIDE_MESSAGING_SYSTEMS: ReadonlySet<string> =
   new Set<string>(["kafka", "mqtt", "nats"]);
-
-/*
- * The first port of Linux's default ephemeral range
- * (net.ipv4.ip_local_port_range = 32768 60999; the IANA range, 49152 and
- * up, lies inside it). Only used to tell a NATS broker's split delivery from
- * a client's: see above.
- */
-export const EPHEMERAL_PORT_MIN: number = 32768;
 
 /*
  * The kinds v0.14 gives a receiving-side messaging span (spanKind ←
@@ -274,8 +272,8 @@ export function isObiReceivingSideMessagingSpan(
   return !(
     natsDelivery &&
     !namesItself(attributes, true) &&
-    serverPort < EPHEMERAL_PORT_MIN &&
-    peerPort >= EPHEMERAL_PORT_MIN
+    serverPort < EPHEMERAL_PORT_RANGE_START &&
+    peerPort >= EPHEMERAL_PORT_RANGE_START
   );
 }
 

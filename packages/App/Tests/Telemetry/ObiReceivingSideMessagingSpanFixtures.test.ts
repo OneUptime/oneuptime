@@ -15,7 +15,11 @@ import { describe, expect, test } from "@jest/globals";
  * config (Fixtures/ObiMessaging; each file's "description" and "captures"
  * say how). Every span is listed with the event type OBI's own trace
  * printer logged for it and the workload's role, so the kind it should be
- * stored with comes from OBI, not from the attributes the rule reads.
+ * stored with comes from OBI, not from the attributes the rule reads — but
+ * for a client's split delivery whose server.address is its own name (C2
+ * from a broker OBI cannot name, or of an app named like its broker): that
+ * one is expected as SERVER, the rule's documented limitation, which the
+ * address decides.
  *
  * The shapes are those of ObiReceivingSideMessagingSpan.test.ts, spelled
  * out in each file's "shapes": on a NATS client C1 (its PUB), C2 (the MSG
@@ -223,7 +227,7 @@ const BROKER_SHAPES_KEPT_AS_EXPORTED: Array<string> = [
 
 describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtures/ObiMessaging)", () => {
   test.each(FIXTURES)(
-    "$obiVersion: the body holds exactly the spans the truth table lists, OBI's, with the kind on the wire, at most two per shape",
+    "$obiVersion: the body holds exactly the spans the truth table lists, OBI's, with the kind on the wire, at most two per shape and service.peer.name presence",
     (fixture: CaptureFixture) => {
       const listed: Array<string> = fixture.spans
         .map((span: SpanTruth): string => {

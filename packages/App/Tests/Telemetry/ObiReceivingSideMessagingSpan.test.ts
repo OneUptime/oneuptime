@@ -1,11 +1,11 @@
 import {
-  EPHEMERAL_PORT_MIN,
   OBI_RECEIVING_SIDE_MESSAGING_SYSTEMS,
   OBI_TELEMETRY_DISTRO_NAME,
   isObiReceivingSideMessagingSpan,
   normalizeObiReceivingSideMessagingSpanKind,
 } from "../../FeatureSet/Telemetry/Utils/ObiReceivingSideMessagingSpan";
 import { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -902,8 +902,8 @@ describe("every NATS span shape OBI emits", () => {
 });
 
 describe("port evidence: which side OBI typed a span from", () => {
-  test("EPHEMERAL_PORT_MIN is the first port of Linux's default ephemeral range", () => {
-    expect(EPHEMERAL_PORT_MIN).toBe(32768);
+  test("NATS split deliveries are told apart at EPHEMERAL_PORT_RANGE_START, the first port of Linux's default ephemeral range", () => {
+    expect(EPHEMERAL_PORT_RANGE_START).toBe(32768);
   });
 
   test.each([
@@ -923,6 +923,23 @@ describe("port evidence: which side OBI typed a span from", () => {
       ).toBe(false);
     },
   );
+
+  test("service.peer.name is read before the ports: OBI writes it on client-typed spans only, so a span with one is client-typed whatever its ports say", () => {
+    // nats-server's PUB, given a peer name after OBI: a client's publish.
+    expect(
+      isObiReceivingSideMessagingSpan(
+        withAttributes(NATS_BROKER_PUB, { "service.peer.name": "js-producer" }),
+      ),
+    ).toBe(false);
+    // A client's split delivery given one: a MSG this process wrote.
+    expect(
+      isObiReceivingSideMessagingSpan(
+        withAttributes(NATS_CLIENT_SPLIT_DELIVERY, {
+          "service.peer.name": "nats",
+        }),
+      ),
+    ).toBe(true);
+  });
 
   test("an app named like its broker, without service.peer.name, stays a producer: the address alone would have made it SERVER", () => {
     const span: Attributes = withAttributes(NATS_APP_NAMED_NATS_PUBLISH, {
@@ -1163,6 +1180,8 @@ describe("NATS deliveries (MSG / HMSG, operation process)", () => {
       {},
       { "service.peer.name": undefined },
       { "service.peer.name": undefined, "peer.service": "js-pull-consumer" },
+      // A subscriber named like the broker (a sidecar in its pod).
+      { "service.peer.name": undefined, "server.address": "nats" },
     ] as Array<Record<string, unknown>>) {
       expect({
         changes: changes,
@@ -1193,14 +1212,14 @@ describe("NATS deliveries (MSG / HMSG, operation process)", () => {
 
   test.each([
     // The client's own port at the edges of the range.
-    ["4222", String(EPHEMERAL_PORT_MIN), false],
-    ["4222", String(EPHEMERAL_PORT_MIN - 1), true],
+    ["4222", String(EPHEMERAL_PORT_RANGE_START), false],
+    ["4222", String(EPHEMERAL_PORT_RANGE_START - 1), true],
     ["4222", "60999", false],
     ["4222", "65535", false],
     ["4222", "1024", true],
     // A broker listening inside the range: v0.13's SERVER, never worse.
-    [String(EPHEMERAL_PORT_MIN), "45678", true],
-    [String(EPHEMERAL_PORT_MIN - 1), "45678", false],
+    [String(EPHEMERAL_PORT_RANGE_START), "45678", true],
+    [String(EPHEMERAL_PORT_RANGE_START - 1), "45678", false],
     // A NodePort (30000-32767) is below the range.
     ["31222", "45678", false],
   ] as Array<[string, string, boolean]>)(
@@ -1219,9 +1238,9 @@ describe("NATS deliveries (MSG / HMSG, operation process)", () => {
 
   test.each([
     ["54276", "4222", true],
-    [String(EPHEMERAL_PORT_MIN), "4222", true],
+    [String(EPHEMERAL_PORT_RANGE_START), "4222", true],
     // A subscriber port below the range is still the broker's.
-    [String(EPHEMERAL_PORT_MIN - 1), "4222", true],
+    [String(EPHEMERAL_PORT_RANGE_START - 1), "4222", true],
     ["20000", "4222", true],
     // Both in the range (a broker listening there) is still the broker's.
     ["54276", "40000", true],
@@ -1230,7 +1249,11 @@ describe("NATS deliveries (MSG / HMSG, operation process)", () => {
      * reads as a client's: OBI's v0.14 kind is kept.
      */
     ["20000", "40000", false],
-    [String(EPHEMERAL_PORT_MIN - 1), String(EPHEMERAL_PORT_MIN), false],
+    [
+      String(EPHEMERAL_PORT_RANGE_START - 1),
+      String(EPHEMERAL_PORT_RANGE_START),
+      false,
+    ],
   ] as Array<[string, string, boolean]>)(
     "nats-server's split delivery with server.port %s and network.peer.port %s: receiving-side %p",
     (serverPort: string, peerPort: string, expected: boolean) => {
