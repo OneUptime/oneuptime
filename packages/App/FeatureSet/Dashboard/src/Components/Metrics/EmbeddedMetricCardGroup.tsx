@@ -46,7 +46,9 @@ export interface EmbeddedMetricCardGroupEmptyStateProps {
 export interface ComponentProps {
   children: ReactNode;
   // What the group draws, once, in place of its cards while they are empty.
-  renderEmptyState: (props: EmbeddedMetricCardGroupEmptyStateProps) => ReactElement;
+  renderEmptyState: (
+    props: EmbeddedMetricCardGroupEmptyStateProps,
+  ) => ReactElement;
   /*
    * Called when the empty state checks again, after the cards were told to
    * reload. A page that owns the cards' window resolves it again here, so

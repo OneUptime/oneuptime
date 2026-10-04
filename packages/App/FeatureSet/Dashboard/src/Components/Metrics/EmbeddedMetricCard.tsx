@@ -231,8 +231,9 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     useRef<boolean>(hasOwnCharts);
   latestHasOwnCharts.current = hasOwnCharts;
 
-  const reportToGroup: ((memberId: string, state: MetricResultsState) => void) | undefined =
-    group?.report;
+  const reportToGroup:
+    | ((memberId: string, state: MetricResultsState) => void)
+    | undefined = group?.report;
   const removeFromGroup: ((memberId: string) => void) | undefined =
     group?.remove;
 
@@ -249,6 +250,19 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
       },
       [reportToGroup, memberId],
     );
+
+  /*
+   * A card of custom charts only has no query state to report, but the
+   * group must not hide it with the rest: it counts as having data. A card
+   * with nothing to chart (a note, such as the group's own empty state)
+   * takes no part.
+   */
+  const hasQueries: boolean = props.queryConfigs !== undefined;
+  useEffect(() => {
+    if (!hasQueries && hasOwnCharts) {
+      reportToGroup?.(memberId, MetricResultsState.HasData);
+    }
+  }, [reportToGroup, memberId, hasQueries, hasOwnCharts]);
 
   useEffect(() => {
     return () => {

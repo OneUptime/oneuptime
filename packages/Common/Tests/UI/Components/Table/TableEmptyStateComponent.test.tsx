@@ -414,6 +414,114 @@ describe("the actions", () => {
   });
 });
 
+describe("the body", () => {
+  test("is drawn between the description and the actions, left-aligned and wider", () => {
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No etcd metrics from this cluster"
+        description="Turn on controlPlane.enabled."
+        body={<pre data-testid="helm-command">helm upgrade</pre>}
+        actions={[{ title: "Check again", onClick: () => {} }]}
+      />,
+    );
+
+    const root: HTMLElement = screen.getByTestId(ROOT);
+    const body: HTMLElement = screen.getByTestId(`${ROOT}-body`);
+    const parts: Array<string> = Array.from(root.children).map(
+      (child: Element): string => {
+        return child.getAttribute("data-testid") || "";
+      },
+    );
+
+    expect(parts).toEqual([
+      `${ROOT}-illustration`,
+      `${ROOT}-title`,
+      `${ROOT}-description`,
+      `${ROOT}-body`,
+      `${ROOT}-actions`,
+    ]);
+    expect(body).toContainElement(screen.getByTestId("helm-command"));
+    // The empty state centres its text; a command must not be centred.
+    expect(body.className).toContain("text-left");
+    expect(body.className).toContain("w-full");
+    expect(body.className).toContain("max-w-2xl");
+  });
+
+  test("is left out entirely when there is none", () => {
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+        description="Labels help."
+      />,
+    );
+
+    expect(screen.queryByTestId(`${ROOT}-body`)).toBeNull();
+  });
+});
+
+describe("an action that is running", () => {
+  test("shows a spinner, cannot be pressed twice, and keeps its title", () => {
+    let clicks: number = 0;
+
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No etcd metrics from this cluster"
+        actions={[
+          {
+            title: "Checking…",
+            icon: IconProp.Refresh,
+            isLoading: true,
+            dataTestId: "check-again",
+            onClick: () => {
+              clicks++;
+            },
+          },
+        ]}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByTestId("check-again");
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("Checking…");
+    expect(
+      button.querySelector(`[data-icon="${IconProp.Spinner}"]`) ||
+        button.querySelector(".animate-spin"),
+    ).not.toBeNull();
+
+    fireEvent.click(button);
+    expect(clicks).toBe(0);
+  });
+
+  test("works again once it has finished", () => {
+    let clicks: number = 0;
+
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No etcd metrics from this cluster"
+        actions={[
+          {
+            title: "Check again",
+            icon: IconProp.Refresh,
+            isLoading: false,
+            dataTestId: "check-again",
+            onClick: () => {
+              clicks++;
+            },
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("check-again"));
+    expect(clicks).toBe(1);
+  });
+});
+
 describe("the note", () => {
   test("is small print under the actions, translated", () => {
     dictionary = {

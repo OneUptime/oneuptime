@@ -968,54 +968,52 @@ const KubernetesClusterServiceMesh: FunctionComponent<
    * in place of the cards, never above charts that have data. Keyed by tab,
    * so a tab never shows the state of the tab before it.
    */
-  const tabs: Array<Tab> = SERVICE_MESH_TABS.map(
-    (tab: ServiceMeshTab): Tab => {
-      return {
-        name: tab.name,
-        children: (
-          <EmbeddedMetricCardGroup
-            key={tab.name}
-            dataTestId={`service-mesh-${tab.source}`}
-            onCheckAgain={resolveTimeRangeAgain}
-            renderEmptyState={(
-              group: EmbeddedMetricCardGroupEmptyStateProps,
-            ): ReactElement => {
-              return (
-                <EmbeddedMetricCard
-                  title={getSectionTitle(IconProp.FlowDiagram, tab.name)}
-                  timeRange={timeRange}
-                  onTimeRangeChange={handleTimeRangeChange}
-                  startAndEndDate={startAndEndDate}
-                  onRefresh={group.checkAgain}
-                >
-                  <KubernetesMetricsSetupEmptyState
-                    source={tab.source}
-                    clusterName={clusterIdentifier}
-                    isChecking={group.isChecking}
-                    onCheckAgain={group.checkAgain}
-                  />
-                </EmbeddedMetricCard>
-              );
-            }}
-          >
-            {tab.cards.map((card: ServiceMeshCard): ReactElement => {
-              return (
-                <EmbeddedMetricCard
-                  key={card.title}
-                  title={getSectionTitle(card.icon, card.title)}
-                  description={card.description}
-                  queryConfigs={card.getQueries(clusterIdentifier)}
-                  timeRange={timeRange}
-                  onTimeRangeChange={handleTimeRangeChange}
-                  startAndEndDate={startAndEndDate}
+  const tabs: Array<Tab> = SERVICE_MESH_TABS.map((tab: ServiceMeshTab): Tab => {
+    return {
+      name: tab.name,
+      children: (
+        <EmbeddedMetricCardGroup
+          key={tab.name}
+          dataTestId={`service-mesh-${tab.source}`}
+          onCheckAgain={resolveTimeRangeAgain}
+          renderEmptyState={(
+            group: EmbeddedMetricCardGroupEmptyStateProps,
+          ): ReactElement => {
+            return (
+              <EmbeddedMetricCard
+                title={getSectionTitle(IconProp.FlowDiagram, tab.name)}
+                timeRange={timeRange}
+                onTimeRangeChange={handleTimeRangeChange}
+                startAndEndDate={startAndEndDate}
+                onRefresh={group.checkAgain}
+              >
+                <KubernetesMetricsSetupEmptyState
+                  source={tab.source}
+                  clusterName={clusterIdentifier}
+                  isChecking={group.isChecking}
+                  onCheckAgain={group.checkAgain}
                 />
-              );
-            })}
-          </EmbeddedMetricCardGroup>
-        ),
-      };
-    },
-  );
+              </EmbeddedMetricCard>
+            );
+          }}
+        >
+          {tab.cards.map((card: ServiceMeshCard): ReactElement => {
+            return (
+              <EmbeddedMetricCard
+                key={card.title}
+                title={getSectionTitle(card.icon, card.title)}
+                description={card.description}
+                queryConfigs={card.getQueries(clusterIdentifier)}
+                timeRange={timeRange}
+                onTimeRangeChange={handleTimeRangeChange}
+                startAndEndDate={startAndEndDate}
+              />
+            );
+          })}
+        </EmbeddedMetricCardGroup>
+      ),
+    };
+  });
 
   /*
    * Issue #4105: every card reads the page's range, so a drag on any chart

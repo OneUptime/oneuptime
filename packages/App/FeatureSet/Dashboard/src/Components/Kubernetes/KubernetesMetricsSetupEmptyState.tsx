@@ -44,6 +44,20 @@ export interface ComponentProps {
   onCheckAgain: () => void;
 }
 
+const PLACEHOLDER: RegExp = /\{\{(\w+)\}\}/g;
+
+// The {{placeholders}} of an English template, each once, in order.
+function getPlaceholders(template: string): Array<string> {
+  const names: Array<string> = [];
+  for (const match of template.matchAll(PLACEHOLDER)) {
+    const name: string = match[1] || "";
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
 function getCodeElement(text: string): ReactElement {
   return (
     <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-700">
@@ -55,18 +69,21 @@ function getCodeElement(text: string): ReactElement {
 const KubernetesMetricsSetupEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const setup: KubernetesMetricsSetup = getKubernetesMetricsSetup(
-    props.source,
-  );
-  const command: string | null = getKubernetesMetricsSetupCommand(
-    props.source,
-  );
+  const setup: KubernetesMetricsSetup = getKubernetesMetricsSetup(props.source);
+  const command: string | null = getKubernetesMetricsSetupCommand(props.source);
 
+  /*
+   * Exactly the placeholders the sentence has: TranslatedSentence falls back
+   * to plain English when a slot is missing from it, or one is left over.
+   */
   const slots: Record<string, ReactNode> = {};
-  for (const [placeholder, code] of Object.entries(setup.code)) {
-    slots[placeholder] = getCodeElement(code);
+  for (const placeholder of getPlaceholders(setup.description)) {
+    const code: string | undefined =
+      placeholder === CLUSTER_NAME_PLACEHOLDER
+        ? props.clusterName
+        : setup.code[placeholder];
+    slots[placeholder] = getCodeElement(code || "");
   }
-  slots[CLUSTER_NAME_PLACEHOLDER] = getCodeElement(props.clusterName);
 
   const actions: Array<TableEmptyStateAction> = [
     {

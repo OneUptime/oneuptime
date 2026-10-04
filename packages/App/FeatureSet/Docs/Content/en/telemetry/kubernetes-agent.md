@@ -292,19 +292,59 @@ On clusters with Windows node pools, `daemonset` mode covers only Linux nodes â€
 
 ### Enable Control Plane Monitoring
 
-For self-managed clusters (not EKS / GKE / AKS), you can enable control plane metrics:
+The cluster's **Control Plane** page charts etcd, the API server, the scheduler and the controller manager. The agent scrapes them when `controlPlane.enabled` is `true`:
 
 ```bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --create-namespace \
-  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
-  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster" \
+  --reuse-values \
   --set controlPlane.enabled=true
 ```
 
-> Managed Kubernetes services (EKS, GKE, AKS) typically do not expose control plane metrics. Only enable this for self-managed clusters.
+Each component is scraped at the addresses in its own list: `controlPlane.etcd.endpoints`, `controlPlane.apiServer.endpoints`, `controlPlane.scheduler.endpoints` and `controlPlane.controllerManager.endpoints`. The scrape runs in the agent's pod, which has no host network, so the defaults (`https://localhost:<port>/metrics`) point at that pod itself: set each list to an address the pod can reach. Inside any cluster the API server answers at `https://kubernetes.default.svc:443/metrics`:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
+```
+
+> Managed Kubernetes services (EKS, GKE, AKS) do not expose etcd, the scheduler or the controller manager, so those tabs stay empty there.
+
+Until a tab's metrics arrive, the Control Plane page shows what to set in place of that tab's charts, with the command to copy.
+
+### Enable CoreDNS Metrics
+
+The **CoreDNS** tab of the Control Plane page charts DNS queries, latency, the cache and forwarding. Collecting them is off by default:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set coreDns.enabled=true
+```
+
+The agent scrapes port `9153` of the pods labelled `k8s-app=kube-dns` in `kube-system`, which is where CoreDNS runs on most clusters, managed ones included. If yours runs elsewhere, also set `coreDns.namespace`, `coreDns.service` (the `k8s-app` label) and `coreDns.port`.
+
+### Enable Service Mesh Metrics
+
+The cluster's **Service Mesh** page charts Istio and Linkerd. The agent scrapes one mesh, the one `serviceMesh.provider` names (`istio` or `linkerd`):
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set serviceMesh.enabled=true \
+  --set serviceMesh.provider=istio
+```
+
+For Istio it reads the Envoy statistics of every `istio-proxy` sidecar (port `15090`); istiod's own metrics are not scraped, so the Pilot card stays empty. For Linkerd it reads the admin port of every `linkerd-proxy`.
+
+### Metrics the Agent Does Not Collect
+
+Two tabs chart metrics the agent has no scrape for: **kube-proxy** on the Control Plane page, and **Cilium** (with Hubble) on the Service Mesh page. They fill in when those metrics reach OneUptime another way, for example from your own [OpenTelemetry Collector](/docs/telemetry/open-telemetry) scraping them, with the resource attribute `k8s.cluster.name` set to the cluster's name (the agent's `clusterName`). Clusters that run without kube-proxy have no kube-proxy metrics at all.
 
 ### Enable Cost Observability
 
