@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "有人不在崗時，覆寫會把此策略發給此人的呼叫轉給代班的人。若想在所有策略中一次代班，請在「待命 > 使用者覆寫」中新增覆寫。",
   "Who covers?": "誰代班？",
   "Who is away?": "誰不在崗？",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在崗時，使用者覆寫會在設定的期間內，把原本會發給此人的警示發給代班的人。待命策略上的覆寫只適用於該策略；沒有策略的覆寫適用於所有待命策略。"
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在崗時，使用者覆寫會在設定的期間內，把原本會發給此人的警示發給代班的人。待命策略上的覆寫只適用於該策略；沒有策略的覆寫適用於所有待命策略。",
+  "Add all": "全部新增",
+  "Add {{statusPageName}}": "新增{{statusPageName}}",
+  "Added {{count}} status pages.": "已新增 {{count}} 個狀態頁面。",
+  "Added {{count}} status pages._one": "已新增 {{count}} 個狀態頁面。",
+  "Added {{statusPageName}} to the status pages.": "已將{{statusPageName}}新增至狀態頁面。",
+  "Status pages that show the affected monitors:": "顯示受影響監測器的狀態頁面：",
+  "Status pages that show the affected monitors:_one": "顯示受影響監測器的狀態頁面：",
+  "Untitled status page": "未命名的狀態頁面"
 }

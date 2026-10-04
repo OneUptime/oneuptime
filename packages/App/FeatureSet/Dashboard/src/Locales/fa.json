@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "وقتی کسی غایب است، جایگزینی تماس‌های او را از این سیاست به جایگزینش می‌فرستد. برای جایگزینی هم‌زمان در همه سیاست‌ها، جایگزینی را در کشیک آنکال > جایگزینی‌های کاربر اضافه کنید.",
   "Who covers?": "چه کسی جایگزین است؟",
   "Who is away?": "چه کسی غایب است؟",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "وقتی کسی غایب است، جایگزینی کاربر هشدارهایی را که باید به او می‌رسید، برای مدت مشخصی به جایگزینش می‌فرستد. جایگزینی روی یک سیاست آنکال فقط برای همان سیاست است؛ جایگزینی بدون سیاست برای همه سیاست‌های آنکال است."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "وقتی کسی غایب است، جایگزینی کاربر هشدارهایی را که باید به او می‌رسید، برای مدت مشخصی به جایگزینش می‌فرستد. جایگزینی روی یک سیاست آنکال فقط برای همان سیاست است؛ جایگزینی بدون سیاست برای همه سیاست‌های آنکال است.",
+  "Add all": "افزودن همه",
+  "Add {{statusPageName}}": "افزودن {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} صفحه وضعیت افزوده شد.",
+  "Added {{count}} status pages._one": "{{count}} صفحه وضعیت افزوده شد.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} به صفحات وضعیت افزوده شد.",
+  "Status pages that show the affected monitors:": "صفحات وضعیتی که مانیتورهای تحت تأثیر را نشان می‌دهند:",
+  "Status pages that show the affected monitors:_one": "صفحات وضعیتی که مانیتور تحت تأثیر را نشان می‌دهند:",
+  "Untitled status page": "صفحه وضعیت بی‌نام"
 }

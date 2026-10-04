@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "Пока кто-то отсутствует, замена направляет его вызовы из этой политики замещающему. Чтобы заменить кого-то сразу во всех политиках, добавьте замену в разделе Дежурство > Пользовательские переопределения.",
   "Who covers?": "Кто заменяет?",
   "Who is away?": "Кто отсутствует?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Пока кто-то отсутствует, пользовательское переопределение направляет оповещения, которые получил бы этот человек, замещающему на заданное время. Переопределение в политике дежурства действует только для этой политики; без политики — для всех политик дежурства."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Пока кто-то отсутствует, пользовательское переопределение направляет оповещения, которые получил бы этот человек, замещающему на заданное время. Переопределение в политике дежурства действует только для этой политики; без политики — для всех политик дежурства.",
+  "Add all": "Добавить все",
+  "Add {{statusPageName}}": "Добавить {{statusPageName}}",
+  "Added {{count}} status pages.": "Добавлено страниц состояния: {{count}}.",
+  "Added {{count}} status pages._one": "Добавлена {{count}} страница состояния.",
+  "Added {{statusPageName}} to the status pages.": "Страница состояния {{statusPageName}} добавлена.",
+  "Status pages that show the affected monitors:": "Страницы состояния, на которых показаны затронутые мониторы:",
+  "Status pages that show the affected monitors:_one": "Страницы состояния, на которых показан затронутый монитор:",
+  "Untitled status page": "Страница состояния без названия"
 }

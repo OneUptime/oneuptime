@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "Mentre qualcuno è assente, una sostituzione invia le sue chiamate di questa policy a chi lo sostituisce. Per sostituire qualcuno in tutte le policy contemporaneamente, aggiungi la sostituzione in Reperibilità > Sostituzioni utente.",
   "Who covers?": "Chi sostituisce?",
   "Who is away?": "Chi è assente?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Mentre qualcuno è assente, una sostituzione utente invia gli avvisi a lui destinati a chi lo sostituisce, per un periodo definito. Una sostituzione su una policy di reperibilità vale solo per quella policy; una senza policy vale per tutte le policy di reperibilità."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Mentre qualcuno è assente, una sostituzione utente invia gli avvisi a lui destinati a chi lo sostituisce, per un periodo definito. Una sostituzione su una policy di reperibilità vale solo per quella policy; una senza policy vale per tutte le policy di reperibilità.",
+  "Add all": "Aggiungi tutte",
+  "Add {{statusPageName}}": "Aggiungi {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} pagine di stato aggiunte.",
+  "Added {{count}} status pages._one": "{{count}} pagina di stato aggiunta.",
+  "Added {{statusPageName}} to the status pages.": "Pagina di stato aggiunta: {{statusPageName}}.",
+  "Status pages that show the affected monitors:": "Pagine di stato che mostrano i monitor interessati:",
+  "Status pages that show the affected monitors:_one": "Pagine di stato che mostrano il monitor interessato:",
+  "Untitled status page": "Pagina di stato senza titolo"
 }

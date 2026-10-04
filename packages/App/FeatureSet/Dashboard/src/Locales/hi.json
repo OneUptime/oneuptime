@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "जब कोई अनुपस्थित होता है, तो ओवरराइड इस नीति से उनके पेज कवर करने वाले व्यक्ति को भेजता है। किसी को एक साथ हर नीति में कवर करने के लिए, ऑन-कॉल ड्यूटी > उपयोगकर्ता ओवरराइड में ओवरराइड जोड़ें।",
   "Who covers?": "कौन कवर करेगा?",
   "Who is away?": "कौन अनुपस्थित है?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "जब कोई अनुपस्थित होता है, तो उपयोगकर्ता ओवरराइड उनके लिए आने वाले अलर्ट तय समय तक कवर करने वाले व्यक्ति को भेजता है। किसी ऑन-कॉल नीति पर बना ओवरराइड केवल उसी नीति पर लागू होता है; बिना नीति वाला ओवरराइड हर ऑन-कॉल नीति पर लागू होता है।"
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "जब कोई अनुपस्थित होता है, तो उपयोगकर्ता ओवरराइड उनके लिए आने वाले अलर्ट तय समय तक कवर करने वाले व्यक्ति को भेजता है। किसी ऑन-कॉल नीति पर बना ओवरराइड केवल उसी नीति पर लागू होता है; बिना नीति वाला ओवरराइड हर ऑन-कॉल नीति पर लागू होता है।",
+  "Add all": "सभी जोड़ें",
+  "Add {{statusPageName}}": "{{statusPageName}} जोड़ें",
+  "Added {{count}} status pages.": "{{count}} स्थिति पृष्ठ जोड़े गए।",
+  "Added {{count}} status pages._one": "{{count}} स्थिति पृष्ठ जोड़ा गया।",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} को स्थिति पृष्ठों में जोड़ा गया।",
+  "Status pages that show the affected monitors:": "प्रभावित मॉनिटर दिखाने वाले स्थिति पृष्ठ:",
+  "Status pages that show the affected monitors:_one": "प्रभावित मॉनिटर को दिखाने वाले स्थिति पृष्ठ:",
+  "Untitled status page": "बिना शीर्षक वाला स्थिति पृष्ठ"
 }

@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "Enquanto alguém está ausente, uma substituição envia os acionamentos dessa pessoa desta política para quem a cobre. Para cobrir alguém em todas as políticas de uma vez, adicione a substituição em Plantão > Substituições de usuário.",
   "Who covers?": "Quem cobre?",
   "Who is away?": "Quem está ausente?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Enquanto alguém está ausente, uma substituição de usuário envia os alertas que acionariam essa pessoa para quem a cobre, por um período definido. Uma substituição em uma política de plantão vale apenas para essa política; uma sem política vale para todas as políticas de plantão."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Enquanto alguém está ausente, uma substituição de usuário envia os alertas que acionariam essa pessoa para quem a cobre, por um período definido. Uma substituição em uma política de plantão vale apenas para essa política; uma sem política vale para todas as políticas de plantão.",
+  "Add all": "Adicionar todas",
+  "Add {{statusPageName}}": "Adicionar {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} páginas de status adicionadas.",
+  "Added {{count}} status pages._one": "{{count}} página de status adicionada.",
+  "Added {{statusPageName}} to the status pages.": "Página de status adicionada: {{statusPageName}}.",
+  "Status pages that show the affected monitors:": "Páginas de status que mostram os monitores afetados:",
+  "Status pages that show the affected monitors:_one": "Páginas de status que mostram o monitor afetado:",
+  "Untitled status page": "Página de status sem título"
 }

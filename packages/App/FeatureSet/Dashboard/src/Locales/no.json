@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "Mens noen er borte, sender en overstyring varslingene deres fra denne retningslinjen til den som dekker. For å dekke noen i alle retningslinjer samtidig legger du til overstyringen under Vakttjeneste > Brukeroverstyringer.",
   "Who covers?": "Hvem dekker?",
   "Who is away?": "Hvem er borte?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Mens noen er borte, sender en brukeroverstyring varslene som ville nådd personen, til den som dekker, i et fastsatt tidsrom. En overstyring på en vaktretningslinje gjelder bare den retningslinjen; en uten retningslinje gjelder alle vaktretningslinjer."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Mens noen er borte, sender en brukeroverstyring varslene som ville nådd personen, til den som dekker, i et fastsatt tidsrom. En overstyring på en vaktretningslinje gjelder bare den retningslinjen; en uten retningslinje gjelder alle vaktretningslinjer.",
+  "Add all": "Legg til alle",
+  "Add {{statusPageName}}": "Legg til {{statusPageName}}",
+  "Added {{count}} status pages.": "La til {{count}} statussider.",
+  "Added {{count}} status pages._one": "La til {{count}} statusside.",
+  "Added {{statusPageName}} to the status pages.": "La til {{statusPageName}} i statussidene.",
+  "Status pages that show the affected monitors:": "Statussider som viser de berørte monitorene:",
+  "Status pages that show the affected monitors:_one": "Statussider som viser den berørte monitoren:",
+  "Untitled status page": "Statusside uten navn"
 }

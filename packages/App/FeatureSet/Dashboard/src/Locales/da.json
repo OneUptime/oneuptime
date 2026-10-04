@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "Mens nogen er fraværende, sender en tilsidesættelse personens kald fra denne politik til den, der dækker. For at dække nogen i alle politikker på én gang skal du tilføje tilsidesættelsen under Vagtordning > Brugertilsidesættelser.",
   "Who covers?": "Hvem dækker?",
   "Who is away?": "Hvem er fraværende?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Mens nogen er fraværende, sender en brugertilsidesættelse de advarsler, der ville kalde personen, til den, der dækker, i et fastsat tidsrum. En tilsidesættelse på en vagtpolitik gælder kun den politik; en uden politik gælder alle vagtpolitikker."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Mens nogen er fraværende, sender en brugertilsidesættelse de advarsler, der ville kalde personen, til den, der dækker, i et fastsat tidsrum. En tilsidesættelse på en vagtpolitik gælder kun den politik; en uden politik gælder alle vagtpolitikker.",
+  "Add all": "Tilføj alle",
+  "Add {{statusPageName}}": "Tilføj {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} statussider tilføjet.",
+  "Added {{count}} status pages._one": "{{count}} statusside tilføjet.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} er føjet til statussiderne.",
+  "Status pages that show the affected monitors:": "Statussider, der viser de berørte monitorer:",
+  "Status pages that show the affected monitors:_one": "Statussider, der viser den berørte monitor:",
+  "Untitled status page": "Unavngivet statusside"
 }

@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "Medan någon är borta skickar en åsidosättning personens larm från den här policyn till den som täcker upp. Om du vill täcka upp för någon i alla policyer samtidigt lägger du till åsidosättningen under Jourtjänst > Användaråsidosättningar.",
   "Who covers?": "Vem täcker upp?",
   "Who is away?": "Vem är borta?",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Medan någon är borta skickar en användaråsidosättning de larm som skulle nå personen till den som täcker upp, under en bestämd tid. En åsidosättning på en jourpolicy gäller bara den policyn; en utan policy gäller alla jourpolicyer."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "Medan någon är borta skickar en användaråsidosättning de larm som skulle nå personen till den som täcker upp, under en bestämd tid. En åsidosättning på en jourpolicy gäller bara den policyn; en utan policy gäller alla jourpolicyer.",
+  "Add all": "Lägg till alla",
+  "Add {{statusPageName}}": "Lägg till {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} statussidor har lagts till.",
+  "Added {{count}} status pages._one": "{{count}} statussida har lagts till.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} har lagts till bland statussidorna.",
+  "Status pages that show the affected monitors:": "Statussidor som visar de berörda monitorerna:",
+  "Status pages that show the affected monitors:_one": "Statussidor som visar den berörda monitorn:",
+  "Untitled status page": "Namnlös statussida"
 }

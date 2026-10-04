@@ -24649,5 +24649,13 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "誰かが不在の間、オーバーライドはこのポリシーからのその人への呼び出しを代理の人に送ります。すべてのポリシーでまとめて代理を立てるには、オンコール > ユーザーオーバーライドでオーバーライドを追加してください。",
   "Who covers?": "誰が代理しますか？",
   "Who is away?": "誰が不在ですか？",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "誰かが不在の間、ユーザーオーバーライドは、その人に届くはずのアラートを指定した期間、代理の人に送ります。オンコールポリシーのオーバーライドはそのポリシーにのみ適用され、ポリシーのないオーバーライドはすべてのオンコールポリシーに適用されます。"
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "誰かが不在の間、ユーザーオーバーライドは、その人に届くはずのアラートを指定した期間、代理の人に送ります。オンコールポリシーのオーバーライドはそのポリシーにのみ適用され、ポリシーのないオーバーライドはすべてのオンコールポリシーに適用されます。",
+  "Add all": "すべて追加",
+  "Add {{statusPageName}}": "{{statusPageName}}を追加",
+  "Added {{count}} status pages.": "{{count}} 件のステータスページを追加しました。",
+  "Added {{count}} status pages._one": "{{count}} 件のステータスページを追加しました。",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} をステータスページに追加しました。",
+  "Status pages that show the affected monitors:": "影響を受けるモニターを表示しているステータスページ:",
+  "Status pages that show the affected monitors:_one": "影響を受けるモニターを表示しているステータスページ:",
+  "Untitled status page": "無題のステータスページ"
 }

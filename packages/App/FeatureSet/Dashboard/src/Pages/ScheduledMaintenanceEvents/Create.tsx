@@ -53,6 +53,8 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
+import { getStatusPageSuggestionsFooter } from "../../Components/StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
@@ -627,6 +629,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     return false;
                   },
                 },
+                /*
+                 * Starts empty: picking a page publishes the event there and
+                 * tells its subscribers. Under it, the pages that show the
+                 * affected monitors, one click to add.
+                 */
                 {
                   field: {
                     statusPages: true,
@@ -642,6 +649,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select Status Pages",
+                  getFooterElement:
+                    getStatusPageSuggestionsFooter<ScheduledMaintenance>({
+                      eventType: StatusPageEventType.ScheduledEvent,
+                    }),
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
