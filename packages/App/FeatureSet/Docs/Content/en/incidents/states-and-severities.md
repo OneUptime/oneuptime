@@ -57,7 +57,7 @@ Go to **Incidents → Settings → Incident State**. The page lists your states 
 
 - **Name** — required, at least two characters. The placeholder suggests something like "Investigating".
 - **Description** — optional free text explaining when an incident sits in this state.
-- **Color** — required. Picked from the color picker; stored as a hex value like `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
+- **Color** — required, and already picked when the form opens: a color none of the states in the list uses yet, so a new state never comes out the same red as the one above it. Pick another from the color picker if you like; it is stored as a hex value like `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
 
 Every one of those pickers lists the states in the order this page puts them in.
 
@@ -94,7 +94,7 @@ Severity is required when you declare an incident, and it is required on each in
 
 ## Editing severities
 
-Go to **Incidents → Settings → Incident Severity**. Same shape as the state page — one row per severity, most severe first, drag a row to change its rank, **Create Incident Severity** adds one at the end (the least severe), with **Name**, **Description** and **Color** on the form.
+Go to **Incidents → Settings → Incident Severity**. Same shape as the state page — one row per severity, most severe first, drag a row to change its rank, **Create Incident Severity** adds one at the end (the least severe), with **Name**, **Description** and **Color** on the form, the color already picked as on the state form.
 
 The rank matters wherever OneUptime compares severities: an episode takes the severity of its most severe incident, and a monitor recommendation's Critical and Warning map onto your first and second severity.
 

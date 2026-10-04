@@ -293,6 +293,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
             onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
             onSuccess?: ((item: TBaseModel) => void) | undefined;
             onClose?: (() => void) | undefined;
+            existingItems?: Array<TBaseModel> | undefined;
           }): ReactElement => {
             const {
               modalType,
@@ -300,6 +301,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
               onBeforeCreate,
               onSuccess,
               onClose,
+              existingItems,
             } = data;
 
             return (
@@ -375,6 +377,9 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     modalType === ModalType.Create
                       ? FormType.Create
                       : FormType.Update,
+                  // A colour picked for a new row is one no row uses yet.
+                  existingItems:
+                    modalType === ModalType.Create ? existingItems : undefined,
                 }}
                 modelIdToEdit={modelIdToEdit}
               />
