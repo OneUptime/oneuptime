@@ -16,7 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -151,6 +151,7 @@ import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnn
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SubscriberUpdateNotification from "../../../Types/StatusPage/SubscriberUpdateNotification";
 import Timezone from "../../../Types/Timezone";
@@ -168,7 +169,7 @@ const PAGE_PROPS: PageComponentProps = {
   hasPaymentMethod: true,
 };
 
-interface CardProps<T> {
+interface CardProps<T extends BaseModel> {
   name: string;
   formSteps?: Array<FormStep<T>>;
   formFields?: Array<ModelField<T>>;
@@ -176,9 +177,9 @@ interface CardProps<T> {
 }
 
 // The announcement as the server holds it: showing since yesterday.
-let storedAnnouncement: Record<string, unknown> = {};
+let storedAnnouncement: JSONObject = {};
 
-function cardHandedTo<T>(name: string): CardProps<T> {
+function cardHandedTo<T extends BaseModel>(name: string): CardProps<T> {
   const found: unknown = cardModelDetailRenderMock.mock.calls
     .map((call: Array<unknown>): unknown => {
       return call[0];
@@ -354,9 +355,9 @@ describe("the announcement's details card Edit", () => {
 
     await screen.findByRole("navigation", { name: "Progress" });
     await waitFor(() => {
-      expect(
-        (labelledInput("Title") as HTMLInputElement).value,
-      ).toBe("Planned database upgrade");
+      expect((labelledInput("Title") as HTMLInputElement).value).toBe(
+        "Planned database upgrade",
+      );
     });
     await settle();
   }
@@ -595,9 +596,7 @@ describe("an announcement template", () => {
 
     expect(notify).toBeVisible();
     expect(notify).toBeChecked();
-    expect(labelText("Monitors Affected")).toBe(
-      "Monitors Affected (Optional)",
-    );
+    expect(labelText("Monitors Affected")).toBe("Monitors Affected (Optional)");
 
     fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
 

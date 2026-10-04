@@ -14,12 +14,8 @@ import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnn
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
-import {
-  ADVANCED_FORM_SECTION_TITLE,
-} from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
-import {
-  SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
 
 /*
  * Creating an announcement takes two steps and a review: Announcement, then

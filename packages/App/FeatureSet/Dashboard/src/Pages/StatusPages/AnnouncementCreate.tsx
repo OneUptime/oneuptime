@@ -72,9 +72,7 @@ const AnnouncementCreate: FunctionComponent<
    * it is known to exist: it is picked on the form, and Create goes back to
    * its tab.
    */
-  const [fromStatusPageId, setFromStatusPageId] = useState<string | null>(
-    null,
-  );
+  const [fromStatusPageId, setFromStatusPageId] = useState<string | null>(null);
 
   useEffect(() => {
     loadInitialValues({
@@ -152,16 +150,14 @@ const AnnouncementCreate: FunctionComponent<
         };
       }
 
-      const statusPageIds: Array<string> = getInitialAnnouncementStatusPageIds(
-        {
-          statusPageId: statusPageId,
-          templateStatusPageIds: announcementTemplate?.statusPages?.map(
-            (templateStatusPage: StatusPage) => {
-              return templateStatusPage.id!.toString();
-            },
-          ),
-        },
-      );
+      const statusPageIds: Array<string> = getInitialAnnouncementStatusPageIds({
+        statusPageId: statusPageId,
+        templateStatusPageIds: announcementTemplate?.statusPages?.map(
+          (templateStatusPage: StatusPage) => {
+            return templateStatusPage.id!.toString();
+          },
+        ),
+      });
 
       if (statusPageIds.length > 0) {
         initialValue["statusPages"] = statusPageIds;
@@ -186,7 +182,9 @@ const AnnouncementCreate: FunctionComponent<
   const breadcrumbLinks: Array<Link> = [
     {
       title: "Status Pages",
-      to: RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGES] as Route),
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STATUS_PAGES] as Route,
+      ),
     },
     ...(fromStatusPageId
       ? [
@@ -464,7 +462,9 @@ const AnnouncementCreate: FunctionComponent<
                 Navigation.navigate(
                   fromStatusPageId
                     ? RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
+                        RouteMap[
+                          PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                        ] as Route,
                         { modelId: fromStatusPageId },
                       )
                     : RouteUtil.populateRouteParams(

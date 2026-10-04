@@ -103,9 +103,9 @@ describe("the announcement create form in the docs", () => {
       expect(CREATE_FORM).toContain(`title: "${title}"`);
 
       for (const language of DESCRIBING_LANGUAGES) {
-        expect(`${language}: ${readGuide(language).includes(`**${title}**`)}`).toBe(
-          `${language}: true`,
-        );
+        expect(
+          `${language}: ${readGuide(language).includes(`**${title}**`)}`,
+        ).toBe(`${language}: true`);
       }
     }
 

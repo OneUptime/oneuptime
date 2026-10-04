@@ -59,7 +59,8 @@ import {
  */
 export const ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM: string = "statusPageId";
 
-export const ANNOUNCEMENT_TEMPLATE_QUERY_PARAM: string = "announcementTemplateId";
+export const ANNOUNCEMENT_TEMPLATE_QUERY_PARAM: string =
+  "announcementTemplateId";
 
 /*
  * What the create page is opened with. Both are optional: the project-wide

@@ -95,9 +95,7 @@ const readLocale: (locale: string) => Record<string, string> = (
 };
 
 const at: (iso: string) => string = (iso: string): string => {
-  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-    new Date(iso),
-  );
+  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(new Date(iso));
 };
 
 const windowOf: (
@@ -140,7 +138,10 @@ describe("the create page's address", () => {
       announcementTemplateId: TEMPLATE_ID,
     });
 
-    expect(Object.keys(query)).toEqual(["statusPageId", "announcementTemplateId"]);
+    expect(Object.keys(query)).toEqual([
+      "statusPageId",
+      "announcementTemplateId",
+    ]);
   });
 
   test("carries only what there is", () => {
@@ -217,9 +218,7 @@ describe("when the announcement shows", () => {
 
   test("now, until a set end", () => {
     expect(
-      getAnnouncementScheduleSummary(
-        windowOf(NOW, "2026-10-05T14:00:00.000Z"),
-      ),
+      getAnnouncementScheduleSummary(windowOf(NOW, "2026-10-05T14:00:00.000Z")),
     ).toBe(`Shows now and stays until ${at("2026-10-05T14:00:00.000Z")}.`);
   });
 
@@ -246,9 +245,7 @@ describe("when the announcement shows", () => {
     ).toBe(`Stopped showing at ${at("2026-10-03T08:00:00.000Z")}.`);
     // Ending right now counts as ended.
     expect(
-      getAnnouncementScheduleSummary(
-        windowOf("2026-10-01T08:00:00.000Z", NOW),
-      ),
+      getAnnouncementScheduleSummary(windowOf("2026-10-01T08:00:00.000Z", NOW)),
     ).toBe(`Stopped showing at ${at(NOW.toISOString())}.`);
   });
 
@@ -358,7 +355,10 @@ describe("the Schedule & Notifications line", () => {
   });
 
   test("the section always starts folded and says that line", () => {
-    for (const kind of [AnnouncementFormKind.Create, AnnouncementFormKind.Edit]) {
+    for (const kind of [
+      AnnouncementFormKind.Create,
+      AnnouncementFormKind.Edit,
+    ]) {
       const section: FormFieldCollapsibleSection<StatusPageAnnouncement> =
         getScheduleAndNotificationsSection<StatusPageAnnouncement>(kind);
 
@@ -370,9 +370,7 @@ describe("the Schedule & Notifications line", () => {
         section.getSummary!(
           windowOf(NOW) as FormValues<StatusPageAnnouncement>,
         ),
-      ).toEqual(
-        getScheduleAndNotificationsSummary(windowOf(NOW), kind),
-      );
+      ).toEqual(getScheduleAndNotificationsSummary(windowOf(NOW), kind));
     }
 
     expect(
@@ -468,7 +466,9 @@ describe("every sentence of it is translated", () => {
         for (const placeholder of ["{{startsAt}}", "{{endsAt}}"]) {
           expect(
             `${sentence} ${placeholder}: ${translated!.includes(placeholder)}`,
-          ).toBe(`${sentence} ${placeholder}: ${sentence.includes(placeholder)}`);
+          ).toBe(
+            `${sentence} ${placeholder}: ${sentence.includes(placeholder)}`,
+          );
         }
       }
     });

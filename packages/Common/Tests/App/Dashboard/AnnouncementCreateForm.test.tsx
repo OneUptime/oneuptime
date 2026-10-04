@@ -650,9 +650,10 @@ describe("Create Announcement, from the project's Announcements list", () => {
     fireEvent.change(endsAtInput(), { target: { value: "2026-10-05T14:00" } });
     await act(async () => {});
 
-    const endsAt: string = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-      new Date("2026-10-05T14:00:00.000Z"),
-    );
+    const endsAt: string =
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        new Date("2026-10-05T14:00:00.000Z"),
+      );
 
     expect(lineOfOpenSection(schedule)).toBe(
       `Shows now and stays until ${endsAt}. ${ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY}`,
@@ -795,8 +796,9 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       expect.objectContaining({ modelType: StatusPage }),
     );
     expect(
-      (getItemMock.mock.calls[0]![0] as { id: { toString: () => string } }).id
-        .toString(),
+      (
+        getItemMock.mock.calls[0]![0] as { id: { toString: () => string } }
+      ).id.toString(),
     ).toBe(STATUS_PAGE_ID);
 
     // Every step after this one holds valid answers: Create is the main button.
@@ -858,7 +860,9 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       "Announcements",
       "Create Announcement",
     ]);
-    expect(links[1]!.href).toMatch(new RegExp(`/status-pages/${STATUS_PAGE_ID}$`));
+    expect(links[1]!.href).toMatch(
+      new RegExp(`/status-pages/${STATUS_PAGE_ID}$`),
+    );
     expect(links[2]!.href).toMatch(
       new RegExp(`/status-pages/${STATUS_PAGE_ID}/announcements$`),
     );

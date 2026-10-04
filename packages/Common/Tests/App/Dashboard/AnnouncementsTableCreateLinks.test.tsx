@@ -181,9 +181,7 @@ function renderTable(statusPageId?: ObjectID): void {
 async function pickTemplate(): Promise<void> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-  fireEvent.click(
-    await screen.findByRole("button", { name: "More options" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "More options" }));
   fireEvent.click(
     await screen.findByRole("menuitem", { name: "Create from Template" }),
   );
@@ -234,9 +232,7 @@ describe("a status page's Announcements tab", () => {
 
     fireEvent.click(await cardButton("Create Announcement"));
 
-    expect(navigatedTo()).toBe(
-      `${CREATE_PAGE}?statusPageId=${STATUS_PAGE_ID}`,
-    );
+    expect(navigatedTo()).toBe(`${CREATE_PAGE}?statusPageId=${STATUS_PAGE_ID}`);
   });
 
   test("Create from Template opens it with that page and the template", async () => {
