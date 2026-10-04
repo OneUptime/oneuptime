@@ -629,10 +629,12 @@ describe("Metrics > Settings > Pipeline Rules", () => {
 
   /*
    * The filters editor sits on the first step now. It reported the filters
-   * it was handed as soon as it was drawn, and BasicForm takes a value
-   * reported before it has filled in its defaults as the user's own: it
-   * then fills in none, so a rule created as it opened was saved with no
-   * Filter Condition, and switched off although its switch showed on.
+   * it was handed as soon as it was drawn, and BasicForm took a value
+   * reported before it had filled in its defaults for the user's own edit
+   * and filled in none: a rule created as the form opened was saved with no
+   * Filter Condition, and switched off although its switch showed on. Both
+   * ends are fixed - the editor reports only changes, and BasicForm fills
+   * in the defaults of the fields still empty - and either alone passes.
    */
   test("REGRESSION: a rule created as the form opened is saved on, combining with All, matching everything", async () => {
     await openCreateForm();

@@ -68,12 +68,12 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * The filters the form holds already. Only a change is reported: the
-   * form takes a value reported before it has filled in its defaults as the
-   * user's own and fills in no defaults after it (BasicForm), so reporting
-   * the filters it was handed - on mount, or as each row draws itself -
-   * left a new rule with no Filter Condition and switched off, though its
-   * switch showed on.
+   * The filters the form holds already. Only a change is reported, never
+   * the filters the editor was handed - on mount, or as each row draws
+   * itself: a report is an edit to the form (BasicForm), and drawing the
+   * editor is not one. Reported on mount, they were once taken for the
+   * user's own edit before the form had filled in its defaults, and a new
+   * rule was saved switched off, though its switch showed on.
    */
   const reportedFilters: MutableRefObject<string> = useRef<string>(
     serialize(props.value || []),
