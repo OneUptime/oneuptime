@@ -70,7 +70,7 @@ export interface ComponentProps {
 
 /*
  * The header's class names, exported so the layout tests and the guard
- * (Common/Tests/UI/Components/CardHeaderActionsGuard.test.ts) read the same
+ * (Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx) read the same
  * strings Card draws with.
  */
 
