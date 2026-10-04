@@ -47,7 +47,7 @@ Apri **Dashboard** nel menu di navigazione a sinistra.
 
 ## Costruire una dashboard
 
-1. **Crea** — scegli un nome. Il canvas si apre vuoto.
+1. **Crea** — scegli un modello, oppure **Blank Dashboard**. Un modello compila il nome e si apre con i suoi widget; una dashboard vuota si apre vuota, con **Aggiungi widget** sul canvas.
 2. **Aggiungi widget** — scegli un tipo di widget, configurane i dati, trascinalo dove vuoi.
 3. **(Opzionale) Aggiungi variabili** — per esempio, un menu a tendina `service` cosi la stessa dashboard funziona per ogni servizio.
 4. **Imposta l'intervallo temporale** — i valori predefiniti vanno bene; affina in seguito.
@@ -58,7 +58,7 @@ Apri **Dashboard** nel menu di navigazione a sinistra.
 
 Obiettivo: una pagina on-call per il servizio checkout con latenza, tasso di errore, incidenti aperti e una coda live dei log.
 
-1. Crea una dashboard chiamata "Checkout on-call."
+1. Crea una **Blank Dashboard** chiamata "Checkout on-call."
 2. Aggiungi una variabile `service`. Impostala su `checkout` come predefinito.
 3. Aggiungi un widget **Grafico** con la latenza P95, filtrato dalla variabile `service`.
 4. Accanto, aggiungi un widget **Valore** per il tasso di errore, con warning all'1% e critical al 5%.

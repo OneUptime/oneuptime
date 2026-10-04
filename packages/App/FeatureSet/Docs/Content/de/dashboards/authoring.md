@@ -1,6 +1,6 @@
 # Dashboard erstellen
 
-Um ein Dashboard zu erstellen, öffnen Sie **Dashboards → Dashboard erstellen**, geben Sie ihm einen Namen und öffnen Sie es. Die Arbeitsfläche öffnet sich im Modus **Bearbeiten**, bereit zum Hinzufügen von Widgets.
+Um ein Dashboard zu erstellen, öffnen Sie **Dashboards → Dashboard erstellen** und wählen Sie eine Vorlage oder **Blank Dashboard**, um ohne Vorlage zu beginnen. Eine Vorlage trägt den Namen des Dashboards für Sie ein (nummeriert, etwa „Kubernetes Dashboard 2“, wenn das Projekt schon eines mit diesem Namen hat); bei einem leeren Dashboard geben Sie den Namen selbst ein. Klicken Sie auf **Dashboard erstellen**, und das neue Dashboard öffnet sich. Ein leeres Dashboard öffnet sich mit leerer Arbeitsfläche und der Schaltfläche **Widget hinzufügen** für das erste Widget.
 
 ## Die Arbeitsfläche
 
@@ -17,7 +17,7 @@ Es handelt sich um dasselbe Dashboard in beiden Modi. Es gibt keinen separaten S
 
 ## Ein Widget hinzufügen
 
-1. Klicken Sie auf die Schaltfläche **+**, um die Widget-Palette zu öffnen.
+1. Klicken Sie auf **Widget hinzufügen**, um die Widget-Palette zu öffnen: auf der Arbeitsfläche eines leeren Dashboards oder in der Symbolleiste, während Sie das Dashboard bearbeiten.
 2. Wählen Sie den Widget-Typ. Den Katalog finden Sie unter [Widgets](/docs/dashboards/widgets).
 3. Das Widget erscheint auf der Arbeitsfläche.
 4. Klicken Sie auf das Zahnradsymbol des Widgets, um seine Einstellungen zu öffnen.

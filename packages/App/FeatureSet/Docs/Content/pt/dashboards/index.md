@@ -47,7 +47,7 @@ Abra **Painéis** na navegação à esquerda.
 
 ## Construindo um painel
 
-1. **Crie** — escolha um nome. O canvas abre vazio.
+1. **Crie** — escolha um modelo, ou **Blank Dashboard**. Um modelo preenche o nome e abre com seus widgets; um painel em branco abre vazio, com **Adicionar widget** no canvas.
 2. **Adicione widgets** — escolha um tipo de widget, configure seus dados, arraste para onde quiser.
 3. **(Opcional) Adicione variáveis** — por exemplo, um dropdown `service` para que o mesmo painel funcione para todos os serviços.
 4. **Defina o intervalo de tempo** — os padrões já servem; ajuste depois.
@@ -58,7 +58,7 @@ Abra **Painéis** na navegação à esquerda.
 
 Objetivo: uma página de plantão para o serviço de checkout com latência, taxa de erro, incidentes abertos e uma lista ao vivo de logs.
 
-1. Crie um painel chamado "Checkout on-call."
+1. Crie um **Blank Dashboard** chamado "Checkout on-call."
 2. Adicione uma variável `service`. Defina o padrão como `checkout`.
 3. Adicione um widget de **Gráfico** com a latência P95, filtrado pela variável `service`.
 4. Ao lado, adicione um widget de **Valor** para taxa de erro, com aviso em 1% e crítico em 5%.
