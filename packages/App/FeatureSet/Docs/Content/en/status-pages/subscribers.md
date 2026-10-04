@@ -104,7 +104,7 @@ Subscribers hear about the three event types above, but each source has its own 
 
 ### Announcement notifications
 
-The announcement itself carries **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposed on the create form as the **Notify Status Page Subscribers** checkbox and on by default. If the announcement names monitors under **Monitors affected (Optional)**, the notification is scoped to those monitors; leave it empty and all subscribers are notified.
+The announcement itself carries **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposed on the create form as the **Notify Status Page Subscribers** checkbox under **Schedule & Notifications**, and on by default. Subscribers are told once, when the announcement starts showing, so this is decided when the announcement is created; an edit cannot change it. If the announcement names monitors under **Monitors Affected**, the notification is scoped to those monitors; leave it empty and all subscribers are notified.
 
 ### Scheduled maintenance events
 
@@ -172,7 +172,7 @@ This covers public notes only. The episode's state changes (**Acknowledge**, **R
 
 Subscribers hear about an announcement or a public note once, when it is posted. Editing it afterwards changes what the status page shows but tells nobody, unless you ask for it on that edit.
 
-The edit form of an announcement, and of a public note on an incident, a scheduled maintenance event or an incident episode, has a **Notify subscribers about this update** checkbox. It starts unticked every time, so a typo fix stays quiet; tick it when the change matters — a new maintenance window, a revised impact, a corrected customer update. It is not on the create forms, which have their own **Notify Status Page Subscribers** choice.
+The edit form of an announcement, and of a public note on an incident, a scheduled maintenance event or an incident episode, has a **Notify subscribers about this update** checkbox. It starts unticked every time, so a typo fix stays quiet; tick it when the change matters — a new maintenance window, a revised impact, a corrected customer update. It is not on the create forms, which have their own **Notify Status Page Subscribers** choice. On an announcement it is on the **Announcement** step, right under the description.
 
 When you save with the box ticked, subscribers get the edited content marked as an update rather than as a new post:
 
@@ -308,12 +308,14 @@ Custom SMTP is worth doing early if you have email subscribers: mail that comes 
 
 An announcement is a project-level record (the `StatusPageAnnouncement` model) that you fan out to one or more status pages, optionally scoped to specific monitors, with a window during which it is shown.
 
-You create one from **Status Pages → More → Announcements**, or from **Announcements** in an individual status page's side menu. The create form is a four-step wizard:
+You create one from **Status Pages → More → Announcements**, or from **Announcements** in an individual status page's side menu. Created from a status page, that page is already picked, so a title and a description are all it takes, and **Create Announcement** brings you back to the page's **Announcements** list (or to the project's list, if you unpicked that page on the way). The create form has two steps, then a review:
 
-1. **Basic Information** — **Announcement Title** (required, at least two characters), **Description** (Markdown, optional) and **Attachments** for files that should be available with the announcement on the status page.
-2. **Status Pages** — **Show announcement on these status pages**, a required multi-select. One announcement can target several pages at once.
-3. **Resources Affected** — **Monitors affected (Optional)**. If you select none, all subscribers are notified.
-4. **Schedule & Settings** — **Start Showing Announcement At** (required, defaults to now), **End Showing Announcement At** (optional) and **Notify Status Page Subscribers** (on by default).
+1. **Announcement** — **Title** (required, at least two characters) and **Description** (Markdown, required: it is the text people read on the status page). **Attachments**, for files that should be available with the announcement on the status page, wait under **Advanced**.
+2. **Status Pages** — **Show announcement on these status pages**, a required multi-select (one announcement can target several pages at once), and **Monitors Affected**: if you select none, all subscribers are notified. Below them, **Schedule & Notifications** is folded to one line that says what will happen: "Shows now and stays until you end it. Subscribers are notified when it starts showing." Open it to change **Start Showing Announcement At** (defaults to now), **End Showing Announcement At** (empty: the announcement stays up until you set an end) or **Notify Status Page Subscribers** (on by default). The line follows your answers. The end has to come after the start and, on a new announcement, still be to come: one that has already ended would never show.
+
+The review step shows the same line. **Create from Template** fills the form in from a template; created from a status page, the template's own status pages are kept beside that page.
+
+The announcement's own page edits it on the same two steps. **Notify subscribers about this update** sits under the description (see [Telling subscribers about an edit](#telling-subscribers-about-an-edit)), and **Schedule** holds the start and the end. Setting an end that has passed is how you take an announcement down.
 
 Visitors read announcements at `/announcements`, split into **Active Announcements** and **Past Announcements**, each stamped with **Announced at**. Currently live announcements are also pinned to the top of the overview page. When there is nothing to show, the page reads *No Announcement* with the note that none have been posted so far.
 
@@ -335,7 +337,7 @@ Whether announcements appear at all is set in the **What your status page shows*
 
 ## Announcement templates
 
-If you post the same kind of notice repeatedly — a monthly maintenance heads-up, a recurring third-party degradation — pre-can it. **Status Pages → Settings → Announcement Templates** stores the `StatusPageAnnouncementTemplate` model, and its form asks for **Template Name**, **Template Description**, **Announcement Title**, **Description**, **Show announcement on these status pages**, **Monitors affected (Optional)** and **Notify Subscribers**, so the fan-out and the notify decision are made once instead of every time.
+If you post the same kind of notice repeatedly — a monthly maintenance heads-up, a recurring third-party degradation — pre-can it. **Status Pages → Settings → Announcement Templates** stores the `StatusPageAnnouncementTemplate` model. Its form walks **Template Info** (**Template Name**, **Template Description**), then the announcement's own steps: **Announcement** (**Title**, **Description**) and **Status Pages** (**Show announcement on these status pages**, **Monitors Affected** and **Notify Status Page Subscribers**, on by default), so the fan-out and the notify decision are made once instead of every time. A template holds no schedule: an announcement made from it starts showing when it is created, unless you change that under **Schedule & Notifications**.
 
 ## Webhook subscribers and SSRF protection
 

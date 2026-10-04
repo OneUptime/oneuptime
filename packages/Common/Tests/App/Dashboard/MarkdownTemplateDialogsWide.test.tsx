@@ -193,7 +193,7 @@ const PAGES: Array<TemplatePage> = [
     name: "Status Pages > Settings > Announcement Templates",
     Page: StatusPageAnnouncementTemplates,
     title: "Create New Status Page Announcement Template",
-    editorStep: "Announcement Details",
+    editorStep: "Announcement",
   },
 ];
 
