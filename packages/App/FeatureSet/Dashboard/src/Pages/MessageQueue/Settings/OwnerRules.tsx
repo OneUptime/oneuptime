@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,9 +16,6 @@ import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwne
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import getOwnersFormField, {
-  OWNER_RULE_OWNERS_DESCRIPTION,
-} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const messageQueueOwnerDocumentation: string = `
 ### How Queue Owner Rules Work
@@ -104,45 +105,8 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Owners", id: "owners", columns: 2 },
-      ]}
+      formSteps={getOwnerRuleFormSteps<MessageQueueOwnerRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Assign team to matching queues",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
-        {
-          field: { notifyOwners: true },
-          title: "Notify Owners",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Notify owners when they are added by this rule. Disable to add silently.",
-        },
         {
           field: { messageQueueLabels: true },
           title: "Queue Labels",
@@ -188,10 +152,7 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           required: false,
           placeholder: "^kafka$",
         },
-        getOwnersFormField({
-          stepId: "owners",
-          description: OWNER_RULE_OWNERS_DESCRIPTION,
-        }),
+        ...getOwnerRuleActionFields<MessageQueueOwnerRule>(),
       ]}
       showRefreshButton={true}
     />

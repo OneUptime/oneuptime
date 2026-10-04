@@ -12,8 +12,10 @@ import PeopleSearchPopup, {
 } from "./PeopleSearchPopup";
 import {
   addToPeoplePickerValue,
+  getPeoplePickerNamedOptions,
   getPeoplePickerOptionKey,
   getPeoplePickerValueKeySet,
+  PeoplePickerChange,
   PeoplePickerKind,
   PeoplePickerOption,
   PeoplePickerValue,
@@ -60,7 +62,12 @@ import React, {
 export interface ComponentProps {
   kinds: Array<PeoplePickerKind>;
   value: PeoplePickerValue;
-  onChange: (value: PeoplePickerValue) => void;
+  /*
+   * Every change, as the whole new value - and, by name, what is picked now
+   * and what was before (PeoplePickerChange), for a form that names
+   * something after the picks.
+   */
+  onChange: (value: PeoplePickerValue, change?: PeoplePickerChange) => void;
   // The button that opens the search list. Default: "Add".
   addButtonText?: string | undefined;
   searchPlaceholder?: string | undefined;
@@ -159,11 +166,28 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
     ),
   ]);
 
+  // The picks of a value, by name, as the chips show them.
+  const namedOptionsOf: (
+    value: PeoplePickerValue,
+  ) => Array<PeoplePickerOption> = (
+    value: PeoplePickerValue,
+  ): Array<PeoplePickerOption> => {
+    return getPeoplePickerNamedOptions({
+      kinds: props.kinds,
+      value: value,
+      getOption: lookup.getOption,
+    });
+  };
+
   const change: (next: PeoplePickerValue) => void = (
     next: PeoplePickerValue,
   ): void => {
+    const previous: PeoplePickerValue = latestValueRef.current;
     latestValueRef.current = next;
-    props.onChange(next);
+    props.onChange(next, {
+      selectedOptions: namedOptionsOf(next),
+      previousOptions: namedOptionsOf(previous),
+    });
   };
 
   const remove: (kind: PeoplePickerKind, id: string) => void = (
