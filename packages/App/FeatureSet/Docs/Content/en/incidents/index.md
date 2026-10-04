@@ -129,7 +129,7 @@ The incidents list itself shows **Incident Number**, **Title**, **State**, **Sev
 
 Open an incident and you get a left side menu, grouped like this:
 
-- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**.
+- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**. When your project has [measurements](/docs/incidents/settings#measurements), a **Measurements** card under **Incident Details** says what each one reads for this incident: **12 minutes**, **Running for 5 minutes**, **Not reached**.
 - **State Timeline** — every state the incident has been in, with **Starts At**, **Ends At**, **Duration** and the subscriber notification status for each transition. **View Cause** and **View Logs** explain why each change happened.
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.

@@ -308,6 +308,7 @@ A few options most measurements never change are folded under **More fields** at
 - **If the start happens more than once** and **If the end happens more than once** appear for a moment that reaches a state. A reopened incident can reach the same state again. **Use the first time** is the default and matches the built-in incident timings; **Use the last time** follows a reopened incident to its final pass.
 - **Show durations in** is the unit the measurement's charts use. **Automatic** is the default: it charts seconds, which charts show as seconds, minutes, hours or days as the numbers grow. **Minutes**, **Hours** or **Days** keep a chart in one unit. Every point is written in the unit you pick, and changing it rewrites the measurement's points in the new one.
 - **Chart summary** is how **View Chart** sums up many incidents: **Average** by default, or **Median**, the 90th, 95th or 99th percentile, **Longest** or **Shortest**.
+- **Show on incident pages** puts the measurement in the **Measurements** card on each incident's page (see below). It is on by default; turn it off for a measurement you only want to chart. Alerts and scheduled maintenance call it **Show on alert pages** and **Show on maintenance event pages**.
 
 Editing a measurement adds an **Enabled** switch: turn it off to stop measuring incidents. The numbers already recorded are kept.
 
@@ -323,6 +324,22 @@ Editing a measurement adds an **Enabled** switch: turn it off to stop measuring 
 Only **Recorded** values become chart points. A skipped moment writes nothing rather than a zero, so it cannot drag an average towards it.
 
 **Invalid** is the status worth watching. It is what a measurement says when the timeline it was worked out from is wrong — for example an end 17 minutes before its start. That is deliberately louder than a plausible-looking number nobody questions.
+
+### On each incident's page
+
+Each incident's page shows its own measurements in a **Measurements** card, right under **Incident Details**, in the order of the list on this settings page. Each one says what it measures — **Declared → Acknowledged** — and what it reads for this incident:
+
+| It reads                      | When                                                                                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| A duration, like **4 minutes** | Both moments happened (**Recorded**). It is in the measurement's unit: **Automatic** reads like the page's other timings, **1 hour, 5 minutes**, and **Hours** reads **1.5 hours**. |
+| **Running for 12 minutes**    | The clock has started and the end has not happened yet. It counts up while the page is open.                                    |
+| **Not started yet**           | The start has not happened yet, or is a time still ahead, like a maintenance event's scheduled start.                           |
+| **Not reached**               | The incident is resolved, and the moment the measurement waited for never came — an incident resolved without being acknowledged. |
+| **Not measured**              | A moment can never happen (**Not Applicable**), with the reason, like a skipped state.                                          |
+| **Ends before it starts**     | The recorded times disagree (**Invalid**), with how far apart they are.                                                         |
+| **Not worked out yet**        | OneUptime has not worked it out for this incident yet: just after the measurement was created, or after its start, end or unit changed. |
+
+Alerts and scheduled maintenance events have the same card on their pages; a maintenance event's waiting ends when it is completed. The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
 
 ### Impact Started At, and why it is blank
 
@@ -340,7 +357,7 @@ The **Starts At** field on a state timeline entry is editable. If an incident wa
 
 Choose **View Chart** on a measurement to open its chart in the metric explorer, over the past month, summed up its way. Each enabled measurement writes a metric named `oneuptime.incident.measurement.<key>`, which you can also add to any dashboard. Alerts use `oneuptime.alert.measurement.<key>` and scheduled maintenance uses `oneuptime.scheduled-maintenance.measurement.<key>`. The list's **Key** column, hidden by default, shows each measurement's key.
 
-Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources. Left out, the options under **More fields** take the same defaults as in the dashboard: `unit` is `seconds` (or `minutes`, `hours`, `days`), `aggregation_type` is `Avg` (or `P50`, `P90`, `P95`, `P99`, `Max`, `Min`), and `start_state_occurrence` and `end_state_occurrence` are `First` (or `Last`).
+Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources. Left out, the options under **More fields** take the same defaults as in the dashboard: `unit` is `seconds` (or `minutes`, `hours`, `days`), `aggregation_type` is `Avg` (or `P50`, `P90`, `P95`, `P99`, `Max`, `Min`), and `start_state_occurrence` and `end_state_occurrence` are `First` (or `Last`). `show_on_incident_view` (`show_on_alert_view`, `show_on_scheduled_maintenance_view`) is `true`.
 
 The **key** is permanent because it is part of the metric name — changing it would orphan the series. Rename the measurement freely; the key stays.
 

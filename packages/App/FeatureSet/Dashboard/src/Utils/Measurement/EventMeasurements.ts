@@ -535,6 +535,32 @@ export const roundMeasurementAmount: (amount: number) => number = (
   return Number(amount.toPrecision(2));
 };
 
+type FormatMeasurementAmountFunction = (
+  amount: number,
+  language: string,
+) => string;
+
+/*
+ * The rounded amount, written the reader's way ("1,5" in German) with the
+ * digits roundMeasurementAmount kept: the plural's own number formatting
+ * stops at three decimals, which would write 0.00035 days as 0.
+ */
+const formatMeasurementAmount: FormatMeasurementAmountFunction = (
+  amount: number,
+  language: string,
+): string => {
+  const options: Intl.NumberFormatOptions =
+    amount > 0 && amount < 0.05
+      ? { maximumSignificantDigits: 2 }
+      : { maximumFractionDigits: 1 };
+
+  try {
+    return amount.toLocaleString(language, options);
+  } catch {
+    return amount.toLocaleString(undefined, options);
+  }
+};
+
 interface ListFormatter {
   format: (items: Array<string>) => string;
 }
@@ -599,9 +625,14 @@ export const formatEventMeasurementDuration: (data: {
     : 0;
 
   if (data.unit !== MeasurementUnit.Seconds) {
+    const amount: number = roundMeasurementAmount(
+      seconds / SECONDS_PER_MEASUREMENT_UNIT[data.unit],
+    );
+
     return translator.translatePlural(
       MEASUREMENT_UNIT_PLURALS[data.unit],
-      roundMeasurementAmount(seconds / SECONDS_PER_MEASUREMENT_UNIT[data.unit]),
+      amount,
+      { count: formatMeasurementAmount(amount, translator.language) },
     );
   }
 

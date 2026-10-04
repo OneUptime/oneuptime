@@ -41,6 +41,7 @@ const changeStateMountMock: MockFunction = getJestMockFunction();
 const feedRenderMock: MockFunction = getJestMockFunction();
 const cardModelDetailRenderMock: MockFunction = getJestMockFunction();
 const customFieldsRenderMock: MockFunction = getJestMockFunction();
+const measurementsCardRenderMock: MockFunction = getJestMockFunction();
 
 // Which item each stubbed CardModelDetail renders its field elements against.
 const detailItemsByCardName: Record<string, unknown> = {};
@@ -133,6 +134,26 @@ jest.mock(
       default: (props: unknown): React.ReactElement => {
         customFieldsRenderMock(props);
         return React.createElement("div", { "data-testid": "custom-fields" });
+      },
+    };
+  },
+);
+
+/*
+ * The Measurements card reads its own rows; what the page decides is where
+ * it goes and what it is told: which event, whether it is over, and when to
+ * read again (EventMeasurementsCard.test.tsx covers the card itself).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Measurement/EventMeasurementsCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: unknown): React.ReactElement => {
+        measurementsCardRenderMock(props);
+        return React.createElement("div", {
+          "data-testid": "event-measurements-card",
+        });
       },
     };
   },
@@ -246,6 +267,8 @@ import ScheduledMaintenanceView from "../../../../App/FeatureSet/Dashboard/src/P
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import { SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/EventMeasurements";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
@@ -354,6 +377,8 @@ function makeEvent(overrides?: {
   title?: string;
   statusPageNames?: Array<string>;
   createdBy?: User | null;
+  // In the project's completed state.
+  isCompleted?: boolean;
 }): ScheduledMaintenance {
   const now: number = Date.now();
   const event: ScheduledMaintenance = new ScheduledMaintenance();
@@ -379,6 +404,12 @@ function makeEvent(overrides?: {
     }
 
     event.createdByUser = user;
+  }
+
+  if (overrides?.isCompleted !== undefined) {
+    const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+    state.isResolvedState = overrides.isCompleted;
+    event.currentScheduledMaintenanceState = state;
   }
 
   return event;
@@ -430,6 +461,7 @@ describe("Scheduled maintenance overview page", () => {
     feedRenderMock.mockReset();
     cardModelDetailRenderMock.mockReset();
     customFieldsRenderMock.mockReset();
+    measurementsCardRenderMock.mockReset();
 
     for (const key of Object.keys(detailItemsByCardName)) {
       delete detailItemsByCardName[key];
@@ -497,6 +529,8 @@ describe("Scheduled maintenance overview page", () => {
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
+        // Whether it is completed, for the Measurements card.
+        currentScheduledMaintenanceState: { isResolvedState: true },
       });
     });
 
@@ -1117,6 +1151,112 @@ describe("Scheduled maintenance overview page", () => {
         });
         expect(detail.modelDetailProps.showDetailsInNumberOfColumns).toBe(1);
       }
+    });
+  });
+
+  describe("measurements card", () => {
+    interface MeasurementsCardProps {
+      source: unknown;
+      eventId: ObjectID;
+      isEventOver: boolean;
+      refreshToken?: number;
+      headerLayout?: string;
+    }
+
+    test("sits in the right column, under the details card and before the custom fields", async () => {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      const details: HTMLElement = screen.getByTestId(
+        "card-Scheduled Maintenance Details",
+      );
+      const measurements: HTMLElement = screen.getByTestId(
+        "event-measurements-card",
+      );
+      const customFields: HTMLElement = screen.getByTestId("custom-fields");
+      const feed: HTMLElement = screen.getByTestId("feed");
+
+      expect(
+        details.compareDocumentPosition(measurements) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        measurements.compareDocumentPosition(customFields) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      // The right column comes after the feed's.
+      expect(
+        feed.compareDocumentPosition(measurements) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("reads this event's maintenance measurements, in a stacked card", async () => {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      const props: MeasurementsCardProps = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      );
+
+      expect(props.source).toBe(SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS);
+      expect(props.eventId.toString()).toBe(EVENT_ID);
+      expect(props.headerLayout).toBe("stacked");
+    });
+
+    test.each([
+      { label: "a scheduled event", isCompleted: undefined, isOver: false },
+      { label: "an event in a state not completed", isCompleted: false, isOver: false },
+      { label: "a completed event", isCompleted: true, isOver: true },
+    ])(
+      "tells the card whether the event is over: $label",
+      async ({
+        isCompleted,
+        isOver,
+      }: {
+        isCompleted: boolean | undefined;
+        isOver: boolean;
+      }) => {
+        getItemMock.mockResolvedValue(
+          makeEvent(
+            isCompleted === undefined ? {} : { isCompleted: isCompleted },
+          ) as never,
+        );
+
+        await renderPage();
+
+        expect(
+          lastProps<MeasurementsCardProps>(measurementsCardRenderMock)
+            .isEventOver,
+        ).toBe(isOver);
+      },
+    );
+
+    test("reads again after a state change, and follows the event once it is completed", async () => {
+      getItemMock
+        .mockResolvedValueOnce(makeEvent() as never)
+        .mockResolvedValueOnce(makeEvent({ isCompleted: true }) as never);
+
+      await renderPage();
+
+      const before: MeasurementsCardProps = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      );
+
+      expect(before.refreshToken).toBe(0);
+      expect(before.isEventOver).toBe(false);
+
+      fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
+      await flush();
+
+      const after: MeasurementsCardProps = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      );
+
+      expect(after.refreshToken).toBe(1);
+      expect(after.isEventOver).toBe(true);
     });
   });
 
