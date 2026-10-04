@@ -2,6 +2,9 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DEFAULT_TIME_WINDOW_MINUTES,
   ENGINE_FALLBACK_TIME_WINDOW_MINUTES,
+  EPISODE_OWNERS_FIELD_KEY,
+  EPISODE_OWNER_TEAMS_COLUMN,
+  EPISODE_OWNER_USERS_COLUMN,
   GROUPING_MODE_FIELD_KEY,
   GROUPING_MODE_OPTIONS,
   GROUPING_RULE_COPY,
@@ -16,6 +19,10 @@ import {
   GroupingRuleTemplate,
   GroupingRuleTranslateFunction,
   GroupingRuleValues,
+  LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+  LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN,
+  LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN,
+  LegacyDefaultAssigneeAction,
   MAX_SETTING_MINUTES,
   MINUTES_VALIDATION_MESSAGE,
   SHOW_ADVANCED_SETTINGS_FIELD_KEY,
@@ -29,6 +36,7 @@ import {
   getGroupingRuleSummaryText,
   getGroupingRuleTemplate,
   getGroupingRuleUiStrings,
+  getLegacyDefaultAssignee,
   getMinutesSettingDisplay,
   getMinutesSettingValues,
   getMinutesValidationError,
@@ -37,11 +45,14 @@ import {
   getSuggestedRuleName,
   getTemplateRuleValues,
   getValuesForGroupingModeChange,
+  getValuesForLegacyDefaultAssigneeChange,
   hasAdvancedSettings,
   isGroupingMode,
+  isLegacyDefaultAssigneeChange,
   isSuggestedRuleName,
   parseMinutes,
 } from "../../FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * "The incident grouping rules are extremely hard to understand and use for
@@ -1405,6 +1416,232 @@ describe("getGroupingRuleUiStrings", () => {
     for (const text of strings) {
       expect(typeof text).toBe("string");
       expect(text.trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
+/*
+ * Who owns the episodes a rule opens: Episode Owners, one people picker
+ * kept in the rule's episodeOwnerUsers and episodeOwnerTeams. It replaced a
+ * Default Assign To Team / User pair that nothing showed; a rule that still
+ * has the pair is told so, and the line's two buttons settle it.
+ */
+describe("episode owners and the old default assignee", () => {
+  const USER: string = "0000000e-0000-4000-8000-000000000001";
+  const OTHER_USER: string = "0000000e-0000-4000-8000-000000000002";
+  const TEAM: string = "0000000b-0000-4000-8000-000000000001";
+
+  test("name the rule's own columns", () => {
+    expect(EPISODE_OWNERS_FIELD_KEY).toBe("episodeOwners");
+    expect(EPISODE_OWNER_USERS_COLUMN).toBe("episodeOwnerUsers");
+    expect(EPISODE_OWNER_TEAMS_COLUMN).toBe("episodeOwnerTeams");
+    expect(LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY).toBe("legacyDefaultAssignee");
+    expect(LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN).toBe("defaultAssignToUserId");
+    expect(LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN).toBe("defaultAssignToTeamId");
+  });
+
+  test.each([
+    ["episodeOwnerUsers", [USER]],
+    ["episodeOwnerTeams", [{ _id: TEAM }]],
+  ])(
+    "a rule whose %s names someone opens with advanced settings shown",
+    (key: string, value: unknown) => {
+      expect(hasAdvancedSettings({ [key]: value })).toBe(true);
+    },
+  );
+
+  test.each([["episodeOwnerUsers"], ["episodeOwnerTeams"]])(
+    "an empty %s does not count",
+    (key: string) => {
+      expect(hasAdvancedSettings({ [key]: [] })).toBe(false);
+      expect(hasAdvancedSettings({ [key]: null })).toBe(false);
+    },
+  );
+
+  test("the old pair still counts, so a rule that has it shows the line about it", () => {
+    expect(hasAdvancedSettings({ defaultAssignToUserId: USER })).toBe(true);
+    expect(
+      hasAdvancedSettings({ defaultAssignToTeamId: new ObjectID(TEAM) }),
+    ).toBe(true);
+    expect(
+      hasAdvancedSettings({
+        defaultAssignToUserId: null,
+        defaultAssignToTeamId: null,
+      }),
+    ).toBe(false);
+  });
+
+  test.each([
+    ["a plain id", USER],
+    ["an ObjectID", new ObjectID(USER)],
+    ["a related row", { _id: USER }],
+    ["an id as the API serialises it", { _type: "ObjectID", value: USER }],
+  ])("reads the old user from %s", (_label: string, value: unknown) => {
+    expect(getLegacyDefaultAssignee({ defaultAssignToUserId: value })).toEqual({
+      userId: USER,
+      teamId: null,
+    });
+  });
+
+  test("reads the old pair from its relations too, as the API returns a rule", () => {
+    expect(
+      getLegacyDefaultAssignee({
+        defaultAssignToUser: { _id: USER, name: "Ada" },
+        defaultAssignToTeam: { _id: TEAM, name: "Platform" },
+      }),
+    ).toEqual({ userId: USER, teamId: TEAM });
+  });
+
+  test("a rule with no old pair, or one that was cleared, has none", () => {
+    expect(getLegacyDefaultAssignee({})).toBeNull();
+    expect(
+      getLegacyDefaultAssignee({
+        defaultAssignToUserId: null,
+        defaultAssignToTeamId: undefined,
+      }),
+    ).toBeNull();
+    expect(
+      getLegacyDefaultAssignee({ defaultAssignToTeamId: "  " }),
+    ).toBeNull();
+    // A new rule never has one.
+    for (const kind of KINDS) {
+      expect(
+        getLegacyDefaultAssignee(
+          getNewGroupingRuleValues({ kind, translate: english }),
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("tells the line's own changes from anything else", () => {
+    expect(
+      isLegacyDefaultAssigneeChange({
+        action: LegacyDefaultAssigneeAction.AddAsOwners,
+      }),
+    ).toBe(true);
+    expect(
+      isLegacyDefaultAssigneeChange({
+        action: LegacyDefaultAssigneeAction.Remove,
+      }),
+    ).toBe(true);
+    expect(isLegacyDefaultAssigneeChange("add-as-owners")).toBe(false);
+    expect(isLegacyDefaultAssigneeChange({ action: "delete" })).toBe(false);
+    expect(isLegacyDefaultAssigneeChange(null)).toBe(false);
+    expect(isLegacyDefaultAssigneeChange(undefined)).toBe(false);
+  });
+
+  test("Add as owners puts the old pair into the owners, once, and clears it", () => {
+    expect(
+      getValuesForLegacyDefaultAssigneeChange({
+        values: {
+          defaultAssignToUserId: new ObjectID(USER),
+          defaultAssignToTeamId: new ObjectID(TEAM),
+          episodeOwnerUsers: [OTHER_USER],
+        },
+        change: {
+          action: LegacyDefaultAssigneeAction.AddAsOwners,
+          userId: USER,
+          teamId: TEAM,
+        },
+      }),
+    ).toEqual({
+      defaultAssignToUserId: null,
+      defaultAssignToTeamId: null,
+      episodeOwnerUsers: [OTHER_USER, USER],
+      episodeOwnerTeams: [TEAM],
+    });
+  });
+
+  test("Add as owners never adds someone who already owns the episodes, in any case", () => {
+    expect(
+      getValuesForLegacyDefaultAssigneeChange({
+        values: {
+          episodeOwnerUsers: [{ _id: USER.toUpperCase() }],
+          episodeOwnerTeams: [TEAM],
+        },
+        change: {
+          action: LegacyDefaultAssigneeAction.AddAsOwners,
+          userId: USER,
+          teamId: TEAM,
+        },
+      }),
+    ).toEqual({
+      defaultAssignToUserId: null,
+      defaultAssignToTeamId: null,
+      episodeOwnerUsers: [USER.toUpperCase()],
+      episodeOwnerTeams: [TEAM],
+    });
+  });
+
+  test("Add as owners leaves a list alone when it has nothing for it", () => {
+    expect(
+      getValuesForLegacyDefaultAssigneeChange({
+        values: { episodeOwnerUsers: [OTHER_USER] },
+        change: {
+          action: LegacyDefaultAssigneeAction.AddAsOwners,
+          userId: null,
+          teamId: TEAM,
+        },
+      }),
+    ).toEqual({
+      defaultAssignToUserId: null,
+      defaultAssignToTeamId: null,
+      episodeOwnerTeams: [TEAM],
+    });
+  });
+
+  test("Remove only clears the old pair - its relations too, when the values carry them", () => {
+    expect(
+      getValuesForLegacyDefaultAssigneeChange({
+        values: {
+          defaultAssignToUser: { _id: USER },
+          defaultAssignToTeamId: TEAM,
+          episodeOwnerUsers: [OTHER_USER],
+        },
+        change: {
+          action: LegacyDefaultAssigneeAction.Remove,
+          userId: USER,
+          teamId: TEAM,
+        },
+      }),
+    ).toEqual({
+      defaultAssignToUserId: null,
+      defaultAssignToTeamId: null,
+      defaultAssignToUser: null,
+    });
+  });
+
+  test("the copy says what owners are, and what the old pair is", () => {
+    expect(GROUPING_RULE_COPY.episodeOwnersTitle).toBe("Episode Owners");
+    expect(GROUPING_RULE_COPY.episodeOwnersDescription).toBe(
+      "Added as owners of every episode this rule opens, and notified like any other owner.",
+    );
+    expect(GROUPING_RULE_COPY.legacyAssigneeTitle).toBe("Default assignee");
+    expect(GROUPING_RULE_COPY.legacyAssigneeDescription).toContain(
+      "not shown anywhere",
+    );
+    expect(GROUPING_RULE_COPY.legacyAssigneeDescription).toContain(
+      "Add them as owners to make them responsible",
+    );
+    expect(GROUPING_RULE_COPY.legacyAssigneeAddAsOwners).toBe("Add as owners");
+    expect(GROUPING_RULE_COPY.legacyAssigneeRemove).toBe("Remove");
+    // The advanced switch's own help already promised owners.
+    expect(GROUPING_RULE_COPY.showAdvancedDescription).toContain(
+      "assign owners",
+    );
+
+    const strings: Array<string> = getGroupingRuleUiStrings();
+
+    for (const text of [
+      GROUPING_RULE_COPY.episodeOwnersTitle,
+      GROUPING_RULE_COPY.episodeOwnersDescription,
+      GROUPING_RULE_COPY.legacyAssigneeTitle,
+      GROUPING_RULE_COPY.legacyAssigneeDescription,
+      GROUPING_RULE_COPY.legacyAssigneeAddAsOwners,
+      GROUPING_RULE_COPY.legacyAssigneeRemove,
+      GROUPING_RULE_COPY.legacyAssigneeLookupFailed,
+    ]) {
+      expect(strings).toContain(text);
     }
   });
 });
