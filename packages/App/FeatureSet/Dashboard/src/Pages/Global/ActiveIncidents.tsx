@@ -76,7 +76,7 @@ const ActiveIncidents: FunctionComponent<
         cardProps={{
           title: "Active Incidents",
           description:
-            "Here is a list of active incidents for all of the projects you are a part of.",
+            "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
         }}
         emptyState={{
           isAllClear: true,

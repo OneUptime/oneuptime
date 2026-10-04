@@ -130,13 +130,14 @@ const writeRecentRoute: (routeString: string) => void = (
 export interface ComponentProps {
   items: MoreMenuItem[];
   /*
-   * The categories the menu opens on. Every other category starts folded to
-   * one line until the user opens it (click, or Enter on its row); search
-   * ignores folding, and the category holding the current page opens by
-   * itself. Leave it unset to show every category open. See
-   * NavBarMenuCatalog.ts for the rules.
+   * The categories that are always open: the menu opens on them and they
+   * never fold, so they sit under a plain heading, like Recent. Every other
+   * category starts folded to one line until the user opens it (click, or
+   * Enter on its row); search ignores folding, and the category holding the
+   * current page opens by itself. Leave it unset to show every category
+   * open, with nothing to fold. See NavBarMenuCatalog.ts for the rules.
    */
-  categoriesOpenByDefault?: Array<string> | undefined;
+  categoriesAlwaysOpen?: Array<string> | undefined;
   footer?:
     | {
         title: string;
@@ -239,7 +240,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
   const folds: CategoryFolds = useCategoryFolds(
     props.items,
-    props.categoriesOpenByDefault,
+    props.categoriesAlwaysOpen,
   );
 
   /*
@@ -304,8 +305,10 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
    * order, so arrow keys, the cursor and the cell refs stay in step: the
    * heading row of a category that folds, then the products shown under it.
    *
-   * A category folds only while idle. Search ignores folding: every match is
-   * shown under a plain heading, and the cursor moves over products alone.
+   * A category folds only while idle, and never one the menu keeps open
+   * (the Dashboard's Essentials): that one has a plain heading, which the
+   * cursor does not stop on. Search ignores folding: every match is shown
+   * under a plain heading, and the cursor moves over products alone.
    */
   const rawGroups: Array<RawGroup> = [];
   if (!isSearching && recentItems.length > 0) {
@@ -323,7 +326,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const groups: Array<MenuGroup> = rawGroups.map(
     (group: RawGroup): MenuGroup => {
       const canFold: boolean =
-        folds.isEnabled && !isSearching && !group.isRecent;
+        !isSearching && !group.isRecent && folds.canFold(group.title);
       const isOpen: boolean = !canFold || folds.isOpen(group.title);
       let toggle: CategoryEntry | undefined = undefined;
 
@@ -757,9 +760,10 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                         />
                       ) : (
                         /*
-                         * In a menu that folds, a plain heading (Recent, or a
-                         * category while searching) lines its text up with
-                         * the heading rows around it.
+                         * In a menu that folds, a plain heading (Recent, a
+                         * category the menu keeps open, or any category
+                         * while searching) lines its text up with the
+                         * heading rows around it.
                          */
                         <div
                           className={`mb-2.5 flex items-center gap-1.5 ${

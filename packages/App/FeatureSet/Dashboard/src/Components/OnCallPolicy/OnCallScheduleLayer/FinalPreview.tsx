@@ -177,11 +177,11 @@ const Layers: FunctionComponent<ComponentProps> = (
           description={
             scheduleTimezone
               ? translator.translateTemplate(
-                  "Here is the final schedule of who is on call and when. Restriction windows are resolved in this schedule's timezone - {{timezone}}",
+                  "A combined preview of who is on call and when, after all layers and priorities are applied. Restriction windows are resolved in this schedule's timezone — {{timezone}}.",
                   { timezone: scheduleTimezone },
                 )
               : translator.translateTemplate(
-                  "Here is the final schedule of who is on call and when. This is based on your local timezone - {{timezone}}",
+                  "A combined preview of who is on call and when, after all layers and priorities are applied. Shown in your local timezone — {{timezone}}.",
                   { timezone: OneUptimeDate.getCurrentTimezoneString() },
                 )
           }

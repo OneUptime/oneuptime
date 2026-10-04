@@ -78,7 +78,7 @@ Gehen Sie zu **Vorfälle → Einstellungen → Postmortem-Vorlagen** (`/dashboar
 - **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht.
 - **Postmortem-Vorlage**, der Text selbst, in Markdown, Pflichtfeld.
 
-Angewendet wird eine Vorlage vom Vorfall aus, nicht aus den Einstellungen. Öffnen Sie einen Vorfall, wählen Sie **Postmortem** in seinem Seitenmenü (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) und nutzen Sie **Vorlage anwenden**. Das öffnet den Dialog **Postmortem-Vorlage anwenden** mit dem Dropdown **Vorlage auswählen**; sobald Sie eine auswählen, lädt ihr Text in den Editor **Postmortem-Notiz**, wo Sie ihn vor dem Speichern bearbeiten. Vorfall-Episoden haben dieselbe Seite **Postmortem** und greifen auf dieselbe Vorlagenbibliothek zu.
+Angewendet wird eine Vorlage vom Vorfall aus, nicht aus den Einstellungen. Öffnen Sie einen Vorfall, wählen Sie **Postmortem** in seinem Seitenmenü (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) und nutzen Sie **Vorlage anwenden**. Das öffnet den Dialog **Postmortem-Vorlage anwenden** mit dem Dropdown **Vorlage auswählen**; sobald Sie eine auswählen, lädt ihr Text in den Editor **Postmortem-Notiz**, wo Sie ihn vor dem Speichern bearbeiten. Vorfall-Episoden haben dieselbe Seite **Postmortem** und greifen auf dieselbe Vorlagenbibliothek zu. **Vorlage anwenden** erscheint erst, wenn das Projekt eine Postmortem-Vorlage hat; gibt es nur eine, ist sie bereits ausgewählt. Der Editor öffnet das Postmortem des Vorfalls so, wie es ist, mit der Vorlage als Notiz – ob es auf der Statusseite steht, wann es veröffentlicht wurde und seine Anhänge bleiben unverändert.
 
 ## Benutzerdefinierte Felder
 

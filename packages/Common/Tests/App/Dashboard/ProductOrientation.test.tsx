@@ -527,11 +527,18 @@ describe("the Products menu opens on the essentials", () => {
     expect(foldedSectionNames()).not.toContain(
       lookupNested(DE, "navbar.categories.essentials"),
     );
+    // Essentials never fold: a plain heading, named in German too.
     expect(
-      within(productsMenu()).getByRole("button", {
+      within(productsMenu()).getByRole("heading", {
+        level: 3,
         name: lookupNested(DE, "navbar.categories.essentials")!,
       }),
-    ).toHaveAttribute("aria-expanded", "true");
+    ).toBeVisible();
+    expect(
+      within(productsMenu()).queryByRole("button", {
+        name: lookupNested(DE, "navbar.categories.essentials")!,
+      }),
+    ).toBeNull();
   });
 });
 

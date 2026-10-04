@@ -78,7 +78,7 @@ Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/
 - **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævede.
 - **Postmortem-skabelon**, altså selve teksten, i Markdown, påkrævet.
 
-Du anvender en skabelon fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner dialogen **Anvend postmortem-skabelon** med en **Vælg skabelon**-rulleliste; vælger du en, indlæses skabelonteksten i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme **Postmortem**-side og trækker på det samme skabelonbibliotek.
+Du anvender en skabelon fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner dialogen **Anvend postmortem-skabelon** med en **Vælg skabelon**-rulleliste; vælger du en, indlæses skabelonteksten i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme **Postmortem**-side og trækker på det samme skabelonbibliotek. **Anvend skabelon** vises først, når projektet har en postmortem-skabelon; er der kun én, er den allerede valgt. Editoren åbner hændelsens postmortem, som den er, med skabelonen som note, så om den er på statussiden, hvornår den blev offentliggjort, og dens vedhæftede filer forbliver uændrede.
 
 ## Brugerdefinerede felter
 

@@ -39,7 +39,6 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
         name="Log Drop Filter Details"
         cardProps={{
           title: "Drop Filter Details",
-          description: "Basic information about this drop filter.",
         }}
         isEditable={true}
         formFields={[

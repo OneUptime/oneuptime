@@ -141,7 +141,7 @@ Go to **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectI
 - **Template Name** and **Template Description**, both required.
 - **Postmortem Template**, the body itself, in Markdown, required.
 
-You apply one from the incident, not from settings. Open an incident, choose **Postmortem** in its side menu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), and use **Apply Template**. That opens an **Apply Postmortem Template** dialog with a **Select Template** dropdown; picking one loads the template body into the **Postmortem Note** editor, where you edit it before saving. Incident episodes have the same **Postmortem** page and draw on the same template library.
+You apply one from the incident, not from settings. Open an incident, choose **Postmortem** in its side menu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), and use **Apply Template**. That opens an **Apply Postmortem Template** dialog with a **Select Template** dropdown; picking one loads the template body into the **Postmortem Note** editor, where you edit it before saving. Incident episodes have the same **Postmortem** page and draw on the same template library. **Apply Template** is shown only once the project has a postmortem template; with just one, it is already picked. The editor opens on the incident's postmortem as it stands, with the template as its note, so whether it is on the status page, when it was published and its attachments stay as they were.
 
 ## Custom fields
 

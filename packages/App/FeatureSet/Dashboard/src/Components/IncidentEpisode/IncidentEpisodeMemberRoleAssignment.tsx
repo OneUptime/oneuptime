@@ -234,7 +234,7 @@ const IncidentEpisodeMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       onAssignMember={handleAssignMember}
       onUnassignMember={handleUnassignMember}
       onRefresh={fetchData}
-      emptyStateMessage="Configure incident roles in Incidents > Settings > Roles to start assigning team members."
+      emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
     />

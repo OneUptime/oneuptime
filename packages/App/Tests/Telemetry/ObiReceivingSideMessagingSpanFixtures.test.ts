@@ -3,6 +3,7 @@ import {
   normalizeObiReceivingSideMessagingSpanKind,
 } from "../../FeatureSet/Telemetry/Utils/ObiReceivingSideMessagingSpan";
 import { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "@jest/globals";
@@ -27,7 +28,10 @@ import { describe, expect, test } from "@jest/globals";
  * nats-server B1 (a PUB it read), B2 (a MSG it delivered), B3 (the MSG OBI
  * splits off an exchange the broker wrote first), B3-main (that exchange's
  * PUB) and B4 (a MSG it wrote), the last two typed client-side; and
- * mosquitto's and its clients' MQTT spans.
+ * mosquitto's and its clients' MQTT spans, mosquitto's PUBLISH to a
+ * subscriber typed client-side too. Every broker span is expected as
+ * SERVER: the two client-typed publishes by their equal ports, which are
+ * the subscriber's ephemeral port where a client's are its broker's.
  */
 
 type OtlpValue = {
@@ -218,12 +222,20 @@ const NATS_SHAPES: Array<string> = [
   "host-network B4",
 ];
 
-// A broker's spans that keep a messaging client kind, as v0.13 sent them.
-const BROKER_SHAPES_KEPT_AS_EXPORTED: Array<string> = [
+/*
+ * A broker's publishes OBI types client-side, by v0.13 and v0.14 alike: the
+ * PUB nats-server read beside a split delivery, and mosquitto's PUBLISH to a
+ * subscriber.
+ */
+const BROKER_PUBLISH_SHAPES: Array<string> = [
   "B3-main",
   "host-network B3-main",
   "MQTT broker publish",
 ];
+
+function port(value: unknown): number {
+  return Number(value);
+}
 
 describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtures/ObiMessaging)", () => {
   test.each(FIXTURES)(
@@ -322,7 +334,7 @@ describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtu
     },
   );
 
-  test("v0.13: every kind OBI v0.13 sent is kept, but a MSG a broker wrote (B4), which is SERVER", () => {
+  test("v0.13: every kind OBI v0.13 sent is kept, but the broker spans it typed client-side — a MSG a broker wrote (B4) and a broker's publish (B3-main, mosquitto's PUBLISH to a subscriber) — which are SERVER", () => {
     for (const span of CAPTURED.filter((s: CapturedSpan): boolean => {
       return s.obiVersion === "v0.13.0";
     })) {
@@ -333,19 +345,26 @@ describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtu
       }).toEqual({
         spanId: span.spanId,
         shape: span.shape,
-        stored: span.shape.endsWith("B4") ? SpanKind.Server : span.kind,
+        stored:
+          span.shape.endsWith("B4") ||
+          BROKER_PUBLISH_SHAPES.includes(span.shape)
+            ? SpanKind.Server
+            : span.kind,
       });
     }
   });
 
-  test("v0.14: the kind v0.13 gives the same span, but a client's split delivery naming its broker (C2, its own consumption: CONSUMER) and a MSG a broker wrote (B4: SERVER)", () => {
+  test("v0.14: the kind v0.13 gives the same span, but a client's split delivery naming its broker (C2, its own consumption: CONSUMER) and the broker spans OBI typed client-side (B4, B3-main, mosquitto's PUBLISH to a subscriber: SERVER)", () => {
     for (const span of CAPTURED.filter((s: CapturedSpan): boolean => {
       return s.obiVersion === "v0.14.0";
     })) {
       let expected: SpanKind = span.v013Kind;
       if (span.shape === "C2" || span.shape === "C2 host-network broker") {
         expected = SpanKind.Consumer;
-      } else if (span.shape.endsWith("B4")) {
+      } else if (
+        span.shape.endsWith("B4") ||
+        BROKER_PUBLISH_SHAPES.includes(span.shape)
+      ) {
         expected = SpanKind.Server;
       }
       expect({
@@ -356,10 +375,18 @@ describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtu
     }
   });
 
-  test("a broker's span is SERVER, but the PUB nats-server read beside a split delivery and mosquitto's PUBLISH to a subscriber, which keep OBI's PRODUCER", () => {
-    for (const span of CAPTURED.filter((s: CapturedSpan): boolean => {
-      return s.role === "broker";
-    })) {
+  test("every broker span is SERVER, the publishes OBI typed client-side too: a broker is no producer or consumer of what it carries", () => {
+    const brokerSpans: Array<CapturedSpan> = CAPTURED.filter(
+      (s: CapturedSpan): boolean => {
+        return s.role === "broker";
+      },
+    );
+    expect(
+      brokerSpans.filter((span: CapturedSpan): boolean => {
+        return BROKER_PUBLISH_SHAPES.includes(span.shape);
+      }).length,
+    ).toBeGreaterThan(0);
+    for (const span of brokerSpans) {
       expect({
         spanId: span.spanId,
         shape: span.shape,
@@ -367,9 +394,62 @@ describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtu
       }).toEqual({
         spanId: span.spanId,
         shape: span.shape,
-        stored: BROKER_SHAPES_KEPT_AS_EXPORTED.includes(span.shape)
-          ? SpanKind.Producer
-          : SpanKind.Server,
+        stored: SpanKind.Server,
+      });
+    }
+  });
+
+  test("the ports tell every captured client-typed MQTT and NATS publish apart: equal on both sides, a broker's at its subscriber's ephemeral port, a client's at its broker's listening port", () => {
+    const publishes: Array<CapturedSpan> = CAPTURED.filter(
+      (span: CapturedSpan): boolean => {
+        return (
+          !span.obiEventType.endsWith("Server") &&
+          span.attributes["messaging.operation.type"] === "send"
+        );
+      },
+    );
+    const roles: Set<string> = new Set();
+    for (const span of publishes) {
+      roles.add(`${span.role} ${span.attributes["messaging.system"]}`);
+      const serverPort: number = port(span.attributes["server.port"]);
+      expect({
+        spanId: span.spanId,
+        shape: span.shape,
+        equalPorts: serverPort === port(span.attributes["network.peer.port"]),
+        ephemeral: serverPort >= EPHEMERAL_PORT_RANGE_START,
+        receivingSide: isObiReceivingSideMessagingSpan(span.attributes),
+      }).toEqual({
+        spanId: span.spanId,
+        shape: span.shape,
+        equalPorts: true,
+        ephemeral: span.role === "broker",
+        receivingSide: span.role === "broker",
+      });
+    }
+    expect(Array.from(roles).sort()).toEqual([
+      "broker mqtt",
+      "broker nats",
+      "client mqtt",
+      "client nats",
+    ]);
+  });
+
+  test("a broker's publish to a subscriber whose port is below the ephemeral range keeps OBI's PRODUCER, as before: the ports alone say it is the broker's", () => {
+    for (const span of CAPTURED.filter((s: CapturedSpan): boolean => {
+      return BROKER_PUBLISH_SHAPES.includes(s.shape);
+    })) {
+      expect({
+        spanId: span.spanId,
+        shape: span.shape,
+        stored: storedKind(span, {
+          ...span.attributes,
+          "server.port": String(EPHEMERAL_PORT_RANGE_START - 1),
+          "network.peer.port": String(EPHEMERAL_PORT_RANGE_START - 1),
+        }),
+      }).toEqual({
+        spanId: span.spanId,
+        shape: span.shape,
+        stored: SpanKind.Producer,
       });
     }
   });
@@ -391,7 +471,7 @@ describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtu
     }
   });
 
-  test("an install whose attributes.select drops network.peer.port leaves the address to decide: right for every span but these shapes, which keep OBI v0.14's kind", () => {
+  test("an install whose attributes.select drops network.peer.port leaves the address to decide: right for every span but these shapes, which keep the kind OBI sent", () => {
     const missed: Set<string> = new Set();
     for (const span of CAPTURED) {
       if (
@@ -405,18 +485,60 @@ describe("OBI NATS and MQTT spans captured from nats-server and mosquitto (Fixtu
         );
       }
     }
+    /*
+     * A broker's publish typed client-side (B3-main, mosquitto's PUBLISH to
+     * a subscriber) is still told by its server.port where service.peer.name
+     * says it is client-typed; without one it keeps OBI's PRODUCER, the
+     * address naming the subscriber. B3, the split delivery, names the
+     * subscriber, not nats-server; B4 without service.peer.name is
+     * client-typed by its ports alone; an app named like its broker reads as
+     * the broker by its address; on the host network the address names the
+     * node, not the service.
+     */
     expect(Array.from(missed).sort()).toEqual([
-      // The split delivery names the subscriber, not nats-server.
       "v0.14.0 B3",
-      // Typed client-side, but only the ports would say so.
+      "v0.14.0 B3-main without service.peer.name",
       "v0.14.0 B4 without service.peer.name",
-      // An app named like its broker reads as the broker by its address.
       "v0.14.0 C1 app named like broker without service.peer.name",
-      // The address names the node, not the service.
+      "v0.14.0 MQTT broker publish without service.peer.name",
       "v0.14.0 host-network B1",
       "v0.14.0 host-network B2",
       "v0.14.0 host-network B3",
+      "v0.14.0 host-network B3-main without service.peer.name",
       "v0.14.0 host-network B4 without service.peer.name",
+    ]);
+  });
+
+  test("without network.peer.port a captured publish with service.peer.name is still told by its server.port: every broker's SERVER, every client's kept", () => {
+    const publishes: Array<CapturedSpan> = CAPTURED.filter(
+      (span: CapturedSpan): boolean => {
+        return (
+          hasPeerName(span) &&
+          span.attributes["messaging.operation.type"] === "send"
+        );
+      },
+    );
+    const roles: Set<string> = new Set();
+    for (const span of publishes) {
+      roles.add(`${span.role} ${span.attributes["messaging.system"]}`);
+      expect({
+        spanId: span.spanId,
+        shape: span.shape,
+        stored: storedKind(
+          span,
+          withoutKeys(span.attributes, ["network.peer.port"]),
+        ),
+      }).toEqual({
+        spanId: span.spanId,
+        shape: span.shape,
+        stored: span.role === "broker" ? SpanKind.Server : span.kind,
+      });
+    }
+    expect(Array.from(roles).sort()).toEqual([
+      "broker mqtt",
+      "broker nats",
+      "client mqtt",
+      "client nats",
     ]);
   });
 

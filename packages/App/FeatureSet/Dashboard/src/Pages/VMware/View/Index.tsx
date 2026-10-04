@@ -2566,7 +2566,6 @@ const VMwareVCenterOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "vCenter Details",
-          description: "Basic information about this vCenter.",
           buttons: [
             <EditInSettingsLink
               key="edit-in-settings"

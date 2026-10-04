@@ -168,7 +168,7 @@ const MonitorProbes: FunctionComponent<
         cardProps={{
           title: "Probes",
           description:
-            "List of probes that help you monitor this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
+            "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
         }}
         noItemsMessage={
           "No probes found for this resource. However, you can add some probes to monitor this resource."
@@ -378,7 +378,6 @@ const MonitorProbes: FunctionComponent<
       {showViewLogsModal && monitorType && (
         <Modal
           title={"Monitoring Summary"}
-          description="Here are the latest monitoring summary for this resource."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

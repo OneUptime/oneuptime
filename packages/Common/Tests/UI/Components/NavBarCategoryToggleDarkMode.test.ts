@@ -173,4 +173,16 @@ describe("the category line's colours", () => {
       expect(isRemapped(token)).toBe(true);
     }
   });
+
+  test("the phone menu's plain heading (Essentials, which never fold) is drawn in remapped colours", () => {
+    const tokens: Array<string> = colorTokens(readCode("NavBarMobileMenu.tsx"));
+
+    // The scan sees the heading's own classes, so the check above covers it.
+    expect(tokens).toEqual(
+      expect.arrayContaining(["border-transparent", "text-gray-500"]),
+    );
+    for (const token of tokens) {
+      expect([token, isRemapped(token)]).toEqual([token, true]);
+    }
+  });
 });

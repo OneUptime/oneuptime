@@ -21,6 +21,7 @@ import {
   CategoryFolds,
   MenuCategory,
   UNCATEGORIZED_TITLE,
+  canCategoryFold,
   categoryOf,
   groupItemsByCategory,
   isCategoryOpen,
@@ -44,10 +45,12 @@ const STORAGE_METHODS: StorageMethods =
   Storage.prototype as unknown as StorageMethods;
 
 /*
- * The products menu's catalog rules, on their own: grouping, which category
- * starts folded, and the per-browser memory of what someone opened or
- * folded. The menus that draw them are covered in NavBarMenuFolding.test.tsx
- * (desktop) and NavBarMobileMenuFolding.test.tsx (phone).
+ * The products menu's catalog rules, on their own: grouping, which
+ * categories fold (never the ones a menu keeps open, the Dashboard's
+ * Essentials), which are open, and the per-browser memory of what someone
+ * opened or folded. The menus that draw them are covered in
+ * NavBarMenuFolding.test.tsx (desktop), NavBar.test.tsx and
+ * App/Dashboard/DashboardPhoneProductsMenu.test.tsx (phone).
  */
 
 function item(
@@ -99,7 +102,7 @@ function storedFolds(): unknown {
 
 function foldState(overrides: Partial<CategoryFoldState>): CategoryFoldState {
   return {
-    openByDefault: ["Essentials"],
+    alwaysOpen: ["Essentials"],
     holdingCurrentPage: [],
     remembered: new Map(),
     chosenNow: new Map(),
@@ -183,8 +186,54 @@ describe("which product is the page the user is on", () => {
   });
 });
 
-describe("whether a category starts open", () => {
-  test("only the categories the menu opens on start open", () => {
+describe("which categories fold", () => {
+  test("the categories the menu keeps open never fold; every other one does", () => {
+    expect(canCategoryFold("Essentials", foldState({}))).toBe(false);
+    for (const category of ["Observability", "Infrastructure", "Other"]) {
+      expect([category, canCategoryFold(category, foldState({}))]).toEqual([
+        category,
+        true,
+      ]);
+    }
+  });
+
+  test("a menu can keep several categories open", () => {
+    const state: CategoryFoldState = foldState({
+      alwaysOpen: ["Essentials", "Settings"],
+    });
+
+    expect(canCategoryFold("Essentials", state)).toBe(false);
+    expect(canCategoryFold("Settings", state)).toBe(false);
+    expect(canCategoryFold("Infrastructure", state)).toBe(true);
+  });
+
+  test("names are matched exactly, as the catalog spells them", () => {
+    expect(canCategoryFold("essentials", foldState({}))).toBe(true);
+    expect(canCategoryFold("Essentials ", foldState({}))).toBe(true);
+  });
+
+  test("where the user is, or what they chose, never decides whether a category folds", () => {
+    expect(
+      canCategoryFold(
+        "Essentials",
+        foldState({
+          holdingCurrentPage: ["Infrastructure"],
+          remembered: new Map([["Essentials", false]]),
+          chosenNow: new Map([["Essentials", false]]),
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      canCategoryFold(
+        "Infrastructure",
+        foldState({ holdingCurrentPage: ["Infrastructure"] }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("whether a category is open", () => {
+  test("only the categories the menu keeps open start open", () => {
     expect(isCategoryOpen("Essentials", foldState({}))).toBe(true);
     expect(isCategoryOpen("Observability", foldState({}))).toBe(false);
     expect(isCategoryOpen("Unknown", foldState({}))).toBe(false);
@@ -199,16 +248,66 @@ describe("whether a category starts open", () => {
     ).toBe(true);
   });
 
-  test("a remembered choice beats the default, both ways", () => {
+  test("a remembered choice opens or folds a category that folds", () => {
     const remembered: Map<string, boolean> = new Map([
       ["Infrastructure", true],
-      ["Essentials", false],
+      ["Observability", false],
     ]);
 
     expect(isCategoryOpen("Infrastructure", foldState({ remembered }))).toBe(
       true,
     );
-    expect(isCategoryOpen("Essentials", foldState({ remembered }))).toBe(false);
+    expect(isCategoryOpen("Observability", foldState({ remembered }))).toBe(
+      false,
+    );
+  });
+
+  test("the essentials are open whatever was remembered, chosen or visited", () => {
+    // A fold remembered from before the essentials were always open.
+    expect(
+      isCategoryOpen(
+        "Essentials",
+        foldState({ remembered: new Map([["Essentials", false]]) }),
+      ),
+    ).toBe(true);
+    expect(
+      isCategoryOpen(
+        "Essentials",
+        foldState({ chosenNow: new Map([["Essentials", false]]) }),
+      ),
+    ).toBe(true);
+    expect(
+      isCategoryOpen(
+        "Essentials",
+        foldState({
+          holdingCurrentPage: ["Infrastructure"],
+          remembered: new Map([["Essentials", false]]),
+          chosenNow: new Map([["Essentials", false]]),
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("every category a menu keeps open is open", () => {
+    const state: CategoryFoldState = foldState({
+      alwaysOpen: ["Essentials", "Settings"],
+      remembered: new Map([
+        ["Essentials", false],
+        ["Settings", false],
+      ]),
+    });
+
+    expect(isCategoryOpen("Essentials", state)).toBe(true);
+    expect(isCategoryOpen("Settings", state)).toBe(true);
+    expect(isCategoryOpen("Observability", state)).toBe(false);
+  });
+
+  test("with nothing kept open, every category starts folded", () => {
+    expect(
+      ["Essentials", "Observability"].map((category: string): boolean => {
+        return isCategoryOpen(category, foldState({ alwaysOpen: [] }));
+      }),
+    ).toEqual([false, false]);
   });
 
   test("the current page beats a remembered fold, so the menu shows where the user is", () => {
@@ -250,13 +349,13 @@ describe("remembering folds on this browser", () => {
 
   test("a stored choice is merged with the ones already there", () => {
     rememberCategoryFold("Infrastructure", true);
-    rememberCategoryFold("Essentials", false);
+    rememberCategoryFold("Settings", true);
     rememberCategoryFold("Infrastructure", false);
 
-    expect(storedFolds()).toEqual({ Infrastructure: false, Essentials: false });
+    expect(storedFolds()).toEqual({ Infrastructure: false, Settings: true });
     expect(Array.from(readRememberedCategoryFolds().entries())).toEqual([
       ["Infrastructure", false],
-      ["Essentials", false],
+      ["Settings", true],
     ]);
   });
 
@@ -348,12 +447,12 @@ describe("the fold state of one open menu", () => {
 
   const Probe: React.FunctionComponent<{
     items: Array<MoreMenuItem>;
-    openByDefault?: Array<string> | undefined;
+    alwaysOpen?: Array<string> | undefined;
   }> = (props: {
     items: Array<MoreMenuItem>;
-    openByDefault?: Array<string> | undefined;
+    alwaysOpen?: Array<string> | undefined;
   }): React.ReactElement => {
-    folds = useCategoryFolds(props.items, props.openByDefault);
+    folds = useCategoryFolds(props.items, props.alwaysOpen);
     return <></>;
   };
 
@@ -372,6 +471,7 @@ describe("the fold state of one open menu", () => {
     expect(current().isEnabled).toBe(false);
     for (const category of ["Essentials", "Observability", "Other"]) {
       expect(current().isOpen(category)).toBe(true);
+      expect(current().canFold(category)).toBe(false);
     }
 
     act(() => {
@@ -382,18 +482,73 @@ describe("the fold state of one open menu", () => {
     expect(storedFolds()).toBeNull();
   });
 
-  test("a menu that names its categories opens on them and folds the rest", () => {
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+  test("a menu that names its categories keeps them open and folds the rest", () => {
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
 
     expect(current().isEnabled).toBe(true);
     expect(current().isOpen("Essentials")).toBe(true);
+    expect(current().canFold("Essentials")).toBe(false);
+    for (const category of ["Observability", "Infrastructure", "Other"]) {
+      expect([category, current().isOpen(category)]).toEqual([category, false]);
+      expect([category, current().canFold(category)]).toEqual([category, true]);
+    }
+  });
+
+  test("the essentials cannot be folded: toggling them changes and stores nothing", () => {
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
+
+    act(() => {
+      current().toggle("Essentials");
+    });
+    expect(current().isOpen("Essentials")).toBe(true);
+
+    act(() => {
+      current().toggle("Essentials");
+      current().toggle("Essentials");
+      current().toggle("Essentials");
+    });
+    expect(current().isOpen("Essentials")).toBe(true);
+    expect(storedFolds()).toBeNull();
+  });
+
+  test("a fold of the essentials remembered on this browser is ignored", () => {
+    // What the menu stored when the essentials could still be folded.
+    window.localStorage.setItem(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Essentials: false, Infrastructure: true }),
+    );
+
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
+
+    expect(current().isOpen("Essentials")).toBe(true);
+    expect(current().canFold("Essentials")).toBe(false);
+    // The other remembered choices still hold.
+    expect(current().isOpen("Infrastructure")).toBe(true);
     expect(current().isOpen("Observability")).toBe(false);
+  });
+
+  test("a menu that keeps several categories open never folds any of them", () => {
+    window.localStorage.setItem(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Observability: false }),
+    );
+    render(
+      <Probe items={CATALOG} alwaysOpen={["Essentials", "Observability"]} />,
+    );
+
+    act(() => {
+      current().toggle("Observability");
+    });
+
+    expect(current().isOpen("Essentials")).toBe(true);
+    expect(current().isOpen("Observability")).toBe(true);
+    expect(current().canFold("Observability")).toBe(false);
     expect(current().isOpen("Infrastructure")).toBe(false);
-    expect(current().isOpen("Other")).toBe(false);
+    expect(storedFolds()).toEqual({ Observability: false });
   });
 
   test("toggling opens a folded category, folds it again, and remembers both", () => {
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
 
     act(() => {
       current().toggle("Observability");
@@ -408,24 +563,36 @@ describe("the fold state of one open menu", () => {
     expect(storedFolds()).toEqual({ Observability: false });
   });
 
-  test("the next menu starts from what was remembered", () => {
+  test("the next menu starts from what was remembered, with the essentials open", () => {
     const { unmount } = render(
-      <Probe items={CATALOG} openByDefault={["Essentials"]} />,
+      <Probe items={CATALOG} alwaysOpen={["Essentials"]} />,
     );
     act(() => {
       current().toggle("Infrastructure");
       current().toggle("Essentials");
     });
+    act(() => {
+      current().toggle("Observability");
+    });
+    act(() => {
+      current().toggle("Observability");
+    });
     unmount();
 
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    expect(storedFolds()).toEqual({
+      Infrastructure: true,
+      Observability: false,
+    });
+
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
 
     expect(current().isOpen("Infrastructure")).toBe(true);
-    expect(current().isOpen("Essentials")).toBe(false);
+    expect(current().isOpen("Observability")).toBe(false);
+    expect(current().isOpen("Essentials")).toBe(true);
   });
 
   test("an open menu reads the memory once, when it opens", () => {
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
 
     window.localStorage.setItem(
       CATEGORY_FOLDS_STORAGE_KEY,
@@ -438,7 +605,7 @@ describe("the fold state of one open menu", () => {
   test("the category of the page the user is on opens by itself, without being remembered", () => {
     goTo("/p/hosts/overview");
 
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
 
     expect(current().isOpen("Infrastructure")).toBe(true);
     expect(storedFolds()).toBeNull();
@@ -447,7 +614,7 @@ describe("the fold state of one open menu", () => {
   test("folding the current page's category works in this menu, and it opens again next time", () => {
     goTo("/p/hosts/overview");
     const { unmount } = render(
-      <Probe items={CATALOG} openByDefault={["Essentials"]} />,
+      <Probe items={CATALOG} alwaysOpen={["Essentials"]} />,
     );
 
     act(() => {
@@ -457,13 +624,13 @@ describe("the fold state of one open menu", () => {
     expect(storedFolds()).toEqual({ Infrastructure: false });
     unmount();
 
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
     expect(current().isOpen("Infrastructure")).toBe(true);
 
     // On any other page the remembered fold holds.
     cleanup();
     goTo("/p/home");
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
     expect(current().isOpen("Infrastructure")).toBe(false);
   });
 
@@ -475,7 +642,7 @@ describe("the fold state of one open menu", () => {
       throw new Error("SecurityError");
     });
 
-    render(<Probe items={CATALOG} openByDefault={["Essentials"]} />);
+    render(<Probe items={CATALOG} alwaysOpen={["Essentials"]} />);
 
     expect(current().isOpen("Observability")).toBe(false);
     act(() => {

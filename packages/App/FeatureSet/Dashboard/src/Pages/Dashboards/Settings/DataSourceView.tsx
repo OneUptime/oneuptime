@@ -78,7 +78,6 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
         name="Data Source Details"
         cardProps={{
           title: "Data Source Details",
-          description: "Here are more details for this data source.",
           buttons: [
             {
               title: "Update Credentials",

@@ -100,8 +100,6 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         name="Subscriber Notification Template Details"
         cardProps={{
           title: "Template Overview",
-          description:
-            "Basic information about this subscriber notification template.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}

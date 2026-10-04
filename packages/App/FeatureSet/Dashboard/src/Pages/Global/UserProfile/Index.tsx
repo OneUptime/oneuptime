@@ -16,7 +16,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <CardModelDetail
       cardProps={{
         title: "Basic Info",
-        description: "Here are some of your details.",
+        description:
+          "Your name and email as your team sees them, and the time zone OneUptime shows times in.",
       }}
       name="User Profile > Basic Info"
       onSaveSuccess={(user: User) => {

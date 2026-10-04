@@ -83,41 +83,78 @@ import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/Database
  *     broker itself (on the host network, its node) as every receiving-side
  *     span does, so for a NATS delivery the address still matters.
  *
- * Two broker spans keep OBI's kind, as v0.13 sent them too: the PUB a NATS
- * broker read in the exchange whose MSG OBI split off (typed client-side,
- * so a PRODUCER naming the subscriber; its subject is mostly an ack or a
- * reply inbox, which queue discovery skips), and an MQTT broker's PUBLISH
- * to a subscriber, which OBI types client-side because the broker writes it
- * first. Neither frame tells them from a client's own span — a client
- * writes a PUB, and an MQTT PUBLISH is written by clients and brokers
- * alike — so nothing protocol-exact does. The ephemeral range could: their
- * equal ports are the subscriber's ephemeral port where a client's are the
- * broker's listening port. That heuristic is not applied to client-typed
- * spans here.
+ * Two more broker spans are typed client-side, by v0.13 and v0.14 alike: an
+ * MQTT broker's PUBLISH to a subscriber, which the broker writes first
+ * (ebpf/common/mqtt_detect_transform.go types an MQTT span by the direction
+ * it was seen in), and the PUB a NATS broker read in the exchange whose MSG
+ * OBI split off. Both are PRODUCER spans naming the subscriber, which list
+ * the broker as a producer of the topics and subjects they carry (every
+ * topic an MQTT broker delivers). Neither frame says who wrote it — clients
+ * and brokers alike write an MQTT PUBLISH, and a PUB is a client's frame —
+ * but the connection does. A client-typed span's `server.*` is the far end
+ * of the connection: for a broker, a subscriber, at the ephemeral port it
+ * connected from; for a client, the port it connected to: the broker's own
+ * (1883, 8883, 4222), a Service's in front of it, or a NodePort (30000 to
+ * 32767, below the range). So an MQTT or NATS publish typed client-side
+ * whose `server.port` is in the ephemeral range (EPHEMERAL_PORT_RANGE_START)
+ * — `network.peer.port` equal to it, or left out by an install that selects
+ * service.peer.name — was seen on the listening end of its connection: the
+ * broker's, stored as SERVER. On every captured span the ports agreed with
+ * the workload: 13,594 such spans of brokers, at ports 34800 to 59896, and
+ * 80,821 client-typed spans of clients, at 1883, 4222 and 4223.
+ *
+ * What that costs. A broker listening in the range (a port Docker published
+ * at random, a hostPort picked there) has its clients' publishes stored as
+ * SERVER too, so they no longer show as its topics' producers. A topic only
+ * such clients use is then discovered from OBI's spans only through an MQTT
+ * SUBSCRIBE that names it exactly, and a NATS subject not at all: a client's
+ * split delivery from such a broker is SERVER already. A subscriber
+ * whose port is below the range (an ip_local_port_range that starts lower, a
+ * source port SNAT rewrote) leaves the broker's publish to it a PRODUCER, as
+ * before, and so does an install that drops both network.peer.port and
+ * service.peer.name (the address, naming the subscriber, decides). Kafka is
+ * left out: a Kafka broker's span is typed client-side only where the broker
+ * is itself a client — replicating from a partition leader, calling a
+ * controller — at that one's listening port, while Kafka clients often reach
+ * a broker at a port Docker or Testcontainers published in the range; no
+ * capture has Kafka. So is every other operation: only a client writes an
+ * MQTT SUBSCRIBE, and a NATS MSG has the rule above.
  *
  * Verified against OBI v0.13.0 and v0.14.0: tracesgen.go (messaging
  * attributes, appendPeerService, networkPeerAttributes, spanKind),
  * request/metric_attributes.go (HostAsServer), transform/name_resolver.go
  * (resolveNames), kube/store.go (ServiceNameNamespaceForIP),
  * ebpf/common/nats_detect_transform.go (ProcessPossibleNATSEvent,
- * TCPToNATSToSpan) and tcp_detect_transform.go (matchNATS), and against
+ * TCPToNATSToSpan), mqtt_detect_transform.go (ProcessPossibleMQTTEvent,
+ * TCPToMQTTToSpan) and tcp_detect_transform.go (matchNATS), and against
  * spans captured from a real nats-server (Go tracer and generic tracer),
  * mosquitto and a NATS-protocol test broker, labelled by OBI's own trace
  * printer.
  *
  * These spans are stored as SERVER — the kind v0.13 gave every
- * receiving-side one, and the kind every consumer of span kinds here
- * already treats as "not a messaging client operation":
+ * receiving-side one, the convention for a broker's own spans, and the
+ * kind every consumer of span kinds here already treats as "not a
+ * messaging client operation":
  * MessagingEntityKeyResolver.isMessagingSpan, the queue discovery query and
  * the service dependency queries. Applied before the evaluation row is
  * built, so drop filters, scrub rules and pipelines all see the stored
- * kind, and a Span Kind Remapper keeps the last word.
+ * kind, and a Span Kind Remapper keeps the last word. For a broker's
+ * publish typed client-side that moves a Service Map edge: as a PRODUCER
+ * span nothing answered, it gave the broker a dependency on the subscriber
+ * it named (or on an "mqtt" / "nats" remote service at its address); as a
+ * SERVER span it is an entry span, and one whose parent is the subscriber's
+ * own span (2,361 of mosquitto's 5,873 captured) gives the subscriber a
+ * trace-linked dependency on the broker instead.
  *
  * Every comparison is exact — no trimming, no case folding. OBI writes both
  * names from one Go string, the system and operation from constants and both
  * ports from integers, so a receiving-side span never needs it; each looser
  * match could only ever hide an application's client span. Where no rule
- * holds the span keeps OBI's kind, which is v0.14's behaviour, never worse.
+ * holds the span keeps OBI's kind, which is v0.14's behaviour. An
+ * application's own span is stored as SERVER only by the two rules that
+ * read the ephemeral range, in the cases each names, and by the address
+ * when there is no port evidence and the application is named like its
+ * broker.
  */
 export const OBI_TELEMETRY_DISTRO_NAME: string =
   "opentelemetry-ebpf-instrumentation";
@@ -160,6 +197,16 @@ const PEER_SERVICE_ATTRIBUTES: ReadonlyArray<string> = [
 // OBI's NATS system and the operation it gives a MSG / HMSG frame.
 const NATS_SYSTEM: string = "nats";
 const PROCESS_OPERATION_TYPE: string = "process";
+
+/*
+ * The systems whose broker has publishes OBI types client-side, and the
+ * operation OBI gives a publish (an MQTT PUBLISH, a NATS PUB / HPUB).
+ */
+const BROKER_SIDE_PUBLISH_SYSTEMS: ReadonlySet<string> = new Set<string>([
+  "mqtt",
+  "nats",
+]);
+const SEND_OPERATION_TYPE: string = "send";
 
 type SpanAttributeMap = Readonly<Record<string, unknown>>;
 
@@ -216,12 +263,36 @@ function namesItself(attributes: SpanAttributeMap, orNode: boolean): boolean {
   );
 }
 
+/*
+ * Whether a client-typed MQTT or NATS publish is a broker's: the far end of
+ * the connection, which OBI writes as `server.port`, is at an ephemeral
+ * port — a subscriber that connected to this process. A client's is the
+ * port its broker listens on. `network.peer.port` is the same port where
+ * the install keeps it; one that drops it has service.peer.name saying the
+ * span is client-typed instead.
+ */
+function isBrokerSidePublish(
+  attributes: SpanAttributeMap,
+  messagingSystem: string,
+  serverPort: number | null,
+  peerPort: number | null,
+): boolean {
+  return (
+    BROKER_SIDE_PUBLISH_SYSTEMS.has(messagingSystem) &&
+    attributes[MESSAGING_OPERATION_TYPE_ATTRIBUTE] === SEND_OPERATION_TYPE &&
+    serverPort !== null &&
+    serverPort >= EPHEMERAL_PORT_RANGE_START &&
+    (peerPort === null || peerPort === serverPort)
+  );
+}
+
 /**
  * Whether a span's attributes — span keys bare, resource keys
  * `resource.`-prefixed, as the ingest service builds them — describe a Kafka,
  * MQTT or NATS exchange that OBI saw on the receiving side of a connection,
- * or a NATS delivery the reporting process wrote as the server. Reads one
- * property for a span that is not OBI's.
+ * a NATS delivery the reporting process wrote as the server, or a publish
+ * OBI typed client-side on an MQTT or NATS broker. Reads one property for a
+ * span that is not OBI's.
  */
 export function isObiReceivingSideMessagingSpan(
   attributes: SpanAttributeMap | null | undefined,
@@ -251,17 +322,21 @@ export function isObiReceivingSideMessagingSpan(
 
   /*
    * Client-typed: a NATS delivery this process wrote (only a server writes
-   * a MSG), else never receiving-side.
+   * a MSG), or a publish on a broker, whose far end connected from an
+   * ephemeral port; else never receiving-side.
    */
-  if (hasPeerService(attributes)) {
-    return natsDelivery;
+  if (
+    hasPeerService(attributes) ||
+    (serverPort !== null && serverPort === peerPort)
+  ) {
+    return (
+      natsDelivery ||
+      isBrokerSidePublish(attributes, messagingSystem, serverPort, peerPort)
+    );
   }
   // No port evidence: the address decides.
   if (serverPort === null || peerPort === null) {
     return namesItself(attributes, false);
-  }
-  if (serverPort === peerPort) {
-    return natsDelivery;
   }
 
   /*

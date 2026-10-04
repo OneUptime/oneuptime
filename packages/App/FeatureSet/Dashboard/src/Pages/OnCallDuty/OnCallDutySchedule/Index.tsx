@@ -168,7 +168,6 @@ const OnCallDutyScheduleView: FunctionComponent<
         name="On-Call Schedule > On-Call Schedule Details"
         cardProps={{
           title: "On-Call Schedule Details",
-          description: "Here are more details for this on-call Schedule.",
         }}
         isEditable={true}
         formFields={[

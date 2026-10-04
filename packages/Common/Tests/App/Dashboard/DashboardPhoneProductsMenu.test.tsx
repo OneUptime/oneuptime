@@ -37,9 +37,9 @@ import {
  * On a phone the Dashboard has no products dialog: the menu toggle lists
  * Home, the products and User Settings. It used to list all 42 products one
  * after another. It now folds them the way the desktop products menu does:
- * Essentials listed, every other section one line that opens on a tap, the
- * section of the current page open by itself, and the same remembered
- * choices as the desktop menu.
+ * Essentials listed under a heading that never folds, every other section
+ * one line that opens on a tap, the section of the current page open by
+ * itself, and the same remembered choices as the desktop menu.
  */
 
 const translation: i18n = createInstance();
@@ -139,9 +139,18 @@ describe("the phone menu folds the products like the desktop menu", () => {
 
     expect(linkTitles(menu)).toEqual(["Home", ...ESSENTIALS, "User Settings"]);
     expect(folded(menu)).toEqual(FOLDED);
+    // Essentials sit under a plain heading: there is nothing to fold them.
     expect(
-      within(menu).getByRole("button", { name: "Essentials" }),
-    ).toHaveAttribute("aria-expanded", "true");
+      within(menu).getByRole("heading", { level: 3, name: "Essentials" }),
+    ).toBeVisible();
+    expect(within(menu).queryByRole("button", { name: "Essentials" })).toBe(
+      null,
+    );
+    expect(
+      sectionToggles(menu).map((button: HTMLElement): string => {
+        return button.textContent ?? "";
+      }),
+    ).toEqual(FOLDED);
   });
 
   test("a folded line names what is inside it", () => {
@@ -245,18 +254,99 @@ describe("the phone menu folds the products like the desktop menu", () => {
     expect(within(dialog).getByRole("option", { name: /Tasks/ })).toBeVisible();
   });
 
-  test("a section folded in the desktop menu is folded on the phone", () => {
+  test("a section opened in the desktop menu is open on the phone", () => {
     setViewportWidth(DESKTOP_WIDTH);
     const { unmount } = render(navbar());
     fireEvent.click(screen.getByRole("button", { name: "Products" }));
-    fireEvent.click(screen.getByRole("button", { name: "Essentials" }));
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     unmount();
 
     setViewportWidth(MOBILE_WIDTH);
     render(navbar());
     const menu: HTMLElement = openPhoneMenu();
 
-    expect(folded(menu)).toEqual(["Essentials", ...FOLDED]);
-    expect(linkTitles(menu)).toEqual(["Home", "User Settings"]);
+    expect(folded(menu)).toEqual(
+      FOLDED.filter((section: string): boolean => {
+        return section !== "Settings";
+      }),
+    );
+    expect(linkTitles(menu)).toEqual([
+      "Home",
+      ...ESSENTIALS,
+      "Users",
+      "Teams",
+      "Project Settings",
+      "User Settings",
+    ]);
+  });
+});
+
+describe("the essentials are always open, on the phone as on the desktop", () => {
+  test("a fold of Essentials remembered on this browser no longer hides them", () => {
+    // What the menu stored when Essentials could still be folded.
+    window.localStorage.setItem(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Essentials: false }),
+    );
+
+    render(navbar());
+    const menu: HTMLElement = openPhoneMenu();
+
+    expect(linkTitles(menu)).toEqual(["Home", ...ESSENTIALS, "User Settings"]);
+    expect(folded(menu)).toEqual(FOLDED);
+  });
+
+  test("tapping the Essentials heading neither folds them nor closes the menu", () => {
+    render(navbar());
+    const menu: HTMLElement = openPhoneMenu();
+
+    fireEvent.click(
+      within(menu).getByRole("heading", { level: 3, name: "Essentials" }),
+    );
+
+    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(linkTitles(menu)).toEqual(["Home", ...ESSENTIALS, "User Settings"]);
+    expect(window.localStorage.getItem(CATEGORY_FOLDS_STORAGE_KEY)).toBeNull();
+  });
+
+  test("on another section's page, Essentials stay open beside it", () => {
+    goTo(`/dashboard/${PROJECT_ID}/kubernetes`);
+    render(navbar());
+
+    const menu: HTMLElement = openPhoneMenu();
+
+    expect(linkTitles(menu).slice(0, 9)).toEqual([
+      "Home",
+      ...ESSENTIALS,
+      "Hosts",
+    ]);
+  });
+
+  test("the desktop products menu shows them as cards under a plain heading", () => {
+    window.localStorage.setItem(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Essentials: false }),
+    );
+    setViewportWidth(DESKTOP_WIDTH);
+    render(navbar());
+    fireEvent.click(screen.getByRole("button", { name: "Products" }));
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Products menu",
+    });
+    const essentials: HTMLElement = within(dialog).getByRole("group", {
+      name: "Essentials",
+    });
+
+    expect(
+      within(essentials)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.querySelector("span.truncate")?.textContent ?? "";
+        }),
+    ).toEqual(ESSENTIALS);
+    expect(within(dialog).queryByRole("button", { name: "Essentials" })).toBe(
+      null,
+    );
   });
 });
