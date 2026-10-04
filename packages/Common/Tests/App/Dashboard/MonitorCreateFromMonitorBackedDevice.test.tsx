@@ -647,7 +647,7 @@ describe("the monitor create page opened from a network device", () => {
       renderCreatePage();
 
       await screen.findByText(
-        "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.",
+        "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Monitors → Settings → Monitor Status, then try again.",
       );
 
       expect(capturedForm).toBeNull();

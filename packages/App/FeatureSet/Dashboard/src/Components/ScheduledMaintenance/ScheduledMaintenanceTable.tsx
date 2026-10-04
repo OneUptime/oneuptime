@@ -86,6 +86,7 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -954,21 +955,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       {scheduledMaintenanceTemplates.length === 0 &&
         showScheduledMaintenanceTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Scheduled Maintenance Templates`}
-            description={`No scheduled maintenance templates have been created yet. You can create these in Project Settings > Scheduled Maintenance Templates.`}
-            submitButtonText={"Create Template"}
-            onSubmit={() => {
-              setShowScheduledMaintenanceTemplateModal(false);
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
-                  ] as Route,
-                ),
-              );
-            }}
-            closeButtonText={"Close"}
+          <NoTemplatesYetModal
+            title="No Scheduled Maintenance Templates"
+            description="This project has no scheduled maintenance templates yet. Create them in Scheduled Maintenance → Settings → Event Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+              ] as Route,
+            )}
             onClose={() => {
               setShowScheduledMaintenanceTemplateModal(false);
             }}

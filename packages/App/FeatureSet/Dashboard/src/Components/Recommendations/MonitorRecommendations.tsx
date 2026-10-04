@@ -298,28 +298,28 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       if (!onlineStatus?._id) {
         throw new Error(
           translator.translateTemplate(
-            "This project has no operational monitor status. Add one under Project Settings > Monitor Status.",
+            "This project has no operational monitor status. Add one under Monitors → Settings → Monitor Status.",
           ),
         );
       }
       if (!offlineStatus?._id) {
         throw new Error(
           translator.translateTemplate(
-            "This project has no offline monitor status. Add one under Project Settings > Monitor Status.",
+            "This project has no offline monitor status. Add one under Monitors → Settings → Monitor Status.",
           ),
         );
       }
       if (!incidentSeverityList.data[0]?._id) {
         throw new Error(
           translator.translateTemplate(
-            "This project has no incident severity. Add one under Project Settings > Incident Severity.",
+            "This project has no incident severity. Add one under Incidents → Settings → Incident Severity.",
           ),
         );
       }
       if (!alertSeverityList.data[0]?._id) {
         throw new Error(
           translator.translateTemplate(
-            "This project has no alert severity. Add one under Project Settings > Alert Severity.",
+            "This project has no alert severity. Add one under Alerts → Settings → Alert Severity.",
           ),
         );
       }

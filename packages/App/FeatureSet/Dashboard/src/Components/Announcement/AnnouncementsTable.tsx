@@ -33,6 +33,7 @@ import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getAnnouncementCreateQueryParams } from "./AnnouncementForm";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<StatusPageAnnouncement> | undefined;
@@ -290,12 +291,16 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
       {announcementTemplates.length === 0 &&
         showAnnouncementTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Announcement Templates`}
-            description={`No announcement templates have been created yet. You can create these in Project Settings > Announcement Templates.`}
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              return setShowAnnouncementTemplateModal(false);
+          <NoTemplatesYetModal
+            title="No Announcement Templates"
+            description="This project has no announcement templates yet. Create them in Status Pages → Settings → Announcement Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGES_SETTINGS_ANNOUNCEMENT_TEMPLATES
+              ] as Route,
+            )}
+            onClose={() => {
+              setShowAnnouncementTemplateModal(false);
             }}
           />
         )}
