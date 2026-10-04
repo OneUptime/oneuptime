@@ -236,9 +236,17 @@
       "failed": "無法取消訂閱，請再試一次。",
       "loadFailed": "無法載入此取消訂閱連結，請稍後再試。"
     },
-    "steps": {
-      "details": "詳細資料",
-      "preferences": "偏好設定"
+    "preferences": {
+      "title": "偏好設定",
+      "description": "選擇您要接收的更新內容。",
+      "summary": {
+        "everything": "您將收到此狀態頁的所有更新。",
+        "pickedResources": "您將僅收到所選資源的更新。",
+        "pickedEventTypes": "您將僅收到所選事件類型的更新。",
+        "pickedResourcesAndEventTypes": "您將僅收到所選資源和事件類型的更新。",
+        "noResources": "您尚未選擇任何資源。",
+        "noEventTypes": "您尚未選擇任何事件類型。"
+      }
     }
   },
   "accounts": {

@@ -44,6 +44,8 @@
 - **允许订阅者选择资源**（`allowSubscribersToChooseResources`）——默认关闭。打开之后，订阅表单上会多出一个 **订阅所有资源** 开关；把它关掉，**选择要订阅的资源** 就会出现，访客可以挑具体的资源。
 - **允许订阅者选择事件类型**（`allowSubscribersToChooseEventTypes`）——默认关闭。形式一模一样：一个 **订阅所有事件类型** 开关，关掉它，下面就出现 **选择要订阅的事件类型**。
 
+只要开启其中任意一个，表单仍是一页：这些选择放在 **偏好设置** 里，折叠在“更新发送到哪里”下方。折叠时它用一行说明访客将收到什么（在缩小范围之前，是此状态页的所有更新），所以想要全部更新的访客直接点击 **订阅** 即可。**更新订阅** 页面会展开显示同样的选择。
+
 事件类型有 `Incident`、`Announcement` 和 `Scheduled Event` 三种。
 
 这些选择会落在订阅者记录上，成为 **Is Subscribed to All Resources**（`isSubscribedToAllResources`，默认 true）、**Is Subscribed to All Event Types**（`isSubscribedToAllEventTypes`，默认 true）、**Subscribed to Resources** 和 **Subscribed to Event Types**。

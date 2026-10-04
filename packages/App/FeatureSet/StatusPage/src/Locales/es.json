@@ -236,9 +236,17 @@
       "failed": "No se pudo cancelar la suscripción. Inténtelo de nuevo.",
       "loadFailed": "No se pudo cargar este enlace para cancelar la suscripción. Inténtelo de nuevo más tarde."
     },
-    "steps": {
-      "details": "Detalles",
-      "preferences": "Preferencias"
+    "preferences": {
+      "title": "Preferencias",
+      "description": "Elija sobre qué desea recibir actualizaciones.",
+      "summary": {
+        "everything": "Recibirá todas las actualizaciones de esta página de estado.",
+        "pickedResources": "Solo recibirá actualizaciones de los recursos que eligió.",
+        "pickedEventTypes": "Solo recibirá actualizaciones de los tipos de eventos que eligió.",
+        "pickedResourcesAndEventTypes": "Solo recibirá actualizaciones de los recursos y tipos de eventos que eligió.",
+        "noResources": "Todavía no ha elegido ningún recurso.",
+        "noEventTypes": "Todavía no ha elegido ningún tipo de evento."
+      }
     }
   },
   "accounts": {

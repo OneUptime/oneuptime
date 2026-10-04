@@ -44,6 +44,8 @@ Por padrão, um assinante recebe tudo o que há na página. Duas chaves no cart�
 - **Permitir que assinantes escolham recursos** (`allowSubscribersToChooseResources`) — desligado por padrão. Ligue e o formulário de inscrição ganha uma chave **Inscrever-se em todos os recursos**; desmarque-a e aparece **Selecionar recursos para inscrever-se**, para o visitante escolher recurso a recurso.
 - **Permitir que assinantes escolham tipos de evento** (`allowSubscribersToChooseEventTypes`) — desligado por padrão. Mesmo formato: uma chave **Inscrever-se em todos os tipos de eventos** e, quando ela é desmarcada, **Selecionar tipos de eventos para inscrever-se** logo abaixo.
 
+Com qualquer um dos dois ligado, o formulário continua sendo uma página só: essas escolhas ficam em **Preferências**, recolhido abaixo de para onde enviar as atualizações. Recolhido, ele diz em uma linha o que o visitante vai receber (todas as atualizações da página de status, até que ele restrinja algo), então quem quer tudo só clica em **Inscrever-se**. A página **Atualizar inscrição** mostra as mesmas escolhas abertas.
+
 Os tipos de evento são `Incident`, `Announcement` e `Scheduled Event`.
 
 As escolhas ficam gravadas no registro do assinante como **Is Subscribed to All Resources** (`isSubscribedToAllResources`, `true` por padrão), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, `true` por padrão), **Subscribed to Resources** e **Subscribed to Event Types**.

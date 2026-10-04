@@ -8,7 +8,7 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
 import {
   SubscribePageProps,
-  getSubscribeFormSteps,
+  getSubscribePreferenceFields,
 } from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -24,8 +24,6 @@ import ModelForm, {
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
@@ -118,74 +116,13 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         subscriberPhone: true,
       },
       title: t("subscribe.sms.yourPhoneNumber"),
-      stepId: "details",
       fieldType: FormFieldSchemaType.Phone,
       required: true,
       placeholder: t("subscribe.sms.placeholder"),
       disableSpellCheck: true,
     },
-  ];
-
-  if (props.allowSubscribersToChooseResources) {
-    fields.push({
-      field: {
-        isSubscribedToAllResources: true,
-      },
-      title: t("subscribe.resources.all"),
-      stepId: "preferences",
-      description: t("subscribe.resources.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageResources: true,
-      },
-      title: t("subscribe.resources.select"),
-      stepId: "preferences",
-      description: t("subscribe.resources.selectDescription"),
-      fieldType: FormFieldSchemaType.CategoryCheckbox,
-      required: false,
-      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllResources;
-      },
-    });
-  }
-
-  if (props.allowSubscribersToChooseEventTypes) {
-    fields.push({
-      field: {
-        isSubscribedToAllEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.all"),
-      stepId: "preferences",
-      description: t("subscribe.eventTypes.allDescription"),
-      fieldType: FormFieldSchemaType.Checkbox,
-      required: false,
-      defaultValue: true,
-    });
-
-    fields.push({
-      field: {
-        statusPageEventTypes: true,
-      },
-      title: t("subscribe.eventTypes.select"),
-      stepId: "preferences",
-      description: t("subscribe.eventTypes.selectDescription"),
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      required: false,
-      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
-      showIf: (model: FormValues<StatusPageSubscriber>) => {
-        return !model || !model.isSubscribedToAllEventTypes;
-      },
-    });
-  }
-
-  const formSteps: Array<FormStep<StatusPageSubscriber>> | undefined =
-    getSubscribeFormSteps({
+    // On a page that lets subscribers choose: Preferences, folded.
+    ...getSubscribePreferenceFields({
       allowSubscribersToChooseResources: Boolean(
         props.allowSubscribersToChooseResources,
       ),
@@ -195,7 +132,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       translate: (key: string): string => {
         return t(key);
       },
-    });
+      resourceOptions: categoryCheckboxOptionsAndCategories,
+      eventTypeOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+    }),
+  ];
 
   const getNewSubscriptionContentElement: GetReactElementFunction =
     (): ReactElement => {
@@ -205,7 +145,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           modelAPI={StatusPageModelAPI}
           id="sms-form"
           name="Status Page > SMS Subscribe"
-          steps={formSteps}
           fields={fields}
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),

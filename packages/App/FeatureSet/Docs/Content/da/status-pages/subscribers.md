@@ -44,6 +44,8 @@ Som udgangspunkt får en abonnent alt på siden. To kontakter i kortet **Avancer
 - **Tillad abonnenter at vælge ressourcer** (`allowSubscribersToChooseResources`) — slået fra som standard. Slå den til, og abonnementsformularen får en kontakt, **Abonner på alle ressourcer**; ryd den, og **Vælg ressourcer at abonnere på** kommer frem, så den besøgende kan plukke enkelte ressourcer.
 - **Tillad abonnenter at vælge begivenhedstyper** (`allowSubscribersToChooseEventTypes`) — slået fra som standard. Samme form: en kontakt, **Abonner på alle hændelsestyper**, og **Vælg hændelsestyper at abonnere på** nedenunder, når den ryddes.
 
+Med en af dem slået til er formularen stadig én side: Disse valg ligger under **Præferencer**, foldet sammen under, hvor opdateringerne skal sendes hen. Sammenfoldet siger den på én linje, hvad den besøgende får (alle opdateringer fra statussiden, indtil der vælges færre), så den, der vil have det hele, trykker bare på **Abonner**. Siden **Opdater abonnement** viser de samme valg foldet ud.
+
 Hændelsestyperne er `Incident`, `Announcement` og `Scheduled Event`.
 
 Valgene lander på abonnentposten som **Is Subscribed to All Resources** (`isSubscribedToAllResources`, standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, standard true), **Subscribed to Resources** og **Subscribed to Event Types**.
