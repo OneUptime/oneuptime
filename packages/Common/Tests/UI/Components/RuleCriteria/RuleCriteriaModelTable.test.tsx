@@ -324,13 +324,18 @@ More details stay here.
   });
 
   test("normalizes every static rule help document through the shared behavior", () => {
+    /*
+     * A form with a Match Criteria step: written on the page, or the shared
+     * label and owner rule form's Match step (Dashboard Utils/Form/
+     * ResourceRuleForm).
+     */
+    const matchCriteriaForm: RegExp =
+      /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner)RuleFormSteps</;
     const staticRuleFormFiles: Array<string> = listTypescriptReactFiles(
       DASHBOARD_SOURCE_ROOT,
     ).filter((filePath: string): boolean => {
       return (
-        fs
-          .readFileSync(filePath, "utf8")
-          .match(/id\s*:\s*["']match-criteria["']/) !== null
+        fs.readFileSync(filePath, "utf8").match(matchCriteriaForm) !== null
       );
     });
     const helpFormFiles: Array<string> = staticRuleFormFiles.filter(
