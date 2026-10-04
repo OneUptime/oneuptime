@@ -592,16 +592,51 @@ async function configureOutput(
   }
 }
 
+/*
+ * The sections that open by themselves when a step comes up holding a value
+ * in them: an Edit form, or a step drawn again after going back. More fields
+ * is not one of them. Like every More fields section (getAdvancedFormSection)
+ * it never opens itself, on Create or on Edit; folded, its header names the
+ * fields inside and shows each set one as a chip saying what it is set to.
+ */
+const SECTIONS_OPENED_BY_A_VALUE: Array<string> = [
+  "Description",
+  "Ownership & Labels",
+  "On-Call",
+];
+
 async function expectOutputValues(
   page: Page,
   values: OutputValues,
 ): Promise<void> {
   const output: string = values.output;
-  for (const title of OUTPUT_SECTIONS) {
+  for (const title of SECTIONS_OPENED_BY_A_VALUE) {
     await expect(
       page.getByRole("button", { name: title, exact: true }),
     ).toHaveAttribute("aria-expanded", "true");
   }
+
+  /*
+   * Folded, More fields still shows that all three of its fields are set,
+   * and to what. The remediation notes are a paragraph, so their chip has
+   * the name only. Then it opens to show the values themselves.
+   */
+  const moreFields: Locator = page.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    moreFields.locator(
+      "[data-testid='folded-section-item'][data-item-set='true']",
+    ),
+  ).toHaveText([
+    `Auto Resolve ${output}: Off`,
+    `Private ${output}: On`,
+    `${output} Remediation Notes`,
+  ]);
+  await setSection(page, "More fields", true);
+
   await expect(
     page.getByRole("textbox", { name: `${output} Title` }),
   ).toHaveValue(values.title);
@@ -649,8 +684,10 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await configureOutput(page, INCIDENT_VALUES);
 
   /*
-   * Go back with every optional section closed. The filled values survive
-   * both remounting a wizard step and the final create request.
+   * Go back with every optional section closed. The sections that open on a
+   * value open again, More fields stays folded and its header shows what is
+   * set, and the filled values survive both remounting a wizard step and the
+   * final create request.
    */
   await page
     .locator('nav[aria-label="Progress"] li')
@@ -678,8 +715,13 @@ test("creating and editing preserve both outputs' optional values and distinct r
   await page
     .getByRole("textbox", { name: "Alert Title" })
     .fill("Updated alert title");
+  /*
+   * Saved with these sections folded, More fields among them as an edit
+   * that never opens it leaves it: the next open still finds every value.
+   */
   await setSection(page, "Ownership & Labels", false);
   await setSection(page, "On-Call", false);
+  await setSection(page, "More fields", false);
   await next(page);
   await expectOutputValues(page, INCIDENT_VALUES);
   await page
@@ -687,6 +729,7 @@ test("creating and editing preserve both outputs' optional values and distinct r
     .fill("Updated incident title");
   await setSection(page, "Ownership & Labels", false);
   await setSection(page, "On-Call", false);
+  await setSection(page, "More fields", false);
   await page.getByRole("button", { name: "Save Changes", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 

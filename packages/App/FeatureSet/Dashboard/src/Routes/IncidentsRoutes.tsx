@@ -148,16 +148,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedirect";
-import RouteParams from "../Utils/RouteParams";
-
-/*
- * Where incident forms lived before Forms replaced them (Incidents > Settings
- * > Forms), relative to the incidents mount. They forward to Forms.
- */
-export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
-  forms: "settings/forms",
-  formView: `settings/forms/${RouteParams.ModelID}`,
-};
+import { MOVED_INCIDENT_FORM_PATHS } from "./MovedPagePaths";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
