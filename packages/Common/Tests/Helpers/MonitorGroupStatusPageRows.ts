@@ -56,7 +56,10 @@ const RAW_IN_LIST: RegExp = /^\(col IN \(:\.\.\.\w+\)\)$/;
  * QueryHelper.any (or its always-false TRUE = FALSE) - and throws on
  * anything else.
  */
-function conditionAdmits(condition: unknown, value: string | undefined): boolean {
+function conditionAdmits(
+  condition: unknown,
+  value: string | undefined,
+): boolean {
   if (typeof condition === "string" || condition instanceof ObjectID) {
     return (
       value !== undefined &&

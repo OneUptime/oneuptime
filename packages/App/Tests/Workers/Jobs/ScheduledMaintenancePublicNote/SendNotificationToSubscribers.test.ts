@@ -1605,7 +1605,9 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
 
   test("the default email has no resources when none are affected", async () => {
     createdNotes = [publicNote()];
-    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([] as never);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      [] as never,
+    );
 
     await runJob(CREATED_JOB);
 
@@ -2115,7 +2117,9 @@ describe.each(TRIGGERS)(
     });
 
     test("looks up the event's monitors with the lookup that follows monitor groups", async () => {
-      givenSubscribers(pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers);
+      givenSubscribers(
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers,
+      );
 
       await runJob(trigger.job);
 

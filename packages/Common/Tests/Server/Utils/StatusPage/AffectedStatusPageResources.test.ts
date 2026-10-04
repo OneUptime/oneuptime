@@ -272,9 +272,7 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
     useScenarioRows();
 
     expect(await affectedBy([UNLISTED_MONITOR])).toEqual({});
-    expect(Object.keys(await affectedBy([API_MONITOR]))).toEqual([
-      PUBLIC_PAGE,
-    ]);
+    expect(Object.keys(await affectedBy([API_MONITOR]))).toEqual([PUBLIC_PAGE]);
   });
 
   test("keys each page by its id, as the senders look a page up (statusPage._id)", async () => {
@@ -446,7 +444,11 @@ describe("AffectedStatusPageResources.groupByStatusPage", () => {
   test("keeps each page's resources in the order given, each once, and leaves out a resource without a page", () => {
     const grouped: Dictionary<Array<StatusPageResource>> =
       AffectedStatusPageResources.groupByStatusPage([
-        resource({ id: PUBLIC_API._id, statusPageId: PUBLIC_PAGE, name: "API" }),
+        resource({
+          id: PUBLIC_API._id,
+          statusPageId: PUBLIC_PAGE,
+          name: "API",
+        }),
         resource({ id: EU_DB._id, statusPageId: EU_PAGE, name: "Database" }),
         resource({
           id: PUBLIC_BACKEND._id,
@@ -454,7 +456,11 @@ describe("AffectedStatusPageResources.groupByStatusPage", () => {
           name: "Backend",
         }),
         // The same resource read twice.
-        resource({ id: PUBLIC_API._id, statusPageId: PUBLIC_PAGE, name: "API" }),
+        resource({
+          id: PUBLIC_API._id,
+          statusPageId: PUBLIC_PAGE,
+          name: "API",
+        }),
         resource({ id: INTERNAL_INVOICES._id, name: "Invoices" }),
       ]);
 

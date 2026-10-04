@@ -10,6 +10,8 @@ Get this part right and the rest of the status page is decoration. Visitors judg
 
 **Resources also decide which incidents the page shows.** An incident appears here, and the page's subscribers hear about it, when one of the incident's monitors is a resource on the page, directly or through a monitor group. Put the same monitor on several pages and its incidents reach all of them, unless an incident is limited to some of those pages. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
+**A monitor group row stands for every monitor in it, for subscribers too.** On a page that lets subscribers choose resources, someone who subscribes to a monitor group hears about incidents, scheduled maintenance events and announcements on any monitor in the group, as if they had picked that monitor. See [Subscribers & Announcements](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types).
+
 ## The Resources screen
 
 The screen is split in two. On the left is a navigator listing every group on the page; on the right is the contents of whichever group you selected.

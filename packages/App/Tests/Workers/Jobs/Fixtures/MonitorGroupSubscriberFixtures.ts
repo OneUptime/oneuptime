@@ -85,7 +85,9 @@ export function groupResourceOn(statusPageId: ObjectID): StatusPageResource {
 }
 
 // A monitor group on the page that does not hold the event's monitor.
-export function otherGroupResourceOn(statusPageId: ObjectID): StatusPageResource {
+export function otherGroupResourceOn(
+  statusPageId: ObjectID,
+): StatusPageResource {
   const resource: StatusPageResource = pageResource({
     prefix: "6c000000",
     statusPageId: statusPageId,
@@ -143,7 +145,9 @@ export function fansOn(
 }
 
 // A status page whose subscribers choose the resources they hear about.
-export function lettingSubscribersChooseResources(page: StatusPage): StatusPage {
+export function lettingSubscribersChooseResources(
+  page: StatusPage,
+): StatusPage {
   page.allowSubscribersToChooseResources = true;
   page.allowSubscribersToChooseEventTypes = false;
   return page;

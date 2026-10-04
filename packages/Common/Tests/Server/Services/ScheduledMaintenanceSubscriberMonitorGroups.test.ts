@@ -184,7 +184,13 @@ function sentEmails(): Array<{ to: string; resourcesAffected: string }> {
 describe("scheduled maintenance 'scheduled' and reminder notifications reach a monitor group's subscribers", () => {
   beforeEach(() => {
     useMonitorGroupStatusPageRows({
-      resources: [PUBLIC_API, PUBLIC_BACKEND, PUBLIC_BILLING, EU_DB, EU_BACKEND],
+      resources: [
+        PUBLIC_API,
+        PUBLIC_BACKEND,
+        PUBLIC_BILLING,
+        EU_DB,
+        EU_BACKEND,
+      ],
       memberships: MEMBERSHIPS,
     });
 
