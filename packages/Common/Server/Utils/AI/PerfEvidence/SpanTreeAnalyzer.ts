@@ -373,7 +373,7 @@ export default class SpanTreeAnalyzer {
 
     for (const span of siblings) {
       const statement: string | null = this.getDbStatement(span);
-      const key: string = `${span.normalizedName} ${
+      const key: string = `${span.normalizedName}\u0000${
         statement ? this.normalizeDbStatement(statement) : ""
       }`;
       const group: Array<NormalizedSpan> | undefined = groups.get(key);
@@ -429,7 +429,7 @@ export default class SpanTreeAnalyzer {
           );
         }
 
-        groupsReportedAsNPlusOne.add(`${parentSpanId} ${groupKey}`);
+        groupsReportedAsNPlusOne.add(`${parentSpanId}\u0000${groupKey}`);
 
         findings.push({
           findingType: PerformanceFindingType.NPlusOneQuery,
@@ -597,7 +597,7 @@ export default class SpanTreeAnalyzer {
         }
 
         // Batching (the N+1 fix) subsumes parallelizing — do not report both.
-        if (groupsReportedAsNPlusOne.has(`${parentSpanId} ${groupKey}`)) {
+        if (groupsReportedAsNPlusOne.has(`${parentSpanId}\u0000${groupKey}`)) {
           continue;
         }
 

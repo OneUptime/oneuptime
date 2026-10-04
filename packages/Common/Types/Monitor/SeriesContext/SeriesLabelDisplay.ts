@@ -491,7 +491,7 @@ export default class SeriesLabelDisplay {
 
       const name: string = SeriesLabelDisplay.getFriendlyLabelName(key);
 
-      const dedupeKey: string = `${name} ${value}`;
+      const dedupeKey: string = `${name}\u0000${value}`;
 
       if (seenNameValuePairs.has(dedupeKey)) {
         continue;

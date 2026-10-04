@@ -222,7 +222,7 @@ describe("getShortHostname", () => {
       expect(getShortHostname("kds01.wbhq.com (10.0.0.5)")).toBeUndefined();
       expect(getShortHostname("café.example.com")).toBeUndefined();
       expect(getShortHostname("kds01.wbhq.cöm")).toBeUndefined();
-      expect(getShortHostname("kds01 .wbhq.com")).toBeUndefined();
+      expect(getShortHostname("kds01\u0000.wbhq.com")).toBeUndefined();
       expect(getShortHostname("kds01.wbhq.com")).toBeUndefined();
       expect(getShortHostname("kds01.wb​hq.com")).toBeUndefined();
       expect(getShortHostname("kds01/.wbhq.com")).toBeUndefined();
@@ -449,7 +449,7 @@ describe("getShortHostname", () => {
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const DIGITS: string = "0123456789";
     const INNER: string = `${LETTERS}${DIGITS}-_`;
-    const JUNK: string = " <>\"'/\\:;()[]{}é ​";
+    const JUNK: string = " <>\"'/\\:;()[]{}é\u0000​";
 
     function label(random: RandomFunction): string {
       const kind: number = random();
