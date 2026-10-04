@@ -246,6 +246,16 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  fansOn,
+  groupResourceOn,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Announcement/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -2212,6 +2222,124 @@ describe.each(TRIGGERS)(
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
       }
+    });
+  },
+);
+
+/*
+ * Subscribers who chose resources, on a page that shows the announcement's
+ * monitor through a monitor group. The job used to look resources up by
+ * monitorId alone. A page that showed the monitor only through a group then
+ * had no affected resource, so the announcement went to everyone on it,
+ * subscribers of unrelated resources included; and a page that also listed
+ * the monitor by itself left out whoever had picked the group.
+ */
+describe.each(TRIGGERS)(
+  "Announcement subscribers who picked a monitor group ($name job)",
+  (trigger: TriggerCase) => {
+    function emailsSentTo(): Array<string> {
+      return sentMail().map(({ mail }: { mail: JSONObject }): string => {
+        return (mail["toEmail"] as Email).toString();
+      });
+    }
+
+    function givenSubscribers(subscribers: Array<StatusPageSubscriber>): void {
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue(subscribers as never);
+    }
+
+    beforeEach(() => {
+      givenStatusPages([lettingSubscribersChooseResources(statusPage())]);
+      decideWithTheRealSubscriberPreferences(
+        StatusPageSubscriberService.shouldSendNotification,
+      );
+    });
+
+    test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+    });
+
+    test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(sentSms()).toHaveLength(0);
+    });
+
+    test("lists the group among the resources affected", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.Group]));
+      givenStatusPages([
+        lettingSubscribersChooseResources(statusPageWithCustomDelivery()),
+      ]);
+      useCustomTemplates({
+        body: "{{resourcesAffected}}",
+        subject: "{{resourcesAffected}}",
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentCustomEmails()).toEqual([
+        {
+          body: "Email|Checkout API, Payments",
+          subject: "Subject|Checkout API, Payments",
+        },
+      ]);
+    });
+
+    test("an announcement that names no monitor still tells everyone on the page", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      trigger.queue([announcement()]);
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
+      expect(emailsSentTo()).toEqual(
+        [ResourceFan.Everything, ResourceFan.Group, ResourceFan.OtherGroup].map(
+          fanEmail,
+        ),
+      );
+    });
+
+    test("finishes with the 'no matching subscribers' message when nobody picked an affected resource", async () => {
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = [
+        groupResourceOn(STATUS_PAGE_ID),
+      ];
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.OtherGroup]));
+
+      await runJob(trigger.job);
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual(
+        expect.objectContaining({
+          [trigger.name === "created"
+            ? "subscriberNotificationStatusMessage"
+            : "subscriberNotificationStatusMessageOnAnnouncementUpdated"]:
+            "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+        }),
+      );
     });
   },
 );

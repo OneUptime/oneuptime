@@ -264,6 +264,15 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  fansOn,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -2025,6 +2034,101 @@ describe.each(TRIGGERS)(
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
       }
+    });
+  },
+);
+
+/*
+ * Subscribers who chose resources, on a page that shows the event's monitor
+ * through a monitor group. The job used to look resources up by monitorId
+ * alone, so whoever had picked the group heard that the event was scheduled,
+ * started and ended (those jobs follow groups), but never about its notes.
+ */
+describe.each(TRIGGERS)(
+  "ScheduledMaintenancePublicNote subscribers who picked a monitor group ($name)",
+  (trigger: TriggerCase) => {
+    function emailsSentTo(): Array<string> {
+      return sentMail().map((mail: JSONObject): string => {
+        return (mail["toEmail"] as Email).toString();
+      });
+    }
+
+    function givenSubscribers(subscribers: Array<StatusPageSubscriber>): void {
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue(subscribers as never);
+    }
+
+    beforeEach(() => {
+      trigger.queue([publicNote()]);
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        lettingSubscribersChooseResources(statusPage()),
+      ] as never);
+      decideWithTheRealSubscriberPreferences(
+        StatusPageSubscriberService.shouldSendNotification,
+      );
+    });
+
+    test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        page.affectedResources as never,
+      );
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+    });
+
+    test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        page.affectedResources as never,
+      );
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+    });
+
+    test("lists the group among the resources affected", async () => {
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID).affectedResources as never,
+      );
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.Group]));
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["vars"]).toEqual(
+        expect.objectContaining({
+          resourcesAffected: "Checkout API, Payments",
+        }),
+      );
+    });
+
+    test("looks up the event's monitors with the lookup that follows monitor groups", async () => {
+      givenSubscribers(pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers);
+
+      await runJob(trigger.job);
+
+      expect(StatusPageResourceService.findByMonitors).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          mock(StatusPageResourceService.findByMonitors).mock.calls[0]![0] as {
+            monitorIds: Array<ObjectID>;
+          }
+        ).monitorIds.map((monitorId: ObjectID): string => {
+          return monitorId.toString();
+        }),
+      ).toEqual([MONITOR_ID.toString()]);
     });
   },
 );
