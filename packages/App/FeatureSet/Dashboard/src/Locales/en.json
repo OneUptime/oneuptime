@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "No status counts as downtime, so every uptime percentage on this page reads 100%.",
   "Precision": "Precision",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "The average uptime of the page's resources, shown beside its overall status while everything is operational.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Time a monitor spends in any of these statuses counts against its uptime on this page."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Time a monitor spends in any of these statuses counts against its uptime on this page.",
+  "New Scheduled Maintenance Event": "New Scheduled Maintenance Event"
 }

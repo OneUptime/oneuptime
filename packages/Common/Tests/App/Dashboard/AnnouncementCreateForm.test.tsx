@@ -816,8 +816,15 @@ describe("Create Announcement, from the project's Announcements list", () => {
       breadcrumbs().map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
-    expect(breadcrumbs()[1]!.href).toMatch(/\/status-pages\/announcements$/);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "Announcements",
+      "Create Announcement",
+    ]);
+    // From the project, as every page's trail starts.
+    expect(breadcrumbs()[0]!.href).toMatch(/\/home\/?$/);
+    expect(breadcrumbs()[2]!.href).toMatch(/\/status-pages\/announcements$/);
   });
 });
 
@@ -895,15 +902,17 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
         return link.title;
       }),
     ).toEqual([
+      "Project",
       "Status Pages",
       "View Status Page",
       "Announcements",
       "Create Announcement",
     ]);
-    expect(links[1]!.href).toMatch(
+    expect(links[1]!.href).toMatch(/\/status-pages$/);
+    expect(links[2]!.href).toMatch(
       new RegExp(`/status-pages/${STATUS_PAGE_ID}$`),
     );
-    expect(links[2]!.href).toMatch(
+    expect(links[3]!.href).toMatch(
       new RegExp(`/status-pages/${STATUS_PAGE_ID}/announcements$`),
     );
   });
@@ -996,7 +1005,12 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       breadcrumbs().map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "Announcements",
+      "Create Announcement",
+    ]);
 
     await writeAnnouncement();
     await goToNextStep("Status Pages");
@@ -1023,7 +1037,12 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
       breadcrumbs().map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "Announcements",
+      "Create Announcement",
+    ]);
   });
 
   test("a template that cannot be read says so above the form, which still opens with the page picked", async () => {
@@ -1127,7 +1146,7 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
         title: "Create Announcement",
         href: null,
       });
-      expect(links[2]!.href).toBe(
+      expect(links[3]!.href).toBe(
         `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/announcements`,
       );
     } finally {

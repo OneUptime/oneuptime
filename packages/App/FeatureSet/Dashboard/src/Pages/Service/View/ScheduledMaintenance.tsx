@@ -1,5 +1,6 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ScheduledMaintenancesTable from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceTable";
+import { CreateFromRecordKind } from "../../../Components/CreateFromRecord/CreateFromRecord";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -28,7 +29,7 @@ const ServiceScheduledMaintenance: FunctionComponent<
     <Fragment>
       <ScheduledMaintenancesTable
         query={query}
-        disableCreate={true}
+        createFrom={{ kind: CreateFromRecordKind.Service, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
         noItemsMessage="No scheduled maintenance events for this service."
       />

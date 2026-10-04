@@ -44,6 +44,7 @@ import StatusPageViewMcp from "../Pages/StatusPages/View/Mcp";
 import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
 
 import AnnouncementCreate from "../Pages/StatusPages/AnnouncementCreate";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 import AnnouncementView from "../Pages/StatusPages/AnnouncementView";
 
@@ -315,10 +316,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
         element={
-          <AnnouncementCreate
-            {...props}
-            pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
-          />
+          <RemountOnAddressChange>
+            <AnnouncementCreate
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
+            />
+          </RemountOnAddressChange>
         }
       />
 

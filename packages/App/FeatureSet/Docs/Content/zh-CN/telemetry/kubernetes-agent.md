@@ -358,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` 会保留你现有的配置（预设、集群名称、过滤器）；可在其之上传递任何新的 `--set` 覆盖项。
 
+> **eBPF span 指标已更名。** `ebpf.features.spanMetrics` 现在发送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），不再发送 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：数据序列相同，只是改用 OBI 保留的名称（旧名称已被 OBI 弃用）。基于旧名称的仪表板、图表或指标监控器在升级后将收不到新数据，且不会报错——请将其改为新名称，并同时更新 `filters.metrics` 中引用旧名称的条目。
+
 ## 卸载代理
 
 ```bash
@@ -413,7 +415,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.*`         | 默认 | 它增加了什么                                          |
 | ------------------------- | ---- | ----------------------------------------------------- |
 | `httpMetrics`             | 开   | 每个服务的 HTTP/gRPC RED 指标（请求速率、延迟、错误） |
-| `spanMetrics`             | 开   | 每个 span 的请求/响应大小和持续时间                   |
+| `spanMetrics`             | 开   | span 的调用次数和持续时间（`traces.span.metrics.*`）  |
 | `serviceGraph`            | 开   | 调用方 → 被调用方的边指标；驱动服务地图               |
 | `networkMetrics`          | 开   | Pod 到 Pod 的 TCP/UDP 流量计数器                      |
 | `networkInterZoneMetrics` | 关   | 网络指标的跨区域变体（使基数翻倍）                    |

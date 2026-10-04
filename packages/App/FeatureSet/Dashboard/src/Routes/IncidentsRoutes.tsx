@@ -53,6 +53,7 @@ import IncidentViewPostmortem from "../Pages/Incidents/View/Postmortem";
 import IncidentViewDescription from "../Pages/Incidents/View/Description";
 
 import IncidentCreate from "../Pages/Incidents/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 // Settings Pages
 import IncidentSettingsState from "../Pages/Incidents/Settings/IncidentState";
@@ -277,10 +278,12 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
-            <IncidentCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
-            />
+            <RemountOnAddressChange>
+              <IncidentCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
+              />
+            </RemountOnAddressChange>
           }
         />
 

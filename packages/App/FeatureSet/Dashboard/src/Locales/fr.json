@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "Aucun statut ne compte comme indisponibilité, donc chaque pourcentage de disponibilité de cette page affiche 100 %.",
   "Precision": "Précision",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "La disponibilité moyenne des ressources de la page, affichée à côté de son statut global tant que tout est opérationnel.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Le temps qu'un moniteur passe dans l'un de ces statuts est déduit de sa disponibilité sur cette page."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Le temps qu'un moniteur passe dans l'un de ces statuts est déduit de sa disponibilité sur cette page.",
+  "New Scheduled Maintenance Event": "Nouvel événement de maintenance planifiée"
 }

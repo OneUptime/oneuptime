@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "Ingen status teller som nedetid, så hver oppetidsprosent på denne siden viser 100%.",
   "Precision": "Presisjon",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "Gjennomsnittlig oppetid for sidens ressurser, vist ved siden av den samlede statusen så lenge alt er i drift.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Tiden en monitor bruker i en av disse statusene, trekkes fra oppetiden dens på denne siden."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Tiden en monitor bruker i en av disse statusene, trekkes fra oppetiden dens på denne siden.",
+  "New Scheduled Maintenance Event": "Ny planlagt vedlikeholdshendelse"
 }

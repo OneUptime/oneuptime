@@ -3,6 +3,10 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import { getInventoryTypeLabel } from "./InventoryTypeCatalog";
 import {
+  CreateFromRecordAddress,
+  CreateFromRecordKind,
+} from "../CreateFromRecord/CreateFromRecord";
+import {
   getGlobalTranslator,
   translatableTerm,
   translationKey,
@@ -57,6 +61,34 @@ const QUERY_FIELD: Record<LinkedResourceKind, string> = {
   [LinkedResourceKind.Host]: "hosts",
   [LinkedResourceKind.KubernetesCluster]: "kubernetesClusters",
 };
+
+/*
+ * The record an item's tabs create from: the typed row it points at, which
+ * is what a new incident, alert or maintenance event names - an inventory
+ * item itself is on none of them. So Declare Incident on a host's item opens
+ * with the host picked, and the breadcrumbs go back through the host.
+ */
+const CREATE_FROM_RECORD_KIND: Record<
+  LinkedResourceKind,
+  CreateFromRecordKind
+> = {
+  [LinkedResourceKind.Service]: CreateFromRecordKind.Service,
+  [LinkedResourceKind.Host]: CreateFromRecordKind.Host,
+  [LinkedResourceKind.KubernetesCluster]:
+    CreateFromRecordKind.KubernetesCluster,
+};
+
+export type GetCreateFromRecordForLinkedResourceFunction = (
+  resource: LinkedResource,
+) => CreateFromRecordAddress;
+
+export const getCreateFromRecordForLinkedResource: GetCreateFromRecordForLinkedResourceFunction =
+  (resource: LinkedResource): CreateFromRecordAddress => {
+    return {
+      kind: CREATE_FROM_RECORD_KIND[resource.kind],
+      id: resource.id,
+    };
+  };
 
 export type GetLinkedResourceQueryFieldFunction = (
   kind: LinkedResourceKind,

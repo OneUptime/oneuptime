@@ -24685,5 +24685,6 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "هیچ وضعیتی قطعی به حساب نمی‌آید، بنابراین همهٔ درصدهای زمان کارکرد در این صفحه ۱۰۰٪ نشان داده می‌شوند.",
   "Precision": "دقت",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "میانگین زمان کارکرد منابع صفحه، که تا وقتی همه‌چیز عملیاتی است کنار وضعیت کلی آن نمایش داده می‌شود.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "زمانی که یک مانیتور در هر یک از این وضعیت‌ها می‌گذراند، از زمان کارکرد آن در این صفحه کم می‌شود."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "زمانی که یک مانیتور در هر یک از این وضعیت‌ها می‌گذراند، از زمان کارکرد آن در این صفحه کم می‌شود.",
+  "New Scheduled Maintenance Event": "رویداد تعمیر و نگهداری زمان‌بندی‌شده جدید"
 }
