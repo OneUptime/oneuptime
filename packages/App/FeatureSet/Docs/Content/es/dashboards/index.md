@@ -47,7 +47,7 @@ Abre **Paneles** en la navegación lateral.
 
 ## Construir un panel
 
-1. **Crear** — elige un nombre. El lienzo se abre vacío.
+1. **Crear** — elige una plantilla, o **Blank Dashboard**. Una plantilla rellena el nombre y se abre con sus widgets; un panel en blanco se abre vacío, con **Añadir widget** en su lienzo.
 2. **Añadir widgets** — elige un tipo de widget, configura sus datos y arrástralo donde quieras.
 3. **(Opcional) Añadir variables** — por ejemplo, un menú desplegable `service` para que el mismo panel funcione para cada servicio.
 4. **Establecer el rango de tiempo** — los valores predeterminados están bien; ajústalos después.
@@ -58,7 +58,7 @@ Abre **Paneles** en la navegación lateral.
 
 Objetivo: una página de guardia para el servicio de checkout con latencia, tasa de errores, incidentes abiertos y un seguimiento de logs en vivo.
 
-1. Crea un panel llamado "Checkout de guardia".
+1. Crea un **Blank Dashboard** llamado "Checkout de guardia".
 2. Añade una variable `service`. Establece el valor predeterminado en `checkout`.
 3. Añade un widget de **Gráfico** con latencia P95, filtrado por la variable `service`.
 4. Junto a él, añade un widget de **Valor** para la tasa de errores, con advertencia al 1% y crítico al 5%.

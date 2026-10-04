@@ -47,7 +47,7 @@ Die vollständige Liste mit dem, was jedes Widget zeigt, finden Sie unter [Widge
 
 ## Ein Dashboard aufbauen
 
-1. **Erstellen** – wählen Sie einen Namen. Die Arbeitsfläche öffnet sich leer.
+1. **Erstellen** – wählen Sie eine Vorlage oder **Blank Dashboard**. Eine Vorlage trägt den Namen ein und öffnet sich mit ihren Widgets; ein leeres Dashboard öffnet sich leer, mit **Widget hinzufügen** auf der Arbeitsfläche.
 2. **Widgets hinzufügen** – Widget-Typ wählen, dessen Daten konfigurieren und an die gewünschte Stelle ziehen.
 3. **(Optional) Variablen hinzufügen** – zum Beispiel ein Dropdown `service`, damit dasselbe Dashboard für jeden Service funktioniert.
 4. **Zeitbereich einstellen** – die Voreinstellungen passen meist; später feinjustieren.
@@ -58,7 +58,7 @@ Die vollständige Liste mit dem, was jedes Widget zeigt, finden Sie unter [Widge
 
 Ziel: eine Rufbereitschafts-Seite für den Checkout-Service mit Latenz, Fehlerquote, offenen Vorfällen und einem Live-Log-Stream.
 
-1. Erstellen Sie ein Dashboard mit dem Namen „Checkout Rufbereitschaft".
+1. Erstellen Sie ein **Blank Dashboard** mit dem Namen „Checkout Rufbereitschaft".
 2. Fügen Sie eine Variable `service` hinzu. Standardwert `checkout`.
 3. Fügen Sie ein **Diagramm**-Widget mit P95-Latenz hinzu, gefiltert nach der Variablen `service`.
 4. Daneben ein **Wert**-Widget für die Fehlerquote, mit Warnung bei 1 % und kritisch bei 5 %.

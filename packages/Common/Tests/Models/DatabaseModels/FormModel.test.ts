@@ -150,6 +150,12 @@ const FORM_COLUMNS: Array<string> = [
   "targetSettings",
   "successMessage",
   "ipWhitelist",
+  // Its branding (AddFormBranding1797700000000).
+  "logoFile",
+  "logoFileId",
+  "logoAltText",
+  "faviconFile",
+  "faviconFileId",
   "createdByUser",
   "createdByUserId",
   "deletedByUser",
@@ -166,6 +172,11 @@ const FORM_SETTINGS_COLUMNS: Array<string> = [
   "targetSettings",
   "successMessage",
   "ipWhitelist",
+  "logoFile",
+  "logoFileId",
+  "logoAltText",
+  "faviconFile",
+  "faviconFileId",
 ];
 
 const SUBMISSION_COLUMNS: Array<string> = [
@@ -982,13 +993,26 @@ describe("Form in the published API", () => {
     expect(property["readOnly"]).toBe(true);
   });
 
-  test.each(FORM_SETTINGS_COLUMNS)(
-    "%s is writable on create and update",
-    (column: string) => {
-      expect(propertiesOf(create)[column]).toBeDefined();
-      expect(propertiesOf(update)[column]).toBeDefined();
-    },
-  );
+  /*
+   * The API names a logo or favicon by its file's id (logoFileId,
+   * faviconFileId), as it names every other relation; the relation objects
+   * themselves are the dashboard's.
+   */
+  test("names the logo and favicon by their files' ids, not as objects", () => {
+    for (const relation of ["logoFile", "faviconFile"]) {
+      expect(propertiesOf(create)[relation]).toBeUndefined();
+      expect(propertiesOf(update)[relation]).toBeUndefined();
+    }
+  });
+
+  test.each(
+    FORM_SETTINGS_COLUMNS.filter((column: string): boolean => {
+      return column !== "logoFile" && column !== "faviconFile";
+    }),
+  )("%s is writable on create and update", (column: string) => {
+    expect(propertiesOf(create)[column]).toBeDefined();
+    expect(propertiesOf(update)[column]).toBeDefined();
+  });
 });
 
 describe("FormSubmission: written by the submit route alone", () => {
