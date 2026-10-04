@@ -89,6 +89,14 @@ export interface ComponentProps {
    * can, and copies the link. Left out, the menu has no Share.
    */
   onShareClick?: (() => void) | undefined;
+  /*
+   * Whether the Add Widget dialog is open, when the page opens it too: an
+   * empty board has an Add Widget of its own (Canvas/BlankCanvas), which
+   * puts the board in edit mode with this dialog open. Left out, the
+   * toolbar keeps the dialog to itself.
+   */
+  isAddWidgetModalOpen?: boolean | undefined;
+  onAddWidgetModalOpenChange?: ((isOpen: boolean) => void) | undefined;
 }
 
 interface CountdownCircleProps {
@@ -323,8 +331,22 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
-  const [showAddWidgetModal, setShowAddWidgetModal] = useState<boolean>(false);
+  const [ownShowAddWidgetModal, setOwnShowAddWidgetModal] =
+    useState<boolean>(false);
   const [showVariablesModal, setShowVariablesModal] = useState<boolean>(false);
+
+  // The page's say when it has one (isAddWidgetModalOpen), else the toolbar's.
+  const showAddWidgetModal: boolean =
+    props.isAddWidgetModalOpen !== undefined
+      ? props.isAddWidgetModalOpen
+      : ownShowAddWidgetModal;
+
+  const setShowAddWidgetModal: (isOpen: boolean) => void = (
+    isOpen: boolean,
+  ): void => {
+    setOwnShowAddWidgetModal(isOpen);
+    props.onAddWidgetModalOpenChange?.(isOpen);
+  };
 
   const isSaving: boolean = props.isSaving;
 

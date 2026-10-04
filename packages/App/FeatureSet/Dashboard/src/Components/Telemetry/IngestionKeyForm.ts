@@ -9,6 +9,10 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
 import {
+  GetUniqueNameFunction,
+  getUniqueName,
+} from "Common/UI/Components/Forms/Utils/UniqueName";
+import {
   translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -145,50 +149,20 @@ export const getIngestionKeyNameAfterTypeChange: GetNameAfterTypeChangeFunction 
     });
   };
 
-type GetUniqueNameFunction = (data: {
-  // The name wanted: "Kubernetes key".
-  name: string;
-  // The names of the keys the project already has (that the door lists).
-  existingNames: Iterable<string | null | undefined>;
-}) => string;
-
 /**
  * The name itself while no other key has it, else the first of "name 2",
  * "name 3", ... that none has - so a second key made from the same guide
  * can be told from the first in the key picker. Compared without case or
- * surrounding spaces, the way they read in a list.
+ * surrounding spaces, the way they read in a list. The rule every form
+ * that names a new record follows (Forms/Utils/UniqueName).
  */
 export const getUniqueIngestionKeyName: GetUniqueNameFunction = (data: {
+  // The name wanted: "Kubernetes key".
   name: string;
+  // The names of the keys the project already has (that the door lists).
   existingNames: Iterable<string | null | undefined>;
 }): string => {
-  const normalize: (name: string) => string = (name: string): string => {
-    return name.trim().toLowerCase();
-  };
-
-  const taken: Set<string> = new Set<string>();
-
-  for (const existing of data.existingNames) {
-    if (typeof existing === "string" && existing.trim().length > 0) {
-      taken.add(normalize(existing));
-    }
-  }
-
-  if (!taken.has(normalize(data.name))) {
-    return data.name;
-  }
-
-  // One more than there are names is always enough.
-  for (let number: number = 2; number <= taken.size + 2; number++) {
-    const candidate: string = `${data.name} ${number}`;
-
-    if (!taken.has(normalize(candidate))) {
-      return candidate;
-    }
-  }
-
-  // Unreachable (see the loop bound); kept so the function always returns.
-  return `${data.name} ${taken.size + 2}`;
+  return getUniqueName(data);
 };
 
 /**

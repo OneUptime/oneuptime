@@ -1,6 +1,6 @@
 # Skapa en instrumentpanel
 
-För att skapa en instrumentpanel, öppna **Instrumentpaneler → Create Dashboard**, ge den ett namn och öppna den. Arbetsytan öppnas i **Redigera**-läge, redo för dig att börja lägga till widgetar.
+För att skapa en instrumentpanel, öppna **Instrumentpaneler → Create Dashboard** och välj en mall, eller **Blank Dashboard** för att börja från början. En mall fyller i instrumentpanelens namn åt dig (numrerat, som "Kubernetes Dashboard 2", om projektet redan har en); en tom instrumentpanel namnger du själv. Klicka på **Create Dashboard** så öppnas den nya instrumentpanelen. En tom instrumentpanel öppnas på en tom arbetsyta, med knappen **Lägg till widget** för den första widgeten.
 
 ## Arbetsytan
 
@@ -17,7 +17,7 @@ Det är samma instrumentpanel i båda lägena. Det finns inget separat "publicer
 
 ## Lägga till en widget
 
-1. Klicka på **+**-knappen för att öppna widget-paletten.
+1. Klicka på **Lägg till widget** för att öppna widget-paletten: på arbetsytan i en tom instrumentpanel, eller i verktygsfältet medan du redigerar instrumentpanelen.
 2. Välj widget-typ. Se [Widgetar](/docs/dashboards/widgets) för katalogen.
 3. Widgeten dyker upp på arbetsytan.
 4. Klicka på kugghjulsikonen på widgeten för att öppna dess inställningar.

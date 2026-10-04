@@ -47,7 +47,7 @@ Se [Widgets](/docs/dashboards/widgets) for den fulde liste og hvad hver enkelt v
 
 ## Byg et dashboard
 
-1. **Opret** — vælg et navn. Lærredet åbnes tomt.
+1. **Opret** — vælg en skabelon eller **Blank Dashboard**. En skabelon udfylder navnet og åbner med sine widgets; et tomt dashboard åbnes tomt med **Tilføj widget** på lærredet.
 2. **Tilføj widgets** — vælg en widget-type, konfigurér dens data, træk den hen, hvor du vil have den.
 3. **(Valgfrit) Tilføj variabler** — for eksempel en `service`-dropdown, så det samme dashboard virker for hver service.
 4. **Sæt tidsintervallet** — standarderne er fine; juster senere.
@@ -58,7 +58,7 @@ Se [Widgets](/docs/dashboards/widgets) for den fulde liste og hvad hver enkelt v
 
 Mål: en vagt-side til checkout-servicen med latency, fejlrate, åbne hændelser og et live-log-tail.
 
-1. Opret et dashboard kaldet "Checkout on-call."
+1. Opret et **Blank Dashboard** kaldet "Checkout on-call."
 2. Tilføj en `service`-variabel. Sæt standarden til `checkout`.
 3. Tilføj en **Diagram**-widget med P95-latency, filtreret efter `service`-variablen.
 4. Ved siden af den, en **Værdi**-widget for fejlrate, med advarsel ved 1% og kritisk ved 5%.
