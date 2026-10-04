@@ -60,6 +60,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
             <AffectedResourcesPicker
               monitors={values.monitors as Array<Monitor>}
               resourceTypes={["Monitor"]}
+              placeholder="Search monitors..."
               ariaLabelledby={elementProps.ariaLabelledby}
               onChange={(payload: unknown) => {
                 elementProps.onChange?.(payload);

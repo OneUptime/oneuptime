@@ -624,7 +624,9 @@ describe("the monitors apart, and the status they change to right under them", (
   // The names of a `const <list>: Array<AffectedResourceType> = [...]`.
   function typesOf(source: string, list: string): Array<string> {
     const block: string | undefined = source.match(
-      new RegExp(`const ${list}: Array<AffectedResourceType> = \\[([^\\]]*)\\];`),
+      new RegExp(
+        `const ${list}: Array<AffectedResourceType> = \\[([^\\]]*)\\];`,
+      ),
     )?.[1];
 
     expect(`${list}: ${block !== undefined}`).toBe(`${list}: true`);

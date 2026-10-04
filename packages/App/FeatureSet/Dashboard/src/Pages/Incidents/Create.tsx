@@ -1682,6 +1682,7 @@ const IncidentCreate: FunctionComponent<
                       <AffectedResourcesPicker
                         monitors={values.monitors as Array<Monitor>}
                         resourceTypes={MONITOR_RESOURCE_TYPES}
+                        placeholder="Search monitors..."
                         ariaLabelledby={elementProps.ariaLabelledby}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);

@@ -162,8 +162,6 @@ const RESOURCE_PROP_NAMES: Array<ResourceProp> = Object.keys(
   RESOURCE_PROPS,
 ) as Array<ResourceProp>;
 
-const NOTHING_SELECTED_PATTERN: RegExp = /No resources affected/;
-
 type KnownResource = {
   modelType: ResourceModelType;
   name: string;

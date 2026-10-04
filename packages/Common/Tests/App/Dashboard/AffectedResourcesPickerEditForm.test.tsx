@@ -13,19 +13,29 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
+ * The Edit modal of an incident's Affected Resources card, rendered through
+ * the real ModelForm and the real pickers with the very fields and save hook
+ * the incident page hands its card (Components/Incident/
+ * IncidentAffectedResourcesFormFields).
+ *
  * The bug as the user met it: open an incident, click Edit on the Affected
  * Resources card, and the attached monitor reads "MONITOR Unnamed Monitor".
+ * ModelForm loads the incident with `monitors: true`, which the server
+ * answers with `{ _id }` per monitor, and then flattens the relation to bare
+ * ID strings before the picker ever sees it - so the picker has to find the
+ * names itself.
  *
- * Rendered here through the real ModelForm and the real picker, wired the way
- * the incident page wires them. ModelForm loads the incident with
- * `monitors: true`, which the server answers with `{ _id }` per monitor, and
- * then flattens the relation to bare ID strings before the picker ever sees
- * it - so the picker has to find the names itself.
+ * And as Declare Incident asks: the monitors in a picker of their own, then
+ * "Change Monitor Status to" right under them - only while a monitor is
+ * picked - then everything else. Saving stores what the one picker stored:
+ * each resource in its own relation, and the status untouched unless there
+ * is a monitor to put in it.
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
@@ -63,22 +73,19 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import AffectedResourcesPicker, {
-  isAffectedResourcesPayload,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
-import ModelForm, {
-  FormType,
-  ModelField,
-} from "../../../UI/Components/Forms/ModelForm";
-import { CustomElementProps } from "../../../UI/Components/Forms/Types/Field";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import {
+  getIncidentAffectedResourcesFormFields,
+  onBeforeIncidentAffectedResourcesUpdate,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentAffectedResourcesFormFields";
+import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -86,10 +93,14 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 const MONITOR_ID: string = "22222222-2222-4222-8222-222222222222";
 const MONITOR_NAME: string = "Production Website";
+const OTHER_MONITOR_ID: string = "22222222-2222-4222-8222-222222222223";
+const OTHER_MONITOR_NAME: string = "Checkout API";
 const HOST_ID: string = "33333333-3333-4333-8333-333333333333";
 const HOST_NAME: string = "web-01";
 const SERVICE_ID: string = "44444444-4444-4444-8444-444444444444";
 const SERVICE_NAME: string = "checkout-api";
+const STATUS_ID: string = "55555555-5555-4555-8555-555555555555";
+const STATUS_NAME: string = "Degraded";
 
 type ModelClass = { new (): BaseModel };
 
@@ -97,9 +108,13 @@ const NAMES: Map<ModelClass, Record<string, string>> = new Map<
   ModelClass,
   Record<string, string>
 >([
-  [Monitor, { [MONITOR_ID]: MONITOR_NAME }],
+  [
+    Monitor,
+    { [MONITOR_ID]: MONITOR_NAME, [OTHER_MONITOR_ID]: OTHER_MONITOR_NAME },
+  ],
   [Host, { [HOST_ID]: HOST_NAME }],
   [Service, { [SERVICE_ID]: SERVICE_NAME }],
+  [MonitorStatus, { [STATUS_ID]: STATUS_NAME }],
 ]);
 
 let capturedGetItemSelect: Record<string, unknown> | null = null;
@@ -108,81 +123,13 @@ let capturedGetItemSelect: Record<string, unknown> | null = null;
  * What the API answers for the edit form's load: each relation selected as
  * `true` comes back as `{ _id }` only.
  */
-const incidentAsLoadedByTheEditForm: () => Incident = (): Incident => {
-  return BaseModel.fromJSON(
-    {
-      _id: INCIDENT_ID.toString(),
-      monitors: [{ _id: MONITOR_ID }],
-      hosts: [{ _id: HOST_ID }],
-      services: [{ _id: SERVICE_ID }],
-    },
-    Incident,
-  ) as Incident;
+const ATTACHED: JSONObject = {
+  monitors: [{ _id: MONITOR_ID }],
+  hosts: [{ _id: HOST_ID }],
+  services: [{ _id: SERVICE_ID }],
 };
 
-const hiddenField: (key: "hosts" | "services") => ModelField<Incident> = (
-  key: "hosts" | "services",
-): ModelField<Incident> => {
-  return {
-    field: { [key]: true } as ModelField<Incident>["field"],
-    title: "",
-    fieldType: FormFieldSchemaType.Text,
-    required: false,
-    showIf: () => {
-      return false;
-    },
-  };
-};
-
-/*
- * The incident page's Affected Resources edit fields, trimmed to the types
- * this test attaches: the picker as a custom component on `monitors`, the
- * page-level onChange that splits the picker's payload back into the form,
- * and hidden registrations so the other relations are loaded and saved.
- */
-const AFFECTED_RESOURCE_FIELDS: Array<ModelField<Incident>> = [
-  {
-    field: { monitors: true },
-    title: "",
-    fieldType: FormFieldSchemaType.CustomComponent,
-    required: false,
-    getCustomElement: (
-      values: FormValues<Incident>,
-      elementProps: CustomElementProps,
-    ): ReactElement => {
-      return (
-        <AffectedResourcesPicker
-          monitors={values.monitors as Array<Monitor>}
-          hosts={values.hosts as Array<Host>}
-          services={values.services as Array<Service>}
-          resourceTypes={["Monitor", "Host", "Service"]}
-          onChange={(payload: unknown) => {
-            elementProps.onChange?.(payload);
-          }}
-        />
-      );
-    },
-    onChange: (
-      value: unknown,
-      currentValues: FormValues<Incident>,
-      setNewFormValues: (values: FormValues<Incident>) => void,
-    ) => {
-      if (isAffectedResourcesPayload(value)) {
-        const payload: typeof value = value;
-        queueMicrotask(() => {
-          setNewFormValues({
-            ...currentValues,
-            monitors: payload.monitors,
-            hosts: payload.hosts,
-            services: payload.services,
-          } as FormValues<Incident>);
-        });
-      }
-    },
-  },
-  hiddenField("hosts"),
-  hiddenField("services"),
-];
+let incidentOnServer: JSONObject = ATTACHED;
 
 const renderEditForm: () => void = (): void => {
   render(
@@ -190,10 +137,11 @@ const renderEditForm: () => void = (): void => {
       modelType={Incident}
       id="edit-incident-affected-resources"
       name="Edit Incident"
-      fields={AFFECTED_RESOURCE_FIELDS}
+      fields={getIncidentAffectedResourcesFormFields()}
       formType={FormType.Update}
       modelIdToEdit={INCIDENT_ID}
       submitButtonText="Save Changes"
+      onBeforeUpdate={onBeforeIncidentAffectedResourcesUpdate}
       onSuccess={() => {
         // asserted through createOrUpdateMock
       }}
@@ -201,8 +149,44 @@ const renderEditForm: () => void = (): void => {
   );
 };
 
+function monitorsPicker(): HTMLElement {
+  return screen.getByRole("combobox", { name: /^Monitors/ });
+}
+
+function otherResourcesPicker(): HTMLElement {
+  return screen.getByRole("combobox", { name: /^Other Affected Resources/ });
+}
+
+// The field a control belongs to: the label naming it, and what is under it.
+function fieldOf(control: HTMLElement): HTMLElement {
+  const labelId: string | null = control.getAttribute("aria-labelledby");
+
+  expect(labelId).toBeTruthy();
+
+  return document.getElementById(labelId!)!.parentElement as HTMLElement;
+}
+
+async function save(): Promise<Incident> {
+  fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+  await waitFor(() => {
+    expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+  });
+
+  return (createOrUpdateMock.mock.calls[0]![0] as { model: Incident }).model;
+}
+
+const idsOf: (models: Array<BaseModel> | undefined) => Array<string> = (
+  models: Array<BaseModel> | undefined,
+): Array<string> => {
+  return (models || []).map((model: BaseModel) => {
+    return String(model._id);
+  });
+};
+
 beforeEach(() => {
   capturedGetItemSelect = null;
+  incidentOnServer = ATTACHED;
   getItemMock.mockReset();
   getListMock.mockReset();
   createOrUpdateMock.mockReset();
@@ -210,7 +194,10 @@ beforeEach(() => {
   getItemMock.mockImplementation(async (...args: Array<unknown>) => {
     capturedGetItemSelect = (args[0] as { select: Record<string, unknown> })
       .select;
-    return incidentAsLoadedByTheEditForm();
+    return BaseModel.fromJSON(
+      { _id: INCIDENT_ID.toString(), ...incidentOnServer },
+      Incident,
+    ) as Incident;
   });
 
   getListMock.mockImplementation(async (...args: Array<unknown>) => {
@@ -257,6 +244,25 @@ describe("the Edit modal of an incident's Affected Resources card", () => {
     });
     // `true`, not `{ _id, name }` - the server hands back `{ _id }` for this.
     expect(capturedGetItemSelect!["monitors"]).toBe(true);
+    // Every other relation and the status are loaded too, to be saved back.
+    for (const key of [
+      "hosts",
+      "kubernetesClusters",
+      "dockerHosts",
+      "podmanHosts",
+      "proxmoxClusters",
+      "vmwareVCenters",
+      "cephClusters",
+      "dockerSwarmClusters",
+      "iotFleets",
+      "databaseServers",
+      "services",
+      "changeMonitorStatusTo",
+    ]) {
+      expect(`${key}: ${String(capturedGetItemSelect![key])}`).toBe(
+        `${key}: true`,
+      );
+    }
   });
 
   test("names the attached monitor instead of showing 'Unnamed Monitor'", async () => {
@@ -315,28 +321,55 @@ describe("the Edit modal of an incident's Affected Resources card", () => {
     );
   });
 
-  test("saving without changes keeps every attached resource", async () => {
+  test("asks for the monitors apart from the other resources, each picker named by its label", async () => {
+    renderEditForm();
+
+    await screen.findByText(SERVICE_NAME);
+
+    const monitors: HTMLElement = fieldOf(monitorsPicker());
+    const others: HTMLElement = fieldOf(otherResourcesPicker());
+
+    expect(within(monitors).getByText(MONITOR_NAME)).toBeInTheDocument();
+    expect(within(monitors).queryByText(HOST_NAME)).toBeNull();
+    expect(within(others).getByText(HOST_NAME)).toBeInTheDocument();
+    expect(within(others).getByText(SERVICE_NAME)).toBeInTheDocument();
+    expect(within(others).queryByText(MONITOR_NAME)).toBeNull();
+
+    // The status the monitors change to sits between the two.
+    const status: HTMLElement = screen.getByRole("combobox", {
+      name: /^Change Monitor Status to/,
+    });
+
+    expect(
+      monitors.compareDocumentPosition(fieldOf(status)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      fieldOf(status).compareDocumentPosition(others) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("saving without changes keeps every attached resource, and the status", async () => {
+    incidentOnServer = {
+      ...ATTACHED,
+      changeMonitorStatusTo: { _id: STATUS_ID },
+    };
+
     renderEditForm();
 
     await screen.findByText(MONITOR_NAME);
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    // The status the incident has, named in its dropdown.
+    expect(
+      await screen.findByRole("button", { name: /^Change Monitor Status to/ }),
+    ).toHaveTextContent(STATUS_NAME);
 
-    await waitFor(() => {
-      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
-    });
-    const saved: Incident = (
-      createOrUpdateMock.mock.calls[0]![0] as { model: Incident }
-    ).model;
-    const idsOf: (models: Array<BaseModel> | undefined) => Array<string> = (
-      models: Array<BaseModel> | undefined,
-    ): Array<string> => {
-      return (models || []).map((model: BaseModel) => {
-        return String(model._id);
-      });
-    };
+    const saved: Incident = await save();
+
     expect(idsOf(saved.monitors)).toEqual([MONITOR_ID]);
     expect(idsOf(saved.hosts)).toEqual([HOST_ID]);
     expect(idsOf(saved.services)).toEqual([SERVICE_ID]);
+    expect(saved.changeMonitorStatusTo?._id?.toString()).toBe(STATUS_ID);
   });
 
   /*
@@ -358,19 +391,77 @@ describe("the Edit modal of an incident's Affected Resources card", () => {
     expect(screen.getByText(HOST_NAME)).toBeInTheDocument();
     expect(screen.getByText(SERVICE_NAME)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    const saved: Incident = await save();
+
+    expect(saved.monitors || []).toEqual([]);
+    expect(idsOf(saved.hosts)).toEqual([HOST_ID]);
+    expect(idsOf(saved.services)).toEqual([SERVICE_ID]);
+  });
+
+  test("removing the last monitor takes the status away, and leaves it as it was on save", async () => {
+    incidentOnServer = {
+      ...ATTACHED,
+      changeMonitorStatusTo: { _id: STATUS_ID },
+    };
+
+    renderEditForm();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: `Remove ${MONITOR_NAME}` }),
+    );
 
     await waitFor(() => {
-      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText("Change Monitor Status to")).toBeNull();
     });
-    const saved: Incident = (
-      createOrUpdateMock.mock.calls[0]![0] as { model: Incident }
-    ).model;
+
+    const saved: Incident = await save();
+
     expect(saved.monitors || []).toEqual([]);
+    // Not sent: the server leaves the incident's status as it was.
+    expect("changeMonitorStatusTo" in saved).toBe(false);
+    expect("changeMonitorStatusToId" in saved).toBe(false);
+  });
+
+  test("an incident with a status but no monitor: the status is not asked, and is left as it was", async () => {
+    incidentOnServer = {
+      hosts: [{ _id: HOST_ID }],
+      changeMonitorStatusTo: { _id: STATUS_ID },
+    };
+
+    renderEditForm();
+
+    await screen.findByText(HOST_NAME);
+    expect(screen.queryByText("Change Monitor Status to")).toBeNull();
+
+    const saved: Incident = await save();
+
+    expect(idsOf(saved.hosts)).toEqual([HOST_ID]);
+    expect("changeMonitorStatusTo" in saved).toBe(false);
+  });
+
+  test("a monitor picked on such an incident brings its status back, and both are saved", async () => {
+    incidentOnServer = {
+      hosts: [{ _id: HOST_ID }],
+      changeMonitorStatusTo: { _id: STATUS_ID },
+    };
+
+    renderEditForm();
+
+    await screen.findByText(HOST_NAME);
+
+    fireEvent.focus(monitorsPicker());
+    fireEvent.click(
+      await screen.findByRole("option", { name: OTHER_MONITOR_NAME }),
+    );
+
     expect(
-      (saved.hosts || []).map((host: Host) => {
-        return String(host._id);
-      }),
-    ).toEqual([HOST_ID]);
+      await screen.findByRole("button", { name: /^Change Monitor Status to/ }),
+    ).toHaveTextContent(STATUS_NAME);
+
+    const saved: Incident = await save();
+
+    expect(idsOf(saved.monitors)).toEqual([OTHER_MONITOR_ID]);
+    expect(idsOf(saved.hosts)).toEqual([HOST_ID]);
+    expect(saved.changeMonitorStatusTo?._id?.toString()).toBe(STATUS_ID);
   });
 });

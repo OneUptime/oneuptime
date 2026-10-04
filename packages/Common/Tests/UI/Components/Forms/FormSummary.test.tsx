@@ -825,6 +825,187 @@ describe("FormSummary: folded sections", () => {
 });
 
 /*
+ * Declare Incident folds "Notify Status Page Subscribers" under Advanced
+ * ("Limit to these status pages and notifiy subscribers should be in
+ * advanced" - the maintainer), but it starts ticked, and whether
+ * subscribers are emailed is the one default to read before declaring: its
+ * review row says who will be emailed and previews what. A folded field
+ * marked alwaysInSummary is listed whatever it holds; every other folded
+ * field keeps the rule above.
+ */
+describe("FormSummary: a folded default to read before saving", () => {
+  const ADVANCED: FormFieldCollapsibleSection<JSONObject> =
+    getAdvancedFormSection<JSONObject>();
+
+  const STEPS_WITH_RESOURCES: Array<FormStep<JSONObject>> = [
+    { title: "Resources Affected", id: "resources" },
+  ];
+
+  const MONITORS: Field<JSONObject> = {
+    field: { monitors: true },
+    title: "Monitors",
+    fieldType: FormFieldSchemaType.Text,
+    stepId: "resources",
+  };
+
+  const STATUS_PAGES: Field<JSONObject> = {
+    field: { statusPages: true },
+    title: "Limit to these status pages",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    stepId: "resources",
+    collapsibleSection: ADVANCED,
+  };
+
+  const NOTIFY: Field<JSONObject> = {
+    field: { notify: true },
+    title: "Notify Status Page Subscribers",
+    fieldType: FormFieldSchemaType.Checkbox,
+    stepId: "resources",
+    defaultValue: true,
+    collapsibleSection: ADVANCED,
+    alwaysInSummary: true,
+    getSummaryElement: (item: FormValues<JSONObject>): ReactElement => {
+      return (
+        <span data-testid="notify-summary">
+          {item["notify"] === false ? "No" : "Yes - Will notify: Site 03"}
+        </span>
+      );
+    },
+  };
+
+  const FIELDS_WITH_NOTIFY: Fields<JSONObject> = [
+    MONITORS,
+    STATUS_PAGES,
+    NOTIFY,
+  ];
+
+  function renderWithNotify(values: JSONObject): void {
+    renderSummary({
+      values,
+      fields: FIELDS_WITH_NOTIFY,
+      steps: STEPS_WITH_RESOURCES,
+    });
+  }
+
+  test("lists the folded switch left at its default, with what it will do", () => {
+    renderWithNotify({ monitors: "Checkout API", notify: true });
+
+    expect(
+      screen.getByText("Notify Status Page Subscribers"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("notify-summary")).toHaveTextContent(
+      "Yes - Will notify: Site 03",
+    );
+  });
+
+  test("lists it never touched, as the form starts it", () => {
+    renderWithNotify({ monitors: "Checkout API" });
+
+    expect(screen.getByTestId("notify-summary")).toHaveTextContent("Yes");
+  });
+
+  test("lists it switched off, too", () => {
+    renderWithNotify({ monitors: "Checkout API", notify: false });
+
+    expect(screen.getByTestId("notify-summary")).toHaveTextContent("No");
+  });
+
+  test("leaves out the other folded field nobody touched", () => {
+    renderWithNotify({ monitors: "Checkout API", notify: true });
+
+    expect(screen.queryByText("Limit to these status pages")).toBeNull();
+    // ...and lists it once it is set.
+    cleanup();
+    renderWithNotify({ statusPages: ["Site 03"], notify: true });
+    expect(screen.getByText("Limit to these status pages")).toBeInTheDocument();
+  });
+
+  test("a field the form hides stays hidden, always on the review or not", () => {
+    renderSummary({
+      values: { notify: true },
+      fields: [
+        MONITORS,
+        {
+          ...NOTIFY,
+          showIf: (): boolean => {
+            return false;
+          },
+        },
+      ],
+      steps: STEPS_WITH_RESOURCES,
+    });
+
+    expect(screen.queryByTestId("notify-summary")).toBeNull();
+    expect(screen.queryByText("Notify Status Page Subscribers")).toBeNull();
+  });
+
+  test.each([
+    ["folded, at its default", true, NOTIFY, { notify: true }],
+    ["folded, never touched", true, NOTIFY, {}],
+    ["folded, switched off", true, NOTIFY, { notify: false }],
+    [
+      "folded but hidden by its showIf",
+      false,
+      {
+        ...NOTIFY,
+        showIf: (): boolean => {
+          return false;
+        },
+      },
+      { notify: true },
+    ],
+    [
+      "the same switch without the flag, at its default",
+      false,
+      { ...NOTIFY, alwaysInSummary: undefined },
+      { notify: true },
+    ],
+    [
+      "the flag turned off, at its default",
+      false,
+      { ...NOTIFY, alwaysInSummary: false },
+      { notify: true },
+    ],
+  ] as Array<[string, boolean, Field<JSONObject>, JSONObject]>)(
+    "isListedInFormSummary with alwaysInSummary: %s -> %s",
+    (
+      _case: string,
+      listed: boolean,
+      field: Field<JSONObject>,
+      values: JSONObject,
+    ) => {
+      expect(
+        isListedInFormSummary(field, values as FormValues<JSONObject>),
+      ).toBe(listed);
+    },
+  );
+
+  test("a section reviewed by its own line still stands in for its fields", () => {
+    const SAYS_WHAT_IT_HOLDS: FormFieldCollapsibleSection<JSONObject> =
+      getAdvancedFormSection<JSONObject>({
+        getSummary: (): Array<string> => {
+          return ["Subscribers are notified."];
+        },
+      });
+
+    const rows: Fields<JSONObject> = getFormSummaryFields(
+      [
+        MONITORS,
+        { ...STATUS_PAGES, collapsibleSection: SAYS_WHAT_IT_HOLDS },
+        { ...NOTIFY, collapsibleSection: SAYS_WHAT_IT_HOLDS },
+      ],
+      { notify: true } as FormValues<JSONObject>,
+    );
+
+    expect(
+      rows.map((row: Field<JSONObject>): string | undefined => {
+        return row.title;
+      }),
+    ).toEqual(["Monitors", "Advanced"]);
+  });
+});
+
+/*
  * Scheduling maintenance folds the three subscriber switches and the
  * reminders into a Subscriber Notifications section that says in a line
  * what will happen (FormFieldCollapsibleSection.getSummary). Left at their
