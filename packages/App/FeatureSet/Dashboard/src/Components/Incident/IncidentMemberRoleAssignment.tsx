@@ -225,7 +225,11 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   return (
     <MemberRoleAssignment
       title="Incident Roles"
-      description="Assign one team member per role for coordinated incident response."
+      /*
+       * A role can take several people (Allow Multiple Users); the card
+       * offers Add More on those, so it does not promise one each.
+       */
+      description="Who takes each role on this incident."
       roles={roles}
       assignedMembers={assignedMembers}
       availableUsers={availableUsers}

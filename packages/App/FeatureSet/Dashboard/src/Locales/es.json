@@ -24861,5 +24861,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" supera el límite de {{size}}.",
   "Max {{size}} each.": "Máx. {{size}} cada uno.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Estos archivos superan el límite de {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Tipos: {{types}}. Máx. {{size}} cada uno."
+  "Types: {{types}}. Max {{size}} each.": "Tipos: {{types}}. Máx. {{size}} cada uno.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Los incidentes declarados desde esta plantilla empiezan en este estado. Déjalo vacío para el estado inicial habitual.",
+  "The usual starting state": "El estado inicial habitual",
+  "Who takes each role on this incident.": "Quién asume cada rol en este incidente."
 }

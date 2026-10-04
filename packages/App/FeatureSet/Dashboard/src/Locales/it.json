@@ -18225,7 +18225,7 @@
   "Unknown Action": "Unknown Action",
   "Unknown Device": "Unknown Device",
   "Unknown Policy": "Unknown Policy",
-  "Unknown Role": "Unknown Role",
+  "Unknown Role": "Ruolo sconosciuto",
   "Unknown Service": "Unknown Service",
   "Unknown Team": "Unknown Team",
   "Unknown User": "Unknown User",
@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "Rimuovi {{member}} da {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24861,5 +24861,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" supera il limite di {{size}}.",
   "Max {{size}} each.": "Massimo {{size}} ciascuno.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Questi file superano il limite di {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Tipi: {{types}}. Massimo {{size}} ciascuno."
+  "Types: {{types}}. Max {{size}} each.": "Tipi: {{types}}. Massimo {{size}} ciascuno.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Gli incidenti dichiarati da questo modello iniziano in questo stato. Lascia vuoto per lo stato iniziale abituale.",
+  "The usual starting state": "Lo stato iniziale abituale",
+  "Who takes each role on this incident.": "Chi assume ciascun ruolo in questo incidente."
 }

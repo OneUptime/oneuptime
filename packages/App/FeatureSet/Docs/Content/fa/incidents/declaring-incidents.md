@@ -100,7 +100,7 @@
 
 روی **Create from Template** (دکمه خطی کنار **Declare Incident**) کلیک کنید و پنجره **Create Incident from Template** با فهرست کشویی **Select Incident Template** باز می‌شود. قالبی برگزینید و فرم ساخت از پیش پرشده باز می‌شود؛ همچنان می‌توانید پیش از ثبت هر چیزی را تغییر دهید. اگر پروژه شما هنوز قالبی ندارد، به‌جایش پنجره **No Incident Templates** با دکمه **Create Template** می‌گیرید که شما را به **Incidents → Settings → Incident Templates** می‌برد.
 
-قالب‌ها با جادوگر چهارگامی خودشان ساخته می‌شوند — **Template Info**، **Incident Details**، **Resources Affected**، **On-Call** — به‌علاوه گام‌های **Custom Fields** و **Custom Fields on Create** پس از **Resources Affected** وقتی پروژه شما فیلدهای سفارشی حادثه دارد. **Owners** و **Labels** قالب زیر **More fields** در پایان **Incident Details** هستند. **Resources Affected** همان‌طور می‌پرسد که فرم اعلام — **Monitors**، سپس **Change Monitor Status to**، سپس **Other Affected Resources**، با **Limit to these status pages** زیر **More fields** — جز اینکه قالب همیشه وضعیت مانیتور را می‌پرسد: این وضعیت روی مانیتورهایی هم اعمال می‌شود که هنگام اعلام حادثه از روی قالب برگزیده می‌شوند. فیلدها این‌ها هستند:
+قالب‌ها با جادوگر چهارگامی خودشان ساخته می‌شوند — **Template Info**، **Incident Details**، **Resources Affected**، **On-Call** — به‌علاوه گام‌های **Custom Fields** و **Custom Fields on Create** پس از **Resources Affected** وقتی پروژه شما فیلدهای سفارشی حادثه دارد. **Initial Incident State**، **Owners** و **Labels** قالب زیر **More fields** در پایان **Incident Details** هستند. **Resources Affected** همان‌طور می‌پرسد که فرم اعلام — **Monitors**، سپس **Change Monitor Status to**، سپس **Other Affected Resources**، با **Limit to these status pages** زیر **More fields** — جز اینکه قالب همیشه وضعیت مانیتور را می‌پرسد: این وضعیت روی مانیتورهایی هم اعمال می‌شود که هنگام اعلام حادثه از روی قالب برگزیده می‌شوند. فیلدها این‌ها هستند:
 
 | فیلد | کاربرد |
 | ---------------------------- | ------------------------------------------------------ |
@@ -109,7 +109,7 @@
 | **Title** | عنوانی که روی حادثه از پیش پر می‌شود. |
 | **Description** | توضیحات مارک‌داونی که روی حادثه از پیش پر می‌شود. |
 | **Incident Severity** | شدتی که روی حادثه از پیش پر می‌شود. |
-| **Initial Incident State** | وضعیتی که حادثه‌های این قالب در آن آغاز می‌شوند. |
+| **Initial Incident State** | وضعیتی که حادثه‌های این قالب در آن آغاز می‌شوند. اگر خالی بماند، وضعیت آغازین معمول. |
 | **Monitors** | مانیتورهایی که پیوست می‌شوند. |
 | **Change Monitor Status to** | وضعیت مانیتوری که روی مانیتورهای حادثه اعمال می‌شود، از جمله مانیتورهایی که هنگام اعلام برگزیده می‌شوند. |
 | **Other Affected Resources** | میزبان‌ها، خوشه‌ها و سرویس‌هایی که پیوست می‌شوند. |
@@ -139,7 +139,7 @@
 - **Severity** — الزامی.
 - **Incident Description** — قالب‌بندی‌شونده هم هست.
 - **On-Call → On-Call Policies** — سیاست‌هایی که هنگام ساخت این حادثه اجرا می‌شوند.
-- **Incident Roles** — از پیش اعضای تیم را به نقش‌ها تخصیص دهید.
+- **Incident Roles** — چه کسی هر نقش را در حادثه بر عهده می‌گیرد، روی همان کارت‌های **Assign Incident Roles** در فرم اعلام، یک کارت برای هر نقش. وقتی پروژه‌تان نقش حادثه دارد نشان داده می‌شود.
 - **Ownership & Labels → Owners** (افراد و تیم‌ها، برگزیده از یک فهرست)، **Labels**.
 - **More fields → Auto Resolve Incident** (وقتی معیارها دیگر مطابقت نکنند حادثه را خودکار برطرف می‌کند)، **Show Incident on Status Page**، **Private Incident** و **Remediation Notes**.
 

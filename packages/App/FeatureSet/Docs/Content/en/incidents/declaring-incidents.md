@@ -101,7 +101,7 @@ If you keep declaring the same shape of incident — the same title pattern, the
 
 Click **Create from Template** (the outline button next to **Declare Incident**) and a **Create Incident from Template** modal opens, with a **Select Incident Template** dropdown. Pick a template and the create form opens pre-filled; you can still change anything before submitting. If your project has no templates yet, you get a **No Incident Templates** modal instead, with a **Create Template** button that takes you to **Incidents → Settings → Incident Templates**.
 
-Templates are built with their own four-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call** — plus **Custom Fields** and **Custom Fields on Create** steps after **Resources Affected** when your project has incident custom fields. The template's **Owners** and **Labels** are under **More fields** at the end of **Incident Details**. **Resources Affected** asks as the declare form does — **Monitors**, then **Change Monitor Status to**, then **Other Affected Resources**, with **Limit to these status pages** under **More fields** — except that a template always asks for the monitor status: it also applies to the monitors picked when an incident is declared from the template. These are the fields:
+Templates are built with their own four-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call** — plus **Custom Fields** and **Custom Fields on Create** steps after **Resources Affected** when your project has incident custom fields. The template's **Initial Incident State**, **Owners** and **Labels** are under **More fields** at the end of **Incident Details**. **Resources Affected** asks as the declare form does — **Monitors**, then **Change Monitor Status to**, then **Other Affected Resources**, with **Limit to these status pages** under **More fields** — except that a template always asks for the monitor status: it also applies to the monitors picked when an incident is declared from the template. These are the fields:
 
 | Field                           | Purpose                                                |
 | ------------------------------- | ------------------------------------------------------ |
@@ -110,7 +110,7 @@ Templates are built with their own four-step wizard — **Template Info**, **Inc
 | **Title**                       | The title pre-filled onto the incident.                |
 | **Description**                 | Markdown description pre-filled onto the incident.     |
 | **Incident Severity**           | Severity pre-filled onto the incident.                 |
-| **Initial Incident State**      | The state incidents from this template start in.       |
+| **Initial Incident State**      | The state incidents from this template start in. Left empty, the usual starting state. |
 | **Monitors**                    | Monitors to attach.                                    |
 | **Change Monitor Status to**    | Monitor status to apply to the incident's monitors, including ones picked when it is declared. |
 | **Other Affected Resources**    | Hosts, clusters and services to attach.                |
@@ -140,7 +140,7 @@ Each entry has:
 - **Severity** — required.
 - **Incident Description** — also templated.
 - **On-Call → On-Call Policies** — policies executed when this incident is created.
-- **Incident Roles** — pre-assign team members to roles.
+- **Incident Roles** — who takes each role on the incident, picked on the same cards as **Assign Incident Roles** on the declare form, one per role. Shown when your project has incident roles.
 - **Ownership & Labels → Owners** (people and teams, picked from one list), **Labels**.
 - **More fields → Auto Resolve Incident** (resolves the incident automatically when the criteria stop matching), **Show Incident on Status Page**, **Private Incident** and **Remediation Notes**.
 

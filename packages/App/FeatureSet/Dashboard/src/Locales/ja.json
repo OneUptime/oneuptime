@@ -24861,5 +24861,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」は {{size}} の上限を超えています。",
   "Max {{size}} each.": "各ファイル最大 {{size}}。",
   "These files exceed the {{size}} limit: {{fileNames}}.": "次のファイルは {{size}} の上限を超えています: {{fileNames}}。",
-  "Types: {{types}}. Max {{size}} each.": "種類: {{types}}。各ファイル最大 {{size}}。"
+  "Types: {{types}}. Max {{size}} each.": "種類: {{types}}。各ファイル最大 {{size}}。",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "このテンプレートから宣言されたインシデントは、この状態から始まります。空欄のままにすると通常の開始状態になります。",
+  "The usual starting state": "通常の開始状態",
+  "Who takes each role on this incident.": "このインシデントで各ロールを誰が担当するか。"
 }
