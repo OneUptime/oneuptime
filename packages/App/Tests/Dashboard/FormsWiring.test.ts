@@ -33,6 +33,7 @@ const DASHBOARD_SRC: string = path.join(APP_ROOT, "FeatureSet/Dashboard/src");
 const ROUTES: string = "Routes/FormsRoutes.tsx";
 const ALL_ROUTES: string = "Routes/AllRoutes.tsx";
 const INCIDENTS_ROUTES: string = "Routes/IncidentsRoutes.tsx";
+const MOVED_PAGE_PATHS: string = "Routes/MovedPagePaths.ts";
 const LIST_MENU: string = "Pages/Forms/SideMenu.tsx";
 const VIEW_MENU: string = "Pages/Forms/View/SideMenu.tsx";
 const LIST_LAYOUT: string = "Pages/Forms/Layout.tsx";
@@ -459,8 +460,11 @@ describe("Incident Forms is gone", () => {
   test("its old URLs forward to the same form in Forms, outside the Incidents layout", () => {
     const code: string = denseRaw(INCIDENTS_ROUTES);
 
-    expect(code).toContain(
+    expect(denseRaw(MOVED_PAGE_PATHS)).toContain(
       'exportconstMOVED_INCIDENT_FORM_PATHS:{forms:string;formView:string}={forms:"settings/forms",formView:`settings/forms/${RouteParams.ModelID}`,};',
+    );
+    expect(code).toContain(
+      'import{MOVED_INCIDENT_FORM_PATHS}from"./MovedPagePaths";',
     );
 
     const forms: number = code.indexOf(
