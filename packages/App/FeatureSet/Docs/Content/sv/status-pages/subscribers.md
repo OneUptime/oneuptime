@@ -44,6 +44,8 @@ Som standard får en prenumerant allt som finns på sidan. Två växlar i kortet
 - **Tillåt prenumeranter att välja resurser** (`allowSubscribersToChooseResources`) — av som standard. Slår du på den får prenumerationsformuläret en växel **Prenumerera på alla resurser**; avmarkera den så dyker **Välj resurser att prenumerera på** upp, och besökaren kan plocka enskilda resurser.
 - **Tillåt prenumeranter att välja händelsetyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samma form: en växel **Prenumerera på alla händelsetyper**, och **Välj händelsetyper att prenumerera på** under den när den är avmarkerad.
 
+Med någon av dem påslagen är formuläret fortfarande en sida: De här valen ligger under **Inställningar**, hopfällt under vart uppdateringarna ska skickas. Hopfällt säger det på en rad vad besökaren får (alla uppdateringar från statussidan, tills något begränsas), så den som vill ha allt trycker bara på **Prenumerera**. Sidan **Uppdatera prenumeration** visar samma val utfällda.
+
 Händelsetyperna är `Incident`, `Announcement` och `Scheduled Event`.
 
 Valen hamnar på prenumerantposten som **Is Subscribed to All Resources** (`isSubscribedToAllResources`, standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, standard true), **Subscribed to Resources** och **Subscribed to Event Types**.

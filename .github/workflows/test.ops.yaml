@@ -95,6 +95,13 @@ jobs:
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
           RUN_NPM_CLI_UPDATE_TESTS: "1"
+      # The eBPF end-to-end test (the "Kubernetes Agent eBPF E2E" workflow)
+      # needs a cluster and only runs when the chart changes; its assertions
+      # do not. These unit tests feed Tests/Ops/agent-ebpf-e2e/analyze.py
+      # synthetic captures, one fault each, and check that exactly the check
+      # guarding against it fails, so a check that stopped checking anything
+      # fails here on every PR rather than passing there forever.
+      - run: python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
       # The jest suite reads the collector configs with js-yaml and reasons
       # about them, which cannot see the Go-side class of error: a malformed
       # RE2 regex, an `output`/`default` naming an operator that does not

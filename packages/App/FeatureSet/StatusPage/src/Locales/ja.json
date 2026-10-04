@@ -236,9 +236,17 @@
       "failed": "購読を解除できませんでした。もう一度お試しください。",
       "loadFailed": "この購読解除リンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
     },
-    "steps": {
-      "details": "詳細",
-      "preferences": "設定"
+    "preferences": {
+      "title": "設定",
+      "description": "受け取る内容を選択してください。",
+      "summary": {
+        "everything": "このステータスページのすべてのアップデートを受け取ります。",
+        "pickedResources": "選択したリソースのアップデートのみを受け取ります。",
+        "pickedEventTypes": "選択したイベントタイプのアップデートのみを受け取ります。",
+        "pickedResourcesAndEventTypes": "選択したリソースとイベントタイプのアップデートのみを受け取ります。",
+        "noResources": "まだリソースを選択していません。",
+        "noEventTypes": "まだイベントタイプを選択していません。"
+      }
     }
   },
   "accounts": {

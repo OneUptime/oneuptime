@@ -44,6 +44,8 @@ Som standard får en abonnent alt på siden. To brytere i kortet **Avanserte abo
 - **Tillat abonnenter å velge ressurser** (`allowSubscribersToChooseResources`) — av som standard. Slår du den på, får abonnementsskjemaet en bryter for **Abonner på alle ressurser**; skru den av, og **Velg ressurser å abonnere på** dukker opp så den besøkende kan plukke enkeltressurser.
 - **Tillat abonnenter å velge hendelsestyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samme form: en bryter for **Abonner på alle hendelsestyper**, og **Velg hendelsestyper å abonnere på** under når den skrus av.
 
+Med en av dem slått på er skjemaet fortsatt én side: Disse valgene ligger under **Preferanser**, foldet sammen under hvor oppdateringene skal sendes. Sammenfoldet sier den på én linje hva den besøkende får (alle oppdateringer fra statussiden, til noe snevres inn), så den som vil ha alt, trykker bare på **Abonner**. Siden **Oppdater abonnement** viser de samme valgene foldet ut.
+
 Hendelsestypene er `Incident`, `Announcement` og `Scheduled Event`.
 
 Valgene havner på abonnentoppføringen som **Is Subscribed to All Resources** (`isSubscribedToAllResources`, standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, standard true), **Subscribed to Resources** og **Subscribed to Event Types**.

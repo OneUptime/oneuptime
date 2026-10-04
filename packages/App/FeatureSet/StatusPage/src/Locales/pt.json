@@ -236,9 +236,17 @@
       "failed": "Não foi possível cancelar a inscrição. Tente novamente.",
       "loadFailed": "Não foi possível carregar este link de cancelamento. Tente novamente mais tarde."
     },
-    "steps": {
-      "details": "Detalhes",
-      "preferences": "Preferências"
+    "preferences": {
+      "title": "Preferências",
+      "description": "Escolha sobre o que você deseja receber atualizações.",
+      "summary": {
+        "everything": "Você receberá todas as atualizações desta página de status.",
+        "pickedResources": "Você receberá apenas as atualizações dos recursos que escolheu.",
+        "pickedEventTypes": "Você receberá apenas as atualizações dos tipos de eventos que escolheu.",
+        "pickedResourcesAndEventTypes": "Você receberá apenas as atualizações dos recursos e tipos de eventos que escolheu.",
+        "noResources": "Você ainda não escolheu nenhum recurso.",
+        "noEventTypes": "Você ainda não escolheu nenhum tipo de evento."
+      }
     }
   },
   "accounts": {

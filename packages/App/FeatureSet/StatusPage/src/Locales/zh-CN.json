@@ -236,9 +236,17 @@
       "failed": "无法取消订阅，请重试。",
       "loadFailed": "无法加载此取消订阅链接，请稍后重试。"
     },
-    "steps": {
-      "details": "详情",
-      "preferences": "偏好设置"
+    "preferences": {
+      "title": "偏好设置",
+      "description": "选择您要接收的更新内容。",
+      "summary": {
+        "everything": "您将收到此状态页的所有更新。",
+        "pickedResources": "您将仅收到所选资源的更新。",
+        "pickedEventTypes": "您将仅收到所选事件类型的更新。",
+        "pickedResourcesAndEventTypes": "您将仅收到所选资源和事件类型的更新。",
+        "noResources": "您尚未选择任何资源。",
+        "noEventTypes": "您尚未选择任何事件类型。"
+      }
     }
   },
   "accounts": {
