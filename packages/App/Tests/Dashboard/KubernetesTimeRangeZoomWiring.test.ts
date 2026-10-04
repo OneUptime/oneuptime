@@ -309,17 +309,26 @@ describe("Insights, Control Plane and Service Mesh: one zoom for every card", ()
         "<TimeRangeZoomScope",
         "</TimeRangeZoomScope>",
       );
-      const tabsOrCards: string = source.includes("const tabs: Array<Tab>")
+      const isTabbed: boolean = source.includes("const tabs: Array<Tab>");
+      const tabsOrCards: string = isTabbed
         ? between(source, "const tabs: Array<Tab>", "<TimeRangeZoomScope")
         : scoped;
 
       // Control Plane and Service Mesh build their cards into the tabs...
-      if (source.includes("const tabs: Array<Tab>")) {
+      if (isTabbed) {
         expectCode(scoped, "<Tabs tabs={tabs}");
       }
 
-      // ...and every card is controlled by the page's one range.
-      expect(countOf(tabsOrCards, "<EmbeddedMetricCard")).toBe(cards);
+      /*
+       * ...and every card is controlled by the page's one range. The tabbed
+       * pages draw each tab's cards from a list, one entry (with its
+       * queries) per card, plus the card a tab shows its setup hint in when
+       * its charts come back empty; that card takes the same range.
+       * (`<EmbeddedMetricCard ` with its space: the group around a tab's
+       * cards is not a card.)
+       */
+      const cardElements: number = countOf(tabsOrCards, "<EmbeddedMetricCard ");
+
       expect(
         countOf(
           tight(tabsOrCards),
@@ -327,7 +336,10 @@ describe("Insights, Control Plane and Service Mesh: one zoom for every card", ()
             "timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} startAndEndDate={startAndEndDate}",
           ),
         ),
-      ).toBe(cards);
+      ).toBe(cardElements);
+      expect(isTabbed ? countOf(source, "getQueries: get") : cardElements).toBe(
+        cards,
+      );
     },
   );
 

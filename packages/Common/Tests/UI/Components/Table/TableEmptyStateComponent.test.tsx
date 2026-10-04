@@ -414,6 +414,149 @@ describe("the actions", () => {
   });
 });
 
+describe("the body", () => {
+  test("is drawn between the description and the actions, left-aligned and wider", () => {
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No etcd metrics from this cluster"
+        description="Turn on controlPlane.enabled."
+        body={<pre data-testid="helm-command">helm upgrade</pre>}
+        actions={[{ title: "Check again", onClick: () => {} }]}
+      />,
+    );
+
+    const root: HTMLElement = screen.getByTestId(ROOT);
+    const body: HTMLElement = screen.getByTestId(`${ROOT}-body`);
+    const parts: Array<string> = Array.from(root.children).map(
+      (child: Element): string => {
+        return child.getAttribute("data-testid") || "";
+      },
+    );
+
+    expect(parts).toEqual([
+      `${ROOT}-illustration`,
+      `${ROOT}-title`,
+      `${ROOT}-description`,
+      `${ROOT}-body`,
+      `${ROOT}-actions`,
+    ]);
+    expect(body).toContainElement(screen.getByTestId("helm-command"));
+    // The empty state centres its text; a command must not be centred.
+    expect(body.className).toContain("text-left");
+    expect(body.className).toContain("w-full");
+    expect(body.className).toContain("max-w-2xl");
+  });
+
+  test("is left out entirely when there is none", () => {
+    render(
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No labels yet"
+        description="Labels help."
+      />,
+    );
+
+    expect(screen.queryByTestId(`${ROOT}-body`)).toBeNull();
+  });
+});
+
+describe("an action that is running", () => {
+  function CheckAgain(props: {
+    isLoading: boolean;
+    onClick: () => void;
+  }): React.ReactElement {
+    return (
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title="No etcd metrics from this cluster"
+        actions={[
+          {
+            title: props.isLoading ? "Checking…" : "Check again",
+            icon: IconProp.Refresh,
+            isLoading: props.isLoading,
+            dataTestId: "check-again",
+            onClick: props.onClick,
+          },
+          {
+            title: "View Documentation",
+            style: TableEmptyStateActionStyle.Link,
+            dataTestId: "docs",
+            onClick: () => {},
+          },
+        ]}
+      />
+    );
+  }
+
+  test("spins in place of its icon, says it is busy, and pressing it again does nothing", () => {
+    let clicks: number = 0;
+
+    render(
+      <CheckAgain
+        isLoading={true}
+        onClick={() => {
+          clicks++;
+        }}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByTestId("check-again");
+
+    expect(button).toHaveTextContent("Checking…");
+    // The spinner (a ring, unlike the refresh arrows), turned by the button.
+    expect(button.querySelector("svg circle")).not.toBeNull();
+    expect(button.className).toContain("[&_svg]:animate-spin");
+    expect(button.closest("[aria-busy]")).toHaveAttribute("aria-busy", "true");
+
+    fireEvent.click(button);
+    expect(clicks).toBe(0);
+  });
+
+  test("stays focusable while it runs: a disabled button drops the focus of whoever pressed it", () => {
+    render(<CheckAgain isLoading={true} onClick={() => {}} />);
+
+    const button: HTMLElement = screen.getByTestId("check-again");
+
+    expect(button).toBeEnabled();
+    button.focus();
+    expect(button).toHaveFocus();
+  });
+
+  test("keeps the focus, and stays the same button, while its title changes and back", () => {
+    let clicks: number = 0;
+    const onClick: () => void = () => {
+      clicks++;
+    };
+    const view: ReturnType<typeof render> = render(
+      <CheckAgain isLoading={false} onClick={onClick} />,
+    );
+
+    const button: HTMLElement = screen.getByTestId("check-again");
+    button.focus();
+    fireEvent.click(button);
+    expect(clicks).toBe(1);
+
+    view.rerender(<CheckAgain isLoading={true} onClick={onClick} />);
+
+    expect(screen.getByTestId("check-again")).toBe(button);
+    expect(button).toHaveTextContent("Checking…");
+    expect(button).toHaveFocus();
+
+    view.rerender(<CheckAgain isLoading={false} onClick={onClick} />);
+
+    expect(screen.getByTestId("check-again")).toBe(button);
+    expect(button).toHaveTextContent("Check again");
+    expect(button).toHaveFocus();
+    expect(button.closest("[aria-busy]")).toBeNull();
+    expect(button.querySelector("svg circle")).toBeNull();
+    expect(button.className).not.toContain("animate-spin");
+
+    fireEvent.click(button);
+    expect(clicks).toBe(2);
+  });
+});
+
 describe("the note", () => {
   test("is small print under the actions, translated", () => {
     dictionary = {

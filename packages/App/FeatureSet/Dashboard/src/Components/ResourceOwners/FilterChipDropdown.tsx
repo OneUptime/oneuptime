@@ -14,13 +14,10 @@ import {
   FILTER_OPERATOR_LABELS,
 } from "./FilterChipDropdownTypes";
 import {
-  FILTER_CHIP_ACTIVE_CLASSES,
-  FILTER_CHIP_BASE_CLASSES,
-  FILTER_CHIP_CLEAR_CLASSES,
-  FILTER_CHIP_INACTIVE_CLASSES,
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
 } from "./FilterChipStyles";
+import FilterChipButton from "./FilterChipButton";
 import {
   translatableTerm,
   Translator,
@@ -466,10 +463,6 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     setIsComponentVisible(false);
   };
 
-  const chipBaseClasses: string = FILTER_CHIP_BASE_CLASSES;
-  const chipActiveClasses: string = FILTER_CHIP_ACTIVE_CLASSES;
-  const chipInactiveClasses: string = FILTER_CHIP_INACTIVE_CLASSES;
-
   const clearChipFully: () => void = (): void => {
     if (props.onClear) {
       props.onClear();
@@ -493,12 +486,15 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="relative inline-block">
-      <button
-        type="button"
-        onClick={togglePopover}
-        className={`${chipBaseClasses} ${isChipActive ? chipActiveClasses : chipInactiveClasses}`}
-        aria-expanded={isComponentVisible}
-        aria-haspopup="listbox"
+      <FilterChipButton
+        isActive={isChipActive}
+        isExpanded={isComponentVisible}
+        popupKind="listbox"
+        onToggle={togglePopover}
+        clearLabel={translator.translateTemplate("Clear {{label}} filter", {
+          label: translatableTerm(props.label),
+        })}
+        onClear={isChipActive ? clearChipFully : undefined}
       >
         {isChipActive ? (
           <>
@@ -527,28 +523,6 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                     : displayValue}
               </span>
             </span>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                clearChipFully();
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  clearChipFully();
-                }
-              }}
-              className={FILTER_CHIP_CLEAR_CLASSES}
-              aria-label={translator.translateTemplate(
-                "Clear {{label}} filter",
-                { label: translatableTerm(props.label) },
-              )}
-            >
-              <Icon icon={IconProp.Close} className="h-3 w-3" />
-            </span>
           </>
         ) : (
           <>
@@ -567,7 +541,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
             />
           </>
         )}
-      </button>
+      </FilterChipButton>
 
       {isComponentVisible && (
         <div
