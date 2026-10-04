@@ -163,6 +163,9 @@ const pageProps: PageComponentProps = {
 
 const NEW_DASHBOARD_PATH: string = `/dashboard/${PROJECT_ID}/dashboards/${NEW_DASHBOARD_ID}`;
 
+// A dialog drawn after a click has a slow CI runner's worth of time to show.
+const SLOW_CI: { timeout: number } = { timeout: 10000 };
+
 interface ListRequest {
   modelType: unknown;
   query: JSONObject;
@@ -282,13 +285,13 @@ async function openPicker(user: UserEvent): Promise<void> {
   await user.click(
     screen.getAllByRole("button", { name: "Create Dashboard" })[0]!,
   );
-  await screen.findByRole("dialog", { name: "Create from Template" });
+  await screen.findByRole("dialog", { name: "Create from Template" }, SLOW_CI);
 }
 
 async function pickTemplate(user: UserEvent, name: string): Promise<void> {
   await openPicker(user);
   await user.click(card(name));
-  await screen.findByRole("dialog", { name: "Create New Dashboard" });
+  await screen.findByRole("dialog", { name: "Create New Dashboard" }, SLOW_CI);
   // BasicForm takes the initial values in an effect: let it settle.
   await settle();
 }
@@ -652,7 +655,11 @@ describe("while the names are on the way", () => {
       resolveNames?.(answerNames());
     });
 
-    await screen.findByRole("dialog", { name: "Create New Dashboard" });
+    await screen.findByRole(
+      "dialog",
+      { name: "Create New Dashboard" },
+      SLOW_CI,
+    );
     await settle();
     expect(nameInput()).toHaveValue("SLO Dashboard 2");
   });
@@ -687,7 +694,11 @@ describe("while the names are on the way", () => {
     await act(async (): Promise<void> => {
       resolveNames?.(answerNames());
     });
-    await screen.findByRole("dialog", { name: "Create New Dashboard" });
+    await screen.findByRole(
+      "dialog",
+      { name: "Create New Dashboard" },
+      SLOW_CI,
+    );
     await settle();
 
     expect(nameInput()).toHaveValue("VMware Dashboard");
@@ -706,7 +717,11 @@ describe("while the names are on the way", () => {
     await openPicker(user);
     await user.click(card("Blank Dashboard"));
 
-    await screen.findByRole("dialog", { name: "Create New Dashboard" });
+    await screen.findByRole(
+      "dialog",
+      { name: "Create New Dashboard" },
+      SLOW_CI,
+    );
     expect(resolveNames).not.toBeNull();
   });
 });
