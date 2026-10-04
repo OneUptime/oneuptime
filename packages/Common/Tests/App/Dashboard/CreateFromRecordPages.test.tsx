@@ -446,8 +446,22 @@ function idsOf(items: unknown): Array<string> {
   });
 }
 
+/*
+ * The form's action is on its last step only (Forms/Utils/SteppedFormFooter):
+ * walks there with the plain Next - nothing after the first step has to be
+ * answered - then presses it.
+ */
 async function submit(name: string): Promise<void> {
-  fireEvent.click(screen.getByRole("button", { name: name }));
+  for (
+    let step: number = 0;
+    step < 6 && !screen.queryByRole("button", { name: name });
+    step++
+  ) {
+    fireEvent.click(screen.getByRole("button", { name: "Next", exact: true }));
+    await act(async () => {});
+  }
+
+  fireEvent.click(await screen.findByRole("button", { name: name }));
 
   await waitFor(() => {
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -515,7 +529,7 @@ describe("Declare Incident, from a monitor's Incidents tab", () => {
     ).toBeInTheDocument();
   });
 
-  test("declares the incident on the monitor from the first step", async () => {
+  test("declares the incident on the monitor with only the first step answered", async () => {
     const user: UserEvent = await renderPage(IncidentCreate);
 
     await fillDetails(user, /^Incident Severity/);
