@@ -1637,7 +1637,6 @@ const CephClusterOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Ceph Cluster Details",
-          description: "Overview of this Ceph cluster.",
           // Edited in one place: the same card on the cluster's Settings page.
           buttons: [
             <EditInSettingsLink

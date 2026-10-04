@@ -188,7 +188,6 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {openRun && (
           <WorkflowLogModal
             title="Workflow Run"
-            description="Here is what happened when this workflow ran."
             logs={openRun.logs}
             stepTrace={openRun.stepTrace}
             run={openRun}

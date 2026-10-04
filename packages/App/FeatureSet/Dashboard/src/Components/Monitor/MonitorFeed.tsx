@@ -34,7 +34,7 @@ export interface ComponentProps {
 
 const DEFAULT_TITLE: string = "Monitor Feed";
 const DEFAULT_DESCRIPTION: string =
-  "This is the timeline and feed for this monitor. You can see all the updates and information about this monitor here.";
+  "Everything that has happened to this monitor, newest first.";
 
 /*
  * One icon per event type, shared by the feed items and the event type

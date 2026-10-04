@@ -54,7 +54,8 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: props.title || "Services",
           description:
-            props.description || "Here is a list of services for this project.",
+            props.description ||
+            "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
           buttons: props.cardButtons,
         }}
         showViewIdButton={true}
@@ -67,7 +68,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Service  Name",
+            placeholder: "Service Name",
             validation: {
               minLength: 2,
             },

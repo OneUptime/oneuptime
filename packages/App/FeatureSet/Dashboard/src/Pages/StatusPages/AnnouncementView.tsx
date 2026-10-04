@@ -101,7 +101,6 @@ const AnnouncementView: FunctionComponent<
         name="Status Page Announcement Details"
         cardProps={{
           title: "Status Page Announcement Details",
-          description: "Here are more details for this announcement.",
         }}
         refresher={refreshToggle}
         createEditModalWidth={ModalWidth.Large}

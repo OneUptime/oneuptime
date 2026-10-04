@@ -234,7 +234,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     <FeedCard
       title={"Scheduled Maintenance Feed"}
       description={
-        "This is the timeline and feed for this scheduled maintenance. You can see all the updates and information about this scheduled maintenance here."
+        "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}

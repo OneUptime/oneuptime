@@ -500,7 +500,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             cardProps={{
               title: "Email Subscribers",
               description:
-                "Here are the list of subscribers who have subscribed to the status page.",
+                "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",

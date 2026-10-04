@@ -23,7 +23,6 @@ import { getRuleDetailFields, RuleDetailFields } from "./RuleDetailFields";
 import RunRuleNowModal from "./RunRuleNowModal";
 import React, { Fragment, ReactElement, useMemo, useState } from "react";
 import {
-  translatableTerm,
   translateNamedAction,
   Translator,
   translationKey,
@@ -100,10 +99,8 @@ const RuleView: <TBaseModel extends BaseModel>(
               template: "{{itemName}} Details",
               itemName: singularName,
             }),
-          description: translator.translateTemplate(
-            "Here are the details of this {{itemName}}.",
-            { itemName: translatableTerm(singularName, { inSentence: true }) },
-          ),
+          description:
+            "What this rule matches, and what it does to each match.",
         }}
         isEditable={true}
         formSteps={props.formSteps}

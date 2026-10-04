@@ -314,7 +314,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Runbook > Overview"
         cardProps={{
           title: "Runbook",
-          description: "Overview of this runbook.",
           buttons: [
             {
               title: isRunning ? "Starting..." : "Run Now",

@@ -262,7 +262,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         refreshToggle={refreshToggle}
         cardProps={{
           title: "Private Users",
-          description: "Here are a list of private users for this status page.",
+          description:
+            "People who can sign in to see this status page. Each one is emailed an invitation when you add them.",
           buttons: [
             {
               title: "Add in Bulk",

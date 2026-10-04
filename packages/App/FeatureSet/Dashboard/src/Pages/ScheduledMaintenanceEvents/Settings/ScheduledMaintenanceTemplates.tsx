@@ -527,7 +527,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Scheduled Maintenance Templates",
           description:
-            "Here is a list of all the Scheduled Maintenance templates in this project.",
+            "Ready-made maintenance events for work you do often, with the title, monitors, status pages and notifications filled in. Use one with Create from Template, or make it recurring to schedule events automatically.",
         }}
         noItemsMessage={"No Scheduled Maintenance templates found."}
         query={{

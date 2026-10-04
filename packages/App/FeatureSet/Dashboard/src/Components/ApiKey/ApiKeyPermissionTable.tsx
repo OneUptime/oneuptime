@@ -268,7 +268,7 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
           ? {
               title: "Block Permissions",
               description:
-                "Here you can manage block permissions for this API Key. This will override any allow permissions set for this API Key.",
+                "Blocks win over this key's roles and permissions. A block with labels applies only to resources that carry one of them.",
             }
           : {
               title: "Permissions",

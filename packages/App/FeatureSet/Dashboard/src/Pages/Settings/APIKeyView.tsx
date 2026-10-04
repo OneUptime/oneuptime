@@ -42,7 +42,8 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         name="API Key Details"
         cardProps={{
           title: "API Key Details",
-          description: "Here are more details for this API Key.",
+          description:
+            "Send this key in the ApiKey header of each API request. It can do what its permissions allow, until it expires.",
         }}
         videoLink={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
         refresher={refresher}

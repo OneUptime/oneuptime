@@ -64,7 +64,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Incident Template Details"
         cardProps={{
           title: "Incident Template Details",
-          description: "Here are more details for this incident template.",
+          description:
+            "New incidents declared from this template start with these details. Incidents already declared from it keep their own.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}

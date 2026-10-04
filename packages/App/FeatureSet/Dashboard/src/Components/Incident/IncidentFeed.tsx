@@ -247,7 +247,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     <FeedCard
       title={"Incident Feed"}
       description={
-        "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
+        "Everything that has happened to this incident: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}

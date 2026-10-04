@@ -1626,7 +1626,6 @@ const PodmanHostOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Podman Host Details",
-          description: "Overview of this Podman host.",
           // Edited in one place: the same card on the host's Settings page.
           buttons: [
             <EditInSettingsLink
