@@ -221,6 +221,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
      */
     const hasUserEdited: MutableRefObject<boolean> = useRef(false);
 
+    /*
+     * The values fields wrote before the form took its initial values. A
+     * field that fills itself in as it is drawn - a rule's conditions
+     * builder writes the conditions it shows - runs its effect before the
+     * form's own (React runs a child's effects first), so when it is on the
+     * first step it writes before the form has taken its initial values and
+     * defaults. What it wrote is kept, and the form still takes the rest:
+     * skipping them started a Create form with every other field empty, so
+     * a switch whose column starts on was saved off.
+     */
+    const valuesWrittenBeforeInitialValues: MutableRefObject<Set<string>> =
+      useRef<Set<string>>(new Set<string>());
+
     const refCurrentValue: React.MutableRefObject<FormValues<T>> = useRef(
       props.initialValues || {},
     );
@@ -489,6 +502,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       hasUserEdited.current = true;
 
+      if (!isInitialValuesSet.current) {
+        valuesWrittenBeforeInitialValues.current.add(fieldName);
+      }
+
       refCurrentValue.current = updatedValue;
 
       setCurrentValue(refCurrentValue.current);
@@ -499,6 +516,34 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           setCurrentValue(refCurrentValue.current);
         });
       }
+    };
+
+    /*
+     * A field's onChange replacing the form's values (setNewFormValues): a
+     * name filled in from a pick, say. Before the form has taken its initial
+     * values, the values it changed are kept over them, as setFieldValue's.
+     */
+    const setFormValuesFromField: (values: FormValues<T>) => void = (
+      values: FormValues<T>,
+    ): void => {
+      if (!isInitialValuesSet.current) {
+        const next: Record<string, unknown> = (values || {}) as Record<
+          string,
+          unknown
+        >;
+        const current: Record<string, unknown> = (refCurrentValue.current ||
+          {}) as Record<string, unknown>;
+
+        for (const key of Object.keys(next)) {
+          if (next[key] !== current[key]) {
+            hasUserEdited.current = true;
+            valuesWrittenBeforeInitialValues.current.add(key);
+          }
+        }
+      }
+
+      refCurrentValue.current = values;
+      setCurrentValue(refCurrentValue.current);
     };
 
     /*
@@ -520,10 +565,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         field.onChange(
           value,
           refCurrentValue.current,
-          (values: FormValues<T>) => {
-            refCurrentValue.current = values;
-            setCurrentValue(refCurrentValue.current);
-          },
+          setFormValuesFromField,
           isDropdownField(field)
             ? getDropdownChange({
                 options: field.dropdownOptions,
@@ -764,7 +806,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         return;
       }
 
-      if (isInitialValuesSet.current || hasUserEdited.current) {
+      if (isInitialValuesSet.current) {
         return;
       }
 
@@ -879,6 +921,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
         if (field.getDefaultValue && (values as any)[fieldName] === undefined) {
           (values as any)[fieldName] = field.getDefaultValue(values);
+        }
+      }
+
+      /*
+       * Nothing re-seeds what a field already wrote: a field that fills
+       * itself in as it is drawn writes before this runs, and what it wrote
+       * is kept over the initial values and defaults (see
+       * valuesWrittenBeforeInitialValues). Nobody can type before this runs:
+       * the fields are drawn in the same pass.
+       */
+      if (hasUserEdited.current) {
+        for (const fieldName of valuesWrittenBeforeInitialValues.current) {
+          (values as any)[fieldName] = (refCurrentValue.current as any)[
+            fieldName
+          ];
         }
       }
 
@@ -1106,10 +1163,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               setFieldTouched={setFieldTouched}
                               submitForm={submitForm}
                               disableAutofocus={props.disableAutofocus || false}
-                              setFormValues={(values: FormValues<T>) => {
-                                refCurrentValue.current = values;
-                                setCurrentValue(refCurrentValue.current);
-                              }}
+                              setFormValues={setFormValuesFromField}
                             />
                             {field.footerElement}
                             {field.getFooterElement &&
