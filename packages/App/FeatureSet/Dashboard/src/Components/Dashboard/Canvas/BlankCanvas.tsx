@@ -31,7 +31,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
   const offersAddWidget: boolean =
     !props.isEditMode && Boolean(props.onAddWidgetClick);
 
-  let description: string;
+  let description: string | undefined;
 
   if (props.isEditMode) {
     description = translator.translateText(
