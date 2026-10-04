@@ -205,6 +205,8 @@ const INCIDENT_PAGE: EventPage = {
     "Communications Lead",
     "eu-west-1 probe",
     "4 resources",
+    // The Measurements card, which reads its own rows.
+    "Time to postmortem",
   ],
   state: "Resolved",
   severity: "SEV-2",
@@ -235,7 +237,12 @@ const INCIDENT_PAGE: EventPage = {
       description: "Ended Sep 14 2026, 06:12 PM GMT",
     },
   ],
-  rightColumn: ["Incident Details", "Incident Roles", "Affected Resources"],
+  rightColumn: [
+    "Incident Details",
+    "Measurements",
+    "Incident Roles",
+    "Affected Resources",
+  ],
   detailsCard: "Incident Details",
   detailLabels: [
     "Declared At",
@@ -263,6 +270,8 @@ const ALERT_PAGE: EventPage = {
     "Payments on-call",
     // Its monitor and its one service.
     "2 resources",
+    // The Measurements card, which reads its own rows.
+    "Time to resolve",
   ],
   state: "Resolved",
   severity: "High",
@@ -290,7 +299,7 @@ const ALERT_PAGE: EventPage = {
       description: "Ended Sep 14 2026, 06:15 PM GMT",
     },
   ],
-  rightColumn: ["Alert Details", "Affected Resources"],
+  rightColumn: ["Alert Details", "Measurements", "Affected Resources"],
   detailsCard: "Alert Details",
   detailLabels: [
     "Created At",
@@ -316,6 +325,8 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Acme Internal Status",
     "4 resources",
     "Mark as Ongoing",
+    // The Measurements card, which reads its own rows.
+    "Maintenance duration",
   ],
   state: "Scheduled",
   duration: "Starts in 2 hours",
@@ -344,7 +355,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
       description: "Planned window · times in GMT",
     },
   ],
-  rightColumn: ["Maintenance Details", "Affected Resources"],
+  rightColumn: ["Maintenance Details", "Measurements", "Affected Resources"],
   detailsCard: "Maintenance Details",
   detailLabels: [
     "Starts At",
@@ -8473,6 +8484,485 @@ test.describe("responsive", () => {
       await expectNoHorizontalOverflow(page);
     });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Measurements
+ * ---------------------------------------------------------------------------
+ * "Someone who sets up 'Time to mitigate' opens an incident and finds it
+ * nowhere." Each event's page lists the project's measurements for it, in a
+ * card under its details: each one's name, what it measures, and what it
+ * reads - a number, a clock still running, or why there is none. The
+ * fixture works the values out with the real MeasurementEvaluator over its
+ * own timelines (see Fixture.js, Measurements).
+ */
+
+interface MeasurementRow {
+  name: string;
+  summary: string;
+  value: string;
+  reason: string | null;
+}
+
+function measurementsCard(page: Page): Locator {
+  return card(page, "Measurements");
+}
+
+async function measurementRows(page: Page): Promise<Array<MeasurementRow>> {
+  return measurementsCard(page)
+    .getByTestId("event-measurement")
+    .evaluateAll((rows: Array<Element>): Array<MeasurementRow> => {
+      return rows.map((row: Element): MeasurementRow => {
+        const text: (testId: string) => string | null = (
+          testId: string,
+        ): string | null => {
+          const element: Element | null = row.querySelector(
+            `[data-testid="${testId}"]`,
+          );
+          return element ? (element as HTMLElement).innerText.trim() : null;
+        };
+
+        return {
+          name: text("event-measurement-name") || "",
+          // The arrow is spaced by its margins, which innerText leaves out.
+          summary: (text("measurement-summary") || "")
+            .replace("→", " → ")
+            .replace(/\s+/g, " "),
+          value: text("event-measurement-value") || "",
+          reason: text("event-measurement-reason"),
+        };
+      });
+    });
+}
+
+// The ready text each page's Measurements card adds: a measurement's name.
+const MEASUREMENT_READY_TEXT: RegExp = /^(Time to|Maintenance duration)/;
+
+async function measurementRequests(
+  page: Page,
+): Promise<Array<RecordedModelRequest>> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName.includes("Measurement");
+    },
+  );
+}
+
+const INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
+  {
+    name: "Time to acknowledge",
+    summary: "Declared → Acknowledged",
+    value: "3 minutes",
+    reason: null,
+  },
+  {
+    name: "Time to mitigate",
+    summary: "Declared → Mitigated",
+    value: "Not measured",
+    reason: "Mitigated was skipped",
+  },
+  {
+    name: "Time to resolve",
+    summary: "Declared → Resolved",
+    value: "11 minutes",
+    reason: null,
+  },
+  {
+    name: "Time to postmortem",
+    summary: "Resolved → Postmortem published",
+    value: "Running for 8 minutes",
+    reason: null,
+  },
+];
+
+test.describe("measurements", () => {
+  test("incident-overview lists the incident's measurements under its details, in their order", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(measurementsCard(page)).toBeVisible();
+    await expect(measurementsCard(page)).toContainText(
+      "Your team's measurements, worked out for this incident.",
+    );
+    // Kept off incident pages, and switched off: neither is shown.
+    expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
+
+    // In the right-hand column, straight under the details card.
+    const details: Box = await documentBox(
+      card(page, INCIDENT_PAGE.detailsCard),
+    );
+    const measurements: Box = await documentBox(measurementsCard(page));
+    expect(Math.abs(measurements.x - details.x)).toBeLessThanOrEqual(1);
+    expect(measurements.y).toBeGreaterThan(details.y + details.height - 1);
+    await expectAbove(
+      measurementsCard(page),
+      card(page, "Incident Roles"),
+      "measurements before roles",
+    );
+    // Out of the hero and the stat bar.
+    await expectAbove(
+      page.getByRole("group", { name: INCIDENT_PAGE.statBar }),
+      measurementsCard(page),
+      "stat bar before measurements",
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("incident-overview asks for the measurements shown on incident pages, then this incident's values", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await expect(measurementsCard(page)).toBeVisible();
+
+    const requests: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+    const definitions: RecordedModelRequest | undefined = requests.find(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "IncidentMeasurement";
+      },
+    );
+    const values: RecordedModelRequest | undefined = requests.find(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "IncidentMeasurementValue";
+      },
+    );
+
+    expect(definitions?.query).toEqual({
+      isEnabled: true,
+      showOnIncidentView: true,
+    });
+    expect(definitions?.sort).toEqual({ order: "ASC" });
+    expect(JSON.stringify(values?.query)).toContain(INCIDENT_ID);
+    expect(Object.keys(values?.query || {})).toEqual(["incidentId"]);
+
+    /*
+     * Read once. The AI report arriving refreshes the feed, not the
+     * measurements: only a state change moves them. (A refresh is followed
+     * by one more read three seconds later, so wait past that.)
+     */
+    await expect(summarySection(page)).toContainText(INCIDENT_TLDR);
+    await page.waitForTimeout(3500);
+    expect(await measurementRequests(page)).toHaveLength(2);
+  });
+
+  test("alert-overview lists the alert's measurements, each in its own unit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    await expect(measurementsCard(page)).toContainText(
+      "Your team's measurements, worked out for this alert.",
+    );
+    expect(await measurementRows(page)).toEqual([
+      {
+        name: "Time to acknowledge",
+        summary: "Created → Acknowledged",
+        value: "2 minutes",
+        reason: null,
+      },
+      {
+        // Pinned to minutes.
+        name: "Time to resolve",
+        summary: "Created → Resolved",
+        value: "9 minutes",
+        reason: null,
+      },
+    ]);
+    await expectAbove(
+      measurementsCard(page),
+      card(page, "Affected Resources"),
+      "measurements before resources",
+    );
+  });
+
+  const MAINTENANCE_CASES: Array<{
+    sm: string;
+    values: Array<string>;
+  }> = [
+    // Starts in two hours: no clock has started.
+    {
+      sm: "scheduled",
+      values: ["Not started yet", "Not started yet", "Not started yet"],
+    },
+    // Still Scheduled 20 minutes after its start: running late.
+    {
+      sm: "overdue",
+      values: ["Running for 20 minutes", "Not started yet", "Not started yet"],
+    },
+    // Started on time, still Ongoing.
+    {
+      sm: "ongoing",
+      values: ["0 seconds", "Not started yet", "Running for 15 minutes"],
+    },
+    // Ended two minutes past its planned end.
+    { sm: "ended", values: ["0 seconds", "2 minutes", "1 hour, 2 minutes"] },
+  ];
+
+  for (const maintenance of MAINTENANCE_CASES) {
+    test(`scheduled-maintenance-overview ?sm=${maintenance.sm} reads its measurements`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        SCHEDULED_MAINTENANCE_PAGE,
+        `sm=${maintenance.sm}`,
+        ["Maintenance duration"],
+      );
+
+      const rows: Array<MeasurementRow> = await measurementRows(page);
+
+      expect(
+        rows.map((row: MeasurementRow): string => {
+          return row.name;
+        }),
+      ).toEqual(["Start delay", "Overrun", "Maintenance duration"]);
+      expect(
+        rows.map((row: MeasurementRow): string => {
+          return row.value;
+        }),
+      ).toEqual(maintenance.values);
+      expect(rows[0]!.summary).toBe("Scheduled start → Started");
+    });
+  }
+
+  test("?state=ongoing: clocks still running count from the declaration, and resolving turns them into numbers in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    expect(await measurementRows(page)).toEqual([
+      INCIDENT_MEASUREMENTS[0],
+      {
+        name: "Time to mitigate",
+        summary: "Declared → Mitigated",
+        value: "Running for 19 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to resolve",
+        summary: "Declared → Resolved",
+        value: "Running for 19 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to postmortem",
+        summary: "Resolved → Postmortem published",
+        value: "Not started yet",
+        reason: null,
+      },
+    ]);
+
+    const readsBefore: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+
+    await watchForSkeleton(page);
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Resolve", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return (await measurementRows(page)).map(
+          (row: MeasurementRow): string => {
+            return row.value;
+          },
+        );
+      })
+      .toEqual([
+        "3 minutes",
+        // The incident went straight to resolved.
+        "Not measured",
+        "19 minutes",
+        "Running for less than a minute",
+      ]);
+    expect(await skeletonWasSeen(page)).toBe(false);
+
+    /*
+     * One read of the values, and only them: the fixture works them out as
+     * the timeline entry is saved, so the first read already has values
+     * newer than the ones on screen, and the card stops waiting. (It would
+     * read again after 3 seconds otherwise: wait past that.)
+     */
+    await page.waitForTimeout(3500);
+
+    const readsAfter: Array<RecordedModelRequest> = (
+      await measurementRequests(page)
+    ).slice(readsBefore.length);
+
+    expect(
+      readsAfter.map((request: RecordedModelRequest): string => {
+        return request.modelName;
+      }),
+    ).toEqual(["IncidentMeasurementValue"]);
+    await expectNoErrorStates(page);
+  });
+
+  test("?state=created: an incident nobody has answered yet runs every clock it has started", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    expect(
+      (await measurementRows(page)).map((row: MeasurementRow): string => {
+        return row.value;
+      }),
+    ).toEqual([
+      "Running for 19 minutes",
+      "Running for 19 minutes",
+      "Running for 19 minutes",
+      "Not started yet",
+    ]);
+  });
+
+  test("?measurements=states: an end before its start is called out, and a measurement just changed is not worked out yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "measurements=states", [
+      "Time to close",
+    ]);
+
+    const rows: Array<MeasurementRow> = await measurementRows(page);
+
+    expect(rows.slice(0, 4)).toEqual(INCIDENT_MEASUREMENTS);
+    expect(rows.slice(4)).toEqual([
+      {
+        name: "Time to impact",
+        summary: "Declared → Impact started",
+        value: "Ends before it starts",
+        reason: "Impact Started At precedes Declared At by 3m",
+      },
+      {
+        name: "Time to close",
+        summary: "Declared → Resolved (last time)",
+        value: "Not worked out yet",
+        reason: "OneUptime works it out in the background.",
+      },
+    ]);
+
+    // The one worth fixing is drawn as a warning, the rest as states.
+    const values: Locator = measurementsCard(page).getByTestId(
+      "event-measurement-value",
+    );
+    await expect(values.nth(4)).toHaveCSS("color", "rgb(180, 83, 9)");
+    await expect(values.nth(5)).toHaveCSS("color", "rgb(107, 114, 128)");
+  });
+
+  for (const eventPage of [
+    INCIDENT_PAGE,
+    ALERT_PAGE,
+    SCHEDULED_MAINTENANCE_PAGE,
+  ]) {
+    test(`${eventPage.name} ?measurements=none draws no card and reads no values`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        eventPage,
+        "measurements=none",
+        eventPage.readyTexts.filter((text: string): boolean => {
+          return !MEASUREMENT_READY_TEXT.test(text);
+        }),
+      );
+      await expect(card(page, eventPage.feed)).toBeVisible();
+
+      await expect
+        .poll(async (): Promise<number> => {
+          return (await measurementRequests(page)).length;
+        })
+        .toBe(1);
+      await expect(measurementsCard(page)).toHaveCount(0);
+      await expect(page.getByTestId("event-measurements")).toHaveCount(0);
+    });
+  }
+
+  test("the card reads well in the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark&measurements=states", [
+      "Time to close",
+    ]);
+
+    const values: Locator = measurementsCard(page).getByTestId(
+      "event-measurement-value",
+    );
+
+    // Light text on the dark card: neither the light theme's grey-900 nor its amber.
+    for (const index of [0, 4, 5]) {
+      const color: string = await values
+        .nth(index)
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        });
+      const channels: Array<number> = (color.match(/\d+/g) || [])
+        .slice(0, 3)
+        .map(Number);
+      const brightness: number =
+        (channels[0]! * 299 + channels[1]! * 587 + channels[2]! * 114) / 1000;
+      expect(brightness, `value ${index} is light on dark`).toBeGreaterThan(
+        120,
+      );
+    }
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      measurementsCard(page),
+      "incident-measurements-dark",
+    );
+  });
+
+  test("a phone shows every measurement without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE);
+
+    expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      measurementsCard(page),
+      "incident-measurements-mobile",
+    );
+  });
+
+  test("screenshot of the incident's measurements", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "measurements=states", [
+      "Time to close",
+    ]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(measurementsCard(page), "incident-measurements");
+  });
 });
 
 /*

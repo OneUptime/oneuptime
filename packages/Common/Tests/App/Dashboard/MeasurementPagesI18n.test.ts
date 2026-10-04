@@ -72,6 +72,8 @@ const PAGES: Array<string> = [
   "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements.tsx",
   "Components/Measurement/MeasurementPresetPicker.tsx",
   "Components/Measurement/MeasurementSummaryElement.tsx",
+  // The Measurements card on an incident's, alert's or maintenance event's page.
+  "Components/Measurement/EventMeasurementsCard.tsx",
 ];
 
 describe("the measurement pages' words", () => {
