@@ -24644,5 +24644,16 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "有人不在崗時，覆寫會把此策略發給此人的呼叫轉給代班的人。若想在所有策略中一次代班，請在「待命 > 使用者覆寫」中新增覆寫。",
   "Who covers?": "誰代班？",
   "Who is away?": "誰不在崗？",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在崗時，使用者覆寫會在設定的期間內，把原本會發給此人的警示發給代班的人。待命策略上的覆寫只適用於該策略；沒有策略的覆寫適用於所有待命策略。"
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在崗時，使用者覆寫會在設定的期間內，把原本會發給此人的警示發給代班的人。待命策略上的覆寫只適用於該策略；沒有策略的覆寫適用於所有待命策略。",
+  "How you are notified when an alert episode of this severity is assigned to you while you are on call.": "您在待命期間被指派此嚴重程度的警示片段時，會如何收到通知。",
+  "How you are notified when an alert of this severity is assigned to you while you are on call.": "您在待命期間被指派此嚴重程度的警示時，會如何收到通知。",
+  "How you are notified when an incident episode of this severity is assigned to you while you are on call.": "您在待命期間被指派此嚴重程度的事件片段時，會如何收到通知。",
+  "How you are notified when an incident of this severity is assigned to you while you are on call.": "您在待命期間被指派此嚴重程度的事件時，會如何收到通知。",
+  "How you are notified, for each severity, when an incident, an alert or one of their episodes is assigned to you.": "您被指派事件、警示或其片段時，各嚴重程度會如何收到通知。",
+  "How {{name}} is notified when an alert episode of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的警示片段時，會如何收到通知。",
+  "How {{name}} is notified when an alert of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的警示時，會如何收到通知。",
+  "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的事件片段時，會如何收到通知。",
+  "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "{{name}} 在待命期間被指派此嚴重程度的事件時，會如何收到通知。",
+  "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "{{name}} 被指派事件、警示或其片段時，各嚴重程度會如何收到通知。",
+  "On-call rules": "待命規則"
 }

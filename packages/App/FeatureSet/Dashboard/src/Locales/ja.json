@@ -24644,5 +24644,16 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "誰かが不在の間、オーバーライドはこのポリシーからのその人への呼び出しを代理の人に送ります。すべてのポリシーでまとめて代理を立てるには、オンコール > ユーザーオーバーライドでオーバーライドを追加してください。",
   "Who covers?": "誰が代理しますか？",
   "Who is away?": "誰が不在ですか？",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "誰かが不在の間、ユーザーオーバーライドは、その人に届くはずのアラートを指定した期間、代理の人に送ります。オンコールポリシーのオーバーライドはそのポリシーにのみ適用され、ポリシーのないオーバーライドはすべてのオンコールポリシーに適用されます。"
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "誰かが不在の間、ユーザーオーバーライドは、その人に届くはずのアラートを指定した期間、代理の人に送ります。オンコールポリシーのオーバーライドはそのポリシーにのみ適用され、ポリシーのないオーバーライドはすべてのオンコールポリシーに適用されます。",
+  "How you are notified when an alert episode of this severity is assigned to you while you are on call.": "オンコール中に、この重大度のアラートエピソードが自分に割り当てられたときの通知方法。",
+  "How you are notified when an alert of this severity is assigned to you while you are on call.": "オンコール中に、この重大度のアラートが自分に割り当てられたときの通知方法。",
+  "How you are notified when an incident episode of this severity is assigned to you while you are on call.": "オンコール中に、この重大度のインシデントエピソードが自分に割り当てられたときの通知方法。",
+  "How you are notified when an incident of this severity is assigned to you while you are on call.": "オンコール中に、この重大度のインシデントが自分に割り当てられたときの通知方法。",
+  "How you are notified, for each severity, when an incident, an alert or one of their episodes is assigned to you.": "インシデント、アラート、またはそのエピソードが自分に割り当てられたときの、重大度ごとの通知方法。",
+  "How {{name}} is notified when an alert episode of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のアラートエピソードが {{name}} に割り当てられたときの通知方法。",
+  "How {{name}} is notified when an alert of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のアラートが {{name}} に割り当てられたときの通知方法。",
+  "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のインシデントエピソードが {{name}} に割り当てられたときの通知方法。",
+  "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "オンコール中に、この重大度のインシデントが {{name}} に割り当てられたときの通知方法。",
+  "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "インシデント、アラート、またはそのエピソードが {{name}} に割り当てられたときの、重大度ごとの通知方法。",
+  "On-call rules": "オンコールルール"
 }

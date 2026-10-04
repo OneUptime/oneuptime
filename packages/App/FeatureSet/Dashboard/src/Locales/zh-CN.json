@@ -24644,5 +24644,16 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "有人不在岗时，覆盖会把此策略发给此人的呼叫转给代班的人。如果想在所有策略中同时代班，请在“值班 > 用户覆盖”中添加覆盖。",
   "Who covers?": "谁代班？",
   "Who is away?": "谁不在岗？",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在岗时，用户覆盖会在设定的时间内，把本应发给此人的警报发给代班的人。值班策略上的覆盖只适用于该策略；没有策略的覆盖适用于所有值班策略。"
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "有人不在岗时，用户覆盖会在设定的时间内，把本应发给此人的警报发给代班的人。值班策略上的覆盖只适用于该策略；没有策略的覆盖适用于所有值班策略。",
+  "How you are notified when an alert episode of this severity is assigned to you while you are on call.": "您在值班期间被分配到此严重程度的警报片段时，将如何收到通知。",
+  "How you are notified when an alert of this severity is assigned to you while you are on call.": "您在值班期间被分配到此严重程度的警报时，将如何收到通知。",
+  "How you are notified when an incident episode of this severity is assigned to you while you are on call.": "您在值班期间被分配到此严重程度的事件片段时，将如何收到通知。",
+  "How you are notified when an incident of this severity is assigned to you while you are on call.": "您在值班期间被分配到此严重程度的事件时，将如何收到通知。",
+  "How you are notified, for each severity, when an incident, an alert or one of their episodes is assigned to you.": "您被分配到事件、警报或其片段时，按严重程度分别如何收到通知。",
+  "How {{name}} is notified when an alert episode of this severity is assigned to them while they are on call.": "{{name}} 在值班期间被分配到此严重程度的警报片段时，将如何收到通知。",
+  "How {{name}} is notified when an alert of this severity is assigned to them while they are on call.": "{{name}} 在值班期间被分配到此严重程度的警报时，将如何收到通知。",
+  "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "{{name}} 在值班期间被分配到此严重程度的事件片段时，将如何收到通知。",
+  "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "{{name}} 在值班期间被分配到此严重程度的事件时，将如何收到通知。",
+  "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "{{name}} 被分配到事件、警报或其片段时，按严重程度分别如何收到通知。",
+  "On-call rules": "值班规则"
 }

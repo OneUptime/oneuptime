@@ -24644,5 +24644,16 @@
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "وقتی کسی غایب است، جایگزینی تماس‌های او را از این سیاست به جایگزینش می‌فرستد. برای جایگزینی هم‌زمان در همه سیاست‌ها، جایگزینی را در کشیک آنکال > جایگزینی‌های کاربر اضافه کنید.",
   "Who covers?": "چه کسی جایگزین است؟",
   "Who is away?": "چه کسی غایب است؟",
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "وقتی کسی غایب است، جایگزینی کاربر هشدارهایی را که باید به او می‌رسید، برای مدت مشخصی به جایگزینش می‌فرستد. جایگزینی روی یک سیاست آنکال فقط برای همان سیاست است؛ جایگزینی بدون سیاست برای همه سیاست‌های آنکال است."
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.": "وقتی کسی غایب است، جایگزینی کاربر هشدارهایی را که باید به او می‌رسید، برای مدت مشخصی به جایگزینش می‌فرستد. جایگزینی روی یک سیاست آنکال فقط برای همان سیاست است؛ جایگزینی بدون سیاست برای همه سیاست‌های آنکال است.",
+  "How you are notified when an alert episode of this severity is assigned to you while you are on call.": "وقتی در زمان آنکال یک اپیزود هشدار با این شدت به شما واگذار می‌شود، چگونه به شما اطلاع داده می‌شود.",
+  "How you are notified when an alert of this severity is assigned to you while you are on call.": "وقتی در زمان آنکال یک هشدار با این شدت به شما واگذار می‌شود، چگونه به شما اطلاع داده می‌شود.",
+  "How you are notified when an incident episode of this severity is assigned to you while you are on call.": "وقتی در زمان آنکال یک اپیزود حادثه با این شدت به شما واگذار می‌شود، چگونه به شما اطلاع داده می‌شود.",
+  "How you are notified when an incident of this severity is assigned to you while you are on call.": "وقتی در زمان آنکال یک حادثه با این شدت به شما واگذار می‌شود، چگونه به شما اطلاع داده می‌شود.",
+  "How you are notified, for each severity, when an incident, an alert or one of their episodes is assigned to you.": "وقتی یک حادثه، یک هشدار یا یکی از اپیزودهای آن‌ها به شما واگذار می‌شود، برای هر شدت چگونه به شما اطلاع داده می‌شود.",
+  "How {{name}} is notified when an alert episode of this severity is assigned to them while they are on call.": "وقتی در زمان آنکال یک اپیزود هشدار با این شدت به {{name}} واگذار می‌شود، چگونه به او اطلاع داده می‌شود.",
+  "How {{name}} is notified when an alert of this severity is assigned to them while they are on call.": "وقتی در زمان آنکال یک هشدار با این شدت به {{name}} واگذار می‌شود، چگونه به او اطلاع داده می‌شود.",
+  "How {{name}} is notified when an incident episode of this severity is assigned to them while they are on call.": "وقتی در زمان آنکال یک اپیزود حادثه با این شدت به {{name}} واگذار می‌شود، چگونه به او اطلاع داده می‌شود.",
+  "How {{name}} is notified when an incident of this severity is assigned to them while they are on call.": "وقتی در زمان آنکال یک حادثه با این شدت به {{name}} واگذار می‌شود، چگونه به او اطلاع داده می‌شود.",
+  "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.": "وقتی یک حادثه، یک هشدار یا یکی از اپیزودهای آن‌ها به {{name}} واگذار می‌شود، برای هر شدت چگونه به او اطلاع داده می‌شود.",
+  "On-call rules": "قواعد آنکال"
 }
