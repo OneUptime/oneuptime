@@ -14,7 +14,8 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  * So a new project's list holds only Incident Commander (ProjectService
  * seeds it), the card says more roles can be added, the table shows each
  * role's name and description and nothing else, and whether a role takes
- * more than one person is in its form, folded under Advanced.
+ * more than one person is in its form, folded under More fields - with the
+ * role's icon and colour, the colour already picked for a new role.
  *
  * Kept in one React-free module so the page renders these exact strings and
  * App/Tests/Dashboard/IncidentRoleSettings checks that each has an entry in
@@ -30,9 +31,10 @@ export interface IncidentRoleSettingsCopyType {
   noItemsMessage: string;
   // Why Incident Commander's Delete is locked (the server refuses it too).
   deleteLockedReason: string;
-  // The create and edit form: two steps, then the fields on them.
-  basicInfoStep: string;
-  appearanceStep: string;
+  /*
+   * The create and edit form, one page: a name and a description, then
+   * More fields (Allow Multiple Users, the icon and the colour).
+   */
   nameFieldTitle: string;
   /*
    * A role name, shown as an example and kept as it is, like the names of
@@ -57,8 +59,6 @@ export const IncidentRoleSettingsCopy: IncidentRoleSettingsCopyType = {
   noItemsMessage: "No incident roles found.",
   deleteLockedReason:
     "Every incident needs someone in charge, so this role can be renamed, but not deleted.",
-  basicInfoStep: "Basic Info",
-  appearanceStep: "Appearance",
   nameFieldTitle: "Name",
   namePlaceholder: "Responder",
   descriptionFieldTitle: "Description",

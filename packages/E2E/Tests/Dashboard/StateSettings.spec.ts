@@ -25,8 +25,10 @@ const SERVER: { timeout: number } = { timeout: 30000 };
  * up, the arrows move it, Space drops it) and real persistence, read back
  * through the API - including where the server puts a new row and a drag it
  * refuses. Each test owns a temporary project, deleted even when the test
- * fails. Growth, because creating or reordering states is a Growth feature
- * when billing is on.
+ * fails. The create form opens with a colour already picked - one no row of
+ * the list uses - which one test keeps and reads back from the server.
+ * Growth, because creating or reordering states is a Growth feature when
+ * billing is on.
  *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
  *   npx playwright test Tests/Dashboard/StateSettings.spec.ts \
@@ -104,6 +106,32 @@ const namesOnServer: (list: ListPage) => Promise<Array<string>> = async (
   });
 };
 
+// A row's colour as the server keeps it ("#6366f1").
+const colorOnServer: (list: ListPage, name: string) => Promise<string> = async (
+  list: ListPage,
+  name: string,
+): Promise<string> => {
+  const response: APIResponse = await list.page.request.post(
+    urlFor(`/api/${list.apiPath}/get-list`),
+    {
+      headers: { tenantid: list.projectId },
+      data: {
+        query: { projectId: list.projectId, name },
+        select: { _id: true, color: true },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      },
+    },
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+  const body: { data: Array<{ color?: { value?: string } | string }> } =
+    await response.json();
+  const color: { value?: string } | string | undefined = body.data[0]?.color;
+
+  return String(typeof color === "string" ? color : color?.value || "");
+};
+
 // Picks the row up from the keyboard, moves it up `places` rows, drops it.
 const dragUp: (
   list: ListPage,
@@ -129,24 +157,28 @@ const dragUp: (
   await list.page.keyboard.press("Space");
 };
 
-// Fills the create form (name, description, colour) and saves it.
+/*
+ * Fills the create form (name, description, colour) and saves it. The colour
+ * starts picked; without a `color` the form's own pick is kept. Resolves to
+ * the colour the form was saved with.
+ */
 const createFromForm: (
   list: ListPage,
   data: {
     namePlaceholder: string;
     name: string;
     description: string;
-    color: string;
+    color?: string | undefined;
   },
-) => Promise<void> = async (
+) => Promise<string> = async (
   list: ListPage,
   data: {
     namePlaceholder: string;
     name: string;
     description: string;
-    color: string;
+    color?: string | undefined;
   },
-): Promise<void> => {
+): Promise<string> => {
   const page: Page = list.page;
   const modal: Locator = page.getByTestId("modal");
 
@@ -171,21 +203,32 @@ const createFromForm: (
     .fill(data.name);
   await modal.locator("textarea").first().fill(data.description);
 
-  await modal
-    .getByPlaceholder("Please select a color.", { exact: true })
-    .click();
-  const picker: Locator = page.getByTestId("color-picker-popup");
-  await expect(picker).toBeVisible();
-  // The picker's hex box: a whole hex is taken as it is typed.
-  await picker.locator("input").first().fill(data.color);
-  // Escape closes the picker, not the form.
-  await page.keyboard.press("Escape");
-  await expect(picker).toBeHidden();
-  await expect(modal).toBeVisible();
+  // The colour is already picked: Create works without touching it.
+  const colorBox: Locator = modal.getByPlaceholder("Please select a color.", {
+    exact: true,
+  });
+  await expect(colorBox).toHaveValue(/^#[0-9a-f]{6}$/);
+
+  if (data.color) {
+    await colorBox.click();
+    const picker: Locator = page.getByTestId("color-picker-popup");
+    await expect(picker).toBeVisible();
+    // The picker's hex box: a whole hex is taken as it is typed.
+    await picker.locator("input").first().fill(data.color);
+    // Escape closes the picker, not the form.
+    await page.keyboard.press("Escape");
+    await expect(picker).toBeHidden();
+    await expect(modal).toBeVisible();
+    await expect(colorBox).toHaveValue(data.color);
+  }
+
+  const savedColor: string = await colorBox.inputValue();
 
   const submit: Locator = modal.getByTestId("modal-footer-submit-button");
   await submit.click();
   await expect(modal).toBeHidden(SERVER);
+
+  return savedColor;
 };
 
 const deleteProject: (page: Page, projectId: string) => Promise<void> = async (
@@ -659,13 +702,23 @@ test.describe("State, severity and monitor status settings", () => {
       await expect(maintenanceCountsAs("Completed")).toHaveText("Completed");
       await expect(page.getByTestId("state-settings-built-in")).toHaveCount(4);
 
-      // A new state goes just above Completed, so it never counts as done.
-      await createFromForm(maintenanceStates, {
+      /*
+       * A new state goes just above Completed, so it never counts as done.
+       * Its colour is left as the form picked it: one no state above uses.
+       */
+      const pickedColor: string = await createFromForm(maintenanceStates, {
         namePlaceholder: "Verifying",
         name: "E2E Verifying",
         description: "Checking that everything is back to normal.",
-        color: "#0ea5e9",
       });
+      expect(pickedColor).toMatch(/^#[0-9a-f]{6}$/);
+      // Not the seeded Ongoing yellow or Completed green.
+      expect(["#ffbf53", "#2ab57d"]).not.toContain(pickedColor);
+      await expect
+        .poll(async (): Promise<string> => {
+          return colorOnServer(maintenanceStates, "E2E Verifying");
+        }, SERVER)
+        .toBe(pickedColor);
       await expect
         .poll(async (): Promise<Array<string>> => {
           return namesOnPage(maintenanceStates);

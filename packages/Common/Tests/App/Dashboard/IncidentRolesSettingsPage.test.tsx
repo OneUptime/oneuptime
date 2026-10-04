@@ -38,11 +38,14 @@ configure({ asyncUtilTimeout: 15000 });
  *   - the table is a role's name and description - no Multiple Users;
  *   - Incident Commander's Delete is locked, saying why, and a role the
  *     project added can be deleted;
- *   - Create asks for a name and a description, with Allow Multiple Users
- *     folded under Advanced, then an icon and a colour;
- *   - Edit keeps the switch under Advanced (saying "Configured" when it is
- *     on, and saving it), and leaves it out for Incident Commander, which is
- *     always one person.
+ *   - Create is one page: a name and a description, with Allow Multiple
+ *     Users, the icon and the colour folded under More fields - the colour
+ *     already picked, one the listed roles do not use yet, so a role is
+ *     created without opening anything. It used to be a second step,
+ *     "Appearance", walked through only to pick a colour;
+ *   - Edit keeps those three under More fields (showing what is set, and
+ *     saving it), and leaves Allow Multiple Users out for Incident
+ *     Commander, which is always one person.
  */
 
 let permissionsForTest: Array<unknown> = [];
@@ -114,8 +117,11 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import {
   hasSetChip,
+  listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import { Amber600, Indigo500 } from "../../../Types/BrandColors";
+import { areSimilarColors } from "../../../Utils/DistinctColor";
 
 type RoleRow = {
   _id: string;
@@ -239,6 +245,13 @@ const multipleUsersSwitch: () => HTMLElement | null =
     });
   };
 
+// The colour box, folded under More fields until it is opened.
+const colorBox: () => HTMLInputElement = (): HTMLInputElement => {
+  return within(dialog()).getByPlaceholderText(
+    IncidentRoleSettingsCopy.colorPlaceholder,
+  ) as HTMLInputElement;
+};
+
 const openCreate: () => Promise<void> = async (): Promise<void> => {
   const create: Array<HTMLElement> = screen.getAllByRole("button", {
     name: "Create Incident Role",
@@ -250,12 +263,15 @@ const openCreate: () => Promise<void> = async (): Promise<void> => {
     })!,
   );
 
-  await within(dialog()).findByRole("navigation", { name: "Progress" });
-
   // The form draws its fields once it has worked them out.
   await within(dialog()).findByPlaceholderText(
     IncidentRoleSettingsCopy.namePlaceholder,
   );
+
+  // And fills the colour in once it has picked one.
+  await waitFor(() => {
+    expect(colorBox().value).not.toBe("");
+  });
 };
 
 const openEdit: (row: RoleRow) => Promise<void> = async (
@@ -481,7 +497,7 @@ describe("the Incident Roles page", () => {
 });
 
 describe("creating a role", () => {
-  test("asks for a name and a description, with Allow Multiple Users folded under Advanced", async () => {
+  test("asks for a name and a description, with Allow Multiple Users folded under More fields", async () => {
     await renderPage();
     await openCreate();
 
@@ -502,7 +518,7 @@ describe("creating a role", () => {
     expect(advanced).toHaveAttribute("aria-expanded", "false");
     expect(setChips(advanced)).toEqual([]);
 
-    // Folded: in the form, but hidden until Advanced is opened.
+    // Folded: in the form, but hidden until More fields is opened.
     const toggle: HTMLElement | null = multipleUsersSwitch();
 
     expect(toggle).not.toBeNull();
@@ -520,24 +536,90 @@ describe("creating a role", () => {
     ).toBeInTheDocument();
   });
 
-  test("walks two steps: the role, then how it looks", async () => {
+  test("is one page: the icon and the colour are folded under More fields, not a step of their own", async () => {
     await renderPage();
     await openCreate();
 
-    const progress: HTMLElement = within(dialog()).getByRole("navigation", {
-      name: "Progress",
+    // No step list, and the action is right there - no Next.
+    expect(
+      within(dialog()).queryByRole("navigation", { name: "Progress" }),
+    ).toBeNull();
+    expect(
+      within(dialog()).queryByTestId("modal-footer-next-button"),
+    ).toBeNull();
+    expect(
+      within(dialog()).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Create Incident Role");
+
+    // More fields names what it holds while folded, none of it set.
+    expect(listedNames(advancedHeader())).toEqual([
+      IncidentRoleSettingsCopy.allowMultipleUsersTitle,
+      IncidentRoleSettingsCopy.iconFieldTitle,
+      IncidentRoleSettingsCopy.colorFieldTitle,
+    ]);
+    expect(setChips(advancedHeader())).toEqual([]);
+
+    // The colour is in there, folded, until More fields is opened.
+    expect(colorBox().closest("[hidden]")).not.toBeNull();
+
+    fireEvent.click(advancedHeader()!);
+
+    expect(colorBox().closest("[hidden]")).toBeNull();
+    expect(
+      within(dialog()).getByPlaceholderText(
+        IncidentRoleSettingsCopy.iconPlaceholder,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("starts with a colour already picked, one the listed roles do not use", async () => {
+    await renderPage();
+    await openCreate();
+
+    // Incident Commander is purple; indigo is the palette's first colour.
+    expect(colorBox().value).toBe(Indigo500.toString());
+    expect(areSimilarColors(colorBox().value, COMMANDER.color)).toBe(false);
+  });
+
+  test("passes over a colour a listed role already has", async () => {
+    rows = [COMMANDER, { ...RESPONDER, color: Indigo500.toString() }];
+
+    await renderPage();
+    await openCreate();
+
+    expect(colorBox().value).toBe(Amber600.toString());
+
+    for (const role of rows) {
+      expect(areSimilarColors(colorBox().value, role.color)).toBe(false);
+    }
+  });
+
+  test("creates a role from its name alone, saving the colour it picked", async () => {
+    await renderPage();
+    await openCreate();
+
+    fireEvent.change(
+      within(dialog()).getByPlaceholderText(
+        IncidentRoleSettingsCopy.namePlaceholder,
+      ),
+      { target: { value: "Scribe" } },
+    );
+
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(saved).toHaveLength(1);
     });
 
-    expect(progress).toHaveTextContent(IncidentRoleSettingsCopy.basicInfoStep);
-    expect(progress).toHaveTextContent(IncidentRoleSettingsCopy.appearanceStep);
-    expect(progress).not.toHaveTextContent("Advanced");
-
-    // The icon and the colour are not on the first step.
-    expect(
-      within(dialog()).queryByPlaceholderText(
-        IncidentRoleSettingsCopy.colorPlaceholder,
-      ),
-    ).toBeNull();
+    expect(saved[0]!.data["name"]).toBe("Scribe");
+    expect(saved[0]!.data["color"]).toEqual({
+      _type: "Color",
+      value: Indigo500.toString(),
+    });
+    // No icon was picked, and none is needed.
+    expect(saved[0]!.data["roleIcon"]).toBeUndefined();
+    // Not opened, so the switch is sent as it started: off.
+    expect(saved[0]!.data["canAssignMultipleUsers"]).toBe(false);
   });
 
   test("suggests a role to add, not the Incident Commander every project already has", async () => {
@@ -560,7 +642,7 @@ describe("creating a role", () => {
     await renderPage();
     await openEdit(COMMANDER);
 
-    expect(advancedHeader()).toBeNull();
+    expect(multipleUsersSwitch()).toBeNull();
 
     fireEvent.click(within(dialog()).getByTestId("close-button"));
 
@@ -575,20 +657,11 @@ describe("creating a role", () => {
   });
 });
 
-/*
- * Save Changes is on the last step only. An edit dialog's step list opens
- * any step: the last one, then Save Changes.
- */
-async function saveFromTheLastStep(): Promise<void> {
+// One page: Save Changes is right there, with no step list to walk.
+async function saveChanges(): Promise<void> {
   expect(
-    within(dialog()).queryByTestId("modal-footer-submit-button"),
+    within(dialog()).queryByRole("navigation", { name: "Progress" }),
   ).toBeNull();
-
-  const steps: Array<HTMLElement> = within(
-    within(dialog()).getByRole("navigation", { name: "Progress" }),
-  ).getAllByRole("listitem");
-
-  fireEvent.click(steps[steps.length - 1] as HTMLElement);
 
   fireEvent.click(
     await within(dialog()).findByTestId("modal-footer-submit-button"),
@@ -596,14 +669,17 @@ async function saveFromTheLastStep(): Promise<void> {
 }
 
 describe("editing a role", () => {
-  test("Incident Commander's form has no Allow Multiple Users, and no Advanced", async () => {
+  test("Incident Commander's form has no Allow Multiple Users: More fields holds only its icon and colour", async () => {
     rows = [COMMANDER, RESPONDER];
 
     await renderPage();
     await openEdit(COMMANDER);
 
     expect(itemRequests).toEqual([COMMANDER._id]);
-    expect(advancedHeader()).toBeNull();
+    expect(listedNames(advancedHeader())).toEqual([
+      IncidentRoleSettingsCopy.iconFieldTitle,
+      IncidentRoleSettingsCopy.colorFieldTitle,
+    ]);
     expect(multipleUsersSwitch()).toBeNull();
     expect(
       within(dialog()).queryByText(
@@ -621,18 +697,26 @@ describe("editing a role", () => {
     ).toBe(COMMANDER.description);
   });
 
-  test("a role held by one person: Advanced is folded and says nothing is set", async () => {
+  test("a role held by one person: More fields is folded, showing its icon and colour as set, not the switch", async () => {
     rows = [COMMANDER, RESPONDER];
 
     await renderPage();
     await openEdit(RESPONDER);
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    expect(setChips(advancedHeader())).toEqual([]);
+    expect(setChips(advancedHeader())).toEqual([
+      IncidentRoleSettingsCopy.iconFieldTitle,
+      IncidentRoleSettingsCopy.colorFieldTitle,
+    ]);
     expect(multipleUsersSwitch()).toHaveAttribute("aria-checked", "false");
+
+    // Its own colour, not a new pick.
+    await waitFor(() => {
+      expect(colorBox().value).toBe(RESPONDER.color);
+    });
   });
 
-  test("a role held by more than one person: Advanced says Configured, and holds the switch, on", async () => {
+  test("a role held by more than one person: More fields shows the switch as on", async () => {
     rows = [COMMANDER, OBSERVER];
 
     await renderPage();
@@ -640,10 +724,13 @@ describe("editing a role", () => {
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(hasSetChip(advancedHeader())).toBe(true);
+    expect(setChips(advancedHeader())).toContain(
+      `${IncidentRoleSettingsCopy.allowMultipleUsersTitle}: On`,
+    );
     expect(multipleUsersSwitch()).toHaveAttribute("aria-checked", "true");
   });
 
-  test("switching it on under Advanced is saved", async () => {
+  test("switching it on under More fields is saved", async () => {
     rows = [COMMANDER, RESPONDER];
 
     await renderPage();
@@ -654,7 +741,7 @@ describe("editing a role", () => {
 
     expect(multipleUsersSwitch()).toHaveAttribute("aria-checked", "true");
 
-    await saveFromTheLastStep();
+    await saveChanges();
 
     await waitFor(() => {
       expect(saved).toHaveLength(1);
@@ -663,6 +750,11 @@ describe("editing a role", () => {
     expect(saved[0]!.data["_id"]).toBe(RESPONDER._id);
     expect(saved[0]!.data["canAssignMultipleUsers"]).toBe(true);
     expect(saved[0]!.data["name"]).toBe(RESPONDER.name);
+    // The colour it had, untouched.
+    expect(saved[0]!.data["color"]).toEqual({
+      _type: "Color",
+      value: RESPONDER.color,
+    });
   });
 
   test("saving Incident Commander never sends Allow Multiple Users", async () => {
@@ -671,7 +763,7 @@ describe("editing a role", () => {
     await renderPage();
     await openEdit(COMMANDER);
 
-    await saveFromTheLastStep();
+    await saveChanges();
 
     await waitFor(() => {
       expect(saved).toHaveLength(1);
