@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "이 알림에 대해 계산한 팀의 측정값입니다.",
   "Your team's measurements, worked out for this incident.": "이 인시던트에 대해 계산한 팀의 측정값입니다.",
   "Your team's measurements, worked out for this maintenance event.": "이 유지 관리 이벤트에 대해 계산한 팀의 측정값입니다.",
-  "less than a minute": "1분 미만"
+  "less than a minute": "1분 미만",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "양식 페이지 맨 위의 로고와 브라우저 탭의 파비콘입니다.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "직접 업로드하기 전까지 양식에는 OneUptime 로고와 파비콘이 표시됩니다.",
+  "The form shows the OneUptime logo until you upload yours.": "직접 업로드하기 전까지 양식에는 OneUptime 로고가 표시됩니다.",
+  "The form shows the OneUptime favicon until you upload yours.": "직접 업로드하기 전까지 양식에는 OneUptime 파비콘이 표시됩니다.",
+  "Edit Branding": "브랜딩 편집",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "양식 페이지 맨 위, 이름 위에 OneUptime 로고 대신 표시됩니다. 1MB 이하의 PNG, JPEG, GIF, WebP 또는 SVG 이미지를 사용하세요.",
+  "The OneUptime logo, until you upload yours.": "직접 업로드하기 전까지는 OneUptime 로고입니다.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "스크린 리더가 읽어 주는 로고의 내용으로, 보통 조직 이름입니다. 비워 두면 스크린 리더가 로고를 건너뜁니다.",
+  "Your organization's name": "조직 이름",
+  "None. Screen readers skip the logo.": "없음. 스크린 리더가 로고를 건너뜁니다.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "양식이 열려 있는 동안 OneUptime 파비콘 대신 브라우저 탭에 표시되는 아이콘입니다. 1MB 이하의 정사각형 PNG 또는 SVG 이미지가 가장 좋습니다.",
+  "The OneUptime favicon, until you upload yours.": "직접 업로드하기 전까지는 OneUptime 파비콘입니다.",
+  "Upload favicon": "파비콘 업로드"
 }

@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "De metingen van uw team, berekend voor deze waarschuwing.",
   "Your team's measurements, worked out for this incident.": "De metingen van uw team, berekend voor dit incident.",
   "Your team's measurements, worked out for this maintenance event.": "De metingen van uw team, berekend voor dit onderhoudsevenement.",
-  "less than a minute": "minder dan een minuut"
+  "less than a minute": "minder dan een minuut",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Uw logo bovenaan de pagina van het formulier en uw favicon in het browsertabblad.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Het formulier toont het logo en de favicon van OneUptime tot u uw eigen exemplaren uploadt.",
+  "The form shows the OneUptime logo until you upload yours.": "Het formulier toont het logo van OneUptime tot u uw eigen logo uploadt.",
+  "The form shows the OneUptime favicon until you upload yours.": "Het formulier toont de favicon van OneUptime tot u uw eigen favicon uploadt.",
+  "Edit Branding": "Huisstijl bewerken",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Wordt bovenaan de pagina van het formulier getoond, boven de naam, in plaats van het logo van OneUptime. Een PNG-, JPEG-, GIF-, WebP- of SVG-afbeelding van maximaal 1 MB.",
+  "The OneUptime logo, until you upload yours.": "Het logo van OneUptime, tot u uw eigen logo uploadt.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Wat het logo zegt, voorgelezen door schermlezers: meestal de naam van uw organisatie. Laat het leeg en schermlezers slaan het logo over.",
+  "Your organization's name": "Naam van uw organisatie",
+  "None. Screen readers skip the logo.": "Geen. Schermlezers slaan het logo over.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Het pictogram in het browsertabblad zolang het formulier open is, in plaats van de favicon van OneUptime. Een vierkante PNG- of SVG-afbeelding van maximaal 1 MB werkt het best.",
+  "The OneUptime favicon, until you upload yours.": "De favicon van OneUptime, tot u uw eigen favicon uploadt.",
+  "Upload favicon": "Favicon uploaden"
 }

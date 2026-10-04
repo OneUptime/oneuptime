@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "اندازه‌گیری‌های تیم شما، محاسبه‌شده برای این هشدار.",
   "Your team's measurements, worked out for this incident.": "اندازه‌گیری‌های تیم شما، محاسبه‌شده برای این حادثه.",
   "Your team's measurements, worked out for this maintenance event.": "اندازه‌گیری‌های تیم شما، محاسبه‌شده برای این رویداد نگهداری.",
-  "less than a minute": "کمتر از یک دقیقه"
+  "less than a minute": "کمتر از یک دقیقه",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "لوگوی شما در بالای صفحهٔ فرم، و Favicon شما در زبانهٔ مرورگر.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "تا وقتی لوگو و Favicon خودتان را بارگذاری نکنید، فرم لوگو و Favicon مربوط به OneUptime را نشان می‌دهد.",
+  "The form shows the OneUptime logo until you upload yours.": "تا وقتی لوگوی خودتان را بارگذاری نکنید، فرم لوگوی OneUptime را نشان می‌دهد.",
+  "The form shows the OneUptime favicon until you upload yours.": "تا وقتی Favicon خودتان را بارگذاری نکنید، فرم Favicon مربوط به OneUptime را نشان می‌دهد.",
+  "Edit Branding": "ویرایش برندینگ",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "در بالای صفحهٔ فرم، بالای نام آن، به جای لوگوی OneUptime نمایش داده می‌شود. یک تصویر PNG، JPEG، GIF، WebP یا SVG با حجم حداکثر 1 MB.",
+  "The OneUptime logo, until you upload yours.": "لوگوی OneUptime، تا زمانی که لوگوی خودتان را بارگذاری کنید.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "آنچه لوگو نشان می‌دهد و صفحه‌خوان‌ها آن را می‌خوانند: معمولاً نام سازمان شما. اگر خالی بماند، صفحه‌خوان‌ها از لوگو می‌گذرند.",
+  "Your organization's name": "نام سازمان شما",
+  "None. Screen readers skip the logo.": "هیچ. صفحه‌خوان‌ها از لوگو می‌گذرند.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "نمادی که تا وقتی فرم باز است، به جای Favicon مربوط به OneUptime، در زبانهٔ مرورگر نمایش داده می‌شود. یک تصویر مربعی PNG یا SVG با حجم حداکثر 1 MB بهترین است.",
+  "The OneUptime favicon, until you upload yours.": "Favicon مربوط به OneUptime، تا زمانی که Favicon خودتان را بارگذاری کنید.",
+  "Upload favicon": "بارگذاری Favicon"
 }

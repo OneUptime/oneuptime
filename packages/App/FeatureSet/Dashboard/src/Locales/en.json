@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "Your team's measurements, worked out for this alert.",
   "Your team's measurements, worked out for this incident.": "Your team's measurements, worked out for this incident.",
   "Your team's measurements, worked out for this maintenance event.": "Your team's measurements, worked out for this maintenance event.",
-  "less than a minute": "less than a minute"
+  "less than a minute": "less than a minute",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Your logo at the top of the form's page, and your favicon in the browser tab.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "The form shows the OneUptime logo and favicon until you upload your own.",
+  "The form shows the OneUptime logo until you upload yours.": "The form shows the OneUptime logo until you upload yours.",
+  "The form shows the OneUptime favicon until you upload yours.": "The form shows the OneUptime favicon until you upload yours.",
+  "Edit Branding": "Edit Branding",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
+  "The OneUptime logo, until you upload yours.": "The OneUptime logo, until you upload yours.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.",
+  "Your organization's name": "Your organization's name",
+  "None. Screen readers skip the logo.": "None. Screen readers skip the logo.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.",
+  "The OneUptime favicon, until you upload yours.": "The OneUptime favicon, until you upload yours.",
+  "Upload favicon": "Upload favicon"
 }

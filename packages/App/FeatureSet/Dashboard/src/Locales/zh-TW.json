@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "為此警示計算的團隊測量。",
   "Your team's measurements, worked out for this incident.": "為此事件計算的團隊測量。",
   "Your team's measurements, worked out for this maintenance event.": "為此維護事件計算的團隊測量。",
-  "less than a minute": "不到 1 分鐘"
+  "less than a minute": "不到 1 分鐘",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "表單頁面頂端的標誌，以及瀏覽器分頁上的 Favicon。",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "在您上傳自己的標誌和 Favicon 之前，表單會顯示 OneUptime 的標誌和 Favicon。",
+  "The form shows the OneUptime logo until you upload yours.": "在您上傳自己的標誌之前，表單會顯示 OneUptime 的標誌。",
+  "The form shows the OneUptime favicon until you upload yours.": "在您上傳自己的 Favicon 之前，表單會顯示 OneUptime 的 Favicon。",
+  "Edit Branding": "編輯品牌",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "顯示在表單頁面頂端、表單名稱上方，取代 OneUptime 的標誌。請使用不超過 1 MB 的 PNG、JPEG、GIF、WebP 或 SVG 圖片。",
+  "The OneUptime logo, until you upload yours.": "在您上傳自己的標誌之前，顯示 OneUptime 的標誌。",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "螢幕閱讀器讀出的標誌內容：通常是您的組織名稱。留空則螢幕閱讀器會略過標誌。",
+  "Your organization's name": "您的組織名稱",
+  "None. Screen readers skip the logo.": "無。螢幕閱讀器會略過標誌。",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "表單開啟時顯示在瀏覽器分頁上的圖示，取代 OneUptime 的 Favicon。最好使用不超過 1 MB 的正方形 PNG 或 SVG 圖片。",
+  "The OneUptime favicon, until you upload yours.": "在您上傳自己的 Favicon 之前，顯示 OneUptime 的 Favicon。",
+  "Upload favicon": "上傳 Favicon"
 }

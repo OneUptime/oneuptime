@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "इस अलर्ट के लिए निकाले गए आपकी टीम के माप।",
   "Your team's measurements, worked out for this incident.": "इस घटना के लिए निकाले गए आपकी टीम के माप।",
   "Your team's measurements, worked out for this maintenance event.": "इस रखरखाव इवेंट के लिए निकाले गए आपकी टीम के माप।",
-  "less than a minute": "एक मिनट से कम"
+  "less than a minute": "एक मिनट से कम",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "फ़ॉर्म के पृष्ठ के ऊपर आपका लोगो, और ब्राउज़र टैब में आपका favicon।",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "जब तक आप अपने लोगो और favicon अपलोड नहीं करते, फ़ॉर्म OneUptime का लोगो और favicon दिखाता है।",
+  "The form shows the OneUptime logo until you upload yours.": "जब तक आप अपना लोगो अपलोड नहीं करते, फ़ॉर्म OneUptime का लोगो दिखाता है।",
+  "The form shows the OneUptime favicon until you upload yours.": "जब तक आप अपना favicon अपलोड नहीं करते, फ़ॉर्म OneUptime का favicon दिखाता है।",
+  "Edit Branding": "ब्रांडिंग संपादित करें",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "फ़ॉर्म के पृष्ठ के ऊपर, उसके नाम के ऊपर, OneUptime लोगो की जगह दिखाया जाता है। 1 MB या उससे छोटी PNG, JPEG, GIF, WebP या SVG छवि।",
+  "The OneUptime logo, until you upload yours.": "OneUptime का लोगो, जब तक आप अपना लोगो अपलोड नहीं करते।",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "लोगो क्या कहता है, जिसे स्क्रीन रीडर पढ़कर सुनाते हैं: आमतौर पर आपके संगठन का नाम। इसे खाली छोड़ दें तो स्क्रीन रीडर लोगो को छोड़ देते हैं।",
+  "Your organization's name": "आपके संगठन का नाम",
+  "None. Screen readers skip the logo.": "कोई नहीं। स्क्रीन रीडर लोगो को छोड़ देते हैं।",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "फ़ॉर्म खुला रहने तक ब्राउज़र टैब में दिखने वाला आइकन, OneUptime favicon की जगह। 1 MB या उससे छोटी वर्गाकार PNG या SVG छवि सबसे अच्छी रहती है।",
+  "The OneUptime favicon, until you upload yours.": "OneUptime का favicon, जब तक आप अपना favicon अपलोड नहीं करते।",
+  "Upload favicon": "favicon अपलोड करें"
 }

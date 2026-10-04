@@ -30,7 +30,10 @@ import { getJestSpyOn } from "../../Spy";
  *
  * The network, the permission gate, the preview and the name-and-description
  * dialog are stubbed (each has tests of its own); the builder's state rules
- * are FormBuilderState.test.ts's.
+ * are FormBuilderState.test.ts's. Over the questions sits the form's folded
+ * Branding section (FormBrandingSection.test.tsx draws it on its own): here,
+ * what the builder reads for it, hands it and its preview, and does once
+ * its dialog saved.
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
@@ -142,6 +145,9 @@ jest.mock("../../../UI/Utils/Project", () => {
 ).__formBuilderDetailDialogs = recordedDetailDialogs;
 
 import FormBuilder from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/FormBuilder";
+import { FORM_BRANDING_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingValues";
+import File from "../../../Models/DatabaseModels/File";
+import MimeType from "../../../Types/File/MimeType";
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import Form from "../../../Models/DatabaseModels/Form";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
@@ -186,6 +192,19 @@ interface StoredForm {
   targetType: FormTargetType;
   fields: Array<FormField>;
   targetSettings?: Record<string, unknown> | undefined;
+  logoFile?: File | undefined;
+  logoAltText?: string | undefined;
+  faviconFile?: File | undefined;
+}
+
+// A logo, as the API returns one: its id, name, type and bytes.
+function storedImage(bytes: Array<number>): File {
+  const file: File = new File();
+  file._id = "f1000000-0000-4000-8000-000000000001";
+  file.name = "logo.png";
+  file.fileType = MimeType.png;
+  file.file = Buffer.from(bytes);
+  return file;
 }
 
 let stored: StoredForm | null | Error;
@@ -245,6 +264,15 @@ beforeEach(() => {
     form.targetType = stored.targetType;
     form.fields = JSON.parse(JSON.stringify(stored.fields));
     form.targetSettings = (stored.targetSettings || {}) as never;
+    if (stored.logoFile) {
+      form.logoFile = stored.logoFile;
+    }
+    if (stored.logoAltText) {
+      form.logoAltText = stored.logoAltText;
+    }
+    if (stored.faviconFile) {
+      form.faviconFile = stored.faviconFile;
+    }
     return form;
   });
 
@@ -329,7 +357,7 @@ async function click(element: HTMLElement): Promise<void> {
 }
 
 describe("loading", () => {
-  test("reads the form's name, description, target, questions and settings", async () => {
+  test("reads the form's name, description, target, questions, settings and branding", async () => {
     await renderBuilder();
 
     const request: Record<string, unknown> = getItemMock.mock
@@ -343,6 +371,8 @@ describe("loading", () => {
       targetType: true,
       fields: true,
       targetSettings: true,
+      // In the same request: the Branding section's.
+      ...FORM_BRANDING_SELECT,
     });
     expect(loadCustomFieldsMock).toHaveBeenCalledWith(FormTargetType.Incident);
   });
@@ -801,6 +831,103 @@ describe("Preview and the name and description", () => {
     });
     expect(questionIds()).toHaveLength(defaultFields().length + 1);
     expect(status()).toHaveTextContent(FormsCopy.unsavedChanges);
+  });
+});
+
+describe("the Branding section", () => {
+  const LOGO_BYTES: Array<number> = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a];
+
+  test("sits folded over the questions", async () => {
+    await renderBuilder();
+
+    const branding: HTMLElement = screen.getByTestId("form-branding");
+
+    expect(
+      within(branding).getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+    // Before the questions, as the logo is before them on the form's page.
+    expect(
+      branding.compareDocumentPosition(screen.getByTestId("form-canvas")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("is handed the form's branding, and so is Preview", async () => {
+    (stored as StoredForm).logoFile = storedImage(LOGO_BYTES);
+    (stored as StoredForm).logoAltText = "Acme Inc.";
+
+    await renderBuilder();
+
+    expect(
+      within(screen.getByTestId("form-branding")).getAllByTestId(
+        "folded-section-item",
+      )[0],
+    ).toHaveAttribute("data-item-set", "true");
+
+    await click(cardButton(FormsCopy.preview));
+
+    const preview: Record<string, unknown> =
+      recordedPreviews[recordedPreviews.length - 1]!;
+    const branding: Record<string, unknown> = preview["branding"] as Record<
+      string,
+      unknown
+    >;
+
+    expect((branding["logoFile"] as File).fileType).toBe(MimeType.png);
+    expect(branding["logoAltText"]).toBe("Acme Inc.");
+    expect(branding["faviconFile"]).toBeNull();
+  });
+
+  test("once its dialog saved, reads only the branding again, and keeps the draft of the questions", async () => {
+    await renderBuilder();
+
+    await click(screen.getByTestId("form-palette-question-Text"));
+    await click(
+      within(screen.getByTestId("form-branding")).getByTestId(
+        "folded-section-header",
+      ),
+    );
+    await click(screen.getByTestId("form-branding-edit"));
+
+    const dialog: Record<string, unknown> =
+      recordedDetailDialogs[recordedDetailDialogs.length - 1]!;
+
+    expect(dialog["title"]).toBe(FormsCopy.editBranding);
+
+    (stored as StoredForm).logoFile = storedImage(LOGO_BYTES);
+    getItemMock.mockClear();
+
+    await act(async () => {
+      (dialog["onSuccess"] as (form: Form) => void)(new Form());
+    });
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("form-branding-logo")).getByTestId(
+          "form-logo",
+        ),
+      ).toHaveAttribute("data-logo", "form");
+    });
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+    expect(
+      (getItemMock.mock.calls[0]![0] as Record<string, unknown>)["select"],
+    ).toEqual(FORM_BRANDING_SELECT);
+    // The draft is untouched.
+    expect(questionIds()).toHaveLength(defaultFields().length + 1);
+    expect(status()).toHaveTextContent(FormsCopy.unsavedChanges);
+  });
+
+  test("someone who may not edit the form sees it without Edit Branding", async () => {
+    gate = {
+      isAllowed: false,
+      disabledReason: "You need the Edit Form permission.",
+    };
+
+    await renderBuilder();
+
+    expect(screen.getByTestId("form-branding")).toBeInTheDocument();
+    expect(screen.queryByTestId("form-branding-edit")).not.toBeInTheDocument();
   });
 });
 

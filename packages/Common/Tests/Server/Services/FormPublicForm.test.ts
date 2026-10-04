@@ -391,8 +391,17 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
         "targetSettings",
         "successMessage",
         "ipWhitelist",
+        // Its branding, the images through its own relations (FormBranding).
+        "logoAltText",
+        "logoFile",
+        "faviconFile",
       ].sort(),
     );
+    expect(findBy.select["logoFile"]).toEqual({ file: true, fileType: true });
+    expect(findBy.select["faviconFile"]).toEqual({
+      file: true,
+      fileType: true,
+    });
   });
 
   test("finds the form whatever the case of the key in the link, or stray spaces around it", async () => {

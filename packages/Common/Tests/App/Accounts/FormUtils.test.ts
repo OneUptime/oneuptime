@@ -237,6 +237,78 @@ describe("readPublicForm: what the page believes about the form", () => {
   });
 });
 
+describe("readPublicForm: the form's branding", () => {
+  const PNG: string = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
+
+  const told: (branding: JSONObject) => PublicForm = (
+    branding: JSONObject,
+  ): PublicForm => {
+    return readPublicForm({
+      name: "Report a Problem",
+      fields: [],
+      isCaptchaRequired: false,
+      ...branding,
+    });
+  };
+
+  test("reads the logo, its alt text and the favicon the server described", () => {
+    expect(
+      told({
+        logo: { type: "image/png", data: PNG },
+        logoAltText: "  Acme Inc. ",
+        favicon: { type: "image/svg+xml", data: "PHN2Zz4=" },
+      }),
+    ).toEqual({
+      name: "Report a Problem",
+      fields: [],
+      isCaptchaRequired: false,
+      logo: { type: "image/png", data: PNG },
+      logoAltText: "Acme Inc.",
+      favicon: { type: "image/svg+xml", data: "PHN2Zz4=" },
+    });
+  });
+
+  test("a form without branding is just the form", () => {
+    expect(Object.keys(told({})).sort()).toEqual(
+      ["fields", "isCaptchaRequired", "name"].sort(),
+    );
+  });
+
+  test("never an image it cannot draw safely: then the OneUptime one stays", () => {
+    for (const logo of [
+      { type: "text/html", data: PNG },
+      { type: "image/png", data: "<svg onload=alert(1)>" },
+      { type: "image/png", data: `${PNG}"` },
+      { type: "image/png" },
+      "data:image/png;base64,AAAA",
+      [PNG],
+      null,
+    ]) {
+      const form: PublicForm = told({
+        logo: logo as unknown as JSONObject,
+        logoAltText: "Acme Inc.",
+        favicon: logo as unknown as JSONObject,
+      });
+
+      expect(form.logo).toBeUndefined();
+      // What a logo says goes only with a logo.
+      expect(form.logoAltText).toBeUndefined();
+      expect(form.favicon).toBeUndefined();
+    }
+  });
+
+  test("an alt text that is not text, or only spaces, is none", () => {
+    for (const logoAltText of [42, "   ", { text: "Acme" }]) {
+      expect(
+        told({
+          logo: { type: "image/png", data: PNG },
+          logoAltText: logoAltText as unknown as string,
+        }).logoAltText,
+      ).toBeUndefined();
+    }
+  });
+});
+
 describe("readFormSubmissionResult", () => {
   test("keeps the record's number and the form's message", () => {
     expect(

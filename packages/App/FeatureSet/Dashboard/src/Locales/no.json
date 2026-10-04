@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "Teamets målinger, regnet ut for dette varselet.",
   "Your team's measurements, worked out for this incident.": "Teamets målinger, regnet ut for denne hendelsen.",
   "Your team's measurements, worked out for this maintenance event.": "Teamets målinger, regnet ut for denne vedlikeholdshendelsen.",
-  "less than a minute": "mindre enn ett minutt"
+  "less than a minute": "mindre enn ett minutt",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Logoen din øverst på skjemaets side og faviconet ditt i nettleserfanen.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Skjemaet viser OneUptimes logo og favicon til du laster opp dine egne.",
+  "The form shows the OneUptime logo until you upload yours.": "Skjemaet viser OneUptimes logo til du laster opp din egen.",
+  "The form shows the OneUptime favicon until you upload yours.": "Skjemaet viser OneUptimes favicon til du laster opp ditt eget.",
+  "Edit Branding": "Rediger merkevare",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Vises øverst på skjemaets side over navnet i stedet for OneUptimes logo. Et PNG-, JPEG-, GIF-, WebP- eller SVG-bilde på høyst 1 MB.",
+  "The OneUptime logo, until you upload yours.": "OneUptimes logo, til du laster opp din egen.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Hva logoen sier, lest opp av skjermlesere: vanligvis navnet på organisasjonen din. La det stå tomt, så hopper skjermlesere over logoen.",
+  "Your organization's name": "Navnet på organisasjonen din",
+  "None. Screen readers skip the logo.": "Ingen. Skjermlesere hopper over logoen.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Ikonet i nettleserfanen mens skjemaet er åpent, i stedet for OneUptimes favicon. Et kvadratisk PNG- eller SVG-bilde på høyst 1 MB fungerer best.",
+  "The OneUptime favicon, until you upload yours.": "OneUptimes favicon, til du laster opp ditt eget.",
+  "Upload favicon": "Last opp favicon"
 }

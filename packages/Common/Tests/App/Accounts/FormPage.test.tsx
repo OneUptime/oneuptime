@@ -759,3 +759,220 @@ describe("links to incident forms", () => {
     expect(sentRequests()).toEqual([`GET ${FORM_URL}`]);
   });
 });
+
+/*
+ * The form's branding: its logo in place of the OneUptime logo, at the top
+ * of every screen that has the form, and its favicon as the tab's icon
+ * while it is open. Until it has its own, OneUptime's.
+ */
+describe("the form's branding", () => {
+  const LOGO: { type: string; data: string } = {
+    type: "image/png",
+    data: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]).toString("base64"),
+  };
+  const FAVICON: { type: string; data: string } = {
+    type: "image/svg+xml",
+    data: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString(
+      "base64",
+    ),
+  };
+  const LOGO_URL: string = `data:image/png;base64,${LOGO.data}`;
+  const ANY_NAME: RegExp = /\S/;
+  const FAVICON_URL: string = `data:image/svg+xml;base64,${FAVICON.data}`;
+
+  const BRANDED: PublicForm = {
+    ...FORM,
+    logo: LOGO,
+    logoAltText: "Acme Inc.",
+    favicon: FAVICON,
+  };
+
+  // The page's own icon links, as Accounts' index.ejs has them.
+  const addPageIcons: () => void = (): void => {
+    document.head.innerHTML = [
+      '<link rel="apple-touch-icon" sizes="180x180" href="/accounts/assets/img/favicons/apple-touch-icon.png">',
+      '<link rel="shortcut icon" href="/accounts/assets/img/favicons/favicon.ico">',
+      '<link rel="icon" type="image/png" sizes="32x32" href="/accounts/assets/img/favicons/favicon-32x32.png">',
+      '<link rel="mask-icon" href="/accounts/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">',
+    ].join("");
+  };
+
+  const iconLinks: () => Array<Record<string, string | null>> = (): Array<
+    Record<string, string | null>
+  > => {
+    return Array.from(document.head.querySelectorAll("link")).map(
+      (link: HTMLLinkElement): Record<string, string | null> => {
+        return {
+          rel: link.getAttribute("rel"),
+          href: link.getAttribute("href"),
+          type: link.getAttribute("type"),
+          sizes: link.getAttribute("sizes"),
+        };
+      },
+    );
+  };
+
+  const PAGE_ICONS: Array<Record<string, string | null>> = [
+    {
+      rel: "apple-touch-icon",
+      href: "/accounts/assets/img/favicons/apple-touch-icon.png",
+      type: null,
+      sizes: "180x180",
+    },
+    {
+      rel: "shortcut icon",
+      href: "/accounts/assets/img/favicons/favicon.ico",
+      type: null,
+      sizes: null,
+    },
+    {
+      rel: "icon",
+      href: "/accounts/assets/img/favicons/favicon-32x32.png",
+      type: "image/png",
+      sizes: "32x32",
+    },
+    {
+      rel: "mask-icon",
+      href: "/accounts/assets/img/favicons/safari-pinned-tab.svg",
+      type: null,
+      sizes: null,
+    },
+  ];
+
+  afterEach(() => {
+    document.head.innerHTML = "";
+  });
+
+  test("a form without a logo shows the OneUptime logo", async () => {
+    await renderForm();
+
+    const logo: HTMLElement = screen.getByTestId("form-logo");
+
+    expect(logo).toHaveAttribute("data-logo", "oneuptime");
+    expect(logo).toHaveAttribute("alt", "OneUptime");
+    expect(logo.getAttribute("src")).not.toContain("data:image/png;base64");
+  });
+
+  test("a form's own logo takes the OneUptime logo's place, read out as its alt text says", async () => {
+    await renderForm(BRANDED);
+
+    const logo: HTMLElement = screen.getByRole("img", { name: "Acme Inc." });
+
+    expect(logo).toBe(screen.getByTestId("form-logo"));
+    expect(logo).toHaveAttribute("data-logo", "form");
+    expect(logo).toHaveAttribute("src", LOGO_URL);
+    expect(
+      screen.queryByRole("img", { name: "OneUptime" }),
+    ).not.toBeInTheDocument();
+    // Still above the form's name.
+    expect(
+      logo.compareDocumentPosition(
+        screen.getByRole("heading", { level: 1, name: "Report a Problem" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("without alt text, screen readers skip the logo: the form's name follows it", async () => {
+    await renderForm({ ...BRANDED, logoAltText: undefined });
+
+    expect(screen.getByTestId("form-logo")).toHaveAttribute("alt", "");
+    // Nothing on the page reads out as an image with a name.
+    expect(
+      screen.queryByRole("img", { name: ANY_NAME }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the thank-you screen keeps the form's logo", async () => {
+    await renderForm(BRANDED);
+    serveSubmit({ status: 200, data: { reference: "INC-42" } });
+
+    fillRequired();
+    await submit();
+
+    expect(screen.getByTestId("form-success")).toBeInTheDocument();
+    expect(screen.getByTestId("form-logo")).toHaveAttribute("src", LOGO_URL);
+  });
+
+  test("a link that leads to no form shows the OneUptime logo", async () => {
+    serveForm({ status: 404, data: {} });
+
+    await renderPage();
+
+    expect(screen.getByTestId("form-load-failure")).toBeInTheDocument();
+    expect(screen.getByTestId("form-logo")).toHaveAttribute(
+      "data-logo",
+      "oneuptime",
+    );
+  });
+
+  test("a logo that cannot be drawn gives way to the OneUptime logo, never a broken image", async () => {
+    await renderForm(BRANDED);
+
+    await act(async () => {
+      fireEvent.error(screen.getByTestId("form-logo"));
+    });
+
+    expect(screen.getByTestId("form-logo")).toHaveAttribute(
+      "data-logo",
+      "oneuptime",
+    );
+    expect(screen.getByTestId("form-logo")).toHaveAttribute("alt", "OneUptime");
+  });
+
+  test("an image the page cannot draw safely is never drawn", async () => {
+    await renderForm({
+      ...FORM,
+      logo: { type: "text/html", data: LOGO.data },
+      logoAltText: "Acme Inc.",
+      favicon: { type: "image/png", data: "not base64!" },
+    } as unknown as PublicForm);
+
+    expect(screen.getByTestId("form-logo")).toHaveAttribute(
+      "data-logo",
+      "oneuptime",
+    );
+    expect(document.head.innerHTML).not.toContain("data:");
+  });
+
+  test("the form's favicon is the tab's icon while it is open, and OneUptime's comes back after", async () => {
+    addPageIcons();
+
+    await renderForm(BRANDED);
+
+    expect(iconLinks()).toEqual([
+      PAGE_ICONS[0],
+      {
+        rel: "shortcut icon",
+        href: FAVICON_URL,
+        type: "image/svg+xml",
+        sizes: null,
+      },
+      { rel: "icon", href: FAVICON_URL, type: "image/svg+xml", sizes: null },
+      PAGE_ICONS[3],
+    ]);
+
+    cleanup();
+
+    expect(iconLinks()).toEqual(PAGE_ICONS);
+  });
+
+  test("a page with no icon link gets one for the form, gone again after", async () => {
+    await renderForm(BRANDED);
+
+    expect(iconLinks()).toEqual([
+      { rel: "icon", href: FAVICON_URL, type: "image/svg+xml", sizes: null },
+    ]);
+
+    cleanup();
+
+    expect(iconLinks()).toEqual([]);
+  });
+
+  test("a form without a favicon leaves the tab's icon alone", async () => {
+    addPageIcons();
+
+    await renderForm({ ...BRANDED, favicon: undefined });
+
+    expect(iconLinks()).toEqual(PAGE_ICONS);
+  });
+});

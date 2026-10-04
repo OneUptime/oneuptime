@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "Die Messungen Ihres Teams, berechnet für diese Warnung.",
   "Your team's measurements, worked out for this incident.": "Die Messungen Ihres Teams, berechnet für diesen Vorfall.",
   "Your team's measurements, worked out for this maintenance event.": "Die Messungen Ihres Teams, berechnet für dieses Wartungsereignis.",
-  "less than a minute": "weniger als eine Minute"
+  "less than a minute": "weniger als eine Minute",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Ihr Logo oben auf der Seite des Formulars und Ihr Favicon im Browser-Tab.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Das Formular zeigt das Logo und das Favicon von OneUptime, bis Sie Ihre eigenen hochladen.",
+  "The form shows the OneUptime logo until you upload yours.": "Das Formular zeigt das Logo von OneUptime, bis Sie Ihr eigenes hochladen.",
+  "The form shows the OneUptime favicon until you upload yours.": "Das Formular zeigt das Favicon von OneUptime, bis Sie Ihr eigenes hochladen.",
+  "Edit Branding": "Branding bearbeiten",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Wird oben auf der Seite des Formulars über seinem Namen anstelle des OneUptime-Logos angezeigt. Ein PNG-, JPEG-, GIF-, WebP- oder SVG-Bild mit höchstens 1 MB.",
+  "The OneUptime logo, until you upload yours.": "Das Logo von OneUptime, bis Sie Ihr eigenes hochladen.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Was das Logo zeigt, vorgelesen von Screenreadern: meist der Name Ihrer Organisation. Bleibt das Feld leer, überspringen Screenreader das Logo.",
+  "Your organization's name": "Name Ihrer Organisation",
+  "None. Screen readers skip the logo.": "Keiner. Screenreader überspringen das Logo.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Das Symbol im Browser-Tab, solange das Formular geöffnet ist, anstelle des OneUptime-Favicons. Am besten eignet sich ein quadratisches PNG- oder SVG-Bild mit höchstens 1 MB.",
+  "The OneUptime favicon, until you upload yours.": "Das Favicon von OneUptime, bis Sie Ihr eigenes hochladen.",
+  "Upload favicon": "Favicon hochladen"
 }

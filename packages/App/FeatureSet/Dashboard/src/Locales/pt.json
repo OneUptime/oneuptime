@@ -24809,5 +24809,18 @@
   "Your team's measurements, worked out for this alert.": "As medições da sua equipe, calculadas para este alerta.",
   "Your team's measurements, worked out for this incident.": "As medições da sua equipe, calculadas para este incidente.",
   "Your team's measurements, worked out for this maintenance event.": "As medições da sua equipe, calculadas para este evento de manutenção.",
-  "less than a minute": "menos de um minuto"
+  "less than a minute": "menos de um minuto",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "O seu logotipo no topo da página do formulário e o seu favicon na aba do navegador.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "O formulário mostra o logotipo e o favicon da OneUptime até que você carregue os seus.",
+  "The form shows the OneUptime logo until you upload yours.": "O formulário mostra o logotipo da OneUptime até que você carregue o seu.",
+  "The form shows the OneUptime favicon until you upload yours.": "O formulário mostra o favicon da OneUptime até que você carregue o seu.",
+  "Edit Branding": "Editar marca",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Mostrado no topo da página do formulário, acima do nome, no lugar do logotipo da OneUptime. Uma imagem PNG, JPEG, GIF, WebP ou SVG de até 1 MB.",
+  "The OneUptime logo, until you upload yours.": "O logotipo da OneUptime, até que você carregue o seu.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "O que o logotipo diz, lido pelos leitores de tela: geralmente o nome da sua organização. Deixe em branco e os leitores de tela ignoram o logotipo.",
+  "Your organization's name": "Nome da sua organização",
+  "None. Screen readers skip the logo.": "Nenhum. Os leitores de tela ignoram o logotipo.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "O ícone na aba do navegador enquanto o formulário está aberto, no lugar do favicon da OneUptime. Uma imagem PNG ou SVG quadrada de até 1 MB funciona melhor.",
+  "The OneUptime favicon, until you upload yours.": "O favicon da OneUptime, até que você carregue o seu.",
+  "Upload favicon": "Carregar favicon"
 }
