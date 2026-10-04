@@ -89,8 +89,13 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceFeedService", () => {
   };
 });
 
+/*
+ * The job reads the resources an event affects through
+ * AffectedStatusPageResources, which asks findByMonitors - the lookup that
+ * also follows monitor groups.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return { __esModule: true, default: { findByMonitors: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/StatusPageSubscriberService", () => {
@@ -834,7 +839,7 @@ beforeEach(() => {
     ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
   ).mockResolvedValue(undefined as never);
 
-  mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+  mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
     resource(),
   ] as never);
 
@@ -1300,7 +1305,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "renders a template that uses every advertised variable with nothing left over ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         groupedResources() as never,
       );
 
@@ -1505,7 +1510,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "lists the affected resources on this status page, by group ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         groupedResources() as never,
       );
       useCustomTemplates({
@@ -1528,7 +1533,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
       ).toBe(GROUPED_RESOURCES_AFFECTED_TEXT);
 
       const select: JSONObject = queryArgs(
-        StatusPageResourceService.findAllBy,
+        StatusPageResourceService.findByMonitors,
       ).select;
       expect(select["statusPageGroupId"]).toBe(true);
       expect(select["statusPageGroup"]).toEqual({ name: true });
@@ -1539,7 +1544,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "lists the same resources in the default email (HTML) and the webhook (plain text) ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         groupedResources() as never,
       );
 
@@ -1567,7 +1572,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
     "renders no resources when the event affects none on this status page ($name)",
     async (trigger: TriggerCase) => {
       trigger.queue([publicNote()]);
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue([
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue([
         resource({
           statusPageId: OTHER_STATUS_PAGE_ID,
           displayName: "Billing API",
@@ -1591,7 +1596,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
 
   test("the default email has no resources when none are affected", async () => {
     createdNotes = [publicNote()];
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue([] as never);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue([] as never);
 
     await runJob(CREATED_JOB);
 
@@ -1641,7 +1646,7 @@ describe("ScheduledMaintenancePublicNote custom templates, in each channel's for
 
   function useChannelTemplates(trigger: TriggerCase): void {
     trigger.queue([publicNote()]);
-    mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
       groupedResources() as never,
     );
     useCustomTemplates({
@@ -1924,7 +1929,7 @@ describe.each(TRIGGERS)(
       event.title = HOSTILE_TITLE;
       event.currentScheduledMaintenanceState!.name = HOSTILE_STATE;
       storedEvent = event;
-      mock(StatusPageResourceService.findAllBy).mockResolvedValue(
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
         hostileResources(STATUS_PAGE_ID) as never,
       );
     });

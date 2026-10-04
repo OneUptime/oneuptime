@@ -23,13 +23,12 @@ import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
@@ -211,6 +210,37 @@ const notifySubscribersOfAnnouncement: (data: {
     const announcementDescriptionPlainText: string =
       Markdown.convertToPlainText(announcement.description || "");
 
+    /*
+     * The resources the announcement affects on each status page: its
+     * monitors, and the monitor groups that hold them. A subscriber who
+     * picked a monitor group hears about an announcement on any monitor in
+     * it, as one who picked the monitor does. Looked up once for every page;
+     * an announcement that names no monitor affects no resource.
+     */
+    const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+      await AffectedStatusPageResources.findForMonitors({
+        monitors: announcement.monitors || [],
+        select: {
+          _id: true,
+          displayName: true,
+          statusPageId: true,
+          statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
+        },
+      });
+
+    if (announcement.monitors && announcement.monitors.length > 0) {
+      logger.debug(
+        `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
+      );
+    } else {
+      logger.debug(
+        `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
+      );
+    }
+
     let notificationSentToAtLeastOneSubscriber: boolean = false;
 
     for (const statuspage of statusPages) {
@@ -293,51 +323,13 @@ const notifySubscribersOfAnnouncement: (data: {
           `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`,
         );
 
-        // Get status page resources if monitors are specified
-        let statusPageResources: Array<StatusPageResource> = [];
+        // The announcement's resources on this page, if it names monitors.
+        const statusPageResources: Array<StatusPageResource> =
+          statusPageToResources[statuspage._id!] || [];
 
-        if (announcement.monitors && announcement.monitors.length > 0) {
-          logger.debug(
-            `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
-          );
-
-          statusPageResources = await StatusPageResourceService.findAllBy({
-            query: {
-              statusPageId: statuspage.id!,
-              monitorId: QueryHelper.any(
-                announcement.monitors
-                  .filter((m: Monitor) => {
-                    return m._id;
-                  })
-                  .map((m: Monitor) => {
-                    return new ObjectID(m._id!);
-                  }),
-              ),
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            select: {
-              _id: true,
-              displayName: true,
-              statusPageId: true,
-              statusPageGroupId: true,
-              statusPageGroup: {
-                name: true,
-              },
-            },
-            skip: 0,
-          });
-
-          logger.debug(
-            `Found ${statusPageResources.length} status page resource(s) for announcement ${announcement.id} on status page ${statuspage.id}.`,
-          );
-        } else {
-          logger.debug(
-            `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
-          );
-        }
+        logger.debug(
+          `Found ${statusPageResources.length} status page resource(s) for announcement ${announcement.id} on status page ${statuspage.id}.`,
+        );
 
         /*
          * Variables for this status page's custom templates, built once so

@@ -58,7 +58,7 @@ import MailService from "../../Server/Services/MailService";
 import ProjectCallSMSConfigService from "../../Server/Services/ProjectCallSMSConfigService";
 import ProjectSmtpConfigService from "../../Server/Services/ProjectSmtpConfigService";
 import SmsService from "../../Server/Services/SmsService";
-import StatusPageResourceService from "../../Server/Services/StatusPageResourceService";
+import AffectedStatusPageResources from "../Utils/StatusPage/AffectedStatusPageResources";
 import StatusPageService from "../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberUnsubscribe from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
@@ -200,34 +200,19 @@ export class Service extends DatabaseService<Model> {
         } as LogAttributes,
       );
 
-      let statusPageResources: Array<StatusPageResource> = [];
-
-      if (event.monitors && event.monitors.length > 0) {
-        statusPageResources = await StatusPageResourceService.findByMonitors({
-          monitors: event.monitors,
+      /*
+       * The resources the event affects on each status page: its monitors,
+       * and the monitor groups that hold them.
+       */
+      const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+        await AffectedStatusPageResources.findForMonitors({
+          monitors: event.monitors || [],
           select: {
             _id: true,
             displayName: true,
             statusPageId: true,
           },
         });
-      }
-
-      const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
-
-      for (const resource of statusPageResources) {
-        if (!resource.statusPageId) {
-          continue;
-        }
-
-        if (!statusPageToResources[resource.statusPageId?.toString()]) {
-          statusPageToResources[resource.statusPageId?.toString()] = [];
-        }
-
-        statusPageToResources[resource.statusPageId?.toString()]?.push(
-          resource,
-        );
-      }
 
       const statusPages: Array<StatusPage> =
         await StatusPageSubscriberService.getStatusPagesToSendNotification(

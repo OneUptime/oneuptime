@@ -147,8 +147,13 @@ jest.mock(
   },
 );
 
+/*
+ * The job reads the resources an announcement affects through
+ * AffectedStatusPageResources, which asks findByMonitors - the lookup that
+ * also follows monitor groups - once for every status page.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return { __esModule: true, default: { findByMonitors: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/MailService", () => {
@@ -324,7 +329,11 @@ let createdRows: Array<Row> = [];
 let updatedRows: Array<Row> = [];
 let skipRows: Array<Row> = [];
 
-// StatusPageResource rows returned for each status page id.
+/*
+ * The StatusPageResource rows each status page lists for the announcement's
+ * monitors. findByMonitors answers them all at once, as it does for every
+ * page that shows the monitors.
+ */
 let resourcesByStatusPage: Record<string, Array<StatusPageResource>> = {};
 
 function announcement(overrides?: {
@@ -582,10 +591,15 @@ function variablesByChannel(): Record<string, Record<string, string>> {
   return byChannel;
 }
 
-function resourceLookups(): Array<{ query: JSONObject; select: JSONObject }> {
-  return mock(StatusPageResourceService.findAllBy).mock.calls.map(
-    (call: Array<unknown>): { query: JSONObject; select: JSONObject } => {
-      return call[0] as { query: JSONObject; select: JSONObject };
+interface ResourceLookup {
+  monitorIds: Array<ObjectID>;
+  select: JSONObject;
+}
+
+function resourceLookups(): Array<ResourceLookup> {
+  return mock(StatusPageResourceService.findByMonitors).mock.calls.map(
+    (call: Array<unknown>): ResourceLookup => {
+      return call[0] as ResourceLookup;
     },
   );
 }
@@ -753,10 +767,9 @@ beforeEach(() => {
     STATUS_PAGE_URL as never,
   );
 
-  mock(StatusPageResourceService.findAllBy).mockImplementation(
-    async (args: unknown): Promise<Array<StatusPageResource>> => {
-      const query: JSONObject = (args as { query: JSONObject }).query;
-      return resourcesByStatusPage[String(query["statusPageId"])] || [];
+  mock(StatusPageResourceService.findByMonitors).mockImplementation(
+    async (): Promise<Array<StatusPageResource>> => {
+      return Object.values(resourcesByStatusPage).flat();
     },
   );
 
@@ -1822,7 +1835,7 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
 
       const calls: Array<CompileTemplateCall> = compileTemplateCalls();
 
@@ -1869,15 +1882,8 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      expect(
-        resourceLookups().map((lookup: { query: JSONObject }): string => {
-          return String(lookup.query["statusPageId"]);
-        }),
-      ).toEqual([
-        STATUS_PAGE_ID.toString(),
-        SECOND_STATUS_PAGE_ID.toString(),
-        THIRD_STATUS_PAGE_ID.toString(),
-      ]);
+      // One lookup answers every page; each page gets only its own.
+      expect(resourceLookups()).toHaveLength(1);
 
       expect(sentSms()).toEqual([
         `SMS|[${RESOURCES_AFFECTED}]`,
@@ -1904,14 +1910,14 @@ describe.each(TRIGGERS)(
       ]);
     });
 
-    test("loads each page's resources for the announcement's monitors, with their group names", async () => {
+    test("looks up the resources the announcement's monitors affect, monitor groups included, with their group names", async () => {
       trigger.queue([scopedAnnouncement()]);
 
       await runJob(trigger.job);
 
-      const lookups: Array<{ query: JSONObject; select: JSONObject }> =
-        resourceLookups();
+      const lookups: Array<ResourceLookup> = resourceLookups();
 
+      // findByMonitors is the lookup that also follows monitor groups.
       expect(lookups).toHaveLength(1);
       expect(lookups[0]!.select).toEqual({
         _id: true,
@@ -1922,18 +1928,11 @@ describe.each(TRIGGERS)(
           name: true,
         },
       });
-      expect(lookups[0]!.query["statusPageId"]).toEqual(
-        new ObjectID(STATUS_PAGE_ID.toString()),
-      );
-
-      const monitorFilter: { objectLiteralParameters?: JSONObject } =
-        lookups[0]!.query["monitorId"] as unknown as {
-          objectLiteralParameters?: JSONObject;
-        };
-
       expect(
-        Object.values(monitorFilter.objectLiteralParameters || {}),
-      ).toEqual([[API_MONITOR_ID.toString(), WEBSITE_MONITOR_ID.toString()]]);
+        lookups[0]!.monitorIds.map((monitorId: ObjectID): string => {
+          return monitorId.toString();
+        }),
+      ).toEqual([API_MONITOR_ID.toString(), WEBSITE_MONITOR_ID.toString()]);
     });
 
     test("keeps the default messages unchanged for an announcement scoped to resources", async () => {

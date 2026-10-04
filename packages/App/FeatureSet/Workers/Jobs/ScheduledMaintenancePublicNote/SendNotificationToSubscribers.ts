@@ -16,7 +16,7 @@ import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import ScheduledMaintenancePublicNoteService from "Common/Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -30,11 +30,9 @@ import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -228,28 +226,17 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           "Notifications skipped as scheduled maintenance is not visible on status page.",
       });
       return; // skip if not visible on status page.
-    } // get status page resources from monitors.
+    }
 
-    let statusPageResources: Array<StatusPageResource> = [];
-
-    if (event.monitors && event.monitors.length > 0) {
-      statusPageResources = await StatusPageResourceService.findAllBy({
-        query: {
-          monitorId: QueryHelper.any(
-            event.monitors
-              .filter((m: Monitor) => {
-                return m._id;
-              })
-              .map((m: Monitor) => {
-                return new ObjectID(m._id!);
-              }),
-          ),
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-        skip: 0,
+    /*
+     * The resources the event affects on each status page: its monitors, and
+     * the monitor groups that hold them - the same ones its created, state
+     * change and reminder notifications go by. A subscriber who picked a
+     * monitor group hears about a note on an event on any monitor in it.
+     */
+    const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+      await AffectedStatusPageResources.findForMonitors({
+        monitors: event.monitors || [],
         select: {
           _id: true,
           displayName: true,
@@ -261,25 +248,6 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           },
         },
       });
-    }
-
-    logger.debug(
-      `Found ${statusPageResources.length} status page resource(s) for scheduled maintenance ${event.id}.`,
-    );
-
-    const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
-
-    for (const resource of statusPageResources) {
-      if (!resource.statusPageId) {
-        continue;
-      }
-
-      if (!statusPageToResources[resource.statusPageId?.toString()]) {
-        statusPageToResources[resource.statusPageId?.toString()] = [];
-      }
-
-      statusPageToResources[resource.statusPageId?.toString()]?.push(resource);
-    }
 
     logger.debug(
       `Scheduled maintenance ${event.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`,

@@ -1563,12 +1563,12 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       (sentWebhooks()[0]!["data"] as JSONObject)["resourcesAffected"],
     ).toBe(GROUPED_RESOURCES_TEXT);
 
-    const args: { monitors: Array<Monitor>; select: JSONObject } = mock(
+    const args: { monitorIds: Array<ObjectID>; select: JSONObject } = mock(
       StatusPageResourceService.findByMonitors,
-    ).mock.calls[0]![0] as { monitors: Array<Monitor>; select: JSONObject };
+    ).mock.calls[0]![0] as { monitorIds: Array<ObjectID>; select: JSONObject };
     expect(
-      args.monitors.map((monitor: Monitor): string => {
-        return monitor._id!.toString();
+      args.monitorIds.map((monitorId: ObjectID): string => {
+        return monitorId.toString();
       }),
     ).toEqual([MONITOR_ID.toString()]);
     expect(args.select["statusPageGroupId"]).toBe(true);

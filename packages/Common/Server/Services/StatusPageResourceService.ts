@@ -8,7 +8,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -98,6 +98,23 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * The status page resources that show these monitors, on every page: a
+   * resource for one of the monitors, or for a monitor group that holds one
+   * of them. A status page shows an event on a monitor under the group the
+   * monitor is in, and someone who subscribed to that group expects to hear
+   * about every monitor in it.
+   *
+   * This is the one lookup from monitors to resources. Every subscriber
+   * notification finds the resources an event affects here (incidents and
+   * episodes through IncidentStatusPageScope, announcements and scheduled
+   * maintenance through AffectedStatusPageResources), and so do the status
+   * pages the dashboard suggests for an event (StatusPagesListingMonitors),
+   * so the page suggested and the subscribers told agree.
+   *
+   * Every row is read, however many there are: a resource left out is a
+   * subscriber who is silently not told.
+   */
   @CaptureSpan()
   public async findByMonitors(data: {
     monitors?: Array<Monitor>;
@@ -125,7 +142,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Find status page resources directly linked to monitors
-    const statusPageResources: Array<Model> = await this.findBy({
+    const statusPageResources: Array<Model> = await this.findAllBy({
       query: {
         monitorId: QueryHelper.any(resolvedMonitorIds),
       },
@@ -134,13 +151,12 @@ export class Service extends DatabaseService<Model> {
         ignoreHooks: true,
       },
       skip: 0,
-      limit: LIMIT_PER_PROJECT,
       select: data.select,
     });
 
     // Find monitor groups that contain the affected monitors
     const monitorGroupResources: Array<MonitorGroupResource> =
-      await MonitorGroupResourceService.findBy({
+      await MonitorGroupResourceService.findAllBy({
         query: {
           monitorId: QueryHelper.any(resolvedMonitorIds),
         },
@@ -152,19 +168,32 @@ export class Service extends DatabaseService<Model> {
           monitorGroupId: true,
         },
         skip: 0,
-        limit: LIMIT_PER_PROJECT,
       });
 
-    const monitorGroupIds: Array<ObjectID> = monitorGroupResources
-      .map((r: MonitorGroupResource) => {
-        return r.monitorGroupId!;
-      })
-      .filter((id: ObjectID) => {
-        return Boolean(id);
-      });
+    // Each group once, however many of the monitors it holds.
+    const monitorGroupIds: Array<ObjectID> = [];
+    const seenMonitorGroupIds: Set<string> = new Set();
+
+    for (const monitorGroupResource of monitorGroupResources) {
+      const monitorGroupId: ObjectID | undefined =
+        monitorGroupResource.monitorGroupId;
+
+      if (!monitorGroupId) {
+        continue;
+      }
+
+      const key: string = monitorGroupId.toString().toLowerCase();
+
+      if (seenMonitorGroupIds.has(key)) {
+        continue;
+      }
+
+      seenMonitorGroupIds.add(key);
+      monitorGroupIds.push(monitorGroupId);
+    }
 
     if (monitorGroupIds.length > 0) {
-      const groupStatusPageResources: Array<Model> = await this.findBy({
+      const groupStatusPageResources: Array<Model> = await this.findAllBy({
         query: {
           monitorGroupId: QueryHelper.any(monitorGroupIds),
         },
@@ -173,18 +202,28 @@ export class Service extends DatabaseService<Model> {
           ignoreHooks: true,
         },
         skip: 0,
-        limit: LIMIT_PER_PROJECT,
         select: data.select,
       });
 
       // Merge and deduplicate
-      for (const resource of groupStatusPageResources) {
-        const alreadyExists: boolean = statusPageResources.some((r: Model) => {
-          return r._id === resource._id;
-        });
-        if (!alreadyExists) {
-          statusPageResources.push(resource);
+      const seenResourceIds: Set<string> = new Set();
+
+      for (const resource of statusPageResources) {
+        if (resource._id) {
+          seenResourceIds.add(resource._id.toString());
         }
+      }
+
+      for (const resource of groupStatusPageResources) {
+        if (resource._id && seenResourceIds.has(resource._id.toString())) {
+          continue;
+        }
+
+        if (resource._id) {
+          seenResourceIds.add(resource._id.toString());
+        }
+
+        statusPageResources.push(resource);
       }
     }
 
