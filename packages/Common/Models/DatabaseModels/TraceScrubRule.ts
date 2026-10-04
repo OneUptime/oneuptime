@@ -396,8 +396,7 @@ export default class TraceScrubRule extends BaseModel {
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
     title: "Enabled",
-    description:
-      "Whether this scrub rule is active. Left out of a create, a new rule starts on.",
+    description: "Whether this scrub rule is active.",
     defaultValue: TRACE_SCRUB_RULE_DEFAULTS.isEnabled,
     isDefaultValueColumn: true,
   })

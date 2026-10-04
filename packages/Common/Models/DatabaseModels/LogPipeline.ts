@@ -278,8 +278,7 @@ export default class LogPipeline extends BaseModel {
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
     title: "Enabled",
-    description:
-      "Whether this log pipeline is active. Left out of a create, a new pipeline starts on.",
+    description: "Whether this log pipeline is active.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })

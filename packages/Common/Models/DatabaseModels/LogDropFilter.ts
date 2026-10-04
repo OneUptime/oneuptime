@@ -353,8 +353,7 @@ export default class LogDropFilter extends BaseModel {
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
     title: "Enabled",
-    description:
-      "Whether this drop filter is active. Left out of a create, a new filter starts on.",
+    description: "Whether this drop filter is active.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })

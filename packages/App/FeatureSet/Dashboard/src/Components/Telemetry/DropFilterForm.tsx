@@ -46,6 +46,10 @@ import React, { ReactElement } from "react";
  * walks on to Action for Sample.
  */
 
+/*
+ * The steps' ids, written out where they are used too, so the form scan
+ * (Tests/Helpers/FormStepsScan) can tell which step each field is on.
+ */
 export const DROP_FILTER_MATCH_STEP_ID: string = "match";
 export const DROP_FILTER_ACTION_STEP_ID: string = "action";
 
@@ -134,8 +138,8 @@ export const getDropFilterFormSteps: <
   TFilter extends LogDropFilter | TraceDropFilter,
 >(): Array<FormStep<TFilter>> => {
   return [
-    { title: "Match", id: DROP_FILTER_MATCH_STEP_ID },
-    { title: "Action", id: DROP_FILTER_ACTION_STEP_ID },
+    { title: "Match", id: "match" },
+    { title: "Action", id: "action" },
   ];
 };
 
@@ -164,7 +168,7 @@ const getDropFilterFormFields: (
         name: true,
       },
       title: "Name",
-      stepId: DROP_FILTER_MATCH_STEP_ID,
+      stepId: "match",
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: options.namePlaceholder,
@@ -177,7 +181,7 @@ const getDropFilterFormFields: (
         filterQuery: true,
       },
       title: "Filter Query",
-      stepId: DROP_FILTER_MATCH_STEP_ID,
+      stepId: "match",
       description: options.filterQueryHelp,
       fieldType: FormFieldSchemaType.CustomComponent,
       required: true,
@@ -204,7 +208,7 @@ const getDropFilterFormFields: (
         action: true,
       },
       title: "Action",
-      stepId: DROP_FILTER_ACTION_STEP_ID,
+      stepId: "action",
       description: options.actionHelp,
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
@@ -218,7 +222,7 @@ const getDropFilterFormFields: (
         samplePercentage: true,
       },
       title: "Sample Percentage",
-      stepId: DROP_FILTER_ACTION_STEP_ID,
+      stepId: "action",
       description: options.samplePercentageHelp,
       fieldType: FormFieldSchemaType.Number,
       /*
@@ -242,7 +246,7 @@ const getDropFilterFormFields: (
         description: true,
       },
       title: "Description",
-      stepId: DROP_FILTER_ACTION_STEP_ID,
+      stepId: "action",
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "Describe what this filter does.",
@@ -253,7 +257,7 @@ const getDropFilterFormFields: (
         isEnabled: true,
       },
       title: "Enabled",
-      stepId: DROP_FILTER_ACTION_STEP_ID,
+      stepId: "action",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       collapsibleSection: advanced,
