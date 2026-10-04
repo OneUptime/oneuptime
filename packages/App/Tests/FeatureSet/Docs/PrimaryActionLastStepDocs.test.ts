@@ -85,10 +85,7 @@ describe("the docs on stepped forms", () => {
       "incidents/declaring-incidents.md",
       "**Declare Incident** is on the summary, the last step",
     ],
-    [
-      "incidents/index.md",
-      "**Declare Incident** is on the summary at the end",
-    ],
+    ["incidents/index.md", "**Declare Incident** is on the summary at the end"],
     [
       "incidents/settings.md",
       "**Create Incident Template** is on the last step",

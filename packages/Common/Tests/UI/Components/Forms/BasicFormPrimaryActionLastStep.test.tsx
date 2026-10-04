@@ -200,7 +200,10 @@ async function typeInto(name: string | RegExp, value: string): Promise<void> {
   });
 }
 
-async function walkTo(user: UserEvent, step: FormStep<JSONObject>) {
+async function walkTo(
+  user: UserEvent,
+  step: FormStep<JSONObject>,
+): Promise<void> {
   await user.click(nextButton()!);
   await waitFor(() => {
     expect(activeStep()).toBe(step.title);
@@ -232,7 +235,10 @@ describe("A stepped form on a page", () => {
     expect(nextButton()).toHaveTextContent("Next");
     expect(nextButton()!.className).toContain(PLAIN_CLASS);
     expect(nextButton()!.className).not.toContain(PRIMARY_CLASS);
-    expect(nextButton()).toHaveAttribute("id", "declare-incident-form-next-button");
+    expect(nextButton()).toHaveAttribute(
+      "id",
+      "declare-incident-form-next-button",
+    );
     expect(primaryButtons()).toEqual([]);
   });
 
@@ -528,9 +534,10 @@ describe("A stepped form on a page", () => {
       expect(activeStep()).toBe(DETAILS_STEP.title);
     });
     await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /Advanced/ }),
-      ).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByRole("button", { name: /Advanced/ })).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
     });
     expect(await screen.findByText("Reference is required.")).toBeVisible();
     expect(onSubmit).not.toHaveBeenCalled();

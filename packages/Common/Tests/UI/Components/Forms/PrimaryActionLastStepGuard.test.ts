@@ -71,7 +71,10 @@ function scan(
   });
 }
 
-function rulesOf(text: string, options: { file?: string } = {}): Array<SteppedFooterRule> {
+function rulesOf(
+  text: string,
+  options: { file?: string } = {},
+): Array<SteppedFooterRule> {
   return scan(text, options).problems.map(
     (problem: SteppedFooterProblem): SteppedFooterRule => {
       return problem.rule;
@@ -82,7 +85,9 @@ function rulesOf(text: string, options: { file?: string } = {}): Array<SteppedFo
 describe("the stepped footer detector", () => {
   describe("a label that reads Next", () => {
     test("on a plain Button passes, whatever plain style it wears", () => {
-      expect(rulesOf(`const A = () => <Button title="Next" onClick={go} />;`)).toEqual([]);
+      expect(
+        rulesOf(`const A = () => <Button title="Next" onClick={go} />;`),
+      ).toEqual([]);
       expect(
         rulesOf(
           `const A = () => <Button title={t("Next")} buttonStyle={ButtonStyleType.OUTLINE} />;`,
@@ -111,7 +116,9 @@ describe("the stepped footer detector", () => {
 
     test("as a dialog's submit button is a problem: that is its primary action", () => {
       expect(
-        rulesOf(`const A = () => <Modal title="x" submitButtonText="Next" onSubmit={go} />;`),
+        rulesOf(
+          `const A = () => <Modal title="x" submitButtonText="Next" onSubmit={go} />;`,
+        ),
       ).toEqual(["next-label"]);
 
       expect(
@@ -205,9 +212,11 @@ describe("the stepped footer detector", () => {
       );
 
       expect(facts.nextLabels).toHaveLength(1);
-      expect(facts.problems.map((problem: SteppedFooterProblem) => problem.rule)).toEqual([
-        "next-label",
-      ]);
+      expect(
+        facts.problems.map((problem: SteppedFooterProblem) => {
+          return problem.rule;
+        }),
+      ).toEqual(["next-label"]);
     });
 
     test("other words are not labels: Next page, Next steps, a comment", () => {
@@ -337,9 +346,9 @@ describe("the stepped footer detector", () => {
   describe("the finish-early machinery", () => {
     test.each(RETIRED_NAMES)("%s is retired", (name: string) => {
       expect(rulesOf(`const field = { ${name}: true };`)).toEqual(["retired"]);
-      expect(rulesOf(`const A = () => <BasicFormModal ${name}={true} />;`)).toEqual([
-        "retired",
-      ]);
+      expect(
+        rulesOf(`const A = () => <BasicFormModal ${name}={true} />;`),
+      ).toEqual(["retired"]);
     });
 
     test("its module is retired", () => {
@@ -461,11 +470,9 @@ describe("the project's front ends", () => {
 
     expect(basicForm.nextLabels.length).toBeGreaterThan(0);
     expect(
-      basicForm.nextLabels.every(
-        (label: { isPlain: boolean }): boolean => {
-          return label.isPlain;
-        },
-      ),
+      basicForm.nextLabels.every((label: { isPlain: boolean }): boolean => {
+        return label.isPlain;
+      }),
     ).toBe(true);
   });
 });

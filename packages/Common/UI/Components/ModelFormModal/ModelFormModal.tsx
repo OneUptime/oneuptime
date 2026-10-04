@@ -72,9 +72,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
     hasSteps && props.formProps.formType === FormType.Update;
 
   // Starts on Next: the form reports where it is once its first step opens.
-  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(
-    !hasSteps,
-  );
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(!hasSteps);
 
   /*
    * Made on every render and used when the caller passes no ref of its own.

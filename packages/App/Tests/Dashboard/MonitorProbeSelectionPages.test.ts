@@ -288,9 +288,7 @@ describe("Probe view page makes an edit saveable and visible", () => {
       squash("allowAnyStepNavigation={isEditFormWithSteps}"),
     );
     expect(modal).toContain(squash("onSubmit={footer.onSubmit}"));
-    expect(modal).toContain(
-      squash("secondaryButton={footer.secondaryButton}"),
-    );
+    expect(modal).toContain(squash("secondaryButton={footer.secondaryButton}"));
     expect(modal).toContain("submitAllSteps()");
 
     const footer: string = squash(

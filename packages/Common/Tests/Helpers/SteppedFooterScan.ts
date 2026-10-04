@@ -79,7 +79,8 @@ const TRANSLATION_FUNCTIONS: ReadonlySet<string> = new Set<string>([
 ]);
 
 // A native button wearing the primary colour (Button's PRIMARY classes).
-const PRIMARY_COLOUR_CLASS: RegExp = /(^|\s)(hover:)?bg-indigo-(500|600|700)(\s|$)/;
+const PRIMARY_COLOUR_CLASS: RegExp =
+  /(^|\s)(hover:)?bg-indigo-(500|600|700)(\s|$)/;
 
 const PRIMARY_STYLE: RegExp = /\bPRIMARY\b/;
 
@@ -439,9 +440,7 @@ class FileScan {
             parent.operatorToken.kind === ts.SyntaxKind.BarBarToken)) ||
         (ts.isCallExpression(parent) &&
           isTranslationCall(parent) &&
-          parent.arguments.some((argument: ts.Expression): boolean => {
-            return argument === current;
-          }))
+          parent.arguments.includes(current as ts.Expression))
       ) {
         current = parent;
         continue;
@@ -496,8 +495,14 @@ class FileScan {
     const name: string = attribute.name.getText();
     const element: ts.Node = attribute.parent.parent;
 
-    if (!ts.isJsxOpeningElement(element) && !ts.isJsxSelfClosingElement(element)) {
-      return { ok: false, where: `the ${name} of an element this scan cannot read` };
+    if (
+      !ts.isJsxOpeningElement(element) &&
+      !ts.isJsxSelfClosingElement(element)
+    ) {
+      return {
+        ok: false,
+        where: `the ${name} of an element this scan cannot read`,
+      };
     }
 
     const tag: string = jsxTagName(element);
@@ -525,14 +530,20 @@ class FileScan {
       return { ok: true, where: `<Button ${name}>` };
     }
 
-    return { ok: false, where: `<${tag} ${name}>, which this scan cannot judge` };
+    return {
+      ok: false,
+      where: `<${tag} ${name}>, which this scan cannot judge`,
+    };
   }
 
   private judgeElementText(element: ts.JsxElement): Verdict {
     const tag: string = jsxTagName(element.openingElement);
 
     if (tag !== "button") {
-      return { ok: false, where: `the text of <${tag}>, which this scan cannot judge` };
+      return {
+        ok: false,
+        where: `the text of <${tag}>, which this scan cannot judge`,
+      };
     }
 
     const className: string | null = attributeText(
@@ -568,7 +579,10 @@ class FileScan {
       ts.isCallExpression(object.parent) &&
       calleeName(object.parent) === STEPPED_MODAL_FOOTER_FUNCTION
     ) {
-      return { ok: true, where: `${STEPPED_MODAL_FOOTER_FUNCTION}'s nextButtonText` };
+      return {
+        ok: true,
+        where: `${STEPPED_MODAL_FOOTER_FUNCTION}'s nextButtonText`,
+      };
     }
 
     if (name === "title") {
@@ -605,7 +619,10 @@ class FileScan {
     depth: number,
   ): Verdict {
     if (!ts.isIdentifier(declaration.name)) {
-      return { ok: false, where: "a destructured value this scan cannot follow" };
+      return {
+        ok: false,
+        where: "a destructured value this scan cannot follow",
+      };
     }
 
     if (depth >= MAX_VARIABLE_DEPTH) {

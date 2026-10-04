@@ -61,9 +61,7 @@ const BasicFormModal: <T extends GenericObject>(
   );
 
   // Starts on Next: the form reports where it is once its first step opens.
-  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(
-    !hasSteps,
-  );
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(!hasSteps);
 
   /*
    * Without a submitButtonText the dialog's own default ("Save") is the
