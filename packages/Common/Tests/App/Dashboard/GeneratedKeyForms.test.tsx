@@ -45,8 +45,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     or sends the key someone typed. The Edit form has no key at all: it
  *     never changes.
  *   - Metric and trace recording rules: the Output Metric Name is made from
- *     the rule's name the same way on Create, and stays an ordinary field
- *     on Edit, where a rule's output can still be renamed.
+ *     the rule's name the same way on Create - one page, the name and the
+ *     definition - and stays an ordinary field on Edit, where a rule's
+ *     output can still be renamed.
  */
 
 configure({ asyncUtilTimeout: 15000 });
@@ -424,6 +425,8 @@ interface RecordingRulePage {
   label: string;
   page: Page;
   existing: () => BaseModel;
+  // What the definition needs before it can be saved, if anything.
+  completeDefinition: (user: UserEvent) => Promise<void>;
 }
 
 const RECORDING_RULE_PAGES: Array<RecordingRulePage> = [
@@ -433,6 +436,13 @@ const RECORDING_RULE_PAGES: Array<RecordingRulePage> = [
     existing: (): BaseModel => {
       return new MetricRecordingRule();
     },
+    // Source A's metric: the only thing an empty definition lacks.
+    completeDefinition: async (user: UserEvent): Promise<void> => {
+      await user.type(
+        within(form()).getByPlaceholderText("e.g. http.server.errors"),
+        "http.server.errors",
+      );
+    },
   },
   {
     label: "Trace recording rules",
@@ -440,6 +450,8 @@ const RECORDING_RULE_PAGES: Array<RecordingRulePage> = [
     existing: (): BaseModel => {
       return new TraceRecordingRule();
     },
+    // An empty trace definition counts every span: complete as it is.
+    completeDefinition: async (): Promise<void> => {},
   },
 ];
 
@@ -460,20 +472,31 @@ describe.each(RECORDING_RULE_PAGES)("$label", (entry: RecordingRulePage) => {
     ).toBeNull();
   });
 
-  test("Create's first step is done without an output metric name", async () => {
+  /*
+   * One page: the name, the line made from it and the definition, so the
+   * rule is created from where its name was typed - and the output metric
+   * name is left out for the server to make.
+   */
+  test("Create goes through from the one page without an output metric name", async () => {
     const user: UserEvent = await renderPage(entry.page, "create");
 
     await user.type(
       await within(form()).findByRole("textbox", { name: /^Name/ }),
       "HTTP 5xx error rate",
     );
-    await clickNext(user);
+    await entry.completeDefinition(user);
 
-    // On to the rule's definition: nothing on the first step was missing.
+    expect(within(form()).queryByRole("button", { name: "Next" })).toBeNull();
+    await user.click(within(form()).getByRole("button", { name: "Create" }));
+
     await waitFor(() => {
-      expect(within(form()).queryByTestId("generated-key-field")).toBeNull();
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
-    expect(within(form()).queryByRole("textbox", { name: /^Name/ })).toBeNull();
+
+    const model: Record<string, unknown> = savedModel();
+
+    expect(model["name"]).toBe("HTTP 5xx error rate");
+    expect(model["outputMetricName"] || undefined).toBeUndefined();
   });
 
   test("Edit keeps the output metric name an ordinary field, holding its name", async () => {

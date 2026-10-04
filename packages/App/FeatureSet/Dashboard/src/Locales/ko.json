@@ -24885,6 +24885,11 @@
   "Search and attach the monitors affected by this scheduled maintenance.": "이 예정된 유지 관리의 영향을 받는 모니터를 검색하고 첨부하세요.",
   "Search and attach the monitors that events created from this template should pre-populate.": "이 템플릿에서 만든 이벤트가 미리 채워야 하는 모니터를 검색하고 첨부하세요.",
   "When the event starts, its monitors change to this status, and back to operational when it ends.": "이벤트가 시작되면 모니터가 이 상태로 바뀌고, 이벤트가 끝나면 정상 작동으로 돌아갑니다.",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "위 필터를 결합하는 방식입니다. 'All'은 모든 필터가 일치해야 합니다(AND). 'Any'는 하나 이상의 필터가 일치해야 합니다(OR).",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "비워 두면 모든 서비스에 적용되는 규칙이 됩니다. 단일 서비스 규칙은 프로젝트 전체 규칙보다 먼저 실행됩니다.",
+  "Only for one service": "하나의 서비스에만",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "규칙은 모든 서비스에 적용되며 저장 후 1분 이내에 적용됩니다.",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "규칙은 저장 후 1분 이내에 시작하여 매분 메트릭을 기록합니다.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
   "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
   "e.g. Add production": "예: production 추가"

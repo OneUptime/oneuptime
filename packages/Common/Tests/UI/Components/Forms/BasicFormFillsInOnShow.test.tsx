@@ -24,14 +24,15 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * writes the conditions it shows, an editor writes the value it normalised -
  * runs that effect before the form's own: React runs a child's effects
  * before its parent's. Drawn on a form's first step, it used to write before
- * BasicForm had taken its initial values and defaults, and BasicForm then
- * took none of them ("nothing re-seeds a form already edited"): a Create
- * form started every other field empty, so a switch whose column starts on
- * - an owner rule's Notify Owners - was saved off, and an initial value was
- * dropped.
+ * BasicForm had filled in its defaults, and BasicForm then filled in none
+ * ("nothing re-seeds a form already edited"): a switch whose column starts
+ * on - an owner rule's Notify Owners, once the label and owner rules opened
+ * on their conditions - was drawn on and saved off.
  *
- * Now the form still takes its initial values and defaults, and what the
- * field wrote is kept over them.
+ * Now the form keeps every value it holds - what it started with and what
+ * the field wrote - and fills in the defaults of the fields still empty
+ * (BasicForm; the metric rules found the same trap: ModelFormPreservesUserInput).
+ * Here the rule's case: the field on the first step, the switch on the next.
  */
 
 interface FillsInProps {
@@ -218,7 +219,7 @@ describe("a field that fills itself in on a form's first step", () => {
     expect(values["channel"]).toBe("sms");
   });
 
-  test("keeps a value its onChange cleared as it was drawn cleared, default or not", async () => {
+  test("a value its onChange cleared as it was drawn is empty, and takes its default like any empty field", async () => {
     const rendered: Rendered = await renderForm({
       fields: fieldsWith({
         writes: { filters: [] },
@@ -237,8 +238,8 @@ describe("a field that fills itself in on a form's first step", () => {
 
     const values: JSONObject = await submitAll(rendered);
 
-    expect(values["channel"]).toBeUndefined();
-    // What it did not touch still takes its starting value and default.
+    expect(values["channel"]).toBe("email");
+    // What it did not touch keeps its starting value, and takes its default.
     expect(values["name"]).toBe("Add production");
     expect(values["notifyOwners"]).toBe(true);
   });

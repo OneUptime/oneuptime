@@ -24885,6 +24885,11 @@
   "Search and attach the monitors affected by this scheduled maintenance.": "Sök efter och bifoga de övervakare som påverkas av det här schemalagda underhållet.",
   "Search and attach the monitors that events created from this template should pre-populate.": "Sök efter och bifoga de övervakare som händelser skapade från denna mall ska förifylla.",
   "When the event starts, its monitors change to this status, and back to operational when it ends.": "När händelsen börjar ändras dess övervakare till den här statusen, och tillbaka till i drift när den slutar.",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "Hur filtren ovan ska kombineras. 'Alla' kräver att varje filter matchar (AND). 'Valfri' kräver att minst ett filter matchar (OR).",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Lämna tomt för en regel som gäller alla tjänster. Regler för en enda tjänst körs före de projektomfattande.",
+  "Only for one service": "Endast för en tjänst",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "Regeln gäller alla tjänster och börjar gälla inom en minut efter att den har sparats.",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "Regeln skriver sitt mått varje minut, med start senast en minut efter att den har sparats.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "När den här regeln matchar läggs dessa etiketter till. Etiketter som redan finns läggs inte till två gånger.",
   "e.g. Add Platform as owners": "t.ex. Lägg till Platform som ägare",
   "e.g. Add production": "t.ex. Lägg till production"

@@ -24885,6 +24885,11 @@
   "Search and attach the monitors affected by this scheduled maintenance.": "Search and attach the monitors affected by this scheduled maintenance.",
   "Search and attach the monitors that events created from this template should pre-populate.": "Search and attach the monitors that events created from this template should pre-populate.",
   "When the event starts, its monitors change to this status, and back to operational when it ends.": "When the event starts, its monitors change to this status, and back to operational when it ends.",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.",
+  "Only for one service": "Only for one service",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "The rule applies to every service, and takes effect within a minute of being saved.",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "The rule writes its metric every minute, starting within a minute of being saved.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "When this rule matches, these labels are attached. Labels already attached are not added twice.",
   "e.g. Add Platform as owners": "e.g. Add Platform as owners",
   "e.g. Add production": "e.g. Add production"

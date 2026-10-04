@@ -24885,6 +24885,11 @@
   "Search and attach the monitors affected by this scheduled maintenance.": "搜索并关联受此计划维护影响的监视器。",
   "Search and attach the monitors that events created from this template should pre-populate.": "搜索并关联从此模板创建的事件应预填充的监视器。",
   "When the event starts, its monitors change to this status, and back to operational when it ends.": "事件开始时，其监视器会更改为此状态，并在事件结束时恢复为运行正常。",
+  "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).": "如何组合上方的过滤器。'全部' 要求每个过滤器都匹配（AND）。'任意' 要求至少一个过滤器匹配（OR）。",
+  "Leave empty for a rule that applies to every service. Rules for one service run before the project-wide ones.": "留空则规则适用于所有服务。单个服务的规则先于项目范围的规则运行。",
+  "Only for one service": "仅限一个服务",
+  "The rule applies to every service, and takes effect within a minute of being saved.": "该规则适用于所有服务，并在保存后一分钟内生效。",
+  "The rule writes its metric every minute, starting within a minute of being saved.": "该规则在保存后一分钟内开始，每分钟写入一次其指标。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "当此规则匹配时，会添加这些标签。已添加的标签不会被重复添加。",
   "e.g. Add Platform as owners": "例如 将 Platform 添加为所有者",
   "e.g. Add production": "例如 添加 production"

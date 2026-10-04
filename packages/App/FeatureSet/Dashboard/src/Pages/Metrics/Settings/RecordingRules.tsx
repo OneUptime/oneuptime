@@ -3,7 +3,11 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -12,6 +16,7 @@ import RecordingRuleDefinition, {
   RecordingRuleDefinitionUtil,
 } from "Common/Types/Metrics/RecordingRuleDefinition";
 import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingRuleOutputMetricName";
+import { getRecordingRuleAdvancedSummary } from "../../../Components/Metrics/RecordingRule/RecordingRuleForm";
 import MetricRecordingRuleDefinitionEditor from "../../../Components/Metrics/RecordingRule/MetricRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -42,6 +47,17 @@ If a bucket would produce a non-finite result (division by zero, missing source,
 Every materialized row carries an attribute \`oneuptime.derived.rule_id\` with this rule's ID, plus the group-by attribute value when set.
 `;
 
+/*
+ * One page: the rule's name - the output metric line under it is made from
+ * the name, not asked for - and its definition, with the description and
+ * Enabled (on) folded under More fields (Components/Metrics/
+ * RecordingRule/RecordingRuleForm says why).
+ */
+const metricRecordingRuleMoreFields: FormFieldCollapsibleSection<MetricRecordingRule> =
+  getAdvancedFormSection<MetricRecordingRule>({
+    getSummary: getRecordingRuleAdvancedSummary,
+  });
+
 const MetricRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -58,7 +74,11 @@ const MetricRecordingRules: FunctionComponent<
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
-      sortBy="sortOrder"
+      /*
+       * By name: every enabled rule is evaluated each minute, on its own,
+       * so the list has no order to keep (sortOrder is never read).
+       */
+      sortBy="name"
       sortOrder={SortOrder.Ascending}
       createEditModalWidth={ModalWidth.Large}
       createInitialValues={{
@@ -77,15 +97,10 @@ const MetricRecordingRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No recording rules found."}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Definition", id: "definition" },
-      ]}
       formFields={[
         {
           field: { name: true },
           title: "Name",
-          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. HTTP 5xx error rate",
@@ -100,7 +115,6 @@ const MetricRecordingRules: FunctionComponent<
           field: { outputMetricName: true },
           nameField: "name",
           title: "Output Metric Name",
-          stepId: "basic-info",
           makeKey: getOutputMetricNameFromRuleName,
           placeholder: "e.g. http.error_rate",
           description:
@@ -110,7 +124,6 @@ const MetricRecordingRules: FunctionComponent<
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
-          stepId: "basic-info",
           description:
             "The name the new derived metric will be written under. Must be unique per project.",
           fieldType: FormFieldSchemaType.Text,
@@ -119,27 +132,8 @@ const MetricRecordingRules: FunctionComponent<
           doNotShowWhenCreating: true,
         },
         {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          description: "What this rule computes and why.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this rule computes and why.",
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          description:
-            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
           field: { definition: true },
           title: "Definition",
-          stepId: "definition",
           description:
             "Pick your source metrics, write the expression that combines them, and optionally split the result by an attribute.",
           fieldType: FormFieldSchemaType.CustomComponent,
@@ -162,6 +156,24 @@ const MetricRecordingRules: FunctionComponent<
               />
             );
           },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          description: "What this rule computes and why.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule computes and why.",
+          collapsibleSection: metricRecordingRuleMoreFields,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          description:
+            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          collapsibleSection: metricRecordingRuleMoreFields,
         },
       ]}
       showRefreshButton={true}
