@@ -17,14 +17,15 @@ Traces-monitors zoeken en tellen spans die aan specifieke filters voldoen. Hierm
 1. Ga naar **Monitoren** in het OneUptime-dashboard
 2. Klik op **Monitor maken**
 3. Selecteer **Traces** als het monitortype
-4. Selecteer de te bewaken telemetriediensten
-5. Configureer span-filters en criteria naar wens
+4. Kies welke spans worden geteld: de spannaam, het tijdvenster en de spanstatussen
+5. Open **Meer velden** onder deze filters om ze te beperken tot telemetriediensten, infrastructuurentiteiten of attributen
+6. Configureer de criteria naar wens
 
 ## Configuratie-opties
 
 ### Telemetriediensten
 
-Selecteer een of meer diensten waarvan traces worden bewaakt. Diensten moeten traces via OpenTelemetry naar OneUptime sturen.
+Selecteer onder **Meer velden** een of meer diensten waarvan traces worden bewaakt. Laat het leeg om spans van alle diensten te bewaken. Diensten moeten traces via OpenTelemetry naar OneUptime sturen.
 
 ### Span-filters
 

@@ -17,14 +17,15 @@ Los monitores de registros buscan y cuentan los registros que coinciden con filt
 1. Ve a **Monitores** en el panel de OneUptime
 2. Haz clic en **Crear monitor**
 3. Selecciona **Registros** como tipo de monitor
-4. Selecciona los servicios de telemetría a monitorear
-5. Configura los filtros de registros y los criterios según sea necesario
+4. Elige qué registros contar: el texto que incluyen, la ventana de tiempo y los niveles de gravedad
+5. Para limitarlos a servicios de telemetría, entidades de infraestructura o atributos, abre **Más campos** debajo de estos filtros
+6. Configura los criterios según sea necesario
 
 ## Opciones de configuración
 
 ### Servicios de telemetría
 
-Selecciona uno o más servicios desde los que monitorear registros. Los servicios deben enviar registros a OneUptime a través de OpenTelemetry.
+Selecciona en **Más campos** uno o más servicios desde los que monitorear registros. Déjalo vacío para monitorear los registros de todos los servicios. Los servicios deben enviar registros a OneUptime a través de OpenTelemetry.
 
 ### Filtros de registros
 

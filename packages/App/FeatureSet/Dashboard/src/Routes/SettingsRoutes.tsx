@@ -3,7 +3,7 @@ import SettingsLayout from "../Pages/Settings/Layout";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
-import RouteParams from "../Utils/RouteParams";
+import { MOVED_RUNNER_SETTINGS_PATHS } from "./MovedPagePaths";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, lazy, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -69,21 +69,6 @@ const SettingsDangerZone: React.LazyExoticComponent<
 export interface ComponentProps extends PageComponentProps {
   onProjectDeleted: () => void;
 }
-
-/*
- * Where the Runner pages used to be, relative to …/settings/. Spelled out
- * because nothing in the RouteMap points here any more: these exist only so an
- * old link still arrives somewhere.
- */
-export const MOVED_RUNNER_SETTINGS_PATHS: {
-  runners: string;
-  runnerView: string;
-  runnerCredentials: string;
-} = {
-  runners: "runners",
-  runnerView: `runners/${RouteParams.ModelID}`,
-  runnerCredentials: "runner-credentials",
-};
 
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

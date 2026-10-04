@@ -115,7 +115,7 @@ That distinction is deliberate. An average over children weights a store with tw
 
 ## Scheduled Maintenance for Network Sites
 
-Attach sites to a **Scheduled Maintenance** event from the event's **Resources Affected** picker, exactly as you would a monitor or a host. A site's own **Scheduled Maintenance** tab lists the events attached to it, and its **Create Scheduled Maintenance Event** opens the form with the site already picked.
+Attach sites to a **Scheduled Maintenance** event from **Other Affected Resources** on the event's **Resources Affected** step, exactly as you would a host. A site's own **Scheduled Maintenance** tab lists the events attached to it, and its **Create Scheduled Maintenance Event** opens the form with the site already picked.
 
 **Attaching a parent covers everything beneath it.** A window on a Region covers every Market and Unit in it, including sites created after the window was scheduled. A regional carrier cutover does not have to enumerate four hundred stores.
 

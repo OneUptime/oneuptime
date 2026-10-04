@@ -159,16 +159,21 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
     }),
   ]);
 
+  /*
+   * Split as Create Scheduled Maintenance Event is: the monitors on their
+   * own, the status they change to right under them, and everything else
+   * the events affect below.
+   */
   if (!data.excludeAffectedResources) {
     fields = fields.concat([
       {
         field: {
           monitors: true,
         },
-        title: "Resources Affected",
+        title: "Monitors",
         stepId: "resources-affected",
         description:
-          "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
+          "Search and attach the monitors that events created from this template should pre-populate.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: (
@@ -178,13 +183,9 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
           return (
             <AffectedResourcesPicker
               monitors={values.monitors as Array<Monitor>}
-              hosts={values.hosts as Array<Host>}
-              kubernetesClusters={
-                values.kubernetesClusters as Array<KubernetesCluster>
-              }
-              dockerHosts={values.dockerHosts as Array<DockerHost>}
-              podmanHosts={values.podmanHosts as Array<PodmanHost>}
-              services={values.services as Array<Service>}
+              resourceTypes={["Monitor"]}
+              placeholder="Search monitors..."
+              ariaLabelledby={elementProps.ariaLabelledby}
               onChange={(payload: unknown) => {
                 elementProps.onChange?.(payload);
               }}
@@ -198,12 +199,96 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
             values: FormValues<ScheduledMaintenanceTemplate>,
           ) => void,
         ) => {
+          // Only the monitors are this picker's to write.
           if (isAffectedResourcesPayload(value)) {
             const payload: typeof value = value;
             queueMicrotask(() => {
               setNewFormValues({
                 ...currentValues,
                 monitors: payload.monitors,
+              } as FormValues<ScheduledMaintenanceTemplate>);
+            });
+          }
+        },
+      },
+      /*
+       * Always asked here, monitors picked or not: a template's status also
+       * applies to the monitors picked when an event is scheduled from it -
+       * where Create Scheduled Maintenance Event shows it once the first
+       * monitor is picked - and to the events a recurring template
+       * schedules by itself.
+       */
+      {
+        field: {
+          changeMonitorStatusTo: true,
+        },
+        title: "Change Monitor Status to",
+        stepId: "resources-affected",
+        description:
+          "Events scheduled from this template change their monitors to this status while they are ongoing - the monitors picked here and any picked when the event is scheduled.",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownModal: {
+          type: MonitorStatus,
+          labelField: "name",
+          valueField: "_id",
+          sort: {
+            priority: SortOrder.Ascending,
+          },
+        },
+        required: false,
+        placeholder: "Monitor Status",
+      },
+      {
+        // Anchored on `hosts`; the payload is split back below.
+        field: {
+          hosts: true,
+        },
+        title: "Other Affected Resources",
+        stepId: "resources-affected",
+        description:
+          "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        required: false,
+        getCustomElement: (
+          values: FormValues<ScheduledMaintenanceTemplate>,
+          elementProps: CustomElementProps,
+        ) => {
+          return (
+            <AffectedResourcesPicker
+              hosts={values.hosts as Array<Host>}
+              kubernetesClusters={
+                values.kubernetesClusters as Array<KubernetesCluster>
+              }
+              dockerHosts={values.dockerHosts as Array<DockerHost>}
+              podmanHosts={values.podmanHosts as Array<PodmanHost>}
+              services={values.services as Array<Service>}
+              resourceTypes={[
+                "Host",
+                "KubernetesCluster",
+                "DockerHost",
+                "PodmanHost",
+                "Service",
+              ]}
+              ariaLabelledby={elementProps.ariaLabelledby}
+              onChange={(payload: unknown) => {
+                elementProps.onChange?.(payload);
+              }}
+            />
+          );
+        },
+        onChange: (
+          value: unknown,
+          currentValues: FormValues<ScheduledMaintenanceTemplate>,
+          setNewFormValues: (
+            values: FormValues<ScheduledMaintenanceTemplate>,
+          ) => void,
+        ) => {
+          // The monitors are the other picker's: not written here.
+          if (isAffectedResourcesPayload(value)) {
+            const payload: typeof value = value;
+            queueMicrotask(() => {
+              setNewFormValues({
+                ...currentValues,
                 hosts: payload.hosts,
                 kubernetesClusters: payload.kubernetesClusters,
                 dockerHosts: payload.dockerHosts,
@@ -216,18 +301,9 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       },
       /*
        * Hidden registrations so ModelForm.getSelectFields includes
-       * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+       * kubernetesClusters/dockerHosts/podmanHosts/services on load and
+       * submit (hosts is the picker's anchor above).
        */
-      {
-        field: { hosts: true },
-        stepId: "resources-affected",
-        title: "",
-        fieldType: FormFieldSchemaType.Text,
-        required: false,
-        showIf: () => {
-          return false;
-        },
-      },
       {
         field: { kubernetesClusters: true },
         stepId: "resources-affected",
@@ -367,33 +443,6 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       required: false,
     },
   ]);
-
-  // Last on its step, folded: it changes the monitors' status while the event is ongoing.
-  if (!data.excludeAffectedResources) {
-    fields = fields.concat([
-      {
-        field: {
-          changeMonitorStatusTo: true,
-        },
-        title: "Change Monitor Status to ",
-        stepId: "resources-affected",
-        description:
-          "This will change the status of all the monitors attached when the event starts.",
-        collapsibleSection: advancedSection,
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownModal: {
-          type: MonitorStatus,
-          labelField: "name",
-          valueField: "_id",
-          sort: {
-            priority: SortOrder.Ascending,
-          },
-        },
-        required: false,
-        placeholder: "Monitor Status",
-      },
-    ]);
-  }
 
   fields = fields.concat([
     {

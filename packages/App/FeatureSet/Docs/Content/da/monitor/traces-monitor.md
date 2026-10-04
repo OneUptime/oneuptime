@@ -17,14 +17,15 @@ Traces-monitorer søger og tæller spans, der matcher specifikke filtre. Dette g
 1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Spor** som monitortype
-4. Vælg de telemetritjenester, der skal overvåges
-5. Konfigurer span-filtre og kriterier efter behov
+4. Vælg, hvilke spans der skal tælles: span-navnet, tidsvinduet og span-statusserne
+5. Åbn **Flere felter** under disse filtre for at begrænse dem til telemetritjenester, infrastrukturenheder eller attributter
+6. Konfigurer kriterierne efter behov
 
 ## Konfigurationsindstillinger
 
 ### Telemetritjenester
 
-Vælg én eller flere tjenester, der skal overvåges traces fra. Tjenester skal sende traces til OneUptime via OpenTelemetry.
+Vælg under **Flere felter** én eller flere tjenester, der skal overvåges traces fra. Lad feltet være tomt for at overvåge spans fra alle tjenester. Tjenester skal sende traces til OneUptime via OpenTelemetry.
 
 ### Span-filtre
 

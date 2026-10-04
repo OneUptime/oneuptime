@@ -69,32 +69,29 @@ interface ListedFile {
 }
 
 /*
- * The telemetry monitors (logs, traces, exceptions, security events) still
- * show their extra filters with a Show / Hide Advanced Options button. The
- * queued task telemetry-monitor-filters-advanced-section folds them under
- * the shared More fields section; it removes these entries (the stale check
- * below tells it to).
+ * Forms that keep an old way of showing extra options, and why. The
+ * telemetry monitors (logs, traces, exceptions, security events) were the
+ * last forms with a Show / Hide Advanced Options button: their extra
+ * filters now fold under the shared More fields section, so none of them
+ * may bring one back.
  */
 export const OLD_ADVANCED_TOGGLE_ALLOWED: Array<ListedFile> = [
-  "Components/Form/Monitor/LogMonitor/LogMonitorStepFrom.tsx",
-  "Components/Form/Monitor/TraceMonitor/TraceMonitorStepForm.tsx",
-  "Components/Form/Monitor/ExceptionMonitor/ExceptionMonitorStepForm.tsx",
-  "Components/Form/Monitor/SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx",
-]
-  .map((file: string): ListedFile => {
-    return {
-      file: `${DASHBOARD}/${file}`,
-      reason:
-        "A telemetry monitor's extra filters (attributes, services, severities) are folded under the shared More fields section by the task telemetry-monitor-filters-advanced-section; until then they keep their Show / Hide Advanced Options button.",
-    };
-  })
-  .concat([
-    {
-      file: `${DASHBOARD}/Utils/GroupingRule/GroupingRuleSetup.ts`,
-      reason:
-        "Grouping rules' Show advanced settings is a switch that adds the rule's optional wizard steps (Episode Lifecycle, Details, On-Call & Ownership), not a fold of fields: a step cannot sit in a folded section. Its wording is the maintainer's call.",
-    },
-  ]);
+  {
+    file: `${DASHBOARD}/Utils/GroupingRule/GroupingRuleSetup.ts`,
+    reason:
+      "Grouping rules' Show advanced settings is a switch that adds the rule's optional wizard steps (Episode Lifecycle, Details, On-Call & Ownership), not a fold of fields: a step cannot sit in a folded section. Its wording is the maintainer's call.",
+  },
+];
+
+// The telemetry monitors' step forms, once listed above with their button.
+const TELEMETRY_MONITOR_FILTER_FORMS: Array<string> = [
+  "LogMonitor/LogMonitorStepFrom.tsx",
+  "TraceMonitor/TraceMonitorStepForm.tsx",
+  "ExceptionMonitor/ExceptionMonitorStepForm.tsx",
+  "SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx",
+].map((file: string): string => {
+  return `${DASHBOARD}/Components/Form/Monitor/${file}`;
+});
 
 // "Advanced: Port, Timeout and Retries" - the link that opened a box.
 const ADVANCED_LINK_TITLE: RegExp = /^\s*Advanced\s*:/i;
@@ -419,6 +416,27 @@ describe("folded sections of rarely needed options", () => {
           return `${finding.file}:${finding.line} ${finding.text}`;
         }),
     ).toEqual([]);
+  });
+
+  test("the telemetry monitor filters, the last behind a Show Advanced Options button, fold under More fields", () => {
+    for (const file of TELEMETRY_MONITOR_FILTER_FORMS) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
+
+      expect({
+        file: file,
+        oldToggles: scanSource(file, source).oldAdvancedToggles,
+        foldsWithTheSharedSection: source.includes("getAdvancedFormSection<"),
+        keepsToggleState: source.includes("showAdvancedOptions"),
+      }).toEqual({
+        file: file,
+        oldToggles: [],
+        foldsWithTheSharedSection: true,
+        keepsToggleState: false,
+      });
+    }
   });
 
   test("the forms listed with the old toggle still have it, so the list never goes stale", () => {

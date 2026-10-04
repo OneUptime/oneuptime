@@ -22,7 +22,8 @@ import { isFormFieldValueSet, normalizeFormValue } from "./AdvancedFormSection";
  * A value is shown only where it is short and safe to show:
  *   - a switch says On or Off;
  *   - a pick from a list says the option's label;
- *   - a list of picks (labels, owners, files) says how many;
+ *   - a list of picks (labels, owners, files) says how many, and so does a
+ *     set of key-value pairs (a monitor's attribute filters);
  *   - a number, a date or a short line of text says itself, cut to a few
  *     words;
  *   - a secret, a paragraph, code, a colour or a custom editor says nothing
@@ -225,6 +226,20 @@ export const getFoldedFieldValue: GetFoldedFieldValueFunction = <TEntity>(
   if (Array.isArray(rawValue)) {
     return rawValue.length > 0
       ? { value: String(rawValue.length), translateValue: false }
+      : undefined;
+  }
+
+  /*
+   * Key-value pairs ("Filter by Attributes: 2") say how many, never what -
+   * a value typed there can be anything.
+   */
+  if (field.fieldType === FormFieldSchemaType.Dictionary) {
+    const pairCount: number = isPlainObject(rawValue)
+      ? Object.keys(rawValue).length
+      : 0;
+
+    return pairCount > 0
+      ? { value: String(pairCount), translateValue: false }
       : undefined;
   }
 

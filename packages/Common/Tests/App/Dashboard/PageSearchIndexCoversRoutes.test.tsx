@@ -18,8 +18,10 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import { MOVED_INCIDENT_FORM_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/IncidentsRoutes";
-import { MOVED_RUNNER_SETTINGS_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/SettingsRoutes";
+import {
+  MOVED_INCIDENT_FORM_PATHS,
+  MOVED_RUNNER_SETTINGS_PATHS,
+} from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
 import { MOVED_ON_CALL_RULES_PATHS } from "../../../Types/NotificationRule/OnCallRuleKind";
 
 /*

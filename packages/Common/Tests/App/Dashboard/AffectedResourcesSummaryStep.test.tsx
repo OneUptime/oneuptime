@@ -21,8 +21,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The incident and scheduled maintenance wizards end on a review step that
  * lists what each earlier step picked. Their "Resources Affected" step asks
- * with the affected resources picker - Declare Incident with two, its
- * monitors apart from everything else - which writes to every resource
+ * with the affected resources picker - two of them, the monitors apart from
+ * everything else - which writes to every resource
  * relation the page hands it, and the form holds what it picked as bare IDs. Its summary used to be hand-written
  * per page: it named monitors but only counted every other type ("3 Podman
  * hosts"), so the one place meant to confirm the choice never said which
@@ -355,17 +355,34 @@ const PAGES: Array<PageUnderTest> = [
     name: "scheduled maintenance create",
     component: ScheduledMaintenanceCreate,
     route: "/dashboard/scheduled-maintenance-events/create",
+    /*
+     * Split as Declare Incident is: the event's monitors in a picker of
+     * their own, everything else - network sites included - below them.
+     */
     pickers: [
       {
         nothingSelectedMessage:
-          "No resources affected by this scheduled maintenance event.",
-        mustOffer: [
-          "monitors",
+          "No monitors affected by this scheduled maintenance event.",
+        mustOffer: ["monitors"],
+        mustNotOffer: [
+          "hosts",
           "podmanHosts",
           "databaseServers",
           "networkSites",
+          "services",
         ],
-        mustNotOffer: [],
+      },
+      {
+        nothingSelectedMessage:
+          "No other resources affected by this scheduled maintenance event.",
+        mustOffer: [
+          "hosts",
+          "podmanHosts",
+          "databaseServers",
+          "networkSites",
+          "services",
+        ],
+        mustNotOffer: ["monitors"],
       },
     ],
   },

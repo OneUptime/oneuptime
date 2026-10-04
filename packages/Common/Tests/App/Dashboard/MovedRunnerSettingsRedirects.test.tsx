@@ -23,6 +23,7 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { MOVED_RUNNER_SETTINGS_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
 import Route from "../../../Types/API/Route";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
@@ -110,10 +111,8 @@ for (const module of SETTINGS_PAGE_MODULES) {
 // Required after the mocks above, which jest.doMock does not hoist.
 const settingsRoutesModule: {
   default: React.FunctionComponent<Record<string, unknown>>;
-  MOVED_RUNNER_SETTINGS_PATHS: Record<string, string>;
 } = jest.requireActual(`${DASHBOARD}/Routes/SettingsRoutes`) as {
   default: React.FunctionComponent<Record<string, unknown>>;
-  MOVED_RUNNER_SETTINGS_PATHS: Record<string, string>;
 };
 
 const SettingsRoutes: React.FunctionComponent<Record<string, unknown>> =
@@ -317,7 +316,7 @@ describe("the old Settings URLs forward to Runbooks", () => {
 
 describe("the forwarding table", () => {
   test("covers exactly the three URLs the Runner pages used to have", () => {
-    expect(settingsRoutesModule.MOVED_RUNNER_SETTINGS_PATHS).toEqual({
+    expect(MOVED_RUNNER_SETTINGS_PATHS).toEqual({
       runners: "runners",
       runnerView: "runners/:id",
       runnerCredentials: "runner-credentials",
@@ -330,7 +329,7 @@ describe("the forwarding table", () => {
      * is renamed later this fails, which is the prompt to decide whether the
      * old Settings URL should follow it.
      */
-    const moved: Array<[string, string]> = [
+    const moved: Array<[keyof typeof MOVED_RUNNER_SETTINGS_PATHS, string]> = [
       ["runners", PageMap.RUNBOOKS_RUNNERS],
       ["runnerView", PageMap.RUNBOOKS_RUNNER_VIEW],
       ["runnerCredentials", PageMap.RUNBOOKS_RUNNER_CREDENTIALS],
@@ -338,7 +337,7 @@ describe("the forwarding table", () => {
 
     for (const [name, page] of moved) {
       expect(
-        `/dashboard/:projectId/runbooks/${settingsRoutesModule.MOVED_RUNNER_SETTINGS_PATHS[name]}`,
+        `/dashboard/:projectId/runbooks/${MOVED_RUNNER_SETTINGS_PATHS[name]}`,
       ).toBe(RouteMap[page]!.toString());
     }
   });
