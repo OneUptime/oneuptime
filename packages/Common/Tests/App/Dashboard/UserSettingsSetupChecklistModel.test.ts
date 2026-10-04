@@ -461,23 +461,23 @@ describe("setup checklist - paging rules", () => {
    * The four rule types are four tabs of one On-Call Rules page, so each step
    * points at that page AND at its own tab: a step about alert episodes that
    * opened on the incidents tab would land on a screen with nothing wrong on
-   * it.
+   * it. The first tab, Incidents, is the page's bare address.
    */
   test("one step per rule type, each opening On-Call Rules on its own tab", () => {
     const checklist: SetupChecklist = buildSetupChecklist(makeInput());
 
-    const expected: Array<[string, string]> = [
-      ["incident-rules", "incidents"],
-      ["incident-episode-rules", "incident-episodes"],
-      ["alert-rules", "alerts"],
-      ["alert-episode-rules", "alert-episodes"],
+    const expected: Array<[string, Record<string, string>]> = [
+      ["incident-rules", {}],
+      ["incident-episode-rules", { type: "incident-episodes" }],
+      ["alert-rules", { type: "alerts" }],
+      ["alert-episode-rules", { type: "alert-episodes" }],
     ];
 
-    for (const [key, tab] of expected) {
+    for (const [key, query] of expected) {
       const step: SetupStep | undefined = findStep(checklist, key);
 
       expect(step!.pageMap).toBe(PageMap.USER_SETTINGS_ON_CALL_RULES);
-      expect(step!.pageQuery).toEqual({ type: tab });
+      expect(step!.pageQuery).toEqual(query);
     }
   });
 

@@ -3,8 +3,7 @@ import {
   SetupStepImportance,
   SetupStepStatus,
 } from "./ChecklistModel";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
+import { RouteUtil } from "../../../Utils/RouteMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -128,10 +127,7 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
     }
 
     Navigation.navigate(
-      RouteUtil.addQuery(
-        RouteUtil.populateRouteParams(RouteMap[step.pageMap] as Route),
-        step.pageQuery,
-      ),
+      RouteUtil.getPageRoute(step.pageMap, { query: step.pageQuery }),
     );
   };
 

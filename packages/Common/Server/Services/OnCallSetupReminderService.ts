@@ -23,9 +23,8 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
 import {
-  ON_CALL_RULE_KIND_QUERY_PARAM,
-  ON_CALL_RULES_PAGE_PATH,
-  getOnCallRuleKindForRuleType,
+  OnCallRulesLink,
+  getUserSettingsOnCallRulesLink,
 } from "../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
@@ -839,24 +838,26 @@ export class OnCallSetupReminderService extends BaseService {
     context: ReminderContext,
     readiness: UserReadiness,
   ): URL {
-    const ruleTypeToFix: NotificationRuleType | null =
-      this.getRuleTypeToFix(readiness);
+    /*
+     * The On-Call Rules page, opened on the tab that holds the first hole.
+     * No hole to name, or a rule type this build has not heard of: the
+     * Notification Methods page, the one that is relevant to every gap there
+     * could ever be, rather than a guess about which tab it belongs on.
+     */
+    const rulesLink: OnCallRulesLink | null = getUserSettingsOnCallRulesLink({
+      projectId: context.projectId.toString(),
+      ruleType: this.getRuleTypeToFix(readiness),
+    });
 
-    if (!ruleTypeToFix) {
+    if (!rulesLink) {
       return URL.fromString(context.dashboardUrl.toString()).addRoute(
         `/${context.projectId.toString()}/user-settings/${NOTIFICATION_METHODS_PATH}`,
       );
     }
 
-    // The On-Call Rules page, opened on the tab that holds the hole.
     return URL.fromString(context.dashboardUrl.toString())
-      .addRoute(
-        `/${context.projectId.toString()}/user-settings/${ON_CALL_RULES_PAGE_PATH}`,
-      )
-      .addQueryParam(
-        ON_CALL_RULE_KIND_QUERY_PARAM,
-        getOnCallRuleKindForRuleType(ruleTypeToFix),
-      );
+      .addRoute(rulesLink.path)
+      .addQueryParams(rulesLink.query);
   }
 
   /*
@@ -876,27 +877,7 @@ export class OnCallSetupReminderService extends BaseService {
       },
     );
 
-    if (!firstGap) {
-      return null;
-    }
-
-    switch (firstGap.ruleType) {
-      case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-      case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-      case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-      case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT:
-      case NotificationRuleType.WHEN_USER_GOES_ON_CALL:
-      case NotificationRuleType.WHEN_USER_GOES_OFF_CALL:
-        return firstGap.ruleType;
-      default:
-        /*
-         * A rule type this build has not heard of. Notification Methods is the
-         * one page that is relevant to every gap there could ever be, so an
-         * unknown type degrades to "somewhere useful" rather than to a guess
-         * about which tab it belongs on.
-         */
-        return null;
-    }
+    return firstGap ? firstGap.ruleType : null;
   }
 
   private tally(

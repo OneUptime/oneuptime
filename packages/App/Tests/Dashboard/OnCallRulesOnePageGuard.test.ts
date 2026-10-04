@@ -326,7 +326,7 @@ describe("the old addresses are named once, and linked from nowhere", () => {
     "Common/Server/Services/OnCallSetupReminderService.ts",
     "Common/Server/Services/OnCallNotificationAlertingService.ts",
   ])(
-    "%s builds its link from the shared vocabulary, not a spelled-out path",
+    "%s builds its link with the shared helper, not a spelled-out path",
     (serviceFile: string) => {
       const source: string = stripComments(
         fs.readFileSync(path.join(PACKAGES, serviceFile), "utf8"),
@@ -335,8 +335,7 @@ describe("the old addresses are named once, and linked from nowhere", () => {
       expect(source).toContain(
         'from "../../Types/NotificationRule/OnCallRuleKind"',
       );
-      expect(source).toContain("ON_CALL_RULES_PAGE_PATH");
-      expect(source).toContain("ON_CALL_RULE_KIND_QUERY_PARAM");
+      expect(source).toContain("getUserSettingsOnCallRulesLink(");
       expect(source).not.toContain('"on-call-rules"');
     },
   );
@@ -355,8 +354,9 @@ describe("the old addresses are named once, and linked from nowhere", () => {
 
     /*
      * The team compliance page's "fix it yourself" links live in the
-     * Enterprise Edition, which the App test job removes before it runs; the
-     * Enterprise Edition Test job runs this with it present.
+     * Enterprise Edition, which the App test job removes before it runs, so
+     * this half only runs in a checkout that has ee/; the ee suites
+     * (ComplianceView, TeamComplianceStatusTable) pin the links themselves.
      */
     const complianceView: string = path.join(
       REPO_ROOT,
@@ -368,7 +368,7 @@ describe("the old addresses are named once, and linked from nowhere", () => {
 
     if (fs.existsSync(complianceView)) {
       expect(stripComments(fs.readFileSync(complianceView, "utf8"))).toContain(
-        "getOnCallRuleKindQueryForRuleType(",
+        "getSettingsPageForRuleType(",
       );
     }
   });

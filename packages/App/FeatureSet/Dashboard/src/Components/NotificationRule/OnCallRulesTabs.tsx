@@ -17,7 +17,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Location, useLocation } from "react-router-dom";
 
 /*
  * Somebody's on-call notification rules, on one page with a tab per kind:
@@ -41,6 +40,12 @@ import { Location, useLocation } from "react-router-dom";
  * checklist, a policy's readiness card, the team compliance page, the setup
  * reminder email - opens on the alerts tab, and a reload stays there. A bare
  * address opens Incidents.
+ *
+ * The address is read and written the way the rest of the dashboard keeps
+ * page state in it (Navigation.getQueryStringByName / setQueryString, as the
+ * topology tabs and the tables' filters do): in place, without a router
+ * navigation or a history entry, and read back from the same place, so the
+ * tab drawn and the address shown never disagree.
  */
 
 export interface OnCallRulesPerson {
@@ -73,11 +78,10 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const location: Location = useLocation();
 
   const requestedKind: OnCallRuleKind =
     readOnCallRuleKind(
-      new URLSearchParams(location.search).get(ON_CALL_RULE_KIND_QUERY_PARAM),
+      Navigation.getQueryStringByName(ON_CALL_RULE_KIND_QUERY_PARAM),
     ) || DEFAULT_ON_CALL_RULE_KIND;
 
   const getCardDescription: (definition: OnCallRuleKindDefinition) => string = (
@@ -113,9 +117,7 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
             onBehalfOfName={props.person?.displayName || undefined}
             userPreferencesKeyPrefix={props.userPreferencesKeyPrefix}
             noItemsMessage={props.noItemsMessage}
-            getDescription={(): string => {
-              return getCardDescription(definition);
-            }}
+            cardDescription={getCardDescription(definition)}
           />
         ),
       };
@@ -125,12 +127,6 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid="on-call-rules-tabs">
       <Tabs
-        /*
-         * A link to this page from this page (the side menu entry, while a
-         * tab is open) is a navigation the router announces with a new key:
-         * the tabs start over from the address it names.
-         */
-        key={location.key}
         tabs={tabs}
         initialTabName={getOnCallRuleKindDefinition(requestedKind).tabName}
         onTabChange={(tab: Tab): void => {

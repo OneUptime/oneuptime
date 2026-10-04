@@ -447,12 +447,13 @@ const renderPage: RenderPageFunction = (
 ): HTMLElement => {
   const path: string = lastPathFor(page.pageMapKey);
 
+  const address: string = `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/${path}${search}`;
+
+  // The rules page reads its open tab from the browser's address.
+  window.history.replaceState({}, "", address);
+
   const { container } = render(
-    <MemoryRouter
-      initialEntries={[
-        `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/${path}${search}`,
-      ]}
-    >
+    <MemoryRouter initialEntries={[address]}>
       <RouterRoutes>
         <RouterRoute
           path="/dashboard/:projectId/users/:id"

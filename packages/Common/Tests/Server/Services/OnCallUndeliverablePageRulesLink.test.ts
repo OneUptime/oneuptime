@@ -49,9 +49,10 @@ interface LinkCase {
  * here: these addresses are in mail already sent.
  */
 const LINK_CASES: Array<LinkCase> = [
+  // The first tab is the page's bare address.
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-    link: `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=incidents`,
+    link: `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
   },
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
@@ -71,11 +72,11 @@ const LINK_CASES: Array<LinkCase> = [
    */
   {
     ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
-    link: `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=incidents`,
+    link: `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
   },
   {
     ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
-    link: `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=incidents`,
+    link: `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
   },
 ];
 

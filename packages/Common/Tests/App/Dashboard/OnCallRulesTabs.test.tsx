@@ -14,8 +14,8 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import React, { ReactElement, useEffect } from "react";
-import { MemoryRouter, NavigateFunction, useNavigate } from "react-router-dom";
+import React, { ReactElement, useEffect, useState } from "react";
+import { MemoryRouter } from "react-router-dom";
 
 /*
  * OnCallRulesTabs: somebody's on-call rules, one page with a tab per kind.
@@ -41,7 +41,7 @@ interface RecordedTableProps {
   onBehalfOfName?: string | undefined;
   userPreferencesKeyPrefix: string;
   noItemsMessage?: string | undefined;
-  getDescription: (severityName: string) => string;
+  cardDescription: string;
 }
 
 // The tables on screen now, by rule type.
@@ -167,25 +167,9 @@ const OWN_PROPS: OnCallRulesTabsProps = {
 };
 
 /*
- * A link to the page from the page itself, as the side menu entry is while a
- * tab is open: a real router navigation, with a new location key.
+ * The page at an address: the browser's, which the tabs read, and the
+ * router's, the page's surroundings.
  */
-function NavigateToBarePage(): ReactElement {
-  const navigate: NavigateFunction = useNavigate();
-
-  return (
-    <button
-      type="button"
-      data-testid="navigate-to-bare-page"
-      onClick={() => {
-        navigate(PAGE_PATH);
-      }}
-    >
-      On-Call Rules
-    </button>
-  );
-}
-
 function renderAt(
   search: string,
   props: OnCallRulesTabsProps = OWN_PROPS,
@@ -194,10 +178,53 @@ function renderAt(
 
   render(
     <MemoryRouter initialEntries={[`${PAGE_PATH}${search}`]}>
-      <NavigateToBarePage />
       <OnCallRulesTabs {...props} />
     </MemoryRouter>,
   );
+}
+
+/*
+ * The page, with a button that draws it again from scratch WITHOUT a
+ * navigation, as a layout that redraws its page does. Opening a tab rewrites
+ * the address in place, which the router never hears about, so by then the
+ * router's copy of the address is the one the page was opened at.
+ */
+function RedrawablePage(): ReactElement {
+  const [drawing, setDrawing] = useState<number>(0);
+
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="draw-page-again"
+        onClick={(): void => {
+          setDrawing(drawing + 1);
+        }}
+      >
+        Draw again
+      </button>
+      <OnCallRulesTabs key={drawing} {...OWN_PROPS} />
+    </>
+  );
+}
+
+function renderRedrawableAt(search: string): void {
+  window.history.replaceState({}, "", `${PAGE_PATH}${search}`);
+
+  render(
+    <MemoryRouter initialEntries={[`${PAGE_PATH}${search}`]}>
+      <RedrawablePage />
+    </MemoryRouter>,
+  );
+}
+
+// The rule types of the tables in the page now, read from the page itself.
+function drawnRuleTypes(): Array<string> {
+  return screen
+    .getAllByTestId("rules-table")
+    .map((table: HTMLElement): string => {
+      return table.getAttribute("data-rule-type") || "";
+    });
 }
 
 function mountedRuleTypes(): Array<string> {
@@ -302,7 +329,7 @@ describe("each tab draws its kind's table, wired for its kind", () => {
       expect(table.severityForeignKeyColumn).toBe(
         tabCase.severityForeignKeyColumn,
       );
-      expect(table.getDescription("Sev 1")).toBe(tabCase.ownDescription);
+      expect(table.cardDescription).toBe(tabCase.ownDescription);
     });
   }
 });
@@ -369,20 +396,47 @@ describe("opening a tab", () => {
   });
 });
 
-describe("a link to the page from the page", () => {
-  test("starts the tabs over from the address it names", async () => {
-    renderAt("?type=alerts");
+/*
+ * The tab is read from where opening a tab writes it, so the address and
+ * the tab drawn never disagree - not even when the page is drawn again
+ * without a navigation, while the router still holds the address the page
+ * was opened at.
+ */
+describe("drawn again, the page opens the tab the address says", () => {
+  test("after a tab was opened, it opens that tab, not the one it was linked to", async () => {
+    renderRedrawableAt("?type=alerts");
 
-    expect(selectedTabName()).toBe("Alerts");
+    fireEvent.click(screen.getByTestId("tab-Incident Episodes"));
+
+    expect(addressType()).toBe("incident-episodes");
 
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByTestId("navigate-to-bare-page"));
+      fireEvent.click(screen.getByTestId("draw-page-again"));
+    });
+
+    expect(selectedTabName()).toBe("Incident Episodes");
+    expect(drawnRuleTypes()).toEqual([
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+    ]);
+    expect(addressType()).toBe("incident-episodes");
+  });
+
+  test("after the first tab was opened, it opens the first tab", async () => {
+    renderRedrawableAt("?type=alert-episodes");
+
+    fireEvent.click(screen.getByTestId("tab-Incidents"));
+
+    expect(addressType()).toBeNull();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("draw-page-again"));
     });
 
     expect(selectedTabName()).toBe("Incidents");
-    expect(mountedRuleTypes()).toEqual([
+    expect(drawnRuleTypes()).toEqual([
       NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
     ]);
+    expect(addressType()).toBeNull();
   });
 });
 
@@ -398,7 +452,7 @@ describe("whose rules the tabs are about", () => {
     expect(table.userPreferencesKeyPrefix).toBe(
       "user-notification-rules-table",
     );
-    expect(table.getDescription("Sev 1")).toBe(TAB_CASES[2]!.ownDescription);
+    expect(table.cardDescription).toBe(TAB_CASES[2]!.ownDescription);
   });
 
   test("a member's: every table is about them, by name, with what the caller handed over", () => {
@@ -436,7 +490,7 @@ describe("whose rules the tabs are about", () => {
         "admin-user-notification-rules",
       );
       expect(table.noItemsMessage).toBe("Jane Ops has no rule here.");
-      expect(table.getDescription("Sev 1")).toBe(tabCase.memberDescription);
+      expect(table.cardDescription).toBe(tabCase.memberDescription);
     }
   });
 
@@ -450,7 +504,7 @@ describe("whose rules the tabs are about", () => {
     const table: RecordedTableProps = onlyTable();
 
     expect(table.onBehalfOfName).toBeUndefined();
-    expect(table.getDescription("Sev 1")).toBe(
+    expect(table.cardDescription).toBe(
       "How this user is notified when an incident of this severity is assigned to them while they are on call.",
     );
   });

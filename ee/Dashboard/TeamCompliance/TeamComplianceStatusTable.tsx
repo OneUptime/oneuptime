@@ -330,10 +330,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
             return (
               <Link
                 key={getSelfFixKey(fix)}
-                to={RouteUtil.addQuery(
-                  RouteUtil.populateRouteParams(RouteMap[fix.page] as Route),
-                  fix.query,
-                )}
+                to={RouteUtil.getPageRoute(fix.page, { query: fix.query })}
                 className={FIX_LINK_CLASS_NAME}
               >
                 <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />

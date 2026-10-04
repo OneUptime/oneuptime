@@ -480,12 +480,13 @@ const renderAndSettle: RenderAndSettle = async (
 type OwnPageAt = (kind: OnCallRuleKind) => ReactElement;
 
 const ownPageAt: OwnPageAt = (kind: OnCallRuleKind): ReactElement => {
+  const address: string = `/dashboard/${PROJECT_ID_STRING}/user-settings/on-call-rules?type=${kind}`;
+
+  // The tabs read the open tab from the browser's address.
+  window.history.replaceState({}, "", address);
+
   return (
-    <MemoryRouter
-      initialEntries={[
-        `/dashboard/${PROJECT_ID_STRING}/user-settings/on-call-rules?type=${kind}`,
-      ]}
-    >
+    <MemoryRouter initialEntries={[address]}>
       <UserSettingsOnCallRules {...pageProps} />
     </MemoryRouter>
   );
@@ -741,9 +742,7 @@ describe("OnCallRulesTable", () => {
         userPreferencesKeyPrefix="admin-notification-rules-table"
         userId={OTHER_USER_ID}
         notificationMethods={notificationMethods}
-        getDescription={(severityName: string): string => {
-          return severityName;
-        }}
+        cardDescription="What these rules are for."
       />,
     );
   };
@@ -1055,9 +1054,7 @@ describe("OnCallRulesTable", () => {
         userPreferencesKeyPrefix="admin-notification-rules-table"
         userId={currentUserId}
         notificationMethods={SUPPLIED_METHODS}
-        getDescription={(severityName: string): string => {
-          return severityName;
-        }}
+        cardDescription="What these rules are for."
       />,
     );
 
@@ -1075,9 +1072,7 @@ describe("OnCallRulesTable", () => {
         userPreferencesKeyPrefix="admin-notification-rules-table"
         userId={OTHER_USER_ID}
         isEditable={false}
-        getDescription={(severityName: string): string => {
-          return severityName;
-        }}
+        cardDescription="What these rules are for."
       />,
     );
 

@@ -16,9 +16,8 @@ import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
 import {
-  ON_CALL_RULE_KIND_QUERY_PARAM,
-  ON_CALL_RULES_PAGE_PATH,
-  getOnCallRuleKindForRuleType,
+  OnCallRulesLink,
+  getUserSettingsOnCallRulesLink,
 } from "../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyOwnerTeam from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
@@ -706,9 +705,9 @@ export class OnCallNotificationAlertingService extends BaseService {
    * without: sending someone to the wrong tab is how a "fix your rules" email gets ignored.
    * The two shift rule types have no tab of their own and open the first one.
    *
-   * The path and the `?type=` come from Common's OnCallRuleKind, which the dashboard's
-   * routes read too. A rule type this build has not heard of goes to Notification
-   * Methods, the one page that matters for every gap.
+   * The address comes from Common's OnCallRuleKind, which the dashboard's routes and the
+   * setup reminder read too. A rule type this build has not heard of goes to
+   * Notification Methods, the one page that matters for every gap.
    */
   private async getNotificationRulesLinkInDashboard(
     projectId: ObjectID,
@@ -716,20 +715,20 @@ export class OnCallNotificationAlertingService extends BaseService {
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    if (!Object.values(NotificationRuleType).includes(ruleType)) {
+    const rulesLink: OnCallRulesLink | null = getUserSettingsOnCallRulesLink({
+      projectId: projectId.toString(),
+      ruleType: ruleType,
+    });
+
+    if (!rulesLink) {
       return URL.fromString(dashboardUrl.toString()).addRoute(
         `/${projectId.toString()}/user-settings/notification-methods`,
       );
     }
 
     return URL.fromString(dashboardUrl.toString())
-      .addRoute(
-        `/${projectId.toString()}/user-settings/${ON_CALL_RULES_PAGE_PATH}`,
-      )
-      .addQueryParam(
-        ON_CALL_RULE_KIND_QUERY_PARAM,
-        getOnCallRuleKindForRuleType(ruleType),
-      );
+      .addRoute(rulesLink.path)
+      .addQueryParams(rulesLink.query);
   }
 
   private formatChannelList(channels: Array<string>): string {

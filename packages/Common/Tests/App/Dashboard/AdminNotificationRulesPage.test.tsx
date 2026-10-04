@@ -834,12 +834,17 @@ const renderSection: RenderSectionFunction = (
   targetUserId: string,
   children: ReactElement,
 ): HTMLElement => {
+  const address: string = `/dashboard/${PROJECT_ID_STRING}/users/${targetUserId}/on-call-readiness`;
+
+  /*
+   * The rules page reads its open tab from the browser's address, and an
+   * earlier test may have left a tab there: start from none, so the page
+   * opens on Incidents.
+   */
+  window.history.replaceState({}, "", address);
+
   const { container } = render(
-    <MemoryRouter
-      initialEntries={[
-        `/dashboard/${PROJECT_ID_STRING}/users/${targetUserId}/on-call-readiness`,
-      ]}
-    >
+    <MemoryRouter initialEntries={[address]}>
       <RouterRoutes>
         <RouterRoute path="/dashboard/:projectId/users/:id">
           <RouterRoute element={<UserViewOnCallLayout />}>
@@ -895,12 +900,13 @@ type RenderSelfServePageFunction = (kind: OnCallRuleKind) => Promise<void>;
 const renderSelfServePage: RenderSelfServePageFunction = async (
   kind: OnCallRuleKind,
 ): Promise<void> => {
+  const address: string = `/dashboard/${PROJECT_ID_STRING}/user-settings/on-call-rules?type=${kind}`;
+
+  // The tabs read the open tab from the browser's address.
+  window.history.replaceState({}, "", address);
+
   render(
-    <MemoryRouter
-      initialEntries={[
-        `/dashboard/${PROJECT_ID_STRING}/user-settings/on-call-rules?type=${kind}`,
-      ]}
-    >
+    <MemoryRouter initialEntries={[address]}>
       <UserSettingsOnCallRules {...pageProps} />
     </MemoryRouter>,
   );

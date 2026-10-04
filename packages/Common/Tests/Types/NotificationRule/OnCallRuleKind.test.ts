@@ -10,6 +10,8 @@ import OnCallRuleKind, {
   getOnCallRuleKindQuery,
   getOnCallRuleKindQueryForRuleType,
   getRuleTypeForOnCallRuleKind,
+  getUserSettingsOnCallRulesLink,
+  isKnownNotificationRuleType,
   readOnCallRuleKind,
 } from "../../../Types/NotificationRule/OnCallRuleKind";
 
@@ -136,6 +138,17 @@ describe("the query that opens a tab", () => {
     expect(getOnCallRuleKindQuery(OnCallRuleKind.AlertEpisodes)).toEqual({
       type: "alert-episodes",
     });
+    expect(getOnCallRuleKindQuery(OnCallRuleKind.Alerts)).toEqual({
+      type: "alerts",
+    });
+  });
+
+  /*
+   * One address per tab: the page shows the first tab at the bare address,
+   * so a link to it is the bare address too, not a second spelling of it.
+   */
+  test("is nothing for the first tab, whose address is the bare one", () => {
+    expect(getOnCallRuleKindQuery(OnCallRuleKind.Incidents)).toEqual({});
   });
 
   test("for a rule type, names the tab that holds it", () => {
@@ -146,19 +159,89 @@ describe("the query that opens a tab", () => {
     ).toEqual({ type: "incident-episodes" });
     expect(
       getOnCallRuleKindQueryForRuleType(
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      ),
+    ).toEqual({});
+    expect(
+      getOnCallRuleKindQueryForRuleType(
         NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
       ),
-    ).toEqual({ type: "incidents" });
+    ).toEqual({});
   });
 
   test("reads back as the same kind", () => {
     for (const kind of ON_CALL_RULE_KINDS) {
       const query: Record<string, string> = getOnCallRuleKindQuery(kind);
 
-      expect(readOnCallRuleKind(query[ON_CALL_RULE_KIND_QUERY_PARAM])).toBe(
-        kind,
-      );
+      expect(
+        readOnCallRuleKind(query[ON_CALL_RULE_KIND_QUERY_PARAM]) ||
+          DEFAULT_ON_CALL_RULE_KIND,
+      ).toBe(kind);
     }
+  });
+});
+
+describe("the rule types this build knows", () => {
+  test.each(Object.values(NotificationRuleType))(
+    "%s is known",
+    (value: NotificationRuleType) => {
+      expect(isKnownNotificationRuleType(value)).toBe(true);
+    },
+  );
+
+  test.each([
+    ["a rule type from a newer server", "When a pager explodes"],
+    ["nothing", undefined],
+    ["null", null],
+    ["a number", 7],
+    ["a kind rather than a rule type", "alerts"],
+  ])("%s is not", (_label: string, value: unknown) => {
+    expect(isKnownNotificationRuleType(value)).toBe(false);
+  });
+});
+
+/*
+ * The server's emails build their "fix your rules" link from this, so every
+ * mail and every dashboard link agree on the address.
+ */
+describe("a link to fix a missing rule, from outside the dashboard", () => {
+  const PROJECT: string = "5f1b7a4e-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+
+  test.each([
+    [NotificationRuleType.ON_CALL_EXECUTED_INCIDENT, {}],
+    [
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      { type: "incident-episodes" },
+    ],
+    [NotificationRuleType.ON_CALL_EXECUTED_ALERT, { type: "alerts" }],
+    [
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+      { type: "alert-episodes" },
+    ],
+    [NotificationRuleType.WHEN_USER_GOES_ON_CALL, {}],
+    [NotificationRuleType.WHEN_USER_GOES_OFF_CALL, {}],
+  ])(
+    "a %s rule is fixed on your own On-Call Rules page, on its tab",
+    (ruleType: NotificationRuleType, query: Record<string, string>) => {
+      expect(
+        getUserSettingsOnCallRulesLink({ projectId: PROJECT, ruleType }),
+      ).toEqual({
+        path: `/${PROJECT}/user-settings/on-call-rules`,
+        query: query,
+      });
+    },
+  );
+
+  test("a rule type this build has never heard of has no link here", () => {
+    expect(
+      getUserSettingsOnCallRulesLink({
+        projectId: PROJECT,
+        ruleType: "When a pager explodes",
+      }),
+    ).toBeNull();
+    expect(
+      getUserSettingsOnCallRulesLink({ projectId: PROJECT, ruleType: null }),
+    ).toBeNull();
   });
 });
 

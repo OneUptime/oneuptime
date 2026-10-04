@@ -144,12 +144,13 @@ type OnCallRulesPageAtFunction = (kind: OnCallRuleKind) => ReactElement;
 const onCallRulesPageAt: OnCallRulesPageAtFunction = (
   kind: OnCallRuleKind,
 ): ReactElement => {
+  const address: string = `/dashboard/${PROJECT_ID}/user-settings/on-call-rules?type=${kind}`;
+
+  // The tabs read the open tab from the browser's address.
+  window.history.replaceState({}, "", address);
+
   return (
-    <MemoryRouter
-      initialEntries={[
-        `/dashboard/${PROJECT_ID}/user-settings/on-call-rules?type=${kind}`,
-      ]}
-    >
+    <MemoryRouter initialEntries={[address]}>
       <UserSettingsOnCallRules {...({} as any)} />
     </MemoryRouter>
   );

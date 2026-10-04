@@ -3,7 +3,7 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
-import { getOnCallRuleKindQueryForRuleType } from "Common/Types/NotificationRule/OnCallRuleKind";
+import { getSettingsPageForRuleType } from "@oneuptime/dashboard/Components/OnCallPolicy/Readiness/ReadinessTypes";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRule, {
   ComplianceRuleCategory,
@@ -900,9 +900,13 @@ export const getSelfFix: (ruleType: string | undefined) => SelfFix = (
     };
   }
 
+  /*
+   * The same page and tab a policy's readiness card and the setup checklist
+   * send somebody to for a gap of this rule type: one opinion about where a
+   * hole is fixed.
+   */
   return {
-    page: PageMap.USER_SETTINGS_ON_CALL_RULES,
-    query: getOnCallRuleKindQueryForRuleType(
+    ...getSettingsPageForRuleType(
       definition.notificationRuleType ||
         NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
     ),

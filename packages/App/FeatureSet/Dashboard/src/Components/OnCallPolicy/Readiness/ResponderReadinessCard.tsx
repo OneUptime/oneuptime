@@ -13,7 +13,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { RouteUtil } from "../../../Utils/RouteMap";
 import UserElement from "../../User/User";
 import StatTile from "./StatTile";
 import {
@@ -112,10 +112,7 @@ const getFix: (
 const getFixRoute: (fix: ReadinessFix) => Route = (
   fix: ReadinessFix,
 ): Route => {
-  return RouteUtil.addQuery(
-    RouteUtil.populateRouteParams(RouteMap[fix.page] as Route),
-    fix.query,
-  );
+  return RouteUtil.getPageRoute(fix.page, { query: fix.query });
 };
 
 // The dashboard-absolute link, so it survives being pasted into an email.

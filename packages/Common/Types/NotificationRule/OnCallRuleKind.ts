@@ -8,7 +8,8 @@ import NotificationRuleType from "./NotificationRuleType";
  * incidents, incident episodes, alerts and alert episodes. They live on one
  * On-Call Rules page with a tab per kind - in User Settings for your own,
  * and under Users > (a member) > On-Call for an admin looking at somebody
- * else's. The address says which tab is open: `?type=alerts`.
+ * else's. The address says which tab is open: `?type=alerts`. The first tab,
+ * Incidents, is the bare address, so every tab has exactly one address.
  *
  * Everything that sends somebody to fix a rule builds that address from
  * here: the dashboard's own links (the setup checklist, a policy's readiness
@@ -124,10 +125,18 @@ export const readOnCallRuleKind: (
   return null;
 };
 
-// The query that opens the page on a kind's tab: { type: "alerts" }.
+/*
+ * The query that opens the page on a kind's tab: { type: "alerts" }, and
+ * nothing for the first tab, whose address is the bare one - the address the
+ * page itself shows once that tab is open.
+ */
 export const getOnCallRuleKindQuery: (
   kind: OnCallRuleKind,
 ) => Dictionary<string> = (kind: OnCallRuleKind): Dictionary<string> => {
+  if (kind === DEFAULT_ON_CALL_RULE_KIND) {
+    return {};
+  }
+
   return { [ON_CALL_RULE_KIND_QUERY_PARAM]: kind };
 };
 
@@ -138,6 +147,48 @@ export const getOnCallRuleKindQueryForRuleType: (
   ruleType: NotificationRuleType,
 ): Dictionary<string> => {
   return getOnCallRuleKindQuery(getOnCallRuleKindForRuleType(ruleType));
+};
+
+// Whether a value is one of the rule types this build knows.
+export const isKnownNotificationRuleType: (
+  value: unknown,
+) => value is NotificationRuleType = (
+  value: unknown,
+): value is NotificationRuleType => {
+  return Object.values(NotificationRuleType).includes(
+    value as NotificationRuleType,
+  );
+};
+
+export interface OnCallRulesLink {
+  // Under the dashboard's address: `/<projectId>/user-settings/on-call-rules`.
+  path: string;
+  // What opens the tab, as getOnCallRuleKindQuery gives it.
+  query: Dictionary<string>;
+}
+
+/*
+ * Where somebody fixes a missing rule of this type, for a link built outside
+ * the dashboard (the server's emails): their own On-Call Rules page in the
+ * project, on the tab that holds the rule type. Null for a rule type this
+ * build has never heard of, which the caller sends to Notification Methods -
+ * the one page that matters for every gap there could ever be.
+ */
+export const getUserSettingsOnCallRulesLink: (data: {
+  projectId: string;
+  ruleType: unknown;
+}) => OnCallRulesLink | null = (data: {
+  projectId: string;
+  ruleType: unknown;
+}): OnCallRulesLink | null => {
+  if (!isKnownNotificationRuleType(data.ruleType)) {
+    return null;
+  }
+
+  return {
+    path: `/${data.projectId}/user-settings/${ON_CALL_RULES_PAGE_PATH}`,
+    query: getOnCallRuleKindQueryForRuleType(data.ruleType),
+  };
 };
 
 export default OnCallRuleKind;

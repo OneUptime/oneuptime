@@ -7372,8 +7372,9 @@ export class RouteUtil {
   /*
    * The route with a query string after it, for a link that opens a page a
    * particular way: the On-Call Rules page on its alerts tab is
-   * `.../on-call-rules?type=alerts`. Values are encoded; no query, or an
-   * empty one, leaves the route as it was.
+   * `.../on-call-rules?type=alerts`. Values are encoded. A query the route
+   * already has is kept, and a parameter of the same name is replaced. No
+   * query, or an empty one, leaves the route as it was.
    */
   public static addQuery(
     route: Route,
@@ -7383,15 +7384,42 @@ export class RouteUtil {
       return route;
     }
 
-    const encoded: Dictionary<string> = {};
+    const routeString: string = route.toString();
+    const queryStart: number = routeString.indexOf("?");
+
+    const params: URLSearchParams = new URLSearchParams(
+      queryStart === -1 ? "" : routeString.substring(queryStart + 1),
+    );
 
     for (const name of Object.keys(query)) {
-      encoded[encodeURIComponent(name)] = encodeURIComponent(
-        query[name] as string,
-      );
+      params.set(name, query[name] as string);
     }
 
-    return new Route(route.toString()).addQueryParams(encoded);
+    const path: string =
+      queryStart === -1 ? routeString : routeString.substring(0, queryStart);
+
+    return new Route(`${path}?${params.toString()}`);
+  }
+
+  /*
+   * A page's address in the current project - for a model's page, the
+   * model's - opened the way `query` says: the On-Call Rules page on its
+   * alerts tab, for example.
+   */
+  public static getPageRoute(
+    pageMap: string,
+    options?: {
+      modelId?: ObjectID | string | undefined;
+      query?: Dictionary<string> | undefined;
+    },
+  ): Route {
+    return RouteUtil.addQuery(
+      RouteUtil.populateRouteParams(
+        RouteMap[pageMap] as Route,
+        options?.modelId ? { modelId: options.modelId } : undefined,
+      ),
+      options?.query,
+    );
   }
 
   public static getRoutes(): Array<{ path: string }> {

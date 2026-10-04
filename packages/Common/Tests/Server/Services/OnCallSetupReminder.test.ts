@@ -192,7 +192,9 @@ function onlyMail(): SentMail {
  * copy-pasted with one value left unchanged.
  *
  * Spelled out rather than built from OnCallRuleKind, so a renamed tab fails
- * here: the address is in every reminder already sent.
+ * here: the address is in every reminder already sent. The first tab,
+ * Incidents, is the page's bare address. Each path is matched up to the
+ * closing quote of the link's href, so a link that carried more would fail.
  */
 interface GapLinkCase {
   ruleType: NotificationRuleType;
@@ -202,7 +204,7 @@ interface GapLinkCase {
 const GAP_LINK_CASES: Array<GapLinkCase> = [
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-    path: "on-call-rules?type=incidents",
+    path: "on-call-rules",
   },
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
@@ -255,7 +257,7 @@ function registerGapLinkTest(gapCase: GapLinkCase): void {
     const message: string = onlyMail().message;
 
     expect(message).toContain(
-      `/${PROJECT_ID.toString()}/user-settings/${gapCase.path}`,
+      `/${PROJECT_ID.toString()}/user-settings/${gapCase.path}"`,
     );
 
     for (const retiredPath of RETIRED_RULE_PAGE_PATHS) {

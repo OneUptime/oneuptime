@@ -673,10 +673,9 @@ describe("setup checklist page - acting on a step", () => {
       RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
     );
 
+    // The first tab, Incidents, is the page's bare address.
     expect(navigateMock).toHaveBeenCalledTimes(1);
-    expect(String(navigateMock.mock.calls[0]![0])).toBe(
-      `${String(expected)}?type=incidents`,
-    );
+    expect(String(navigateMock.mock.calls[0]![0])).toBe(String(expected));
   });
 
   test("the alert rules step opens the alerts tab, not the incidents tab", async (): Promise<void> => {

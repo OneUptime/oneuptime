@@ -57,14 +57,6 @@ import React, {
 } from "react";
 
 /*
- * The severity band a table is for, and the rule column that ties a rule to
- * it. Both live with the four kinds of rule in OnCallRuleKinds.ts, which says
- * why they are two separate things; re-exported for the callers that always
- * found them here.
- */
-export type { OnCallRuleSeverity, SeverityForeignKeyColumn };
-
-/*
  * One pickable notification method, described WITHOUT its underlying row.
  *
  * This is the whole of what the create form needs in order to point a rule at a
@@ -351,11 +343,11 @@ export interface ComponentProps {
   userPreferencesKeyPrefix: string;
 
   /*
-   * What each card is for, given the severity's name. Already translated: a
-   * card's title is the severity itself (its colour and the name the project
-   * gave it), so all the words are here.
+   * What every card on the table is for, already translated. A card's title
+   * is the severity itself (its colour and the name the project gave it), so
+   * all the words are here.
    */
-  getDescription: (severityName: string) => string;
+  cardDescription: string;
 
   /*
    * Whose rules and whose notification methods these are. Defaults to the
@@ -953,7 +945,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         isCreateable={isEditable}
         cardProps={{
           title: <SeverityCardTitle severity={severity} />,
-          description: props.getDescription(severityName),
+          description: props.cardDescription,
         }}
         noItemsMessage={props.noItemsMessage || DEFAULT_NO_ITEMS_MESSAGE}
         /*
@@ -1134,80 +1126,92 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * the models enforce, so these reads are answered rather than refused. For any
    * other user the caller supplies the list instead; see `notificationMethods`
    * on ComponentProps for why the two paths cannot be the same one.
+   *
+   * All nine are asked for at once rather than one after another: they do not
+   * depend on each other, and on the On-Call Rules page each tab mounts its
+   * own table, so this runs every time a tab is opened.
    */
   const loadOwnNotificationMethods: PromiseVoidFunction =
     async (): Promise<void> => {
-      const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
-        modelType: UserEmail,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          email: true,
-        },
-        sort: {},
-      });
-
-      setUserEmails(userEmails.data);
-
-      const userSMSes: ListResult<UserSMS> = await ModelAPI.getList({
-        modelType: UserSMS,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          phone: true,
-        },
-        sort: {},
-      });
-
-      setUserSMSs(userSMSes.data);
-
-      const userCalls: ListResult<UserCall> = await ModelAPI.getList({
-        modelType: UserCall,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          phone: true,
-        },
-        sort: {},
-      });
-
-      setUserCalls(userCalls.data);
-
-      const userPushDevices: ListResult<UserPush> = await ModelAPI.getList({
-        modelType: UserPush,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          deviceName: true,
-          deviceType: true,
-        },
-        sort: {},
-      });
-
-      setUserPush(userPushDevices.data);
-
-      const userWhatsAppList: ListResult<UserWhatsApp> = await ModelAPI.getList(
-        {
+      const [
+        userEmails,
+        userSMSes,
+        userCalls,
+        userPushDevices,
+        userWhatsAppList,
+        userTelegramList,
+        userSlackList,
+        userMicrosoftTeamsList,
+        userWebhookList,
+      ]: [
+        ListResult<UserEmail>,
+        ListResult<UserSMS>,
+        ListResult<UserCall>,
+        ListResult<UserPush>,
+        ListResult<UserWhatsApp>,
+        ListResult<UserTelegram>,
+        ListResult<UserSlack>,
+        ListResult<UserMicrosoftTeams>,
+        ListResult<UserWebhook>,
+      ] = await Promise.all([
+        ModelAPI.getList<UserEmail>({
+          modelType: UserEmail,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            email: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserSMS>({
+          modelType: UserSMS,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            phone: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserCall>({
+          modelType: UserCall,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            phone: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserPush>({
+          modelType: UserPush,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            deviceName: true,
+            deviceType: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserWhatsApp>({
           modelType: UserWhatsApp,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1220,13 +1224,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             phone: true,
           },
           sort: {},
-        },
-      );
-
-      setUserWhatsApps(userWhatsAppList.data);
-
-      const userTelegramList: ListResult<UserTelegram> = await ModelAPI.getList(
-        {
+        }),
+        ModelAPI.getList<UserTelegram>({
           modelType: UserTelegram,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1240,31 +1239,23 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             telegramChatId: true,
           },
           sort: {},
-        },
-      );
-
-      setUserTelegrams(userTelegramList.data);
-
-      const userSlackList: ListResult<UserSlack> = await ModelAPI.getList({
-        modelType: UserSlack,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          slackUserName: true,
-          slackUserId: true,
-        },
-        sort: {},
-      });
-
-      setUserSlacks(userSlackList.data);
-
-      const userMicrosoftTeamsList: ListResult<UserMicrosoftTeams> =
-        await ModelAPI.getList({
+        }),
+        ModelAPI.getList<UserSlack>({
+          modelType: UserSlack,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            slackUserName: true,
+            slackUserId: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserMicrosoftTeams>({
           modelType: UserMicrosoftTeams,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1278,32 +1269,38 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             microsoftTeamsUserId: true,
           },
           sort: {},
-        });
+        }),
+        /*
+         * Webhooks are the one method with no verification step - there is no
+         * device to confirm - so unlike the eight above this query has no
+         * `isVerified` filter. That asymmetry predates this component; it is
+         * carried over deliberately rather than "fixed", because adding the
+         * filter here would silently drop every existing webhook rule from the
+         * dropdown.
+         */
+        ModelAPI.getList<UserWebhook>({
+          modelType: UserWebhook,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+          },
+          sort: {},
+        }),
+      ]);
 
+      setUserEmails(userEmails.data);
+      setUserSMSs(userSMSes.data);
+      setUserCalls(userCalls.data);
+      setUserPush(userPushDevices.data);
+      setUserWhatsApps(userWhatsAppList.data);
+      setUserTelegrams(userTelegramList.data);
+      setUserSlacks(userSlackList.data);
       setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
-
-      /*
-       * Webhooks are the one method with no verification step - there is no
-       * device to confirm - so unlike the six above this query has no
-       * `isVerified` filter. That asymmetry predates this component; it is
-       * carried over deliberately rather than "fixed", because adding the
-       * filter here would silently drop every existing webhook rule from the
-       * dropdown.
-       */
-      const userWebhookList: ListResult<UserWebhook> = await ModelAPI.getList({
-        modelType: UserWebhook,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-        },
-        sort: {},
-      });
-
       setUserWebhooks(userWebhookList.data);
     };
 
@@ -1313,29 +1310,29 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
     try {
       /*
+       * The severities and (on your own page) your methods, at the same time.
        * Most severe first (order 1 is the most severe), the order the
        * project's own severity settings list them in.
        */
-      const severityList: ListResult<OnCallRuleSeverity> =
-        await ModelAPI.getList({
-          modelType: props.severityModelType,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            name: true,
-            color: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-        });
-
-      if (isViewerTheOwner) {
-        await loadOwnNotificationMethods();
-      }
+      const [severityList]: [ListResult<OnCallRuleSeverity>, void] =
+        await Promise.all([
+          ModelAPI.getList({
+            modelType: props.severityModelType,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              name: true,
+              color: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+          }),
+          isViewerTheOwner ? loadOwnNotificationMethods() : Promise.resolve(),
+        ]);
 
       setSeverities(severityList.data);
     } catch (err) {

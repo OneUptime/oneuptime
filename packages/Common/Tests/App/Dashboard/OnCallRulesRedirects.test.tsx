@@ -245,15 +245,21 @@ const PAGE_PROPS: PageComponentProps = {
 } as unknown as PageComponentProps;
 
 /*
- * Each retired page, by the end of its address, and the tab it became.
- * Spelled out rather than read from MOVED_ON_CALL_RULES_PATHS, so a renamed
- * address or tab fails here: these are in mail already sent.
+ * Each retired page, by the end of its address, the tab it became, and the
+ * query that opens that tab. Spelled out rather than read from
+ * MOVED_ON_CALL_RULES_PATHS, so a renamed address or tab fails here: these
+ * are in mail already sent. The first tab, Incidents, is the page's bare
+ * address.
  */
-const MOVED: Array<[string, string]> = [
-  ["incident-on-call-rules", "incidents"],
-  ["incident-episode-on-call-rules", "incident-episodes"],
-  ["alert-on-call-rules", "alerts"],
-  ["alert-episode-on-call-rules", "alert-episodes"],
+const MOVED: Array<[string, string, string]> = [
+  ["incident-on-call-rules", "Incidents", ""],
+  [
+    "incident-episode-on-call-rules",
+    "Incident Episodes",
+    "?type=incident-episodes",
+  ],
+  ["alert-on-call-rules", "Alerts", "?type=alerts"],
+  ["alert-episode-on-call-rules", "Alert Episodes", "?type=alert-episodes"],
 ];
 
 function visit(url: string, group: "user-settings" | "users"): void {
@@ -315,11 +321,11 @@ afterEach(() => {
 describe("your own rules: the four old User Settings pages", () => {
   test.each(MOVED)(
     "…/user-settings/%s arrives at On-Call Rules on the %s tab",
-    (oldPath: string, kind: string) => {
+    (oldPath: string, _tab: string, search: string) => {
       visit(`${SETTINGS}/${oldPath}`, "user-settings");
 
       expect(pageName()).toBe("UserSettingsOnCallRules");
-      expect(landedOn()).toBe(`${SETTINGS}/on-call-rules?type=${kind}`);
+      expect(landedOn()).toBe(`${SETTINGS}/on-call-rules${search}`);
       // Inside User Settings' own layout, drawn once.
       expect(layouts()).toEqual(["user-settings"]);
     },
@@ -376,11 +382,11 @@ describe("your own rules: the four old User Settings pages", () => {
 describe("a member's rules: the four old pages under Users", () => {
   test.each(MOVED)(
     "…/users/:id/%s arrives at the member's On-Call Rules on the %s tab",
-    (oldPath: string, kind: string) => {
+    (oldPath: string, _tab: string, search: string) => {
       visit(`${USERS}/${USER_ID}/${oldPath}`, "users");
 
       expect(pageName()).toBe("UserViewOnCallRules");
-      expect(landedOn()).toBe(`${USERS}/${USER_ID}/on-call-rules?type=${kind}`);
+      expect(landedOn()).toBe(`${USERS}/${USER_ID}/on-call-rules${search}`);
       /*
        * Inside the member's view and its On-Call section, once each: the
        * forward itself does not wait for (or repeat) the section's reads.

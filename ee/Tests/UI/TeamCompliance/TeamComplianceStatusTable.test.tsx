@@ -1026,7 +1026,7 @@ describe("the way to the fix", () => {
     // The On-Call Rules page, opened on its Incidents tab.
     expect(link).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=incidents`,
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
     );
   });
 
@@ -1067,7 +1067,7 @@ describe("the way to the fix", () => {
       }),
     ).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=incidents`,
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
     );
   });
 
@@ -1119,7 +1119,7 @@ describe("the way to the fix", () => {
           return href.includes("/user-settings/");
         }),
     ).toEqual([
-      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=incidents`,
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
       `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=alerts`,
     ]);
   });
