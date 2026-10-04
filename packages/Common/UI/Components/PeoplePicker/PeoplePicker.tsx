@@ -144,10 +144,20 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
     );
   }, [picks]);
 
-  // Left out of the search list: what another field of the form holds.
+  /*
+   * Left out of the search list: what another field of the form holds.
+   * Kept while the excluded picks stay the same, whatever their kinds.
+   */
+  const excluded: PeoplePickerValue = props.excluded || {};
+
   const excludedKeys: Set<string> = useMemo((): Set<string> => {
-    return getPeoplePickerValueKeySet(props.excluded);
-  }, [getPeoplePickerValueSignature(props.kinds, props.excluded || {})]);
+    return getPeoplePickerValueKeySet(excluded);
+  }, [
+    getPeoplePickerValueSignature(
+      Object.keys(excluded) as Array<PeoplePickerKind>,
+      excluded,
+    ),
+  ]);
 
   const change: (next: PeoplePickerValue) => void = (
     next: PeoplePickerValue,

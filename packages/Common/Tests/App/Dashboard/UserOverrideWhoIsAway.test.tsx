@@ -907,6 +907,29 @@ describe.each(["global", "policy"] as Array<Page>)(
       expect(timeInput(next, "Ends").value).toBe("");
     });
 
+    test("cancelled, it is not offered again: the next Add User Override starts from now", async () => {
+      await renderPage(
+        page,
+        coverSearch({ startsAt: SHIFT_STARTS, endsAt: SHIFT_ENDS }),
+      );
+
+      const modal: HTMLElement = await findOpenDialog();
+
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Cancel", exact: true }),
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+      });
+
+      const next: HTMLElement = await openAddDialog();
+
+      expect(timeInput(next, "Starts").value).toMatch(/^2026-03-03T12:34/);
+      expect(timeInput(next, "Ends").value).toBe("");
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+    });
+
     test("a shift that has started is covered from now", async () => {
       await renderPage(
         page,

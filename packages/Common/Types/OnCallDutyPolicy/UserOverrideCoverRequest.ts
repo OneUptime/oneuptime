@@ -14,8 +14,8 @@ import Dictionary from "../Dictionary";
  * matter are the ones still to come. A window that has ended, or whose end
  * is not after its start, asks for nothing.
  *
- * Pure: the calendar feed card, the User Overrides table and their tests
- * share it.
+ * Pure: the calendar feed card, the User Overrides table, the Add User
+ * Override form and their tests share it.
  */
 
 export const USER_OVERRIDE_COVER_STARTS_AT_PARAM: string = "coverStartsAt";
@@ -26,8 +26,13 @@ export interface UserOverrideCoverWindow {
   endsAt: Date;
 }
 
-// A time as a link or a shift carries it, or null when it is not one.
-const toInstant: (value: unknown) => Date | null = (
+/*
+ * A time as a form, a link or a shift holds it - a Date, or the ISO string
+ * a date input writes - or null when it is not a real instant yet: empty,
+ * half typed, or not a time at all. The one reader of override times, so
+ * the link, the page and the form's own checks agree on what a time is.
+ */
+export const toUserOverrideTime: (value: unknown) => Date | null = (
   value: unknown,
 ): Date | null => {
   if (value instanceof Date) {
@@ -38,9 +43,20 @@ const toInstant: (value: unknown) => Date | null = (
     return null;
   }
 
-  const time: number = Date.parse(value);
+  // Half-typed text is not a time yet (and would only make moment warn).
+  if (Number.isNaN(Date.parse(value))) {
+    return null;
+  }
 
-  return Number.isNaN(time) ? null : new Date(time);
+  let date: Date;
+
+  try {
+    date = OneUptimeDate.fromString(value);
+  } catch {
+    return null;
+  }
+
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 /*
@@ -58,8 +74,8 @@ export const getUserOverrideCoverWindow: (data: {
   end: unknown;
   now: Date;
 }): UserOverrideCoverWindow | null => {
-  const start: Date | null = toInstant(data.start);
-  const end: Date | null = toInstant(data.end);
+  const start: Date | null = toUserOverrideTime(data.start);
+  const end: Date | null = toUserOverrideTime(data.end);
 
   if (!start || !end) {
     return null;
@@ -96,22 +112,37 @@ export const getUserOverrideCoverQueryParams: (
 };
 
 /*
- * The window a link asks the page to cover, read back as of `now` - a link
- * opened an hour after it was made covers from then. Null when the link
- * asks for nothing usable, and the page then opens as it always does.
+ * The window a page's address asks to cover, read with `getParam` (one
+ * query parameter's value by name, or null) as of `now`: a link opened an
+ * hour after it was made covers from then. Null when the address asks for
+ * nothing usable, and the page then opens as it always does.
  */
 export const readUserOverrideCoverRequest: (data: {
-  startsAt: string | null | undefined;
-  endsAt: string | null | undefined;
+  getParam: (name: string) => string | null | undefined;
   now: Date;
 }) => UserOverrideCoverWindow | null = (data: {
-  startsAt: string | null | undefined;
-  endsAt: string | null | undefined;
+  getParam: (name: string) => string | null | undefined;
   now: Date;
 }): UserOverrideCoverWindow | null => {
   return getUserOverrideCoverWindow({
-    start: data.startsAt,
-    end: data.endsAt,
+    start: data.getParam(USER_OVERRIDE_COVER_STARTS_AT_PARAM),
+    end: data.getParam(USER_OVERRIDE_COVER_ENDS_AT_PARAM),
     now: data.now,
+  });
+};
+
+// Whether a page's address carries any part of a cover request.
+export const hasUserOverrideCoverParams: (
+  getParam: (name: string) => string | null | undefined,
+) => boolean = (
+  getParam: (name: string) => string | null | undefined,
+): boolean => {
+  return [
+    USER_OVERRIDE_COVER_STARTS_AT_PARAM,
+    USER_OVERRIDE_COVER_ENDS_AT_PARAM,
+  ].some((name: string): boolean => {
+    const value: string | null | undefined = getParam(name);
+
+    return value !== null && value !== undefined;
   });
 };

@@ -69,6 +69,7 @@ import BasicForm from "../../../../UI/Components/Forms/BasicForm";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import PeoplePicker from "../../../../UI/Components/PeoplePicker/PeoplePicker";
+import { PEOPLE_PICKER_SEARCH_LIMIT } from "../../../../UI/Components/PeoplePicker/PeoplePickerKinds";
 import {
   PeoplePickerFieldConfig,
   PeoplePickerKind,
@@ -405,7 +406,41 @@ describe("a people picker that leaves someone out", () => {
       "Cy Young",
     ]);
   });
+
+  /*
+   * The search list shows a page of people. Asking for one more for each
+   * person left out keeps the page as long as it would be without them.
+   */
+  test("asks for one more person for each it leaves out", async () => {
+    render(<Harness excluded={{ [PeoplePickerKind.User]: [ADA] }} />);
+
+    await openList("Choose who covers");
+
+    expect(searchLimits()).toEqual([PEOPLE_PICKER_SEARCH_LIMIT + 1]);
+  });
+
+  test("asks for the usual number when it leaves nobody out", async () => {
+    render(<Harness />);
+
+    await openList("Choose who covers");
+
+    expect(searchLimits()).toEqual([PEOPLE_PICKER_SEARCH_LIMIT]);
+  });
 });
+
+// The page sizes the search list asked for (look-ups by id are not searches).
+function searchLimits(): Array<number> {
+  return getListMock.mock.calls
+    .map((call: Array<any>): any => {
+      return call[0];
+    })
+    .filter((request: any): boolean => {
+      return request.modelType === TeamMember && !request.query?.userId;
+    })
+    .map((request: any): number => {
+      return request.limit;
+    });
+}
 
 /*
  * Two pickers in one form, through the real BasicForm: "Who covers?"

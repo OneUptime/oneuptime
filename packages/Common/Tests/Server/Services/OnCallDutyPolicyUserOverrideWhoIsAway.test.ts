@@ -495,6 +495,28 @@ describe("what the server refuses, whatever the form", () => {
     expect(db.overrides).toHaveLength(0);
   });
 
+  test("the same person away and covering, written in another case", async () => {
+    const override: OnCallDutyPolicyUserOverride = fillInAddUserOverrideForm({
+      signedInAs: ALEX,
+      whoCovers: SAM,
+      ends: NEXT_WEEK,
+    });
+
+    // As an API caller might send it: Postgres reads both as one uuid.
+    override.routeAlertsToUserId = new ObjectID(ALEX.toUpperCase());
+
+    await expect(
+      OnCallDutyPolicyUserOverrideService.create({
+        data: override,
+        props: callerProps(ALEX),
+      }),
+    ).rejects.toThrow(
+      "Override user and route alerts to user cannot be the same",
+    );
+
+    expect(db.overrides).toHaveLength(0);
+  });
+
   test("an end that is not after the start", async () => {
     const override: OnCallDutyPolicyUserOverride = fillInAddUserOverrideForm({
       signedInAs: ALEX,

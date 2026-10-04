@@ -9,6 +9,7 @@ import {
   USER_OVERRIDE_COVER_ENDS_AT_PARAM,
   USER_OVERRIDE_COVER_STARTS_AT_PARAM,
   UserOverrideCoverWindow,
+  hasUserOverrideCoverParams,
   readUserOverrideCoverRequest,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -147,37 +148,43 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
 
   /*
    * The window a "Get cover" link asks to cover, read once as the page
-   * opens. It is what Add User Override starts with until an override is
-   * added from it; the address is cleaned at once, so a reload does not
-   * open the dialog again.
+   * opens. Add User Override opens on it once, and is closed for good -
+   * saved or cancelled - the next one starts afresh, from now. The address
+   * is cleaned at once, so a reload does not open the dialog again.
    */
   const [coverRequest, setCoverRequest] =
     useState<UserOverrideCoverWindow | null>(() => {
       return readUserOverrideCoverRequest({
-        startsAt: Navigation.getQueryStringByName(
-          USER_OVERRIDE_COVER_STARTS_AT_PARAM,
-        ),
-        endsAt: Navigation.getQueryStringByName(
-          USER_OVERRIDE_COVER_ENDS_AT_PARAM,
-        ),
+        getParam: (name: string): string | null => {
+          return Navigation.getQueryStringByName(name);
+        },
         now: OneUptimeDate.getCurrentDate(),
       });
     });
 
+  /*
+   * Whether the dialog has been asked to open on the cover request. Asked
+   * only after the table has mounted: the table reports its dialog closed
+   * when it mounts, and that report must not be taken for the person
+   * closing the dialog they were sent to.
+   */
+  const [isCoverDialogAsked, setIsCoverDialogAsked] = useState<boolean>(false);
+
   useEffect(() => {
-    if (
-      Navigation.getQueryStringByName(USER_OVERRIDE_COVER_STARTS_AT_PARAM) ===
-        null &&
-      Navigation.getQueryStringByName(USER_OVERRIDE_COVER_ENDS_AT_PARAM) ===
-        null
-    ) {
-      return;
+    if (coverRequest) {
+      setIsCoverDialogAsked(true);
     }
 
-    Navigation.setQueryString({
-      [USER_OVERRIDE_COVER_STARTS_AT_PARAM]: null,
-      [USER_OVERRIDE_COVER_ENDS_AT_PARAM]: null,
-    });
+    if (
+      hasUserOverrideCoverParams((name: string): string | null => {
+        return Navigation.getQueryStringByName(name);
+      })
+    ) {
+      Navigation.setQueryString({
+        [USER_OVERRIDE_COVER_STARTS_AT_PARAM]: null,
+        [USER_OVERRIDE_COVER_ENDS_AT_PARAM]: null,
+      });
+    }
   }, []);
 
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
@@ -200,7 +207,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         isCreateable={true}
         isViewable={false}
         createVerb="Add"
-        showCreateForm={Boolean(coverRequest)}
+        showCreateForm={isCoverDialogAsked}
         createInitialValues={
           coverRequest
             ? {
@@ -209,12 +216,12 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
               }
             : undefined
         }
-        onCreateSuccess={async (
-          item: OnCallDutyPolicyUserOverride,
-        ): Promise<OnCallDutyPolicyUserOverride> => {
-          // The cover it asked for is booked: the next one starts afresh.
-          setCoverRequest(null);
-          return item;
+        onCreateEditModalClose={() => {
+          // The cover dialog was saved or cancelled: the next starts afresh.
+          if (isCoverDialogAsked) {
+            setIsCoverDialogAsked(false);
+            setCoverRequest(null);
+          }
         }}
         onBeforeCreate={async (
           item: OnCallDutyPolicyUserOverride,

@@ -3,6 +3,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { toUserOverrideTime } from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -125,39 +126,11 @@ const readPersonId: (value: unknown) => string | null = (
 };
 
 /*
- * A time as a form holds it - a Date, the ISO string a date input writes,
- * an empty string once cleared - or null when it is not a real instant yet.
+ * A time as a form holds it is read with the one reader of override times
+ * (UserOverrideCoverRequest), so a "Get cover" link's window and the form's
+ * own check agree on what a time is.
  */
-export const toUserOverrideTime: (value: unknown) => Date | null = (
-  value: unknown,
-): Date | null => {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  if (!(value instanceof Date) && typeof value !== "string") {
-    return null;
-  }
-
-  // Half-typed text is not a time yet (and would only make moment warn).
-  if (typeof value === "string" && Number.isNaN(Date.parse(value))) {
-    return null;
-  }
-
-  let date: Date;
-
-  try {
-    date = OneUptimeDate.fromString(value as string | Date);
-  } catch {
-    return null;
-  }
-
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date;
-};
+export { toUserOverrideTime };
 
 export interface UserOverridePeople {
   // The person whose alerts go elsewhere (overrideUserId).

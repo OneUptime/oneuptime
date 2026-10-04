@@ -110,6 +110,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
 
   const kindsSignature: string = props.kinds.join(",");
 
+  // How many records the list leaves out, whatever is searched.
+  const excludedCount: number = props.excludedKeys?.size || 0;
+
   // A fresh list each time it opens.
   useEffect(() => {
     if (!isOpen) {
@@ -168,7 +171,11 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
           return getPeoplePickerKindDefinition(kind).search({
             projectId: projectId,
             searchText: debouncedSearch,
-            limit: PEOPLE_PICKER_SEARCH_LIMIT,
+            /*
+             * One more for each record left out below, so the list still
+             * offers as many as it would without them.
+             */
+            limit: PEOPLE_PICKER_SEARCH_LIMIT + excludedCount,
           });
         },
       ),
@@ -201,7 +208,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, debouncedSearch, kindsSignature]);
+  }, [isOpen, debouncedSearch, kindsSignature, excludedCount]);
 
   const groups: Array<RowGroup> = useMemo((): Array<RowGroup> => {
     return props.kinds
