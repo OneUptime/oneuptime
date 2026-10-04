@@ -14074,7 +14074,7 @@
   "Older session by this user ({)": "Older session by this user ({)",
   "Ollama": "Ollama",
   "Oman": "Oman",
-  "On": "On",
+  "On": "开启",
   "On (project switch not checked yet)": "On (project switch not checked yet)",
   "On Boot": "On Boot",
   "On Call Duty Policy Feed Event": "On Call Duty Policy Feed Event",
@@ -24685,5 +24685,10 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "没有任何状态计为停机时间，因此此页面上的每个正常运行时间百分比都显示为 100%。",
   "Precision": "精度",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "页面上各资源的平均正常运行时间，在一切正常运行时显示在整体状态旁边。",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "监视器处于其中任一状态的时间，会从它在此页面上的正常运行时间中扣除。"
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "监视器处于其中任一状态的时间，会从它在此页面上的正常运行时间中扣除。",
+  "Bar Color Rules": "条形颜色规则",
+  "More fields": "更多字段",
+  "More settings": "更多设置",
+  "{{count}} more": "另外 {{count}} 项",
+  "{{count}} more_one": "另外 {{count}} 项"
 }

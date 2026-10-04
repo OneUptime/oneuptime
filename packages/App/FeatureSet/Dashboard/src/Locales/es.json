@@ -24685,5 +24685,10 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "Ningún estado cuenta como tiempo de inactividad, así que cada porcentaje de tiempo de actividad de esta página muestra 100%.",
   "Precision": "Precisión",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "El tiempo de actividad medio de los recursos de la página, que se muestra junto a su estado general mientras todo está operativo.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "El tiempo que un monitor pasa en cualquiera de estos estados se descuenta de su tiempo de actividad en esta página."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "El tiempo que un monitor pasa en cualquiera de estos estados se descuenta de su tiempo de actividad en esta página.",
+  "Bar Color Rules": "Reglas de color de las barras",
+  "More fields": "Más campos",
+  "More settings": "Más ajustes",
+  "{{count}} more": "{{count}} más",
+  "{{count}} more_one": "{{count}} más"
 }

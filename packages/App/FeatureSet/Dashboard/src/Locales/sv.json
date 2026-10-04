@@ -14074,7 +14074,7 @@
   "Older session by this user ({)": "Older session by this user ({)",
   "Ollama": "Ollama",
   "Oman": "Oman",
-  "On": "On",
+  "On": "På",
   "On (project switch not checked yet)": "On (project switch not checked yet)",
   "On Boot": "On Boot",
   "On Call Duty Policy Feed Event": "On Call Duty Policy Feed Event",
@@ -24685,5 +24685,10 @@
   "No status counts as downtime, so every uptime percentage on this page reads 100%.": "Ingen status räknas som driftstopp, så varje upptidsprocent på den här sidan visar 100 %.",
   "Precision": "Precision",
   "The average uptime of the page's resources, shown beside its overall status while everything is operational.": "Den genomsnittliga upptiden för sidans resurser, som visas bredvid dess övergripande status så länge allt är i drift.",
-  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Tid som en övervakare tillbringar i någon av dessa statusar dras av från dess upptid på den här sidan."
+  "Time a monitor spends in any of these statuses counts against its uptime on this page.": "Tid som en övervakare tillbringar i någon av dessa statusar dras av från dess upptid på den här sidan.",
+  "Bar Color Rules": "Regler för stapelfärger",
+  "More fields": "Fler fält",
+  "More settings": "Fler inställningar",
+  "{{count}} more": "{{count}} till",
+  "{{count}} more_one": "{{count}} till"
 }
