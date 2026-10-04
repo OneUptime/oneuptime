@@ -709,7 +709,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 没有指标出现
 
 1. 首先排除被拒绝的摄取密钥——这是最常见的原因，并且从代理一侧很容易被忽略。参见上文的 [代理显示 "Disconnected"](#代理显示-disconnected)（或直接运行诊断脚本）。
-2. 检查集群的 **集群名称（clusterName）** 是否与你作为 `clusterName` 传递的值匹配。它位于集群 **Settings** 页面的 **Cluster Details** 中；如需更正，请选择 **Edit Details** 并展开 **Advanced**
+2. 检查集群的 **集群名称（clusterName）** 是否与你作为 `clusterName` 传递的值匹配。它位于集群 **Settings** 页面的 **Cluster Details** 中；如需更正，请选择 **Edit Details** 并展开 **More fields**
 3. 验证 RBAC 权限：`kubectl get clusterrolebinding | grep kubernetes-agent`
 4. 检查 OTel 采集器日志中的导出错误
 

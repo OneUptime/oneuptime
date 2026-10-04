@@ -26,19 +26,19 @@ Selecione o grupo em que o recurso deve entrar (ou **Top of page**, para uma lin
 
 - **Monitor** — o menu com os monitores do seu projeto, placeholder **Selecionar Monitor**. Obrigatório.
 - **Nome de exibição** — o texto que os visitantes leem. Ele é preenchido com o nome do monitor quando você o escolhe, e acompanha se você escolher outro monitor, até você digitar um nome seu. Ele é guardado separadamente do nome do próprio monitor, então você pode renomeá-lo aqui sem mexer no monitoramento.
-- **Avançado** — recolhido. Contém **Descrição** (markdown opcional, exibido abaixo da linha, bom para uma frase explicando o que o serviço de fato faz) e as [opções de exibição](#opções-de-exibição-de-um-recurso). Se você o deixar fechado, o recurso recebe os valores padrão delas.
+- **Mais campos** — recolhido. Contém **Descrição** (markdown opcional, exibido abaixo da linha, bom para uma frase explicando o que o serviço de fato faz) e as [opções de exibição](#opções-de-exibição-de-um-recurso). Se você o deixar fechado, o recurso recebe os valores padrão delas.
 
-Escolha um monitor, clique em **Adicionar monitor** e a linha está na página. Em um grupo em grade, a janela também pede, acima de **Avançado**, a linha e a coluna em que o monitor vai ficar — veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
+Escolha um monitor, clique em **Adicionar monitor** e a linha está na página. Em um grupo em grade, a janela também pede, acima de **Mais campos**, a linha e a coluna em que o monitor vai ficar — veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
 
 Se o seu projeto tem grupos de monitores habilitados, um link sob o menu diz **Add a Monitor Group instead.** — clique nele e o menu **Monitor** é trocado por um menu **Monitor Grupo** (**Selecionar Grupo de Monitores**). O link então vira **Add a Monitor instead.**, para você voltar atrás. Use um grupo de monitores quando quiser que uma linha da página represente várias verificações reunidas.
 
 ### Adicionar vários de uma vez
 
-**Add Multiple** (também **Add multiple monitors**, no menu **More actions**) abre **Add Multiple Monitors**. Também é uma única página: uma seleção múltipla de **Monitores** em vez de um menu único e, abaixo, a mesma seção recolhida **Avançado**, cujas opções de exibição valem para todos os monitores que você marcou. Cada recurso pega o nome de exibição e a descrição do seu monitor, e **Add Monitors** os adiciona — não há passos a percorrer. É a forma mais rápida de povoar uma página nova.
+**Add Multiple** (também **Add multiple monitors**, no menu **More actions**) abre **Add Multiple Monitors**. Também é uma única página: uma seleção múltipla de **Monitores** em vez de um menu único e, abaixo, a mesma seção recolhida **Mais campos**, cujas opções de exibição valem para todos os monitores que você marcou. Cada recurso pega o nome de exibição e a descrição do seu monitor, e **Add Monitors** os adiciona — não há passos a percorrer. É a forma mais rápida de povoar uma página nova.
 
 ## Opções de exibição de um recurso
 
-A seção **Avançado** é a mesma no formulário de adição individual e no modal em massa. Ela começa recolhida nos dois, e também em **Editar recurso**, onde o cabeçalho diz **Configurado** quando algo nela não está no valor padrão. Tudo aqui vale por recurso — duas linhas do mesmo grupo podem estar configuradas de formas diferentes.
+A seção **Mais campos** é a mesma no formulário de adição individual e no modal em massa. Ela começa recolhida nos dois, e também em **Editar recurso**, onde o cabeçalho recolhido mostra o que nela não está no valor padrão. Tudo aqui vale por recurso — duas linhas do mesmo grupo podem estar configuradas de formas diferentes.
 
 | Campo                                                    | Para que serve                                                                                            |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Clique em **New Group** para abrir **Create New Status Page Group**. É uma úni
 - **Nome do Grupo** (`name`) — obrigatório. É o título de seção que os visitantes veem.
 - **Parent Group** (`parentStatusPageGroupId`) — opcional. Deixe em **No parent group (top level)** para manter o grupo no nível mais alto. **Add a sub group** o preenche para você.
 - **Layout** — recolhido, e o cabeçalho diz **List** ou **Grid**. Contém o **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinho em um grupo em grade.
-- **Avançado** — recolhido. Contém o resto e espelha, no nível do grupo, as opções do recurso:
+- **Mais campos** — recolhido. Contém o resto e espelha, no nível do grupo, as opções do recurso:
   - **Descrição do Grupo** (`description`) — markdown opcional, exibido sob o título.
   - **Expandir na Página de status por padrão** (`isExpandedByDefault`) — ativado por padrão: se a seção começa aberta ou recolhida para os visitantes.
   - **Mostrar status atual do grupo** (`showCurrentStatus`) — ativado por padrão. Mostra um status ao lado do título do grupo.

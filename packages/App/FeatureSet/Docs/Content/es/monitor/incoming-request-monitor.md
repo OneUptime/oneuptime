@@ -163,7 +163,7 @@ Las rutas deben empezar por el prefijo literal `requestBody.`. Una ruta sin él 
 Un webhook describe solo lo que hay en esa carga útil, así que OneUptime nunca resuelve un incidente porque su clave haya dejado de aparecer. Un incidente se resuelve únicamente cuando una carga útil dice explícitamente que esa clave se recuperó. Deben cumplirse dos cosas:
 
 1. **Field that signals recovery** y **Value that means recovered** están definidos y coinciden con la carga útil. La comparación es exacta y distingue mayúsculas de minúsculas: `Resolved` no coincide con `resolved`.
-2. El incidente del criterio tiene **Auto Resolve Incident** activado, bajo **Advanced Options** en el formulario del incidente. Sin eso, los eventos de recuperación que coincidan se ignoran y los incidentes siguen abiertos. (Lo mismo aplica a las alertas y a **Auto Resolve Alert**.)
+2. El incidente del criterio tiene **Auto Resolve Incident** activado, bajo **More fields** en el formulario del incidente. Sin eso, los eventos de recuperación que coincidan se ignoran y los incidentes siguen abiertos. (Lo mismo aplica a las alertas y a **Auto Resolve Alert**.)
 
 **Max incidents per request** limita la extracción, no solo la creación. Las claves más allá del límite también son invisibles para la recuperación, así que en una carga útil con más claves distintas que el límite, una alerta que informe `resolved` más allá de él no cerrará su incidente.
 

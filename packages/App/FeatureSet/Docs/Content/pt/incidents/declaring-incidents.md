@@ -100,7 +100,7 @@ Cada entrada tem:
 - **Plantão → Políticas de plantão** — políticas executadas quando este incidente é criado.
 - **Funções de incidente** — pré-atribua membros da equipe a funções.
 - **Propriedade e rótulos → Equipes proprietárias**, **Usuários proprietários**, **Rótulos**.
-- **Opções avançadas → Resolver incidente automaticamente** (resolve o incidente automaticamente quando os critérios deixam de corresponder), **Mostrar incidente na página de status**, **Incidente privado** e **Notas de remediação**.
+- **Mais campos → Resolver incidente automaticamente** (resolve o incidente automaticamente quando os critérios deixam de corresponder), **Mostrar incidente na página de status**, **Incidente privado** e **Notas de remediação**.
 
 Para a lista completa de espaços reservados `{{variable}}` que você pode usar no título, na descrição e nas notas de remediação, veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating).
 

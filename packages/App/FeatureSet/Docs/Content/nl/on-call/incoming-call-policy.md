@@ -163,7 +163,7 @@ Escalatieregels bepalen wie er gebeld wordt wanneer iemand het nummer van het be
 4. Vul de regel in. Het is één stap:
    - **Wie er gebeld wordt**: een bereikbaarheidsschema of één persoon. Een schema laat de telefoon overgaan van wie er op dat moment dienst heeft in dat schema. Personen zijn de leden van uw project.
    - **Overgaan gedurende (in seconden)**: hoe lang hun telefoon overgaat voordat de oproep naar de volgende regel gaat. Dit begint op 30 seconden, en Twilio accepteert 5 tot 600.
-   - **Naam** en **Beschrijving** zijn optioneel en staan onder **Geavanceerd**. Een regel zonder naam wordt getoond volgens zijn plaats in de lijst: **Level 1**, **Level 2**.
+   - **Naam** en **Beschrijving** zijn optioneel en staan onder **Meer velden**. Een regel zonder naam wordt getoond volgens zijn plaats in de lijst: **Level 1**, **Level 2**.
 5. Sla de regel op en voeg een regel toe voor elk schema of elke persoon die daarna geprobeerd moet worden
 
 Regels worden van boven naar beneden gebeld, en een nieuwe regel komt onderaan. Sleep een regel aan de greep linksboven om de volgorde te wijzigen; met het toetsenbord focust u de greep, drukt u op Spatie, verplaatst u de regel met de pijltjestoetsen en drukt u nogmaals op Spatie.
@@ -216,7 +216,7 @@ Pas de berichten aan die bellers horen:
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Wie er gebeld wordt              | Een bereikbaarheidsschema, dat belt wie er dienst heeft, of één persoon. Elke regel belt een van beide                                                        |
 | Overgaan gedurende (in seconden) | Hoe lang de telefoon overgaat voordat de oproep naar de volgende regel gaat (standaard: 30; van 5 tot 600)                                                    |
-| Naam en Beschrijving             | Optioneel, onder Geavanceerd. Een regel zonder naam wordt getoond als Level 1, Level 2 enzovoort, volgens zijn plaats in de lijst                             |
+| Naam en Beschrijving             | Optioneel, onder Meer velden. Een regel zonder naam wordt getoond als Level 1, Level 2 enzovoort, volgens zijn plaats in de lijst                             |
 | Volgorde                         | De plaats van de regel in de lijst: regels worden van boven naar beneden gebeld. Wijzig die door de regels te slepen; via de API komt een nieuwe regel zonder volgorde onderaan |
 
 Via de API stelt een regel `onCallDutyPolicyScheduleId` of `userId` in (een van beide, nooit allebei) en `escalateAfterSeconds`: hoe lang de telefoon overgaat, 30 als die wordt weggelaten.

@@ -28,7 +28,7 @@ Os monitores de domínio consultam dados WHOIS para seus domínios para rastrear
 | ----------- | --------------------------------------------- | ----------- |
 | Domain Name | O domínio para monitorar (ex.: `example.com`) | Sim         |
 
-### Configurações Avançadas
+### Mais campos
 
 | Campo        | Descrição                                                          | Padrão |
 | ------------ | ------------------------------------------------------------------ | ------ |

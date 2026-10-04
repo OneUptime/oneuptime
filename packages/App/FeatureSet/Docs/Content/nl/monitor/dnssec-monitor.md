@@ -30,7 +30,7 @@ DNSSEC-monitors valideren de volledige vertrouwensketen vanaf de rootzone tot aa
 | Resolvers                         | Door komma's gescheiden lijst van valideren­de resolvers om te bevragen (bijv. `1.1.1.1, 8.8.8.8, 9.9.9.9`)     | Ja      |
 | Controleer naamserverconsistentie | Bevraagt elke autoritatieve naamserver rechtstreeks en verifieert dat zij hetzelfde SOA-serienummer retourneren | Nee     |
 
-### Geavanceerde instellingen
+### Meer velden
 
 | Veld                                     | Beschrijving                                                                 | Standaard |
 | ---------------------------------------- | ---------------------------------------------------------------------------- | --------- |

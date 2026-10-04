@@ -8,13 +8,13 @@ När du skapar ett schema på sidan **Jourscheman** frågar formuläret efter **
 
 **Vilka turas om?** är valfritt. Lämnar du det tomt börjar schemat utan lager: det sätter ingen på jour förrän du lägger till ett lager på sidan **Lager**. Frågan ställs bara till den som får lägga till lager.
 
-Allt annat ligger under **Avancerad**, hopfällt tills du öppnar det:
+Allt annat ligger under **Fler fält**, hopfällt tills du öppnar det:
 
 - **Varje pass varar**: **1 dag**, **1 vecka**, **2 veckor** eller **1 månad**, och **1 vecka** om du inte ändrar det. Det frågas efter så snart någon har valts. Varje person har jour så länge, sedan tar nästa över, vid den tid på dygnet då schemat skapades.
 - **Tidszon**: den tidszon som överlämningstider och jourtimmar gäller i. Den börjar som din egen.
 - **Beskrivning** och **Etiketter**.
 
-Så länge någon har valts och inget under **Avancerad** har ändrats säger den hopfällda rubriken vad som kommer att hända: varje person har jour i en vecka, sedan tar nästa över.
+Så länge någon har valts och inget under **Fler fält** har ändrats säger den hopfällda rubriken vad som kommer att hända: varje person har jour i en vecka, sedan tar nästa över.
 
 ## Lager
 

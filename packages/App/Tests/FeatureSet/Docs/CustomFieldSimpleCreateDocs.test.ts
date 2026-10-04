@@ -98,7 +98,7 @@ function boldText(markdown: string): Set<string> {
 
 describe("the incident custom field docs describe the simple form", () => {
   test.each(LANGUAGES)(
-    "%s: names the form's three fields, Advanced and Configured",
+    "%s: names the form's three fields, and More fields",
     (language: string) => {
       const names: Set<string> = boldText(
         sectionOf(
@@ -112,7 +112,6 @@ describe("the incident custom field docs describe the simple form", () => {
         "Field Description",
         "Field Type",
         MORE_FIELDS_SECTION_TITLE,
-        "Configured",
         CustomFieldFormCopy.createMappedFieldTitle,
         "Create Incident Custom Field",
       ]) {
@@ -126,14 +125,16 @@ describe("the incident custom field docs describe the simple form", () => {
   );
 
   test.each(LANGUAGES)(
-    "%s: puts every incident setting under Advanced",
+    "%s: puts every incident setting under More fields",
     (language: string) => {
       const section: string = sectionOf(
         readSettingsPage(language),
         CUSTOM_FIELDS_SECTION[language] as string,
       );
       const under: string =
-        language === "en" ? "under **Advanced**" : "زیر **Advanced**";
+        language === "en"
+          ? `under **${MORE_FIELDS_SECTION_TITLE}**`
+          : `زیر **${MORE_FIELDS_SECTION_TITLE}**`;
 
       for (const setting of [
         IncidentCustomFieldSettingsCopy.showOnCreateTitle,
@@ -229,7 +230,7 @@ describe("the incident custom field docs describe the simple form", () => {
  * Parameters left a wizard step of their own for a collapsed Advanced
  * section, and its docs say where they are now.
  */
-describe("the LLM provider docs say what is under Advanced", () => {
+describe("the LLM provider docs say what is under More fields", () => {
   test.each(LANGUAGES)("%s", (language: string) => {
     const markdown: string = fs.readFileSync(
       path.join(CONTENT_DIR, language, "ai", "llm-provider.md"),

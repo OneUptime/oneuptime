@@ -722,7 +722,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### هیچ سنجه‌ای پدیدار نمی‌شود
 
 1. نخست کلید دریافت ردشده را کنار بگذارید — رایج‌ترین علت است و از سمت عامل آسان از چشم می‌افتد. بخش [عامل «Disconnected» نشان می‌دهد](#عامل-disconnected-نشان-میدهد) بالا را ببینید (یا صرفاً اسکریپت تشخیصی را اجرا کنید).
-2. بررسی کنید **نام خوشه (clusterName)** با مقداری که به‌عنوان `clusterName` داده‌اید بخواند. این نام در صفحه **Settings** خوشه، در کارت **Cluster Details** است؛ برای اصلاحش **Edit Details** را بزنید و **Advanced** را باز کنید
+2. بررسی کنید **نام خوشه (clusterName)** با مقداری که به‌عنوان `clusterName` داده‌اید بخواند. این نام در صفحه **Settings** خوشه، در کارت **Cluster Details** است؛ برای اصلاحش **Edit Details** را بزنید و **More fields** را باز کنید
 3. مجوزهای RBAC را وارسی کنید: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. گزارش‌های جمع‌کننده OTel را برای خطاهای صدور بررسی کنید
 

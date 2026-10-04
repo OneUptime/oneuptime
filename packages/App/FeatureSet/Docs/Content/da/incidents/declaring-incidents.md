@@ -100,7 +100,7 @@ Hver post har:
 - **Vagt → Vagtpolitikker** — politikker, der udføres, når denne hændelse oprettes.
 - **Hændelsesroller** — tildel teammedlemmer til roller på forhånd.
 - **Ejerskab og etiketter → Ejer-teams**, **Ejer-brugere**, **Etiketter**.
-- **Avancerede indstillinger → Løs hændelse automatisk** (løser hændelsen automatisk, når kriterierne holder op med at matche), **Vis hændelse på statusside**, **Privat hændelse** og **Afhjælpningsnoter**.
+- **Flere felter → Løs hændelse automatisk** (løser hændelsen automatisk, når kriterierne holder op med at matche), **Vis hændelse på statusside**, **Privat hændelse** og **Afhjælpningsnoter**.
 
 Hele listen over de `{{variable}}`-pladsholdere, du kan bruge i titel, beskrivelse og afhjælpningsnoter, står i [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
 

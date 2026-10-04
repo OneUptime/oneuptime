@@ -17,6 +17,7 @@ import {
   getDefaultLayerRotation,
   getLayerName,
 } from "Common/Types/OnCallDutyPolicy/ScheduleLayerDefaults";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -79,7 +80,7 @@ const FORM_LABELS: Array<string> = [
   QUESTION,
   "Add user",
   "Layers",
-  "Advanced",
+  MORE_FIELDS_SECTION_TITLE,
   TURN_LENGTH,
   ...TURN_LENGTHS,
   "Timezone",
@@ -254,7 +255,7 @@ describe("the On-Call Schedules docs page", () => {
       }
 
       expect(first).toContain("**Labels**");
-      expect(first).toContain("**Advanced**");
+      expect(first).toContain(`**${MORE_FIELDS_SECTION_TITLE}**`);
     });
 
     it("sends readers to the side menu entries the dashboard really has", () => {

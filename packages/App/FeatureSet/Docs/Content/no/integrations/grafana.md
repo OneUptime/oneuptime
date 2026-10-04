@@ -25,7 +25,7 @@ Grafanas webhook-nyttelast følger Alertmanager-formen — `status`, en `alerts`
 
 1. Gå til **Monitorer → Opprett monitor** og velg **Innkommende forespørsel**. Åpne den og klikk **Documentation** i venstremenyen for å kopiere URL-en.
 2. Åpne monitorens **Criteria** og sett **Filter Type** til `JavaScript Expression` og **Value** til `"{{requestBody.status}}" === "firing"`.
-3. Opprett en hendelse ved treff, velg de **On-Call Policies** som skal varsles, og slå på **Auto Resolve Incident** under **Advanced Options**.
+3. Opprett en hendelse ved treff, velg de **On-Call Policies** som skal varsles, og slå på **Auto Resolve Incident** under **More fields**.
 4. Slå på **Group incidents and alerts by a payload field** under **Settings**, og sett:
 
    | Felt                               | Verdi                               |
@@ -89,7 +89,7 @@ Med **Alternativ 2** legger du til en andre **Betingelser**-gren (`status == res
 ## Feilsøking
 
 - **Ingenting kommer frem** — bekreft at Grafana kan nå URL-en (sjekk Grafanas serverlogger), og for Alternativ 2 at arbeidsflyten er **Aktivert**. OneUptime svarer på hver innkommende forespørsel med en tom `200` før den valideres, så en `200` i Grafanas logger bekrefter ikke at nyttelasten ble godtatt.
-- **Hendelser åpnes, men lukkes aldri** — sjekk gjenopprettingsfeltet og -verdien på kriteriet, og at **Auto Resolve Incident** er på under hendelsens **Advanced Options**. Sammenligningen skiller mellom store og små bokstaver.
+- **Hendelser åpnes, men lukkes aldri** — sjekk gjenopprettingsfeltet og -verdien på kriteriet, og at **Auto Resolve Incident** er på under hendelsens **More fields**. Sammenligningen skiller mellom store og små bokstaver.
 - **Bare én hendelse for en nyttelast full av varsler** — du grupperte etter en label som ikke varierer innenfor en varsling. Grupper etter `requestBody.alerts[*].fingerprint` i stedet.
 - **Hendelsesteksten viser rå `{{...}}`-plassholdere** — stien ble ikke løst, og uløste plassholdere blir stående i stedet for å tømmes. Vis til felter som finnes i din varslingsversjon; undersøk trigger-utdataene i fanen **Logger** hvis du brukte Alternativ 2.
 

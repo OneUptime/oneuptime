@@ -100,7 +100,7 @@ Cada entrada tiene:
 - **De guardia → Políticas de guardia** — políticas que se ejecutan al crearse este incidente.
 - **Roles de Incidente** — preasigna miembros del equipo a los roles.
 - **Propiedad y etiquetas → Equipos propietarios**, **Usuarios propietarios**, **Etiquetas**.
-- **Opciones avanzadas → Resolver incidente automáticamente** (resuelve el incidente en cuanto los criterios dejan de coincidir), **Mostrar incidente en la página de estado**, **Incidente privado** y **Notas de Remediación**.
+- **Más campos → Resolver incidente automáticamente** (resuelve el incidente en cuanto los criterios dejan de coincidir), **Mostrar incidente en la página de estado**, **Incidente privado** y **Notas de Remediación**.
 
 Para la lista completa de marcadores `{{variable}}` que puedes usar en el título, la descripción y las notas de remediación, consulta [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
 

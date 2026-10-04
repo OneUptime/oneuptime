@@ -716,7 +716,7 @@ Den vanligste årsaken — spesielt etter en reinstallasjon — er en **feil ell
 ### Ingen metrikker vises
 
 1. Utelukk først en avvist ingest-nøkkel — det er den vanligste årsaken og er lett å overse fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller bare kjør diagnostikkskriptet).
-2. Sjekk at klyngens **klyngenavn (clusterName)** matcher verdien du sendte som `clusterName`. Det står på klyngens **Settings**-side under **Cluster Details**; velg **Edit Details** og åpne **Advanced** for å rette det
+2. Sjekk at klyngens **klyngenavn (clusterName)** matcher verdien du sendte som `clusterName`. Det står på klyngens **Settings**-side under **Cluster Details**; velg **Edit Details** og åpne **More fields** for å rette det
 3. Verifiser RBAC-tillatelsene: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Sjekk OTel-collector-loggene for eksportfeil
 

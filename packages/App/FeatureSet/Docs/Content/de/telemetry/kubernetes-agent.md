@@ -716,7 +716,7 @@ Der häufigste Grund — besonders nach einer Neuinstallation — ist ein **fals
 ### Keine Metriken erscheinen
 
 1. Schließen Sie zunächst einen abgelehnten Ingestion-Schlüssel aus — das ist die häufigste Ursache und von der Agent-Seite aus leicht zu übersehen. Siehe [Agent zeigt "Disconnected" an](#agent-zeigt-disconnected-an) oben (oder führen Sie einfach das Diagnoseskript aus).
-2. Prüfen Sie, ob der **Clustername (clusterName)** des Clusters mit dem Wert übereinstimmt, den Sie als `clusterName` übergeben haben. Er steht auf der Seite **Settings** des Clusters unter **Cluster Details**; zum Korrigieren wählen Sie **Edit Details** und öffnen **Advanced**
+2. Prüfen Sie, ob der **Clustername (clusterName)** des Clusters mit dem Wert übereinstimmt, den Sie als `clusterName` übergeben haben. Er steht auf der Seite **Settings** des Clusters unter **Cluster Details**; zum Korrigieren wählen Sie **Edit Details** und öffnen **More fields**
 3. Überprüfen Sie die RBAC-Berechtigungen: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Prüfen Sie die OTel-Collector-Logs auf Export-Fehler
 

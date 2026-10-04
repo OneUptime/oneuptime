@@ -92,7 +92,7 @@ Whichever you use, you land on the usual **Declare New Incident** form, with the
 
 "Most severe" follows your alert severity order: the first alert severity in the list is the most severe. With the severities every project starts with, a **High** alert becomes a **Critical Incident** and a **Low** alert a **Major Incident**.
 
-Everything is editable before you submit. **Labels** and **Private Incident** are under **Advanced** on the form's first step, which says **Configured** while either is set.
+Everything is editable before you submit. **Labels** and **Private Incident** are under **More fields** on the form's first step, whose folded header shows either one while it is set.
 
 **An alert that already has an incident is flagged.** With **Declare Incident** on every alert's page, two responders paged by the same outage can each declare it. So the banner listing the alerts marks each alert that is already linked to an incident — "(already linked to Incident INC-42)", linking to that incident — and adds a note, worded by how many of the alerts are linked:
 

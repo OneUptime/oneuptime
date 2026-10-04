@@ -8,13 +8,13 @@ Lorsque vous créez un planning sur la page **Plannings d'astreinte**, le formul
 
 **Qui assure l'astreinte à tour de rôle ?** est facultatif. Laissez-le vide et le planning démarre sans couches : il ne met personne d'astreinte tant que vous n'avez pas ajouté de couche sur sa page **Couches**. La question n'est posée qu'aux personnes autorisées à ajouter des couches.
 
-Tout le reste se trouve sous **Avancé**, replié jusqu'à ce que vous l'ouvriez :
+Tout le reste se trouve sous **Plus de champs**, replié jusqu'à ce que vous l'ouvriez :
 
 - **Chaque tour dure** : **1 jour**, **1 semaine**, **2 semaines** ou **1 mois**, et **1 semaine** sauf si vous le changez. La question est posée dès que quelqu'un est choisi. Chaque personne est d'astreinte pendant cette durée, puis la suivante prend le relais, à l'heure à laquelle le planning a été créé.
 - **Fuseau horaire** : le fuseau horaire dans lequel s'appliquent les heures de relève et les heures d'astreinte. Il commence par le vôtre.
 - **Description** et **Étiquettes**.
 
-Tant que quelqu'un est choisi et que rien n'est modifié sous **Avancé**, son en-tête replié indique ce qui va se passer : chaque personne est d'astreinte pendant une semaine, puis la suivante prend le relais.
+Tant que quelqu'un est choisi et que rien n'est modifié sous **Plus de champs**, son en-tête replié indique ce qui va se passer : chaque personne est d'astreinte pendant une semaine, puis la suivante prend le relais.
 
 ## Couches
 

@@ -71,7 +71,7 @@ Hvis statussiden rapporterer om flere komponenter, kan du eventuelt angi et komp
 
 Når en komponentgruppe også er angitt, brukes komponentnavnfilteret **innenfor** den gruppen, slik at du kan målrette én enkelt komponent inne i en større gruppe. Når ingen av filtrene er angitt, overvåkes alle komponenter innenfor omfanget.
 
-### Avanserte alternativer
+### Flere felt
 
 #### Tidsavbrudd
 

@@ -26,19 +26,19 @@ Velg gruppen ressursen skal havne i (eller **Top of page** for en rad uten grupp
 
 - **Overvåking** — nedtrekkslisten over overvåkinger i prosjektet ditt, plassholder **Velg overvåking**. Påkrevd.
 - **Visningsnavn** — teksten de besøkende leser. Den fylles ut med overvåkingens navn når du velger den, og følger med når du velger en annen overvåking, helt til du skriver et navn selv. Den lagres atskilt fra overvåkingens eget navn, så du kan gi den nytt navn her uten å røre overvåkingen.
-- **Avansert** — slått sammen. Den rommer **Beskrivelse** (valgfri markdown som vises under raden, fint til én setning om hva tjenesten faktisk gjør) og [visningsvalgene](#visningsvalg-på-en-ressurs). Lar du den være lukket, får ressursen standardverdiene deres.
+- **Flere felt** — slått sammen. Den rommer **Beskrivelse** (valgfri markdown som vises under raden, fint til én setning om hva tjenesten faktisk gjør) og [visningsvalgene](#visningsvalg-på-en-ressurs). Lar du den være lukket, får ressursen standardverdiene deres.
 
-Velg en overvåking, klikk **Legg til monitor**, og raden er på siden. I en rutenettgruppe spør dialogen også om raden og kolonnen overvåkingen skal stå i, over **Avansert** — se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett).
+Velg en overvåking, klikk **Legg til monitor**, og raden er på siden. I en rutenettgruppe spør dialogen også om raden og kolonnen overvåkingen skal stå i, over **Flere felt** — se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett).
 
 Har prosjektet ditt overvåkingsgrupper aktivert, ligger det en lenke under nedtrekkslisten som leser **Add a Monitor Group instead.** — klikk den, så byttes nedtrekkslisten **Overvåking** ut med en nedtrekksliste **Monitor Gruppe** (**Velg overvåkingsgruppe**). Lenken snur seg da til **Add a Monitor instead.** så du kan gå tilbake. Bruk en overvåkingsgruppe når du vil at én rad på siden skal representere flere sjekker rullet sammen.
 
 ### Å legge til flere om gangen
 
-**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: et flervalg **Monitorer** i stedet for én nedtrekksliste, og under det den samme sammenslåtte **Avansert**-seksjonen, der visningsvalgene gjelder hver eneste overvåking du plukket. Hver ressurs får visningsnavnet og beskrivelsen fra sin overvåking, og **Add Monitors** legger dem til — det finnes ingen trinn å gå gjennom. Dette er den raskeste måten å så en ny side på.
+**Add Multiple** (også **Add multiple monitors** i menyen **More actions**) åpner **Add Multiple Monitors**. Den er også én side: et flervalg **Monitorer** i stedet for én nedtrekksliste, og under det den samme sammenslåtte **Flere felt**-seksjonen, der visningsvalgene gjelder hver eneste overvåking du plukket. Hver ressurs får visningsnavnet og beskrivelsen fra sin overvåking, og **Add Monitors** legger dem til — det finnes ingen trinn å gå gjennom. Dette er den raskeste måten å så en ny side på.
 
 ## Visningsvalg på en ressurs
 
-Seksjonen **Avansert** er den samme i enkeltskjemaet og i bulkmodalen. Den starter sammenslått begge steder, og også i **Rediger ressurs**, der overskriften sier **Konfigurert** når noe i den ikke står på standardverdien. Alt her gjelder per ressurs — to rader i samme gruppe kan settes opp helt ulikt.
+Seksjonen **Flere felt** er den samme i enkeltskjemaet og i bulkmodalen. Den starter sammenslått begge steder, og også i **Rediger ressurs**, der den sammenslåtte overskriften viser hva i den som ikke står på standardverdien. Alt her gjelder per ressurs — to rader i samme gruppe kan settes opp helt ulikt.
 
 | Felt                                                     | Formål                                                                                                    |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -69,7 +69,7 @@ Klikk **New Group** for å åpne **Create New Status Page Group**. Skjemaet er �
 - **Gruppenavn** (`name`) — påkrevd. Dette er seksjonsoverskriften de besøkende ser.
 - **Parent Group** (`parentStatusPageGroupId`) — valgfritt. La den stå på **No parent group (top level)** for å holde gruppen på øverste nivå. **Add a sub group** fyller den ut for deg.
 - **Oppsett** — slått sammen, og overskriften sier **List** eller **Grid**. Den rommer **Visningsmodus** og aksene til et rutenett (se [Listeoppsett mot rutenettoppsett](#listeoppsett-mot-rutenettoppsett)), og den åpner seg selv på en rutenettgruppe.
-- **Avansert** — slått sammen. Den rommer resten og speiler ressursvalgene på gruppenivå:
+- **Flere felt** — slått sammen. Den rommer resten og speiler ressursvalgene på gruppenivå:
   - **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
   - **Utvid på statusside som standard** (`isExpandedByDefault`) — på som standard: om seksjonen starter åpen eller sammenslått for de besøkende.
   - **Vis gjeldende gruppestatus** (`showCurrentStatus`) — på som standard. Viser en status ved siden av gruppeoverskriften.

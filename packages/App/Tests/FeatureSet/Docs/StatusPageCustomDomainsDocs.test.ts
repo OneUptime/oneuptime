@@ -87,12 +87,12 @@ describe("Status page custom domains (English docs)", () => {
     );
   });
 
-  it("describes adding a domain as one page, with the certificate under Advanced", () => {
+  it("describes adding a domain as one page, with the certificate under More fields", () => {
     const adding: string = section("### Adding the domain", "## DNS Setup");
 
     expect(adding).toContain("The dialog is one page");
     expect(adding).not.toMatch(/two steps|\*\*Basic\*\*|\*\*More\*\*/);
-    expect(adding).toContain("**Advanced**");
+    expect(adding).toContain("**More fields**");
     expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**Upload Custom Certificate**");
     expect(adding).toContain("**DNS Setup** opens");

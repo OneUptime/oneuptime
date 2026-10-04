@@ -71,7 +71,7 @@ Als de statuspagina over meerdere componenten rapporteert, kunt u optioneel een 
 
 Wanneer ook een componentgroep is ingesteld, wordt het filter op componentnaam **binnen** die groep toegepast, waardoor u één enkel component binnen een grotere groep kunt targeten. Wanneer geen van beide filters is opgegeven, worden alle componenten binnen het bereik bewaakt.
 
-### Geavanceerde opties
+### Meer velden
 
 #### Time-out
 

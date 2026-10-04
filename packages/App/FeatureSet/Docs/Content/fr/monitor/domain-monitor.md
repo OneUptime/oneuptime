@@ -28,7 +28,7 @@ Les moniteurs de domaine interrogent les données WHOIS de vos domaines pour sui
 | -------------- | --------------------------------------------- | ----------- |
 | Nom de domaine | Le domaine à surveiller (ex. : `example.com`) | Oui         |
 
-### Paramètres avancés
+### Plus de champs
 
 | Champ                | Description                                                                        | Par défaut |
 | -------------------- | ---------------------------------------------------------------------------------- | ---------- |

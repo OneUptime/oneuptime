@@ -15,7 +15,7 @@ Aggiungi il server di posta di un progetto in **Impostazioni del progetto > Noti
 1. **Server**: il **Nome** (solo configurazioni di progetto), l'**Hostname**, la **Porta** (una nuova configurazione parte da `587`), il **Nome utente** e la **Password**.
 2. **Mittente**: l'**Email mittente** e il **Nome mittente** da cui arrivano le tue email.
 
-Tutto il resto è ripiegato in **Avanzato** alla fine del passaggio Server. Finché è ripiegato, la sua intestazione dice come viene inviata la posta, ad esempio "La posta viene inviata tramite SMTP, con accesso tramite nome utente e password. TLS è obbligatorio."
+Tutto il resto è ripiegato in **Altri campi** alla fine del passaggio Server. Finché è ripiegato, la sua intestazione dice come viene inviata la posta, ad esempio "La posta viene inviata tramite SMTP, con accesso tramite nome utente e password. TLS è obbligatorio."
 
 | Campo                      | Cosa fa                                                                                                                                                                                                                                                                                |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Tutto il resto è ripiegato in **Avanzato** alla fine del passaggio Server. Finc
 | **Campi OAuth**            | Tipo di provider, ID client, segreto client, URL del token e ambito, mostrati quando si sceglie OAuth o Microsoft Graph.                                                                                                                                                               |
 | **Descrizione**            | Una nota per il tuo team (solo configurazioni di progetto).                                                                                                                                                                                                                            |
 
-**Microsoft Graph.** Apri **Avanzato**, imposta **Trasporto** su `Microsoft Graph` e inserisci un'app Azure con l'autorizzazione dell'applicazione **Mail.Send**: il suo ID client e il suo segreto client, l'URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e l'ambito `https://graph.microsoft.com/.default`. La posta parte dalla casella dell'**Email mittente**, che deve essere una casella con licenza nel tuo tenant.
+**Microsoft Graph.** Apri **Altri campi**, imposta **Trasporto** su `Microsoft Graph` e inserisci un'app Azure con l'autorizzazione dell'applicazione **Mail.Send**: il suo ID client e il suo segreto client, l'URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e l'ambito `https://graph.microsoft.com/.default`. La posta parte dalla casella dell'**Email mittente**, che deve essere una casella con licenza nel tuo tenant.
 
 Una volta salvata una configurazione di progetto, **Invia e-mail di prova** sulla sua riga verifica che funzioni.
 
@@ -52,7 +52,7 @@ Quando si configura SMTP con autenticazione OAuth in OneUptime, avrai bisogno di
 | **Token URL**              | URL dell'endpoint token OAuth                                                              |
 | **Ambito**                 | Scope OAuth richiesti per l'accesso SMTP                                                   |
 
-Il **Tipo di autenticazione** e i campi OAuth sono in **Avanzato**, nel passaggio Server del modulo.
+Il **Tipo di autenticazione** e i campi OAuth sono in **Altri campi**, nel passaggio Server del modulo.
 
 ---
 

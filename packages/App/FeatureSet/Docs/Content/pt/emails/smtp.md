@@ -15,7 +15,7 @@ Adicione o servidor de e-mail de um projeto em **Configurações do projeto > No
 1. **Servidor**: o **Nome** (somente configurações de projeto), o **Nome do host**, a **Porta** (uma nova configuração começa em `587`), o **Nome de usuário** e a **Senha**.
 2. **Remetente**: o **E-mail de origem** e o **Nome de origem** de onde seus e-mails vêm.
 
-Todo o resto fica recolhido em **Avançado**, no fim da etapa Servidor. Enquanto recolhido, seu cabeçalho diz como o e-mail é enviado, por exemplo "O e-mail é enviado por SMTP, com login por nome de usuário e senha. O TLS é obrigatório."
+Todo o resto fica recolhido em **Mais campos**, no fim da etapa Servidor. Enquanto recolhido, seu cabeçalho diz como o e-mail é enviado, por exemplo "O e-mail é enviado por SMTP, com login por nome de usuário e senha. O TLS é obrigatório."
 
 | Campo                    | O que faz                                                                                                                                                                                                                                                                                    |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ Todo o resto fica recolhido em **Avançado**, no fim da etapa Servidor. Enquanto
 | **Campos de OAuth**      | Tipo de provedor, ID do cliente, segredo do cliente, URL do token e escopo, exibidos quando OAuth ou Microsoft Graph é escolhido.                                                                                                                                                            |
 | **Descrição**            | Uma nota para sua equipe (somente configurações de projeto).                                                                                                                                                                                                                                 |
 
-**Microsoft Graph.** Abra **Avançado**, defina **Transporte** como `Microsoft Graph` e preencha um aplicativo do Azure com a permissão de aplicativo **Mail.Send**: o ID e o segredo do cliente, a URL do token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e o escopo `https://graph.microsoft.com/.default`. O e-mail é enviado da caixa de correio do **E-mail de origem**, que precisa ser uma caixa de correio licenciada no seu tenant.
+**Microsoft Graph.** Abra **Mais campos**, defina **Transporte** como `Microsoft Graph` e preencha um aplicativo do Azure com a permissão de aplicativo **Mail.Send**: o ID e o segredo do cliente, a URL do token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e o escopo `https://graph.microsoft.com/.default`. O e-mail é enviado da caixa de correio do **E-mail de origem**, que precisa ser uma caixa de correio licenciada no seu tenant.
 
 Depois de salvar uma configuração de projeto, **Enviar e-mail de teste** na linha dela verifica se funciona.
 
@@ -52,7 +52,7 @@ Ao configurar o SMTP com autenticação OAuth no OneUptime, você precisará:
 | **Token URL**              | URL do endpoint de token OAuth                                                           |
 | **Escopo**                 | Escopo(s) OAuth necessário(s) para acesso SMTP                                           |
 
-O **Tipo de autenticação** e os campos de OAuth ficam em **Avançado**, na etapa Servidor do formulário.
+O **Tipo de autenticação** e os campos de OAuth ficam em **Mais campos**, na etapa Servidor do formulário.
 
 ---
 
