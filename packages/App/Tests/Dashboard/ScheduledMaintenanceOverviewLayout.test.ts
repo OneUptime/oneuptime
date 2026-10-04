@@ -413,6 +413,18 @@ describe("scheduled maintenance overview: details card", () => {
 });
 
 describe("scheduled maintenance overview: affected resources", () => {
+  /*
+   * The card's Edit draws its fields from a module of their own, split as
+   * Create Scheduled Maintenance Event is: the monitors in a picker of their
+   * own, every other relation in a second one below it. The page selects
+   * and displays them.
+   */
+  const editFields: string = readSource(
+    "Components",
+    "ScheduledMaintenance",
+    "ScheduledMaintenanceAffectedResourcesFormFields.tsx",
+  );
+
   const RELATIONS: Array<{ relation: string; model: string; type: string }> = [
     { relation: "monitors", model: "Monitor", type: "Monitor" },
     { relation: "hosts", model: "Host", type: "Host" },
@@ -460,31 +472,39 @@ describe("scheduled maintenance overview: affected resources", () => {
       model: string;
       type: string;
     }) => {
-      // Offered by the picker (prettier may wrap the value in its braces).
-      expect(page).toContain(`"${type}",`);
-      expect(page).toMatch(
+      // Offered by one of the pickers (prettier may wrap the value in its braces).
+      expect(editFields).toContain(`"${type}"`);
+      expect(editFields).toMatch(
         new RegExp(
           `${relation}=\\{ ?values\\.${relation} as Array<${model}> ?\\}`,
         ),
       );
-      // Written back by the form's onChange, or the selection is dropped on save.
-      expect(page).toContain(`${relation}: payload.${relation},`);
+      // Written back by its picker's onChange, or the selection is dropped on save.
+      expect(editFields).toContain(`${relation}: payload.${relation},`);
       // Selected for display and shown.
       expect(page).toContain(`${relation}: { name: true, _id: true,`);
       expect(page).toMatch(
         new RegExp(`${relation}=\\{ ?item\\.${relation} \\|\\| \\[\\] ?\\}`),
       );
 
-      if (relation !== "monitors") {
+      // Monitors and hosts anchor the two pickers; the rest are registered.
+      if (relation !== "monitors" && relation !== "hosts") {
         // Registered so ModelForm loads and submits the relation.
-        expect(page).toContain(`field: { ${relation}: true },`);
+        expect(editFields).toContain(`field: { ${relation}: true },`);
       }
     },
   );
 
-  test("the picker's resource types list every relation, in the incident page's order plus network sites", () => {
+  test("the card's Edit draws the shared fields", () => {
     expect(page).toContain(
-      'resourceTypes={[ "Monitor", "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
+      "formFields={getScheduledMaintenanceAffectedResourcesFormFields()}",
+    );
+  });
+
+  test("the pickers' resource types list every relation, the monitors apart, in the incident page's order plus network sites", () => {
+    expect(editFields).toContain('resourceTypes={["Monitor"]}');
+    expect(editFields).toContain(
+      'resourceTypes={[ "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
     );
   });
 });

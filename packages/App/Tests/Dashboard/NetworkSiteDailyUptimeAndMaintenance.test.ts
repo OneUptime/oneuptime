@@ -341,7 +341,12 @@ describe("Network Sites are attachable to a maintenance event", () => {
      */
     for (const source of [
       readSource("Pages", "ScheduledMaintenanceEvents", "Create.tsx"),
-      readSource("Pages", "ScheduledMaintenanceEvents", "View", "Index.tsx"),
+      // The event page's Affected Resources Edit draws these fields.
+      readSource(
+        "Components",
+        "ScheduledMaintenance",
+        "ScheduledMaintenanceAffectedResourcesFormFields.tsx",
+      ),
     ]) {
       expect(source).toContain(squash("networkSites: payload.networkSites,"));
       expect(source).toContain(squash("field: { networkSites: true },"));
