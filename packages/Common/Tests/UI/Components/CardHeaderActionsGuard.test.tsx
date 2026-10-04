@@ -5,6 +5,7 @@ import Card, {
   CARD_HEADER_LAYOUTS,
   CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME,
   CARD_HEADER_TITLE_BLOCK_CLASS_NAME,
+  CardButtonSchema,
   CardHeaderLayout,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
@@ -51,7 +52,7 @@ interface HeaderShape {
   props: ComponentProps;
 }
 
-const EDIT: Required<ComponentProps>["buttons"][number] = {
+const EDIT: CardButtonSchema = {
   title: "Edit",
   icon: IconProp.Edit,
   buttonStyle: ButtonStyleType.NORMAL,
