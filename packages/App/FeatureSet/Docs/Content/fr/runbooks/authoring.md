@@ -14,7 +14,7 @@ Chaque étape comporte :
 | **Exiger une approbation**           | Si activé, le runbook se met en pause après cette étape et attend qu'un utilisateur approuve avant d'exécuter l'étape suivante. |
 | **Configuration spécifique au type** | Script, URL, agent, etc. — voir ci-dessous.                                                                                     |
 
-Les étapes s'exécutent **dans l'ordre**. Réorganisez-les avec les flèches haut/bas dans l'éditeur.
+Les étapes s'exécutent **dans l'ordre**. Pour changer l'ordre, faites glisser une étape par la poignée à gauche de son en-tête ; au clavier, placez le focus sur la poignée, appuyez sur Espace, déplacez l'étape avec les flèches, puis appuyez de nouveau sur Espace.
 
 ## Types d'étapes
 

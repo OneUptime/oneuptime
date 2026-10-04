@@ -14,7 +14,7 @@ Jeder Schritt hat:
 | **Freigabe erforderlich**        | Wenn an, pausiert das Runbook nach diesem Schritt und wartet, bis ein Benutzer freigibt, bevor der nächste Schritt läuft. |
 | **Typspezifische Konfiguration** | Skript, URL, Agent usw. — siehe unten.                                                                                    |
 
-Schritte laufen **der Reihe nach**. Sortieren Sie sie mit den Pfeilen Auf/Ab im Steps-Editor um.
+Schritte laufen **der Reihe nach**. Um die Reihenfolge zu ändern, ziehen Sie einen Schritt an dem Griff links in seiner Kopfzeile; per Tastatur fokussieren Sie den Griff, drücken die Leertaste, verschieben den Schritt mit den Pfeiltasten und drücken erneut die Leertaste.
 
 ## Schritttypen
 
