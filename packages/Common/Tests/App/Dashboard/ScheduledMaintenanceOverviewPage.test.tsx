@@ -1386,21 +1386,37 @@ describe("Scheduled maintenance overview page", () => {
       "services",
     ];
 
-    test("offers every resource type the model supports", async () => {
+    /*
+     * Split as Create Scheduled Maintenance Event is: the monitors in a
+     * picker of their own, every other resource the model supports in a
+     * second one - together each relation once.
+     */
+    test("offers every resource type the model supports, the monitors apart", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
 
       await renderPage();
 
       const resources: CardProps = cardProps("Affected Resources");
-      const picker: React.ReactElement = resources.formFields[0]!
-        .getCustomElement!({}, {});
-      const pickerProps: Record<string, unknown> = picker.props as Record<
-        string,
-        unknown
-      >;
+      const pickerPropsOf: (index: number) => Record<string, unknown> = (
+        index: number,
+      ): Record<string, unknown> => {
+        const picker: React.ReactElement = resources.formFields[index]!
+          .getCustomElement!({}, {});
 
-      expect(pickerProps["resourceTypes"]).toEqual([
-        "Monitor",
+        return picker.props as Record<string, unknown>;
+      };
+
+      const monitors: Record<string, unknown> = pickerPropsOf(0);
+      const others: Record<string, unknown> = pickerPropsOf(1);
+
+      expect(Object.keys(resources.formFields[0]!.field)).toEqual([
+        "monitors",
+      ]);
+      expect(monitors["resourceTypes"]).toEqual(["Monitor"]);
+      expect(monitors).toHaveProperty("monitors");
+
+      expect(Object.keys(resources.formFields[1]!.field)).toEqual(["hosts"]);
+      expect(others["resourceTypes"]).toEqual([
         "Host",
         "KubernetesCluster",
         "DockerHost",
@@ -1414,13 +1430,23 @@ describe("Scheduled maintenance overview page", () => {
         "NetworkSite",
         "Service",
       ]);
+      expect(others).not.toHaveProperty("monitors");
 
       for (const relation of RELATIONS) {
-        expect(pickerProps).toHaveProperty(relation);
+        if (relation !== "monitors") {
+          expect(others).toHaveProperty(relation);
+        }
       }
+
+      // No monitor status: an event's is chosen when it is created.
+      expect(
+        resources.formFields.map((field: DetailField): string => {
+          return Object.keys(field.field)[0]!;
+        }),
+      ).not.toContain("changeMonitorStatusTo");
     });
 
-    test("writes every relation back from the picker's payload", async () => {
+    test("each picker writes back its own relations from the payload, and only those", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
 
       await renderPage();
@@ -1433,24 +1459,38 @@ describe("Scheduled maintenance overview page", () => {
         payload[relation] = [`${relation}-id`];
       }
 
-      const setNewFormValues: MockFunction = getJestMockFunction();
+      const writtenBy: (index: number) => Promise<Record<string, unknown>> =
+        async (index: number): Promise<Record<string, unknown>> => {
+          const setNewFormValues: MockFunction = getJestMockFunction();
 
-      cardProps("Affected Resources").formFields[0]!.onChange!(
-        payload,
-        { title: "kept" },
-        setNewFormValues,
-      );
-      await flush();
+          cardProps("Affected Resources").formFields[index]!.onChange!(
+            payload,
+            { title: "kept" },
+            setNewFormValues,
+          );
+          await flush();
 
-      expect(setNewFormValues).toHaveBeenCalledTimes(1);
+          expect(setNewFormValues).toHaveBeenCalledTimes(1);
 
-      const written: Record<string, unknown> =
-        setNewFormValues.mock.calls[0]![0];
+          return setNewFormValues.mock.calls[0]![0] as Record<string, unknown>;
+        };
 
-      expect(written["title"]).toBe("kept");
+      const byMonitors: Record<string, unknown> = await writtenBy(0);
+
+      expect(byMonitors).toEqual({
+        title: "kept",
+        monitors: ["monitors-id"],
+      });
+
+      const byOthers: Record<string, unknown> = await writtenBy(1);
+
+      expect(byOthers["title"]).toBe("kept");
+      expect(byOthers).not.toHaveProperty("monitors");
 
       for (const relation of RELATIONS) {
-        expect(written[relation]).toEqual([`${relation}-id`]);
+        if (relation !== "monitors") {
+          expect(byOthers[relation]).toEqual([`${relation}-id`]);
+        }
       }
     });
 
