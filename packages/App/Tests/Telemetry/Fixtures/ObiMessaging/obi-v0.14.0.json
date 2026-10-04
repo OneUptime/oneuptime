@@ -2,7 +2,7 @@
   "description": [
     "NATS and MQTT spans OBI exported in KinD (Kubernetes 1.34) from nats-server 2.11.17 with JetStream (in the cluster, on the host network, and outside the cluster where OBI cannot name it), nats.js 2.29.3 clients (core pub/sub, request-reply, a JetStream producer, an acking pull and push consumer, an app whose service.name is \"nats\") and mosquitto 2 with MQTT clients, under the kubernetes-agent chart's rendered OBI DaemonSet and config. Clients connected before OBI started, then again under it.",
     "body: what OBI exported, as a collector's file exporter wrote it (OTLP/JSON), at most two spans per shape, OBI version and service.peer.name presence; resource attributes trimmed to the ones ingest reads.",
-    "spans: per span, OBI's own event type as its trace printer (OTEL_EBPF_TRACE_PRINTER=text) logged it, the workload's role, and the kind to store: SERVER for every *Server event type but a client's split delivery naming its broker (C2, kept as exported), SERVER for a MSG a broker wrote (B4), and the exported kind for every other client-typed span. v013Kind is the kind OBI v0.13 gives the same span."
+    "spans: per span, OBI's own event type as its trace printer (OTEL_EBPF_TRACE_PRINTER=text) logged it, the workload's role, and the kind to store: SERVER for every *Server event type but a client's split delivery naming its broker (C2, kept as exported), SERVER for a MSG a broker wrote (B4) and for a broker's publish typed client-side, its equal ports the subscriber's ephemeral port (B3-main, MQTT broker publish), and the exported kind for every other client-typed span. v013Kind is the kind OBI v0.13 gives the same span."
   ],
   "obiVersion": "v0.14.0",
   "captures": {
@@ -23,7 +23,7 @@
     "B1": "nats-server: a PUB it read (NATSServer)",
     "B2": "nats-server: a MSG it delivered, consistently oriented (NATSServer)",
     "B3": "nats-server: the MSG OBI split off a MSG + PUB exchange the broker wrote first (NATSServer, unreversed): server.address the subscriber, server.port its ephemeral port, network.peer the broker itself",
-    "B3-main": "nats-server: the PUB of that exchange, typed client-side (NATSClient): equal ports, the subscriber named",
+    "B3-main": "nats-server: the PUB of that exchange, typed client-side (NATSClient): equal ports, the subscriber named, at its ephemeral port",
     "B4": "nats-server: a MSG it wrote, typed client-side (NATSClient): equal ports, the subscriber named",
     "host-network B1": "B1 on a host-network nats-server: server.address names the node",
     "host-network B2": "B2 on a host-network nats-server: server.address names the node",
@@ -34,7 +34,7 @@
     "MQTT client subscribe": "MQTT client: its SUBSCRIBE (MQTTClient, process)",
     "MQTT client reversed delivery": "MQTT subscriber: a PUBLISH delivered to it, reversed (MQTTServer)",
     "MQTT broker receiving-side": "mosquitto: a PUBLISH or SUBSCRIBE it read (MQTTServer)",
-    "MQTT broker publish": "mosquitto: a PUBLISH it delivered to a subscriber, typed client-side (MQTTClient): kept PRODUCER, as v0.13 sent it"
+    "MQTT broker publish": "mosquitto: a PUBLISH it delivered to a subscriber, typed client-side (MQTTClient): equal ports, the subscriber named, at its ephemeral port"
   },
   "spans": [
     {
@@ -387,7 +387,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "34738477b013c2fc",
@@ -398,7 +398,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "0d33eddbe7b02158",
@@ -409,7 +409,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "11a702d4fe86187f",
@@ -420,7 +420,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "2ffd7eeed1e0fd1f",
@@ -541,7 +541,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "2ef425efd593aa83",
@@ -552,7 +552,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "2e222f1e481b719a",
@@ -563,7 +563,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "7b3cda6fd8e69f5f",
@@ -574,7 +574,7 @@
       "obiEventType": "NATSClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "0034267e09234ca5",
@@ -717,7 +717,7 @@
       "obiEventType": "MQTTClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "0fcb411684d60200",
@@ -728,7 +728,7 @@
       "obiEventType": "MQTTClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     },
     {
       "spanId": "04ba27b230bebec9",
@@ -739,7 +739,7 @@
       "obiEventType": "MQTTClient",
       "exportedKind": "SPAN_KIND_PRODUCER",
       "v013Kind": "SPAN_KIND_PRODUCER",
-      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+      "expectedStoredKind": "SPAN_KIND_SERVER"
     }
   ],
   "body": {

@@ -627,13 +627,17 @@ describe("Incident Episode overview: details column", () => {
   /*
    * The details card sits in a ~300px column. Its old side-by-side header put
    * "Edit Incident Episode" beside the title and squeezed the title and description
-   * into a column a word or two wide.
+   * into a column a word or two wide. Stacked, the title and a short Edit
+   * share the first row - Edit at the right - and the description runs under
+   * them. (Every card has a header now, so this one is found by its title.)
    */
   test("stacks the details card header and keeps a short, gated Edit button", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     const header: HTMLElement = await waitFor(() => {
-      return screen.getByTestId("card-header");
+      return screen
+        .getByText("Episode Details")
+        .closest("[data-testid='card-header']") as HTMLElement;
     });
 
     expect(header).toHaveAttribute("data-header-layout", "stacked");
@@ -643,11 +647,17 @@ describe("Incident Episode overview: details column", () => {
     ).toBeInTheDocument();
 
     const actions: HTMLElement = await waitFor(() => {
-      return screen.getByTestId("card-header-actions");
+      return within(header).getByTestId("card-header-actions");
     });
     const edit: HTMLElement = within(actions).getByRole("button", {
       name: "Edit",
     });
+
+    // Edit is on the title's row, after the title: at the right.
+    expect(within(header).getByTestId("card-header-title-row")).toBe(
+      actions.parentElement,
+    );
+    expect(actions.parentElement?.lastElementChild).toBe(actions);
 
     expect(edit).not.toBeDisabled();
     expect(screen.queryByText("Edit Incident Episode")).toBeNull();

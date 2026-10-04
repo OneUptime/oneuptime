@@ -831,7 +831,13 @@ const Layers: FunctionComponent<ComponentProps> = (
             )}
           </p>
         </div>
-        <div className="flex-shrink-0">{addLayerButton()}</div>
+        {/*
+          Under the description on a phone, at the right edge, as a card
+          header's actions always are; beside the title from sm up.
+        */}
+        <div className="flex-shrink-0 self-end sm:self-auto">
+          {addLayerButton()}
+        </div>
       </div>
 
       {/*

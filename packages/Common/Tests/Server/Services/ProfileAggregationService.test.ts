@@ -14,6 +14,37 @@ import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach, jest } from "@jest/globals";
 
 /*
+ * A trace-wide read (traceId, no spanIds) keeps only samples that name one
+ * of the trace's own spans: the span ids come from a subquery on the span
+ * table, bound to the same project and trace. GLOBAL IN, because a plain IN
+ * over two Distributed tables is rejected on multi-shard clusters. A
+ * span-scoped read binds the span ids it is given instead.
+ */
+const TRACE_SPANS_PREDICATE: RegExp =
+  /AND spanId GLOBAL IN \(SELECT spanId FROM \{p\d+:Identifier\} WHERE projectId = \{p\d+:String\} AND traceId = \{p\d+:String\}\)/;
+const SPAN_LIST_PREDICATE: RegExp =
+  /AND spanId IN \(\{p\d+:Array\(String\)\}\)/;
+
+/*
+ * What the trace-wide predicate binds, in order: the span table, then the
+ * project and the trace its subquery is scoped to.
+ */
+const traceSpansFilterValues: (statement: Statement) => Array<unknown> = (
+  statement: Statement,
+): Array<unknown> => {
+  const predicate: RegExpMatchArray | null = statement.query.match(
+    TRACE_SPANS_PREDICATE,
+  );
+  expect(predicate).not.toBeNull();
+
+  return Array.from(predicate![0].matchAll(/\{(p\d+):[^}]+\}/g)).map(
+    (placeholder: RegExpMatchArray) => {
+      return statement.query_params[placeholder[1]!];
+    },
+  );
+};
+
+/*
  * Replace the ClickHouse boundary: getFlamegraph builds a Statement and
  * hands it to ProfileSampleDatabaseService.executeQuery, then everything
  * after that (tree building, totals) is pure. Stubbing executeQuery lets
@@ -319,8 +350,51 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
     });
 
     expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
-    expect(statement.query).not.toContain("spanId");
     expect(Object.values(statement.query_params)).toContain("trace-abc-123");
+  });
+
+  test("traceId alone keeps only samples that name one of the trace's spans", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: "trace-abc-123",
+    });
+
+    expect(statement.query).toMatch(TRACE_SPANS_PREDICATE);
+    expect(statement.query).not.toMatch(SPAN_LIST_PREDICATE);
+
+    // The subquery reads the span table, scoped to this project and trace.
+    expect(traceSpansFilterValues(statement)).toEqual([
+      "SpanItemV3",
+      projectId.toString(),
+      "trace-abc-123",
+    ]);
+  });
+
+  test("a profile's trace read scopes the subquery to the trace, not the profile", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      profileId: "profile-abc-123",
+      traceId: "trace-abc-123",
+    });
+
+    expect(statement.query).toMatch(/AND profileId = \{p\d+:String\}/);
+    expect(traceSpansFilterValues(statement)).toEqual([
+      "SpanItemV3",
+      projectId.toString(),
+      "trace-abc-123",
+    ]);
+  });
+
+  test("spanIds narrow a trace read without the span-table subquery", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: "trace-abc-123",
+      spanIds: ["span-a"],
+    });
+
+    expect(statement.query).toMatch(SPAN_LIST_PREDICATE);
+    expect(statement.query).not.toContain("SELECT spanId");
+    expect(Object.values(statement.query_params)).not.toContain("SpanItemV3");
   });
 
   test("spanIds alone add a parameter-bound IN predicate", () => {
@@ -361,6 +435,32 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
     });
 
     expect(statement.query).not.toContain("spanId");
+
+    const traceWide: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: "trace-abc-123",
+    });
+    const emptySpanIds: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: "trace-abc-123",
+      spanIds: [],
+    });
+
+    expect(emptySpanIds.query).toBe(traceWide.query);
+    expect(emptySpanIds.query).toMatch(TRACE_SPANS_PREDICATE);
+  });
+
+  test("an injection-shaped trace id stays out of the span-table subquery", () => {
+    const evilTraceId: string = "') OR 1=1 --";
+
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: evilTraceId,
+    });
+
+    expect(statement.query).toMatch(TRACE_SPANS_PREDICATE);
+    expect(statement.query).not.toContain(evilTraceId);
+    expect(Object.values(statement.query_params)).toContain(evilTraceId);
   });
 
   test("injection-shaped values never reach the query text", () => {
@@ -390,6 +490,22 @@ describe("ProfileAggregationService trace-scoped sample filters", () => {
     expect(statement.query).toMatch(
       /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
     );
+
+    // A trace-wide window total counts the same samples as the trace-wide stacks.
+    expect(
+      buildWindowTotalQuery({ projectId, traceId: "trace-abc-123" }).query,
+    ).toMatch(TRACE_SPANS_PREDICATE);
+  });
+
+  test("no trace filter, no span-table subquery", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      startTime: new Date("2026-10-04T00:00:00Z"),
+      endTime: new Date("2026-10-04T01:00:00Z"),
+    });
+
+    expect(statement.query).not.toContain("SELECT spanId");
+    expect(Object.values(statement.query_params)).not.toContain("SpanItemV3");
   });
 });
 
@@ -465,6 +581,32 @@ describe("ProfileAggregationService trace filters through the public reads", () 
     }
   });
 
+  test("trace-wide reads keep only samples on the trace's spans in every query", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await ProfileAggregationService.getFlamegraph({
+      projectId,
+      traceId: "trace-9",
+    });
+    await ProfileAggregationService.getFunctionList({
+      projectId,
+      traceId: "trace-9",
+    });
+    await ProfileAggregationService.getFunctionFocus({
+      projectId,
+      functionName: "work",
+      fileName: "main.go",
+      traceId: "trace-9",
+    });
+
+    // 1 grouped stack query + 2 function-list queries + 2 function-focus queries.
+    expect(captured.length).toBe(5);
+    for (const statement of captured) {
+      expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
+      expect(statement.query).toMatch(TRACE_SPANS_PREDICATE);
+    }
+  });
+
   test("getFunctionFocus threads traceId + spanIds into both queries", async () => {
     const captured: Array<Statement> = stubAndCaptureStatements([]);
 
@@ -526,7 +668,7 @@ describe("ProfileAggregationService.getTracePresence", () => {
     ]);
   });
 
-  test("omits the spanId predicate when spanIds is absent or empty", async () => {
+  test("without spanIds, counts only samples that name one of the trace's spans", async () => {
     const captured: Array<Statement> = stubAndCaptureStatements([
       { sampleCount: 7 },
     ]);
@@ -537,7 +679,8 @@ describe("ProfileAggregationService.getTracePresence", () => {
         traceId: "trace-1",
       });
     expect(absentResult.sampleCount).toBe(7);
-    expect(captured[0]!.query).not.toContain("spanId");
+    expect(captured[0]!.query).toMatch(TRACE_SPANS_PREDICATE);
+    expect(captured[0]!.query).not.toMatch(SPAN_LIST_PREDICATE);
 
     const emptyResult: TracePresenceResult =
       await ProfileAggregationService.getTracePresence({
@@ -546,7 +689,45 @@ describe("ProfileAggregationService.getTracePresence", () => {
         spanIds: [],
       });
     expect(emptyResult.sampleCount).toBe(7);
-    expect(captured[1]!.query).not.toContain("spanId");
+    expect(captured[1]!.query).toBe(captured[0]!.query);
+  });
+
+  test("a span-scoped count binds its span ids and skips the span-table subquery", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([
+      { sampleCount: 1 },
+    ]);
+
+    await ProfileAggregationService.getTracePresence({
+      projectId,
+      traceId: "trace-1",
+      spanIds: ["span-1"],
+    });
+
+    expect(captured[0]!.query).toMatch(SPAN_LIST_PREDICATE);
+    expect(captured[0]!.query).not.toContain("SELECT spanId");
+  });
+
+  test("the trace Profile tab's gate and its flame graph count the same samples", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await ProfileAggregationService.getTracePresence({
+      projectId,
+      traceId: "trace-1",
+    });
+    await ProfileAggregationService.getFlamegraph({
+      projectId,
+      traceId: "trace-1",
+    });
+
+    expect(captured.length).toBe(2);
+    expect(traceSpansFilterValues(captured[0]!)).toEqual([
+      "SpanItemV3",
+      projectId.toString(),
+      "trace-1",
+    ]);
+    expect(traceSpansFilterValues(captured[1]!)).toEqual(
+      traceSpansFilterValues(captured[0]!),
+    );
   });
 
   test("a span's whole subtree binds as one parameter, so the query text does not grow", async () => {

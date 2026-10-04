@@ -71,6 +71,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *   - a NATS broker's deliveries are SERVER too, the one OBI splits off an
  *     exchange and the one it types client-side, while the delivery OBI
  *     splits off a client's ack stays the client's CONSUMER;
+ *   - so are the publishes OBI types client-side on a broker, mosquitto's
+ *     PUBLISH to a subscriber and the PUB nats-server read beside a split
+ *     delivery, told from a client's by their equal ephemeral ports;
  *   - every span captured from a real nats-server and mosquitto
  *     (Fixtures/ObiMessaging) is stored with the kind OBI's own event type
  *     calls for;
@@ -1053,7 +1056,7 @@ function spanIdsOf(rows: Array<JSONObject>): Array<string> {
 }
 
 describe("OBI v0.14 NATS deliveries at ingest", () => {
-  test("nats-server's split delivery (B3) and the MSG it wrote that OBI typed client-side (B4) are stored as SERVER with no queue key; the consumer's own split delivery (C2) stays CONSUMER and is keyed; the subject is discovered from the producer's and the consumer's spans only", async () => {
+  test("nats-server's split delivery (B3), the MSG it wrote and the ack it read that OBI typed client-side (B4, B3-main) are stored as SERVER with no queue key; the consumer's own split delivery (C2) stays CONSUMER and is keyed; the subject is discovered from the producer's and the consumer's spans only", async () => {
     const captured: CapturedTraceRows = setupTraceMocks();
 
     await OtelTracesIngestService.processTracesFromQueue(
@@ -1066,6 +1069,8 @@ describe("OBI v0.14 NATS deliveries at ingest", () => {
       NATS_BROKER_PUB_SPAN_ID,
       NATS_BROKER_SPLIT_SPAN_ID,
       NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID,
+      // The ack the broker read, at the consumer's ephemeral port.
+      NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID,
     ]) {
       const row: JSONObject = spanById(captured.spans, spanId);
       expect({ spanId: spanId, kind: row["kind"] }).toEqual({
@@ -1074,13 +1079,6 @@ describe("OBI v0.14 NATS deliveries at ingest", () => {
       });
       expect(row["entityKeys"]).toBe(broker.entityKeys);
     }
-    // The ack the broker read (B3-main) keeps OBI's kind; an ack is no queue.
-    const brokerAck: JSONObject = spanById(
-      captured.spans,
-      NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID,
-    );
-    expect(brokerAck["kind"]).toBe(SpanKind.Producer);
-    expect(brokerAck["entityKeys"]).toBe(broker.entityKeys);
 
     const producerRow: JSONObject = spanById(
       captured.spans,
@@ -1163,9 +1161,9 @@ describe("OBI v0.14 NATS deliveries at ingest", () => {
     expect(kinds).toEqual({
       [NATS_BROKER_PUB_SPAN_ID]: SpanKind.Server,
       [NATS_BROKER_SPLIT_SPAN_ID]: SpanKind.Server,
-      // v0.13 sent it as CONSUMER too: still the broker's delivery.
+      // v0.13 sent these as CONSUMER and PRODUCER too: still the broker's.
       [NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID]: SpanKind.Server,
-      [NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID]: SpanKind.Producer,
+      [NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID]: SpanKind.Server,
       [NATS_PRODUCER_PUBLISH_SPAN_ID]: SpanKind.Producer,
       [NATS_CONSUMER_ACK_SPAN_ID]: SpanKind.Producer,
       [NATS_CONSUMER_SPLIT_SPAN_ID]: SpanKind.Server,
@@ -1196,6 +1194,370 @@ describe("OBI v0.14 NATS deliveries at ingest", () => {
 });
 
 /*
+ * mosquitto 2 and its clients, as OBI v0.14.0 captured them (values from
+ * Fixtures/ObiMessaging): mosquitto reads mqtt-publisher's PUBLISH (typed
+ * receiving-side) and writes it on to mqtt-subscriber first, which OBI types
+ * client-side: a PRODUCER naming the subscriber at the ephemeral port it
+ * connected from. The publisher's own PUBLISH names mosquitto's port 1883.
+ * And a Kafka client reaching its broker at a port Docker published in the
+ * ephemeral range: Kafka is never re-typed.
+ */
+function capturedMqttAttributes(data: {
+  serverAddress: string;
+  serverPort: number;
+  peerAddress: string;
+  peerPort: number;
+  operation: "publish" | "process";
+  topic: string;
+  servicePeerName?: string;
+}): Array<OtlpAttribute> {
+  return [
+    stringIntAttribute("server.port", data.serverPort),
+    stringAttribute("messaging.system", "mqtt"),
+    stringAttribute("messaging.destination.name", data.topic),
+    stringAttribute("server.address", data.serverAddress),
+    stringAttribute("messaging.operation.name", data.operation),
+    stringAttribute(
+      "messaging.operation.type",
+      data.operation === "publish" ? "send" : "process",
+    ),
+    ...(data.servicePeerName
+      ? [stringAttribute("service.peer.name", data.servicePeerName)]
+      : []),
+    stringAttribute("network.peer.address", data.peerAddress),
+    stringIntAttribute("network.peer.port", data.peerPort),
+  ];
+}
+
+const MQTT_SENSORS_TEMP_KEY: string = queueKey("mqtt", "sensors/temp");
+
+const MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID: string = "3e41acc7106be89f";
+const MOSQUITTO_READ_PUBLISH_SPAN_ID: string = "b011223344556678";
+const MQTT_PUBLISHER_PUBLISH_SPAN_ID: string = "c011223344556679";
+const MQTT_SUBSCRIBER_DELIVERY_SPAN_ID: string = "d01122334455667a";
+const MQTT_SUBSCRIBER_SUBSCRIBE_SPAN_ID: string = "e01122334455667b";
+const KAFKA_PUBLISHED_PORT_PRODUCE_SPAN_ID: string = "f01122334455667c";
+
+function mosquittoResources(): Array<ResourceSpansInput> {
+  return [
+    {
+      serviceName: "mosquitto",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          spanId: MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID,
+          name: "publish sensors/temp",
+          kind: PRODUCER_KIND,
+          attributes: capturedMqttAttributes({
+            serverAddress: "mqtt-subscriber",
+            serverPort: 37910,
+            peerAddress: "10.244.1.78",
+            peerPort: 37910,
+            operation: "publish",
+            topic: "sensors/temp",
+            servicePeerName: "mqtt-subscriber",
+          }),
+        },
+        {
+          spanId: MOSQUITTO_READ_PUBLISH_SPAN_ID,
+          name: "publish sensors/temp",
+          kind: PRODUCER_KIND,
+          attributes: capturedMqttAttributes({
+            serverAddress: "mosquitto",
+            serverPort: 1883,
+            peerAddress: "10.244.1.76",
+            peerPort: 51976,
+            operation: "publish",
+            topic: "sensors/temp",
+          }),
+        },
+      ],
+    },
+    {
+      serviceName: "mqtt-publisher",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          spanId: MQTT_PUBLISHER_PUBLISH_SPAN_ID,
+          name: "publish sensors/temp",
+          kind: PRODUCER_KIND,
+          attributes: capturedMqttAttributes({
+            serverAddress: "mosquitto",
+            serverPort: 1883,
+            peerAddress: "10.96.56.243",
+            peerPort: 1883,
+            operation: "publish",
+            topic: "sensors/temp",
+            servicePeerName: "mosquitto",
+          }),
+        },
+      ],
+    },
+    {
+      serviceName: "mqtt-subscriber",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          // The delivery, reversed: server.address its own name.
+          spanId: MQTT_SUBSCRIBER_DELIVERY_SPAN_ID,
+          name: "publish sensors/temp",
+          kind: PRODUCER_KIND,
+          attributes: capturedMqttAttributes({
+            serverAddress: "mqtt-subscriber",
+            serverPort: 37910,
+            peerAddress: "10.96.56.243",
+            peerPort: 1883,
+            operation: "publish",
+            topic: "sensors/temp",
+          }),
+        },
+        {
+          spanId: MQTT_SUBSCRIBER_SUBSCRIBE_SPAN_ID,
+          name: "process sensors/#",
+          kind: CONSUMER_KIND,
+          attributes: capturedMqttAttributes({
+            serverAddress: "mosquitto",
+            serverPort: 1883,
+            peerAddress: "10.96.56.243",
+            peerPort: 1883,
+            operation: "process",
+            topic: "sensors/#",
+            servicePeerName: "mosquitto",
+          }),
+        },
+      ],
+    },
+    {
+      serviceName: "orders-api",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          spanId: KAFKA_PUBLISHED_PORT_PRODUCE_SPAN_ID,
+          name: "publish orders",
+          kind: PRODUCER_KIND,
+          attributes: [
+            ...kafkaAttributes({
+              serverAddress: "kafka",
+              operation: "publish",
+              servicePeerName: "kafka",
+            }).filter((attribute: OtlpAttribute): boolean => {
+              return attribute.key !== "server.port";
+            }),
+            stringIntAttribute("server.port", 49154),
+            stringAttribute("network.peer.address", "172.18.0.1"),
+            stringIntAttribute("network.peer.port", 49154),
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+describe("OBI publishes typed client-side on a broker, at ingest", () => {
+  test("mosquitto's PUBLISH to a subscriber is stored as SERVER with no queue key, like the PUBLISH it read; the publisher keeps PRODUCER and its key, so the topic is discovered from its span alone; a Kafka client at a published high port keeps PRODUCER", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest(mosquittoResources()),
+    );
+
+    expect(captured.spans).toHaveLength(6);
+    const broker: TelemetryServiceMetadata = issuedFor("mosquitto");
+    for (const spanId of [
+      MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID,
+      MOSQUITTO_READ_PUBLISH_SPAN_ID,
+    ]) {
+      const row: JSONObject = spanById(captured.spans, spanId);
+      expect({ spanId: spanId, kind: row["kind"] }).toEqual({
+        spanId: spanId,
+        kind: SpanKind.Server,
+      });
+      expect(row["entityKeys"]).toBe(broker.entityKeys);
+    }
+
+    const publisherRow: JSONObject = spanById(
+      captured.spans,
+      MQTT_PUBLISHER_PUBLISH_SPAN_ID,
+    );
+    expect(publisherRow["kind"]).toBe(SpanKind.Producer);
+    expect(publisherRow["entityKeys"]).toEqual([
+      ...RESOURCE_KEYS,
+      MQTT_SENSORS_TEMP_KEY,
+    ]);
+    expect(
+      spanById(captured.spans, MQTT_SUBSCRIBER_DELIVERY_SPAN_ID)["kind"],
+    ).toBe(SpanKind.Server);
+    expect(
+      spanById(captured.spans, MQTT_SUBSCRIBER_SUBSCRIBE_SPAN_ID)["kind"],
+    ).toBe(SpanKind.Consumer);
+    const kafkaRow: JSONObject = spanById(
+      captured.spans,
+      KAFKA_PUBLISHED_PORT_PRODUCE_SPAN_ID,
+    );
+    expect(kafkaRow["kind"]).toBe(SpanKind.Producer);
+    expect(kafkaRow["entityKeys"]).toEqual([
+      ...RESOURCE_KEYS,
+      KAFKA_ORDERS_KEY,
+    ]);
+
+    // Keyed once: the publisher's PUBLISH, not mosquitto's.
+    expect(
+      spanIdsOf(
+        captured.spans.filter((row: JSONObject): boolean => {
+          return (row["entityKeys"] as Array<string>).includes(
+            MQTT_SENSORS_TEMP_KEY,
+          );
+        }),
+      ),
+    ).toEqual([MQTT_PUBLISHER_PUBLISH_SPAN_ID]);
+
+    const discovered: Array<DiscoveredMessageQueue> =
+      resolveMessagingSpanDiscoveryRows(captured.spans.map(discoveryRowFor));
+    const sensors: DiscoveredMessageQueue | undefined = discovered.find(
+      (queue: DiscoveredMessageQueue): boolean => {
+        return (
+          keyForMessageQueue(PROJECT_ID.toString(), queue.identity) ===
+          MQTT_SENSORS_TEMP_KEY
+        );
+      },
+    );
+    expect(sensors?.spans?.count).toBe(1);
+    const orders: DiscoveredMessageQueue | undefined = discovered.find(
+      (queue: DiscoveredMessageQueue): boolean => {
+        return (
+          keyForMessageQueue(PROJECT_ID.toString(), queue.identity) ===
+          KAFKA_ORDERS_KEY
+        );
+      },
+    );
+    expect(orders?.spans?.count).toBe(1);
+
+    // The broker's rows alone are no messaging evidence.
+    expect(
+      resolveMessagingSpanDiscoveryRows(
+        [
+          MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID,
+          MOSQUITTO_READ_PUBLISH_SPAN_ID,
+        ].map((spanId: string): MessagingSpanDiscoveryRow => {
+          return discoveryRowFor(spanById(captured.spans, spanId));
+        }),
+      ),
+    ).toEqual([]);
+    expectEveryResourceArrayUntouched();
+  });
+
+  test("the same payload with the kinds OBI v0.13 sent (SERVER for every MQTTServer span) is stored the same: v0.13 sent mosquitto's PUBLISH to a subscriber as PRODUCER too", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+    const v013: Array<ResourceSpansInput> = mosquittoResources().map(
+      (resource: ResourceSpansInput): ResourceSpansInput => {
+        return {
+          ...resource,
+          resourceAttributes: resource.resourceAttributes.map(
+            (attribute: OtlpAttribute): OtlpAttribute => {
+              return attribute.key === "telemetry.distro.version"
+                ? stringAttribute("telemetry.distro.version", "v0.13.0")
+                : attribute;
+            },
+          ),
+          spans: resource.spans.map((span: SpanInput): SpanInput => {
+            return [
+              MOSQUITTO_READ_PUBLISH_SPAN_ID,
+              MQTT_SUBSCRIBER_DELIVERY_SPAN_ID,
+            ].includes(span.spanId)
+              ? { ...span, kind: SERVER_KIND }
+              : span;
+          }),
+        };
+      },
+    );
+
+    await OtelTracesIngestService.processTracesFromQueue(tracesRequest(v013));
+
+    const kinds: Record<string, unknown> = {};
+    for (const row of captured.spans) {
+      kinds[row["spanId"] as string] = row["kind"];
+    }
+    expect(kinds).toEqual({
+      [MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID]: SpanKind.Server,
+      [MOSQUITTO_READ_PUBLISH_SPAN_ID]: SpanKind.Server,
+      [MQTT_PUBLISHER_PUBLISH_SPAN_ID]: SpanKind.Producer,
+      [MQTT_SUBSCRIBER_DELIVERY_SPAN_ID]: SpanKind.Server,
+      [MQTT_SUBSCRIBER_SUBSCRIBE_SPAN_ID]: SpanKind.Consumer,
+      [KAFKA_PUBLISHED_PORT_PRODUCE_SPAN_ID]: SpanKind.Producer,
+    });
+  });
+
+  test("from an install whose attributes.select drops network.peer.port, mosquitto's PUBLISH to a subscriber is still SERVER by its service.peer.name and server.port, and the topic is still keyed by the publisher alone", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+    const withoutPeerPort: Array<ResourceSpansInput> = mosquittoResources().map(
+      (resource: ResourceSpansInput): ResourceSpansInput => {
+        return {
+          ...resource,
+          spans: resource.spans.map((span: SpanInput): SpanInput => {
+            return {
+              ...span,
+              attributes: span.attributes.filter(
+                (attribute: OtlpAttribute): boolean => {
+                  return attribute.key !== "network.peer.port";
+                },
+              ),
+            };
+          }),
+        };
+      },
+    );
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest(withoutPeerPort),
+    );
+
+    const kinds: Record<string, unknown> = {};
+    for (const row of captured.spans) {
+      kinds[row["spanId"] as string] = row["kind"];
+    }
+    expect(kinds).toEqual({
+      [MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID]: SpanKind.Server,
+      // No peer name: the address, mosquitto's own name, decides.
+      [MOSQUITTO_READ_PUBLISH_SPAN_ID]: SpanKind.Server,
+      [MQTT_PUBLISHER_PUBLISH_SPAN_ID]: SpanKind.Producer,
+      [MQTT_SUBSCRIBER_DELIVERY_SPAN_ID]: SpanKind.Server,
+      [MQTT_SUBSCRIBER_SUBSCRIBE_SPAN_ID]: SpanKind.Consumer,
+      [KAFKA_PUBLISHED_PORT_PRODUCE_SPAN_ID]: SpanKind.Producer,
+    });
+    expect(
+      spanIdsOf(
+        captured.spans.filter((row: JSONObject): boolean => {
+          return (row["entityKeys"] as Array<string>).includes(
+            MQTT_SENSORS_TEMP_KEY,
+          );
+        }),
+      ),
+    ).toEqual([MQTT_PUBLISHER_PUBLISH_SPAN_ID]);
+    expectEveryResourceArrayUntouched();
+  });
+
+  test("a drop filter on PRODUCER drops the publisher's PUBLISH and the Kafka produce, never mosquitto's", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+    jest
+      .spyOn(TraceDropFilterService, "loadDropFilters")
+      .mockResolvedValue([dropFilter("kind = 'SPAN_KIND_PRODUCER'")]);
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest(mosquittoResources()),
+    );
+
+    expect(spanIdsOf(captured.spans)).toEqual(
+      [
+        MOSQUITTO_PUBLISH_TO_SUBSCRIBER_SPAN_ID,
+        MOSQUITTO_READ_PUBLISH_SPAN_ID,
+        MQTT_SUBSCRIBER_DELIVERY_SPAN_ID,
+        MQTT_SUBSCRIBER_SUBSCRIBE_SPAN_ID,
+      ].sort(),
+    );
+  });
+});
+
+/*
  * Every captured span replayed as the request body it was: OBI's OTLP/JSON
  * export, verbatim (Fixtures/ObiMessaging), through the real attribute
  * flattening and the string int64 ports. Each row's stored kind must be the
@@ -1212,16 +1574,9 @@ type FixtureTruth = {
 
 const FIXTURE_DIR: string = path.join(__dirname, "Fixtures", "ObiMessaging");
 
-// A broker's shapes that keep a messaging client kind, as v0.13 sent them.
-const BROKER_SHAPES_KEPT_AS_EXPORTED: Array<string> = [
-  "B3-main",
-  "host-network B3-main",
-  "MQTT broker publish",
-];
-
 describe("captured OBI spans replayed through the ingest service", () => {
   test.each(["v0.13.0", "v0.14.0"])(
-    "OBI %s: every span is stored with the kind its truth table names, a SERVER row keeps its resource's shared array, and no broker span is messaging evidence but B3-main and mosquitto's PUBLISH to a subscriber",
+    "OBI %s: every span is stored with the kind its truth table names, a SERVER row keeps its resource's shared array, and no broker span is messaging evidence, B3-main and mosquitto's PUBLISH to a subscriber included",
     async (obiVersion: string) => {
       const captured: CapturedTraceRows = setupTraceMocks();
       const fixture: { spans: Array<FixtureTruth>; body: JSONObject } =
@@ -1273,17 +1628,28 @@ describe("captured OBI spans replayed through the ingest service", () => {
       }
       expectEveryResourceArrayUntouched();
 
-      const brokerRows: Array<JSONObject> = fixture.spans
-        .filter((span: FixtureTruth): boolean => {
-          return (
-            span.role === "broker" &&
-            !BROKER_SHAPES_KEPT_AS_EXPORTED.includes(span.shape)
-          );
-        })
-        .map((span: FixtureTruth): JSONObject => {
+      const brokerSpans: Array<FixtureTruth> = fixture.spans.filter(
+        (span: FixtureTruth): boolean => {
+          return span.role === "broker";
+        },
+      );
+      expect(
+        brokerSpans
+          .map((span: FixtureTruth): string => {
+            return span.shape;
+          })
+          .filter((shape: string): boolean => {
+            return ["B3-main", "MQTT broker publish"].includes(shape);
+          }).length,
+      ).toBeGreaterThan(0);
+      const brokerRows: Array<JSONObject> = brokerSpans.map(
+        (span: FixtureTruth): JSONObject => {
           return spanById(captured.spans, span.spanId);
-        });
-      expect(brokerRows.length).toBeGreaterThan(0);
+        },
+      );
+      for (const row of brokerRows) {
+        expect(row["entityKeys"]).toEqual(RESOURCE_KEYS);
+      }
       expect(
         resolveMessagingSpanDiscoveryRows(brokerRows.map(discoveryRowFor)),
       ).toEqual([]);
