@@ -681,7 +681,11 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
             )}
           </p>
         </div>
-        <div className="flex-shrink-0">
+        {/*
+          Under the description on a phone, at the right edge, as a card
+          header's actions always are; beside the title from sm up.
+        */}
+        <div className="flex-shrink-0 self-end sm:self-auto">
           <Button
             title="Recheck"
             icon={IconProp.Reload}

@@ -777,7 +777,11 @@ function EventNotes<TNote extends BaseModel>(
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          {/*
+            Under the description below lg, at the right edge, as a card
+            header's actions always are; beside the title from lg up.
+          */}
+          <div className="flex shrink-0 items-center gap-2 self-end lg:self-auto">
             {props.siblingRoute && (
               <NotesVisibilitySwitch
                 current={props.visibility}

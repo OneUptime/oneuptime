@@ -468,7 +468,11 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
-          <div className="flex flex-shrink-0 flex-wrap items-center gap-2 md:justify-end">
+          {/*
+            At the right edge at every width: beside the explanation from md
+            up, under it on a phone.
+          */}
+          <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
             {state.canViewTask && task && (
               <Button
                 title="View Task"
