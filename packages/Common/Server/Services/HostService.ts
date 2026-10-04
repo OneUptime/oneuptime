@@ -22,8 +22,13 @@ import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DiscoveredResourceCreate, {
   DiscoveredResourceNaming,
+  NamedAfterIdentityOptions,
   namedAfterIdentity,
 } from "../Utils/Telemetry/DiscoveredResourceCreate";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnIdentifier,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -45,11 +50,16 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
  * A host is matched to its telemetry by host.name, and named after it unless
  * somebody gives it a display name of their own (DiscoveredResourceCreate).
  */
-const HOST_NAMING: DiscoveredResourceNaming<Model> = namedAfterIdentity<Model>({
+const HOST_IDENTITY: NamedAfterIdentityOptions = {
   identityColumn: "hostIdentifier",
   resourceName: "host",
   identityName: "host name",
-});
+};
+
+const HOST_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>(HOST_IDENTITY);
+
+const HOST_MATCH_COLUMN: MatchColumn = matchedOnIdentifier(HOST_IDENTITY);
 
 /*
  * What `findOrCreateByHostIdentifier` memoizes: the resolved row's id plus
@@ -843,6 +853,22 @@ export class Service extends DatabaseService<Model> {
       service: this,
       createBy,
       naming: HOST_NAMING,
+    });
+  }
+
+  /*
+   * A host's host name - edited from the details card on its Settings page - is stored
+   * without the spaces around it, and refused when another one of the
+   * project already has it (DiscoveredResourceUpdate).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: HOST_MATCH_COLUMN,
     });
   }
 

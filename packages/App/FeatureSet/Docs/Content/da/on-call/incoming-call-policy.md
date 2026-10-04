@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime afspiller<br/>hilsenbesked]
     D --> E[Indlæs eskaleringsregler]
     E --> F{Regel 1:<br/>Prøv vagthavende bruger}
-    F -->|Intet svar| G{Regel 2:<br/>Prøv reserveteam}
+    F -->|Intet svar| G{Regel 2:<br/>Prøv reserveingeniør}
     F -->|Besvaret| H[Forbind opkalder<br/>til ingeniør]
     G -->|Intet svar| I{Regel 3:<br/>Prøv leder}
     G -->|Besvaret| H
@@ -70,7 +70,7 @@ Funktionen Indgående opkaldspolitik fungerer ved at:
 
 1. Modtage indgående opkald på et Twilio-telefonnummer
 2. Afspille en tilpasselig hilsenbesked
-3. Dirigere opkaldet gennem eskaleringsregler (teams, planer eller brugere)
+3. Dirigere opkaldet gennem eskaleringsregler (vagtplaner eller personer)
 4. Forbinde opkalderen til den første tilgængelige vagthavende ingeniør
 5. Eskalere til den næste regel, hvis ingen svarer
 
@@ -154,35 +154,37 @@ flowchart LR
 
 ## Trin 6: Konfigurer eskaleringsregler
 
-Eskaleringsregler bestemmer, hvordan opkald dirigeres:
+Eskaleringsregler bestemmer, hvem der ringes til, når nogen ringer til politikkens nummer, fra toppen af listen og nedad:
 
 1. Åbn din indgående opkaldspolitik
 2. Gå til fanen **Eskaleringsregler**
 3. Klik på **Tilføj eskaleringsregel**
-4. Konfigurer reglen:
-   - **Rækkefølge**: Prioritetsrækkefølgen (lavere tal prøves først)
-   - **Eskalér efter (sekunder)**: Tid at vente, inden der eskaleres
-   - **Vagttidsplan**: Vælg en plan for at dirigere til den, der er på vagt
-   - **Teams**: Vælg specifikke teams
-   - **Brugere**: Vælg specifikke brugere
-5. Tilføj yderligere eskaleringsregler efter behov
+4. Udfyld reglen. Det er ét trin:
+   - **Hvem der skal ringes til**: en vagtplan eller én person. En vagtplan ringer til den, der har vagt i den, når opkaldet kommer ind. Personerne er medlemmerne af dit projekt.
+   - **Ringetid (i sekunder)**: hvor længe deres telefon ringer, før opkaldet går videre til næste regel. Den starter på 30 sekunder, og Twilio tager 5 til 600.
+   - **Navn** og **Beskrivelse** er valgfrie og ligger under **Avanceret**. En regel uden navn vises efter sin plads på listen: **Level 1**, **Level 2**.
+5. Gem den, og tilføj en regel for hver vagtplan eller person, der skal prøves derefter
+
+Reglerne ringes op fra toppen af listen og nedad, og en ny regel tilføjes nederst. Træk en regel i håndtaget øverst til venstre for at ændre rækkefølgen; fra tastaturet fokuserer du håndtaget, trykker på mellemrum, flytter reglen med piletasterne og trykker på mellemrum igen.
+
+> **Husk telefonsvareren**: hold **Ringetid** kortere end den tid, det tager, før personens telefon sender et ubesvaret opkald til telefonsvareren. Hvis telefonsvareren svarer først, forbindes den, der ringer, til den, og opkaldet går ikke videre til næste regel. Twilio lægger selv et par sekunder til hver opringning.
 
 ### Eksempel på eskaleringsregel
 
 ```mermaid
 flowchart TD
     subgraph "Eskaleringskæde"
-        A[Regel 1: Primær vagthavende<br/>Vent 30 sekunder] --> B[Regel 2: Sekundær vagthavende<br/>Vent 30 sekunder]
-        B --> C[Regel 3: Ingeniørleder<br/>Vent 30 sekunder]
+        A[Level 1: Primær vagtplan<br/>Ring i 30 sekunder] --> B[Level 2: Sekundær vagtplan<br/>Ring i 30 sekunder]
+        B --> C[Level 3: Ingeniørleder<br/>Ring i 30 sekunder]
         C --> D[Besked om intet svar]
     end
 ```
 
-| Rækkefølge | Eskaler efter | Mål                   |
-| ---------- | ------------- | --------------------- |
-| 1          | 30 sekunder   | Primær vagtplan       |
-| 2          | 30 sekunder   | Sekundær vagtplan     |
-| 3          | 30 sekunder   | Ingeniørteamets leder |
+| Niveau  | Hvem der skal ringes til  | Ringetid    |
+| ------- | ------------------------- | ----------- |
+| Level 1 | Primær vagtplan           | 30 sekunder |
+| Level 2 | Sekundær vagtplan         | 30 sekunder |
+| Level 3 | Ingeniørleder (en person) | 30 sekunder |
 
 ## Trin 7: Konfigurer stemmebeskeder (valgfrit)
 
@@ -209,13 +211,14 @@ Tilpas de beskeder, opkaldere hører:
 
 ### Eskaleringsregel-indstillinger
 
-| Indstilling            | Beskrivelse                                         |
-| ---------------------- | --------------------------------------------------- |
-| Rækkefølge             | Prioritetsrækkefølge (1 = højeste prioritet)        |
-| Eskaler efter sekunder | Ventetid, inden næste regel prøves (standard: 30 s) |
-| Vagtplan               | Diriger til den, der i øjeblikket er på vagt        |
-| Teams                  | Diriger til alle medlemmer af valgte teams          |
-| Brugere                | Diriger til specifikke brugere                      |
+| Indstilling              | Beskrivelse                                                                                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hvem der skal ringes til | En vagtplan, der ringer til den, der har vagt i den, eller én person. Hver regel ringer til én af dem                                                     |
+| Ringetid (i sekunder)    | Hvor længe telefonen ringer, før opkaldet går videre til næste regel (standard: 30; fra 5 til 600)                                                        |
+| Navn og Beskrivelse      | Valgfrie, under Avanceret. En regel uden navn vises som Level 1, Level 2 og så videre efter sin plads på listen                                          |
+| Rækkefølge               | Reglens plads på listen: reglerne ringes op fra toppen og nedad. Ændres ved at trække reglerne; via API'et lægges en ny regel uden rækkefølge nederst |
+
+Via API'et angiver en regel `onCallDutyPolicyScheduleId` eller `userId` (én af dem, aldrig begge) og `escalateAfterSeconds`: ringetiden, 30 når den udelades.
 
 ## Visning af opkaldslogge
 
@@ -268,6 +271,7 @@ Hvis du ikke længere har brug for et telefonnummer:
 - Kontroller, at eskaleringsregler er korrekt konfigureret
 - Sørg for, at vagtplaner har brugere tildelt for den aktuelle tid
 - Bekræft, at politikken er aktiveret
+- Hvis opkald ender på en ingeniørs telefonsvarer, så sæt reglens **Ringetid** lavere end den tid, det tager, før deres telefon går på telefonsvareren
 
 ### Lydkvalitetsproblemer
 

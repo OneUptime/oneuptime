@@ -8,6 +8,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import Label from "Common/Models/DatabaseModels/Label";
+import LabelsElement from "Common/UI/Components/Label/Labels";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   HOSTNAME_FIELD_DESCRIPTION,
@@ -365,6 +369,32 @@ const NetworkDeviceSettings: FunctionComponent<
             required: false,
             placeholder: "Core switch in the US East datacenter",
           },
+          /*
+           * The site and the labels are edited here too, now that this is
+           * the one place a device's details are edited: the Overview's
+           * Device Details card is read-only, with a link here. The labels
+           * fold under Advanced, last on the step.
+           */
+          {
+            field: {
+              site: true,
+            },
+            title: "Site",
+            stepId: "device-details",
+            description:
+              "The network site this device belongs to. Site health rolls up from its devices.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSite,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Site (optional)",
+          },
+          getLabelsFormField<NetworkDevice>({
+            stepId: "device-details",
+          }),
           {
             field: {
               hostname: true,
@@ -473,6 +503,25 @@ const NetworkDeviceSettings: FunctionComponent<
             },
             {
               field: {
+                site: {
+                  name: true,
+                },
+              },
+              title: "Site",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                if (!item.site?.name) {
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
+                  );
+                }
+                return <span>{item.site.name}</span>;
+              },
+            },
+            {
+              field: {
                 hostname: true,
               },
               title: "Hostname",
@@ -571,6 +620,23 @@ const NetworkDeviceSettings: FunctionComponent<
                   <span className="text-sm text-gray-900">
                     {item.networkDeviceRole.name}
                   </span>
+                );
+              },
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <LabelsElement
+                    labels={(item.labels as Array<Label> | undefined) || []}
+                  />
                 );
               },
             },

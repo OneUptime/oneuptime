@@ -49,10 +49,6 @@ const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
     count: 1,
     why: '"NetFlow v5" (protocol name inside a translated sentence)',
   },
-  "Pages/OnCallDuty/IncomingCallPolicy/Escalation.tsx": {
-    count: 1,
-    why: '"{n}s" (seconds, unit)',
-  },
   "Pages/OnCallDuty/IncomingCallPolicy/LogView.tsx": {
     count: 2,
     why: '"{m}m {s}s" call duration (units)',

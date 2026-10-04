@@ -17,8 +17,8 @@ import {
   RunnerFormRestrictions,
   getKubernetesAgentRunnerFormNote,
   getRunnerFormFields,
+  getRunnerCreateFormFields,
   getRunnerFormRestrictions,
-  getRunnerTableFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -163,7 +163,11 @@ describe("the superseded sentence", () => {
     ).toBeNull();
   });
 
-  test("reaches the edit forms of both Runner pages on a legacy row", () => {
+  /*
+   * A Runner is edited in one place, the Runner Details card on its own
+   * page (the list page only creates): that form says it on a legacy row.
+   */
+  test("reaches the Runner page's edit form on a legacy row", () => {
     for (const row of [
       rowById(AGENT_RUNNER_ID),
       rowById(RENAMED_AGENT_RUNNER_ID),
@@ -175,32 +179,21 @@ describe("the superseded sentence", () => {
         withSteps: false,
         restrictions,
       });
-      const listEditForm: Fields<Runner> = getRunnerTableFormFields(
-        restrictions,
-      ).filter((field: Field<Runner>): boolean => {
-        return !field.doNotShowWhenEditing;
-      });
 
-      for (const fields of [detailForm, listEditForm]) {
-        const described: Array<string> = fields
-          .map((field: Field<Runner>): string => {
-            return String(field.sectionDescription || "");
-          })
-          .filter((description: string): boolean => {
-            return description.length > 0;
-          });
-        expect(described.length).toBe(1);
-        expect(described[0]).toContain(KUBERNETES_AGENT_RUNNER_SUPERSEDED_NOTE);
-      }
+      const described: Array<string> = detailForm
+        .map((field: Field<Runner>): string => {
+          return String(field.sectionDescription || "");
+        })
+        .filter((description: string): boolean => {
+          return description.length > 0;
+        });
+      expect(described.length).toBe(1);
+      expect(described[0]).toContain(KUBERNETES_AGENT_RUNNER_SUPERSEDED_NOTE);
     }
   });
 
   test("never reaches the create form", () => {
-    const createForm: Fields<Runner> = getRunnerTableFormFields(
-      getRunnerFormRestrictions(rowById(AGENT_RUNNER_ID)),
-    ).filter((field: Field<Runner>): boolean => {
-      return !field.doNotShowWhenCreating;
-    });
+    const createForm: Fields<Runner> = getRunnerCreateFormFields();
 
     for (const field of createForm) {
       expect(String(field.sectionDescription || "")).not.toContain(

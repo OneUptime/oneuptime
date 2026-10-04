@@ -34,7 +34,7 @@ import {
 } from "./Utils/FinishFromAnyStep";
 import {
   getPeoplePickerValueKeys,
-  toPeoplePickerIds,
+  toPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
@@ -829,7 +829,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
          * A people picker keeps its picks in form values of its own (owners
          * in ownerUsers and ownerTeams). Whatever the form started with -
          * ObjectIDs, related rows, ids - is held as plain ids, which is what
-         * the picker writes, so an untouched picker sends what it shows.
+         * the picker writes, so an untouched picker sends what it shows. A
+         * picker that takes one pick holds one id: an edit form's userId
+         * column arrives as an ObjectID and is sent back as its id.
          */
         if (
           field.fieldType === FormFieldSchemaType.PeoplePicker &&
@@ -839,7 +841,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             const startValue: unknown = (values as any)[valueKey];
 
             if (startValue !== undefined && startValue !== null) {
-              (values as any)[valueKey] = toPeoplePickerIds(startValue);
+              (values as any)[valueKey] = toPeoplePickerFormValue(
+                field.peoplePicker,
+                startValue,
+              );
             }
           }
         }

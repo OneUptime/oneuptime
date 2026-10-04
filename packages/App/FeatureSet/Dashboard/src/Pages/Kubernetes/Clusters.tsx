@@ -245,7 +245,7 @@ const KubernetesClusters: FunctionComponent<
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
+            title: "Cluster Name (clusterName)",
             type: FieldType.Text,
           },
           {

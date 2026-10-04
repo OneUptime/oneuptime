@@ -10,6 +10,8 @@ This page documents the three things people most often want pinned down: **how a
 
 Sites form a tree. Each site has a **Site Type** (Region, Market, Unit, Data Center — the list is per-project and editable under **Network -> Settings -> Site Types**) and an optional **parent site**. A type can be flagged **unit-level**, which marks the leaf tier of your estate — the individual store or branch.
 
+A site's type, name, description, parent and location are edited in one place: **Site -> Settings -> Site Settings**. The site's Overview shows them with an **Edit in Settings** link, and the sites list creates sites but does not edit them.
+
 Devices attach to exactly one site. A site's *subtree* is itself plus every site beneath it, and that subtree's devices are what its health rolls up from. A Region with no devices of its own still has a status, because the units under it do.
 
 > Rollups are recomputed when a device's monitor status changes, when a device moves site, when the tree is re-parented, and by a sweep every five minutes that catches the cases where only the passage of time changed the answer.
