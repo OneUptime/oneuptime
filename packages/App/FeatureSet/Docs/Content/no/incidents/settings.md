@@ -78,7 +78,7 @@ Gå til **Hendelser → Innstillinger → Postmortem-maler** (`/dashboard/{proje
 - **Malnavn** og **Malbeskrivelse**, begge påkrevd.
 - **Mal for etteranalyse**, altså selve teksten, i Markdown, påkrevd.
 
-Du tar en mal i bruk fra hendelsen, ikke fra innstillingene. Åpne en hendelse, velg **Etteranalyse** i sidemenyen dens (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og bruk **Bruk mal**. Det åpner dialogen **Bruk obduksjonsmal** med en nedtrekksliste **Velg mal**; velger du én, lastes maltekst inn i redigeringsfeltet **Notat om etteranalyse**, der du redigerer den før du lagrer. Hendelsesepisoder har den samme **Etteranalyse**-siden og henter fra det samme malbiblioteket.
+Du tar en mal i bruk fra hendelsen, ikke fra innstillingene. Åpne en hendelse, velg **Etteranalyse** i sidemenyen dens (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og bruk **Bruk mal**. Det åpner dialogen **Bruk obduksjonsmal** med en nedtrekksliste **Velg mal**; velger du én, lastes maltekst inn i redigeringsfeltet **Notat om etteranalyse**, der du redigerer den før du lagrer. Hendelsesepisoder har den samme **Etteranalyse**-siden og henter fra det samme malbiblioteket. **Bruk mal** vises først når prosjektet har en etteranalysemal; finnes det bare én, er den allerede valgt. Redigeringsfeltet åpner hendelsens etteranalyse slik den er, med malen som notat, så om den står på statussiden, når den ble publisert og vedleggene forblir uendret.
 
 ## Egendefinerte felt
 

@@ -90,6 +90,7 @@ import {
   CreatedRecordKind,
   getCreateFromRecordQuery,
 } from "../CreateFromRecord/CreateFromRecord";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -1028,19 +1029,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       {incidentTemplates.length === 0 &&
         showIncidentTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Incident Templates`}
-            description={`No incident templates have been created yet. You can create these in Project Settings > Incident Templates.`}
-            submitButtonText={"Create Template"}
-            onSubmit={() => {
-              setShowIncidentTemplateModal(false);
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
-                ),
-              );
-            }}
-            closeButtonText={"Close"}
+          <NoTemplatesYetModal
+            title="No Incident Templates"
+            description="This project has no incident templates yet. Create them in Incidents → Settings → Incident Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES] as Route,
+            )}
             onClose={() => {
               setShowIncidentTemplateModal(false);
             }}

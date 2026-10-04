@@ -78,7 +78,7 @@ Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{p
 - **Mallnamn** och **Mallbeskrivning**, båda obligatoriska.
 - **Mall för efteranalys**, alltså själva texten, i Markdown, obligatorisk.
 
-Du tillämpar en mall från incidenten, inte från inställningarna. Öppna en incident, välj **Efteranalys** i dess sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) och använd **Tillämpa mall**. Det öppnar dialogen **Tillämpa mall för efteranalys** med rullgardinsmenyn **Välj mall**; väljer du en laddas malltexten in i redigeraren **Anteckning för efteranalys**, där du redigerar den innan du sparar. Incidentepisoder har samma sida **Efteranalys** och hämtar ur samma mallbibliotek.
+Du tillämpar en mall från incidenten, inte från inställningarna. Öppna en incident, välj **Efteranalys** i dess sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) och använd **Tillämpa mall**. Det öppnar dialogen **Tillämpa mall för efteranalys** med rullgardinsmenyn **Välj mall**; väljer du en laddas malltexten in i redigeraren **Anteckning för efteranalys**, där du redigerar den innan du sparar. Incidentepisoder har samma sida **Efteranalys** och hämtar ur samma mallbibliotek. **Tillämpa mall** visas först när projektet har en mall för efteranalys; finns det bara en är den redan vald. Redigeraren öppnar incidentens efteranalys som den är, med mallen som anteckning, så om den visas på statussidan, när den publicerades och dess bilagor förblir oförändrade.
 
 ## Anpassade fält
 

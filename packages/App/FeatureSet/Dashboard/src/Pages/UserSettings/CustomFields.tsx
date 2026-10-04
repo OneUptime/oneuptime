@@ -127,7 +127,7 @@ const UserSettingsCustomFields: FunctionComponent<
         title="Custom Fields"
         description="Custom fields help you add additional information to your profile."
       >
-        <ErrorMessage message="No custom fields have been defined for team members in this project. Project administrators can add custom fields in Project Settings > Users > Custom Fields." />
+        <ErrorMessage message="No custom fields have been defined for team members in this project. Project administrators can add custom fields in Users → Settings → Custom Fields." />
       </Card>
     );
   }
