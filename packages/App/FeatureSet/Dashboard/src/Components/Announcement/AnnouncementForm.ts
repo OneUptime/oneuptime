@@ -39,9 +39,11 @@ import {
  *      Subscribers are notified when it starts showing.").
  *
  * and the review step after them. From a status page that page is already
- * picked (?statusPageId=, ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM), so typing
- * a title is all it takes, and Create goes back to that page's
- * Announcements tab.
+ * picked (?statusPageId=, ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM), so a title
+ * and a description are all it takes, and Create goes back to that page's
+ * Announcements tab. The description is required on every announcement
+ * form, as the server requires it (the forms used to call it optional, and
+ * the request then failed at the end).
  *
  * The announcement's own Edit and the announcement template forms put the
  * fields they hold on the same steps: a template adds its name and

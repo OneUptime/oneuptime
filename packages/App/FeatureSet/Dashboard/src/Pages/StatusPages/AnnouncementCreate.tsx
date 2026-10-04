@@ -82,9 +82,6 @@ const AnnouncementCreate: FunctionComponent<
       announcementTemplateId: readAnnouncementQueryId(
         Navigation.getQueryStringByName(ANNOUNCEMENT_TEMPLATE_QUERY_PARAM),
       ),
-    }).catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err));
-      setIsLoading(false);
     });
   }, []);
 
@@ -108,6 +105,10 @@ const AnnouncementCreate: FunctionComponent<
         StatusPage | null,
         StatusPageAnnouncementTemplate | null,
       ] = await Promise.all([
+        /*
+         * The page only saves picking it: one that cannot be read leaves the
+         * form as the project's list opens it, rather than in its way.
+         */
         data.statusPageId
           ? ModelAPI.getItem<StatusPage>({
               modelType: StatusPage,
@@ -116,6 +117,8 @@ const AnnouncementCreate: FunctionComponent<
                 _id: true,
                 name: true,
               },
+            }).catch((): null => {
+              return null;
             })
           : Promise.resolve(null),
         data.announcementTemplateId
@@ -133,7 +136,10 @@ const AnnouncementCreate: FunctionComponent<
           : Promise.resolve(null),
       ]);
 
-      // A page that is gone, or not in this project, is not picked.
+      /*
+       * A page that is gone, or not in this project, comes back without an
+       * ID, and is not picked either.
+       */
       const statusPageId: string | null = statusPage?.id?.toString() || null;
 
       let initialValue: JSONObject = {};

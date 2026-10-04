@@ -176,8 +176,15 @@ const german: i18n = createInstance();
 // The address the page is opened with.
 let queryInUrl: Record<string, string> = {};
 
-// The status page the server answers for STATUS_PAGE_ID (null: not there).
-let statusPageOnServer: StatusPage | null = null;
+/*
+ * What the server answers for STATUS_PAGE_ID: the page, an empty record (the
+ * API's answer for a page that is gone or in another project), or a refusal.
+ */
+let statusPageOnServer: StatusPage | Error = new StatusPage();
+
+// What the server answers for TEMPLATE_ID.
+let templateOnServer: StatusPageAnnouncementTemplate | Error =
+  new StatusPageAnnouncementTemplate();
 
 // The language the page is drawn in; labels are looked up in it.
 let pageLanguage: i18n | null = null;
@@ -475,6 +482,7 @@ beforeAll(async () => {
 beforeEach(() => {
   queryInUrl = {};
   statusPageOnServer = makeStatusPage(STATUS_PAGE_ID, "Acme Public Status");
+  templateOnServer = makeTemplate();
   getListMock.mockReset();
   getItemMock.mockReset();
   createOrUpdateMock.mockReset();
@@ -518,11 +526,19 @@ beforeEach(() => {
       ).modelType;
 
       if (modelType === StatusPage) {
+        if (statusPageOnServer instanceof Error) {
+          throw statusPageOnServer;
+        }
+
         return statusPageOnServer;
       }
 
       if (modelType === StatusPageAnnouncementTemplate) {
-        return makeTemplate();
+        if (templateOnServer instanceof Error) {
+          throw templateOnServer;
+        }
+
+        return templateOnServer;
       }
 
       return null;
@@ -945,7 +961,8 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
   });
 
   test("a page that is not there is not picked: the pages are asked for, and the trail goes through the project's list", async () => {
-    statusPageOnServer = null;
+    // The API answers an empty record for a page it cannot find.
+    statusPageOnServer = new StatusPage();
 
     await renderPage();
 
@@ -967,6 +984,41 @@ describe("Create Announcement, from a status page's Announcements tab", () => {
         "Show announcement on these status pages is required.",
       ),
     ).toBeInTheDocument();
+  });
+
+  test("a page that cannot be read leaves the form as the project's list opens it, without an error", async () => {
+    statusPageOnServer = new Error("You do not have permission to read this.");
+
+    await renderPage();
+
+    expect(
+      screen.queryByText("You do not have permission to read this."),
+    ).toBeNull();
+    expect(queryCreateButton()).toBeNull();
+    expect(
+      breadcrumbs().map((link: { title: string }): string => {
+        return link.title;
+      }),
+    ).toEqual(["Status Pages", "Announcements", "Create Announcement"]);
+  });
+
+  test("a template that cannot be read says so, as before", async () => {
+    queryInUrl = {
+      statusPageId: STATUS_PAGE_ID,
+      announcementTemplateId: TEMPLATE_ID,
+    };
+    templateOnServer = new Error("This template was deleted.");
+
+    render(
+      <MemoryRouter>
+        <AnnouncementCreate {...PAGE_PROPS} />
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText("This template was deleted."),
+    ).toBeInTheDocument();
+    expect(document.getElementById("create-announcement-form")).toBeNull();
   });
 
   test("an address that names no real page asks the server for nothing", async () => {
