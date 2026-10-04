@@ -439,6 +439,44 @@ describe("CustomDomainOrders.orderOnceCnameIsVerified (Check now)", () => {
       CustomDomainCertificateStatus.Issuing,
     );
   });
+
+  /*
+   * Review: the route has verified the record by the time it asks, so a
+   * database hiccup here used to turn "Your CNAME record is verified" into
+   * a server error.
+   */
+  test("a certificate table that cannot be read answers Issuing, orders nothing and keeps the window free", async () => {
+    jest
+      .spyOn(GreenlockUtil, "findCertificatesByDomain")
+      .mockRejectedValue(new Error("connection terminated") as never);
+
+    const done: CheckNow = await checkNow({ domain: domain("dash.acme.com") });
+
+    expect(done.result).toEqual({
+      certificateStatus: CustomDomainCertificateStatus.Issuing,
+    });
+    expect(done.orders).toBe(0);
+    expect(redis.cache.size).toBe(0);
+  });
+
+  test("a write of 'ordered' that fails still answers Issued: the certificate is there", async () => {
+    withCertificates({ "dash.acme.com": 40 });
+
+    const result: CustomDomainVerificationResult =
+      await CustomDomainOrders.orderOnceCnameIsVerified({
+        domain: domain("dash.acme.com", { isSslOrdered: false }),
+        recordAsOrdered: async (): Promise<void> => {
+          throw new Error("connection terminated");
+        },
+        orderIfMissing: async (): Promise<CertificateOrderOutcome> => {
+          return CertificateOrderOutcome.Ordered;
+        },
+      });
+
+    expect(result).toEqual({
+      certificateStatus: CustomDomainCertificateStatus.Issued,
+    });
+  });
 });
 
 describe("CustomDomainOrders.orderForVerifiedDomainsWithoutOne (the sweeps)", () => {

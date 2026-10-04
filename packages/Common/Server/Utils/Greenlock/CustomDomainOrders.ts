@@ -58,8 +58,13 @@ export default class CustomDomainOrders {
    * for at most waitInMs - an order usually takes a few seconds - and an
    * order that takes longer carries on after the answer. An order that
    * fails is logged and reported, and the sweeps order the certificate
-   * again; the record being found is what Check now asked about. Never
-   * rejects.
+   * again; the record being found is what Check now asked about.
+   *
+   * Never rejects. The route has verified the record - and written that
+   * down - by the time it calls this, so nothing here may turn that into an
+   * error: a certificate table that cannot be read right now leaves the
+   * certificate to the sweeps, and a failed write of "ordered" is made again
+   * by the next sweep.
    */
   @CaptureSpan()
   public static async orderOnceCnameIsVerified(data: {
@@ -90,9 +95,27 @@ export default class CustomDomainOrders {
       domain.fullDomain || "",
     );
 
-    const certificate: AcmeCertificate | undefined = (
-      await GreenlockUtil.findCertificatesByDomain([name])
-    ).get(name);
+    let certificate: AcmeCertificate | undefined = undefined;
+
+    try {
+      certificate = (await GreenlockUtil.findCertificatesByDomain([name])).get(
+        name,
+      );
+    } catch (err) {
+      /*
+       * Not known whether it has one: order nothing now - not even into its
+       * window - and leave it to the sweeps, which look again.
+       */
+      logger.error(
+        "Cannot read the certificate of domain: " + domain.fullDomain,
+        { fullDomain: domain.fullDomain } as LogAttributes,
+      );
+      logger.error(err, { fullDomain: domain.fullDomain } as LogAttributes);
+
+      return {
+        certificateStatus: CustomDomainCertificateStatus.Issuing,
+      };
+    }
 
     if (
       certificate &&
@@ -103,7 +126,14 @@ export default class CustomDomainOrders {
     ) {
       if (!domain.isSslOrdered && domain.id) {
         // Verified again after a blip, with its certificate still good.
-        await data.recordAsOrdered();
+        try {
+          await data.recordAsOrdered();
+        } catch (err) {
+          // The certificate is there all the same; the next sweep records it.
+          logger.error(err, {
+            fullDomain: domain.fullDomain,
+          } as LogAttributes);
+        }
       }
 
       return {
@@ -130,14 +160,19 @@ export default class CustomDomainOrders {
           };
     }
 
-    let ordering: Promise<CertificateOrderOutcome>;
-
-    try {
-      ordering = data.orderIfMissing();
-    } catch (err) {
-      // Reported like an order that failed: this never rejects.
-      ordering = Promise.reject(err);
-    }
+    // A door that throws before it returns a promise is a failed order too.
+    const ordering: Promise<CertificateOrderOutcome> =
+      new Promise<CertificateOrderOutcome>(
+        (
+          resolve: (
+            outcome:
+              | CertificateOrderOutcome
+              | PromiseLike<CertificateOrderOutcome>,
+          ) => void,
+        ) => {
+          resolve(data.orderIfMissing());
+        },
+      );
 
     const order: Promise<CustomDomainVerificationResult> = ordering.then(
       (outcome: CertificateOrderOutcome): CustomDomainVerificationResult => {

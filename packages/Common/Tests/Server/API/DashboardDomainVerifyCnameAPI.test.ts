@@ -333,6 +333,26 @@ describe("dashboard verify-cname (Check now)", () => {
     );
   });
 
+  /*
+   * Review: a malformed id reached the uuid column and came back as a
+   * database error, a 500. It is the caller's mistake: a 400.
+   */
+  test("a malformed id is refused as bad data, before anything is read", async () => {
+    const spies: Spies = setUp({});
+
+    await callRoute(VERIFY_ROUTE, { id: "not-a-uuid" });
+
+    expect(spies.countBy).not.toHaveBeenCalled();
+    expect(spies.findOneBy).not.toHaveBeenCalled();
+    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe("The domain ID is not valid.");
+  });
+
   test("checks access with the caller's own props, and a domain they cannot see orders nothing", async () => {
     const spies: Spies = setUp({ canSee: false });
 
@@ -689,6 +709,25 @@ describe("dashboard certificates (the Status column)", () => {
         },
       ],
     });
+  });
+
+  test("a malformed id is refused as bad data, and nothing is looked up", async () => {
+    const findBy: MockedFn = jest.spyOn(
+      DashboardDomainService,
+      "findBy",
+    ) as unknown as MockedFn;
+
+    const { next } = await callRoute(CERTIFICATES_ROUTE, {
+      dashboardId: "not-a-uuid",
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(findBy).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
   });
 
   test("a caller who may not read the domains gets the refusal, and nothing is looked up", async () => {

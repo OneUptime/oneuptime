@@ -18,15 +18,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
-import CustomDomainVerification, {
-  CustomDomainVerificationResult,
-} from "../../Types/CustomDomain/CustomDomainVerification";
-import CustomDomainCertificates, {
-  CustomDomainCertificate,
-} from "../../Types/CustomDomain/CustomDomainCertificates";
 import CertificateOrder from "../Utils/Greenlock/CertificateOrder";
+import CustomDomainRoutes from "./CustomDomainRoutes";
 
 export default class DashboardDomainAPI extends BaseAPI<
   DashboardDomain,
@@ -36,169 +30,21 @@ export default class DashboardDomainAPI extends BaseAPI<
     super(DashboardDomain, DashboardDomainService);
 
     /*
-     * CNAME verification: the domain's Check now button in the dashboard,
-     * as on status page domains.
-     *
-     * The sweeps verify every domain every 15 minutes anyway; this is for the
-     * person who has just added the record and wants to know now. Once the
-     * record is found the domain's free certificate is ordered straight away
-     * (DashboardDomainService.orderCertOnceCnameIsVerified), and the answer
-     * says what happens to the certificate next. It used to answer with an
-     * empty body, and the certificate waited for an "Order Free SSL" button
-     * or the next order sweep.
+     * Check now (verify-cname) and the Status column's certificates: the
+     * same routes as a status page's custom domains, registered once for
+     * both (CustomDomainRoutes). Check now used to answer an empty body here,
+     * and the certificate waited for an "Order Free SSL" button or the next
+     * order sweep.
      */
-    this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/verify-cname/:id`,
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          if (!DashboardCNameRecord) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                `Custom Domains not enabled for this
-                                OneUptime installation. Please contact
-                                your server admin to enable this
-                                feature.`,
-              ),
-            );
-          }
-
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-          const id: ObjectID = new ObjectID(req.params["id"] as string);
-
-          const domainCount: PositiveNumber =
-            await DashboardDomainService.countBy({
-              query: {
-                _id: id.toString(),
-              },
-              props: databaseProps,
-            });
-
-          if (domainCount.toNumber() === 0) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "The domain does not exist or user does not have access to it.",
-              ),
-            );
-          }
-
-          const domain: DashboardDomain | null =
-            await DashboardDomainService.findOneBy({
-              query: {
-                _id: id.toString(),
-              },
-              select: {
-                _id: true,
-                fullDomain: true,
-                isCustomCertificate: true,
-                isSslOrdered: true,
-                // Whose on-demand orders the order counts against.
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!domain) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid token."),
-            );
-          }
-
-          if (!domain.fullDomain) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid domain."),
-            );
-          }
-
-          const isValid: boolean = await DashboardDomainService.isCnameValid(
-            domain.fullDomain!,
-          );
-
-          if (!isValid) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                `We could not find a CNAME record for ${domain.fullDomain} that points to ${DashboardCNameRecord} yet. Please check the record at your DNS provider. A new record can take a while to show up, and we keep checking every 15 minutes.`,
-              ),
-            );
-          }
-
-          const result: CustomDomainVerificationResult =
-            await DashboardDomainService.orderCertOnceCnameIsVerified(domain);
-
-          return Response.sendJsonObjectResponse(
-            req,
-            res,
-            CustomDomainVerification.toJSON(result),
-          );
-        } catch (e) {
-          next(e);
-        }
+    CustomDomainRoutes.add({
+      router: this.router,
+      crudApiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      service: DashboardDomainService,
+      getCnameRecord: (): string => {
+        return DashboardCNameRecord;
       },
-    );
-
-    /*
-     * Where the certificates of a dashboard's custom domains stand, for the
-     * Custom Domains page's Status column: each domain's certificate expiry,
-     * and why its last order failed while no order since has succeeded
-     * (CustomDomainCertificates). Neither is on the domain row, so without
-     * this an order that kept failing showed as "Issuing" for good.
-     *
-     * Reads only: the domains are looked up with the caller's own props, so
-     * a caller sees the domains they may read and nothing else.
-     */
-    this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/certificates/:dashboardId`,
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-          const dashboardId: ObjectID = new ObjectID(
-            req.params["dashboardId"] as string,
-          );
-
-          const domains: Array<DashboardDomain> =
-            await DashboardDomainService.findBy({
-              query: {
-                dashboardId: dashboardId,
-              },
-              select: {
-                _id: true,
-                fullDomain: true,
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-              props: databaseProps,
-            });
-
-          const certificates: Array<CustomDomainCertificate> =
-            await DashboardDomainService.getCertificates(domains);
-
-          return Response.sendJsonObjectResponse(
-            req,
-            res,
-            CustomDomainCertificates.toJSON(certificates),
-          );
-        } catch (e) {
-          next(e);
-        }
-      },
-    );
+      parentColumn: "dashboardId",
+    });
 
     /*
      * Order SSL. The dashboard no longer has a button for this: a domain's
