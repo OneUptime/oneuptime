@@ -548,8 +548,8 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           <div data-testid="trace-profile">
             <p className="mb-3 text-xs text-gray-500">
               Flame graph built from the {profileSampleCount.toLocaleString()}{" "}
-              profile sample{profileSampleCount === 1 ? "" : "s"} recorded
-              during this trace.
+              profile sample{profileSampleCount === 1 ? "" : "s"} linked to the
+              spans of this trace.
             </p>
             <TraceScopedFlamegraph traceId={traceId} />
           </div>
