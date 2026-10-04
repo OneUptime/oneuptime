@@ -1046,7 +1046,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Overridden by User",
-    description: "Relation to User who overrode this alert",
+    description:
+      "The user this alert would have paged, when a user override sent it to the Alert Sent To User instead because they were away. Empty when no override applied.",
   })
   @ManyToOne(
     () => {
@@ -1070,7 +1071,8 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Overridden by User ID",
-    description: "User ID who overrode this alert",
+    description:
+      "ID of the user this alert would have paged, when a user override sent it to the user in Alert Sent To User ID instead because they were away. Empty when no override applied.",
   })
   @Column({
     type: ColumnType.ObjectID,
