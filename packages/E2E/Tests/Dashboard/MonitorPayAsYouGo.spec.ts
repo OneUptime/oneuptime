@@ -253,8 +253,8 @@ test.describe("Monitor pay-as-you-go pricing", () => {
       form.getByRole("checkbox", { name: "I agree to these usage charges" }),
     ).toHaveCount(0);
     /*
-     * A Manual monitor asks nothing more: Monitor Info is its only step, so
-     * Create Monitor is on offer there with no Next, and its optional labels
+     * A Manual monitor asks nothing more: Monitor Info is its only step - its
+     * last - so Create Monitor is there with no Next, and its optional labels
      * wait under Advanced on the same step.
      */
     await expect(ctx.page.getByTestId("Create Monitor")).toHaveText(

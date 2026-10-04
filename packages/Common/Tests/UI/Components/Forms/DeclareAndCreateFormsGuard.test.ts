@@ -627,8 +627,6 @@ describe("who responds", () => {
 
       expect(field).toContain('stepId: "on-call",');
       expect(field).toContain(`description: "${description}",`);
-      // Starts empty and writes only what is picked (FinishFromAnyStepGuard).
-      expect(field).toContain("customElementCanBeSkipped: true,");
       expect(field).toContain(
         '"Nobody picked. You take any role marked Primary."',
       );

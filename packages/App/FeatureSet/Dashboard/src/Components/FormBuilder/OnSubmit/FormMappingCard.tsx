@@ -324,7 +324,6 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
           modalWidth={ModalWidth.Large}
           isLoading={isSaving}
           submitButtonText={FormsCopy.saveChanges}
-          saveFromAnyStep={true}
           onClose={() => {
             setIsEditing(false);
             setUnsavedValues(null);
@@ -336,6 +335,11 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
             id: "form-on-submit-settings",
             name: "Form On Submit Settings",
             steps: getFormSettingsSteps(props.targetType),
+            /*
+             * Every step is filled in already: the step list opens any of
+             * them, so Save Changes, on the last step, is one click away.
+             */
+            allowAnyStepNavigation: true,
             fields: getFormSettingsFields({
               targetType: props.targetType,
               reference: reference,

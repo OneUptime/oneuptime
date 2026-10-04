@@ -32,10 +32,10 @@ import {
  *   - on a step of its own, away from the project it lists the teams of -
  *     with nothing to show until the project is picked, it would only be a
  *     Next between the project and its members team;
- *   - before the project field, or without one;
- *   - saying customElementCanBeSkipped: the picker writes the members team
- *     when it is drawn, so a form must draw it before it is sent.
- * It also pins the four forms by name, so one cannot quietly stop drawing
+ *   - before the project field, or without one.
+ * The picker writes the members team when it is drawn, so a form has to
+ * draw it before it is sent: the detector that finds such elements is
+ * pinned on it here. It also pins the four forms by name, so one cannot quietly stop drawing
  * the picker (and starting on the members team) without this list saying so.
  */
 
@@ -213,15 +213,7 @@ describe("Admin Dashboard forms that add someone to a project", () => {
     expect(problems).toEqual([]);
   });
 
-  test("never call the team picker skippable: it writes the members team when it is drawn", () => {
-    expect(
-      PICKER_FORMS.filter(({ field }: { field: FormFieldFacts }): boolean => {
-        return field.customElementCanBeSkipped;
-      }).map(({ form }: { form: FormFacts }): string => {
-        return describeForm(form);
-      }),
-    ).toEqual([]);
-
+  test("the team picker is known to write the members team when it is drawn", () => {
     for (const { field } of PICKER_FORMS) {
       const picker: CustomElementComponentFacts | undefined =
         field.customElementComponents.find(

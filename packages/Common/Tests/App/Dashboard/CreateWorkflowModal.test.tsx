@@ -271,15 +271,23 @@ const highlightTemplate: HighlightTemplateFunction = (
 
 type SubmitFunction = () => void;
 
-/** The footer's primary button: Use this template, Next or Create Workflow. */
+/*
+ * The footer's way on: Use this template on the picker and Next on a Name
+ * step that is not the last - both plain - or Create Workflow, the one
+ * primary button, on the last step.
+ */
 const submit: SubmitFunction = (): void => {
-  fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+  fireEvent.click(
+    screen.queryByTestId("modal-footer-next-button") ||
+      screen.getByTestId("modal-footer-submit-button"),
+  );
 };
 
-type QuerySubmitFunction = () => HTMLElement | null;
+type QueryButtonFunction = () => HTMLElement | null;
 
-const querySubmitButton: QuerySubmitFunction = (): HTMLElement | null => {
-  return screen.queryByTestId("modal-footer-submit-button");
+// The picker's way on, Use this template: a plain button, not the action.
+const queryUseTemplateButton: QueryButtonFunction = (): HTMLElement | null => {
+  return screen.queryByTestId("modal-footer-next-button");
 };
 
 type SelectTemplateFunction = (templateId: string) => WorkflowTemplate;
@@ -599,16 +607,23 @@ describe("CreateWorkflowModal standard form steps", () => {
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
       "Create Workflow",
     );
+    expect(
+      screen.queryByTestId("modal-footer-next-button"),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("workflow-wizard-back"));
     expectActiveStep("Start from");
 
     selectTemplate(SLACK_TEMPLATE_ID);
 
+    // Name is not the last step: a plain Next, and no Create Workflow.
     expectActiveStep("Name");
-    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
       "Next",
     );
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
 
     submit();
 
@@ -683,7 +698,10 @@ describe("CreateWorkflowModal's Start from step", () => {
   test("the footer holds only Cancel until a template is picked", () => {
     renderModal();
 
-    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(queryUseTemplateButton()).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId("modal-footer")).getAllByRole("button"),
     ).toEqual([screen.getByTestId("modal-footer-close-button")]);
@@ -693,30 +711,54 @@ describe("CreateWorkflowModal's Start from step", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("picking a template brings Use this template into the footer, as the dialog's one primary button", () => {
+  /*
+   * Use this template only walks on to Name: it is a Next by another name,
+   * so it is plain, like Cancel. Create Workflow, on the last step, is the
+   * wizard's one primary button.
+   */
+  test("picking a template brings Use this template into the footer, plain: nothing on the picker is primary", () => {
     renderModal();
     highlightTemplate(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[2]!);
 
     const useTemplate: HTMLElement = screen.getByTestId(
-      "modal-footer-submit-button",
+      "modal-footer-next-button",
     );
 
     expect(useTemplate).toHaveTextContent("Use this template");
     expect(useTemplate).toBeEnabled();
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
     // Named: eslint's wrap-regex and prettier disagree on a bare /re/.test().
     const FILLED: RegExp = /\bbg-indigo-600\b/;
 
-    expect(useTemplate.className).toMatch(FILLED);
-
-    // Nothing else in the dialog is filled.
+    // Nothing in the dialog is filled.
     for (const button of screen.getAllByRole("button")) {
-      if (button !== useTemplate) {
-        expect({
-          button: button.textContent,
-          filled: FILLED.test(button.className),
-        }).toEqual({ button: button.textContent, filled: false });
-      }
+      expect({
+        button: button.textContent,
+        filled: FILLED.test(button.className),
+      }).toEqual({ button: button.textContent, filled: false });
     }
+  });
+
+  test("Create Workflow, on the last step, is the one primary button", () => {
+    renderModal();
+    selectTemplate(ZERO_CONFIG_TEMPLATE_ID);
+
+    expectActiveStep("Name");
+
+    const create: HTMLElement = screen.getByTestId(
+      "modal-footer-submit-button",
+    );
+    const FILLED: RegExp = /\bbg-indigo-600\b/;
+
+    expect(create).toHaveTextContent("Create Workflow");
+    expect(create.className).toMatch(FILLED);
+    expect(
+      screen.getAllByRole("button").filter((button: HTMLElement) => {
+        return FILLED.test(button.className);
+      }),
+    ).toEqual([create]);
   });
 
   test("Use this template takes the template picked on to Name, with its suggestions", () => {
@@ -801,7 +843,7 @@ describe("CreateWorkflowModal's Start from step", () => {
     fireEvent.click(screen.getByTestId("workflow-wizard-back"));
 
     expect(activeOptionId()).toBeNull();
-    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(queryUseTemplateButton()).not.toBeInTheDocument();
     expect(screen.getByTestId("workflow-start-from-scratch")).toHaveAttribute(
       "aria-current",
       "true",
@@ -833,7 +875,7 @@ describe("CreateWorkflowModal's Start from step", () => {
       screen.getByTestId("workflow-start-from-scratch"),
     ).not.toHaveAttribute("aria-current");
     expect(activeOptionId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]);
-    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
       "Use this template",
     );
   });
@@ -873,7 +915,7 @@ describe("CreateWorkflowModal's Start from step", () => {
     searchTemplates("heartbeat");
 
     expect(activeOptionId()).toBe("scheduled-heartbeat");
-    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
       "Use this template",
     );
 
@@ -888,7 +930,7 @@ describe("CreateWorkflowModal's Start from step", () => {
     renderModal();
     searchTemplates("pagerduty");
 
-    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(queryUseTemplateButton()).not.toBeInTheDocument();
     expect(screen.getByTestId("workflow-template-empty")).toBeInTheDocument();
     expectActiveStep("Start from");
   });
@@ -1259,7 +1301,7 @@ describe("CreateWorkflowModal in German", () => {
 
     expect(details).toHaveTextContent(german["How It Works"] as string);
     expect(details).toHaveTextContent(de("What you'll need"));
-    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
       de("Use this template"),
     );
   });

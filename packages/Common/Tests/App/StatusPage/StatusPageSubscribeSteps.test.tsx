@@ -30,11 +30,11 @@ import { getJestSpyOn } from "../../Spy";
  * - on a page that lets subscribers choose - a Preferences step whose
  * answers ("all resources", "every kind of event") are already ticked.
  *
- * The visitor used to click Next to that step to reach Subscribe. Now
- * Subscribe is there from the first step, under the address, with a plain
- * Next below it for anyone who wants to narrow the updates down
- * (Common/UI/Components/Forms/Utils/FinishFromAnyStep.ts). A subscription
- * made from the first step is the one Preferences would have made untouched.
+ * Subscribe, the form's one primary button, is on the last step only
+ * (Common/UI/Components/Forms/Utils/SteppedFormFooter.ts): the address step
+ * shows a plain Next, as wide as the card, and Enter in the address walks on
+ * too. (From #4282 until 2026-10-04 Subscribe was offered on the address
+ * step as well; the maintainer asked for the action on the last step only.)
  *
  * These render the real subscribe pages; only the page chrome, the network
  * and the status page's own resources are stubbed. Copy resolves against the
@@ -254,74 +254,45 @@ describe("Subscribing on a status page", () => {
       allowSubscribersToChooseEventTypes: true,
     };
 
-    test("offers Subscribe on the address step, with Next below it to the preferences", async () => {
+    test("the address step offers a plain Next, as wide as the card, and no Subscribe", async () => {
       await renderPage(EmailSubscribe, options);
 
       await screen.findByRole("textbox", { name: /^Your Email/ });
       await waitFor(() => {
-        expect(subscribeButton()).toBeVisible();
+        expect(nextButton()).toBeVisible();
       });
 
       expect(activeStep()).toBe("Details");
       expect(within(progress()).getByText("Preferences")).toBeVisible();
+      expect(subscribeButton()).not.toBeInTheDocument();
 
       const next: HTMLElement = nextButton()!;
-      expect(next).toBeVisible();
-      // Under Subscribe: the form's one primary button spans the card.
-      expect(
-        subscribeButton()!.compareDocumentPosition(next) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+      // Plain, not the primary colour: Next commits nothing.
+      expect(next.className).not.toContain("bg-indigo-600");
+      // Where the form's action spans the card, so does Next.
+      expect(next.style.width).toBe("100%");
     });
 
-    test("subscribes from the address step to every resource and every kind of event", async () => {
+    test("Next asks for the address before walking on", async () => {
+      await renderPage(EmailSubscribe, options);
+
+      await screen.findByRole("textbox", { name: /^Your Email/ });
+      await waitFor(() => {
+        expect(nextButton()).toBeVisible();
+      });
+      fireEvent.click(nextButton()!);
+
+      expect(await screen.findByText("Your Email is required.")).toBeVisible();
+      expect(activeStep()).toBe("Details");
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+    });
+
+    test("Next opens the preferences, where Subscribe is the only button, and subscribes to everything as they start", async () => {
       await renderPage(EmailSubscribe, options);
 
       fireEvent.change(
         await screen.findByRole("textbox", { name: /^Your Email/ }),
         { target: { value: "Reader@Example.com" } },
-      );
-      await waitFor(() => {
-        expect(subscribeButton()).toBeVisible();
-      });
-      fireEvent.click(subscribeButton()!);
-
-      await waitFor(() => {
-        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
-      });
-
-      const subscriber: JSONObject = sentSubscriber();
-
-      expect(subscriber["subscriberEmail"]).toBe("reader@example.com");
-      // What the untouched Preferences step would have sent.
-      expect(subscriber["isSubscribedToAllResources"]).toBe(true);
-      expect(subscriber["isSubscribedToAllEventTypes"]).toBe(true);
-      expect(sentUrl()).toContain(`/subscribe/${STATUS_PAGE_ID}`);
-      // Subscribed, without ever opening Preferences.
-      expect(
-        await screen.findByText(/An email with the link has been sent/),
-      ).toBeVisible();
-    });
-
-    test("asks for the address when Subscribe is pressed without one", async () => {
-      await renderPage(EmailSubscribe, options);
-
-      await screen.findByRole("textbox", { name: /^Your Email/ });
-      await waitFor(() => {
-        expect(subscribeButton()).toBeVisible();
-      });
-      fireEvent.click(subscribeButton()!);
-
-      expect(await screen.findByText("Your Email is required.")).toBeVisible();
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
-    });
-
-    test("Next still opens the preferences, where Subscribe is the only button", async () => {
-      await renderPage(EmailSubscribe, options);
-
-      fireEvent.change(
-        await screen.findByRole("textbox", { name: /^Your Email/ }),
-        { target: { value: "reader@example.com" } },
       );
       await waitFor(() => {
         expect(nextButton()).toBeVisible();
@@ -333,11 +304,44 @@ describe("Subscribing on a status page", () => {
       });
       expect(nextButton()).not.toBeInTheDocument();
       expect(subscribeButton()).toBeVisible();
+      expect(subscribeButton()!.className).toContain("bg-indigo-600");
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+      fireEvent.click(subscribeButton()!);
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const subscriber: JSONObject = sentSubscriber();
+
+      expect(subscriber["subscriberEmail"]).toBe("reader@example.com");
+      // What the untouched Preferences step sends.
+      expect(subscriber["isSubscribedToAllResources"]).toBe(true);
+      expect(subscriber["isSubscribedToAllEventTypes"]).toBe(true);
+      expect(sentUrl()).toContain(`/subscribe/${STATUS_PAGE_ID}`);
+      expect(
+        await screen.findByText(/An email with the link has been sent/),
+      ).toBeVisible();
+    });
+
+    test("Enter in the address walks on to the preferences, and never subscribes", async () => {
+      await renderPage(EmailSubscribe, options);
+
+      const email: HTMLElement = await screen.findByRole("textbox", {
+        name: /^Your Email/,
+      });
+      fireEvent.change(email, { target: { value: "reader@example.com" } });
+      fireEvent.keyDown(email, { key: "Enter", code: "Enter" });
+
+      await waitFor(() => {
+        expect(activeStep()).toBe("Preferences");
+      });
       expect(createOrUpdateMock).not.toHaveBeenCalled();
     });
   });
 
-  test("by SMS, Subscribe is on the phone number step too", async () => {
+  test("by SMS: Next on the phone number step, Subscribe on Preferences", async () => {
     await renderPage(SmsSubscribe, {
       allowSubscribersToChooseResources: false,
       allowSubscribersToChooseEventTypes: true,
@@ -348,10 +352,15 @@ describe("Subscribing on a status page", () => {
       { target: { value: "+15555550100" } },
     );
     await waitFor(() => {
+      expect(nextButton()).toBeVisible();
+    });
+    expect(subscribeButton()).not.toBeInTheDocument();
+
+    fireEvent.click(nextButton()!);
+
+    await waitFor(() => {
       expect(subscribeButton()).toBeVisible();
     });
-    expect(nextButton()).toBeVisible();
-
     fireEvent.click(subscribeButton()!);
 
     await waitFor(() => {

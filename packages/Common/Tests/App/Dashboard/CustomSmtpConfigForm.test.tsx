@@ -366,6 +366,45 @@ async function clickFooter(testId: string): Promise<void> {
   await settle();
 }
 
+/*
+ * The footer's one way on from the step on screen: a plain Next on every
+ * step but the last, the dialog's action (Create SMTP Config, Save Changes)
+ * on the last step only.
+ */
+async function clickWayOn(): Promise<void> {
+  await clickFooter(
+    within(dialog()).queryByTestId("modal-footer-next-button")
+      ? "modal-footer-next-button"
+      : "modal-footer-submit-button",
+  );
+}
+
+/*
+ * An edit dialog's step list opens any step: Sender, the last one, where
+ * Save Changes is - then Save Changes.
+ */
+async function saveFromTheLastStep(): Promise<void> {
+  expect(
+    within(dialog()).queryByTestId("modal-footer-submit-button"),
+  ).toBeNull();
+
+  await act(async (): Promise<void> => {
+    fireEvent.click(
+      within(
+        within(dialog()).getByRole("navigation", { name: "Progress" }),
+      ).getByText("Sender"),
+    );
+  });
+  await settle();
+
+  expect(activeStep()).toContain("Sender");
+  expect(
+    within(dialog()).getByTestId("modal-footer-submit-button"),
+  ).toHaveTextContent("Save Changes");
+
+  await clickFooter("modal-footer-submit-button");
+}
+
 async function saved(): Promise<Record<string, unknown>> {
   await waitFor(() => {
     expect(capturedModels).toHaveLength(1);
@@ -412,9 +451,12 @@ describe("creating a project's mail server", () => {
     // Sender's fields wait for their own step.
     expect(queryInput("fromEmail")).toBeNull();
 
-    // Sender still has to be filled in: Next, not Create, on this step.
+    // Create is on Sender, the last step, only: a plain Next here.
     expect(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
+      within(dialog()).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
+    expect(
+      within(dialog()).getByTestId("modal-footer-next-button"),
     ).toHaveTextContent("Next");
   });
 
@@ -477,7 +519,7 @@ describe("creating a project's mail server", () => {
     await type("username", "apikey");
     await type("password", "SG.secret-key");
 
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     expect(activeStep()).toContain("Sender");
     expect(input("fromEmail")).toBeVisible();
@@ -489,7 +531,7 @@ describe("creating a project's mail server", () => {
     await type("fromEmail", "alerts@example.com");
     await type("fromName", "Example Alerts");
 
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     const model: Record<string, unknown> = await saved();
 
@@ -521,7 +563,7 @@ describe("creating a project's mail server", () => {
   test("asks for the server before walking on", async () => {
     await renderPage();
 
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     expect(activeStep()).toContain("Server");
     expect(capturedModels).toEqual([]);
@@ -577,12 +619,12 @@ describe("creating a project's mail server", () => {
     );
     await type("scope", "https://graph.microsoft.com/.default");
 
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
     expect(activeStep()).toContain("Sender");
 
     await type("fromEmail", "alerts@example.com");
     await type("fromName", "Example Alerts");
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     const model: Record<string, unknown> = await saved();
 
@@ -617,10 +659,10 @@ describe("creating a project's mail server", () => {
     await type("hostname", "smtp.example.com");
     await type("username", "relay-user");
     await type("password", "relay-password");
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
     await type("fromEmail", "alerts@example.com");
     await type("fromName", "Example Alerts");
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     const model: Record<string, unknown> = await saved();
 
@@ -650,7 +692,7 @@ describe("creating a project's mail server", () => {
     });
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
 
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     expect(activeStep()).toContain("Server");
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "true");
@@ -701,10 +743,10 @@ describe("creating a project's mail server", () => {
       "Mail is sent over SMTP without signing in. TLS is used only if the server offers it.",
     );
 
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
     await type("fromEmail", "alerts@example.com");
     await type("fromName", "Example Alerts");
-    await clickFooter("modal-footer-submit-button");
+    await clickWayOn();
 
     const model: Record<string, unknown> = await saved();
 
@@ -755,12 +797,8 @@ describe("editing a project's mail server", () => {
       "Mail is sent over SMTP, signing in with the username and password. TLS is used only if the server offers it.",
     );
 
-    // An edit dialog saves from any step.
-    expect(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    ).toHaveTextContent("Save Changes");
-
-    await clickFooter("modal-footer-submit-button");
+    // Save Changes is on the last step only, one click away in the list.
+    await saveFromTheLastStep();
 
     const model: Record<string, unknown> = await saved();
 
@@ -824,7 +862,7 @@ describe("editing a project's mail server", () => {
     expect(queryInput("hostname")).toBeNull();
     expect(queryInput("port")).toBeNull();
 
-    await clickFooter("modal-footer-submit-button");
+    await saveFromTheLastStep();
 
     const model: Record<string, unknown> = await saved();
 

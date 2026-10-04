@@ -18,8 +18,8 @@ import Permission from "../../../../Types/Permission";
 /*
  * Adding a SAML provider, through the real ModelForm and BasicForm with only
  * the network stubbed: the form opens on the four things the identity
- * provider gives (name, sign-on URL, issuer, certificate), can be finished
- * from that first step, and saves a complete provider - RSA-SHA256 and
+ * provider gives (name, sign-on URL, issuer, certificate), walks on to
+ * Sign-in, where the action is, and saves a complete provider - RSA-SHA256 and
  * SHA256, the description from the name, the members team it started on,
  * and off until someone turns it on. The signature and digest methods wait
  * folded under Advanced, whose header says what they are until one is
@@ -218,7 +218,25 @@ async function fillTheProvider(): Promise<void> {
   await type("Paste in your x509 certificate here.", CERTIFICATE);
 }
 
+/*
+ * Walks on to the last step with Next - the form's action is there only,
+ * never on a step before it - and presses the action.
+ */
 async function submitWith(buttonName: string): Promise<JSONObject> {
+  for (
+    let step: number = 0;
+    step < 5 && screen.queryByTestId("form-next-button");
+    step++
+  ) {
+    expect(
+      screen.queryByRole("button", { name: buttonName }),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("form-next-button"));
+    });
+  }
+
   await act(async (): Promise<void> => {
     fireEvent.click(screen.getByRole("button", { name: buttonName }));
   });
@@ -287,7 +305,7 @@ describe("adding a SAML provider", () => {
     expect(screen.queryByText("Description")).not.toBeInTheDocument();
   });
 
-  test("can be finished from the first step, and saves a complete provider", async () => {
+  test("asks only the first step's four answers, then saves a complete provider from Sign-in", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: WITH_MEMBERS,
@@ -295,8 +313,15 @@ describe("adding a SAML provider", () => {
 
     await fillTheProvider();
 
-    // Everything on Sign-in has an answer, so the action is here already.
+    /*
+     * Everything on Sign-in has an answer already, but the action is on the
+     * last step only: Provider offers Next.
+     */
     expect(activeStep()).toContain("Provider");
+    expect(
+      screen.queryByRole("button", { name: ACTION }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("form-next-button")).toHaveTextContent("Next");
 
     const model: JSONObject = await submitWith(ACTION);
 

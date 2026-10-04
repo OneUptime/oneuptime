@@ -209,6 +209,26 @@ function createButton(): HTMLElement {
   });
 }
 
+/*
+ * Create is on the review, the last step, only: from Resources Affected,
+ * Next walks there first.
+ */
+async function createFromTheReview(): Promise<void> {
+  expect(
+    screen.queryByRole("button", {
+      name: "Create Scheduled Maintenance Event",
+    }),
+  ).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+  await waitFor(() => {
+    expect(currentStepTitle()).toBe("Summary");
+  });
+
+  fireEvent.click(createButton());
+}
+
 async function renderPage(): Promise<void> {
   render(
     <MemoryRouter>
@@ -357,7 +377,7 @@ describe("Create Scheduled Maintenance Event suggests the status pages that show
       screen.queryByRole("button", { name: "Remove Acme Public Status" }),
     ).toBeNull();
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
@@ -386,7 +406,7 @@ describe("Create Scheduled Maintenance Event suggests the status pages that show
       screen.getByTestId("status-page-suggestions-status"),
     ).toHaveTextContent("Added Acme Public Status to the status pages.");
 
-    fireEvent.click(createButton());
+    await createFromTheReview();
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);

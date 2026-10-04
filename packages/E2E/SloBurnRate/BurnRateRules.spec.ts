@@ -325,9 +325,9 @@ test("the step rail gains and loses each output step with its toggle", async ({
    * round-trip. The server enforces it too — this only saves the trip.
    *
    * With neither output on, every output step leaves the rail, so What It
-   * Declares becomes the last step and its primary button turns from "Next"
-   * into the submit button. Wait for that before clicking: reaching for "Next"
-   * straight after the toggle only worked when the click beat the re-render.
+   * Declares becomes the last step: its plain Next gives way to the submit
+   * button. Wait for that before clicking: reaching for "Next" straight
+   * after the toggle only worked when the click beat the re-render.
    */
   await incidentToggle.click();
   await expect(incidentToggle).toHaveAttribute("aria-checked", "false");

@@ -477,8 +477,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  // The picker writes only what is picked: the form can be finished without it.
-                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     values: FormValues<ScheduledMaintenance>,
                     elementProps: CustomElementProps,
@@ -870,8 +868,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   description:
                     "Remind subscribers before the event starts, for example 1 day before.",
                   fieldType: FormFieldSchemaType.CustomComponent,
-                  // Starts with no reminders, and writes only the ones added.
-                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     value: FormValues<ScheduledMaintenance>,
                     props: CustomElementProps,
