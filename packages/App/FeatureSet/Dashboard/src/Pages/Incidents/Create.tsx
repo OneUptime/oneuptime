@@ -1823,8 +1823,6 @@ const IncidentCreate: FunctionComponent<
                     "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  // The picker writes only what is picked: the form can be finished without it.
-                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     values: FormValues<Incident>,
                     elementProps: CustomElementProps,

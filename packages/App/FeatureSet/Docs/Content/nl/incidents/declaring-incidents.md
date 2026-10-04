@@ -21,7 +21,7 @@ Alle vier schrijven hetzelfde model, dus een incident dat door een sonde is geop
 
 Open **Incidenten → Alle incidenten** en klik rechtsboven in de lijst **Incidenten** op **Incident melden**. Dan kom je op een kaart met de titel **Nieuw incident melden**, die het formulier over drie stappen verdeelt: **Incidentdetails**, **Getroffen middelen** en **Bereikbaarheid en rollen**, gevolgd door een overzicht om te controleren. Als je project bij het aanmaken naar een aantal van zijn aangepaste incidentvelden vraagt, komt er direct na **Getroffen middelen** een vierde stap, **Details**.
 
-Alleen de eerste stap heeft verplichte velden, plus elk aangepast veld dat je beheerders als **Verplicht bij aanmaken** hebben gemarkeerd. Resources koppelen, bereikbaarheidsbeleid toevoegen en rollen toewijzen kan ook achteraf, vanaf de pagina's van het incident zelf.
+Alleen de eerste stap heeft verplichte velden, plus elk aangepast veld dat je beheerders als **Verplicht bij aanmaken** hebben gemarkeerd. Resources koppelen, bereikbaarheidsbeleid toevoegen en rollen toewijzen kan ook achteraf, vanaf de pagina's van het incident zelf. Elke stap vóór het overzicht heeft een gewone knop **Volgende**, en **Incident melden** staat in het overzicht, de laatste stap.
 
 **Geavanceerd.** De opties die de meeste incidenten nooit nodig hebben, wachten ingeklapt onder een kop **Geavanceerd** aan het eind van hun stap; klik erop om ze te openen. Ingeklapt toont de kop **Ingesteld** als er iets in is ingesteld — door een sjabloon bijvoorbeeld — en hij gaat vanzelf open als er iets in moet worden verbeterd. Het overzicht toont een ingeklapte optie alleen als die is ingesteld, behalve **Statuspagina-abonnees op de hoogte stellen**, die het altijd toont, met wie er bericht krijgt.
 

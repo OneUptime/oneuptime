@@ -21,7 +21,7 @@ Alla fyra skriver samma modell, så en incident som öppnats av en probe ser exa
 
 Öppna **Incidenter → Alla incidenter** och klicka på **Deklarera incident** uppe till höger i listan **Incidenter**. Då kommer du till ett kort med rubriken **Deklarera ny incident**, som delar upp formuläret i tre steg: **Incidentdetaljer**, **Berörda resurser** och **Jour och roller**, och därefter en sammanfattning att granska. När ditt projekt frågar efter några av sina anpassade incidentfält när en incident skapas, kommer ett fjärde steg, **Detaljer**, direkt efter **Berörda resurser**.
 
-Bara det första steget har obligatoriska fält, plus alla anpassade fält som dina administratörer har markerat som **Obligatoriskt vid skapande**. Du kan också bifoga resurser, lägga till jourpolicyer och tilldela roller efteråt, från incidentens egna sidor.
+Bara det första steget har obligatoriska fält, plus alla anpassade fält som dina administratörer har markerat som **Obligatoriskt vid skapande**. Du kan också bifoga resurser, lägga till jourpolicyer och tilldela roller efteråt, från incidentens egna sidor. Varje steg före sammanfattningen har en vanlig **Nästa**, och **Deklarera incident** finns i sammanfattningen, det sista steget.
 
 **Avancerad.** Alternativen som de flesta incidenter aldrig behöver väntar ihopfällda under rubriken **Avancerad** i slutet av sitt steg; klicka på den för att öppna dem. Ihopfälld visar rubriken **Konfigurerat** när något i den är satt — av en mall, till exempel — och den öppnas av sig själv när något i den behöver rättas. Sammanfattningen visar bara ett ihopfällt alternativ när det är satt, utom **Meddela statussideprenumeranter**, som den alltid visar, med vilka som meddelas.
 

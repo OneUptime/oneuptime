@@ -499,8 +499,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            // The picker writes only what is picked: the form can be finished without it.
-            customElementCanBeSkipped: true,
             getCustomElement: (
               values: FormValues<IncidentTemplate>,
               elementProps: CustomElementProps,

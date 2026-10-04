@@ -21,7 +21,7 @@ Alle fire skriver den samme model, så en hændelse åbnet af en sonde ser præc
 
 Åbn **Hændelser → Alle hændelser**, og klik på **Erklær hændelse** øverst til højre i listen **Hændelser**. Det fører dig til et kort med titlen **Erklær ny hændelse**, der fordeler formularen over tre trin: **Hændelsesdetaljer**, **Berørte ressourcer** og **Vagt og roller**, og derefter en opsummering til gennemsyn. Når dit projekt beder om nogle af sine brugerdefinerede hændelsesfelter ved oprettelse, kommer et fjerde trin, **Detaljer**, lige efter **Berørte ressourcer**.
 
-Kun det første trin har obligatoriske felter, plus ethvert brugerdefineret felt, dine administratorer har markeret som **Påkrævet ved oprettelse**. Du kan også tilknytte ressourcer, tilføje vagtpolitikker og tildele roller bagefter, fra hændelsens egne sider.
+Kun det første trin har obligatoriske felter, plus ethvert brugerdefineret felt, dine administratorer har markeret som **Påkrævet ved oprettelse**. Du kan også tilknytte ressourcer, tilføje vagtpolitikker og tildele roller bagefter, fra hændelsens egne sider. Hvert trin før opsummeringen har en almindelig **Næste**, og **Erklær hændelse** findes i opsummeringen, det sidste trin.
 
 **Avanceret.** De indstillinger, som de fleste hændelser aldrig har brug for, venter foldet sammen under overskriften **Avanceret** i slutningen af deres trin; klik på den for at åbne dem. Sammenfoldet viser overskriften **Konfigureret**, når noget i den er angivet — af en skabelon, for eksempel — og den åbner sig selv, når noget i den skal rettes. Opsummeringen viser kun en sammenfoldet indstilling, når den er angivet, undtagen **Underret statussideabonnenter**, som den altid viser, med hvem der får besked.
 

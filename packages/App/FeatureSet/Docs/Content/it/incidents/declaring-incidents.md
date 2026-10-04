@@ -21,7 +21,7 @@ Tutti e quattro scrivono lo stesso modello, quindi un incidente aperto da una so
 
 Aprite **Incidenti → Tutti gli incidenti** e fate clic su **Dichiara incidente** in alto a destra nell'elenco **Incidenti**. Si apre una scheda intitolata **Dichiara nuovo incidente**, che distribuisce il modulo su tre passaggi: **Dettagli dell'incidente**, **Risorse interessate** e **Reperibilità e ruoli**, poi un riepilogo da rivedere. Quando il progetto chiede alcuni dei suoi campi personalizzati dell'incidente alla creazione, un quarto passaggio, **Dettagli**, arriva subito dopo **Risorse interessate**.
 
-Solo il primo passaggio ha campi obbligatori, più ogni campo personalizzato che gli amministratori hanno segnato come **Obbligatorio alla creazione**. Risorse, policy di reperibilità e ruoli potete aggiungerli anche dopo, dalle pagine dell'incidente.
+Solo il primo passaggio ha campi obbligatori, più ogni campo personalizzato che gli amministratori hanno segnato come **Obbligatorio alla creazione**. Risorse, policy di reperibilità e ruoli potete aggiungerli anche dopo, dalle pagine dell'incidente. Ogni passaggio prima del riepilogo ha un semplice **Avanti**, e **Dichiara incidente** è nel riepilogo, l'ultimo passaggio.
 
 **Avanzato.** Le opzioni che alla maggior parte degli incidenti non servono mai aspettano, chiuse, sotto un'intestazione **Avanzato** alla fine del loro passaggio; fate clic per aprirle. Da chiusa, l'intestazione dice **Configurato** quando qualcosa al suo interno è impostato — da un modello, per esempio — e si apre da sola quando qualcosa al suo interno va corretto. Il riepilogo elenca un'opzione chiusa solo quando è impostata, tranne **Notifica gli iscritti alla pagina di stato**, che elenca sempre, con chi verrà avvisato.
 

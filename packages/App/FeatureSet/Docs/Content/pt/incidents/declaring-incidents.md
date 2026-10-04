@@ -21,7 +21,7 @@ As quatro gravam o mesmo modelo, então um incidente aberto por uma sonda é id�
 
 Abra **Incidentes → Todos os incidentes** e clique em **Declarar incidente** no canto superior direito da lista de **Incidentes**. Isso leva você a um cartão intitulado **Declarar novo incidente**, que distribui o formulário em três etapas: **Detalhes do incidente**, **Recursos afetados** e **Plantão e funções**, e depois um resumo para revisar. Quando o seu projeto pede alguns dos campos personalizados de incidente na criação, uma quarta etapa, **Detalhes**, vem logo depois de **Recursos afetados**.
 
-Só a primeira etapa tem campos obrigatórios, além de qualquer campo personalizado que os administradores marcaram como **Obrigatório na criação**. Você também pode anexar recursos, adicionar políticas de plantão e atribuir funções depois, a partir das páginas do próprio incidente.
+Só a primeira etapa tem campos obrigatórios, além de qualquer campo personalizado que os administradores marcaram como **Obrigatório na criação**. Você também pode anexar recursos, adicionar políticas de plantão e atribuir funções depois, a partir das páginas do próprio incidente. Cada etapa antes do resumo tem um simples **Próximo**, e **Declarar incidente** fica no resumo, a última etapa.
 
 **Avançado.** As opções de que a maioria dos incidentes nunca precisa esperam recolhidas sob um cabeçalho **Avançado** no fim da sua etapa; clique nele para abri-las. Recolhido, o cabeçalho mostra **Configurado** quando algo nele está definido — por um modelo, por exemplo — e abre sozinho quando algo nele precisa de correção. O resumo só lista uma opção recolhida quando ela está definida, exceto **Notificar assinantes da página de status**, que ele sempre lista, com quem será notificado.
 

@@ -21,7 +21,7 @@ Alle fire skriver til den samme modellen, så en hendelse åpnet av en sonde ser
 
 Åpne **Hendelser → Alle hendelser**, og klikk på **Erklær hendelse** øverst til høyre i listen **Hendelser**. Da kommer du til et kort med tittelen **Erklær ny hendelse**, som fordeler skjemaet over tre trinn: **Hendelsesdetaljer**, **Berørte ressurser** og **Vakt og roller**, og deretter et sammendrag å gå gjennom. Når prosjektet ditt spør etter noen av sine egendefinerte hendelsesfelt ved opprettelse, kommer et fjerde trinn, **Detaljer**, rett etter **Berørte ressurser**.
 
-Bare det første trinnet har obligatoriske felt, i tillegg til alle egendefinerte felt administratorene har merket som **Påkrevd ved opprettelse**. Du kan også knytte til ressurser, legge til vaktpolicyer og tildele roller etterpå, fra hendelsens egne sider.
+Bare det første trinnet har obligatoriske felt, i tillegg til alle egendefinerte felt administratorene har merket som **Påkrevd ved opprettelse**. Du kan også knytte til ressurser, legge til vaktpolicyer og tildele roller etterpå, fra hendelsens egne sider. Hvert trinn før sammendraget har en vanlig **Neste**, og **Erklær hendelse** ligger i sammendraget, det siste trinnet.
 
 **Avansert.** Innstillingene de fleste hendelser aldri trenger, venter sammenfoldet under overskriften **Avansert** på slutten av trinnet sitt; klikk på den for å åpne dem. Sammenfoldet viser overskriften **Konfigurert** når noe i den er satt — av en mal, for eksempel — og den åpner seg selv når noe i den må rettes. Sammendraget viser bare en sammenfoldet innstilling når den er satt, unntatt **Varsle statussideabonnenter**, som det alltid viser, med hvem som blir varslet.
 
