@@ -357,8 +357,10 @@ describe("both forms", () => {
     const globalModel: GlobalConfig = new GlobalConfig();
 
     // The column names: everything in the map but its one switch.
-    const columnsOf: (map: object) => Array<string> = (
-      map: object,
+    const columnsOf: <TEntity>(
+      map: SmtpConfigFormColumns<TEntity>,
+    ) => Array<string> = <TEntity>(
+      map: SmtpConfigFormColumns<TEntity>,
     ): Array<string> => {
       return Object.entries(map)
         .filter(([key]: [string, unknown]): boolean => {

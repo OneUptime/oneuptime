@@ -403,9 +403,9 @@ describe("what the form refuses", () => {
     );
     const nobodyAway: JSONObject = { ...values, overrideUserId: null };
 
-    expect(
-      byTitle(list, "Who is away?").customValidation?.(nobodyAway),
-    ).toBe(USER_OVERRIDE_AWAY_REQUIRED_MESSAGE);
+    expect(byTitle(list, "Who is away?").customValidation?.(nobodyAway)).toBe(
+      USER_OVERRIDE_AWAY_REQUIRED_MESSAGE,
+    );
   });
 });
 
