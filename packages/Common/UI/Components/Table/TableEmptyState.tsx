@@ -45,6 +45,11 @@ export interface TableEmptyStateAction {
   disabled?: boolean | undefined;
   // Why a disabled action is disabled, on hover.
   tooltip?: string | undefined;
+  /*
+   * The action is running (checking again, say): a spinner in place of its
+   * icon, and it cannot be pressed twice.
+   */
+  isLoading?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -54,6 +59,12 @@ export interface ComponentProps {
   kind: TableEmptyStateKind;
   title: string | ReactElement;
   description?: string | ReactElement | undefined;
+  /*
+   * Something the caller built itself, drawn between the description and
+   * the actions - the command that fills an empty chart, say. Left-aligned,
+   * and wider than the sentences above it.
+   */
+  body?: ReactElement | undefined;
   // Drawn on the illustration. Each kind has its own when this is not set.
   icon?: IconProp | undefined;
   actions?: Array<TableEmptyStateAction> | undefined;
@@ -181,6 +192,17 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {props.body ? (
+        <div
+          className="mt-5 w-full min-w-0 max-w-2xl text-left"
+          data-testid={`${testId}-body`}
+        >
+          {props.body}
+        </div>
+      ) : (
+        <></>
+      )}
+
       {hasActions ? (
         /*
          * A column on a phone, where each button takes the full width and
@@ -214,10 +236,11 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
                     isLink ? "text-sm font-medium" : "disabled:opacity-60"
                   }
                   disabled={action.disabled}
+                  isLoading={action.isLoading}
                   tooltip={action.tooltip}
                   dataTestId={action.dataTestId}
                   onClick={() => {
-                    if (action.disabled) {
+                    if (action.disabled || action.isLoading) {
                       return;
                     }
 

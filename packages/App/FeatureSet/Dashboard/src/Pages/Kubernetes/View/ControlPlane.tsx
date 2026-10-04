@@ -28,9 +28,11 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import EmbeddedMetricCardGroup, {
+  EmbeddedMetricCardGroupEmptyStateProps,
+} from "../../../Components/Metrics/EmbeddedMetricCardGroup";
+import KubernetesMetricsSetupEmptyState from "../../../Components/Kubernetes/KubernetesMetricsSetupEmptyState";
+import { KubernetesMetricsSource } from "../Utils/KubernetesMetricsSetup";
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -660,6 +662,72 @@ function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
+ * Tabs: one card of charts per control plane component
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
+
+interface ControlPlaneTab {
+  name: string;
+  icon: IconProp;
+  description: string;
+  // Which kubernetes-agent values collect this tab's metrics.
+  source: KubernetesMetricsSource;
+  getQueries: (cluster: string) => Array<MetricQueryConfigData>;
+}
+
+const CONTROL_PLANE_TABS: Array<ControlPlaneTab> = [
+  {
+    name: "etcd",
+    icon: IconProp.Database,
+    description:
+      "Distributed key-value store backing all cluster state. Monitors database size, disk I/O latency, leader stability, and replication health.",
+    source: KubernetesMetricsSource.Etcd,
+    getQueries: getEtcdQueries,
+  },
+  {
+    name: "API Server",
+    icon: IconProp.Globe,
+    description:
+      "Central management entity that validates and serves all REST operations. Tracks request throughput, latency, error rates, and connection health.",
+    source: KubernetesMetricsSource.ApiServer,
+    getQueries: getApiServerQueries,
+  },
+  {
+    name: "Scheduler",
+    icon: IconProp.AdjustmentHorizontal,
+    description:
+      "Assigns pods to nodes based on resource requirements, affinity, and constraints. Monitors scheduling throughput, queue pressure, and preemption activity.",
+    source: KubernetesMetricsSource.Scheduler,
+    getQueries: getSchedulerQueries,
+  },
+  {
+    name: "Controller Manager",
+    icon: IconProp.Settings,
+    description:
+      "Runs core control loops that reconcile cluster state. Tracks work queue depth, processing latency, retries, and throughput across all controllers.",
+    source: KubernetesMetricsSource.ControllerManager,
+    getQueries: getControllerManagerQueries,
+  },
+  {
+    name: "CoreDNS",
+    icon: IconProp.Globe,
+    description:
+      "Cluster DNS server handling all in-cluster name resolution. Monitors query throughput, latency, cache efficiency, forwarding, and errors.",
+    source: KubernetesMetricsSource.CoreDns,
+    getQueries: getCoreDnsQueries,
+  },
+  {
+    name: "kube-proxy",
+    icon: IconProp.Signal,
+    description:
+      "Network proxy on each node maintaining iptables/IPVS rules for Service routing. Monitors rule sync latency, network programming time, and change events.",
+    source: KubernetesMetricsSource.KubeProxy,
+    getQueries: getKubeProxyQueries,
+  },
+];
+
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
  * Main component
  * ──────────────────────────────────────────────────────────────────────────────
  */
@@ -667,7 +735,6 @@ function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
 const KubernetesClusterControlPlane: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -730,86 +797,65 @@ const KubernetesClusterControlPlane: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  const tabs: Array<Tab> = [
-    {
-      name: "etcd",
-      children: (
-        <EmbeddedMetricCard
-          title={getSectionTitle(IconProp.Database, "etcd")}
-          description="Distributed key-value store backing all cluster state. Monitors database size, disk I/O latency, leader stability, and replication health."
-          queryConfigs={getEtcdQueries(clusterIdentifier)}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          startAndEndDate={startAndEndDate}
-        />
-      ),
+  /*
+   * Checking again resolves the page's range afresh, so "Past 1 hour" takes
+   * in the minutes since the agent was upgraded.
+   */
+  const resolveTimeRangeAgain: () => void = (): void => {
+    handleTimeRangeChange(timeRange);
+  };
+
+  /*
+   * Each tab says how its metrics are collected only once its charts have
+   * loaded and found nothing (EmbeddedMetricCardGroup), in place of the
+   * charts and with the card's own heading and range. A cluster that sends
+   * the metrics never sees it. Keyed by tab, so a tab never shows the state
+   * of the tab before it.
+   */
+  const tabs: Array<Tab> = CONTROL_PLANE_TABS.map(
+    (tab: ControlPlaneTab): Tab => {
+      return {
+        name: tab.name,
+        children: (
+          <EmbeddedMetricCardGroup
+            key={tab.name}
+            dataTestId={`control-plane-${tab.source}`}
+            onCheckAgain={resolveTimeRangeAgain}
+            renderEmptyState={(
+              group: EmbeddedMetricCardGroupEmptyStateProps,
+            ): ReactElement => {
+              return (
+                <EmbeddedMetricCard
+                  title={getSectionTitle(tab.icon, tab.name)}
+                  description={tab.description}
+                  timeRange={timeRange}
+                  onTimeRangeChange={handleTimeRangeChange}
+                  startAndEndDate={startAndEndDate}
+                  onRefresh={group.checkAgain}
+                >
+                  <KubernetesMetricsSetupEmptyState
+                    source={tab.source}
+                    clusterName={clusterIdentifier}
+                    isChecking={group.isChecking}
+                    onCheckAgain={group.checkAgain}
+                  />
+                </EmbeddedMetricCard>
+              );
+            }}
+          >
+            <EmbeddedMetricCard
+              title={getSectionTitle(tab.icon, tab.name)}
+              description={tab.description}
+              queryConfigs={tab.getQueries(clusterIdentifier)}
+              timeRange={timeRange}
+              onTimeRangeChange={handleTimeRangeChange}
+              startAndEndDate={startAndEndDate}
+            />
+          </EmbeddedMetricCardGroup>
+        ),
+      };
     },
-    {
-      name: "API Server",
-      children: (
-        <EmbeddedMetricCard
-          title={getSectionTitle(IconProp.Globe, "API Server")}
-          description="Central management entity that validates and serves all REST operations. Tracks request throughput, latency, error rates, and connection health."
-          queryConfigs={getApiServerQueries(clusterIdentifier)}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          startAndEndDate={startAndEndDate}
-        />
-      ),
-    },
-    {
-      name: "Scheduler",
-      children: (
-        <EmbeddedMetricCard
-          title={getSectionTitle(IconProp.AdjustmentHorizontal, "Scheduler")}
-          description="Assigns pods to nodes based on resource requirements, affinity, and constraints. Monitors scheduling throughput, queue pressure, and preemption activity."
-          queryConfigs={getSchedulerQueries(clusterIdentifier)}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          startAndEndDate={startAndEndDate}
-        />
-      ),
-    },
-    {
-      name: "Controller Manager",
-      children: (
-        <EmbeddedMetricCard
-          title={getSectionTitle(IconProp.Settings, "Controller Manager")}
-          description="Runs core control loops that reconcile cluster state. Tracks work queue depth, processing latency, retries, and throughput across all controllers."
-          queryConfigs={getControllerManagerQueries(clusterIdentifier)}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          startAndEndDate={startAndEndDate}
-        />
-      ),
-    },
-    {
-      name: "CoreDNS",
-      children: (
-        <EmbeddedMetricCard
-          title={getSectionTitle(IconProp.Globe, "CoreDNS")}
-          description="Cluster DNS server handling all in-cluster name resolution. Monitors query throughput, latency, cache efficiency, forwarding, and errors."
-          queryConfigs={getCoreDnsQueries(clusterIdentifier)}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          startAndEndDate={startAndEndDate}
-        />
-      ),
-    },
-    {
-      name: "kube-proxy",
-      children: (
-        <EmbeddedMetricCard
-          title={getSectionTitle(IconProp.Signal, "kube-proxy")}
-          description="Network proxy on each node maintaining iptables/IPVS rules for Service routing. Monitors rule sync latency, network programming time, and change events."
-          queryConfigs={getKubeProxyQueries(clusterIdentifier)}
-          timeRange={timeRange}
-          onTimeRangeChange={handleTimeRangeChange}
-          startAndEndDate={startAndEndDate}
-        />
-      ),
-    },
-  ];
+  );
 
   /*
    * Issue #4105: every card reads the page's range, so a drag on any chart
@@ -822,31 +868,6 @@ const KubernetesClusterControlPlane: FunctionComponent<
       timeRange={timeRange}
       onTimeRangeChange={handleTimeRangeChange}
     >
-      {/* Info banner */}
-      <div className="mb-5 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <div className="flex-shrink-0 mt-0.5">
-          <Icon icon={IconProp.Info} className="h-5 w-5 text-blue-500" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-blue-800">
-            {translator.translateText("Control Plane Metrics Configuration")}
-          </p>
-          <p className="mt-1 text-sm text-blue-600">
-            <TranslatedSentence
-              template="Control plane metrics require {{setting}} in the kubernetes-agent Helm chart values. This is typically only available for self-managed clusters, not managed services like EKS, GKE, or AKS. CoreDNS metrics are available on all clusters."
-              slots={{
-                setting: (
-                  <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                    controlPlane.enabled: true
-                  </code>
-                ),
-              }}
-            />
-          </p>
-        </div>
-      </div>
-
-      {/* Tabbed content */}
       <Tabs tabs={tabs} onTabChange={() => {}} />
     </TimeRangeZoomScope>
   );

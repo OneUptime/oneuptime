@@ -3,11 +3,17 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from "react";
 import MetricView from "./MetricView";
+import {
+  EmbeddedMetricCardGroupContextValue,
+  useEmbeddedMetricCardGroup,
+} from "./EmbeddedMetricCardGroupContext";
+import { MetricResultsState } from "./Utils/MetricResultsState";
 import ExplorerLink from "./Utils/ExplorerLink";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
@@ -67,6 +73,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  *   them resets it.
  * - Otherwise the card keeps the zoom itself, over its own range, and
  *   hands it to everything it renders — the extra charts included.
+ *
+ * Empty charts: cards whose charts share one reason for being empty (a
+ * scrape that is off) go in an EmbeddedMetricCardGroup, which says why once,
+ * in their place, when every card has loaded and found nothing.
  */
 export interface ComponentProps {
   title?: string | ReactElement | undefined;
@@ -107,6 +117,13 @@ export interface ComponentProps {
    * the charts (used inside pages that already provide a card).
    */
   hideCard?: boolean | undefined;
+  /*
+   * Told what the card's query charts have to show each time that changes
+   * (see MetricView's onResultsStateChange). Inside an
+   * EmbeddedMetricCardGroup the card also tells the group, which explains
+   * an empty group once instead of drawing every card's empty charts.
+   */
+  onResultsStateChange?: ((state: MetricResultsState) => void) | undefined;
 }
 
 /*
@@ -168,21 +185,76 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
 
   const dateRange: InBetween<Date> = props.startAndEndDate || internalDateRange;
 
-  const [refreshNonce, setRefreshNonce] = useState<number>(0);
+  const [ownRefreshNonce, setRefreshNonce] = useState<number>(0);
+
+  /*
+   * A card inside an EmbeddedMetricCardGroup reloads when the group checks
+   * again, as it does on its own Refresh.
+   */
+  const group: EmbeddedMetricCardGroupContextValue | null =
+    useEmbeddedMetricCardGroup();
+  const refreshNonce: number = ownRefreshNonce + (group?.refreshNonce || 0);
 
   /*
    * Incident/alert/change-event markers for the charted window — the
    * card is the shared surface behind monitor metrics tabs,
    * infrastructure resource tabs, and companion signal tabs, so one
-   * insertion covers them all.
+   * insertion covers them all. Only the query charts draw them, so a card
+   * without queries (custom charts only, or a note such as a setup hint)
+   * does not fetch them.
    */
   const { lines: eventReferenceLines }: EventTimeReferenceLines =
     useEventTimeReferenceLines({
-      enabled: true,
+      enabled: props.queryConfigs !== undefined,
       window: dateRange,
       queryConfigs: props.queryConfigs,
       refreshTick: refreshNonce,
     });
+
+  /*
+   * What the card's query charts have to show, for the page and for the
+   * group around the card. The group cannot see into charts the card draws
+   * itself (children, extra charts), so a card with any counts as having
+   * something to show: a group never hides it as empty.
+   */
+  const memberId: string = useId();
+  const hasOwnCharts: boolean = Boolean(
+    props.children || props.renderExtraCharts,
+  );
+  const latestOnResultsStateChange: React.MutableRefObject<
+    ((state: MetricResultsState) => void) | undefined
+  > = useRef<((state: MetricResultsState) => void) | undefined>(
+    props.onResultsStateChange,
+  );
+  latestOnResultsStateChange.current = props.onResultsStateChange;
+  const latestHasOwnCharts: React.MutableRefObject<boolean> =
+    useRef<boolean>(hasOwnCharts);
+  latestHasOwnCharts.current = hasOwnCharts;
+
+  const reportToGroup: ((memberId: string, state: MetricResultsState) => void) | undefined =
+    group?.report;
+  const removeFromGroup: ((memberId: string) => void) | undefined =
+    group?.remove;
+
+  const handleResultsStateChange: (state: MetricResultsState) => void =
+    useCallback(
+      (state: MetricResultsState): void => {
+        latestOnResultsStateChange.current?.(state);
+        reportToGroup?.(
+          memberId,
+          latestHasOwnCharts.current && state !== MetricResultsState.Loading
+            ? MetricResultsState.HasData
+            : state,
+        );
+      },
+      [reportToGroup, memberId],
+    );
+
+  useEffect(() => {
+    return () => {
+      removeFromGroup?.(memberId);
+    };
+  }, [removeFromGroup, memberId]);
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
@@ -357,6 +429,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
             timeReferenceLines={
               eventReferenceLines.length > 0 ? eventReferenceLines : undefined
             }
+            onResultsStateChange={handleResultsStateChange}
           />
         ) : null}
         {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}
