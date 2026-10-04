@@ -59,6 +59,9 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 const HELPER_FILE: string = `${DASHBOARD}/Utils/Form/ResourceRuleForm.ts`;
 
 const LABEL_RULE_MODEL: RegExp = /LabelRule$/;
+
+// The step every label and owner rule form used to open on.
+const BASIC_INFO_STEP: RegExp = /basic-info|Basic Info/;
 const OWNER_RULE_MODEL: RegExp = /OwnerRule$/;
 
 /*
@@ -258,7 +261,7 @@ describe("every label and owner rule form", () => {
         file,
         ownSteps: false,
       });
-      expect({ file, basicInfo: /basic-info|Basic Info/.test(code) }).toEqual({
+      expect({ file, basicInfo: BASIC_INFO_STEP.test(code) }).toEqual({
         file,
         basicInfo: false,
       });
