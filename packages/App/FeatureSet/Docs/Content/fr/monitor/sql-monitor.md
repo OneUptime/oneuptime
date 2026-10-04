@@ -57,7 +57,7 @@ Créez un nouveau moniteur et choisissez **Requête SQL** comme type de moniteur
 - **Requête SQL** — la requête en lecture seule à exécuter (voir Rédaction de la requête).
 - **Utiliser SSL/TLS** — activez cette option pour vous connecter via TLS. Lorsqu'elle est activée, vous pouvez désactiver **Vérifier le certificat du serveur** si la base de données utilise un certificat auto-signé.
 
-### Options avancées
+### Plus de champs
 
 - **Délai de connexion (ms)** — le temps d'attente pour établir une connexion. Valeur par défaut `10000`, maximum `30000`.
 - **Délai d'exécution de l'instruction (ms)** — la limite stricte de la durée d'exécution de la requête. Valeur par défaut `15000`, maximum `60000`.

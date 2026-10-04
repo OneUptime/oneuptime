@@ -56,7 +56,7 @@ Teamen **Owners** och **Admin** är avsiktligt låsta: deras behörigheter går 
 
 Skapa hur många extra team du vill — "Frontend-jour", "Support", "Skrivskyddade granskare" — och ge varje team de behörigheter det behöver.
 
-Var du hittar det: **Inställningar → Team**. Öppna ett team för att nå **Members** och **Permissions**; **Block Permissions** finns under **Advanced** längst ned på sidan Permissions.
+Var du hittar det: **Inställningar → Team**. Öppna ett team för att nå **Members** och **Permissions**; **Block Permissions** finns under **More settings** längst ned på sidan Permissions.
 
 ## Behörigheter
 

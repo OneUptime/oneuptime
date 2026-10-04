@@ -27,7 +27,7 @@ Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUpt
 2. **SCIM-Einstellungen konfigurieren**
 
    - Geben Sie einen **Namen** ein. **Standard-Teams** beginnen mit dem Mitglieder-Team Ihres Projekts: Neue Benutzer werden diesen Teams hinzugefügt
-   - Unter **Erweitert** sind **Benutzer automatisch provisionieren** (Benutzer hinzufügen, wenn sie im IdP zugewiesen werden) und **Benutzer automatisch deprovisionieren** (Benutzer entfernen, wenn sie im IdP nicht mehr zugewiesen sind) aktiviert und **Push-Gruppen aktivieren** deaktiviert. Ändern Sie sie dort bei Bedarf
+   - Unter **Weitere Felder** sind **Benutzer automatisch provisionieren** (Benutzer hinzufügen, wenn sie im IdP zugewiesen werden) und **Benutzer automatisch deprovisionieren** (Benutzer entfernen, wenn sie im IdP nicht mehr zugewiesen sind) aktiviert und **Push-Gruppen aktivieren** deaktiviert. Ändern Sie sie dort bei Bedarf
    - Speichern Sie. Der Dialog mit der **SCIM-Basis-URL** und dem **Bearer-Token** für Ihre IdP-Konfiguration öffnet sich sofort
 
 3. **Ihren Identity Provider konfigurieren**
@@ -64,7 +64,7 @@ Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Se
 
 2. **SCIM-Einstellungen konfigurieren**
 
-   - Geben Sie einen **Namen** ein. Unter **Erweitert** sind **Benutzer automatisch provisionieren** (private Benutzer hinzufügen, wenn sie im IdP zugewiesen werden) und **Benutzer automatisch deprovisionieren** (private Benutzer löschen, wenn sie im IdP nicht mehr zugewiesen sind) aktiviert. Ändern Sie sie dort bei Bedarf
+   - Geben Sie einen **Namen** ein. Unter **Weitere Felder** sind **Benutzer automatisch provisionieren** (private Benutzer hinzufügen, wenn sie im IdP zugewiesen werden) und **Benutzer automatisch deprovisionieren** (private Benutzer löschen, wenn sie im IdP nicht mehr zugewiesen sind) aktiviert. Ändern Sie sie dort bei Bedarf
    - Speichern Sie. Der Dialog mit der **SCIM-Basis-URL** und dem **Bearer-Token** für Ihre IdP-Konfiguration öffnet sich sofort
 
 3. **Ihren Identity Provider konfigurieren**

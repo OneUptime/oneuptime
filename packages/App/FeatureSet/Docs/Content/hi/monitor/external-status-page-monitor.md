@@ -71,7 +71,7 @@ Component group filtering **Atlassian Statuspage** और **incident.io** provid
 
 जब कोई component group भी सेट होती है, तो component name filter उस group के **भीतर** लागू होता है, जिससे आप किसी बड़े group के अंदर एक single component को target कर सकते हैं। जब कोई भी filter निर्दिष्ट नहीं होता, तो scope में सभी components monitor किए जाते हैं।
 
-### Advanced Options
+### और फ़ील्ड
 
 #### Timeout
 

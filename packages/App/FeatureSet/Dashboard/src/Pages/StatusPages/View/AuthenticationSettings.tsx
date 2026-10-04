@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getIpAllowlistFoldedItem } from "../../../Components/IpAllowlist/IpAllowlistCopy";
 import StatusPageAccessCard from "../../../Components/StatusPage/StatusPageAccessCard";
 import StatusPageAccessCopy, {
   getIpAllowlistEntries,
@@ -69,7 +70,7 @@ const StatusPageAccess: FunctionComponent<
                   : StatusPageAccessCopy.advancedSummaryOpen,
               )
         }
-        isConfigured={isIpAllowlistSet}
+        items={[getIpAllowlistFoldedItem(ipAllowlist)]}
         dataTestId={STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID}
       >
         <CardModelDetail<StatusPage>

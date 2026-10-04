@@ -100,7 +100,7 @@ Ogni voce ha:
 - **Reperibilità → Policy di reperibilità** — le policy eseguite alla creazione di questo incidente.
 - **Ruoli incidente** — preassegnate membri del team ai ruoli.
 - **Ownership & Labels → Team proprietari**, **Utenti proprietari**, **Etichette**.
-- **Opzioni avanzate → Risoluzione automatica dell'incidente** (risolve l'incidente in automatico quando i criteri smettono di corrispondere), **Mostra incidente sulla pagina di stato**, **Incidente privato** e **Note di rimedio**.
+- **Altri campi → Risoluzione automatica dell'incidente** (risolve l'incidente in automatico quando i criteri smettono di corrispondere), **Mostra incidente sulla pagina di stato**, **Incidente privato** e **Note di rimedio**.
 
 Per l'elenco completo dei segnaposto `{{variable}}` utilizzabili in titolo, descrizione e note di rimedio, vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 

@@ -400,6 +400,15 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       stepId: "sign-in",
       disableSpellCheck: true,
       collapsibleSection: advancedSection,
+      // The issuer and /.well-known/openid-configuration, followed.
+      isAtDefault: (values: FormValues<TEntity>): boolean => {
+        return isDefaultOidcDiscoveryUrl({
+          discoveryURL: ssoFormValueAsText(
+            readSsoFormValue(values, "discoveryURL"),
+          ),
+          issuerURL: ssoFormValueAsText(readSsoFormValue(values, "issuerURL")),
+        });
+      },
     },
     /*
      * The scopes and the two claim names start at their usual values and

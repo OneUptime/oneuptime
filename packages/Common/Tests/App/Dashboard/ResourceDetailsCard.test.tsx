@@ -49,6 +49,11 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import {
+  getByTextOutsideFoldedHeaders,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.mock("react-i18next", () => {
   return {
@@ -187,16 +192,20 @@ async function openEditDialog(): Promise<HTMLElement> {
   return dialog;
 }
 
-// Whether a field's title sits inside a folded (hidden) section.
+/*
+ * Whether a field's title sits inside a folded (hidden) section - the field's
+ * own label, not the name the folded header lists.
+ */
 function isFolded(dialog: HTMLElement, title: string): boolean {
-  const titleElement: HTMLElement = within(dialog).getByText(title, {
-    exact: true,
-  });
+  const titleElement: HTMLElement = getByTextOutsideFoldedHeaders(
+    dialog,
+    title,
+  );
   return titleElement.closest("[hidden]") !== null;
 }
 
 function openAdvanced(dialog: HTMLElement): void {
-  fireEvent.click(within(dialog).getByText("Advanced", { exact: true }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "More fields" }));
 }
 
 describe("a host's details card", () => {
@@ -251,7 +260,7 @@ describe("a host's details card", () => {
     ).not.toBeInTheDocument();
 
     // The identity always holds a value; only labels make it "Configured".
-    expect(within(dialog).queryByText("Configured")).not.toBeInTheDocument();
+    expect(setChips(dialog)).toEqual([]);
 
     openAdvanced(dialog);
 
@@ -295,7 +304,7 @@ describe("a host's details card", () => {
     unsubscribe();
   });
 
-  test("says Configured on the folded section when the host has labels", async () => {
+  test("shows the labels as set on the folded section when the host has some, and only them", async () => {
     (stored as Host).labels = [label("production")];
 
     openSettings(HostSettings, PageMap.HOST_VIEW_SETTINGS);
@@ -303,11 +312,14 @@ describe("a host's details card", () => {
 
     const dialog: HTMLElement = await openEditDialog();
 
-    await within(dialog).findByText(
-      "Configured",
-      {},
+    await waitFor(
+      () => {
+        expect(setChips(dialog)).toEqual(["Labels: 1"]);
+      },
       { timeout: WAIT_TIMEOUT },
     );
+    // The host name is named, never called out: telemetry reports it.
+    expect(listedNames(dialog)).toEqual(["Host Name (host.name)", "Labels: 1"]);
   });
 });
 

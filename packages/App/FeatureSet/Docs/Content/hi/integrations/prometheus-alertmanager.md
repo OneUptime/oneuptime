@@ -71,7 +71,7 @@ monitor के **Criteria** खोलें और पहले criteria को 
 
 - _When filters match, change monitor status_ चालू करें और इसे **Offline** (या Degraded) पर सेट करें।
 - _When filters match, declare an incident_ चालू करें। **Title**, **Severity** और जिन **On-Call Policies** को पेज करना है, वे सेट करें।
-- उस incident के **Advanced Options** में **Auto Resolve Incident** चालू करें। इसके बिना recovery notifications अनदेखी रह जाती हैं और incidents हमेशा खुले रहते हैं।
+- उस incident के **More fields** में **Auto Resolve Incident** चालू करें। इसके बिना recovery notifications अनदेखी रह जाती हैं और incidents हमेशा खुले रहते हैं।
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## समस्या निवारण
 
 - **कुछ भी नहीं पहुँच रहा** — पुष्टि करें कि Alertmanager उस URL तक पहुँच सकता है; delivery errors के लिए उसके logs देखें। OneUptime कुछ भी validate करने से पहले हर request को खाली `200` लौटा देता है, इसलिए `200` इस बात की पुष्टि नहीं करता कि payload स्वीकार हुआ। इसके बजाय monitor की timeline देखें।
-- **Incidents खुलते हैं पर कभी बंद नहीं होते** — Alertmanager में `send_resolved: true`, criteria पर recovery field और मान (तुलना case-sensitive है), तथा incident के **Advanced Options** में **Auto Resolve Incident** जाँचें। दो और सूक्ष्म कारण: जिस payload में **Max incidents per request** से अधिक अलग keys हों, उसमें सीमा से आगे की keys recovery से भी छिप जाती हैं; और यदि ingest coalescing (नीचे) से जो notification गिरा वह `resolved` वाला ही था, तो incident हमेशा के लिए अटक जाता है, क्योंकि Alertmanager firing notifications दोहराता है, resolved वाले नहीं। ऐसे incidents हाथ से बंद करें।
+- **Incidents खुलते हैं पर कभी बंद नहीं होते** — Alertmanager में `send_resolved: true`, criteria पर recovery field और मान (तुलना case-sensitive है), तथा incident के **More fields** में **Auto Resolve Incident** जाँचें। दो और सूक्ष्म कारण: जिस payload में **Max incidents per request** से अधिक अलग keys हों, उसमें सीमा से आगे की keys recovery से भी छिप जाती हैं; और यदि ingest coalescing (नीचे) से जो notification गिरा वह `resolved` वाला ही था, तो incident हमेशा के लिए अटक जाता है, क्योंकि Alertmanager firing notifications दोहराता है, resolved वाले नहीं। ऐसे incidents हाथ से बंद करें।
 - **कोई incident ही नहीं, monitor status भी अपरिवर्तित** — grouping path की शुरुआत अक्षरशः `requestBody.` से होनी चाहिए, और किसी path में केवल पहला `[*]` ही wildcard होता है। दोनों गलतियाँ चुपचाप विफल होती हैं।
 - **Incident के text में कच्चे `{{...}}` placeholders दिखते हैं** — path resolve नहीं हुआ, और OneUptime unresolved placeholders को खाली करने के बजाय वैसा ही छोड़ देता है। अलग-अलग rules अलग annotations सेट करते हैं, इसलिए ऐसे fields संदर्भित करें जो आपके rules में सचमुच मौजूद हों (`commonAnnotations` बनाम प्रति-alert `annotations`)।
 - **alerts से भरे payload के लिए सिर्फ़ एक incident** — आपने ऐसे label से group किया जो notification के भीतर नहीं बदलता, अक्सर वही जो आपके route के `group_by` में भी है। इसके बजाय `requestBody.alerts[*].fingerprint` से group करें।

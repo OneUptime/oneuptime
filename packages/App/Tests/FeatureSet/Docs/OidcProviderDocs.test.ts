@@ -5,12 +5,12 @@ import path from "path";
 /*
  * Adding an OpenID Connect provider asks for its name, issuer URL, client ID
  * and secret; the discovery URL, scopes, claim names and description are
- * filled in under Advanced (Common/UI/Components/Sso/OidcProviderFormFields,
+ * filled in under More fields (Common/UI/Components/Sso/OidcProviderFormFields,
  * and the services for API callers). The guides told people to type all of
  * them in, so these pin the guides to the forms, in every docs language:
  *
  *   - Global SSO: the OIDC step asks for the four, says what is filled in
- *     under Advanced, and no longer asks for scopes "that must include
+ *     under More fields, and no longer asks for scopes "that must include
  *     openid";
  *   - Status pages: the OIDC page asks for the issuer, client ID and
  *     secret, with the rest filled in;
@@ -151,7 +151,7 @@ describe("the names the guides use", () => {
 });
 
 describe("Global SSO: creating an OIDC provider", () => {
-  it("in English: the four fields, then what Advanced fills in", () => {
+  it("in English: the four fields, then what More fields fills in", () => {
     const bullet: string = globalOidcBullet("en");
 
     for (const field of [
@@ -159,7 +159,7 @@ describe("Global SSO: creating an OIDC provider", () => {
       "**Issuer URL**",
       "**Client ID**",
       "**Client Secret**",
-      "**Advanced**",
+      "**More fields**",
       "**Discovery URL**",
       "**Scopes**",
       "`openid email profile`",
@@ -196,7 +196,7 @@ describe("Status pages: the OIDC page", () => {
     const page: string = readPage("en", "status-pages/index");
 
     expect(page).toContain(
-      "configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **Advanced**.",
+      "configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**.",
     );
     expect(page).not.toContain(
       "(discovery URL, issuer, client ID and secret, scopes, claim names)",
@@ -204,7 +204,7 @@ describe("Status pages: the OIDC page", () => {
   });
 
   it.each(LANGUAGES)(
-    "in %s: the rest is filled in under Advanced",
+    "in %s: the rest is filled in under More fields",
     (language: string) => {
       const page: string = readPage(language, "status-pages/index");
       const sentence: string =
@@ -212,9 +212,9 @@ describe("Status pages: the OIDC page", () => {
           return line.includes("OpenID Connect") && line.includes("SCIM");
         }) || "";
 
-      // Advanced, as the reader's dashboard words it.
+      // More fields, as the reader's dashboard words it.
       expect(sentence).toMatch(
-        /\*\*(Advanced|Erweitert|Avancé|Avanzado|Avanzato|Avançado|Geavanceerd|Avanceret|Avansert|Avancerad|Расширенный|詳細|고급|高级|進階|उन्नत)\*\*/,
+        /\*\*(More fields|Weitere Felder|Plus de champs|Más campos|Altri campi|Mais campos|Meer velden|Flere felter|Flere felt|Fler fält|Дополнительные поля|その他の項目|추가 필드|更多字段|更多欄位|और फ़ील्ड)\*\*/,
       );
     },
   );
@@ -236,7 +236,7 @@ describe("Project SSO: the OpenID Connect section", () => {
       "**Client Secret**",
       "**Sign-in**",
       "**Teams** starts on your project's members team",
-      "**Advanced**",
+      "**More fields**",
       "`/.well-known/openid-configuration`",
       "`openid email profile`",
       "**OIDC Configuration**",

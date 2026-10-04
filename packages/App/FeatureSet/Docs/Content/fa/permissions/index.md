@@ -56,7 +56,7 @@ Project
 
 هر تعداد تیم اضافی که می‌خواهید بسازید — «Frontend On-Call»، «Support»، «Read-Only Auditors» — و به هرکدام دسترسی‌هایی را که لازم دارد بدهید.
 
-کجا پیدایش کنید: **Settings → Teams**. تیمی را باز کنید تا به **Members** و **Permissions** برسید؛ **Block Permissions** زیر **Advanced** در پایین صفحه Permissions است.
+کجا پیدایش کنید: **Settings → Teams**. تیمی را باز کنید تا به **Members** و **Permissions** برسید؛ **Block Permissions** زیر **More settings** در پایین صفحه Permissions است.
 
 ## دسترسی‌ها
 

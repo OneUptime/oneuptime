@@ -10,7 +10,7 @@ Open a status page, and the side menu's **Branding** section has three items:
 
 | Page                       | What you set there                                                                                                                                                                                                                  |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Branding**               | Logo and cover image, page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **Advanced**: history chart colors, languages and search engine indexing. |
+| **Branding**               | Logo and cover image, page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **More settings**: history chart colors, languages and search engine indexing. |
 | **Custom Domains**         | Your own domain, its DNS record, and its free SSL certificate.                                                                                                                                                                      |
 | **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript.                                                                                                                                                                            |
 
@@ -20,7 +20,7 @@ Branding used to be split across separate **Essential Branding**, **Header**, **
 
 ## The Branding page
 
-**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **Advanced**, at the bottom of the page.
+**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **More settings**, at the bottom of the page.
 
 ### Logo and cover image
 
@@ -51,9 +51,9 @@ Good for: pointing visitors back to your marketing site, your docs, or a support
 
 Legal, privacy and terms links belong here. Header links are for navigation; footer links are for the fine print.
 
-### Advanced
+### More settings
 
-The last section of the page is folded, because few people ever change what is in it. Its header says what it holds ("History chart colors, languages, and whether search engines may list this page."), and it reads **Configured** while anything in it differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it.
+The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four cards — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it.
 
 **History chart colors.** These are the only built-in color controls on a status page.
 
@@ -93,7 +93,7 @@ They used to be two cards of their own, **Overall Uptime Percent** and **Downtim
 - **Custom CSS** — placeholder `Insert Custom CSS here.`
 - **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
 
-**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **Advanced** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
+**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
 
 > Custom JavaScript runs in your visitors' browsers on a page people load precisely when they are worried something is broken. Keep it small, keep it self-hosted where you can, and test it before you rely on it.
 
@@ -122,7 +122,7 @@ Click **Create Status Page Domain**. The dialog is one page:
 
 - **Subdomain**: the label only, placeholder `status (leave blank for root)`. Enter just `status`, not the whole hostname. Leave it blank or enter `@` to use the root/apex domain.
 - **Domain**: your verified domains, placeholder `Select domain`. A domain you have not verified is not listed, because it would be refused.
-- **Advanced**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required.
+- **More fields**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required.
 
 Click **Create Status Page Domain**. The dialog closes and the new domain's **DNS Setup** opens.
 
@@ -161,7 +161,7 @@ Every OneUptime certificate is ordered from one shared Let's Encrypt account, an
 
 If an order fails, the domain's Status column says so, with the reason on the line below, and **Check now** in **DNS Setup** shows it too. OneUptime keeps trying on its own, waiting a little longer after each failure in a row, so a domain whose order keeps failing does not use up the orders every other domain needs. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details. Once you have fixed the cause, click **Check now** to order again straight away. It places at most one order per domain every 15 minutes; a click in between shows how the last order went.
 
-If you uploaded your own certificate under **Advanced**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
+If you uploaded your own certificate under **More fields**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
 
 ## Reissuing a certificate
 

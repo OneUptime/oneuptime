@@ -15,7 +15,7 @@ Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > N
 1. **Server**: **Navn** (kun projektkonfigurationer), **Værtsnavn**, **Port** (en ny konfiguration starter på `587`), **Brugernavn** og **Adgangskode**.
 2. **Afsender**: **E-mail fra** og **Fra-navn**, som dine e-mails kommer fra.
 
-Alt andet er foldet sammen under **Avanceret** sidst i trinnet Server. Mens det er foldet sammen, fortæller overskriften, hvordan mail sendes, for eksempel "Mail sendes via SMTP med login med brugernavn og adgangskode. TLS er påkrævet."
+Alt andet er foldet sammen under **Flere felter** sidst i trinnet Server. Mens det er foldet sammen, fortæller overskriften, hvordan mail sendes, for eksempel "Mail sendes via SMTP med login med brugernavn og adgangskode. TLS er påkrævet."
 
 | Felt | Hvad det gør |
 | --- | --- |
@@ -25,7 +25,7 @@ Alt andet er foldet sammen under **Avanceret** sidst i trinnet Server. Mens det 
 | **OAuth-felter** | Udbydertype, klient-id, klienthemmelighed, token-URL og scope, som vises, når OAuth eller Microsoft Graph er valgt. |
 | **Beskrivelse** | En note til dit team (kun projektkonfigurationer). |
 
-**Microsoft Graph.** Åbn **Avanceret**, sæt **Transport** til `Microsoft Graph`, og udfyld en Azure-app med programtilladelsen **Mail.Send**: dens klient-id og klienthemmelighed, token-URL'en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og scopet `https://graph.microsoft.com/.default`. Mail sendes fra postkassen i **E-mail fra**, som skal være en licenseret postkasse i din lejer.
+**Microsoft Graph.** Åbn **Flere felter**, sæt **Transport** til `Microsoft Graph`, og udfyld en Azure-app med programtilladelsen **Mail.Send**: dens klient-id og klienthemmelighed, token-URL'en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og scopet `https://graph.microsoft.com/.default`. Mail sendes fra postkassen i **E-mail fra**, som skal være en licenseret postkasse i din lejer.
 
 Når en projektkonfiguration er gemt, tjekker **Send test-e-mail** på dens række, at den virker.
 
@@ -52,7 +52,7 @@ Når du konfigurerer SMTP med OAuth-autentificering i OneUptime, skal du bruge:
 | **Token URL**            | OAuth-tokenendpoint-URL                                                              |
 | **Omfang**               | Påkrævede OAuth-scope(s) til SMTP-adgang                                             |
 
-**Godkendelsestype** og OAuth-felterne findes under **Avanceret** i formularens trin Server.
+**Godkendelsestype** og OAuth-felterne findes under **Flere felter** i formularens trin Server.
 
 ---
 

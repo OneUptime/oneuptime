@@ -59,7 +59,7 @@ You can also use `{{random}}` for a unique string on every request:
 https://example.com/health?nocache={{random}}
 ```
 
-### Advanced Options
+### More fields
 
 #### Do Not Follow Redirects
 
@@ -111,7 +111,7 @@ So a page that answers `204 No Content`, or a redirect you watch with **Do Not F
 
 Criteria are checked from top to bottom, and the first one that matches decides what happens.
 
-When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **Advanced**, below the criteria. The folded **Advanced** header shows which status that is.
+When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **More fields**, below the criteria. The folded **More fields** header shows which status that is.
 
 Monitors created before OneUptime changed these defaults keep the criteria they were created with, which count only `200` as online. Monitors created through the API or Terraform use the criteria you send.
 

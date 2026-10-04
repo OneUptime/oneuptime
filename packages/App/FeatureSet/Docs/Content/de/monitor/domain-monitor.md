@@ -28,7 +28,7 @@ Domain-Monitore fragen WHOIS-Daten für Ihre Domains ab, um Registrierungsdetail
 | ---------- | ------------------------------------------------ | ------------ |
 | Domainname | Die zu überwachende Domain (z. B. `example.com`) | Ja           |
 
-### Erweiterte Einstellungen
+### Weitere Felder
 
 | Feld                  | Beschreibung                                                                                 | Standard |
 | --------------------- | -------------------------------------------------------------------------------------------- | -------- |

@@ -27,6 +27,7 @@ import {
   getValuesForMeasurementPreset,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/MeasurementSetup";
 import { getMeasurementsHelpMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/MeasurementHelp";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import AlertMeasurement from "../../../Models/DatabaseModels/AlertMeasurement";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentMeasurement from "../../../Models/DatabaseModels/IncidentMeasurement";
@@ -475,14 +476,16 @@ describe.each(FORMS)("$label measurement form", (entry: FormCase) => {
     }
 
     expect(markdown).toContain("View Chart");
-    expect(markdown).toContain("Advanced");
+    // The fold the rarely changed options sit in, by the name the form shows.
+    expect(markdown).toContain(`under **${MORE_FIELDS_SECTION_TITLE}**`);
+    expect(markdown).not.toContain("Advanced");
     expect(markdown).toContain(".measurement.<key>");
     expect(markdown).not.toMatch(/anchor|Timeline Start|State Role Entered/);
     expect(markdown).not.toContain("mermaid");
   });
 });
 
-describe("the options under Advanced", () => {
+describe("the options under More fields", () => {
   const values: (options: Array<MeasurementOption>) => Array<string> = (
     options: Array<MeasurementOption>,
   ): Array<string> => {

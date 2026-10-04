@@ -163,7 +163,7 @@ Eskaleringsregler bestemmer, hvem der ringes til, når nogen ringer til politikk
 4. Udfyld reglen. Det er ét trin:
    - **Hvem der skal ringes til**: en vagtplan eller én person. En vagtplan ringer til den, der har vagt i den, når opkaldet kommer ind. Personerne er medlemmerne af dit projekt.
    - **Ringetid (i sekunder)**: hvor længe deres telefon ringer, før opkaldet går videre til næste regel. Den starter på 30 sekunder, og Twilio tager 5 til 600.
-   - **Navn** og **Beskrivelse** er valgfrie og ligger under **Avanceret**. En regel uden navn vises efter sin plads på listen: **Level 1**, **Level 2**.
+   - **Navn** og **Beskrivelse** er valgfrie og ligger under **Flere felter**. En regel uden navn vises efter sin plads på listen: **Level 1**, **Level 2**.
 5. Gem den, og tilføj en regel for hver vagtplan eller person, der skal prøves derefter
 
 Reglerne ringes op fra toppen af listen og nedad, og en ny regel tilføjes nederst. Træk en regel i håndtaget øverst til venstre for at ændre rækkefølgen; fra tastaturet fokuserer du håndtaget, trykker på mellemrum, flytter reglen med piletasterne og trykker på mellemrum igen.
@@ -216,7 +216,7 @@ Tilpas de beskeder, opkaldere hører:
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Hvem der skal ringes til | En vagtplan, der ringer til den, der har vagt i den, eller én person. Hver regel ringer til én af dem                                                     |
 | Ringetid (i sekunder)    | Hvor længe telefonen ringer, før opkaldet går videre til næste regel (standard: 30; fra 5 til 600)                                                        |
-| Navn og Beskrivelse      | Valgfrie, under Avanceret. En regel uden navn vises som Level 1, Level 2 og så videre efter sin plads på listen                                          |
+| Navn og Beskrivelse      | Valgfrie, under Flere felter. En regel uden navn vises som Level 1, Level 2 og så videre efter sin plads på listen                                          |
 | Rækkefølge               | Reglens plads på listen: reglerne ringes op fra toppen og nedad. Ændres ved at trække reglerne; via API'et lægges en ny regel uden rækkefølge nederst |
 
 Via API'et angiver en regel `onCallDutyPolicyScheduleId` eller `userId` (én af dem, aldrig begge) og `escalateAfterSeconds`: ringetiden, 30 når den udelades.

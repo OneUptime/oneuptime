@@ -100,7 +100,7 @@ Elk item heeft:
 - **Bereikbaarheid → Bereikbaarheidsbeleid** — beleid dat draait wanneer dit incident wordt aangemaakt.
 - **Incidentrollen** — teamleden vooraf aan rollen toewijzen.
 - **Eigendom & labels → Eigenaarsteams**, **Eigenaarsgebruikers**, **Labels**.
-- **Geavanceerde opties → Incident automatisch oplossen** (lost het incident automatisch op zodra de criteria niet meer matchen), **Incident weergeven op statuspagina**, **Privé-incident** en **Herstelnotities**.
+- **Meer velden → Incident automatisch oplossen** (lost het incident automatisch op zodra de criteria niet meer matchen), **Incident weergeven op statuspagina**, **Privé-incident** en **Herstelnotities**.
 
 Voor de volledige lijst met `{{variable}}`-placeholders die je in de titel, beschrijving en herstelnotities kunt gebruiken, zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 

@@ -166,6 +166,10 @@ import Permission from "../../../Types/Permission";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -491,7 +495,7 @@ function chipIds(modal: HTMLElement): Array<string | null> {
 }
 
 function advancedHeader(modal: HTMLElement): HTMLElement {
-  return within(modal).getByRole("button", { name: /^Advanced/ });
+  return within(modal).getByRole("button", { name: "More fields" });
 }
 
 describe("the escalation rules list", () => {
@@ -581,7 +585,7 @@ describe("adding a rule", () => {
     const modal: HTMLElement = await openAddDialog();
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader(modal))).toEqual([]);
 
     // Two rules exist, so this one will be the third level.
     expect(within(modal).getByPlaceholderText("Level 3")).not.toBeVisible();
@@ -741,7 +745,7 @@ describe("editing a rule", () => {
     expect(within(modal).queryByRole("button", { name: "Next" })).toBeNull();
 
     // Its own name is something of the user's, folded away.
-    expect(advancedHeader(modal)).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader(modal))).toBe(true);
     // The second rule: unnamed, it would be listed as Level 2.
     expect(within(modal).getByPlaceholderText("Level 2")).toHaveValue(
       "Backup engineer",
@@ -788,7 +792,7 @@ describe("editing a rule", () => {
     expect(chipIds(modal)).toEqual([SCHEDULE_PRIMARY]);
     // Unnamed, the first rule is Level 1, and nothing under Advanced is set.
     expect(within(modal).getByPlaceholderText("Level 1")).toHaveValue("");
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader(modal))).toEqual([]);
 
     fireEvent.change(ringInput(modal), { target: { value: "15" } });
 

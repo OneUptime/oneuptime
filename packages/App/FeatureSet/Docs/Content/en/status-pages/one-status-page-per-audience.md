@@ -63,8 +63,8 @@ On **Incidents → All Incidents → Declare Incident**, the **Resources Affecte
 The form warns you:
 
 - when a picked page lists none of the incident's monitors, or no monitor is attached at all. The incident will not show on that page or notify its subscribers;
-- when you also set **Change Monitor Status to**, under **Advanced** on the same step. See [Monitor status is shared](#monitor-status-is-shared);
-- when you also tick **Private Incident**, under **Advanced** on the **Incident Details** step. Private incidents are hidden from all status pages, including the ones you picked.
+- when you also set **Change Monitor Status to**, under **More fields** on the same step. See [Monitor status is shared](#monitor-status-is-shared);
+- when you also tick **Private Incident**, under **More fields** on the **Incident Details** step. Private incidents are hidden from all status pages, including the ones you picked.
 
 The **Details** step, right after **Resources Affected**, asks for the incident custom fields marked **Show on Create** (see [Declaring Incidents](/docs/incidents/declaring-incidents)). Its answers go to every page the incident reaches: custom field values belong to the incident, not to a status page.
 

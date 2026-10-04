@@ -32,6 +32,7 @@ import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 /*
  * Render the overview and its real details card, field renderer and edit
@@ -511,7 +512,8 @@ describe("SLO overview details sidebar", () => {
     expect(
       within(dialog).getByDisplayValue("Availability of the checkout API."),
     ).toBeInTheDocument();
-    expect(within(dialog).getByText("Labels")).toBeInTheDocument();
+    // Labels are there, folded under More fields, which names them.
+    expect(listedNames(dialog)).toContain("Labels");
     expect(within(dialog).queryByText("Target (%)")).toBeNull();
 
     fireEvent.change(

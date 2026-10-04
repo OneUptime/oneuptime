@@ -71,7 +71,7 @@ Open the monitor's **Criteria** and edit the first criteria.
 
 - Turn on _When filters match, change monitor status_ and set it to **Offline** (or Degraded).
 - Turn on _When filters match, declare an incident_. Set the **Title**, **Severity**, and the **On-Call Policies** that should be paged.
-- Under **Advanced Options** on that incident, turn on **Auto Resolve Incident**. Without this, recovery notifications are ignored and incidents stay open forever.
+- Under **More fields** on that incident, turn on **Auto Resolve Incident**. Without this, recovery notifications are ignored and incidents stay open forever.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Troubleshooting
 
 - **Nothing arrives** — confirm Alertmanager can reach the URL; check its logs for delivery errors. OneUptime answers every request with an empty `200` before it validates anything, so a `200` does not confirm the payload was accepted. Check the monitor's timeline instead.
-- **Incidents open but never close** — check `send_resolved: true` in Alertmanager, the recovery field and value on the criteria (the comparison is case-sensitive), and **Auto Resolve Incident** under the incident's **Advanced Options**. Two subtler causes: a payload carrying more distinct keys than **Max incidents per request** hides the ones past the cap from recovery too; and if the `resolved` notification is the one dropped by ingest coalescing (below), the incident is stranded permanently, because Alertmanager repeats firing notifications but not resolved ones. Close those by hand.
+- **Incidents open but never close** — check `send_resolved: true` in Alertmanager, the recovery field and value on the criteria (the comparison is case-sensitive), and **Auto Resolve Incident** under the incident's **More fields**. Two subtler causes: a payload carrying more distinct keys than **Max incidents per request** hides the ones past the cap from recovery too; and if the `resolved` notification is the one dropped by ingest coalescing (below), the incident is stranded permanently, because Alertmanager repeats firing notifications but not resolved ones. Close those by hand.
 - **No incidents at all, monitor status unchanged** — the grouping path must start with the literal `requestBody.`, and only the first `[*]` in a path is a wildcard. Both mistakes fail silently.
 - **Incident text shows raw `{{...}}` placeholders** — the path did not resolve, and OneUptime leaves unresolved placeholders in place rather than blanking them. Different rules set different annotations, so reference fields that actually exist for your rules (`commonAnnotations` versus per-alert `annotations`).
 - **Only one incident for a payload full of alerts** — you grouped by a label that does not vary inside a notification, most often one that is also in your route's `group_by`. Group by `requestBody.alerts[*].fingerprint` instead.

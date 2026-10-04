@@ -59,7 +59,7 @@ Vous pouvez également utiliser `{{random}}` pour une chaîne unique à chaque r
 https://example.com/health?nocache={{random}}
 ```
 
-### Options avancées
+### Plus de champs
 
 #### Ne pas suivre les redirections
 

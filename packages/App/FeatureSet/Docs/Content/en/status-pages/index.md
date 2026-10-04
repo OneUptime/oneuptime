@@ -12,7 +12,7 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
 - **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
-- **Who can see it is one choice.** Anyone with the link, only people who sign in (private users, SAML SSO or OIDC), or anyone with the password — on the page's **Access** screen, with an optional IP allowlist under **Advanced**.
+- **Who can see it is one choice.** Anyone with the link, only people who sign in (private users, SAML SSO or OIDC), or anyone with the password — on the page's **Access** screen, with an optional IP allowlist under **More settings**.
 - **Subscribers get told automatically.** Email, SMS, Slack, Microsoft Teams and webhook subscribers can all follow a page, each channel behind its own toggle.
 
 ## Key terms
@@ -121,7 +121,7 @@ Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubs
 
 Below the card are **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)). The overall uptime percent and the downtime statuses used to be two cards of their own here, each behind an **Edit** button; they are rows of the card now.
 
-**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **Advanced** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
+**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **More settings** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
 
 ## Previewing before you go live
 
@@ -151,13 +151,13 @@ Add the people who may sign in on **Status Pages → your page → Security → 
 
 ### SSO and OIDC
 
-For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **Advanced**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **Advanced**. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
+For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Test SSO with the link on that screen before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice.
 
 ### IP allowlist
 
-Under **Advanced** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. The folded **Advanced** section says **Configured** while the list is in force. On OneUptime Cloud, changing it needs the **Scale** plan.
+Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan.
 
 ## The embeddable badge and the RSS feed
 

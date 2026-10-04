@@ -244,6 +244,7 @@ import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import API from "../../../UI/Utils/API/API";
+import { setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const PLACEHOLDER: Record<string, string> = {
   name: "Company SMTP Server",
@@ -331,7 +332,7 @@ function activeStep(): string {
 }
 
 function advancedHeader(): HTMLElement {
-  return within(dialog()).getByRole("button", { name: /Advanced/ });
+  return within(dialog()).getByRole("button", { name: "More fields" });
 }
 
 async function openAdvanced(): Promise<void> {
@@ -470,7 +471,7 @@ describe("creating a project's mail server", () => {
       within(dialog()).getByTestId("collapsible-section-summary"),
     ).toHaveTextContent(SMTP_SUMMARY);
     // The summary says what is set: no bare badge beside it.
-    expect(within(header).queryByText("Configured")).toBeNull();
+    expect(setChips(header)).toEqual([]);
 
     // Rendered, but folded away.
     expect(

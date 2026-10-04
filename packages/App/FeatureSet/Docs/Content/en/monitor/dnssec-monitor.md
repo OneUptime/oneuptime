@@ -30,7 +30,7 @@ DNSSEC monitors validate the entire chain of trust from the root zone down to yo
 | Resolvers                    | Comma-separated list of validating resolvers to query (e.g. `1.1.1.1, 8.8.8.8, 9.9.9.9`) | Yes      |
 | Check Nameserver Consistency | Query each authoritative nameserver directly and verify they return the same SOA serial  | No       |
 
-### Advanced Settings
+### More fields
 
 | Field                           | Description                                                     | Default |
 | ------------------------------- | --------------------------------------------------------------- | ------- |

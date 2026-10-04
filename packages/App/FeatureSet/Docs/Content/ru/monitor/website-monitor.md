@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### Дополнительные параметры
+### Дополнительные поля
 
 #### Не следовать перенаправлениям
 

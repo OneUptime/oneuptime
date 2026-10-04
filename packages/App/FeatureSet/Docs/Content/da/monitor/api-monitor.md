@@ -71,7 +71,7 @@ Vælg HTTP-metoden for anmodningen:
 - **PATCH**
 - **HEAD**
 
-### Avancerede indstillinger
+### Flere felter
 
 #### Anmodningsheadere
 

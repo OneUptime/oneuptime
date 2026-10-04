@@ -57,7 +57,7 @@ Crea un nuovo monitor e scegli **Query SQL** come tipo di monitor, quindi inseri
 - **Query SQL** — la query di sola lettura da eseguire (vedi Scrivere la query).
 - **Usa SSL/TLS** — abilita per connetterti tramite TLS. Quando è abilitato, puoi disattivare **Verifica il certificato del server** se il database utilizza un certificato autofirmato.
 
-### Opzioni avanzate
+### Altri campi
 
 - **Timeout di connessione (ms)** — quanto tempo attendere per stabilire una connessione. Predefinito `10000`, massimo `30000`.
 - **Timeout dell'istruzione (ms)** — il limite massimo rigido sul tempo di esecuzione consentito alla query. Predefinito `15000`, massimo `60000`.

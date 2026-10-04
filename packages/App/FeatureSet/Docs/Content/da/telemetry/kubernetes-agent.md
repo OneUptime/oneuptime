@@ -718,7 +718,7 @@ Den mest almindelige grund — især efter en geninstallation — er en **forker
 ### Ingen metrikker vises
 
 1. Udeluk først en afvist ingestion-nøgle — det er den mest almindelige årsag og er let at overse fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller kør blot diagnosticeringsscriptet).
-2. Kontrollér, at klyngens **klyngenavn (clusterName)** matcher den værdi, du angav som `clusterName`. Det står på klyngens **Settings**-side under **Cluster Details**; vælg **Edit Details** og åbn **Advanced** for at rette det
+2. Kontrollér, at klyngens **klyngenavn (clusterName)** matcher den værdi, du angav som `clusterName`. Det står på klyngens **Settings**-side under **Cluster Details**; vælg **Edit Details** og åbn **More fields** for at rette det
 3. Verificér RBAC-tilladelserne: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Kontrollér OTel-collector-logsene for eksportfejl
 

@@ -27,7 +27,7 @@ El SCIM de proyectos permite que los proveedores de identidad gestionen los miem
 2. **Configurar los ajustes SCIM**
 
    - Ingresa un **Nombre**. El campo **Equipos predeterminados** empieza con el equipo de miembros de tu proyecto: los nuevos usuarios se agregan a estos equipos
-   - En **Avanzado**, **Aprovisionar usuarios automáticamente** (agregar usuarios cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar usuarios cuando se les desasigna en tu IdP) están activados, y **Habilitar grupos push** está desactivado. Cámbialos allí si lo necesitas
+   - En **Más campos**, **Aprovisionar usuarios automáticamente** (agregar usuarios cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar usuarios cuando se les desasigna en tu IdP) están activados, y **Habilitar grupos push** está desactivado. Cámbialos allí si lo necesitas
    - Guarda. El diálogo con la **URL base de SCIM** y el **Token de portador** para la configuración de tu IdP se abre de inmediato
 
 3. **Configurar tu proveedor de identidad**
@@ -74,7 +74,7 @@ El SCIM de páginas de estado permite que los proveedores de identidad gestionen
 
 2. **Configurar los ajustes SCIM**
 
-   - Ingresa un **Nombre**. En **Avanzado**, **Aprovisionar usuarios automáticamente** (agregar suscriptores cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar suscriptores cuando se les desasigna en tu IdP) están activados. Cámbialos allí si lo necesitas
+   - Ingresa un **Nombre**. En **Más campos**, **Aprovisionar usuarios automáticamente** (agregar suscriptores cuando se les asigna en tu IdP) y **Desaprovisionar usuarios automáticamente** (eliminar suscriptores cuando se les desasigna en tu IdP) están activados. Cámbialos allí si lo necesitas
    - Guarda. El diálogo con la **URL base de SCIM** y el **Token de portador** para la configuración de tu IdP se abre de inmediato
 
 3. **Configurar tu proveedor de identidad**
@@ -122,8 +122,8 @@ Microsoft Entra ID proporciona gestión de identidades empresarial con sólidas 
 4. Ingresa un nombre descriptivo (por ejemplo, "Aprovisionamiento de Microsoft Entra ID")
 5. Revisa las opciones:
    - **Equipos predeterminados**: empieza con el equipo de miembros de tu proyecto; los nuevos usuarios se agregan a estos equipos
-   - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Avanzado**
-   - **Habilitar grupos push**: en **Avanzado**; actívalo si deseas gestionar la membresía del equipo a través de grupos de Entra ID
+   - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Más campos**
+   - **Habilitar grupos push**: en **Más campos**; actívalo si deseas gestionar la membresía del equipo a través de grupos de Entra ID
 6. Guarda la configuración
 7. Copia la **URL base de SCIM** y el **Token de portador** del diálogo que se abre - los necesitarás para Entra ID
 
@@ -223,8 +223,8 @@ Okta proporciona una gestión de identidades flexible con excelente soporte SCIM
 4. Ingresa un nombre descriptivo (por ejemplo, "Aprovisionamiento de Okta")
 5. Revisa las opciones:
    - **Equipos predeterminados**: empieza con el equipo de miembros de tu proyecto; los nuevos usuarios se agregan a estos equipos
-   - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Avanzado**
-   - **Habilitar grupos push**: en **Avanzado**; actívalo si deseas gestionar la membresía del equipo a través de grupos de Okta
+   - **Aprovisionar usuarios automáticamente** y **Desaprovisionar usuarios automáticamente**: activados, en **Más campos**
+   - **Habilitar grupos push**: en **Más campos**; actívalo si deseas gestionar la membresía del equipo a través de grupos de Okta
 6. Guarda la configuración
 7. Copia la **URL base de SCIM** y el **Token de portador** del diálogo que se abre - los necesitarás para Okta
 

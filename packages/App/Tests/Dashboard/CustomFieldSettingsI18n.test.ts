@@ -5,7 +5,7 @@ import IncidentCustomFieldSettingsCopy, {
   MAPPED_CUSTOM_FIELD_SOURCE_COPY,
   MappedCustomFieldSourceCopy,
 } from "../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
-import { ADVANCED_FORM_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS } from "Common/Types/CustomField/CustomFieldSavedViews";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -80,7 +80,7 @@ const STRINGS: Array<string> = Array.from(
       },
     ),
     // The folded section the form's rarely needed settings sit in.
-    ADVANCED_FORM_SECTION_TITLE,
+    MORE_FIELDS_SECTION_TITLE,
     "Configured",
     // The mapping help, opened from the card's More menu.
     "Copying custom field values from a related resource",

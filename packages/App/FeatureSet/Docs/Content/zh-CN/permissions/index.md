@@ -56,7 +56,7 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 
 你可以创建任意多个额外团队——"前端待命"、"支持"、"只读审计"——并给每个团队它需要的权限。
 
-位置：**设置 → 团队**。打开团队即可进入 **Members** 和 **Permissions**；**Block Permissions** 位于 Permissions 页面底部的 **Advanced** 中。
+位置：**设置 → 团队**。打开团队即可进入 **Members** 和 **Permissions**；**Block Permissions** 位于 Permissions 页面底部的 **More settings** 中。
 
 ## 权限
 

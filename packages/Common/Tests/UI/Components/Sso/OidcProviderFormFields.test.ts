@@ -16,7 +16,7 @@ import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormField
 import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import {
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormSectionConfigured,
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
@@ -206,7 +206,7 @@ describe("the fields each form gets", () => {
       const section: FormFieldCollapsibleSection<unknown> | undefined =
         folded[0]!.collapsibleSection;
 
-      expect(section?.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+      expect(section?.title).toBe(MORE_FIELDS_SECTION_TITLE);
       // Folded on Edit too, saying "Configured" instead of opening.
       expect(section?.openWhenConfigured).toBe(false);
 

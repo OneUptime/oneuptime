@@ -5,26 +5,26 @@ import path from "path";
 /*
  * Adding a SAML provider asks for its name, sign-on URL, issuer and
  * certificate; the signature method (RSA-SHA256), the digest method
- * (SHA256) and the description are filled in under Advanced
+ * (SHA256) and the description are filled in under More fields
  * (Common/UI/Components/Sso/SamlProviderFormFields, and the services for API
  * callers), and the dialog with the Entity ID and Reply URL opens once the
  * provider is saved. Adding a SCIM connection asks for its name (and, in a
  * project, starts Default Teams on the members team); provisioning,
- * deprovisioning and push groups wait under Advanced at their defaults.
+ * deprovisioning and push groups wait under More fields at their defaults.
  *
  * The guides told people to pick the two algorithms - quoting `RSA-SHA-256`,
  * a value the form never had - and to switch the SCIM options on. These pin
  * the guides to the forms, in every docs language:
  *
  *   - Project SSO: the set-up steps ask for the four, start Teams on the
- *     members team, say what Advanced fills in, open the SSO Configuration
+ *     members team, say what More fields fills in, open the SSO Configuration
  *     dialog on save and say a new provider starts switched off; the
  *     identity provider walkthroughs no longer ask for the algorithms;
- *   - Global SSO: the SAML step says what is filled in under Advanced, as the
+ *   - Global SSO: the SAML step says what is filled in under More fields, as the
  *     OIDC step does;
- *   - Status pages: SAML, like OIDC, has its methods filled in under Advanced;
+ *   - Status pages: SAML, like OIDC, has its methods filled in under More fields;
  *   - SCIM: the set-up steps ask for the name, and say the options start on
- *     (push groups off) under Advanced.
+ *     (push groups off) under More fields.
  *
  * The English field names are read from the forms' and the models' own
  * sources, so a renamed field fails here rather than leaving the docs behind.
@@ -62,9 +62,9 @@ const LANGUAGES: ReadonlyArray<string> = [
   "zh-TW",
 ];
 
-// "Advanced" as each language's guides word the folded section.
-const ADVANCED: RegExp =
-  /\*\*(Advanced|Erweitert|Avancé|Avanzado|Avanzato|Avançado|Geavanceerd|Avanceret|Avansert|Avancerad|Расширенный|詳細|고급|高级|進階|उन्नत)\*\*/g;
+// "More fields" as each language's guides word the folded section.
+const MORE_FIELDS: RegExp =
+  /\*\*(More fields|Weitere Felder|Plus de champs|Más campos|Altri campi|Mais campos|Meer velden|Flere felter|Flere felt|Fler fält|Дополнительные поля|その他の項目|추가 필드|更多字段|更多欄位|और फ़ील्ड)\*\*/g;
 
 function readSource(key: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, SOURCES[key]!), "utf8");
@@ -91,8 +91,8 @@ function titlesIn(source: string): Array<string> {
   return titles;
 }
 
-function advancedCount(text: string): number {
-  return (text.match(ADVANCED) || []).length;
+function moreFieldsCount(text: string): number {
+  return (text.match(MORE_FIELDS) || []).length;
 }
 
 // The "## " sections of a page, in order.
@@ -235,7 +235,7 @@ describe("the names and values the guides use", () => {
 });
 
 describe("Project SSO: setting up a SAML provider", () => {
-  it("in English: the four fields, the members team, Advanced, then the dialog and Enabled, in order", () => {
+  it("in English: the four fields, the members team, More fields, then the dialog and Enabled, in order", () => {
     const section: string = ssoSetUp("en");
 
     const steps: Array<string> = [
@@ -246,7 +246,7 @@ describe("Project SSO: setting up a SAML provider", () => {
       "**Public Certificate**",
       "**Sign-in**",
       "**Teams** starts on your project's members team",
-      "**Advanced**",
+      "**More fields**",
       "**Signature Method** (`RSA-SHA256`)",
       "**Digest Method** (`SHA256`)",
       "**SSO Configuration**",
@@ -276,16 +276,16 @@ describe("Project SSO: setting up a SAML provider", () => {
     expect(page).not.toContain("**Digest Algorithm**");
     expect(
       page.split(
-        "   - **Signature Method** and **Digest Method**: already set under **Advanced** (`RSA-SHA256` and `SHA256`)",
+        "   - **Signature Method** and **Digest Method**: already set under **More fields** (`RSA-SHA256` and `SHA256`)",
       ).length - 1,
     ).toBe(3);
     expect(page).toContain(
-      "4. The **Signature Method** (`RSA-SHA256`) and **Digest Method** (`SHA256`) are already set under **Advanced**; change them only if your identity provider signs differently",
+      "4. The **Signature Method** (`RSA-SHA256`) and **Digest Method** (`SHA256`) are already set under **More fields**; change them only if your identity provider signs differently",
     );
   });
 
   it.each(LANGUAGES)(
-    "in %s: never quotes RSA-SHA-256, a value the form never had, and says Advanced holds the methods",
+    "in %s: never quotes RSA-SHA-256, a value the form never had, and says More fields holds the methods",
     (language: string) => {
       const page: string = readPage(language, "identity/sso");
       const setUp: string = ssoSetUp(language);
@@ -293,7 +293,7 @@ describe("Project SSO: setting up a SAML provider", () => {
       expect(page).not.toContain("RSA-SHA-256");
       expect(page.split("`RSA-SHA256`").length - 1).toBeGreaterThanOrEqual(3);
 
-      // Step 2 says what Advanced fills in.
+      // Step 2 says what More fields fills in.
       const fills: Array<string> = stepBullets(setUp, 2).filter(
         (bullet: string): boolean => {
           return bullet.includes("`RSA-SHA256`");
@@ -301,7 +301,7 @@ describe("Project SSO: setting up a SAML provider", () => {
       );
 
       expect(fills).toHaveLength(1);
-      expect(advancedCount(fills[0]!)).toBe(1);
+      expect(moreFieldsCount(fills[0]!)).toBe(1);
       expect(fills[0]).toContain("`SHA256`");
 
       /*
@@ -314,7 +314,7 @@ describe("Project SSO: setting up a SAML provider", () => {
 });
 
 describe("Global SSO: creating a SAML provider", () => {
-  it("in English: the four fields, then what Advanced fills in, then the provider's page", () => {
+  it("in English: the four fields, then what More fields fills in, then the provider's page", () => {
     const bullet: string = globalSamlBullet("en");
 
     for (const part of [
@@ -322,7 +322,7 @@ describe("Global SSO: creating a SAML provider", () => {
       "**Sign On URL**",
       "**Issuer**",
       "**Public Certificate**",
-      "**Advanced**",
+      "**More fields**",
       "**Signature Method** (`RSA-SHA256`)",
       "**Digest Method** (`SHA256`)",
       "`Sign in with`",
@@ -336,11 +336,11 @@ describe("Global SSO: creating a SAML provider", () => {
   });
 
   it.each(LANGUAGES)(
-    "in %s: the methods are filled in under Advanced, no longer chosen",
+    "in %s: the methods are filled in under More fields, no longer chosen",
     (language: string) => {
       const bullet: string = globalSamlBullet(language);
 
-      expect(advancedCount(bullet)).toBe(1);
+      expect(moreFieldsCount(bullet)).toBe(1);
       expect(bullet).toContain("`SHA256`");
       expect(bullet).toContain("`Sign in with`");
       // The old "leave the defaults (RSA-SHA256 / SHA256)" choice.
@@ -350,11 +350,11 @@ describe("Global SSO: creating a SAML provider", () => {
 });
 
 describe("Status pages: the SSO page", () => {
-  it("in English: SAML has its methods filled in under Advanced, as OIDC has its endpoints", () => {
+  it("in English: SAML has its methods filled in under More fields, as OIDC has its endpoints", () => {
     const page: string = readPage("en", "status-pages/index");
 
     expect(page).toContain(
-      "configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **Advanced**.",
+      "configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**.",
     );
     expect(page).not.toContain(
       "(sign-on URL, issuer, x509 certificate, signature and digest methods)",
@@ -362,7 +362,7 @@ describe("Status pages: the SSO page", () => {
   });
 
   it.each(LANGUAGES)(
-    "in %s: Advanced is named for SAML and for OIDC",
+    "in %s: More fields is named for SAML and for OIDC",
     (language: string) => {
       const page: string = readPage(language, "status-pages/index");
       const sentence: string =
@@ -370,22 +370,22 @@ describe("Status pages: the SSO page", () => {
           return line.includes("OpenID Connect") && line.includes("SCIM");
         }) || "";
 
-      expect(advancedCount(sentence)).toBe(2);
+      expect(moreFieldsCount(sentence)).toBe(2);
     },
   );
 });
 
 describe("SCIM: setting up a connection", () => {
-  it("in English: the name and the members team, the options on under Advanced, then the dialog", () => {
+  it("in English: the name and the members team, the options on under More fields, then the dialog", () => {
     const [project, statusPage] = scimSettingsSteps("en");
 
     expect(project).toEqual([
       "   - Enter a **Name**. **Default Teams** starts on your project's members team: new users are added to these teams",
-      "   - Under **Advanced**, **Auto Provision Users** (add users when they're assigned in your IdP) and **Auto Deprovision Users** (remove users when they're unassigned in your IdP) are on, and **Enable Push Groups** is off. Change them there if you need to",
+      "   - Under **More fields**, **Auto Provision Users** (add users when they're assigned in your IdP) and **Auto Deprovision Users** (remove users when they're unassigned in your IdP) are on, and **Enable Push Groups** is off. Change them there if you need to",
       "   - Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away",
     ]);
     expect(statusPage).toEqual([
-      "   - Enter a **Name**. Under **Advanced**, **Auto Provision Users** (add private users when they're assigned in your IdP) and **Auto Deprovision Users** (delete private users when they're unassigned in your IdP) are on. Change them there if you need to",
+      "   - Enter a **Name**. Under **More fields**, **Auto Provision Users** (add private users when they're assigned in your IdP) and **Auto Deprovision Users** (delete private users when they're unassigned in your IdP) are on. Change them there if you need to",
       "   - Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away",
     ]);
 
@@ -403,14 +403,14 @@ describe("SCIM: setting up a connection", () => {
   });
 
   it.each(LANGUAGES)(
-    "in %s: both set-up steps name Advanced, and the project's starts on the members team",
+    "in %s: both set-up steps name More fields, and the project's starts on the members team",
     (language: string) => {
       const [project, statusPage] = scimSettingsSteps(language);
 
       expect(project).toHaveLength(3);
       expect(statusPage).toHaveLength(2);
-      expect(advancedCount(project!.join("\n"))).toBe(1);
-      expect(advancedCount(statusPage!.join("\n"))).toBe(1);
+      expect(moreFieldsCount(project!.join("\n"))).toBe(1);
+      expect(moreFieldsCount(statusPage!.join("\n"))).toBe(1);
     },
   );
 });

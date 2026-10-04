@@ -92,7 +92,7 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormFieldValueSet,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -483,7 +483,7 @@ describe("the Create API Key form", () => {
     expect(fields[3]!.collapsibleSection).toBe(section);
     expect(fields[2]!.collapsibleSection!.id).toBe(ADVANCED_FORM_SECTION_ID);
     expect(fields[2]!.collapsibleSection!.title).toBe(
-      ADVANCED_FORM_SECTION_TITLE,
+      MORE_FIELDS_SECTION_TITLE,
     );
     // Folded on create, saying "Configured" instead of opening.
     expect(fields[2]!.collapsibleSection!.openWhenConfigured).toBe(false);

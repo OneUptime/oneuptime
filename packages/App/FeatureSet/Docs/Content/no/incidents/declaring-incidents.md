@@ -100,7 +100,7 @@ Hver oppføring har:
 - **Vakt → Vaktretningslinjer** — policyer som kjøres når denne hendelsen opprettes.
 - **Hendelsesroller** — tildel teammedlemmer til roller på forhånd.
 - **Eierskap og etiketter → Eierteam**, **Eierbrukere**, **Etiketter**.
-- **Avanserte alternativer → Løs hendelse automatisk** (løser hendelsen automatisk når kriteriene slutter å slå til), **Vis hendelse på statussiden**, **Privat hendelse** og **Utbedringsnotater**.
+- **Flere felt → Løs hendelse automatisk** (løser hendelsen automatisk når kriteriene slutter å slå til), **Vis hendelse på statussiden**, **Privat hendelse** og **Utbedringsnotater**.
 
 For den fullstendige listen over `{{variable}}`-plassholdere du kan bruke i tittel, beskrivelse og utbedringsnotater, se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 

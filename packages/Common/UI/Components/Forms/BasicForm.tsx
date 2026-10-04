@@ -26,6 +26,7 @@ import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import Validation from "./Validation";
 import { isFormSectionConfigured } from "./Utils/AdvancedFormSection";
+import { getFoldedFormFieldItems } from "./Utils/FoldedFormFields";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
   FORM_NEXT_BUTTON_TEST_ID,
@@ -1152,28 +1153,45 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                           const section: FormFieldCollapsibleSection<T> =
                             firstField.collapsibleSection;
 
+                          /*
+                           * The section's own answer, or - without one -
+                           * whether a field in it that is on screen holds a
+                           * value other than empty or its default.
+                           */
+                          const isSectionConfigured: boolean =
+                            isFormSectionConfigured({
+                              section: section,
+                              fields: group,
+                              values: refCurrentValue.current,
+                            });
+
                           return (
                             <CollapsibleFormSection
                               key={`${section.id}-${getFieldName(firstField)}`}
                               title={section.title}
                               description={section.description}
                               sectionId={section.id}
-                              /*
-                               * The section's own answer, or - without one -
-                               * whether a field in it that is on screen holds
-                               * a value other than empty or its default.
-                               */
-                              isConfigured={isFormSectionConfigured({
-                                section: section,
-                                fields: group,
-                                values: refCurrentValue.current,
-                              })}
+                              isConfigured={isSectionConfigured}
                               openWhenConfigured={
                                 section.openWhenConfigured !== false
                               }
                               summary={section.getSummary?.(
                                 refCurrentValue.current,
                               )}
+                              /*
+                               * What the folded header lists: the fields on
+                               * screen, the set ones with what they are set
+                               * to.
+                               */
+                              items={getFoldedFormFieldItems(
+                                group,
+                                refCurrentValue.current,
+                                { isSectionConfigured: isSectionConfigured },
+                              )}
+                              listFieldsWhileFolded={Boolean(
+                                section.listFieldsWhileFolded,
+                              )}
+                              icon={section.icon}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {
                                   const fieldName: string = getFieldName(field);

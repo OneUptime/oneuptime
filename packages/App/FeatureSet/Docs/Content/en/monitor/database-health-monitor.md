@@ -146,7 +146,7 @@ Create a monitor and choose **Database Health** as the monitor type, then fill i
 - **Use SSL/TLS** — connect over TLS. When enabled you can turn off **Verify server certificate** for a self-signed certificate.
 - **Collected Metric Groups** — which groups to run. All are on by default; see [Metric groups](#metric-groups).
 
-### Advanced options
+### More fields
 
 - **Connection Timeout (ms)** — how long to wait to establish a connection. Default `10000`, maximum `30000`.
 - **Statement Timeout (ms)** — the cap on any single catalog query. Default `10000`, maximum `60000`. The default is deliberately tighter than the SQL Query Monitor's: these queries return in milliseconds on a healthy server, so if `pg_stat_activity` takes ten seconds the useful signal is "this server is in trouble", not a longer wait.

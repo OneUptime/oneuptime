@@ -3,7 +3,7 @@ import SearchEngineIndexingCard from "../../../Components/StatusPage/SearchEngin
 import StatusPageBrandingCopy, {
   BRANDING_ADVANCED_SECTION_TEST_ID,
   BrandingAdvancedValues,
-  isBrandingAdvancedConfigured,
+  getBrandingAdvancedItems,
 } from "../../../Components/StatusPage/StatusPageBrandingCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -574,11 +574,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
        * What few people change, folded: the history chart's colors, the
        * languages, and whether search engines may list the page. Each card
        * reports what it holds as it loads or saves, so the folded section
-       * can say "Configured" when any of it differs from a new page's.
+       * draws a card as a chip when it differs from a new page's.
        */}
       <AdvancedPageSection
         description={StatusPageBrandingCopy.advancedDescription}
-        isConfigured={isBrandingAdvancedConfigured(advancedValues)}
+        items={getBrandingAdvancedItems(advancedValues)}
         dataTestId={BRANDING_ADVANCED_SECTION_TEST_ID}
       >
         <CardModelDetail<StatusPage>

@@ -100,7 +100,7 @@ Jeder Eintrag hat:
 - **Bereitschaft → Bereitschaftsrichtlinien** – Richtlinien, die beim Anlegen dieses Vorfalls ausgeführt werden.
 - **Vorfallsrollen** – Teammitglieder vorab Rollen zuweisen.
 - **Eigentümerschaft & Beschriftungen → Eigentümer-Teams**, **Eigentümer-Benutzer**, **Beschriftungen**.
-- **Erweiterte Optionen → Vorfall automatisch beheben** (behebt den Vorfall automatisch, sobald die Kriterien nicht mehr greifen), **Vorfall auf der Statusseite anzeigen**, **Privater Vorfall** und **Behebungs-Notizen**.
+- **Weitere Felder → Vorfall automatisch beheben** (behebt den Vorfall automatisch, sobald die Kriterien nicht mehr greifen), **Vorfall auf der Statusseite anzeigen**, **Privater Vorfall** und **Behebungs-Notizen**.
 
 Die vollständige Liste der `{{variable}}`-Platzhalter, die Sie in Titel, Beschreibung und Behebungs-Notizen verwenden können, steht unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 

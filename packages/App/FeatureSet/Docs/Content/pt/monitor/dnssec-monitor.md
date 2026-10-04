@@ -30,7 +30,7 @@ Os monitores DNSSEC validam toda a cadeia de confiança desde a zona raiz até o
 | Resolvers                    | Lista separada por vírgulas de resolvers validadores a consultar (ex.: `1.1.1.1, 8.8.8.8, 9.9.9.9`)         | Sim         |
 | Check Nameserver Consistency | Consultar cada nameserver autoritativo diretamente e verificar se eles retornam o mesmo número de série SOA | Não         |
 
-### Configurações Avançadas
+### Mais campos
 
 | Campo                           | Descrição                                                          | Padrão |
 | ------------------------------- | ------------------------------------------------------------------ | ------ |

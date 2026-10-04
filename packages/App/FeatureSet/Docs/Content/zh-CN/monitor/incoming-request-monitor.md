@@ -163,7 +163,7 @@ Alertmanager、Grafana 等工具会 POST 一份描述一条或多条告警的 JS
 webhook 只描述该次负载中的内容，因此 OneUptime 绝不会因为某个键不再出现就解决一个事件。只有当某次负载明确说明该键已恢复时，事件才会被解决。以下两点必须同时成立：
 
 1. **Field that signals recovery** 和 **Value that means recovered** 已设置，并且与负载相符。比较是精确且区分大小写的——`Resolved` 不匹配 `resolved`。
-2. 该条件的事件在事件表单的 **Advanced Options** 下启用了 **Auto Resolve Incident**。否则匹配到的恢复事件会被忽略，事件会一直开着。（告警和 **Auto Resolve Alert** 同理。）
+2. 该条件的事件在事件表单的 **More fields** 下启用了 **Auto Resolve Incident**。否则匹配到的恢复事件会被忽略，事件会一直开着。（告警和 **Auto Resolve Alert** 同理。）
 
 **Max incidents per request** 限制的是提取，而不仅是创建。超出上限的键对恢复同样不可见，因此在包含的不同键数量超过上限的负载中，超出部分中报告 `resolved` 的告警不会关闭它的事件。
 

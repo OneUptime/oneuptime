@@ -29,7 +29,7 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -210,7 +210,7 @@ async function findText(text: string | RegExp): Promise<HTMLElement> {
 }
 
 function advancedHeader(): HTMLElement {
-  return screen.getByRole("button", { name: ADVANCED_FORM_SECTION_TITLE });
+  return screen.getByRole("button", { name: MORE_SETTINGS_SECTION_TITLE });
 }
 
 function openAdvanced(): void {

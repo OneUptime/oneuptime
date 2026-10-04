@@ -71,7 +71,7 @@ Alertmanager sendet `Content-Type: application/json`, was OneUptime braucht, um 
 
 - Aktivieren Sie _When filters match, change monitor status_ und setzen Sie ihn auf **Offline** (oder Degraded).
 - Aktivieren Sie _When filters match, declare an incident_. Setzen Sie **Title**, **Severity** und die **On-Call Policies**, die alarmiert werden sollen.
-- Aktivieren Sie unter **Advanced Options** dieses Vorfalls **Auto Resolve Incident**. Ohne das werden Wiederherstellungsbenachrichtigungen ignoriert und Vorfälle bleiben für immer offen.
+- Aktivieren Sie unter **More fields** dieses Vorfalls **Auto Resolve Incident**. Ohne das werden Wiederherstellungsbenachrichtigungen ignoriert und Vorfälle bleiben für immer offen.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Fehlerbehebung
 
 - **Es kommt nichts an** — bestätigen Sie, dass Alertmanager die URL erreichen kann; prüfen Sie dessen Logs auf Zustellfehler. OneUptime beantwortet jede Anfrage mit einem leeren `200`, bevor irgendetwas validiert wird, ein `200` bestätigt also nicht, dass die Payload angenommen wurde. Prüfen Sie stattdessen die Zeitleiste des Monitors.
-- **Vorfälle öffnen sich, schließen sich aber nie** — prüfen Sie `send_resolved: true` in Alertmanager, das Wiederherstellungsfeld und seinen Wert im Kriterium (der Vergleich unterscheidet Groß-/Kleinschreibung) sowie **Auto Resolve Incident** unter **Advanced Options** des Vorfalls. Zwei subtilere Ursachen: Eine Payload mit mehr eindeutigen Schlüsseln als **Max incidents per request** verbirgt die Schlüssel jenseits der Grenze auch vor der Wiederherstellung; und wenn ausgerechnet die `resolved`-Benachrichtigung durch die Ingest-Zusammenfassung (siehe unten) verworfen wird, bleibt der Vorfall dauerhaft hängen, weil Alertmanager Firing-Benachrichtigungen wiederholt, Resolved-Benachrichtigungen aber nicht. Schließen Sie diese von Hand.
+- **Vorfälle öffnen sich, schließen sich aber nie** — prüfen Sie `send_resolved: true` in Alertmanager, das Wiederherstellungsfeld und seinen Wert im Kriterium (der Vergleich unterscheidet Groß-/Kleinschreibung) sowie **Auto Resolve Incident** unter **More fields** des Vorfalls. Zwei subtilere Ursachen: Eine Payload mit mehr eindeutigen Schlüsseln als **Max incidents per request** verbirgt die Schlüssel jenseits der Grenze auch vor der Wiederherstellung; und wenn ausgerechnet die `resolved`-Benachrichtigung durch die Ingest-Zusammenfassung (siehe unten) verworfen wird, bleibt der Vorfall dauerhaft hängen, weil Alertmanager Firing-Benachrichtigungen wiederholt, Resolved-Benachrichtigungen aber nicht. Schließen Sie diese von Hand.
 - **Überhaupt keine Vorfälle, Monitorstatus unverändert** — der Gruppierungspfad muss mit dem wörtlichen `requestBody.` beginnen, und nur das erste `[*]` in einem Pfad ist ein Platzhalter. Beide Fehler scheitern stillschweigend.
 - **Der Vorfallstext zeigt rohe `{{...}}`-Platzhalter** — der Pfad hat sich nicht aufgelöst, und OneUptime lässt nicht aufgelöste Platzhalter stehen, statt sie zu leeren. Verschiedene Regeln setzen unterschiedliche Annotationen, referenzieren Sie also Felder, die es für Ihre Regeln tatsächlich gibt (`commonAnnotations` gegenüber `annotations` pro Alarm).
 - **Nur ein Vorfall für eine Payload voller Alarme** — Sie haben nach einem Label gruppiert, das innerhalb einer Benachrichtigung nicht variiert, meist eines, das auch in der `group_by` Ihrer Route steht. Gruppieren Sie stattdessen nach `requestBody.alerts[*].fingerprint`.

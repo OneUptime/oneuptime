@@ -25,7 +25,7 @@ Grafanas webhook-payload følger Alertmanager-formen — `status`, et `alerts`-a
 
 1. Gå til **Monitorer → Opret monitor** og vælg **Indgående anmodning**. Åbn den og klik på **Documentation** i menuen til venstre for at kopiere URL'en.
 2. Åbn monitorens **Criteria**, og sæt **Filter Type** til `JavaScript Expression` og **Value** til `"{{requestBody.status}}" === "firing"`.
-3. Opret en hændelse ved match, vælg de **On-Call Policies**, der skal tilkaldes, og slå **Auto Resolve Incident** til under **Advanced Options**.
+3. Opret en hændelse ved match, vælg de **On-Call Policies**, der skal tilkaldes, og slå **Auto Resolve Incident** til under **More fields**.
 4. Slå under **Settings** indstillingen **Group incidents and alerts by a payload field** til, og sæt:
 
    | Felt                               | Værdi                               |
@@ -89,7 +89,7 @@ Med **Mulighed 2** tilføjer du en anden **Betingelser**-gren (`status == resolv
 ## Fejlfinding
 
 - **Der kommer intet frem** — bekræft at Grafana kan nå URL'en (tjek Grafanas serverlogfiler), og ved Mulighed 2 at workflowet er **Aktiveret**. OneUptime svarer på hver indgående anmodning med et tomt `200`, før den valideres, så et `200` i Grafanas logfiler bekræfter ikke, at payloaden blev accepteret.
-- **Hændelser åbner, men lukker aldrig** — tjek genopretningsfeltet og -værdien på kriteriet, og at **Auto Resolve Incident** er slået til under hændelsens **Advanced Options**. Sammenligningen skelner mellem store og små bogstaver.
+- **Hændelser åbner, men lukker aldrig** — tjek genopretningsfeltet og -værdien på kriteriet, og at **Auto Resolve Incident** er slået til under hændelsens **More fields**. Sammenligningen skelner mellem store og små bogstaver.
 - **Kun én hændelse for en payload fuld af alarmer** — du grupperede efter en label, der ikke varierer inden for en notifikation. Gruppér efter `requestBody.alerts[*].fingerprint` i stedet.
 - **Hændelsesteksten viser rå `{{...}}`-pladsholdere** — stien blev ikke opløst, og uopløste pladsholdere lades stå i stedet for at blive tømt. Referér til felter, der findes i din alarmeringsversion; undersøg trigger-outputtet i fanen **Logfiler**, hvis du brugte Mulighed 2.
 

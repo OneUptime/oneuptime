@@ -6,13 +6,15 @@ import FormFieldSchemaType from "../../../../../UI/Components/Forms/Types/FormFi
 import FormValues from "../../../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_ICON,
+  MORE_FIELDS_SECTION_TITLE,
   getAdvancedFormSection,
   isFormFieldValueSet,
   isFormSectionConfigured,
 } from "../../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { PeoplePickerKind } from "../../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import { JSONObject } from "../../../../../Types/JSON";
+import IconProp from "../../../../../Types/Icon/IconProp";
 
 /*
  * "There should be an advanced section, which should be collapsed by
@@ -20,10 +22,11 @@ import { JSONObject } from "../../../../../Types/JSON";
  * on the Create Custom Field form.
  *
  * getAdvancedFormSection is the one way a form folds its rarely needed
- * options away: folded on Create and on Edit alike, and saying "Configured"
- * on its header while anything in it is set - worked out from the fields
- * themselves unless the form says otherwise. These are the rules behind
- * that "set"; BasicFormCollapsibleSections draws them.
+ * options away, under "More fields": folded on Create and on Edit alike,
+ * listing its fields on its header and drawing the set ones as chips that
+ * say what they are set to - "set" worked out from the fields themselves
+ * unless the form says otherwise. These are the rules behind that "set";
+ * BasicFormCollapsibleSections draws them.
  */
 
 type Values = FormValues<JSONObject>;
@@ -42,16 +45,19 @@ function field(
 }
 
 describe("getAdvancedFormSection", () => {
-  test("is titled Advanced and stays folded when something in it is set", () => {
+  test("is titled More fields, lists its fields folded, and stays folded when something in it is set", () => {
     const section: FormFieldCollapsibleSection<JSONObject> =
       getAdvancedFormSection<JSONObject>();
 
     expect(section).toEqual({
       id: ADVANCED_FORM_SECTION_ID,
-      title: ADVANCED_FORM_SECTION_TITLE,
+      title: MORE_FIELDS_SECTION_TITLE,
       openWhenConfigured: false,
+      listFieldsWhileFolded: true,
+      icon: MORE_FIELDS_SECTION_ICON,
     });
-    expect(ADVANCED_FORM_SECTION_TITLE).toBe("Advanced");
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
+    expect(MORE_FIELDS_SECTION_ICON).toBe(IconProp.AdjustmentHorizontal);
     expect(ADVANCED_FORM_SECTION_ID).toBe("advanced");
     // Worked out from its fields unless the form says otherwise.
     expect(section.isConfigured).toBeUndefined();
@@ -72,7 +78,8 @@ describe("getAdvancedFormSection", () => {
       });
 
     expect(section.id).toBe("alert-advanced");
-    expect(section.title).toBe("Advanced");
+    expect(section.title).toBe("More fields");
+    expect(section.listFieldsWhileFolded).toBe(true);
     expect(section.description).toBe("Rarely needed.");
     expect(section.isConfigured).toBe(isConfigured);
     expect(section.openWhenConfigured).toBe(false);
@@ -98,8 +105,8 @@ describe("getAdvancedFormSection", () => {
     expect(
       section.getSummary!({ expiresAt: "2030-01-15" } as Values),
     ).toBeUndefined();
-    // Still an Advanced section: folded, and set by its fields.
-    expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    // Still a More fields section: folded, and set by its fields.
+    expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
     expect(section.openWhenConfigured).toBe(false);
     expect(section.isConfigured).toBeUndefined();
   });
@@ -149,6 +156,43 @@ describe("isFormFieldValueSet", () => {
     expect(isFormFieldValueSet(autoResolve, { autoResolve: true })).toBe(false);
     // Not touched: it is what the form starts with.
     expect(isFormFieldValueSet(autoResolve, {})).toBe(false);
+  });
+
+  test("with no default of its own, a field compares with its column's (an Edit form's)", () => {
+    // ModelForm hands an Edit form's fields their column defaults this way.
+    const notifyOwners: Field<JSONObject> = field(
+      "notifyOwners",
+      FormFieldSchemaType.Toggle,
+      { columnDefaultValue: true },
+    );
+
+    expect(isFormFieldValueSet(notifyOwners, { notifyOwners: true })).toBe(
+      false,
+    );
+    expect(isFormFieldValueSet(notifyOwners, { notifyOwners: false })).toBe(
+      true,
+    );
+
+    const retries: Field<JSONObject> = field(
+      "retries",
+      FormFieldSchemaType.Number,
+      { columnDefaultValue: 3 },
+    );
+
+    expect(isFormFieldValueSet(retries, { retries: 3 })).toBe(false);
+    expect(isFormFieldValueSet(retries, { retries: 5 })).toBe(true);
+
+    // The field's own default wins over its column's.
+    const offByChoice: Field<JSONObject> = field(
+      "notifyOwners",
+      FormFieldSchemaType.Toggle,
+      { defaultValue: false, columnDefaultValue: true },
+    );
+
+    expect(isFormFieldValueSet(offByChoice, { notifyOwners: false })).toBe(
+      false,
+    );
+    expect(isFormFieldValueSet(offByChoice, { notifyOwners: true })).toBe(true);
   });
 
   test("text is set when it holds something other than blanks or its default", () => {

@@ -8,13 +8,13 @@ Cuando creas una programación en la página **Programaciones de guardia**, el f
 
 **¿Quiénes se turnan?** es opcional. Si lo dejas vacío, la programación empieza sin capas: no pone a nadie de guardia hasta que añadas una capa en su página **Capas**. La pregunta solo se hace a quienes pueden añadir capas.
 
-Todo lo demás queda en **Avanzado**, plegado hasta que lo abras:
+Todo lo demás queda en **Más campos**, plegado hasta que lo abras:
 
 - **Cada turno dura**: **1 día**, **1 semana**, **2 semanas** o **1 mes**, y **1 semana** si no lo cambias. Se pregunta en cuanto se elige a alguien. Cada persona está de guardia ese tiempo y luego la siguiente toma el relevo, a la hora del día en que se creó la programación.
 - **Zona horaria**: la zona horaria en la que se aplican las horas de relevo y las horas de guardia. Empieza con la tuya.
 - **Descripción** y **Etiquetas**.
 
-Mientras haya alguien elegido y no se haya cambiado nada en **Avanzado**, su encabezado plegado dice lo que va a pasar: cada persona está de guardia una semana y luego la siguiente toma el relevo.
+Mientras haya alguien elegido y no se haya cambiado nada en **Más campos**, su encabezado plegado dice lo que va a pasar: cada persona está de guardia una semana y luego la siguiente toma el relevo.
 
 ## Capas
 

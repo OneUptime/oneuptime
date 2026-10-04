@@ -183,6 +183,27 @@ async function renderProviderForm(data: {
   await act(async (): Promise<void> => {});
 }
 
+// The chips a folded header draws for its set fields: "Digest Method: SHA512".
+function setChips(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .filter((item: HTMLElement): boolean => {
+      return item.getAttribute("data-item-set") === "true";
+    })
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+// Every name a folded header lists.
+function listedNames(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
 function progress(): HTMLElement {
   return screen.getByRole("navigation", { name: "Progress" });
 }
@@ -397,7 +418,7 @@ describe("adding an OIDC provider", () => {
     expect(capturedModels).toHaveLength(0);
   });
 
-  test("Sign-in shows the team, Enabled off, and Advanced folded with what its defaults do", async () => {
+  test("Sign-in shows the team, Enabled off, and More fields folded with what its defaults do", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: {
@@ -426,9 +447,21 @@ describe("adding an OIDC provider", () => {
       "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.",
     );
 
+    // Folded, it names what it holds; the defaults that follow the issuer and the name are not set.
+    expect(listedNames()).toEqual(
+      expect.arrayContaining([
+        "Discovery URL",
+        "Scopes",
+        "Email Claim Name",
+        "Name Claim Name",
+        "Description",
+      ]),
+    );
+    expect(setChips()).toEqual([]);
+
     // Opened, it shows what will be saved.
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+      fireEvent.click(screen.getByRole("button", { name: "More fields" }));
     });
 
     expect(
@@ -441,7 +474,7 @@ describe("adding an OIDC provider", () => {
     expect(input("Sign in with Okta").value).toBe("Sign in with Okta");
   });
 
-  test("a changed default turns the summary into Configured, and is saved", async () => {
+  test("a changed default turns the summary into a chip of what changed, and is saved", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: {
@@ -456,20 +489,20 @@ describe("adding an OIDC provider", () => {
     });
 
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+      fireEvent.click(screen.getByRole("button", { name: "More fields" }));
     });
 
     await type("email", "upn");
 
-    // Folded again, it says something is set.
+    // Folded again, it shows what changed - and only that.
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+      fireEvent.click(screen.getByRole("button", { name: "More fields" }));
     });
 
     expect(
       screen.queryByTestId("collapsible-section-summary"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Configured")).toBeInTheDocument();
+    expect(setChips()).toEqual(["Email Claim Name: upn"]);
 
     const model: JSONObject = await submitWith(ACTION);
 

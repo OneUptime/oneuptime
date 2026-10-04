@@ -43,7 +43,7 @@ For stronger gating (separate accounts per viewer, an audit trail of who viewed 
 
 ## IP allowlist
 
-Under **Advanced** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud. While a list is in force, the folded **Advanced** section says **Configured**.
+Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud. While a list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.
 
 Use this when:
 
@@ -73,7 +73,7 @@ Click **Create Dashboard Domain**. The dialog is one page:
 
 - **Subdomain**: the label only, placeholder `dashboard (leave blank for root)`. Enter just `dashboard`, not the whole hostname. Leave it blank or enter `@` to use the root/apex domain.
 - **Domain**: the domains verified under **Project Settings → Domains**, where you prove you own a domain with a TXT record. A domain you have not verified is not listed, because it would be refused. The **Add a domain** link beside the field opens that page in a new tab.
-- **Advanced**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own (see below).
+- **More fields**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own (see below).
 
 Click **Create Dashboard Domain**. The dialog closes and the new domain's **DNS Setup** opens. A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one.
 
@@ -106,7 +106,7 @@ If an order fails, the usual causes are a CAA record on your domain that does no
 
 ### Your own certificate, and reissuing
 
-To use your own certificate instead, open **Advanced** when you add the domain, switch on **Upload Custom Certificate**, and paste the **Certificate** and its **Certificate Private Key**. OneUptime serves it within 15 minutes instead of ordering a Let's Encrypt certificate, and it takes the place of any Let's Encrypt certificate the domain had before. Renewing an uploaded certificate is up to you: edit the domain and paste the new one. If the domain had a free certificate before, OneUptime keeps renewing it while yours is in use, so switching back is instant.
+To use your own certificate instead, open **More fields** when you add the domain, switch on **Upload Custom Certificate**, and paste the **Certificate** and its **Certificate Private Key**. OneUptime serves it within 15 minutes instead of ordering a Let's Encrypt certificate, and it takes the place of any Let's Encrypt certificate the domain had before. Renewing an uploaded certificate is up to you: edit the domain and paste the new one. If the domain had a free certificate before, OneUptime keeps renewing it while yours is in use, so switching back is instant.
 
 Once a free certificate has been ordered for a domain, the row shows **Reissue SSL**, which asks Let's Encrypt for a brand new certificate when you want one before the automatic renewal. Each domain can be reissued once every 24 hours.
 

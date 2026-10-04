@@ -20,7 +20,7 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
   isFormSectionConfigured,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
@@ -198,7 +198,7 @@ describe("the create form's fields", () => {
     expect(description.collapsibleSection).toBe(labels.collapsibleSection);
     expect(description.collapsibleSection!.id).toBe(ADVANCED_FORM_SECTION_ID);
     expect(description.collapsibleSection!.title).toBe(
-      ADVANCED_FORM_SECTION_TITLE,
+      MORE_FIELDS_SECTION_TITLE,
     );
     // Folded on Create, and says "Configured" rather than opening.
     expect(description.collapsibleSection!.openWhenConfigured).toBe(false);

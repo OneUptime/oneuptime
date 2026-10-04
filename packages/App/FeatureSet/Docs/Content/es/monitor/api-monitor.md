@@ -71,7 +71,7 @@ Selecciona el método HTTP para la solicitud:
 - **PATCH**
 - **HEAD**
 
-### Opciones avanzadas
+### Más campos
 
 #### Encabezados de solicitud
 

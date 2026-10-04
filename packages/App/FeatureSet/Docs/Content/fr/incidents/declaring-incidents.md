@@ -100,7 +100,7 @@ Chaque entrée comporte :
 - **Astreinte → Politiques d'astreinte** — les politiques exécutées à la création de cet incident.
 - **Rôles d'incident** — attribuez à l'avance des membres de l'équipe aux rôles.
 - **Propriété et étiquettes → Équipes propriétaires**, **Utilisateurs propriétaires**, **Étiquettes**.
-- **Options avancées → Résoudre automatiquement l'incident** (résout l'incident automatiquement quand les critères cessent de correspondre), **Afficher l'incident sur la page de statut**, **Incident privé** et **Notes de remédiation**.
+- **Plus de champs → Résoudre automatiquement l'incident** (résout l'incident automatiquement quand les critères cessent de correspondre), **Afficher l'incident sur la page de statut**, **Incident privé** et **Notes de remédiation**.
 
 Pour la liste complète des variables `{{variable}}` utilisables dans le titre, la description et les notes de remédiation, voyez [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
 

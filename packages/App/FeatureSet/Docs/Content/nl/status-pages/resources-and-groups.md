@@ -26,19 +26,19 @@ Selecteer de groep waarin de resource moet landen (of **Top of page** voor een o
 
 - **Monitor** — de vervolgkeuzelijst met monitoren in je project, placeholder **Selecteer monitor**. Verplicht.
 - **Weergavenaam** — de tekst die bezoekers lezen. Ze wordt ingevuld met de naam van de monitor zodra je die kiest, en loopt mee als je een andere monitor kiest, totdat je zelf een naam typt. Ze wordt los van de naam van de monitor zelf opgeslagen, dus je kunt hier hernoemen zonder aan je monitoring te komen.
-- **Geavanceerd** — ingeklapt. Bevat **Beschrijving** (optionele markdown, getoond onder de rij, goed voor één zin over wat de dienst eigenlijk doet) en de [weergaveopties](#weergaveopties-op-een-resource). Laat je het dicht, dan krijgt de resource hun standaardwaarden.
+- **Meer velden** — ingeklapt. Bevat **Beschrijving** (optionele markdown, getoond onder de rij, goed voor één zin over wat de dienst eigenlijk doet) en de [weergaveopties](#weergaveopties-op-een-resource). Laat je het dicht, dan krijgt de resource hun standaardwaarden.
 
-Kies een monitor, klik op **Monitor toevoegen** en de rij staat op de pagina. In een rastergroep vraagt het venster boven **Geavanceerd** ook om de rij en de kolom waarin de monitor komt — zie [Lijstindeling versus rasterindeling](#lijstindeling-versus-rasterindeling).
+Kies een monitor, klik op **Monitor toevoegen** en de rij staat op de pagina. In een rastergroep vraagt het venster boven **Meer velden** ook om de rij en de kolom waarin de monitor komt — zie [Lijstindeling versus rasterindeling](#lijstindeling-versus-rasterindeling).
 
 Staan monitorgroepen in je project aan, dan verschijnt onder de lijst een link **Add a Monitor Group instead.** — klik erop en de lijst **Monitor** wordt vervangen door een lijst **Monitor Groep** (**Selecteer monitorgroep**). De link verandert dan in **Add a Monitor instead.** zodat je terug kunt. Gebruik een monitorgroep wanneer je wilt dat één rij op de pagina meerdere checks samen vertegenwoordigt.
 
 ### Er meerdere tegelijk toevoegen
 
-**Add Multiple** (in het menu **More actions** ook **Add multiple monitors**) opent **Add Multiple Monitors**. Ook dat is één pagina: een multiselect **Monitoren** in plaats van één vervolgkeuzelijst, daaronder dezelfde ingeklapte sectie **Geavanceerd**, waarvan de weergaveopties gelden voor elke monitor die je selecteerde. Elke resource neemt zijn weergavenaam en beschrijving over van zijn monitor, en **Add Monitors** voegt ze toe — er zijn geen stappen om door te lopen. Dit is de snelste manier om een nieuwe pagina te vullen.
+**Add Multiple** (in het menu **More actions** ook **Add multiple monitors**) opent **Add Multiple Monitors**. Ook dat is één pagina: een multiselect **Monitoren** in plaats van één vervolgkeuzelijst, daaronder dezelfde ingeklapte sectie **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die je selecteerde. Elke resource neemt zijn weergavenaam en beschrijving over van zijn monitor, en **Add Monitors** voegt ze toe — er zijn geen stappen om door te lopen. Dit is de snelste manier om een nieuwe pagina te vullen.
 
 ## Weergaveopties op een resource
 
-De sectie **Geavanceerd** is identiek op het enkelvoudige formulier en in de bulkmodal. Ze begint op allebei ingeklapt, en ook bij **Resource bewerken**, waar haar kop **Ingesteld** zegt wanneer iets erin niet op de standaardwaarde staat. Alles hier geldt per resource — twee rijen in dezelfde groep mogen anders ingesteld zijn.
+De sectie **Meer velden** is identiek op het enkelvoudige formulier en in de bulkmodal. Ze begint op allebei ingeklapt, en ook bij **Resource bewerken**, waar haar ingeklapte kop toont wat erin niet op de standaardwaarde staat. Alles hier geldt per resource — twee rijen in dezelfde groep mogen anders ingesteld zijn.
 
 | Veld                                                     | Waarvoor                                                                                           |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Klik op **New Group** om **Create New Status Page Group** te openen. Het is éé
 - **Groepsnaam** (`name`) — verplicht. Dit is het sectiekopje dat bezoekers zien.
 - **Parent Group** (`parentStatusPageGroupId`) — optioneel. Laat het op **No parent group (top level)** staan om de groep op het hoogste niveau te houden. **Add a sub group** vult het voor je in.
 - **Indeling** — ingeklapt, en de kop zegt **List** of **Grid**. Bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling versus rasterindeling](#lijstindeling-versus-rasterindeling)), en gaat bij een rastergroep vanzelf open.
-- **Geavanceerd** — ingeklapt. Bevat de rest en spiegelt de resourceopties op groepsniveau:
+- **Meer velden** — ingeklapt. Bevat de rest en spiegelt de resourceopties op groepsniveau:
   - **Groepsbeschrijving** (`description`) — optionele markdown, getoond onder het kopje.
   - **Standaard uitvouwen op statuspagina** (`isExpandedByDefault`) — standaard aan: of de sectie voor bezoekers open of ingeklapt begint.
   - **Huidige groepsstatus weergeven** (`showCurrentStatus`) — standaard aan. Toont een status naast het groepskopje.

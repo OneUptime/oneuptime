@@ -370,7 +370,7 @@ describe("the page's wiring", () => {
     expect(select).toContain("isPrimaryRole: true");
   });
 
-  test("Allow Multiple Users is folded under the shared Advanced section", () => {
+  test("Allow Multiple Users is folded under the shared More fields section", () => {
     expect(PAGE_SOURCE).toContain("getAdvancedFormSection<IncidentRole>()");
 
     const field: string = PAGE_SOURCE.slice(
@@ -388,8 +388,8 @@ describe("the page's wiring", () => {
     expect(PAGE_SOURCE).toContain("getIncidentRoleDeleteLockedReason(role)");
   });
 
-  test("never adds a wizard step named Advanced", () => {
-    expect(PAGE_SOURCE).not.toMatch(/title:\s*"Advanced"/);
+  test("never adds a wizard step named Advanced or More", () => {
+    expect(PAGE_SOURCE).not.toMatch(/title:\s*"(?:Advanced|More)\b/);
   });
 });
 
@@ -405,7 +405,7 @@ describe("the docs", () => {
     );
     expect(section).toContain("can be renamed, but not deleted");
     expect(section).toContain("**Allow Multiple Users**");
-    expect(section).toContain("**Advanced**");
+    expect(section).toContain("**More fields**");
     expect(section).toContain("**Create Incident Role**");
     expect(section).not.toContain(
       "the card description gives Incident Commander and Responder as examples",
@@ -433,7 +433,7 @@ describe("the docs", () => {
 
     expect(section).toContain("**Incident Commander**");
     expect(section).toContain("**Allow Multiple Users**");
-    expect(section).toContain("**Advanced**");
+    expect(section).toContain("**More fields**");
     expect(section).toContain("**Create Incident Role**");
     expect(section).not.toContain(
       "توضیحات کارت فرمانده حادثه و پاسخ‌دهنده را به‌عنوان نمونه می‌آورد",

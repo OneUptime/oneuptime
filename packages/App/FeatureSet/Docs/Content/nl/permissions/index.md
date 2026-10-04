@@ -56,7 +56,7 @@ De teams **Owners** en **Admin** zijn bewust vergrendeld: hun machtigingen zijn 
 
 Maak zoveel extra teams als u wilt — "Frontend-piket", "Support", "Alleen-lezen auditors" — en geef elk de machtigingen die het nodig heeft.
 
-Waar u het vindt: **Instellingen → Teams**. Open een team om bij **Members** en **Permissions** te komen; **Block Permissions** staan onder **Advanced** onderaan de pagina Permissions.
+Waar u het vindt: **Instellingen → Teams**. Open een team om bij **Members** en **Permissions** te komen; **Block Permissions** staan onder **More settings** onderaan de pagina Permissions.
 
 ## Machtigingen
 

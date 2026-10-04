@@ -100,7 +100,7 @@ Varje post har:
 - **Jour → Jourpolicyer** — policyer som körs när den här incidenten skapas.
 - **Incidentroller** — förtilldela teammedlemmar till roller.
 - **Ägarskap och etiketter → Ägarteam**, **Ägaranvändare**, **Etiketter**.
-- **Avancerade alternativ → Lös incident automatiskt** (löser incidenten automatiskt när kriterierna slutar matcha), **Visa incident på statussida**, **Privat incident** och **Åtgärdsanteckningar**.
+- **Fler fält → Lös incident automatiskt** (löser incidenten automatiskt när kriterierna slutar matcha), **Visa incident på statussida**, **Privat incident** och **Åtgärdsanteckningar**.
 
 För hela listan över `{{variable}}`-platshållare du kan använda i titel, beskrivning och åtgärdsanteckningar, se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating).
 

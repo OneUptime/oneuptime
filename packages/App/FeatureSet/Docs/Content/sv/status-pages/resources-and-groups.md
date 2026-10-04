@@ -26,19 +26,19 @@ Välj gruppen resursen ska hamna i (eller **Top of page** för en grupplös rad)
 
 - **Övervakning** — rullgardinsmenyn med projektets monitorer, platshållare **Välj övervakning**. Obligatoriskt.
 - **Visningsnamn** — texten besökarna läser. Den fylls i med monitorns namn när du väljer den, och följer med när du väljer en annan monitor, tills du skriver ett eget namn. Den lagras separat från monitorns eget namn, så du kan döpa om den här utan att röra övervakningen.
-- **Avancerad** — ihopfälld. Den rymmer **Beskrivning** (valfri markdown som visas under raden, bra för en mening om vad tjänsten faktiskt gör) och [visningsalternativen](#visningsalternativ-på-en-resurs). Lämnar du den stängd får resursen deras standardvärden.
+- **Fler fält** — ihopfälld. Den rymmer **Beskrivning** (valfri markdown som visas under raden, bra för en mening om vad tjänsten faktiskt gör) och [visningsalternativen](#visningsalternativ-på-en-resurs). Lämnar du den stängd får resursen deras standardvärden.
 
-Välj en monitor, klicka på **Lägg till monitor**, och raden finns på sidan. I en rutnätsgrupp frågar dialogen också efter raden och kolumnen monitorn ska stå i, ovanför **Avancerad** — se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout).
+Välj en monitor, klicka på **Lägg till monitor**, och raden finns på sidan. I en rutnätsgrupp frågar dialogen också efter raden och kolumnen monitorn ska stå i, ovanför **Fler fält** — se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout).
 
 Har projektet monitorgrupper aktiverade står det **Add a Monitor Group instead.** i en länk under menyn — klicka på den så byts rullgardinsmenyn **Övervakning** mot en **Monitor Grupp**-meny (**Välj övervakningsgrupp**). Länken vänder sedan till **Add a Monitor instead.** så att du kan gå tillbaka. Använd en monitorgrupp när du vill att en rad på sidan ska representera flera kontroller sammanslagna.
 
 ### Lägga till flera på en gång
 
-**Add Multiple** (som också heter **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en enda sida: ett flerval av **Monitorer** i stället för en enkel rullgardinsmeny, och under det samma ihopfällda **Avancerad**-sektion, vars visningsalternativ gäller varje monitor du valt. Varje resurs tar sitt visningsnamn och sin beskrivning från sin monitor, och **Add Monitors** lägger till dem — det finns inga steg att gå igenom. Det är snabbaste sättet att fylla en ny sida.
+**Add Multiple** (som också heter **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en enda sida: ett flerval av **Monitorer** i stället för en enkel rullgardinsmeny, och under det samma ihopfällda **Fler fält**-sektion, vars visningsalternativ gäller varje monitor du valt. Varje resurs tar sitt visningsnamn och sin beskrivning från sin monitor, och **Add Monitors** lägger till dem — det finns inga steg att gå igenom. Det är snabbaste sättet att fylla en ny sida.
 
 ## Visningsalternativ på en resurs
 
-Sektionen **Avancerad** ser likadan ut i formuläret för en enskild resurs som i massmodalen. Den börjar ihopfälld i båda, och även i **Redigera resurs**, där dess rubrik säger **Konfigurerat** när något i den inte står på sitt standardvärde. Allt här gäller per resurs — två rader i samma grupp kan vara olika inställda.
+Sektionen **Fler fält** ser likadan ut i formuläret för en enskild resurs som i massmodalen. Den börjar ihopfälld i båda, och även i **Redigera resurs**, där dess ihopfällda rubrik visar vad i den som inte står på sitt standardvärde. Allt här gäller per resurs — två rader i samma grupp kan vara olika inställda.
 
 | Fält                                                     | Syfte                                                                                                     |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Klicka på **New Group** för att öppna **Create New Status Page Group**. Formu
 - **Gruppnamn** (`name`) — obligatoriskt. Det här är sektionsrubriken besökarna ser.
 - **Parent Group** (`parentStatusPageGroupId`) — valfri. Lämna den på **No parent group (top level)** för att hålla gruppen på översta nivån. **Add a sub group** fyller i den åt dig.
 - **Layout** — ihopfälld, och rubriken säger **List** eller **Grid**. Den rymmer **Visningsläge** och ett rutnäts axlar (se [Listlayout kontra rutnätslayout](#listlayout-kontra-rutnätslayout)), och den öppnas av sig själv för en rutnätsgrupp.
-- **Avancerad** — ihopfälld. Den rymmer resten och speglar resursalternativen på gruppnivå:
+- **Fler fält** — ihopfälld. Den rymmer resten och speglar resursalternativen på gruppnivå:
   - **Gruppbeskrivning** (`description`) — valfri markdown, visas under rubriken.
   - **Expandera på statussidan som standard** (`isExpandedByDefault`) — på som standard: om sektionen börjar öppen eller ihopfälld för besökarna.
   - **Visa aktuell gruppstatus** (`showCurrentStatus`) — på som standard. Visar en status bredvid gruppens rubrik.

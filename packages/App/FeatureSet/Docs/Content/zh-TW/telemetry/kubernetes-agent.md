@@ -711,7 +711,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 沒有指標出現
 
 1. 首先排除被拒絕的 ingestion key——這是最常見的原因，而且從 agent 端很容易被忽略。請見上文的 [Agent 顯示 "Disconnected"](#agent-顯示-disconnected)（或直接執行診斷指令碼）。
-2. 檢查叢集的 **叢集名稱（clusterName）** 是否與您以 `clusterName` 傳入的值相符。它位於叢集 **Settings** 頁面的 **Cluster Details** 中；如需更正，請選擇 **Edit Details** 並展開 **Advanced**
+2. 檢查叢集的 **叢集名稱（clusterName）** 是否與您以 `clusterName` 傳入的值相符。它位於叢集 **Settings** 頁面的 **Cluster Details** 中；如需更正，請選擇 **Edit Details** 並展開 **More fields**
 3. 驗證 RBAC 權限：`kubectl get clusterrolebinding | grep kubernetes-agent`
 4. 檢查 OTel collector 日誌是否有匯出錯誤
 

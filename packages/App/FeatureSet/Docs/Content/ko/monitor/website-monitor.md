@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### 고급 옵션
+### 추가 필드
 
 #### 리디렉션 따르지 않기
 

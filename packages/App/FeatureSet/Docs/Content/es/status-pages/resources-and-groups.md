@@ -26,19 +26,19 @@ Selecciona el grupo en el que quieres que aterrice el recurso (o **Top of page**
 
 - **Monitor** — el desplegable con los monitores de tu proyecto, marcador de posición **Seleccionar monitor**. Obligatorio.
 - **Nombre para mostrar** — el texto que leen los visitantes. Se rellena con el nombre del monitor al elegirlo, y lo sigue si eliges otro monitor, hasta que escribes un nombre propio. Se guarda aparte del nombre propio del monitor, así que puedes renombrarlo aquí sin tocar la monitorización.
-- **Avanzado** — plegado. Contiene **Descripción** (markdown opcional que se muestra bajo la fila, útil para una frase que explique qué hace realmente el servicio) y las [opciones de visualización](#opciones-de-visualización-de-un-recurso). Si lo dejas cerrado, el recurso recibe sus valores predeterminados.
+- **Más campos** — plegado. Contiene **Descripción** (markdown opcional que se muestra bajo la fila, útil para una frase que explique qué hace realmente el servicio) y las [opciones de visualización](#opciones-de-visualización-de-un-recurso). Si lo dejas cerrado, el recurso recibe sus valores predeterminados.
 
-Elige un monitor, pulsa **Añadir monitor** y la fila ya está en la página. En un grupo en cuadrícula, el diálogo también pide, por encima de **Avanzado**, la fila y la columna donde va el monitor: consulta [Diseño de lista frente a diseño de cuadrícula](#diseño-de-lista-frente-a-diseño-de-cuadrícula).
+Elige un monitor, pulsa **Añadir monitor** y la fila ya está en la página. En un grupo en cuadrícula, el diálogo también pide, por encima de **Más campos**, la fila y la columna donde va el monitor: consulta [Diseño de lista frente a diseño de cuadrícula](#diseño-de-lista-frente-a-diseño-de-cuadrícula).
 
 Si tu proyecto tiene habilitados los grupos de monitores, un enlace bajo el desplegable pone **Add a Monitor Group instead.** — púlsalo y el desplegable **Monitor** se cambia por uno de **Monitor Grupo** (**Seleccionar grupo de monitores**). El enlace pasa entonces a **Add a Monitor instead.** para que puedas volver. Usa un grupo de monitores cuando quieras que una fila de la página represente varias comprobaciones agregadas.
 
 ### Añadir varios de golpe
 
-**Add Multiple** (también **Add multiple monitors** en el menú **More actions**) abre **Add Multiple Monitors**. También es una sola página: un selector múltiple **Monitores** en lugar de un desplegable único y, debajo, la misma sección plegada **Avanzado**, cuyas opciones de visualización se aplican a todos los monitores que hayas marcado. Cada recurso toma su nombre para mostrar y su descripción de su monitor, y **Añadir monitores** los añade: no hay pasos que recorrer. Es la forma más rápida de sembrar una página nueva.
+**Add Multiple** (también **Add multiple monitors** en el menú **More actions**) abre **Add Multiple Monitors**. También es una sola página: un selector múltiple **Monitores** en lugar de un desplegable único y, debajo, la misma sección plegada **Más campos**, cuyas opciones de visualización se aplican a todos los monitores que hayas marcado. Cada recurso toma su nombre para mostrar y su descripción de su monitor, y **Añadir monitores** los añade: no hay pasos que recorrer. Es la forma más rápida de sembrar una página nueva.
 
 ## Opciones de visualización de un recurso
 
-La sección **Avanzado** es idéntica en el formulario de alta individual y en el modal masivo. Empieza plegada en ambos, y también en **Editar recurso**, donde su cabecera dice **Configurado** cuando algo de dentro no está en su valor predeterminado. Todo lo de aquí es por recurso: dos filas del mismo grupo pueden estar configuradas de forma distinta.
+La sección **Más campos** es idéntica en el formulario de alta individual y en el modal masivo. Empieza plegada en ambos, y también en **Editar recurso**, donde su cabecera plegada muestra lo que dentro no está en su valor predeterminado. Todo lo de aquí es por recurso: dos filas del mismo grupo pueden estar configuradas de forma distinta.
 
 | Campo                                                                     | Para qué sirve                                                                                                       |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Pulsa **New Group** para abrir **Create New Status Page Group**. Es una sola pá
 - **Nombre del grupo** (`name`) — obligatorio. Es el encabezado de sección que ven los visitantes.
 - **Parent Group** (`parentStatusPageGroupId`) — opcional. Déjalo en **No parent group (top level)** para mantener el grupo en el nivel superior. **Add a sub group** lo rellena por ti.
 - **Diseño** — plegado, y su cabecera dice **List** o **Grid**. Contiene el **Modo de visualización** y los ejes de una cuadrícula (consulta [Diseño de lista frente a diseño de cuadrícula](#diseño-de-lista-frente-a-diseño-de-cuadrícula)), y se abre solo en un grupo en cuadrícula.
-- **Avanzado** — plegado. Contiene el resto y replica a nivel de grupo las opciones del recurso:
+- **Más campos** — plegado. Contiene el resto y replica a nivel de grupo las opciones del recurso:
   - **Descripción del grupo** (`description`) — markdown opcional, mostrado bajo el encabezado.
   - **Expandir en la Página de estado de forma predeterminada** (`isExpandedByDefault`) — activado de forma predeterminada: si la sección arranca abierta o plegada para los visitantes.
   - **Mostrar estado actual del grupo** (`showCurrentStatus`) — activado de forma predeterminada. Muestra un estado junto al encabezado del grupo.

@@ -71,7 +71,7 @@ Select the HTTP method for the request:
 - **PATCH**
 - **HEAD**
 
-### Advanced Options
+### More fields
 
 #### Request Headers
 
@@ -134,7 +134,7 @@ So an endpoint that answers `201 Created` or `204 No Content` counts as up. If o
 
 Criteria are checked from top to bottom, and the first one that matches decides what happens.
 
-When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **Advanced**, below the criteria. The folded **Advanced** header shows which status that is.
+When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **More fields**, below the criteria. The folded **More fields** header shows which status that is.
 
 Monitors created before OneUptime changed these defaults keep the criteria they were created with, which count only `200` as online. Monitors created through the API or Terraform use the criteria you send.
 

@@ -847,9 +847,9 @@ describe("the output sections", () => {
         "Ownership & Labels",
         "Ownership & Labels",
         "On-Call",
-        "Advanced Options",
-        "Advanced Options",
-        "Advanced Options",
+        "More fields",
+        "More fields",
+        "More fields",
       ]);
     },
   );

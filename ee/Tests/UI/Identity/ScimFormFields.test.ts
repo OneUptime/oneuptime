@@ -32,7 +32,7 @@ import Field, {
 } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { ADVANCED_FORM_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 
 /*
  * Adding a SCIM connection asks only for what OneUptime cannot work out.
@@ -46,10 +46,10 @@ import { ADVANCED_FORM_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/Ad
  * groups joined no team. Both forms are now one page (ScimFormFields):
  *
  *   Project      Name, Default Teams (the members team to start with), and
- *                one folded Advanced section: Auto Provision Users (on),
+ *                one folded More fields section: Auto Provision Users (on),
  *                Auto Deprovision Users (on), Enable Push Groups (off) and
  *                the description.
- *   Status page  Name, and one folded Advanced section: Auto Provision
+ *   Status page  Name, and one folded More fields section: Auto Provision
  *                Users (on), Auto Deprovision Users (on) and the
  *                description.
  *
@@ -112,7 +112,7 @@ describe("the project's SCIM form", () => {
     const section: FormFieldCollapsibleSection<ProjectSCIM> | undefined =
       fieldFor(PROJECT_FIELDS, "autoProvisionUsers").collapsibleSection;
 
-    expect(section?.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    expect(section?.title).toBe(MORE_FIELDS_SECTION_TITLE);
     expect(section?.openWhenConfigured).toBe(false);
 
     for (const key of [
@@ -239,7 +239,7 @@ describe("the status page's SCIM form", () => {
     const section: FormFieldCollapsibleSection<StatusPageSCIM> | undefined =
       fieldFor(STATUS_PAGE_FIELDS, "autoProvisionUsers").collapsibleSection;
 
-    expect(section?.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    expect(section?.title).toBe(MORE_FIELDS_SECTION_TITLE);
 
     for (const key of [
       "autoProvisionUsers",
@@ -281,7 +281,7 @@ describe("the status page's SCIM form", () => {
   });
 });
 
-describe("the folded Advanced section", () => {
+describe("the folded More fields section", () => {
   test("is at its defaults while provisioning and deprovisioning are on, push groups off and nothing is written", () => {
     expect(isScimAdvancedAtDefaults({})).toBe(true);
     expect(
@@ -322,7 +322,7 @@ describe("the folded Advanced section", () => {
     expect(isScimAdvancedAtDefaults({ enablePushGroups: true })).toBe(true);
   });
 
-  test("says what its defaults do while folded at them, and Configured once something differs", () => {
+  test("says what its defaults do while folded at them, and is configured once something differs", () => {
     const project: FormFieldCollapsibleSection<ProjectSCIM> =
       getScimAdvancedSection<ProjectSCIM>({ withPushGroups: true });
     const statusPage: FormFieldCollapsibleSection<StatusPageSCIM> =

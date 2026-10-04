@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "帳戶密碼，或供應商為 SMTP 提供的 API 金鑰。",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "您的郵件寄件地址。您的伺服器必須允許從此地址寄件；使用 Microsoft Graph 時，這就是寄件的信箱。",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "供應商提供的連接埠，通常為 587。連接埠 465 一律加密。",
-  "Port 465 is always encrypted, but the certificate is not checked.": "連接埠 465 一律加密，但不會檢查憑證。"
+  "Port 465 is always encrypted, but the certificate is not checked.": "連接埠 465 一律加密，但不會檢查憑證。",
+  "More fields": "更多欄位",
+  "More settings": "更多設定",
+  "{{count}} more": "另外 {{count}} 項",
+  "{{count}} more_one": "另外 {{count}} 項",
+  "On": "開啟",
+  "Off": "關閉"
 }

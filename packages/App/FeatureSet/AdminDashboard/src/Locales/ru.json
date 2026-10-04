@@ -872,5 +872,11 @@
   "The account's password, or the API key your provider gives you for SMTP.": "Пароль учётной записи или ключ API, который ваш провайдер выдаёт для SMTP.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "Адрес, с которого приходят ваши письма. Ваш сервер должен разрешать отправку с него; в Microsoft Graph это почтовый ящик, который отправляет письма.",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Порт, который указывает ваш провайдер, обычно 587. Порт 465 всегда зашифрован.",
-  "Port 465 is always encrypted, but the certificate is not checked.": "Порт 465 всегда зашифрован, но сертификат не проверяется."
+  "Port 465 is always encrypted, but the certificate is not checked.": "Порт 465 всегда зашифрован, но сертификат не проверяется.",
+  "More fields": "Дополнительные поля",
+  "More settings": "Дополнительные настройки",
+  "{{count}} more": "ещё {{count}}",
+  "{{count}} more_one": "ещё {{count}}",
+  "On": "Включено",
+  "Off": "Выключено"
 }

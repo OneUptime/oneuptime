@@ -189,6 +189,12 @@ import StatusPageGroupViewMode from "../../../Types/StatusPage/StatusPageGroupVi
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { MemoryRouter } from "react-router-dom";
+import {
+  getByTextOutsideFoldedHeaders,
+  hasSetChip,
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const mockGetList: jest.MockedFunction<any> =
   ModelAPI.getList as unknown as jest.MockedFunction<any>;
@@ -2798,7 +2804,7 @@ describe("Status Page > Resources", () => {
       const advanced: any = formProps.fields[2].collapsibleSection;
 
       expect(advanced.id).toBe("advanced");
-      expect(advanced.title).toBe("Advanced");
+      expect(advanced.title).toBe("More fields");
 
       for (const field of formProps.fields.slice(2)) {
         expect(field.collapsibleSection).toBe(advanced);
@@ -2922,7 +2928,7 @@ describe("Status Page > Resources", () => {
       }
 
       expect(layout.title).toBe("Layout");
-      expect(advanced.title).toBe("Advanced");
+      expect(advanced.title).toBe("More fields");
       // Advanced stays folded on Edit; Layout opens for a grid.
       expect(advanced.openWhenConfigured).toBe(false);
       expect(layout.openWhenConfigured).not.toBe(false);
@@ -2999,12 +3005,15 @@ describe("Status Page > Resources", () => {
         { name: "Layout" },
       );
       const advancedHeader: HTMLElement = within(form).getByRole("button", {
-        name: "Advanced",
+        name: "More fields",
       });
 
-      // Advanced always starts folded.
+      // More fields always starts folded, naming what it holds.
       expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
-      expect(within(form).getByText("Group Description")).not.toBeVisible();
+      expect(listedNames(advancedHeader)).toContain("Group Description");
+      expect(
+        getByTextOutsideFoldedHeaders(form, "Group Description"),
+      ).not.toBeVisible();
 
       expect(layoutHeader).toHaveAttribute(
         "aria-expanded",
@@ -3115,16 +3124,16 @@ describe("Status Page > Resources", () => {
 
         const advancedHeader: HTMLElement = await within(form).findByRole(
           "button",
-          { name: /^Advanced/ },
+          { name: "More fields" },
         );
 
         // Folded either way: Edit never opens Advanced by itself.
         expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
 
         if (isConfigured) {
-          expect(advancedHeader).toHaveTextContent("Configured");
+          expect(hasSetChip(advancedHeader)).toBe(true);
         } else {
-          expect(advancedHeader).not.toHaveTextContent("Configured");
+          expect(setChips(advancedHeader)).toEqual([]);
         }
       },
     );

@@ -488,17 +488,21 @@ const ModelForm: <TBaseModel extends BaseModel>(
            * the server stores for a field left out - unless the field or the
            * form's initial values say otherwise (Utils/CreateFormDefaults).
            * Without this a switch whose column defaults to on was drawn off
-           * and saved off. An Edit form shows the record as it is.
+           * and saved off. An Edit form shows the record as it is, but its
+           * folded sections still compare with the column's default, so a
+           * switch on because its column starts on is not shown as set.
            */
           const columnDefault: CreateFormColumnDefault | undefined =
-            props.formType === FormType.Create
-              ? getCreateFormColumnDefault(model, field)
-              : undefined;
+            getCreateFormColumnDefault(model, field);
 
           fieldsToSet.push({
             ...field,
-            ...(columnDefault !== undefined
+            ...(columnDefault !== undefined &&
+            props.formType === FormType.Create
               ? { defaultValue: columnDefault }
+              : {}),
+            ...(columnDefault !== undefined
+              ? { columnDefaultValue: columnDefault }
               : {}),
             field: {
               [key]: true,
