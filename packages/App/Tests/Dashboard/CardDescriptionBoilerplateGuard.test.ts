@@ -412,7 +412,14 @@ describe("card descriptions say what each list or card is for", () => {
 
   test("the shared components that every page leans on say what they show", () => {
     const ruleView: string = fs.readFileSync(
-      path.join(PACKAGES_DIR, "Common", "UI", "Components", "RuleRun", "RuleView.tsx"),
+      path.join(
+        PACKAGES_DIR,
+        "Common",
+        "UI",
+        "Components",
+        "RuleRun",
+        "RuleView.tsx",
+      ),
       "utf8",
     );
     const workflowLogModal: string = fs.readFileSync(

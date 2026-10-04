@@ -23,7 +23,14 @@ const DASHBOARD_SRC: string = path.resolve(
   "Dashboard",
   "src",
 );
-const COMMON_UI: string = path.resolve(__dirname, "..", "..", "..", "Common", "UI");
+const COMMON_UI: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "UI",
+);
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
 type Locale = Record<string, unknown>;
@@ -361,12 +368,9 @@ function expectTranslatedEverywhere(sentence: string): void {
 }
 
 describe("each list says what it is for", () => {
-  test.each(LIST_DESCRIPTIONS)(
-    "%s",
-    (file: string, sentence: string) => {
-      expect(readDashboard(file)).toContain(`"${sentence}"`);
-    },
-  );
+  test.each(LIST_DESCRIPTIONS)("%s", (file: string, sentence: string) => {
+    expect(readDashboard(file)).toContain(`"${sentence}"`);
+  });
 
   test.each(LIST_DESCRIPTIONS)(
     "%s reads as the explanation under an empty list's 'No X yet'",
@@ -401,15 +405,14 @@ describe("every new sentence is translated in every language", () => {
   });
 
   test.each(
-    [...ALL_DESCRIPTIONS.map(
-      ([, sentence]: [string, string]): string => {
+    [
+      ...ALL_DESCRIPTIONS.map(([, sentence]: [string, string]): string => {
         return sentence;
-      },
-    ), RULE_VIEW_DESCRIPTION].filter(
-      (sentence: string, index: number, all: Array<string>): boolean => {
-        return all.indexOf(sentence) === index;
-      },
-    ),
+      }),
+      RULE_VIEW_DESCRIPTION,
+    ].filter((sentence: string, index: number, all: Array<string>): boolean => {
+      return all.indexOf(sentence) === index;
+    }),
   )("%s", (sentence: string) => {
     expectTranslatedEverywhere(sentence);
   });
@@ -506,19 +509,16 @@ function getTitledObjects(file: string): Array<CardObject> {
 }
 
 describe("a details card whose title says it all has no description", () => {
-  test.each(TITLE_SAYS_IT_ALL)(
-    "%s: %s",
-    (file: string, title: string) => {
-      const cards: Array<CardObject> = getTitledObjects(file).filter(
-        (card: CardObject): boolean => {
-          return card.title === title;
-        },
-      );
+  test.each(TITLE_SAYS_IT_ALL)("%s: %s", (file: string, title: string) => {
+    const cards: Array<CardObject> = getTitledObjects(file).filter(
+      (card: CardObject): boolean => {
+        return card.title === title;
+      },
+    );
 
-      expect(cards).toHaveLength(1);
-      expect(cards[0]!.properties).not.toContain("description");
-    },
-  );
+    expect(cards).toHaveLength(1);
+    expect(cards[0]!.properties).not.toContain("description");
+  });
 
   test("a Runner the Kubernetes agent installed still says why its form is short", () => {
     const cards: Array<CardObject> = getTitledObjects(
@@ -545,7 +545,10 @@ describe("a details card whose title says it all has no description", () => {
       "Here are the latest monitoring summary for this resource.",
     );
 
-    for (const file of ["Pages/Workflow/Logs.tsx", "Pages/Workflow/View/Logs.tsx"]) {
+    for (const file of [
+      "Pages/Workflow/Logs.tsx",
+      "Pages/Workflow/View/Logs.tsx",
+    ]) {
       expect(readDashboard(file)).not.toContain(
         "Here is what happened when this workflow ran.",
       );
@@ -563,7 +566,9 @@ describe("a Name field's placeholder names its own resource", () => {
   });
 
   test("a monitor group's name, not a monitor's", () => {
-    const source: string = readDashboard("Pages/MonitorGroup/MonitorGroups.tsx");
+    const source: string = readDashboard(
+      "Pages/MonitorGroup/MonitorGroups.tsx",
+    );
 
     expect(source).toContain('placeholder: "Monitor Group Name"');
     expect(source).not.toContain('placeholder: "Monitor Name"');
