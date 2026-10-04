@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "{{count}} pagina di stato aggiunta.",
   "Added {{statusPageName}} to the status pages.": "Pagina di stato aggiunta: {{statusPageName}}.",
   "Status pages that show the affected monitors:": "Pagine di stato che mostrano i monitor interessati:",
-  "Status pages that show the affected monitors:_one": "Pagine di stato che mostrano il monitor interessato:"
+  "Status pages that show the affected monitors:_one": "Pagine di stato che mostrano il monitor interessato:",
+  "Untitled status page": "Pagina di stato senza titolo"
 }

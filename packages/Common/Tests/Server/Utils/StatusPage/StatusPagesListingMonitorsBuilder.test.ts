@@ -563,14 +563,19 @@ describe("StatusPagesListingMonitorsBuilder.build", () => {
     ]);
   });
 
-  test("a page without a name is still suggested, under a name people can read", async () => {
+  test("a page without a name is still suggested, last and nameless: the dashboard names it in the reader's language", async () => {
     resources.push({ statusPageId: UNTITLED_PAGE, monitorId: API_MONITOR });
 
-    expect(await namesFor([API_MONITOR])).toEqual([
-      "Acme Public",
-      "EU Status",
-      "Untitled status page",
+    const result: StatusPagesListingMonitorsResult =
+      await StatusPagesListingMonitorsBuilder.build(request([API_MONITOR]));
+
+    expect(result.statusPages).toEqual([
+      { statusPageId: PUBLIC_PAGE, name: "Acme Public" },
+      { statusPageId: EU_PAGE, name: "EU Status" },
+      { statusPageId: UNTITLED_PAGE, name: "" },
     ]);
+    // No English word stands in for the name on the server.
+    expect(JSON.stringify(result)).not.toContain("Untitled");
   });
 
   test("the monitor lookup is the one the subscriber jobs use, so monitor groups count", async () => {

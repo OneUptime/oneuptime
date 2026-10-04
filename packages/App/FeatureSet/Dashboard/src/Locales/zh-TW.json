@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "已新增 {{count}} 個狀態頁面。",
   "Added {{statusPageName}} to the status pages.": "已將{{statusPageName}}新增至狀態頁面。",
   "Status pages that show the affected monitors:": "顯示受影響監測器的狀態頁面：",
-  "Status pages that show the affected monitors:_one": "顯示受影響監測器的狀態頁面："
+  "Status pages that show the affected monitors:_one": "顯示受影響監測器的狀態頁面：",
+  "Untitled status page": "未命名的狀態頁面"
 }

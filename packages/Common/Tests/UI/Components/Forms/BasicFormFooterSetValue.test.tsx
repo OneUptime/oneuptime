@@ -204,3 +204,80 @@ describe("a field's footer setting the field's value", () => {
     expect(submitted["slug"]).toBe("payments-api");
   });
 });
+
+describe("a dropdown's footer setting the dropdown's value", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  /*
+   * A pick in a dropdown hands the field's onChange what it changed, as the
+   * options name it (DropdownChange) - a status page resource's display
+   * name follows its monitor that way. A footer's pick must say the same.
+   */
+  test("the field's onChange is told what the pick changed, by the options' names", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const fields: Fields<JSONObject> = [
+      {
+        field: { region: true },
+        title: "Region",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: [
+          { label: "Europe", value: "eu" },
+          { label: "United States", value: "us" },
+        ],
+        required: false,
+        onChange: (
+          value: unknown,
+          _currentValues: FormValues<JSONObject>,
+          _setNewFormValues: (values: FormValues<JSONObject>) => void,
+          change?: unknown,
+        ): void => {
+          onChange(value, change);
+        },
+        getFooterElement: (
+          _values: FormValues<JSONObject>,
+          _error?: string,
+          footer?: FieldFooterProps,
+        ): ReactElement => {
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                footer?.setValue("us");
+              }}
+            >
+              Use the suggested region
+            </button>
+          );
+        },
+      },
+    ];
+
+    render(
+      <BasicForm
+        id="footer-dropdown-form"
+        fields={fields}
+        initialValues={{ region: "eu" }}
+        disableAutofocus={true}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Save"
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Use the suggested region" }),
+    );
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onChange.mock.calls[0]![0]).toBe("us");
+    expect(onChange.mock.calls[0]![1]).toEqual({
+      selectedOptions: [{ label: "United States", value: "us" }],
+      previousOptions: [{ label: "Europe", value: "eu" }],
+    });
+  });
+});

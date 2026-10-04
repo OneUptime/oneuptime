@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "{{count}} 件のステータスページを追加しました。",
   "Added {{statusPageName}} to the status pages.": "{{statusPageName}} をステータスページに追加しました。",
   "Status pages that show the affected monitors:": "影響を受けるモニターを表示しているステータスページ:",
-  "Status pages that show the affected monitors:_one": "影響を受けるモニターを表示しているステータスページ:"
+  "Status pages that show the affected monitors:_one": "影響を受けるモニターを表示しているステータスページ:",
+  "Untitled status page": "無題のステータスページ"
 }

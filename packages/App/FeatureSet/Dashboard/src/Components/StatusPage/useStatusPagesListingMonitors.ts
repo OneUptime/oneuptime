@@ -10,8 +10,12 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useEffect, useState } from "react";
 import {
+  StatusPageSuggestionsQuestion,
   StatusPageSuggestionsRequest,
-  getStatusPageSuggestionsRequestBody,
+  getStatusPageSuggestionsQuestion,
+  getStatusPageSuggestionsRequestBodies,
+  isStillShowingTheMonitors,
+  mergeStatusPagesListingMonitors,
 } from "./StatusPageSuggestionRules";
 
 /*
@@ -21,15 +25,27 @@ import {
  *
  * A form's values change on every keystroke elsewhere in it, so the request
  * is keyed on the monitors it names (sorted) and the kind of event, fetched
- * only when those change, and only once the picking has settled for a
- * moment. An answer to a request that has since changed is dropped.
+ * only when those change and - while they are being picked on the form -
+ * only once the picking has settled for a moment. An answer to a request
+ * that has since changed is dropped. While a new answer is on its way, the
+ * last one is kept if the monitors were only added to (every page it named
+ * still shows one of them), so the line does not vanish under the pointer.
  */
 
 export interface StatusPagesListingMonitorsState {
-  // The pages that list the monitors; empty while loading or on an error.
+  // The pages that list the monitors; empty while nothing is known yet.
   statusPages: Array<StatusPageListingMonitors>;
   isLoading: boolean;
   error: string;
+}
+
+export interface StatusPagesListingMonitorsOptions {
+  /*
+   * Wait for the monitors to stop changing before asking: they are being
+   * picked on the form. False for monitors read from a saved record, which
+   * do not change while the picker is open.
+   */
+  waitForPickingToSettle?: boolean | undefined;
 }
 
 // How long the monitors have to stop changing before the request goes out.
@@ -64,19 +80,52 @@ export const fetchStatusPagesListingMonitors: (
   return StatusPagesListingMonitors.fromJSON(response.data || {}).statusPages;
 };
 
+/*
+ * Every page that lists any of the monitors: one request per
+ * StatusPagesListingMonitors.maxIdsPerRequest monitors, the answers merged.
+ */
+export const fetchStatusPagesShowingMonitors: (
+  question: StatusPageSuggestionsQuestion,
+) => Promise<Array<StatusPageListingMonitors>> = async (
+  question: StatusPageSuggestionsQuestion,
+): Promise<Array<StatusPageListingMonitors>> => {
+  const answers: Array<Array<StatusPageListingMonitors>> = await Promise.all(
+    getStatusPageSuggestionsRequestBodies(question).map(
+      (body: JSONObject): Promise<Array<StatusPageListingMonitors>> => {
+        return fetchStatusPagesListingMonitors(body);
+      },
+    ),
+  );
+
+  return mergeStatusPagesListingMonitors(answers);
+};
+
+interface AnsweredState {
+  key: string;
+  question: StatusPageSuggestionsQuestion | null;
+  statusPages: Array<StatusPageListingMonitors>;
+  error: string;
+}
+
 const useStatusPagesListingMonitors: (
   request: StatusPageSuggestionsRequest | null,
+  options?: StatusPagesListingMonitorsOptions,
 ) => StatusPagesListingMonitorsState = (
   request: StatusPageSuggestionsRequest | null,
+  options?: StatusPagesListingMonitorsOptions,
 ): StatusPagesListingMonitorsState => {
-  const body: JSONObject | null = getStatusPageSuggestionsRequestBody(request);
-  const requestKey: string = body ? JSON.stringify(body) : "";
+  const question: StatusPageSuggestionsQuestion | null =
+    getStatusPageSuggestionsQuestion(request);
+  const requestKey: string = question ? JSON.stringify(question) : "";
+  const waitForPickingToSettle: boolean =
+    options?.waitForPickingToSettle !== false;
 
-  const [state, setState] = useState<{
-    key: string;
-    statusPages: Array<StatusPageListingMonitors>;
-    error: string;
-  }>({ key: "", statusPages: [], error: "" });
+  const [state, setState] = useState<AnsweredState>({
+    key: "",
+    question: null,
+    statusPages: [],
+    error: "",
+  });
 
   useEffect(() => {
     if (!requestKey) {
@@ -84,37 +133,65 @@ const useStatusPagesListingMonitors: (
     }
 
     let isCancelled: boolean = false;
+    const asked: StatusPageSuggestionsQuestion = JSON.parse(
+      requestKey,
+    ) as StatusPageSuggestionsQuestion;
 
-    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      fetchStatusPagesListingMonitors(JSON.parse(requestKey) as JSONObject)
+    const run: () => void = (): void => {
+      fetchStatusPagesShowingMonitors(asked)
         .then((statusPages: Array<StatusPageListingMonitors>) => {
           if (!isCancelled) {
-            setState({ key: requestKey, statusPages: statusPages, error: "" });
+            setState({
+              key: requestKey,
+              question: asked,
+              statusPages: statusPages,
+              error: "",
+            });
           }
         })
         .catch((err: unknown) => {
           if (!isCancelled) {
             setState({
               key: requestKey,
+              question: asked,
               statusPages: [],
               error: API.getFriendlyMessage(err),
             });
           }
         });
-    }, STATUS_PAGE_SUGGESTIONS_DEBOUNCE_MS);
+    };
+
+    const timer: ReturnType<typeof setTimeout> | null = waitForPickingToSettle
+      ? setTimeout(run, STATUS_PAGE_SUGGESTIONS_DEBOUNCE_MS)
+      : null;
+
+    if (!timer) {
+      run();
+    }
 
     return () => {
       isCancelled = true;
-      clearTimeout(timer);
-    };
-  }, [requestKey]);
 
-  if (!requestKey) {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [requestKey, waitForPickingToSettle]);
+
+  if (!requestKey || !question) {
     return { statusPages: [], isLoading: false, error: "" };
   }
 
-  // Until the answer for this request arrives, the last one is stale.
   if (state.key !== requestKey) {
+    // Monitors only added: every page the last answer named still shows one.
+    if (
+      state.question &&
+      !state.error &&
+      isStillShowingTheMonitors({ before: state.question, after: question })
+    ) {
+      return { statusPages: state.statusPages, isLoading: true, error: "" };
+    }
+
     return { statusPages: [], isLoading: true, error: "" };
   }
 

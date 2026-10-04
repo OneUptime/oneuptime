@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "Добавлена {{count}} страница состояния.",
   "Added {{statusPageName}} to the status pages.": "Страница состояния {{statusPageName}} добавлена.",
   "Status pages that show the affected monitors:": "Страницы состояния, на которых показаны затронутые мониторы:",
-  "Status pages that show the affected monitors:_one": "Страницы состояния, на которых показан затронутый монитор:"
+  "Status pages that show the affected monitors:_one": "Страницы состояния, на которых показан затронутый монитор:",
+  "Untitled status page": "Страница состояния без названия"
 }

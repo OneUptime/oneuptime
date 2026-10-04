@@ -129,4 +129,21 @@ describe("StatusPagesListingMonitors", () => {
         }),
     ).toEqual(["1", "2", "3", "4"]);
   });
+
+  test("puts a page without a name last", () => {
+    const pages: Array<StatusPageListingMonitors> = [
+      { statusPageId: "9", name: "" },
+      { statusPageId: "5", name: "  " },
+      { statusPageId: "2", name: "Zulu" },
+      { statusPageId: "1", name: "Alpha" },
+    ];
+
+    expect(
+      [...pages]
+        .sort(StatusPagesListingMonitors.compareByName)
+        .map((page: StatusPageListingMonitors): string => {
+          return page.statusPageId;
+        }),
+    ).toEqual(["1", "2", "5", "9"]);
+  });
 });

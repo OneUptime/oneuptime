@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "{{count}} statussida har lagts till.",
   "Added {{statusPageName}} to the status pages.": "{{statusPageName}} har lagts till bland statussidorna.",
   "Status pages that show the affected monitors:": "Statussidor som visar de berörda monitorerna:",
-  "Status pages that show the affected monitors:_one": "Statussidor som visar den berörda monitorn:"
+  "Status pages that show the affected monitors:_one": "Statussidor som visar den berörda monitorn:",
+  "Untitled status page": "Namnlös statussida"
 }

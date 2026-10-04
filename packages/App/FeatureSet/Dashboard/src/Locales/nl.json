@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "{{count}} statuspagina toegevoegd.",
   "Added {{statusPageName}} to the status pages.": "{{statusPageName}} toegevoegd aan de statuspagina's.",
   "Status pages that show the affected monitors:": "Statuspagina's die de getroffen monitoren tonen:",
-  "Status pages that show the affected monitors:_one": "Statuspagina's die de getroffen monitor tonen:"
+  "Status pages that show the affected monitors:_one": "Statuspagina's die de getroffen monitor tonen:",
+  "Untitled status page": "Naamloze statuspagina"
 }

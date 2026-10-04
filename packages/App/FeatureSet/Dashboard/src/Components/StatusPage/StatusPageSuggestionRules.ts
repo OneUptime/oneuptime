@@ -69,6 +69,11 @@ export const ADDED_SUGGESTED_STATUS_PAGES_ANNOUNCEMENT: PluralTemplate = {
   other: "Added {{count}} status pages.",
 };
 
+// What a page without a name is called on its button.
+export const UNTITLED_STATUS_PAGE: string = translationKey(
+  "Untitled status page",
+);
+
 /*
  * The monitors in a form value: bare ids (the affected resources picker),
  * {_id, name} objects (a template's monitors, not yet touched), models, or
@@ -91,25 +96,29 @@ export const getMonitorIdsFromFormValue: (value: unknown) => Array<string> = (
   return getIdsFromFormValue(value);
 };
 
+// What is asked about: every affected monitor, and the kind of event.
+export interface StatusPageSuggestionsQuestion {
+  // Lower-cased and sorted, so the question doubles as the request's key.
+  monitorIds: Array<string>;
+  eventType: StatusPageEventType;
+}
+
 /*
- * The request body, or null when there is nothing to ask: no monitor is
- * affected. The ids are sorted, so the body doubles as the request's key, and
- * capped at what one request may name.
+ * The question, or null when there is nothing to ask: no monitor is
+ * affected.
  */
-export const getStatusPageSuggestionsRequestBody: (
+export const getStatusPageSuggestionsQuestion: (
   request: StatusPageSuggestionsRequest | null,
-) => JSONObject | null = (
+) => StatusPageSuggestionsQuestion | null = (
   request: StatusPageSuggestionsRequest | null,
-): JSONObject | null => {
+): StatusPageSuggestionsQuestion | null => {
   if (!request) {
     return null;
   }
 
   const monitorIds: Array<string> = getMonitorIdsFromFormValue(
     request.monitorIds,
-  )
-    .sort()
-    .slice(0, StatusPagesListingMonitors.maxIdsPerRequest);
+  ).sort();
 
   if (monitorIds.length === 0) {
     return null;
@@ -121,19 +130,125 @@ export const getStatusPageSuggestionsRequestBody: (
   };
 };
 
-// The pages to suggest: the ones that list the monitors, less those picked.
+/*
+ * The request bodies that ask it: one per StatusPagesListingMonitors.
+ * maxIdsPerRequest monitors, so an event on more monitors than one request
+ * may name still hears of every page (the answers are merged).
+ */
+export const getStatusPageSuggestionsRequestBodies: (
+  question: StatusPageSuggestionsQuestion,
+) => Array<JSONObject> = (
+  question: StatusPageSuggestionsQuestion,
+): Array<JSONObject> => {
+  const bodies: Array<JSONObject> = [];
+
+  for (
+    let start: number = 0;
+    start < question.monitorIds.length;
+    start += StatusPagesListingMonitors.maxIdsPerRequest
+  ) {
+    bodies.push({
+      monitorIds: question.monitorIds.slice(
+        start,
+        start + StatusPagesListingMonitors.maxIdsPerRequest,
+      ),
+      eventType: question.eventType,
+    });
+  }
+
+  return bodies;
+};
+
+/*
+ * The answers to those requests as one list: each page once, as the first
+ * answer named it.
+ */
+export const mergeStatusPagesListingMonitors: (
+  answers: Array<Array<StatusPageListingMonitors>>,
+) => Array<StatusPageListingMonitors> = (
+  answers: Array<Array<StatusPageListingMonitors>>,
+): Array<StatusPageListingMonitors> => {
+  const merged: Array<StatusPageListingMonitors> = [];
+
+  for (const answer of answers) {
+    for (const statusPage of answer) {
+      const id: string = statusPage.statusPageId.toLowerCase();
+
+      if (
+        !merged.some((existing: StatusPageListingMonitors): boolean => {
+          return existing.statusPageId.toLowerCase() === id;
+        })
+      ) {
+        merged.push(statusPage);
+      }
+    }
+  }
+
+  return merged;
+};
+
+/*
+ * Whether the pages answered for `before` still all show a monitor of
+ * `after`: the monitors were only added to, for the same kind of event. The
+ * line then keeps showing them while the answer for `after` is on its way,
+ * rather than vanishing for a moment under the pointer.
+ */
+export const isStillShowingTheMonitors: (data: {
+  before: StatusPageSuggestionsQuestion;
+  after: StatusPageSuggestionsQuestion;
+}) => boolean = (data: {
+  before: StatusPageSuggestionsQuestion;
+  after: StatusPageSuggestionsQuestion;
+}): boolean => {
+  return (
+    data.before.eventType === data.after.eventType &&
+    data.before.monitorIds.every((id: string): boolean => {
+      return data.after.monitorIds.includes(id);
+    })
+  );
+};
+
+/*
+ * The pages to suggest: the ones that list the monitors, less those picked,
+ * in name order the way the reader's language orders names ("Site 2"
+ * before "Site 10"). A page without a name comes last.
+ */
 export const getStatusPagesToSuggest: (data: {
   listing: Array<StatusPageListingMonitors>;
   picked: unknown;
+  language?: string | undefined;
 }) => Array<StatusPageListingMonitors> = (data: {
   listing: Array<StatusPageListingMonitors>;
   picked: unknown;
+  language?: string | undefined;
 }): Array<StatusPageListingMonitors> => {
   const picked: Array<string> = getIdsFromFormValue(data.picked);
 
-  return data.listing.filter((statusPage: StatusPageListingMonitors) => {
-    return !picked.includes(statusPage.statusPageId.toLowerCase());
-  });
+  let collator: Intl.Collator;
+
+  try {
+    collator = new Intl.Collator(data.language || "en", {
+      sensitivity: "base",
+      numeric: true,
+    });
+  } catch {
+    collator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+  }
+
+  return data.listing
+    .filter((statusPage: StatusPageListingMonitors) => {
+      return !picked.includes(statusPage.statusPageId.toLowerCase());
+    })
+    .sort((a: StatusPageListingMonitors, b: StatusPageListingMonitors) => {
+      const aName: string = a.name.trim();
+      const bName: string = b.name.trim();
+
+      if (!aName || !bName) {
+        return Number(!aName) - Number(!bName);
+      }
+
+      return collator.compare(aName, bName);
+    });
 };
 
 /*

@@ -61,11 +61,12 @@ export interface CategoryCheckboxProps {
 export interface FieldFooterProps {
   /*
    * Sets the field's value the way picking it in the field would: the
-   * field's onChange is called first, then the value is stored, and the form
-   * counts it as the user's own edit. For a footer that offers one-click
-   * picks, such as the status pages that show a maintenance event's
-   * monitors, suggested under its status page picker. Nothing is set until
-   * the footer calls it.
+   * field's onChange is called first - for a dropdown, with what the pick
+   * changed as the field's options name it (DropdownChange) - then the value
+   * is stored, and the form counts it as the user's own edit. For a footer
+   * that offers one-click picks, such as the status pages that show a
+   * maintenance event's monitors, suggested under its status page picker.
+   * Nothing is set until the footer calls it.
    */
   setValue: (value: any) => void;
 }

@@ -27,6 +27,7 @@ import {
   ADD_ALL_SUGGESTED_STATUS_PAGES,
   ADD_SUGGESTED_STATUS_PAGE_LABEL,
   STATUS_PAGE_SUGGESTIONS_LABEL,
+  UNTITLED_STATUS_PAGE,
   addStatusPagesToFormValue,
   getMonitorIdsFromFormValue,
   getStatusPagesToSuggest,
@@ -56,6 +57,11 @@ export interface StatusPageSuggestionsProps {
   eventType: StatusPageEventType;
   // The picker's new value, the added pages after those already picked.
   onChange: (statusPageIds: Array<string>) => void;
+  /*
+   * The monitors are being picked on the form: ask once the picking has
+   * settled. False for monitors read from a saved record.
+   */
+  waitForPickingToSettle?: boolean | undefined;
 }
 
 const StatusPageSuggestions: FunctionComponent<StatusPageSuggestionsProps> = (
@@ -75,15 +81,30 @@ const StatusPageSuggestions: FunctionComponent<StatusPageSuggestionsProps> = (
   const [announcement, setAnnouncement] = useState<string>("");
 
   const { statusPages }: StatusPagesListingMonitorsState =
-    useStatusPagesListingMonitors({
-      monitorIds: props.monitorIds,
-      eventType: props.eventType,
-    });
+    useStatusPagesListingMonitors(
+      {
+        monitorIds: props.monitorIds,
+        eventType: props.eventType,
+      },
+      { waitForPickingToSettle: props.waitForPickingToSettle },
+    );
 
   const toSuggest: Array<StatusPageListingMonitors> = getStatusPagesToSuggest({
     listing: statusPages,
     picked: props.statusPageIds,
+    language: translator.language,
   });
+
+  // A page's name, or what a page without one is called.
+  const nameOf: (page: StatusPageListingMonitors) => string = (
+    page: StatusPageListingMonitors,
+  ): string => {
+    return (
+      page.name.trim() ||
+      translator.translateText(UNTITLED_STATUS_PAGE) ||
+      UNTITLED_STATUS_PAGE
+    );
+  };
 
   useLayoutEffect(() => {
     const position: number | null = focusAfterAddRef.current;
@@ -137,7 +158,7 @@ const StatusPageSuggestions: FunctionComponent<StatusPageSuggestionsProps> = (
       pages.length === 1
         ? translator.translateTemplate(
             ADDED_SUGGESTED_STATUS_PAGE_ANNOUNCEMENT,
-            { statusPageName: pages[0]!.name },
+            { statusPageName: nameOf(pages[0]!) },
           )
         : translator.translatePlural(
             ADDED_SUGGESTED_STATUS_PAGES_ANNOUNCEMENT,
@@ -176,9 +197,9 @@ const StatusPageSuggestions: FunctionComponent<StatusPageSuggestionsProps> = (
                   data-testid="status-page-suggestion"
                   aria-label={translator.translateTemplate(
                     ADD_SUGGESTED_STATUS_PAGE_LABEL,
-                    { statusPageName: page.name },
+                    { statusPageName: nameOf(page) },
                   )}
-                  title={page.name}
+                  title={nameOf(page)}
                   onClick={() => {
                     add([page], position);
                   }}
@@ -192,7 +213,7 @@ const StatusPageSuggestions: FunctionComponent<StatusPageSuggestionsProps> = (
                   >
                     <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
                   </svg>
-                  <span className="truncate">{page.name}</span>
+                  <span className="truncate">{nameOf(page)}</span>
                 </button>
               );
             },
@@ -236,7 +257,10 @@ export default StatusPageSuggestions;
  * now.
  */
 export interface RecordStatusPageSuggestionsProps
-  extends Omit<StatusPageSuggestionsProps, "monitorIds"> {
+  extends Omit<
+    StatusPageSuggestionsProps,
+    "monitorIds" | "waitForPickingToSettle"
+  > {
   // A model with a `monitors` relation.
   modelType: DatabaseBaseModelType;
   modelId: ObjectID;
@@ -287,6 +311,8 @@ export const RecordStatusPageSuggestions: FunctionComponent<
       statusPageIds={props.statusPageIds}
       eventType={props.eventType}
       onChange={props.onChange}
+      // A saved record's monitors do not change while the picker is open.
+      waitForPickingToSettle={false}
     />
   );
 };

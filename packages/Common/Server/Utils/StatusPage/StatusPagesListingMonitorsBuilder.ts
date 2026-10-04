@@ -174,31 +174,24 @@ export default class StatusPagesListingMonitorsBuilder {
       },
     });
 
-    const suggested: Array<StatusPageListingMonitors> = [];
-
-    for (const statusPage of statusPages) {
-      const statusPageId: string | undefined = this.normalizeIds(
-        statusPage._id,
-      )[0];
-
-      if (
-        !statusPageId ||
-        !readableStatusPageIds.includes(statusPageId) ||
-        !this.isShowing(statusPage, request.eventType) ||
-        suggested.some((existing: StatusPageListingMonitors): boolean => {
-          return existing.statusPageId === statusPageId;
-        })
-      ) {
-        continue;
-      }
-
-      suggested.push({
-        statusPageId: statusPageId,
-        name: statusPage.name?.trim() || "Untitled status page",
-      });
-    }
-
-    suggested.sort(StatusPagesListingMonitors.compareByName);
+    /*
+     * A page without a name is named "" - the dashboard calls it what the
+     * reader's language calls an untitled page.
+     */
+    const suggested: Array<StatusPageListingMonitors> = statusPages
+      .filter((statusPage: StatusPage): boolean => {
+        return this.isShowing(statusPage, request.eventType);
+      })
+      .map((statusPage: StatusPage): StatusPageListingMonitors => {
+        return {
+          statusPageId: this.normalizeIds(statusPage._id)[0] || "",
+          name: statusPage.name?.trim() || "",
+        };
+      })
+      .filter((statusPage: StatusPageListingMonitors): boolean => {
+        return Boolean(statusPage.statusPageId);
+      })
+      .sort(StatusPagesListingMonitors.compareByName);
 
     return { statusPages: suggested };
   }

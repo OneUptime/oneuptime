@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "La til {{count}} statusside.",
   "Added {{statusPageName}} to the status pages.": "La til {{statusPageName}} i statussidene.",
   "Status pages that show the affected monitors:": "Statussider som viser de berørte monitorene:",
-  "Status pages that show the affected monitors:_one": "Statussider som viser den berørte monitoren:"
+  "Status pages that show the affected monitors:_one": "Statussider som viser den berørte monitoren:",
+  "Untitled status page": "Statusside uten navn"
 }

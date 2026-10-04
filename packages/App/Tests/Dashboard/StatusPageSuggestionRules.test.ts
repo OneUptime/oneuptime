@@ -4,10 +4,15 @@ import {
   ADD_ALL_SUGGESTED_STATUS_PAGES,
   ADD_SUGGESTED_STATUS_PAGE_LABEL,
   STATUS_PAGE_SUGGESTIONS_LABEL,
+  StatusPageSuggestionsQuestion,
+  UNTITLED_STATUS_PAGE,
   addStatusPagesToFormValue,
   getMonitorIdsFromFormValue,
-  getStatusPageSuggestionsRequestBody,
+  getStatusPageSuggestionsQuestion,
+  getStatusPageSuggestionsRequestBodies,
   getStatusPagesToSuggest,
+  isStillShowingTheMonitors,
+  mergeStatusPagesListingMonitors,
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSuggestionRules";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -126,13 +131,23 @@ describe("getMonitorIdsFromFormValue", () => {
   });
 });
 
-describe("getStatusPageSuggestionsRequestBody", () => {
+function question(
+  monitorIds: Array<string>,
+  eventType: StatusPageEventType = StatusPageEventType.ScheduledEvent,
+): StatusPageSuggestionsQuestion {
+  return getStatusPageSuggestionsQuestion({
+    monitorIds: monitorIds,
+    eventType: eventType,
+  })!;
+}
+
+describe("getStatusPageSuggestionsQuestion", () => {
   test("asks nothing without a monitor", () => {
-    expect(getStatusPageSuggestionsRequestBody(null)).toBeNull();
+    expect(getStatusPageSuggestionsQuestion(null)).toBeNull();
 
     for (const monitorIds of [undefined, null, [], ""]) {
       expect(
-        getStatusPageSuggestionsRequestBody({
+        getStatusPageSuggestionsQuestion({
           monitorIds: monitorIds,
           eventType: StatusPageEventType.ScheduledEvent,
         }),
@@ -140,40 +155,109 @@ describe("getStatusPageSuggestionsRequestBody", () => {
     }
   });
 
-  test("names the monitors sorted, so the body is the request's key, and the kind of event", () => {
-    const body: JSONObject | null = getStatusPageSuggestionsRequestBody({
-      monitorIds: [{ _id: MONITOR_B }, MONITOR_A.toUpperCase()],
-      eventType: StatusPageEventType.Announcement,
-    });
+  test("names the monitors sorted, so the question is the request's key, and the kind of event", () => {
+    const asked: StatusPageSuggestionsQuestion | null =
+      getStatusPageSuggestionsQuestion({
+        monitorIds: [{ _id: MONITOR_B }, MONITOR_A.toUpperCase()],
+        eventType: StatusPageEventType.Announcement,
+      });
 
-    expect(body).toEqual({
+    expect(asked).toEqual({
       monitorIds: [MONITOR_A, MONITOR_B],
       eventType: StatusPageEventType.Announcement,
     });
     expect(
-      getStatusPageSuggestionsRequestBody({
+      getStatusPageSuggestionsQuestion({
         monitorIds: [MONITOR_A, MONITOR_B],
         eventType: StatusPageEventType.Announcement,
       }),
-    ).toEqual(body);
+    ).toEqual(asked);
+  });
+});
+
+describe("getStatusPageSuggestionsRequestBodies", () => {
+  test("one request names the monitors and the kind of event", () => {
+    expect(
+      getStatusPageSuggestionsRequestBodies(
+        question([MONITOR_B, MONITOR_A], StatusPageEventType.Announcement),
+      ),
+    ).toEqual([
+      {
+        monitorIds: [MONITOR_A, MONITOR_B],
+        eventType: StatusPageEventType.Announcement,
+      },
+    ]);
   });
 
-  test("names no more monitors than one request may", () => {
+  test("more monitors than one request may name are asked about in several, none left out", () => {
     const monitorIds: Array<string> = Array.from(
-      { length: StatusPagesListingMonitors.maxIdsPerRequest + 25 },
+      { length: StatusPagesListingMonitors.maxIdsPerRequest * 2 + 25 },
       (_value: unknown, index: number): string => {
         return `c0000000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
       },
     );
 
-    const body: JSONObject | null = getStatusPageSuggestionsRequestBody({
-      monitorIds: monitorIds,
-      eventType: StatusPageEventType.ScheduledEvent,
-    });
-
-    expect((body!["monitorIds"] as Array<string>).length).toBe(
-      StatusPagesListingMonitors.maxIdsPerRequest,
+    const bodies: Array<JSONObject> = getStatusPageSuggestionsRequestBodies(
+      question(monitorIds),
     );
+
+    expect(
+      bodies.map((body: JSONObject): number => {
+        return (body["monitorIds"] as Array<string>).length;
+      }),
+    ).toEqual([
+      StatusPagesListingMonitors.maxIdsPerRequest,
+      StatusPagesListingMonitors.maxIdsPerRequest,
+      25,
+    ]);
+    expect(
+      bodies.flatMap((body: JSONObject): Array<string> => {
+        return body["monitorIds"] as Array<string>;
+      }),
+    ).toEqual([...monitorIds].sort());
+    expect(
+      bodies.every((body: JSONObject): boolean => {
+        return body["eventType"] === StatusPageEventType.ScheduledEvent;
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("mergeStatusPagesListingMonitors", () => {
+  test("names each page once, as the first answer named it", () => {
+    expect(
+      mergeStatusPagesListingMonitors([
+        [LISTING[0]!, LISTING[1]!],
+        [{ statusPageId: PAGE_B.toUpperCase(), name: "EU again" }, LISTING[2]!],
+        [],
+      ]),
+    ).toEqual(LISTING);
+  });
+});
+
+describe("isStillShowingTheMonitors", () => {
+  test("monitors only added: the pages already named still show one of them", () => {
+    expect(
+      isStillShowingTheMonitors({
+        before: question([MONITOR_A]),
+        after: question([MONITOR_A, MONITOR_B]),
+      }),
+    ).toBe(true);
+  });
+
+  test("a monitor taken away, or another kind of event: the last answer is not kept", () => {
+    expect(
+      isStillShowingTheMonitors({
+        before: question([MONITOR_A, MONITOR_B]),
+        after: question([MONITOR_B]),
+      }),
+    ).toBe(false);
+    expect(
+      isStillShowingTheMonitors({
+        before: question([MONITOR_A], StatusPageEventType.ScheduledEvent),
+        after: question([MONITOR_A], StatusPageEventType.Announcement),
+      }),
+    ).toBe(false);
   });
 });
 
@@ -212,6 +296,37 @@ describe("getStatusPagesToSuggest", () => {
         picked: [PAGE_C, PAGE_B, PAGE_A],
       }),
     ).toEqual([]);
+  });
+
+  test("orders the pages by name the reader's way, numbers as numbers, a page without a name last", () => {
+    const listing: Array<StatusPageListingMonitors> = [
+      { statusPageId: "1", name: "" },
+      { statusPageId: "2", name: "Site 10" },
+      { statusPageId: "3", name: "site 2" },
+      { statusPageId: "4", name: "Öresund" },
+      { statusPageId: "5", name: "Zürich" },
+    ];
+
+    const order: (language: string | undefined) => Array<string> = (
+      language: string | undefined,
+    ): Array<string> => {
+      return getStatusPagesToSuggest({
+        listing: listing,
+        picked: [],
+        language: language,
+      }).map((statusPage: StatusPageListingMonitors): string => {
+        return statusPage.name;
+      });
+    };
+
+    // English and German read Ö as O.
+    expect(order("en")).toEqual(["Öresund", "site 2", "Site 10", "Zürich", ""]);
+    expect(order("de")).toEqual(["Öresund", "site 2", "Site 10", "Zürich", ""]);
+    // Swedish puts Ö at the end of its alphabet.
+    expect(order("sv")).toEqual(["site 2", "Site 10", "Zürich", "Öresund", ""]);
+    // No language, or one the browser does not know, reads as English.
+    expect(order(undefined)).toEqual(order("en"));
+    expect(order("not a language")).toEqual(order("en"));
   });
 });
 
@@ -264,6 +379,7 @@ describe("the dashboard asks the route the server answers, with the tenant heade
 
 describe("the suggestions' words", () => {
   const SENTENCES: Array<string> = [
+    UNTITLED_STATUS_PAGE,
     ADD_ALL_SUGGESTED_STATUS_PAGES,
     ADD_SUGGESTED_STATUS_PAGE_LABEL,
     ADDED_SUGGESTED_STATUS_PAGE_ANNOUNCEMENT,
@@ -290,6 +406,7 @@ describe("the suggestions' words", () => {
       one: "Added {{count}} status page.",
       other: "Added {{count}} status pages.",
     });
+    expect(UNTITLED_STATUS_PAGE).toBe("Untitled status page");
   });
 
   test("are in en.json, each plural with its one form", () => {

@@ -81,7 +81,10 @@ import StatusPageSuggestions, {
   RecordStatusPageSuggestions,
   getStatusPageSuggestionsFooter,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSuggestions";
-import { STATUS_PAGE_SUGGESTIONS_DEBOUNCE_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/useStatusPagesListingMonitors";
+import {
+  STATUS_PAGE_SUGGESTIONS_DEBOUNCE_MS,
+  fetchStatusPagesShowingMonitors,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/useStatusPagesListingMonitors";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -560,6 +563,171 @@ describe("StatusPageSuggestions: adding", () => {
   });
 });
 
+describe("StatusPageSuggestions: while a new answer is on its way", () => {
+  test("a monitor added: the pages already named stay under the pointer until the new answer adds to them", async () => {
+    let answerSecond: (value: HTTPResponse<JSONObject>) => void = () => {};
+
+    postMock.mockResolvedValueOnce(
+      ok([{ statusPageId: PUBLIC_PAGE, name: "Acme Public" }]),
+    );
+    postMock.mockImplementationOnce(() => {
+      return new Promise(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          answerSecond = resolve;
+        },
+      );
+    });
+
+    const view: ReturnType<typeof render> = render(
+      <Harness monitorIds={[MONITOR_A]} />,
+    );
+
+    await waitFor(() => {
+      expect(suggestionNames()).toEqual(["Acme Public"]);
+    });
+
+    view.rerender(<Harness monitorIds={[MONITOR_A, MONITOR_B]} />);
+    await settle();
+
+    // Asked again, and still showing what is still true meanwhile.
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(suggestionNames()).toEqual(["Acme Public"]);
+
+    await act(async () => {
+      answerSecond(ok(LISTING));
+    });
+
+    expect(suggestionNames()).toEqual(["Acme Public", "EU Status"]);
+  });
+
+  test("a monitor taken away: the pages it named go until the new answer says which still show one", async () => {
+    let answerSecond: (value: HTTPResponse<JSONObject>) => void = () => {};
+
+    postMock.mockResolvedValueOnce(ok(LISTING));
+    postMock.mockImplementationOnce(() => {
+      return new Promise(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          answerSecond = resolve;
+        },
+      );
+    });
+
+    const view: ReturnType<typeof render> = render(
+      <Harness monitorIds={[MONITOR_A, MONITOR_B]} />,
+    );
+
+    await waitFor(() => {
+      expect(suggestionNames()).toEqual(["Acme Public", "EU Status"]);
+    });
+
+    view.rerender(<Harness monitorIds={[MONITOR_A]} />);
+
+    // Nothing that may be out of date is offered.
+    expect(line()).toBeNull();
+
+    await settle();
+
+    await act(async () => {
+      answerSecond(ok([{ statusPageId: EU_PAGE, name: "EU Status" }]));
+    });
+
+    expect(suggestionNames()).toEqual(["EU Status"]);
+  });
+});
+
+describe("StatusPageSuggestions: names", () => {
+  test("in name order, whatever order the answer came in", async () => {
+    postMock.mockResolvedValue(
+      ok([
+        { statusPageId: STATUS_PAGE, name: "Site 10" },
+        { statusPageId: EU_PAGE, name: "site 2" },
+        { statusPageId: PUBLIC_PAGE, name: "Acme Public" },
+      ]),
+    );
+
+    render(<Harness monitorIds={[MONITOR_A]} />);
+
+    await waitFor(() => {
+      expect(suggestionNames()).toEqual(["Acme Public", "site 2", "Site 10"]);
+    });
+  });
+
+  test("a page without a name is called an untitled status page, last, in the reader's language", async () => {
+    postMock.mockResolvedValue(
+      ok([
+        { statusPageId: STATUS_PAGE, name: "" },
+        { statusPageId: PUBLIC_PAGE, name: "Acme Public" },
+      ]),
+    );
+
+    render(<Harness monitorIds={[MONITOR_A]} />);
+
+    await waitFor(() => {
+      expect(suggestionNames()).toEqual([
+        "Acme Public",
+        "Untitled status page",
+      ]);
+    });
+    expect(
+      screen.getByRole("button", { name: "Add Untitled status page" }),
+    ).toBeInTheDocument();
+
+    cleanup();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <Harness monitorIds={[MONITOR_A]} />
+      </I18nextProvider>,
+    );
+
+    await waitFor(() => {
+      expect(suggestionNames()).toEqual([
+        "Acme Public",
+        "Unbenannte Statusseite",
+      ]);
+    });
+  });
+});
+
+describe("fetchStatusPagesShowingMonitors: more monitors than one request may name", () => {
+  test("asks in several requests, and names each page once", async () => {
+    const monitorIds: Array<string> = Array.from(
+      { length: StatusPagesListingMonitors.maxIdsPerRequest + 3 },
+      (_value: unknown, index: number): string => {
+        return `c0000000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+      },
+    );
+
+    postMock.mockResolvedValueOnce(ok(LISTING));
+    postMock.mockResolvedValueOnce(
+      ok([
+        { statusPageId: EU_PAGE, name: "EU Status" },
+        { statusPageId: STATUS_PAGE, name: "Status Three" },
+      ]),
+    );
+
+    const pages: Array<StatusPageListingMonitors> =
+      await fetchStatusPagesShowingMonitors({
+        monitorIds: monitorIds,
+        eventType: StatusPageEventType.ScheduledEvent,
+      });
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(
+      (requestOf(0).data["monitorIds"] as Array<string>).length +
+        (requestOf(1).data["monitorIds"] as Array<string>).length,
+    ).toBe(monitorIds.length);
+    expect(requestOf(1).data["eventType"]).toBe(
+      StatusPageEventType.ScheduledEvent,
+    );
+    expect(
+      pages.map((page: StatusPageListingMonitors): string => {
+        return page.statusPageId;
+      }),
+    ).toEqual([PUBLIC_PAGE, EU_PAGE, STATUS_PAGE]);
+  });
+});
+
 describe("StatusPageSuggestions in German", () => {
   test("the label, the buttons and what is read out are translated", async () => {
     render(
@@ -627,6 +795,32 @@ describe("RecordStatusPageSuggestions: an Edit form that does not hold the monit
     fireEvent.click(screen.getByRole("button", { name: "Add Acme Public" }));
 
     expect(onChange).toHaveBeenCalledWith([EU_PAGE, PUBLIC_PAGE]);
+  });
+
+  test("asks right away: a saved record's monitors do not change while the picker is open", async () => {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    (event as unknown as { monitors: Array<{ _id: string }> }).monitors = [
+      { _id: MONITOR_A },
+    ];
+    getItemMock.mockResolvedValue(event);
+
+    render(
+      <RecordStatusPageSuggestions
+        modelType={ScheduledMaintenance}
+        modelId={new ObjectID(EVENT_ID)}
+        statusPageIds={[]}
+        eventType={StatusPageEventType.ScheduledEvent}
+        onChange={() => {}}
+      />,
+    );
+
+    // Well before the pause a form being filled in waits for.
+    await waitFor(
+      () => {
+        expect(postMock).toHaveBeenCalledTimes(1);
+      },
+      { timeout: STATUS_PAGE_SUGGESTIONS_DEBOUNCE_MS / 2, interval: 10 },
+    );
   });
 
   test("a record without monitors, or one that cannot be read, suggests nothing", async () => {

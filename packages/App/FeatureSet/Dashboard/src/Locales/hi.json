@@ -24651,5 +24651,6 @@
   "Added {{count}} status pages._one": "{{count}} स्थिति पृष्ठ जोड़ा गया।",
   "Added {{statusPageName}} to the status pages.": "{{statusPageName}} को स्थिति पृष्ठों में जोड़ा गया।",
   "Status pages that show the affected monitors:": "प्रभावित मॉनिटर दिखाने वाले स्थिति पृष्ठ:",
-  "Status pages that show the affected monitors:_one": "प्रभावित मॉनिटर को दिखाने वाले स्थिति पृष्ठ:"
+  "Status pages that show the affected monitors:_one": "प्रभावित मॉनिटर को दिखाने वाले स्थिति पृष्ठ:",
+  "Untitled status page": "बिना शीर्षक वाला स्थिति पृष्ठ"
 }

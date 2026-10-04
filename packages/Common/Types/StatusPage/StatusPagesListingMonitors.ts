@@ -121,15 +121,27 @@ export default class StatusPagesListingMonitors {
   }
 
   /*
-   * Status pages in the order they are suggested: by name, the way people
-   * read a list of names - case-insensitive, and "Site 2" before "Site 10".
+   * The order the server answers in: by name, the way people read a list of
+   * names - case-insensitive, and "Site 2" before "Site 10" - with a page
+   * without a name last. It has no reader's language to go by; the dashboard
+   * orders the suggestions again in the reader's.
    */
   public static compareByName(
     a: StatusPageListingMonitors,
     b: StatusPageListingMonitors,
   ): number {
+    const aName: string = a.name.trim();
+    const bName: string = b.name.trim();
+
+    if (!aName || !bName) {
+      return (
+        Number(!aName) - Number(!bName) ||
+        a.statusPageId.localeCompare(b.statusPageId)
+      );
+    }
+
     return (
-      a.name.localeCompare(b.name, "en", {
+      aName.localeCompare(bName, "en", {
         sensitivity: "base",
         numeric: true,
       }) || a.statusPageId.localeCompare(b.statusPageId)

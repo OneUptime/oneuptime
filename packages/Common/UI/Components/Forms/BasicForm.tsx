@@ -13,6 +13,7 @@ import {
   DropdownOptionGroup,
   DropdownValue,
 } from "../Dropdown/Dropdown";
+import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
@@ -523,7 +524,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     /*
      * A field's footer setting the field's value (FieldFooterProps): the way
      * FormField stores a pick - the field's own onChange first, with the
-     * values as they are, then the value itself.
+     * values as they are and, for a dropdown, what the pick changed as its
+     * options name it (DropdownChange) - then the value itself.
      */
     const setFieldValueFromFooter: (
       field: Field<T>,
@@ -542,6 +544,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             refCurrentValue.current = values;
             setCurrentValue(refCurrentValue.current);
           },
+          isDropdownField(field)
+            ? getDropdownChange({
+                options: field.dropdownOptions,
+                value: value,
+                previousValue: (
+                  refCurrentValue.current as Record<string, unknown>
+                )[fieldName],
+              })
+            : undefined,
         );
       }
 
