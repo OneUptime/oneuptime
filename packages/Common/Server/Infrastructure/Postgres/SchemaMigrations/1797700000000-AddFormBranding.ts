@@ -7,11 +7,18 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * only takes it off the form (ON DELETE SET NULL), never the form with it.
  * Every existing form starts without either, so its page keeps the
  * OneUptime logo and favicon.
+ *
+ * Files also learn the project they were uploaded in (File.projectId,
+ * stamped by FileService from the request): a form may only show a file of
+ * its own project. Existing files stay without one - nullable, no default,
+ * so adding it rewrites nothing - and so cannot be a form's logo or favicon:
+ * there is none yet to keep.
  */
 export class AddFormBranding1797700000000 implements MigrationInterface {
   public name: string = "AddFormBranding1797700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE "File" ADD "projectId" uuid`);
     await queryRunner.query(`ALTER TABLE "Form" ADD "logoFileId" uuid`);
     await queryRunner.query(
       `ALTER TABLE "Form" ADD "logoAltText" character varying(100)`,
@@ -35,5 +42,6 @@ export class AddFormBranding1797700000000 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "Form" DROP COLUMN "faviconFileId"`);
     await queryRunner.query(`ALTER TABLE "Form" DROP COLUMN "logoAltText"`);
     await queryRunner.query(`ALTER TABLE "Form" DROP COLUMN "logoFileId"`);
+    await queryRunner.query(`ALTER TABLE "File" DROP COLUMN "projectId"`);
   }
 }

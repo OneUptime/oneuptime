@@ -286,14 +286,14 @@ export const FormsCopy: {
     "The form shows the OneUptime favicon until you upload yours.",
   editBranding: "Edit Branding",
   logoDescription:
-    "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.",
+    "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.",
   logoDefault: "The OneUptime logo, until you upload yours.",
   logoAltTextDescription:
     "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.",
   logoAltTextPlaceholder: "Your organization's name",
   logoAltTextEmpty: "None. Screen readers skip the logo.",
   faviconDescription:
-    "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.",
+    "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.",
   faviconDefault: "The OneUptime favicon, until you upload yours.",
   uploadFavicon: "Upload favicon",
 

@@ -6,6 +6,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import {
+  FORM_FAVICON_IMAGE,
+  FORM_LOGO_IMAGE,
   PublicFormImage,
   readFormLogoAltText,
   readPublicFormImage,
@@ -245,7 +247,10 @@ export const readPublicForm: ReadPublicFormFunction = (
     form.description = data["description"];
   }
 
-  const logo: PublicFormImage | undefined = readPublicFormImage(data["logo"]);
+  const logo: PublicFormImage | undefined = readPublicFormImage(
+    data["logo"],
+    FORM_LOGO_IMAGE,
+  );
 
   if (logo) {
     form.logo = logo;
@@ -261,6 +266,7 @@ export const readPublicForm: ReadPublicFormFunction = (
 
   const favicon: PublicFormImage | undefined = readPublicFormImage(
     data["favicon"],
+    FORM_FAVICON_IMAGE,
   );
 
   if (favicon) {

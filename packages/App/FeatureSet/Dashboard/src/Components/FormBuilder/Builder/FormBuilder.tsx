@@ -149,6 +149,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   const [isEditingDetails, setIsEditingDetails] = useState<boolean>(false);
   // The logo, its alt text and the favicon: the Branding section's.
   const [branding, setBranding] = useState<FormBrandingValues>({});
+  const [brandingError, setBrandingError] = useState<string>("");
 
   // Sources whose records are loaded or on their way, so each loads once.
   const requestedSourcesRef: React.MutableRefObject<
@@ -360,8 +361,10 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
       }
 
       setBranding(readFormBrandingValues(loaded));
+      setBrandingError("");
     } catch (err) {
-      setSaveError(API.getFriendlyMessage(err));
+      // Said in the Branding section: the questions were not touched.
+      setBrandingError(API.getFriendlyMessage(err));
     }
   };
 
@@ -467,6 +470,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
         formName={details.name}
         values={branding}
         isReadOnly={isReadOnly}
+        error={brandingError}
         onSaved={() => {
           void reloadBranding();
         }}

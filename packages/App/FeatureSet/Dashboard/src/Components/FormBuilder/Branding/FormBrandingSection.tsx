@@ -1,7 +1,8 @@
 import FormsCopy from "../FormsCopy";
 import {
-  FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
-  FORM_BRANDING_UPLOAD_TYPES,
+  clearLogoAltTextWithoutLogo,
+  FORM_FAVICON_UPLOAD,
+  FORM_LOGO_UPLOAD,
   FormBrandingValues,
   getFormBrandingItems,
   getFormBrandingPreview,
@@ -16,6 +17,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -24,7 +26,12 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 
 /*
  * The Build page's Branding section, above the questions: "Can you please
@@ -70,6 +77,11 @@ export interface ComponentProps {
   values: FormBrandingValues;
   isReadOnly: boolean;
   onSaved: () => void;
+  /*
+   * Why the branding could not be read again after a save: said here, in
+   * the section it is about, never over the questions.
+   */
+  error?: string | undefined;
 }
 
 const FormBrandingSection: FunctionComponent<ComponentProps> = (
@@ -83,8 +95,14 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
-  // Exactly what the form's page is handed, and so draws.
-  const preview: PublicFormBranding = getFormBrandingPreview(props.values);
+  /*
+   * Exactly what the form's page is handed, and so draws. Worked out only
+   * when the branding changes: encoding the images is not free, and the
+   * builder re-renders on every keystroke in a question.
+   */
+  const preview: PublicFormBranding = useMemo((): PublicFormBranding => {
+    return getFormBrandingPreview(props.values);
+  }, [props.values]);
 
   return (
     <div className="mb-5" data-testid={FORM_BRANDING_TEST_ID}>
@@ -97,6 +115,18 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
         defaultCollapsed={true}
         isElevated={true}
       >
+        {props.error ? (
+          <div className="mb-5">
+            <Alert
+              type={AlertType.DANGER}
+              title={<span>{props.error}</span>}
+              dataTestId="form-branding-error"
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div className="min-w-0" data-testid="form-branding-logo">
             <div className="text-sm font-medium text-gray-900">
@@ -208,6 +238,9 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
             setIsEditing(false);
             props.onSaved();
           }}
+          onBeforeUpdate={async (form: Form): Promise<Form> => {
+            return clearLogoAltTextWithoutLogo(form);
+          }}
           formProps={{
             id: "form-branding-form",
             modelType: Form,
@@ -221,8 +254,8 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
                 title: "Logo",
                 description: FormsCopy.logoDescription,
                 fieldType: FormFieldSchemaType.ImageFile,
-                fileTypes: FORM_BRANDING_UPLOAD_TYPES,
-                maxFileSizeInMegabytes: FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
+                fileTypes: FORM_LOGO_UPLOAD.fileTypes,
+                maxFileSizeInBytes: FORM_LOGO_UPLOAD.maxFileSizeInBytes,
                 required: false,
                 placeholder: "Upload logo",
               },
@@ -247,8 +280,8 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
                 title: "Favicon",
                 description: FormsCopy.faviconDescription,
                 fieldType: FormFieldSchemaType.ImageFile,
-                fileTypes: FORM_BRANDING_UPLOAD_TYPES,
-                maxFileSizeInMegabytes: FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
+                fileTypes: FORM_FAVICON_UPLOAD.fileTypes,
+                maxFileSizeInBytes: FORM_FAVICON_UPLOAD.maxFileSizeInBytes,
                 required: false,
                 placeholder: FormsCopy.uploadFavicon,
               },

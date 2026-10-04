@@ -1130,7 +1130,7 @@ const FormField: <T extends GenericObject>(
                     : []
               }
               isMultiFilePicker={isMultiFileField}
-              maxFileSizeInMegabytes={props.field.maxFileSizeInMegabytes}
+              maxFileSizeInBytes={props.field.maxFileSizeInBytes}
               dataTestId={props.field.dataTestId}
               initialValue={
                 props.currentValues &&

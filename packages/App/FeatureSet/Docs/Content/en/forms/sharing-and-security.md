@@ -46,7 +46,7 @@ Every request passes these checks, in this order:
 7. What the answers and the settings make must be creatable: an incident needs a severity, an event an end after its start.
 8. A submission must fit within the form's hourly allowance — see [Rate limits](#rate-limits).
 
-A form's logo and favicon are part of the form: they are sent inside the answer that opens it, base64, only once it has passed the first four checks, and never from an address of their own. Nobody can fetch them without the form, and no file can be fetched by its id through a form; the files themselves stay private.
+A form's logo and favicon are part of the form: they are sent inside the answer that opens it, base64, only once it has passed the first four checks, and never from an address of their own. Nobody can fetch them without the form, and no file can be fetched by its id through a form; the files themselves stay private. A form shows only images uploaded in its own project: a file of another project is refused when the form is saved, and never sent to its page.
 
 ### IP allowlist
 

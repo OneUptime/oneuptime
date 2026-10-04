@@ -36,13 +36,13 @@ export interface ComponentProps {
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
   /*
-   * The largest file this picker takes, in megabytes, when it is less than
-   * the 10 MB every upload is held to - a form's logo takes 1 MB. A larger
+   * The largest file this picker takes, in bytes, when it is less than the
+   * 10 MB every upload is held to - a form's logo takes 512 KB. A larger
    * file is refused here, before it is uploaded, and the hint under the
    * picker says the same limit, so the picker never promises more than the
    * field will keep.
    */
-  maxFileSizeInMegabytes?: number | undefined;
+  maxFileSizeInBytes?: number | undefined;
 }
 
 type UploadStatus = {
@@ -69,21 +69,43 @@ type ResolveMimeTypeFunction = (file: File) => MimeType | undefined;
 type FormatFileSizeFunction = (file: FileModel) => string | null;
 
 // What any upload may be, unless the picker is given less.
-export const DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES: number = 10;
+export const DEFAULT_MAX_FILE_SIZE_IN_BYTES: number = 10 * 1024 * 1024;
 
-type GetMaxFileSizeInMegabytesFunction = (value: number | undefined) => number;
+type GetMaxFileSizeInBytesFunction = (value: number | undefined) => number;
 
 // The picker's limit: its own when it is a smaller positive number.
-export const getMaxFileSizeInMegabytes: GetMaxFileSizeInMegabytesFunction = (
+export const getMaxFileSizeInBytes: GetMaxFileSizeInBytesFunction = (
   value: number | undefined,
 ): number => {
   return typeof value === "number" &&
     Number.isFinite(value) &&
     value > 0 &&
-    value < DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES
+    value < DEFAULT_MAX_FILE_SIZE_IN_BYTES
     ? value
-    : DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES;
+    : DEFAULT_MAX_FILE_SIZE_IN_BYTES;
 };
+
+type FormatFileSizeLimitFunction = (bytes: number) => string;
+
+// A limit as people read it: "512 KB", "1 MB", "1.5 MB".
+export const formatFileSizeLimit: FormatFileSizeLimitFunction = (
+  bytes: number,
+): string => {
+  const megabytes: number = bytes / (1024 * 1024);
+
+  if (megabytes >= 1) {
+    return `${Math.round(megabytes * 10) / 10} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
+
+/*
+ * The other name browsers give an ICO file ("image/vnd.microsoft.icon", on
+ * Linux and in Firefox), for a picker that takes ICO: it is accepted, by
+ * its extension too, and stored as MimeType.ico.
+ */
+const ICO_ALIAS_MIME_TYPE: string = "image/vnd.microsoft.icon";
 
 const FilePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -96,13 +118,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
   const [uploadStatuses, setUploadStatuses] = useState<Array<UploadStatus>>([]);
 
-  const maxFileSizeInMegabytes: number = getMaxFileSizeInMegabytes(
-    props.maxFileSizeInMegabytes,
+  const maxFileSizeBytes: number = getMaxFileSizeInBytes(
+    props.maxFileSizeInBytes,
   );
-  const maxFileSizeBytes: number = maxFileSizeInMegabytes * 1024 * 1024;
+  const maxFileSize: string = formatFileSizeLimit(maxFileSizeBytes);
   // The everyday limit keeps its own wording (and its translations).
   const hasOwnLimit: boolean =
-    maxFileSizeInMegabytes !== DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES;
+    maxFileSizeBytes !== DEFAULT_MAX_FILE_SIZE_IN_BYTES;
 
   const addUploadStatus: AddUploadStatusFunction = (
     status: UploadStatus,
@@ -167,6 +189,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     if (props.mimeTypes) {
       for (const key of props.mimeTypes) {
         _acceptTypes[key] = [];
+
+        if (key === MimeType.ico) {
+          _acceptTypes[key] = [".ico"];
+          _acceptTypes[ICO_ALIAS_MIME_TYPE] = [".ico"];
+        }
       }
     }
     setAcceptTypes(_acceptTypes);
@@ -206,14 +233,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     if (hasOwnLimit) {
       if (fileNames.length === 1) {
         return translator.translateTemplate(
-          '"{{fileName}}" exceeds the {{size}} MB limit.',
-          { fileName: fileNames[0] || "", size: maxFileSizeInMegabytes },
+          '"{{fileName}}" exceeds the {{size}} limit.',
+          { fileName: fileNames[0] || "", size: maxFileSize },
         );
       }
 
       return translator.translateTemplate(
-        "These files exceed the {{size}} MB limit: {{fileNames}}.",
-        { fileNames: fileNames.join(", "), size: maxFileSizeInMegabytes },
+        "These files exceed the {{size}} limit: {{fileNames}}.",
+        { fileNames: fileNames.join(", "), size: maxFileSize },
       );
     }
 
@@ -268,6 +295,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             return direct as MimeType;
           }
 
+          if (direct === ICO_ALIAS_MIME_TYPE) {
+            return MimeType.ico;
+          }
+
           // fallback based on extension
           const ext: string | undefined = file.name
             .split(".")
@@ -283,6 +314,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             svg: MimeType.svg,
             gif: MimeType.gif,
             webp: MimeType.webp,
+            ico: MimeType.ico,
             pdf: MimeType.pdf,
             doc: MimeType.doc,
             docx: MimeType.docx,
@@ -526,10 +558,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     {props.mimeTypes && props.mimeTypes?.length > 0
                       ? translator.translateTemplate(
                           hasOwnLimit
-                            ? "Types: {{types}}. Max {{size}} MB each."
+                            ? "Types: {{types}}. Max {{size}} each."
                             : "Types: {{types}}. Max 10MB each.",
                           {
-                            size: maxFileSizeInMegabytes,
+                            size: maxFileSize,
                             types: props.mimeTypes
                               .map((type: MimeType) => {
                                 const enumKey: string | undefined =
@@ -551,10 +583,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                           },
                         )
                       : hasOwnLimit
-                        ? translator.translateTemplate(
-                            "Max {{size}} MB each.",
-                            { size: maxFileSizeInMegabytes },
-                          )
+                        ? translator.translateTemplate("Max {{size}} each.", {
+                            size: maxFileSize,
+                          })
                         : translator.translateText("Max 10MB each.")}
                   </p>
                   {error && (

@@ -10,8 +10,10 @@ import MimeType from "../File/MimeType";
  * until it has a favicon, the tab shows OneUptime's. The images are Files,
  * uploaded the way a status page's logo and favicon are, and a form points
  * at them with logoFileId and faviconFileId. Every write that points a form
- * at one is checked (FormService): the file must exist, be an image every
- * browser draws, and weigh 1 MB at most.
+ * at one is checked (FormService): the file must have been uploaded in the
+ * form's own project, be an image every browser draws, and be small. The
+ * public read checks the project again, and this file's rules again
+ * (getPublicFormBranding), whatever wrote the row.
  *
  * The public page is anonymous, so how the images reach it matters more
  * than anything else here. They are never served at an address of their own
@@ -24,13 +26,18 @@ import MimeType from "../File/MimeType";
  * public for it. The page draws them as data: URLs, and an image drawn that
  * way runs nothing, an SVG included.
  *
+ * Because they come with every visit, they are kept small: a logo of 512 KB
+ * at most and a favicon of 128 KB - far more than either needs, and little
+ * enough for a phone on a poor connection, which is often how a form is
+ * opened during an outage.
+ *
  * Pure, with no database or React imports: the server shapes and checks the
  * images with it, the public page reads them with it, and the dashboard's
  * preview draws them with it.
  */
 
-// The image types a form's logo or favicon may be: those every browser draws.
-export const FORM_BRANDING_IMAGE_TYPES: ReadonlyArray<string> = [
+// What a logo may be: an image every browser draws.
+export const FORM_LOGO_IMAGE_TYPES: ReadonlyArray<string> = [
   MimeType.png,
   MimeType.jpeg,
   MimeType.gif,
@@ -38,32 +45,35 @@ export const FORM_BRANDING_IMAGE_TYPES: ReadonlyArray<string> = [
   MimeType.svg,
 ];
 
-/*
- * The most a logo or a favicon may weigh. They are sent inside the form
- * itself, so a visitor downloads them every time the page opens; a logo
- * needs a few dozen kilobytes, and nothing an image of this size shows
- * needs more.
- */
-export const FORM_BRANDING_IMAGE_MAX_BYTES: number = 1024 * 1024;
+// What a favicon may be: the same, and ICO, the classic favicon format.
+export const FORM_FAVICON_IMAGE_TYPES: ReadonlyArray<string> = [
+  ...FORM_LOGO_IMAGE_TYPES,
+  MimeType.ico,
+];
+
+export const FORM_LOGO_MAX_BYTES: number = 512 * 1024;
+export const FORM_FAVICON_MAX_BYTES: number = 128 * 1024;
 
 // The logo's alt text fits the column that holds it (ShortText).
 export const FORM_LOGO_ALT_TEXT_MAX_LENGTH: number = 100;
 
 /*
  * Why a write is refused, per image: whole sentences, so the docs can quote
- * them and nobody has to put one together from pieces.
+ * them and nobody has to put one together from pieces. A file of another
+ * project is "not found", like one that does not exist: a form cannot be
+ * used to learn whether some other project's file is there.
  */
 export const FORM_LOGO_TYPE_MESSAGE: string =
   "The logo must be a PNG, JPEG, GIF, WebP or SVG image.";
 export const FORM_LOGO_TOO_LARGE_MESSAGE: string =
-  "The logo must be 1 MB or smaller.";
+  "The logo must be 512 KB or smaller.";
 export const FORM_LOGO_NOT_FOUND_MESSAGE: string =
   "The logo's file could not be found. Upload the logo again.";
 
 export const FORM_FAVICON_TYPE_MESSAGE: string =
-  "The favicon must be a PNG, JPEG, GIF, WebP or SVG image.";
+  "The favicon must be a PNG, JPEG, GIF, WebP, SVG or ICO image.";
 export const FORM_FAVICON_TOO_LARGE_MESSAGE: string =
-  "The favicon must be 1 MB or smaller.";
+  "The favicon must be 128 KB or smaller.";
 export const FORM_FAVICON_NOT_FOUND_MESSAGE: string =
   "The favicon's file could not be found. Upload the favicon again.";
 
@@ -72,7 +82,7 @@ export enum FormBrandingImageKind {
   Favicon = "Favicon",
 }
 
-// One of a form's images: the columns that hold it and how refusals name it.
+// One of a form's images: the columns that hold it, what it may be, and how refusals name it.
 export interface FormBrandingImageDefinition {
   kind: FormBrandingImageKind;
   // The relation to the File (what the dashboard's forms write).
@@ -81,6 +91,8 @@ export interface FormBrandingImageDefinition {
   idColumn: "logoFileId" | "faviconFileId";
   // Names the image in a refusal of conflicting references.
   name: string;
+  types: ReadonlyArray<string>;
+  maxBytes: number;
   typeMessage: string;
   tooLargeMessage: string;
   notFoundMessage: string;
@@ -91,6 +103,8 @@ export const FORM_LOGO_IMAGE: FormBrandingImageDefinition = {
   relationColumn: "logoFile",
   idColumn: "logoFileId",
   name: "logo",
+  types: FORM_LOGO_IMAGE_TYPES,
+  maxBytes: FORM_LOGO_MAX_BYTES,
   typeMessage: FORM_LOGO_TYPE_MESSAGE,
   tooLargeMessage: FORM_LOGO_TOO_LARGE_MESSAGE,
   notFoundMessage: FORM_LOGO_NOT_FOUND_MESSAGE,
@@ -101,6 +115,8 @@ export const FORM_FAVICON_IMAGE: FormBrandingImageDefinition = {
   relationColumn: "faviconFile",
   idColumn: "faviconFileId",
   name: "favicon",
+  types: FORM_FAVICON_IMAGE_TYPES,
+  maxBytes: FORM_FAVICON_MAX_BYTES,
   typeMessage: FORM_FAVICON_TYPE_MESSAGE,
   tooLargeMessage: FORM_FAVICON_TOO_LARGE_MESSAGE,
   notFoundMessage: FORM_FAVICON_NOT_FOUND_MESSAGE,
@@ -123,7 +139,7 @@ export const FORM_BRANDING_COLUMNS: ReadonlyArray<string> = [
  * with getPublicFormImageUrl.
  */
 export interface PublicFormImage {
-  // One of FORM_BRANDING_IMAGE_TYPES.
+  // One of the image's types.
   type: string;
   // The image's bytes, base64.
   data: string;
@@ -139,14 +155,19 @@ export interface PublicFormBranding {
   favicon?: PublicFormImage | undefined;
 }
 
-export type IsFormBrandingImageTypeFunction = (value: unknown) => boolean;
+export type IsFormBrandingImageTypeFunction = (
+  value: unknown,
+  image: FormBrandingImageDefinition,
+) => boolean;
 
+// Whether a file's type is one the image may be, however it was written.
 export const isFormBrandingImageType: IsFormBrandingImageTypeFunction = (
   value: unknown,
+  image: FormBrandingImageDefinition,
 ): boolean => {
   return (
     typeof value === "string" &&
-    FORM_BRANDING_IMAGE_TYPES.includes(value.trim().toLowerCase())
+    image.types.includes(value.trim().toLowerCase())
   );
 };
 
@@ -249,69 +270,48 @@ export const encodeBase64: EncodeBase64Function = (
   return btoa(binary);
 };
 
-type DrawableImage = {
-  // One of FORM_BRANDING_IMAGE_TYPES, in lower case.
-  type: string;
-  bytes: Uint8Array;
-};
-
-type ReadDrawableImageFunction = (file: unknown) => DrawableImage | null;
-
-// A stored image ({ file, fileType }) a page may draw, or null.
-const readDrawableImage: ReadDrawableImageFunction = (
-  file: unknown,
-): DrawableImage | null => {
-  if (!isPlainObject(file) || !isFormBrandingImageType(file["fileType"])) {
-    return null;
-  }
-
-  const bytes: Uint8Array | null = getFileBytes(file["file"]);
-
-  if (
-    !bytes ||
-    bytes.byteLength === 0 ||
-    bytes.byteLength > FORM_BRANDING_IMAGE_MAX_BYTES
-  ) {
-    return null;
-  }
-
-  return {
-    type: (file["fileType"] as string).trim().toLowerCase(),
-    bytes: bytes,
-  };
-};
+/*
+ * What a write's check needs to know about a File - never its bytes: its
+ * type and how many bytes it holds (FileService.getFileFacts measures them
+ * in Postgres).
+ */
+export interface FormBrandingFileFacts {
+  fileType?: unknown;
+  size?: unknown;
+}
 
 export type GetFormBrandingImageProblemFunction = (data: {
   image: FormBrandingImageDefinition;
   // The File the write points the form at, or null when there is none.
-  file: { fileType?: unknown; file?: unknown } | null | undefined;
+  file: FormBrandingFileFacts | null | undefined;
 }) => string | null;
 
 /**
  * Why a File cannot be a form's logo or favicon, or null when it can: it
- * must exist, be one of FORM_BRANDING_IMAGE_TYPES, hold bytes, and weigh
- * FORM_BRANDING_IMAGE_MAX_BYTES at most.
+ * must exist, be one of the image's types, hold bytes, and weigh the
+ * image's most at most. (Whose project it belongs to is FormService's to
+ * check: this knows nothing of projects.)
  */
 export const getFormBrandingImageProblem: GetFormBrandingImageProblemFunction =
   (data: {
     image: FormBrandingImageDefinition;
-    file: { fileType?: unknown; file?: unknown } | null | undefined;
+    file: FormBrandingFileFacts | null | undefined;
   }): string | null => {
     if (!data.file) {
       return data.image.notFoundMessage;
     }
 
-    if (!isFormBrandingImageType(data.file.fileType)) {
+    if (!isFormBrandingImageType(data.file.fileType, data.image)) {
       return data.image.typeMessage;
     }
 
-    const bytes: Uint8Array | null = getFileBytes(data.file.file);
+    const size: unknown = data.file.size;
 
-    if (!bytes || bytes.byteLength === 0) {
+    if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) {
       return data.image.notFoundMessage;
     }
 
-    if (bytes.byteLength > FORM_BRANDING_IMAGE_MAX_BYTES) {
+    if (size > data.image.maxBytes) {
       return data.image.tooLargeMessage;
     }
 
@@ -320,6 +320,7 @@ export const getFormBrandingImageProblem: GetFormBrandingImageProblemFunction =
 
 export type GetPublicFormImageFunction = (
   file: unknown,
+  image: FormBrandingImageDefinition,
 ) => PublicFormImage | undefined;
 
 /**
@@ -330,16 +331,24 @@ export type GetPublicFormImageFunction = (
  */
 export const getPublicFormImage: GetPublicFormImageFunction = (
   file: unknown,
+  image: FormBrandingImageDefinition,
 ): PublicFormImage | undefined => {
-  const image: DrawableImage | null = readDrawableImage(file);
+  if (
+    !isPlainObject(file) ||
+    !isFormBrandingImageType(file["fileType"], image)
+  ) {
+    return undefined;
+  }
 
-  if (!image) {
+  const bytes: Uint8Array | null = getFileBytes(file["file"]);
+
+  if (!bytes || bytes.byteLength === 0 || bytes.byteLength > image.maxBytes) {
     return undefined;
   }
 
   return {
-    type: image.type,
-    data: encodeBase64(image.bytes),
+    type: (file["fileType"] as string).trim().toLowerCase(),
+    data: encodeBase64(bytes),
   };
 };
 
@@ -378,7 +387,10 @@ export const getPublicFormBranding: GetPublicFormBrandingFunction = (data: {
 }): PublicFormBranding => {
   const branding: PublicFormBranding = {};
 
-  const logo: PublicFormImage | undefined = getPublicFormImage(data.logoFile);
+  const logo: PublicFormImage | undefined = getPublicFormImage(
+    data.logoFile,
+    FORM_LOGO_IMAGE,
+  );
 
   if (logo) {
     branding.logo = logo;
@@ -392,6 +404,7 @@ export const getPublicFormBranding: GetPublicFormBrandingFunction = (data: {
 
   const favicon: PublicFormImage | undefined = getPublicFormImage(
     data.faviconFile,
+    FORM_FAVICON_IMAGE,
   );
 
   if (favicon) {
@@ -405,25 +418,32 @@ export const getPublicFormBranding: GetPublicFormBrandingFunction = (data: {
 const BASE64_PATTERN: RegExp =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
-// The longest base64 an image of the most a form's image may weigh takes.
-const BASE64_MAX_LENGTH: number =
-  Math.ceil(FORM_BRANDING_IMAGE_MAX_BYTES / 3) * 4;
+export type GetBase64MaxLengthFunction = (bytes: number) => number;
+
+// The longest base64 a file of this many bytes takes.
+export const getBase64MaxLength: GetBase64MaxLengthFunction = (
+  bytes: number,
+): number => {
+  return Math.ceil(bytes / 3) * 4;
+};
 
 export type ReadPublicFormImageFunction = (
   value: unknown,
+  image: FormBrandingImageDefinition,
 ) => PublicFormImage | undefined;
 
 /**
  * An image as the public page reads it from the server's answer: drawn only
- * when it is an allowed type and real base64 of an allowed size, so nothing
- * the page was handed can turn its data: URL into something else.
+ * when it is one of the image's types and real base64 of an allowed size,
+ * so nothing the page was handed can turn its data: URL into something else.
  */
 export const readPublicFormImage: ReadPublicFormImageFunction = (
   value: unknown,
+  image: FormBrandingImageDefinition,
 ): PublicFormImage | undefined => {
   if (
     !isPlainObject(value) ||
-    !isFormBrandingImageType(value["type"]) ||
+    !isFormBrandingImageType(value["type"], image) ||
     typeof value["data"] !== "string"
   ) {
     return undefined;
@@ -433,7 +453,7 @@ export const readPublicFormImage: ReadPublicFormImageFunction = (
 
   if (
     data.length === 0 ||
-    data.length > BASE64_MAX_LENGTH ||
+    data.length > getBase64MaxLength(image.maxBytes) ||
     !BASE64_PATTERN.test(data)
   ) {
     return undefined;

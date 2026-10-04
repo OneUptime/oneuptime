@@ -24815,16 +24815,16 @@
   "The form shows the OneUptime logo until you upload yours.": "Formularen viser OneUptimes logo, indtil du uploader dit eget.",
   "The form shows the OneUptime favicon until you upload yours.": "Formularen viser OneUptimes favicon, indtil du uploader dit eget.",
   "Edit Branding": "Rediger branding",
-  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Vises øverst på formularens side over dens navn i stedet for OneUptimes logo. Et PNG-, JPEG-, GIF-, WebP- eller SVG-billede på højst 1 MB.",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Vises øverst på formularens side over dens navn i stedet for OneUptimes logo. Et PNG-, JPEG-, GIF-, WebP- eller SVG-billede på højst 512 KB.",
   "The OneUptime logo, until you upload yours.": "OneUptimes logo, indtil du uploader dit eget.",
   "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Hvad logoet siger, læst op af skærmlæsere: normalt din organisations navn. Lad det stå tomt, så springer skærmlæsere logoet over.",
   "Your organization's name": "Din organisations navn",
   "None. Screen readers skip the logo.": "Ingen. Skærmlæsere springer logoet over.",
-  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Ikonet i browserfanen, mens formularen er åben, i stedet for OneUptimes favicon. Et kvadratisk PNG- eller SVG-billede på højst 1 MB fungerer bedst.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "Ikonet i browserfanen, mens formularen er åben, i stedet for OneUptimes favicon. Et kvadratisk PNG-, SVG- eller ICO-billede på højst 128 KB fungerer bedst.",
   "The OneUptime favicon, until you upload yours.": "OneUptimes favicon, indtil du uploader dit eget.",
   "Upload favicon": "Upload et favicon",
-  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" overskrider grænsen på {{size}} MB.",
-  "Max {{size}} MB each.": "Højst {{size}} MB pr. fil.",
-  "These files exceed the {{size}} MB limit: {{fileNames}}.": "Disse filer overskrider grænsen på {{size}} MB: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} MB each.": "Typer: {{types}}. Højst {{size}} MB pr. fil."
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" overskrider grænsen på {{size}}.",
+  "Max {{size}} each.": "Højst {{size}} pr. fil.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "Disse filer overskrider grænsen på {{size}}: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Højst {{size}} pr. fil."
 }

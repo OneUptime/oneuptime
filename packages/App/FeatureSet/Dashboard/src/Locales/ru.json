@@ -24815,16 +24815,16 @@
   "The form shows the OneUptime logo until you upload yours.": "Форма показывает логотип OneUptime, пока вы не загрузите свой.",
   "The form shows the OneUptime favicon until you upload yours.": "Форма показывает favicon OneUptime, пока вы не загрузите свой.",
   "Edit Branding": "Изменить брендинг",
-  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "Показывается вверху страницы формы над её названием вместо логотипа OneUptime. Изображение PNG, JPEG, GIF, WebP или SVG размером не более 1 МБ.",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Показывается вверху страницы формы над её названием вместо логотипа OneUptime. Изображение PNG, JPEG, GIF, WebP или SVG размером не более 512 КБ.",
   "The OneUptime logo, until you upload yours.": "Логотип OneUptime, пока вы не загрузите свой.",
   "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Что изображено на логотипе — это зачитывают программы чтения с экрана: обычно название вашей организации. Оставьте поле пустым, и программы чтения с экрана пропустят логотип.",
   "Your organization's name": "Название вашей организации",
   "None. Screen readers skip the logo.": "Нет. Программы чтения с экрана пропускают логотип.",
-  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Значок на вкладке браузера, пока форма открыта, вместо favicon OneUptime. Лучше всего подходит квадратное изображение PNG или SVG размером не более 1 МБ.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "Значок на вкладке браузера, пока форма открыта, вместо favicon OneUptime. Лучше всего подходит квадратное изображение PNG, SVG или ICO размером не более 128 КБ.",
   "The OneUptime favicon, until you upload yours.": "Favicon OneUptime, пока вы не загрузите свой.",
   "Upload favicon": "Загрузить favicon",
-  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "«{{fileName}}» превышает ограничение в {{size}} МБ.",
-  "Max {{size}} MB each.": "Не более {{size}} МБ каждый.",
-  "These files exceed the {{size}} MB limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}} МБ: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} MB each.": "Типы: {{types}}. Не более {{size}} МБ каждый."
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» превышает ограничение в {{size}}.",
+  "Max {{size}} each.": "Не более {{size}} каждый.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый."
 }

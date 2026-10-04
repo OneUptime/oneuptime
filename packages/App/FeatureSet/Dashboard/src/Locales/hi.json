@@ -24815,16 +24815,16 @@
   "The form shows the OneUptime logo until you upload yours.": "जब तक आप अपना लोगो अपलोड नहीं करते, फ़ॉर्म OneUptime का लोगो दिखाता है।",
   "The form shows the OneUptime favicon until you upload yours.": "जब तक आप अपना favicon अपलोड नहीं करते, फ़ॉर्म OneUptime का favicon दिखाता है।",
   "Edit Branding": "ब्रांडिंग संपादित करें",
-  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "फ़ॉर्म के पृष्ठ के ऊपर, उसके नाम के ऊपर, OneUptime लोगो की जगह दिखाया जाता है। 1 MB या उससे छोटी PNG, JPEG, GIF, WebP या SVG छवि।",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "फ़ॉर्म के पृष्ठ के ऊपर, उसके नाम के ऊपर, OneUptime लोगो की जगह दिखाया जाता है। 512 KB या उससे छोटी PNG, JPEG, GIF, WebP या SVG छवि।",
   "The OneUptime logo, until you upload yours.": "OneUptime का लोगो, जब तक आप अपना लोगो अपलोड नहीं करते।",
   "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "लोगो क्या कहता है, जिसे स्क्रीन रीडर पढ़कर सुनाते हैं: आमतौर पर आपके संगठन का नाम। इसे खाली छोड़ दें तो स्क्रीन रीडर लोगो को छोड़ देते हैं।",
   "Your organization's name": "आपके संगठन का नाम",
   "None. Screen readers skip the logo.": "कोई नहीं। स्क्रीन रीडर लोगो को छोड़ देते हैं।",
-  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "फ़ॉर्म खुला रहने तक ब्राउज़र टैब में दिखने वाला आइकन, OneUptime favicon की जगह। 1 MB या उससे छोटी वर्गाकार PNG या SVG छवि सबसे अच्छी रहती है।",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "फ़ॉर्म खुला रहने तक ब्राउज़र टैब में दिखने वाला आइकन, OneUptime favicon की जगह। 128 KB या उससे छोटी वर्गाकार PNG, SVG या ICO छवि सबसे अच्छी रहती है।",
   "The OneUptime favicon, until you upload yours.": "OneUptime का favicon, जब तक आप अपना favicon अपलोड नहीं करते।",
   "Upload favicon": "favicon अपलोड करें",
-  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" {{size}} MB की सीमा से बड़ी है।",
-  "Max {{size}} MB each.": "हर फ़ाइल अधिकतम {{size}} MB।",
-  "These files exceed the {{size}} MB limit: {{fileNames}}.": "ये फ़ाइलें {{size}} MB की सीमा से बड़ी हैं: {{fileNames}}।",
-  "Types: {{types}}. Max {{size}} MB each.": "प्रकार: {{types}}। हर फ़ाइल अधिकतम {{size}} MB।"
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" {{size}} की सीमा से बड़ी है।",
+  "Max {{size}} each.": "हर फ़ाइल अधिकतम {{size}}।",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "ये फ़ाइलें {{size}} की सीमा से बड़ी हैं: {{fileNames}}।",
+  "Types: {{types}}. Max {{size}} each.": "प्रकार: {{types}}। हर फ़ाइल अधिकतम {{size}}।"
 }

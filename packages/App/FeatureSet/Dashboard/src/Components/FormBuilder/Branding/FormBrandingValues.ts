@@ -2,10 +2,12 @@ import FormsCopy from "../FormsCopy";
 import File from "Common/Models/DatabaseModels/File";
 import Form from "Common/Models/DatabaseModels/Form";
 import Select from "Common/Types/BaseDatabase/Select";
+import Dictionary from "Common/Types/Dictionary";
 import MimeType from "Common/Types/File/MimeType";
 import {
-  FORM_BRANDING_IMAGE_MAX_BYTES,
-  FORM_BRANDING_IMAGE_TYPES,
+  FORM_FAVICON_IMAGE,
+  FORM_LOGO_IMAGE,
+  FormBrandingImageDefinition,
   getPublicFormBranding,
   PublicFormBranding,
 } from "Common/Types/Form/FormBranding";
@@ -49,18 +51,36 @@ export const FORM_BRANDING_SELECT: Select<Form> = {
   },
 };
 
-// The image types the section's upload offers: those the server takes.
-export const FORM_BRANDING_UPLOAD_TYPES: Array<MimeType> =
-  FORM_BRANDING_IMAGE_TYPES.map((type: string): MimeType => {
-    return type as MimeType;
-  });
-
 /*
- * The most an image the section uploads may weigh, in megabytes: what the
- * server takes, so a larger one is refused before it is uploaded.
+ * What the section's upload for one of the images offers: the types the
+ * server takes for it, and the most it may weigh, so a larger file is
+ * refused before it is uploaded.
  */
-export const FORM_BRANDING_UPLOAD_MAX_MEGABYTES: number =
-  FORM_BRANDING_IMAGE_MAX_BYTES / (1024 * 1024);
+export interface FormBrandingUpload {
+  fileTypes: Array<MimeType>;
+  maxFileSizeInBytes: number;
+}
+
+export type GetFormBrandingUploadFunction = (
+  image: FormBrandingImageDefinition,
+) => FormBrandingUpload;
+
+export const getFormBrandingUpload: GetFormBrandingUploadFunction = (
+  image: FormBrandingImageDefinition,
+): FormBrandingUpload => {
+  return {
+    fileTypes: image.types.map((type: string): MimeType => {
+      return type as MimeType;
+    }),
+    maxFileSizeInBytes: image.maxBytes,
+  };
+};
+
+export const FORM_LOGO_UPLOAD: FormBrandingUpload =
+  getFormBrandingUpload(FORM_LOGO_IMAGE);
+
+export const FORM_FAVICON_UPLOAD: FormBrandingUpload =
+  getFormBrandingUpload(FORM_FAVICON_IMAGE);
 
 export type ReadFormBrandingValuesFunction = (
   form: Form | null | undefined,
@@ -75,6 +95,23 @@ export const readFormBrandingValues: ReadFormBrandingValuesFunction = (
     faviconFile: form?.faviconFile || null,
   };
 };
+
+export type ClearLogoAltTextWithoutLogoFunction = (form: Form) => Form;
+
+/*
+ * What a logo says goes with the logo: a Branding save that leaves the form
+ * without one clears its alt text too, so a later logo never inherits words
+ * written for another one, unseen (the dialog asks for alt text only once
+ * there is a logo).
+ */
+export const clearLogoAltTextWithoutLogo: ClearLogoAltTextWithoutLogoFunction =
+  (form: Form): Form => {
+    if (!form.logoFile && !form.logoFileId) {
+      (form as unknown as Dictionary<unknown>)["logoAltText"] = null;
+    }
+
+    return form;
+  };
 
 export type GetFormBrandingPreviewFunction = (
   values: FormBrandingValues,

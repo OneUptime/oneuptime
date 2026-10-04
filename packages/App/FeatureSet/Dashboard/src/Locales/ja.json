@@ -24815,16 +24815,16 @@
   "The form shows the OneUptime logo until you upload yours.": "独自のロゴをアップロードするまで、フォームには OneUptime のロゴが表示されます。",
   "The form shows the OneUptime favicon until you upload yours.": "独自のファビコンをアップロードするまで、フォームには OneUptime のファビコンが表示されます。",
   "Edit Branding": "ブランディングを編集",
-  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less.": "フォームのページ上部、名前の上に、OneUptime のロゴの代わりに表示されます。1 MB 以下の PNG、JPEG、GIF、WebP、SVG 画像を使えます。",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "フォームのページ上部、名前の上に、OneUptime のロゴの代わりに表示されます。512 KB 以下の PNG、JPEG、GIF、WebP、SVG 画像を使えます。",
   "The OneUptime logo, until you upload yours.": "独自のロゴをアップロードするまでは OneUptime のロゴです。",
   "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "スクリーンリーダーが読み上げるロゴの内容です。通常は組織の名前です。空のままにすると、スクリーンリーダーはロゴを読み飛ばします。",
   "Your organization's name": "組織の名前",
   "None. Screen readers skip the logo.": "なし。スクリーンリーダーはロゴを読み飛ばします。",
-  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "フォームを開いている間、OneUptime のファビコンの代わりにブラウザーのタブに表示されるアイコンです。1 MB 以下の正方形の PNG または SVG 画像が最適です。",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "フォームを開いている間、OneUptime のファビコンの代わりにブラウザーのタブに表示されるアイコンです。128 KB 以下の正方形の PNG、SVG、ICO 画像が最適です。",
   "The OneUptime favicon, until you upload yours.": "独自のファビコンをアップロードするまでは OneUptime のファビコンです。",
   "Upload favicon": "ファビコンをアップロード",
-  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "「{{fileName}}」は {{size}} MB の上限を超えています。",
-  "Max {{size}} MB each.": "各ファイル最大 {{size}} MB。",
-  "These files exceed the {{size}} MB limit: {{fileNames}}.": "次のファイルは {{size}} MB の上限を超えています: {{fileNames}}。",
-  "Types: {{types}}. Max {{size}} MB each.": "種類: {{types}}。各ファイル最大 {{size}} MB。"
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」は {{size}} の上限を超えています。",
+  "Max {{size}} each.": "各ファイル最大 {{size}}。",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "次のファイルは {{size}} の上限を超えています: {{fileNames}}。",
+  "Types: {{types}}. Max {{size}} each.": "種類: {{types}}。各ファイル最大 {{size}}。"
 }
