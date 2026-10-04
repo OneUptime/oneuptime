@@ -1,6 +1,6 @@
 # Authoring a Dashboard
 
-To create a dashboard, open **Dashboards → Create Dashboard**, give it a name, and open it. The canvas opens in **Edit** mode, ready for you to start adding widgets.
+To create a dashboard, open **Dashboards → Create Dashboard** and pick a template, or **Blank Dashboard** to start from scratch. A template fills in the dashboard's name for you (numbered, as in "Kubernetes Dashboard 2", when the project already has one); a blank dashboard asks you for a name. Click **Create Dashboard** and the new dashboard opens. A blank one opens on its empty canvas, with an **Add Widget** button for its first widget.
 
 ## The canvas
 
@@ -17,7 +17,7 @@ It's the same dashboard in both modes. There's no separate "publish" step — ev
 
 ## Adding a widget
 
-1. Click the **+** button to open the widget palette.
+1. Click **Add Widget** to open the widget palette: on the canvas of an empty dashboard, or in the toolbar while you edit the dashboard.
 2. Pick the widget type. See [Widgets](/docs/dashboards/widgets) for the catalog.
 3. The widget appears on the canvas.
 4. Click the gear icon on the widget to open its settings.

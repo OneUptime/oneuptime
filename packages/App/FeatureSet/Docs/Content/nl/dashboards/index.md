@@ -47,7 +47,7 @@ Open **Dashboards** in de linkernavigatie.
 
 ## Een dashboard bouwen
 
-1. **Aanmaken** — kies een naam. Het canvas opent leeg.
+1. **Aanmaken** — kies een sjabloon, of **Blank Dashboard**. Een sjabloon vult de naam in en opent met zijn widgets; een leeg dashboard opent leeg, met **Widget toevoegen** op het canvas.
 2. **Widgets toevoegen** — kies een widget-type, configureer de data en sleep hem waar je hem hebben wilt.
 3. **(Optioneel) Variabelen toevoegen** — bijvoorbeeld een `service`-dropdown zodat hetzelfde dashboard voor elke service werkt.
 4. **Stel het tijdsbereik in** — de standaardwaarden zijn prima; later afstellen.
@@ -58,7 +58,7 @@ Open **Dashboards** in de linkernavigatie.
 
 Doel: een oncall-pagina voor de checkout-service met latency, foutpercentage, openstaande incidenten en een live log-tail.
 
-1. Maak een dashboard met de naam "Checkout on-call".
+1. Maak een **Blank Dashboard** met de naam "Checkout on-call".
 2. Voeg een `service`-variabele toe. Standaardwaarde `checkout`.
 3. Voeg een **Grafiek**-widget toe met P95-latency, gefilterd op de `service`-variabele.
 4. Daarnaast een **Waarde**-widget voor foutpercentage, met warning op 1% en critical op 5%.

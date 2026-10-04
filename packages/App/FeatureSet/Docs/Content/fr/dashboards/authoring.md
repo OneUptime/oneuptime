@@ -1,6 +1,6 @@
 # Création d'un tableau de bord
 
-Pour créer un tableau de bord, ouvrez **Tableaux de bord → Create Dashboard**, donnez-lui un nom et ouvrez-le. Le canevas s'ouvre en mode **Modifier**, prêt à recevoir vos premiers widgets.
+Pour créer un tableau de bord, ouvrez **Tableaux de bord → Create Dashboard** et choisissez un modèle, ou **Blank Dashboard** pour partir de zéro. Un modèle remplit le nom du tableau de bord pour vous (numéroté, par exemple « Kubernetes Dashboard 2 », si le projet en a déjà un) ; un tableau de bord vide, c'est vous qui le nommez. Cliquez sur **Create Dashboard** et le nouveau tableau de bord s'ouvre. Un tableau de bord vide s'ouvre sur son canevas vide, avec un bouton **Ajouter un widget** pour son premier widget.
 
 ## Le canevas
 
@@ -17,7 +17,7 @@ C'est le même tableau de bord dans les deux modes. Il n'y a pas d'étape « pub
 
 ## Ajouter un widget
 
-1. Cliquez sur le bouton **+** pour ouvrir la palette des widgets.
+1. Cliquez sur **Ajouter un widget** pour ouvrir la palette des widgets : sur le canevas d'un tableau de bord vide, ou dans la barre d'outils pendant que vous modifiez le tableau de bord.
 2. Choisissez le type de widget. Voir [Widgets](/docs/dashboards/widgets) pour le catalogue.
 3. Le widget apparaît sur le canevas.
 4. Cliquez sur l'icône d'engrenage du widget pour ouvrir ses paramètres.

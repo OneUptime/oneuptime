@@ -1,6 +1,6 @@
 # Crear un Panel
 
-Para crear un panel, abre **Paneles → Crear Panel**, dale un nombre y ábrelo. El lienzo se abre en modo **Edición**, listo para que empieces a añadir widgets.
+Para crear un panel, abre **Paneles → Crear Panel** y elige una plantilla, o **Blank Dashboard** para empezar desde cero. Una plantilla rellena el nombre del panel por ti (numerado, como "Kubernetes Dashboard 2", si el proyecto ya tiene uno); a un panel en blanco le pones tú el nombre. Haz clic en **Crear Panel** y se abre el nuevo panel. Uno en blanco se abre con el lienzo vacío y un botón **Añadir widget** para su primer widget.
 
 ## El lienzo
 
@@ -17,7 +17,7 @@ Es el mismo panel en ambos modos. No hay un paso separado de "publicar"; cada ed
 
 ## Añadir un widget
 
-1. Haz clic en el botón **+** para abrir la paleta de widgets.
+1. Haz clic en **Añadir widget** para abrir la paleta de widgets: en el lienzo de un panel vacío, o en la barra de herramientas mientras editas el panel.
 2. Elige el tipo de widget. Consulta [Widgets](/docs/dashboards/widgets) para el catálogo.
 3. El widget aparece en el lienzo.
 4. Haz clic en el icono de engranaje en el widget para abrir su configuración.

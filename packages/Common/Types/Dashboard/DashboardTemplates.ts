@@ -217,6 +217,39 @@ export function getDashboardTemplatesByCategory(
   });
 }
 
+/*
+ * Where a create request names the template a new dashboard starts from:
+ * the key of the request's miscDataProps that DashboardService reads, with
+ * a DashboardTemplateType value. Left out (or Blank), the dashboard starts
+ * empty.
+ */
+export const DASHBOARD_TEMPLATE_MISC_DATA_KEY: string = "dashboardTemplateType";
+
+// The catalog entry of a template type (every type has one).
+export function getDashboardTemplate(
+  type: DashboardTemplateType,
+): DashboardTemplate | undefined {
+  return DashboardTemplates.find((template: DashboardTemplate): boolean => {
+    return template.type === type;
+  });
+}
+
+/*
+ * The name a dashboard made from a template starts with: the template's
+ * own, as its card says it ("Kubernetes Dashboard"). None for Blank: an
+ * empty dashboard is named by whoever knows what it is going to show, and
+ * "Blank Dashboard" would only describe how it started.
+ */
+export function getDashboardTemplateStartingName(
+  type: DashboardTemplateType,
+): string {
+  if (type === DashboardTemplateType.Blank) {
+    return "";
+  }
+
+  return getDashboardTemplate(type)?.name || "";
+}
+
 // -- Metric query config helpers --
 
 interface MetricConfig {

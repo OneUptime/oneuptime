@@ -47,7 +47,7 @@ Se [Widgetar](/docs/dashboards/widgets) för hela listan och vad var och en visa
 
 ## Bygga en instrumentpanel
 
-1. **Skapa** — välj ett namn. Arbetsytan öppnas tom.
+1. **Skapa** — välj en mall, eller **Blank Dashboard**. En mall fyller i namnet och öppnas med sina widgetar; en tom instrumentpanel öppnas tom, med **Lägg till widget** på arbetsytan.
 2. **Lägg till widgetar** — välj en widget-typ, konfigurera dess data, dra den dit du vill.
 3. **(Valfritt) Lägg till variabler** — till exempel en `service`-rullgardinsmeny så att samma instrumentpanel fungerar för varje tjänst.
 4. **Ställ in tidsintervallet** — standardvärden är bra; finjustera senare.
@@ -58,7 +58,7 @@ Se [Widgetar](/docs/dashboards/widgets) för hela listan och vad var och en visa
 
 Mål: en jour-sida för checkout-tjänsten med latens, felfrekvens, öppna incidenter och en livelogg.
 
-1. Skapa en instrumentpanel som heter "Checkout on-call."
+1. Skapa en **Blank Dashboard** som heter "Checkout on-call."
 2. Lägg till en `service`-variabel. Sätt standardvärdet till `checkout`.
 3. Lägg till en **Diagram**-widget med P95-latens, filtrerad efter `service`-variabeln.
 4. Bredvid den, lägg till en **Värde**-widget för felfrekvens, med varning vid 1 % och kritisk vid 5 %.

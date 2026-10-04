@@ -51,7 +51,7 @@ Open **Dashboards** in the left navigation.
 
 ## Building a dashboard
 
-1. **Create** — pick a name. The canvas opens empty.
+1. **Create** — pick a template, or **Blank Dashboard**. A template fills in the name and opens with its widgets; a blank dashboard opens empty, with **Add Widget** on its canvas.
 2. **Add widgets** — choose a widget type, configure its data, drag it where you want.
 3. **(Optional) Add variables** — for example, a `service` dropdown so the same dashboard works for every service.
 4. **Set the time range** — defaults are fine; tune later.
@@ -62,7 +62,7 @@ Open **Dashboards** in the left navigation.
 
 Goal: an on-call page for the checkout service with latency, error rate, open incidents, and a live log tail.
 
-1. Create a dashboard called "Checkout on-call."
+1. Create a **Blank Dashboard** called "Checkout on-call."
 2. Add a `service` variable. Default it to `checkout`.
 3. Add a **Chart** widget with P95 latency, filtered by the `service` variable.
 4. Next to it, add a **Value** widget for error rate, with warning at 1% and critical at 5%.

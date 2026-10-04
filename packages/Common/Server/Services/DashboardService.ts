@@ -16,6 +16,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DashboardViewConfigUtil from "../../Utils/Dashboard/DashboardViewConfig";
 import {
+  DASHBOARD_TEMPLATE_MISC_DATA_KEY,
   DashboardTemplateType,
   getTemplateConfig,
 } from "../../Types/Dashboard/DashboardTemplates";
@@ -71,7 +72,7 @@ export class Service extends DatabaseService<Model> {
 
     // Check if a template type was provided via miscDataProps
     const templateType: string | undefined = createBy.miscDataProps?.[
-      "dashboardTemplateType"
+      DASHBOARD_TEMPLATE_MISC_DATA_KEY
     ] as string | undefined;
 
     if (

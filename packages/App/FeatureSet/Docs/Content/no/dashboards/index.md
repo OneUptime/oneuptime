@@ -47,7 +47,7 @@ Se [Widgets](/docs/dashboards/widgets) for hele listen og hva hver enkelt viser.
 
 ## Bygge et dashbord
 
-1. **Opprett** — velg et navn. Lerretet åpnes tomt.
+1. **Opprett** — velg en mal, eller **Blank Dashboard**. En mal fyller inn navnet og åpnes med widgetene sine; et tomt dashbord åpnes tomt, med **Legg til widget** på lerretet.
 2. **Legg til widgets** — velg en widget-type, konfigurer dataene, dra det dit du vil.
 3. **(Valgfritt) Legg til variabler** — for eksempel en `service`-nedtrekksliste slik at det samme dashbordet fungerer for hver tjeneste.
 4. **Sett tidsperioden** — standardene holder; juster senere.
@@ -58,7 +58,7 @@ Se [Widgets](/docs/dashboards/widgets) for hele listen og hva hver enkelt viser.
 
 Mål: en vakthavende-side for checkout-tjenesten med latens, feilrate, åpne hendelser og en live loggtail.
 
-1. Opprett et dashbord kalt "Checkout vakthavende."
+1. Opprett et **Blank Dashboard** kalt "Checkout vakthavende."
 2. Legg til en `service`-variabel. Sett standarden til `checkout`.
 3. Legg til en **Diagram**-widget med P95-latens, filtrert etter `service`-variabelen.
 4. Ved siden av legg til en **Verdi**-widget for feilrate, med advarsel ved 1 % og kritisk ved 5 %.
