@@ -333,14 +333,19 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         createEditModalWidth={ModalWidth.Medium}
         isEditable={true}
+        /*
+         * Split as Declare Incident and the template's create wizard are:
+         * the monitors on their own, the status they change to right under
+         * them, and everything else the incidents affect below.
+         */
         formFields={[
           {
             field: {
               monitors: true,
             },
-            title: "",
+            title: "Monitors",
             description:
-              "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+              "Search and attach the monitors that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -350,13 +355,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return (
                 <AffectedResourcesPicker
                   monitors={values.monitors as Array<Monitor>}
-                  hosts={values.hosts as Array<Host>}
-                  kubernetesClusters={
-                    values.kubernetesClusters as Array<KubernetesCluster>
-                  }
-                  dockerHosts={values.dockerHosts as Array<DockerHost>}
-                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                  services={values.services as Array<Service>}
+                  resourceTypes={["Monitor"]}
+                  placeholder="Search monitors..."
+                  ariaLabelledby={elementProps.ariaLabelledby}
                   onChange={(payload: unknown) => {
                     elementProps.onChange?.(payload);
                   }}
@@ -368,12 +369,90 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               currentValues: FormValues<IncidentTemplate>,
               setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
             ) => {
+              // Only the monitors are this picker's to write.
               if (isAffectedResourcesPayload(value)) {
                 const payload: typeof value = value;
                 queueMicrotask(() => {
                   setNewFormValues({
                     ...currentValues,
                     monitors: payload.monitors,
+                  } as FormValues<IncidentTemplate>);
+                });
+              }
+            },
+          },
+          /*
+           * Always asked here, monitors picked or not: a template's status
+           * also applies to the monitors picked when an incident is
+           * declared from it.
+           */
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to",
+            description:
+              "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
+            },
+            required: false,
+            placeholder: "Monitor Status",
+          },
+          {
+            // Anchored on `hosts`; the payload is split back below.
+            field: {
+              hosts: true,
+            },
+            title: "Other Affected Resources",
+            description:
+              "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              values: FormValues<IncidentTemplate>,
+              elementProps: CustomElementProps,
+            ) => {
+              return (
+                <AffectedResourcesPicker
+                  hosts={values.hosts as Array<Host>}
+                  kubernetesClusters={
+                    values.kubernetesClusters as Array<KubernetesCluster>
+                  }
+                  dockerHosts={values.dockerHosts as Array<DockerHost>}
+                  podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                  services={values.services as Array<Service>}
+                  resourceTypes={[
+                    "Host",
+                    "KubernetesCluster",
+                    "DockerHost",
+                    "PodmanHost",
+                    "Service",
+                  ]}
+                  ariaLabelledby={elementProps.ariaLabelledby}
+                  onChange={(payload: unknown) => {
+                    elementProps.onChange?.(payload);
+                  }}
+                />
+              );
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<IncidentTemplate>,
+              setNewFormValues: (values: FormValues<IncidentTemplate>) => void,
+            ) => {
+              // The monitors are the other picker's: not written here.
+              if (isAffectedResourcesPayload(value)) {
+                const payload: typeof value = value;
+                queueMicrotask(() => {
+                  setNewFormValues({
+                    ...currentValues,
                     hosts: payload.hosts,
                     kubernetesClusters: payload.kubernetesClusters,
                     dockerHosts: payload.dockerHosts,
@@ -386,17 +465,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
-           * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+           * kubernetesClusters/dockerHosts/podmanHosts/services on load and
+           * submit (hosts is the picker's anchor above).
            */
-          {
-            field: { hosts: true },
-            title: "",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            showIf: () => {
-              return false;
-            },
-          },
           {
             field: { kubernetesClusters: true },
             title: "",
@@ -432,25 +503,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             showIf: () => {
               return false;
             },
-          },
-          {
-            field: {
-              changeMonitorStatusTo: true,
-            },
-            title: "Change Monitor Status to ",
-            description:
-              "This will change the status of all the monitors attached to this incident.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                priority: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Monitor Status",
           },
         ]}
         modelDetailProps={{

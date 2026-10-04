@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "मॉनिटर स्थिति बदलकर करें",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "मॉनिटर खोजें...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24691,5 +24691,12 @@
   "More fields": "और फ़ील्ड",
   "More settings": "और सेटिंग्स",
   "{{count}} more": "{{count}} और",
-  "{{count}} more_one": "{{count}} और"
+  "{{count}} more_one": "{{count}} और",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "इस टेम्पलेट से घोषित घटनाएं अपने मॉनिटर की स्थिति बदलकर यह कर देती हैं - यहां चुने गए मॉनिटर और घटना घोषित करते समय चुने गए सभी मॉनिटर।",
+  "No monitors affected by this incident.": "इस घटना से कोई मॉनिटर प्रभावित नहीं है।",
+  "No other resources affected by this incident.": "इस घटना से कोई अन्य संसाधन प्रभावित नहीं है।",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "इस घटना से प्रभावित होस्ट, Kubernetes क्लस्टर, Docker होस्ट, डेटाबेस या सेवाएं खोजें और संलग्न करें।",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "इस टेम्पलेट से बनाई गई घटनाएं जिन होस्ट, Kubernetes क्लस्टर, Docker होस्ट या सेवाओं को पूर्व-भरना चाहिए, उन्हें खोजें और संलग्न करें।",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "इस घटना से प्रभावित मॉनिटर खोजें और संलग्न करें। जिन स्थिति पृष्ठों पर ये सूचीबद्ध हैं, वे इस घटना को दिखाते हैं।",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "इस टेम्पलेट से बनाई गई घटनाएं जिन मॉनिटर को पूर्व-भरना चाहिए, उन्हें खोजें और संलग्न करें।"
 }

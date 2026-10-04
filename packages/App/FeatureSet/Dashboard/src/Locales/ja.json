@@ -24691,5 +24691,12 @@
   "More fields": "その他の項目",
   "More settings": "その他の設定",
   "{{count}} more": "他 {{count}} 件",
-  "{{count}} more_one": "他 {{count}} 件"
+  "{{count}} more_one": "他 {{count}} 件",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "このテンプレートから宣言されたインシデントは、モニターのステータスをこのステータスに変更します。ここで選択したモニターと、インシデントの宣言時に選択したモニターが対象です。",
+  "No monitors affected by this incident.": "このインシデントの影響を受けたモニターはありません。",
+  "No other resources affected by this incident.": "このインシデントの影響を受けた他のリソースはありません。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "このインシデントの影響を受けたホスト、Kubernetes クラスター、Docker ホスト、データベース、サービスを検索して割り当てます。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "このテンプレートから作成されたインシデントに事前入力すべきホスト、Kubernetes クラスター、Docker ホスト、またはサービスを検索して添付します。",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "このインシデントの影響を受けたモニターを検索して割り当てます。それらを掲載しているステータスページに、このインシデントが表示されます。",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "このテンプレートから作成されたインシデントに事前入力すべきモニターを検索して添付します。"
 }

@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "Изменить статус монитора на",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "Поиск мониторов...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24691,5 +24691,12 @@
   "More fields": "Дополнительные поля",
   "More settings": "Дополнительные настройки",
   "{{count}} more": "ещё {{count}}",
-  "{{count}} more_one": "ещё {{count}}"
+  "{{count}} more_one": "ещё {{count}}",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Инциденты, объявленные из этого шаблона, переводят свои мониторы в этот статус — выбранные здесь и выбранные при объявлении инцидента.",
+  "No monitors affected by this incident.": "Этот инцидент не затрагивает ни одного монитора.",
+  "No other resources affected by this incident.": "Этот инцидент не затрагивает других ресурсов.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Найдите и прикрепите хосты, кластеры Kubernetes, хосты Docker, базы данных или службы, затронутые этим инцидентом.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Найдите и прикрепите хосты, кластеры Kubernetes, хосты Docker или службы, которые должны предзаполняться в инцидентах, созданных из этого шаблона.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Найдите и прикрепите мониторы, затронутые этим инцидентом. Страницы состояния, на которых они указаны, показывают его.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Найдите и прикрепите мониторы, которые должны предзаполняться в инцидентах, созданных из этого шаблона."
 }

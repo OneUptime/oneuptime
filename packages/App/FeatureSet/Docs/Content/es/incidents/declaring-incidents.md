@@ -19,44 +19,52 @@ Las cuatro escriben el mismo modelo, así que un incidente abierto por una sonda
 
 ## Declarar uno a mano
 
-Abre **Incidentes → Todos los Incidentes** y haz clic en **Declarar incidente**, arriba a la derecha de la lista de **Incidentes**. Eso te lleva a una tarjeta titulada **Declarar nuevo incidente**, que reparte el formulario en cinco pasos: **Detalles del incidente**, **Recursos afectados**, **Roles de Incidente**, **De guardia** y **Más**. El botón de envío del final también dice **Declarar incidente**.
+Abre **Incidentes → Todos los Incidentes** y haz clic en **Declarar incidente**, arriba a la derecha de la lista de **Incidentes**. Eso te lleva a una tarjeta titulada **Declarar nuevo incidente**, que reparte el formulario en tres pasos: **Detalles del incidente**, **Recursos afectados** y **Guardia y roles**, y después un resumen para revisar. Cuando tu proyecto pide algunos de sus campos personalizados de incidente al crear, un cuarto paso, **Detalles**, llega justo después de **Recursos afectados**.
 
-Solo el primer paso tiene campos obligatorios. Si tienes prisa, rellena **Detalles del incidente** y envía: puedes adjuntar recursos, asignar roles y añadir políticas de guardia después, desde las propias páginas del incidente.
+Solo el primer paso tiene campos obligatorios, además de cualquier campo personalizado que tus administradores hayan marcado como **Obligatorio al crear**. También puedes adjuntar recursos, añadir políticas de guardia y asignar roles después, desde las propias páginas del incidente. Cada paso antes del resumen tiene un simple **Siguiente**, y **Declarar incidente** está en el resumen, el último paso.
+
+**Más campos.** Las opciones que la mayoría de los incidentes nunca necesitan esperan plegadas bajo un encabezado **Más campos** al final de su paso; haz clic en él para abrirlas. Mientras está plegado, el encabezado nombra lo que contiene y muestra cada opción definida con su valor —definida por una plantilla, por ejemplo— y se abre solo cuando algo dentro necesita corregirse. El resumen solo lista una opción plegada cuando está definida, salvo **Notificar a suscriptores de la página de estado**, que siempre lista, con a quién se notificará.
 
 ### Paso 1 — Detalles del incidente
 
-- **Título** — obligatorio. El resumen de una línea que todo el mundo verá en la lista, en Slack y —si el incidente es visible— en tu página de estado. Marcador de posición: `Incident Title`.
-- **Descripción** — opcional, escrita en Markdown. Este es el campo que se muestra en la página de estado, así que redáctalo para los clientes y no para tu equipo. Puedes editarlo más tarde desde **Descripción**, en el menú lateral del incidente.
-- **Declarado el** — obligatorio en el formulario, con la hora actual como valor predeterminado. Es la marca de tiempo desde la que se mide toda duración del incidente, así que retrocédela si estás registrando algo que empezó antes.
-- **Gravedad del Incidente** — obligatorio. Una de las severidades configuradas en tu proyecto; los proyectos nuevos vienen con **Incidente crítico**, **Incidente mayor** e **Incidente menor**.
-- **Estado del Incidente** — opcional. Déjalo en paz y el incidente aterrizará en el estado marcado con `isCreatedState`, que en los proyectos nuevos es **Identificado**. Cámbialo solo cuando estés registrando un incidente que ya había pasado de ese punto.
+- **Título** — obligatorio. El resumen de una línea que todo el mundo verá en la lista, en Slack y, si el incidente es visible, en tu página de estado.
+- **Gravedad del incidente** — obligatorio. Una de las severidades configuradas en tu proyecto.
+- **Descripción** — opcional, escrita en Markdown. Es lo que muestra la página de estado, así que redáctala para los clientes y no para tu equipo.
+
+Bajo **Más campos**:
+
+- **Declarado el** — empieza en el momento en que abriste la página. Toda duración del incidente se mide desde ahí, así que retrocédelo para registrar un incidente que empezó antes.
+- **Estado inicial** — opcional, y vacío al principio. Si lo dejas vacío, el incidente empieza en el estado marcado con `isCreatedState`, o en el estado inicial de la plantilla. Elige un estado posterior solo para registrar un incidente ya reconocido o resuelto.
+- **Etiquetas** — opcional. Las etiquetas agrupan incidentes relacionados, y un equipo restringido a etiquetas solo ve los incidentes que llevan alguna de las suyas.
+- **Incidente privado** — desactivado de forma predeterminada (`isPrivate`). Un incidente privado solo es visible para sus propietarios, los administradores y los propietarios del proyecto, y queda oculto en todas las páginas de estado.
 
 **Si el desplegable de estado te da problemas.** Si tu proyecto no tiene ningún estado con el indicador `isCreatedState`, la llamada de creación falla y te pide que añadas un estado de creación desde los ajustes. Eso normalmente solo ocurre en proyectos cuyos estados se han editado mucho; consulta [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
 
 ### Paso 2 — Recursos afectados
 
-- **Recursos afectados** — un único cuadro de búsqueda que adjunta monitores, hosts, clústeres de Kubernetes, hosts de Docker, hosts de Podman y servicios. Por debajo son relaciones distintas del incidente (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` y más), pero el formulario las reúne en un solo selector.
-- **Change Monitor Status to** — opcional. Elige un estado de monitor que se aplica a todos los monitores adjuntos a este incidente, de modo que declarar el incidente y marcar los monitores como degradados sea una sola acción en lugar de dos.
+Los monitores van primero, por separado: las páginas de estado ven un incidente a través de sus monitores, y el estado al que cambian los monitores está justo debajo.
+
+- **Monitores** — un cuadro de búsqueda que adjunta los monitores afectados por el incidente (`monitors`). Una página de estado muestra el incidente, y avisa a sus suscriptores, cuando incluye uno de estos monitores.
+- **Cambiar el estado del monitor a** — opcional, y solo aparece cuando hay al menos un monitor elegido. Aplica un estado a cada monitor del incidente, de modo que declarar el incidente y marcar sus monitores como degradados sea una sola acción. El estado de una plantilla aparece en cuanto eliges un monitor; sin ningún monitor elegido, no se guarda ningún estado.
+- **Otros recursos afectados** — un segundo cuadro de búsqueda para todo lo demás que afecta el incidente: hosts, clústeres de Kubernetes, hosts de Docker y Podman, clústeres de Proxmox, Ceph y Docker Swarm, vCenters, flotas IoT, bases de datos y servicios. Son relaciones distintas del incidente (`hosts`, `kubernetesClusters`, `services` y más).
+
+La tarjeta **Recursos afectados** del incidente pregunta de la misma forma cuando la editas más tarde.
+
+Bajo **Más campos**:
+
+- **Limitar a estas páginas de estado** — opcional. Si lo dejas vacío, el incidente aparece en todas las páginas de estado que incluyen sus monitores, y avisa a sus suscriptores; con páginas elegidas, solo en esas de entre ellas. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
+- **Notificar a suscriptores de la página de estado** — casilla, activada de forma predeterminada (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Debajo, y de nuevo en el resumen, el formulario indica qué páginas de estado recibirán el aviso y cuántos suscriptores tiene cada una; en el resumen, **Vista previa de la notificación** muestra el correo que recibirán. Desactívala para el ruido interno que aun así quieras dejar registrado.
 
 **Adjunta monitores aunque parezca redundante.** El vínculo entre un incidente y una página de estado pasa por los monitores del incidente: una página de estado muestra un incidente cuando uno de sus recursos es uno de los monitores del incidente. Si el incidente no tiene monitores adjuntos, la notificación de cambio de estado a los suscriptores se omite sin más. Consulta [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups).
 
-### Paso 3 — Roles de Incidente
+### Paso 3 — Guardia y roles
 
-- **Asignar roles del incidente** — asigna a miembros del equipo los roles que defina tu proyecto. Algunos roles admiten más de un usuario.
-
-Los roles se configuran en **Incidentes → Ajustes → Roles de Incidente**, donde defines los roles asignables durante la respuesta: Incident Commander, Responder y lo que tu proceso necesite. Si te saltas este paso, se asigna automáticamente un Incident Commander en el primer cambio de estado si nadie ocupa aún el rol.
-
-### Paso 4 — De guardia
-
-- **Política de guardia** — una selección múltiple de las políticas de guardia que se ejecutarán al crearse este incidente. Se corresponde con `onCallDutyPolicies` en el incidente.
+- **Política de guardia** — una selección múltiple de las políticas de guardia que se ejecutarán al crearse este incidente (`onCallDutyPolicies`).
+- **Asignar roles del incidente** — quién ocupa cada rol que define tu proyecto. Un rol marcado como **Principal** que dejes vacío es tuyo: lo asumes al declararse el incidente.
 
 Este es el único sitio donde una política de guardia se adjunta directamente a un incidente. Las severidades no llevan política de guardia: la severidad es una etiqueta, y solo influye en el aviso como *criterio de coincidencia* dentro de una regla de guardia. Las reglas configuradas en **Incidentes → Reglas → Reglas de guardia** suman sus políticas a las que elijas aquí; el conjunto final que se ejecuta es la unión sin duplicados de ambas.
 
-### Paso 5 — Más
-
-- **Etiquetas** — opcional y funcionalidad avanzada: los miembros del equipo con acceso a estas etiquetas son quienes podrán acceder al incidente.
-- **Notificar a suscriptores de la página de estado** — casilla, activada de forma predeterminada. Controla si se envía correo a los suscriptores por la creación del incidente (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Desactívala para el ruido interno que aun así quieras dejar registrado.
-- **Incidente privado** — casilla, desactivada de forma predeterminada (`isPrivate`). Un incidente privado es visible solo para sus usuarios propietarios, los miembros de sus equipos propietarios, los administradores del proyecto y los propietarios del proyecto, y queda oculto en todas las páginas de estado, independientemente de cualquier otro ajuste. La lista de incidentes los marca con una píldora roja **Private**.
+Los roles se configuran en **Incidentes → Ajustes → Roles de Incidente**. Un proyecto nuevo tiene uno, Incident Commander; añade ahí lo que tu proceso necesite.
 
 El indicador **Should be visible on status page?** (`isVisibleOnStatusPage`) no está en el asistente; su valor predeterminado es verdadero. Cámbialo después desde **Ajustes**, en el menú lateral del incidente, donde aparece etiquetado como **Visible en la página de estado**.
 
@@ -66,7 +74,7 @@ Si declaras una y otra vez el mismo tipo de incidente —el mismo patrón de tí
 
 Haz clic en **Crear desde plantilla** (el botón de contorno junto a **Declarar incidente**) y se abre un modal **Crear incidente a partir de plantilla**, con un desplegable **Seleccionar plantilla de incidente**. Elige una plantilla y el formulario de creación se abre relleno de antemano; puedes cambiar cualquier cosa antes de enviarlo. Si tu proyecto todavía no tiene plantillas, verás en su lugar un modal **No Incident Templates**, con un botón **Create Template** que te lleva a **Incidentes → Ajustes → Plantillas de Incidentes**.
 
-Las plantillas se construyen con su propio asistente de seis pasos —**Información de la plantilla**, **Detalles del incidente**, **Recursos afectados**, **De guardia**, **Propietarios**, **Etiquetas**— con estos campos:
+Las plantillas se construyen con su propio asistente —**Información de la plantilla**, **Detalles del incidente**, **Recursos afectados**, **De guardia**—, más pasos de campos personalizados cuando tu proyecto los tiene. Sus propietarios y etiquetas están bajo **Más campos** al final de **Detalles del incidente**. **Recursos afectados** pregunta como el formulario de declaración —**Monitores**, luego **Cambiar el estado del monitor a**, luego **Otros recursos afectados**, con **Limitar a estas páginas de estado** bajo **Más campos**—, salvo que una plantilla siempre pide el estado de los monitores: también se aplica a los monitores elegidos al declarar un incidente desde ella. Estos son los campos:
 
 | Campo                              | Para qué sirve                                              |
 | ---------------------------------- | ----------------------------------------------------------- |
@@ -76,11 +84,12 @@ Las plantillas se construyen con su propio asistente de seis pasos —**Informac
 | **Descripción**                    | La descripción en Markdown rellenada en el incidente.       |
 | **Gravedad del Incidente**         | La severidad rellenada de antemano en el incidente.         |
 | **Estado inicial del incidente**   | El estado en el que empiezan los incidentes de esta plantilla. |
-| **Recursos afectados**             | Monitores, hosts, clústeres y servicios que adjuntar.       |
-| **Change Monitor Status to**       | El estado de monitor que aplicar a los monitores adjuntos.  |
+| **Monitores** | Monitores que adjuntar. |
+| **Cambiar el estado del monitor a** | El estado que aplicar a los monitores del incidente, incluidos los elegidos al declararlo. |
+| **Otros recursos afectados** | Hosts, clústeres y servicios que adjuntar. |
+| **Limitar a estas páginas de estado** | Las páginas de estado a las que se limita el incidente. |
 | **Política de guardia**            | Políticas que ejecutar al crearse el incidente.             |
-| **Propietario - Equipos**          | Equipos propietarios de los incidentes de esta plantilla.   |
-| **Propietario - Usuarios**         | Usuarios propietarios de los incidentes de esta plantilla.  |
+| **Propietarios** | Personas y equipos propietarios de los incidentes de esta plantilla, elegidos de una sola lista. |
 | **Etiquetas**                      | Etiquetas aplicadas al incidente.                           |
 
 Unas cuantas reglas rápidas:

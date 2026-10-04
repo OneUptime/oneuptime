@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "Skift overvågningsstatus til",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "Søg i overvågninger...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24691,5 +24691,12 @@
   "More fields": "Flere felter",
   "More settings": "Yderligere indstillinger",
   "{{count}} more": "{{count}} mere",
-  "{{count}} more_one": "{{count}} mere"
+  "{{count}} more_one": "{{count}} mere",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Hændelser, der erklæres ud fra denne skabelon, sætter deres overvågninger til denne status – dem, der er valgt her, og dem, der vælges, når hændelsen erklæres.",
+  "No monitors affected by this incident.": "Ingen overvågninger påvirket af denne hændelse.",
+  "No other resources affected by this incident.": "Ingen andre ressourcer påvirket af denne hændelse.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Søg efter og tilknyt værter, Kubernetes-klynger, Docker-værter, databaser eller tjenester, som denne hændelse påvirker.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Søg efter og tilknyt værter, Kubernetes-klynger, Docker-værter eller tjenester, som hændelser oprettet ud fra denne skabelon skal forhåndsudfylde.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Søg efter og tilknyt de overvågninger, som denne hændelse påvirker. De statussider, der viser dem, viser hændelsen.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Søg efter og tilknyt de overvågninger, som hændelser oprettet ud fra denne skabelon skal forhåndsudfylde."
 }

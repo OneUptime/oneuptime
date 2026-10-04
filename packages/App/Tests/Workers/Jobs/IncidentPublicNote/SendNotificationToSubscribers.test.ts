@@ -329,6 +329,14 @@ import SubscriberIncidentEmailBuilder, {
   SubscriberIncidentEmailEvent,
   SubscriberIncidentStatusPageEmail,
 } from "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import {
   afterEach,
@@ -3010,3 +3018,67 @@ function describeNoteDelivery(trigger: "created" | "updated"): void {
 
 describeNoteDelivery("created");
 describeNoteDelivery("updated");
+
+/*
+ * Subscribers who chose resources, on a page that shows the incident's
+ * monitor through a monitor group. An incident reaches a page's resources
+ * through IncidentStatusPageScope, which reads them with the lookup that
+ * follows monitor groups (findByMonitors), so whoever picked the group is
+ * told - as about an announcement or a scheduled maintenance event on that
+ * monitor - and whoever picked another group is not.
+ */
+describe.each(TRIGGERS)(
+  "IncidentPublicNote subscribers who picked a monitor group ($name)",
+  (trigger: TriggerCase) => {
+    function emailsSentTo(): Array<string> {
+      return sentMail().map((mail: JSONObject): string => {
+        return (mail["toEmail"] as Email).toString();
+      });
+    }
+
+    function givenThePage(
+      page: ReturnType<typeof pageShowingTheMonitorThroughAGroup>,
+    ): void {
+      mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+        page.affectedResources as never,
+      );
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue(page.subscribers as never);
+    }
+
+    beforeEach(() => {
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        lettingSubscribersChooseResources(statusPage()),
+      ] as never);
+      decideWithTheRealSubscriberPreferences(
+        StatusPageSubscriberService.shouldSendNotification,
+      );
+    });
+
+    test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      givenThePage(page);
+      queueNote(trigger.job);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+    });
+
+    test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      givenThePage(page);
+      queueNote(trigger.job);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+    });
+  },
+);

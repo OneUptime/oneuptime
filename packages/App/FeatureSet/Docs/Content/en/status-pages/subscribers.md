@@ -50,6 +50,8 @@ The **Update Subscription** page (see below) shows the same choices open, since 
 
 The event types are `Incident`, `Announcement` and `Scheduled Event`.
 
+**A monitor group stands for every monitor in it.** A resource on the page is either a monitor or a monitor group, and a subscriber who picks a monitor group hears about incidents, scheduled maintenance events (their notes included) and announcements on any monitor in the group, exactly as if they had picked that monitor, which is also how the status page shows them. Someone who picked only other resources is not told, and someone who picked a monitor and the group that holds it gets one notification, not two.
+
 The choices land on the subscriber record as **Is Subscribed to All Resources** (`isSubscribedToAllResources`, default true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, default true), **Subscribed to Resources** and **Subscribed to Event Types**.
 
 Good for: a page that covers several products. A customer who only uses your API does not want a page every time the marketing site wobbles — let them narrow the list themselves rather than watching them unsubscribe entirely.
@@ -106,7 +108,7 @@ Subscribers hear about the three event types above, but each source has its own 
 
 ### Announcement notifications
 
-The announcement itself carries **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposed on the create form as the **Notify Status Page Subscribers** checkbox under **Schedule & Notifications**, and on by default. Subscribers are told once, when the announcement starts showing, so this is decided when the announcement is created; an edit cannot change it. If the announcement names monitors under **Monitors Affected**, the notification is scoped to those monitors; leave it empty and all subscribers are notified.
+The announcement itself carries **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposed on the create form as the **Notify Status Page Subscribers** checkbox under **Schedule & Notifications**, and on by default. Subscribers are told once, when the announcement starts showing, so this is decided when the announcement is created; an edit cannot change it. If the announcement names monitors under **Monitors Affected**, the notification is scoped to those monitors: on a page where subscribers choose resources, it goes to the subscribers of those monitors, of the monitor groups that hold them, and of every resource. Leave it empty and all subscribers are notified. On a status page that lists none of those monitors, directly or through a group, the announcement is for everyone who reads that page, so every subscriber there who gets announcements is notified.
 
 ### Scheduled maintenance events
 

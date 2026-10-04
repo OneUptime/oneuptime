@@ -19,44 +19,52 @@ Alle fire skriver til den samme modellen, så en hendelse åpnet av en sonde ser
 
 ## Å erklære én for hånd
 
-Åpne **Hendelser → Alle hendelser** og klikk **Erklær hendelse** øverst til høyre i listen **Hendelser**. Det tar deg til et kort med tittelen **Erklær ny hendelse**, som fordeler skjemaet over fem trinn: **Hendelsesdetaljer**, **Berørte ressurser**, **Hendelsesroller**, **Vakt** og **Mer**. Send-knappen til slutt heter også **Erklær hendelse**.
+Åpne **Hendelser → Alle hendelser**, og klikk på **Erklær hendelse** øverst til høyre i listen **Hendelser**. Da kommer du til et kort med tittelen **Erklær ny hendelse**, som fordeler skjemaet over tre trinn: **Hendelsesdetaljer**, **Berørte ressurser** og **Vakt og roller**, og deretter et sammendrag å gå gjennom. Når prosjektet ditt spør etter noen av sine egendefinerte hendelsesfelt ved opprettelse, kommer et fjerde trinn, **Detaljer**, rett etter **Berørte ressurser**.
 
-Bare det første trinnet har påkrevde felt. Har du dårlig tid, fyller du ut **Hendelsesdetaljer** og sender inn — du kan knytte til ressurser, tildele roller og legge til vaktpolicyer fra hendelsens egne sider etterpå.
+Bare det første trinnet har obligatoriske felt, i tillegg til alle egendefinerte felt administratorene har merket som **Påkrevd ved opprettelse**. Du kan også knytte til ressurser, legge til vaktpolicyer og tildele roller etterpå, fra hendelsens egne sider. Hvert trinn før sammendraget har en vanlig **Neste**, og **Erklær hendelse** ligger i sammendraget, det siste trinnet.
+
+**Flere felt.** Innstillingene de fleste hendelser aldri trenger, venter sammenfoldet under overskriften **Flere felt** på slutten av trinnet sitt; klikk på den for å åpne dem. Sammenfoldet nevner overskriften hva den inneholder, og viser hver innstilling som er satt, med verdien — satt av en mal, for eksempel — og den åpner seg selv når noe i den må rettes. Sammendraget viser bare en sammenfoldet innstilling når den er satt, unntatt **Varsle statussideabonnenter**, som det alltid viser, med hvem som blir varslet.
 
 ### Trinn 1 — Hendelsesdetaljer
 
-- **Tittel** — påkrevd. Ettlinjes-sammendraget alle vil se i listen, i Slack og (hvis hendelsen er synlig) på statussiden din. Plassholder: `Incident Title`.
-- **Beskrivelse** — valgfri, skrevet i Markdown. Dette er feltet som vises på statussiden, så skriv det for kundene fremfor for teamet ditt. Du kan redigere det senere fra **Beskrivelse** i hendelsens sidemeny.
-- **Erklært den** — påkrevd i skjemaet, satt til nå som standard. Dette er tidsstempelet all varighet på hendelsen måles fra, så tilbakedater det hvis du registrerer noe som startet tidligere.
-- **Hendelsesalvor** — påkrevd. En av alvorlighetsgradene som er satt opp for prosjektet ditt; nye prosjekter får **Kritisk hendelse**, **Større hendelse** og **Mindre hendelse**.
-- **Hendelsesstatus** — valgfri. La den være, så havner hendelsen i tilstanden som er flagget `isCreatedState`, som nye prosjekter oppretter som **Identifisert**. Sett den bare når du registrerer en hendelse som allerede var forbi det punktet.
+- **Tittel** — påkrevd. Sammendraget på én linje som alle ser i listen, i Slack og, hvis hendelsen er synlig, på statussiden din.
+- **Hendelsesalvor** — påkrevd. En av alvorlighetsgradene som er konfigurert for prosjektet ditt.
+- **Beskrivelse** — valgfri, skrevet i Markdown. Det er dette statussiden viser, så skriv den for kundene og ikke for teamet ditt.
+
+Under **Flere felt**:
+
+- **Erklært den** — starter i det øyeblikket du åpnet siden. All varighet på hendelsen måles herfra; tilbakedater den for å registrere en hendelse som begynte tidligere.
+- **Innledende tilstand** — valgfri, og tom til å begynne med. Står den tom, starter hendelsen i tilstanden med flagget `isCreatedState`, eller i malens innledende tilstand. Velg bare en senere tilstand for å registrere en hendelse som allerede er kvittert eller løst.
+- **Etiketter** — valgfri. Etiketter samler relaterte hendelser, og et team som er begrenset til etiketter, ser bare hendelsene som bærer en av etikettene deres.
+- **Privat hendelse** — av som standard (`isPrivate`). En privat hendelse er bare synlig for eierne sine, prosjektadministratorer og prosjekteiere, og er skjult på alle statussider.
 
 **Hvis nedtrekkslisten for tilstand lager trøbbel.** Hvis prosjektet ditt ikke har noen tilstand som bærer flagget `isCreatedState`, feiler opprettelseskallet og ber deg legge til en opprettet hendelsestilstand fra innstillingene. Det skjer normalt bare i et prosjekt der tilstandene er redigert kraftig — se [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities).
 
 ### Trinn 2 — Berørte ressurser
 
-- **Berørte ressurser** — ett enkelt søkefelt som knytter til overvåkinger, verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester. Under panseret er dette separate relasjoner på hendelsen (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` og flere), men skjemaet slår dem sammen til én velger.
-- **Endre overvåkingsstatus til** — valgfri. Velger en overvåkingsstatus som settes på hver overvåking som er knyttet til denne hendelsen, slik at det å erklære hendelsen og merke overvåkingene som redusert blir én handling i stedet for to.
+Monitorene kommer først, for seg selv: statussider ser en hendelse gjennom monitorene dens, og statusen monitorene endres til, står rett under dem.
+
+- **Monitorer** — et søkefelt som knytter til monitorene hendelsen påvirker (`monitors`). En statusside viser hendelsen, og varsler abonnentene sine, når den viser en av disse monitorene.
+- **Endre overvåkingsstatus til** — valgfri, og vises først når minst én monitor er valgt. Setter hver monitor i hendelsen til en overvåkingsstatus, slik at det å erklære hendelsen og merke monitorene som redusert er én handling. En mals status vises så snart du velger en monitor; uten valgt monitor lagres ingen status.
+- **Andre berørte ressurser** — et andre søkefelt for alt annet hendelsen påvirker: verter, Kubernetes-klynger, Docker- og Podman-verter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, IoT-flåter, databaser og tjenester. Det er separate relasjoner på hendelsen (`hosts`, `kubernetesClusters`, `services` med flere).
+
+Hendelsens kort **Berørte ressurser** spør på samme måte når du redigerer det senere.
+
+Under **Flere felt**:
+
+- **Begrens til disse statussidene** — valgfri. Står den tom, vises hendelsen på alle statussider som viser monitorene dens, og varsler abonnentene deres; med valgte sider bare på dem blant dem. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
+- **Varsle statussideabonnenter** — avkrysningsboks, på som standard (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under den, og igjen i sammendraget, viser skjemaet hvilke statussider som blir varslet og hvor mange abonnenter hver har; i sammendraget viser **Forhåndsvis varsel** e-posten de får. Slå den av for intern støy du likevel vil ha registrert.
 
 **Knytt til overvåkinger selv når det føles overflødig.** Koblingen mellom en hendelse og en statusside går gjennom hendelsens overvåkinger: en statusside viser en hendelse når en av sidens ressurser er en av hendelsens overvåkinger. Et varsel til abonnenter om en tilstandsendring hoppes rett og slett over når hendelsen ikke har noen overvåkinger knyttet til seg. Se [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups).
 
-### Trinn 3 — Hendelsesroller
+### Trinn 3 — Vakt og roller
 
-- **Tildel hendelsesroller** — tildel teammedlemmer til rollene prosjektet ditt definerer. Enkelte roller tar mer enn én bruker.
-
-Rollene selv settes opp på **Hendelser → Innstillinger → Hendelsesroller**, der du definerer rollene som kan tildeles under responsen — Incident Commander, Responder, og hva enn prosessen din ellers trenger. Hopper du over dette trinnet, tildeles en Incident Commander automatisk ved den første tilstandsendringen dersom ingen har rollen ennå.
-
-### Trinn 4 — Vakt
-
-- **Vaktpolicy** — en flervalgsliste over vaktpolicyene som skal kjøres når denne hendelsen opprettes. Dette tilsvarer `onCallDutyPolicies` på hendelsen.
+- **Vaktpolicy** — et flervalg av vaktpolicyene som kjøres når denne hendelsen opprettes (`onCallDutyPolicies`).
+- **Tildel hendelsesroller** — hvem som tar hver rolle prosjektet ditt definerer. En rolle merket **Primær** som du lar stå tom, er din: du tar den når hendelsen erklæres.
 
 Dette er det eneste stedet en vaktpolicy knyttes direkte til en hendelse. Alvorlighetsgrader bærer ingen vaktpolicy — alvorlighetsgrad er en etikett, og den påvirker tilkalling bare som *treffkriterium* inne i en vaktregel. Regler satt opp på **Hendelser → Regler → Vaktregler** legger sine policyer oppå det du velger her; settet som til slutt kjøres, er unionen av begge, uten duplikater.
 
-### Trinn 5 — Mer
-
-- **Etiketter** — valgfritt og en avansert funksjon: teammedlemmene som har tilgang til disse etikettene, er de som får tilgang til hendelsen.
-- **Varsle statussideabonnenter** — avkrysningsboks, på som standard. Styrer om abonnentene får e-post om at hendelsen er opprettet (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Slå den av for intern støy du likevel vil ha registrert.
-- **Privat hendelse** — avkrysningsboks, av som standard (`isPrivate`). En privat hendelse er bare synlig for eierbrukerne, medlemmene av eierteamene, prosjektadministratorer og prosjekteiere — og den er skjult fra hver eneste statusside, uansett hvilke andre innstillinger som gjelder. Hendelseslisten merker disse med en rød **Private**-pille.
+Selve rollene konfigureres under **Hendelser → Innstillinger → Hendelsesroller**. Et nytt prosjekt har én, Incident Commander; legg til der det prosessen din ellers trenger.
 
 Flagget **Should be visible on status page?** (`isVisibleOnStatusPage`) finnes ikke i veiviseren; det er sant som standard. Endre det etterpå fra **Innstillinger** i hendelsens sidemeny, der det heter **Synlig på statussiden**.
 
@@ -66,7 +74,7 @@ Hvis du stadig erklærer den samme typen hendelse — samme tittelmønster, samm
 
 Klikk **Opprett fra mal** (omrissknappen ved siden av **Erklær hendelse**), så åpnes dialogen **Opprett hendelse fra mal** med en nedtrekksliste **Velg hendelsesmal**. Velg en mal, så åpnes opprettelsesskjemaet ferdig utfylt; du kan fortsatt endre hva som helst før du sender inn. Har prosjektet ditt ingen maler ennå, får du i stedet dialogen **No Incident Templates**, med en knapp **Create Template** som tar deg til **Hendelser → Innstillinger → Hendelsesmaler**.
 
-Maler bygges med sin egen seks-trinns veiviser — **Malinformasjon**, **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt**, **Eiere**, **Etiketter** — med disse feltene:
+Maler bygges med sin egen veiviser — **Malinformasjon**, **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt** — pluss trinn for egendefinerte felt når prosjektet ditt har slike. Eiere og etiketter ligger under **Flere felt** på slutten av **Hendelsesdetaljer**. **Berørte ressurser** spør som erklæringsskjemaet — **Monitorer**, så **Endre overvåkingsstatus til**, så **Andre berørte ressurser**, med **Begrens til disse statussidene** under **Flere felt** — bortsett fra at en mal alltid spør etter overvåkingsstatus: den gjelder også monitorene som velges når en hendelse erklæres fra malen. Dette er feltene:
 
 | Felt                             | Formål                                                 |
 | -------------------------------- | ------------------------------------------------------ |
@@ -76,11 +84,12 @@ Maler bygges med sin egen seks-trinns veiviser — **Malinformasjon**, **Hendels
 | **Beskrivelse**                  | Markdown-beskrivelse som forhåndsutfylles på hendelsen. |
 | **Hendelsesalvor**               | Alvorlighetsgrad som forhåndsutfylles på hendelsen.    |
 | **Innledende hendelsestilstand** | Tilstanden hendelser fra denne malen starter i.        |
-| **Berørte ressurser**            | Overvåkinger, verter, klynger og tjenester å knytte til. |
-| **Endre overvåkingsstatus til**  | Overvåkingsstatus som settes på de tilknyttede overvåkingene. |
+| **Monitorer** | Monitorer som skal knyttes til. |
+| **Endre overvåkingsstatus til** | Overvåkingsstatus for hendelsens monitorer, også dem som velges ved erklæringen. |
+| **Andre berørte ressurser** | Verter, klynger og tjenester som skal knyttes til. |
+| **Begrens til disse statussidene** | Statussider hendelsen er begrenset til. |
 | **Vaktpolicy**                   | Policyer som kjøres når hendelsen opprettes.           |
-| **Eier - Team**                  | Team som eier hendelser opprettet fra denne malen.     |
-| **Eier - Brukere**               | Brukere som eier hendelser opprettet fra denne malen.  |
+| **Eiere** | Personer og team som eier hendelser opprettet fra denne malen, valgt fra én liste. |
 | **Etiketter**                    | Etiketter som settes på hendelsen.                     |
 
 Noen raske regler:

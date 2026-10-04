@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "Monitorstatus wijzigen naar",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "Monitoren zoeken...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24691,5 +24691,12 @@
   "More fields": "Meer velden",
   "More settings": "Meer instellingen",
   "{{count}} more": "nog {{count}}",
-  "{{count}} more_one": "nog {{count}}"
+  "{{count}} more_one": "nog {{count}}",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Incidenten die vanuit dit sjabloon worden gemeld, zetten hun monitoren op deze status: de monitoren die hier zijn gekozen en alle die bij het melden van het incident worden gekozen.",
+  "No monitors affected by this incident.": "Geen monitoren getroffen door dit incident.",
+  "No other resources affected by this incident.": "Geen andere resources getroffen door dit incident.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Zoek en koppel hosts, Kubernetes-clusters, Docker-hosts, databases of services die door dit incident worden getroffen.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Zoek en koppel hosts, Kubernetes-clusters, Docker-hosts of services die incidenten die vanuit dit sjabloon zijn aangemaakt vooraf moeten invullen.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Zoek en koppel de monitoren die door dit incident worden getroffen. De statuspagina's waarop ze staan, tonen het.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Zoek en koppel de monitoren die incidenten die vanuit dit sjabloon zijn aangemaakt vooraf moeten invullen."
 }
