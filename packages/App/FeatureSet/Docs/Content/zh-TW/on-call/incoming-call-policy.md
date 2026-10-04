@@ -86,13 +86,14 @@ sequenceDiagram
 
 1. 登入您的 OneUptime 儀表板
 2. 前往 **專案設定** > **通知** > **通知設定**
-3. 點選 **Create Custom Call/SMS Config**
+3. 在 **Twilio 設定** 中點選 **Create Twilio Config**
 4. 填寫以下欄位：
    - **名稱**：易於辨識的名稱（例如「Production Twilio Config」）
    - **描述**：選填的描述
    - **Twilio 帳戶 SID**：您的 Twilio Account SID（以 `AC` 開頭）
    - **Twilio 驗證權杖**：您的 Twilio Auth Token
    - **Twilio 主要電話號碼**：您 Twilio 帳戶中用於外撥通話的電話號碼
+   - **設為專案預設**：專案的第一個 Twilio 設定會開啟此項，因此傳送給專案成員的簡訊和通話也會透過此帳戶傳送。如果此帳戶只用於來電，請將其關閉。
 5. 點選 **儲存**
 
 ## 步驟 3：建立來電政策

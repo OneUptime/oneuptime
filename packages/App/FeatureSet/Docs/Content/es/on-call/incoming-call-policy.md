@@ -86,13 +86,14 @@ Dado que estás auto-alojando OneUptime, necesitarás configurar tu propia cuent
 
 1. Inicia sesión en tu panel de OneUptime
 2. Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de Notificación**
-3. Haz clic en **Crear configuración personalizada de llamadas/SMS**
+3. En **Configuración de Twilio**, haz clic en **Crear configuración de Twilio**
 4. Completa los siguientes campos:
    - **Nombre**: Un nombre descriptivo (por ejemplo, "Configuración de Twilio para producción")
    - **Descripción**: Descripción opcional
    - **SID de cuenta de Twilio**: Tu SID de cuenta de Twilio (comienza con `AC`)
    - **Token de autenticación de Twilio**: Tu token de autenticación de Twilio
    - **Número de teléfono principal de Twilio**: Un número de teléfono de tu cuenta de Twilio para llamadas salientes
+   - **Establecer como predeterminado del proyecto**: activado en la primera configuración de Twilio del proyecto, así que los SMS y las llamadas a los miembros del proyecto también pasan por esta cuenta. Desactívalo si esta cuenta es solo para llamadas entrantes.
 5. Haz clic en **Guardar**
 
 ## Paso 3: Crear una Política de llamadas entrantes

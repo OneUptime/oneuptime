@@ -50,13 +50,14 @@ Eftersom du egeninstallerar OneUptime behöver du konfigurera ditt eget Twilio-k
 
 1. Logga in på din OneUptime-instrumentpanel
 2. Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar**
-3. Klicka på **Skapa anpassad Samtal/SMS-konfiguration**
+3. Klicka på **Create Twilio Config** under **Twilio-konfiguration**
 4. Fyll i följande fält:
    - **Namn**: Ett beskrivande namn (t.ex. "Produktion Twilio-konfiguration")
    - **Beskrivning**: Valfri beskrivning
    - **Twilio Account SID**: Ditt Twilio Account SID (börjar med `AC`)
    - **Twilio Auth Token**: Ditt Twilio Auth Token
    - **Twilio primärt telefonnummer**: Ett telefonnummer från ditt Twilio-konto för utgående samtal
+   - **Ange som projektstandard**: påslaget för projektets första Twilio-konfiguration, så SMS och samtal till projektmedlemmar också går via det här kontot. Stäng av det om kontot bara är till för inkommande samtal.
 5. Klicka på **Spara**
 
 ## Steg 3: Skapa en policy för inkommande samtal

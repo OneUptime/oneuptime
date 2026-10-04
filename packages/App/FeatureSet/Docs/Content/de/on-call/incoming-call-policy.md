@@ -30,13 +30,14 @@ Da Sie OneUptime selbst hosten, müssen Sie Ihr eigenes Twilio-Konto konfigurier
 
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
 2. Gehen Sie zu **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen**
-3. Klicken Sie auf **Benutzerdefinierte Anruf-/SMS-Konfiguration erstellen**
+3. Klicken Sie unter **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen**
 4. Füllen Sie die folgenden Felder aus:
    - **Name**: Ein verständlicher Name (z. B. "Production Twilio Config")
    - **Beschreibung**: Optionale Beschreibung
    - **Twilio Account SID**: Ihre Twilio Account-SID (beginnt mit `AC`)
    - **Twilio Auth Token**: Ihr Twilio Auth-Token
    - **Twilio-Primärrufnummer**: Eine Telefonnummer aus Ihrem Twilio-Konto für ausgehende Anrufe
+   - **Als Projektstandard festlegen**: bei der ersten Twilio-Konfiguration des Projekts eingeschaltet, sodass auch SMS und Anrufe an die Projektmitglieder über dieses Konto laufen. Schalten Sie es aus, wenn dieses Konto nur für eingehende Anrufe gedacht ist.
 5. Klicken Sie auf **Speichern**
 
 ## Schritt 3: Eingehende Anrufrichtlinie erstellen

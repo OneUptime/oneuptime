@@ -86,13 +86,14 @@ Incoming Call Policy feature इस तरह काम करता है:
 
 1. अपने OneUptime Dashboard में log in करें
 2. **प्रोजेक्ट सेटिंग्स** > **सूचनाएं** > **सूचना सेटिंग्स** पर जाएं
-3. **Create Custom Call/SMS Config** पर क्लिक करें
+3. **Twilio कॉन्फ़िगरेशन** में **Create Twilio Config** पर क्लिक करें
 4. निम्नलिखित fields भरें:
    - **नाम**: एक friendly name (जैसे "Production Twilio Config")
    - **विवरण**: वैकल्पिक description
    - **Twilio Account SID**: आपका Twilio Account SID (`AC` से शुरू होता है)
    - **Twilio Auth Token**: आपका Twilio Auth Token
    - **Twilio प्राथमिक फ़ोन नंबर**: outbound calls के लिए आपके Twilio account का phone number
+   - **प्रोजेक्ट डिफ़ॉल्ट के रूप में सेट करें**: प्रोजेक्ट के पहले Twilio कॉन्फ़िगरेशन के लिए चालू रहता है, इसलिए प्रोजेक्ट के सदस्यों के SMS और कॉल भी इसी खाते से जाते हैं। अगर यह खाता केवल इनकमिंग कॉल के लिए है, तो इसे बंद करें।
 5. **सहेजें** पर क्लिक करें
 
 ## चरण 3: Incoming Call Policy बनाएं
