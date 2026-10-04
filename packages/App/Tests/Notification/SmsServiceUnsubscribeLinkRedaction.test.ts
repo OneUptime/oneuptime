@@ -31,7 +31,9 @@ import Twilio from "twilio";
 jest.mock("twilio", () => {
   return {
     __esModule: true,
-    default: jest.fn(),
+    default: {
+      Twilio: jest.fn(),
+    },
   };
 });
 
@@ -100,7 +102,7 @@ describe("the SMS log never keeps an unsubscribe link's token", () => {
       sid: "SM-1",
     } as never);
 
-    (Twilio as unknown as jest.Mock).mockImplementation(() => {
+    (Twilio.Twilio as unknown as jest.Mock).mockImplementation(() => {
       return { messages: { create: createMessage } };
     });
 
