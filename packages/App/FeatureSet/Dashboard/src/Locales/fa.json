@@ -24669,5 +24669,6 @@
   "No rule for this severity yet. Add one to choose how you are notified.": "هنوز هیچ قاعده‌ای برای این شدت وجود ندارد. یک قاعده اضافه کنید تا انتخاب کنید چگونه به شما اطلاع داده شود.",
   "Status pages that show the affected monitors:": "صفحات وضعیتی که مانیتورهای تحت تأثیر را نشان می‌دهند:",
   "Status pages that show the affected monitors:_one": "صفحات وضعیتی که مانیتور تحت تأثیر را نشان می‌دهند:",
-  "Untitled status page": "صفحه وضعیت بی‌نام"
+  "Untitled status page": "صفحه وضعیت بی‌نام",
+  "New Scheduled Maintenance Event": "رویداد تعمیر و نگهداری زمان‌بندی‌شده جدید"
 }

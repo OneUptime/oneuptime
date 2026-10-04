@@ -24669,5 +24669,6 @@
   "No rule for this severity yet. Add one to choose how you are notified.": "इस गंभीरता के लिए अभी कोई नियम नहीं है। आपको कैसे सूचित किया जाए, यह चुनने के लिए एक नियम जोड़ें।",
   "Status pages that show the affected monitors:": "प्रभावित मॉनिटर दिखाने वाले स्थिति पृष्ठ:",
   "Status pages that show the affected monitors:_one": "प्रभावित मॉनिटर को दिखाने वाले स्थिति पृष्ठ:",
-  "Untitled status page": "बिना शीर्षक वाला स्थिति पृष्ठ"
+  "Untitled status page": "बिना शीर्षक वाला स्थिति पृष्ठ",
+  "New Scheduled Maintenance Event": "नया अनुसूचित रखरखाव इवेंट"
 }

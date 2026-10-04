@@ -24669,5 +24669,6 @@
   "No rule for this severity yet. Add one to choose how you are notified.": "이 심각도에 대한 규칙이 아직 없습니다. 규칙을 추가해 알림 받는 방법을 정하세요.",
   "Status pages that show the affected monitors:": "영향받는 모니터를 표시하는 상태 페이지:",
   "Status pages that show the affected monitors:_one": "영향받는 모니터를 표시하는 상태 페이지:",
-  "Untitled status page": "제목 없는 상태 페이지"
+  "Untitled status page": "제목 없는 상태 페이지",
+  "New Scheduled Maintenance Event": "새 예약 유지보수 이벤트"
 }

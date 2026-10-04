@@ -24669,5 +24669,6 @@
   "No rule for this severity yet. Add one to choose how you are notified.": "No rule for this severity yet. Add one to choose how you are notified.",
   "Status pages that show the affected monitors:": "Status pages that show the affected monitors:",
   "Status pages that show the affected monitors:_one": "Status pages that show the affected monitor:",
-  "Untitled status page": "Untitled status page"
+  "Untitled status page": "Untitled status page",
+  "New Scheduled Maintenance Event": "New Scheduled Maintenance Event"
 }

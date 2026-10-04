@@ -24669,5 +24669,6 @@
   "No rule for this severity yet. Add one to choose how you are notified.": "この重大度のルールはまだありません。ルールを追加して、通知方法を選んでください。",
   "Status pages that show the affected monitors:": "影響を受けるモニターを表示しているステータスページ:",
   "Status pages that show the affected monitors:_one": "影響を受けるモニターを表示しているステータスページ:",
-  "Untitled status page": "無題のステータスページ"
+  "Untitled status page": "無題のステータスページ",
+  "New Scheduled Maintenance Event": "新しい定期メンテナンスイベント"
 }

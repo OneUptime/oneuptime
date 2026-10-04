@@ -24669,5 +24669,6 @@
   "No rule for this severity yet. Add one to choose how you are notified.": "Aucune règle pour cette gravité pour l'instant. Ajoutez-en une pour choisir comment vous êtes notifié.",
   "Status pages that show the affected monitors:": "Pages de statut qui affichent les moniteurs concernés :",
   "Status pages that show the affected monitors:_one": "Pages de statut qui affichent le moniteur concerné :",
-  "Untitled status page": "Page de statut sans titre"
+  "Untitled status page": "Page de statut sans titre",
+  "New Scheduled Maintenance Event": "Nouvel événement de maintenance planifiée"
 }
