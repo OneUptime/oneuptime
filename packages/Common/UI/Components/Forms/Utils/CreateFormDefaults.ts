@@ -1,5 +1,9 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Color from "../../../../Types/Color";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
+import { parseColor } from "../../../../Utils/ColorContrast";
+import { pickDistinctColor } from "../../../../Utils/DistinctColor";
 import {
   CardSelectOption,
   CardSelectOptionGroup,
@@ -40,9 +44,20 @@ import FormFieldSchemaType from "../Types/FormFieldSchemaType";
  *
  * Only plain values the field can show are taken: a boolean for a switch, a
  * choice its options hold for a dropdown, radio group or card picker, a number
- * for a number box. A JSON default, a text default, or a field that writes no
- * real column (an overrideField, a value sent as misc data, a form-only
- * helper) is left as it was.
+ * for a number box, a colour for a colour picker. A JSON default, a text
+ * default, or a field that writes no real column (an overrideField, a value
+ * sent as misc data, a form-only helper) is left as it was.
+ *
+ * A colour is the one thing a Create form starts with that the server would
+ * not store on its own. A label, a state, a severity, a monitor status, an
+ * incident role and a bar colour rule cannot be saved without one, and none
+ * of their colour columns has a default - so their forms opened on an empty
+ * picker and refused to save until a colour was chosen: a decision with no
+ * wrong answer, asked first. Now such a field starts with a colour already
+ * picked (getCreateFormColorDefault, below): one from OneUptime's palette
+ * that the records listed beside the form - the rows of the table it was
+ * opened from - do not use yet (Utils/DistinctColor). It stays a field: any
+ * colour can be picked instead. Edit forms are not touched.
  */
 
 export type CreateFormColumnDefault = boolean | number | string;
@@ -190,5 +205,111 @@ export function getCreateFormColumnDefault<TEntity>(
     return columnDefault;
   }
 
+  if (field.fieldType === FormFieldSchemaType.Color) {
+    // Only a default the picker can show: a colour, as text, as it writes it.
+    const color: string | null =
+      columnDefault instanceof Color || typeof columnDefault === "string"
+        ? columnDefault.toString().trim().toLowerCase()
+        : null;
+
+    return color && parseColor(color) ? color : undefined;
+  }
+
   return undefined;
+}
+
+export type ColorInUse = Color | string | null | undefined;
+
+/**
+ * The colours `items` hold in the column a colour field writes, for
+ * getCreateFormColorDefault to stay clear of. Items that do not hold the
+ * column (a table that did not select it) give nothing.
+ */
+export function getColorsInUse<TEntity>(
+  field: CreateFormField<TEntity>,
+  items: ReadonlyArray<unknown> | undefined,
+): Array<ColorInUse> {
+  const columnName: string | undefined = field.field
+    ? Object.keys(field.field)[0]
+    : undefined;
+
+  if (!columnName || !items) {
+    return [];
+  }
+
+  return items.map((item: unknown): ColorInUse => {
+    if (!item || typeof item !== "object") {
+      return undefined;
+    }
+
+    const value: unknown = (item as Record<string, unknown>)[columnName];
+
+    return value instanceof Color || typeof value === "string"
+      ? value
+      : undefined;
+  });
+}
+
+/**
+ * The colour a colour field of a Create form starts with, as text
+ * ("#6366f1"), or undefined when the field starts as it always did.
+ *
+ * Picked for a field that writes a colour column the record cannot be saved
+ * without (the column, or the field, is required) and that says nothing about
+ * what it starts as - no defaultValue or getDefaultValue of its own, and no
+ * column default, which getCreateFormColumnDefault gives it instead. The
+ * colour is the first of the palette that none of `colorsInUse` looks like
+ * (Utils/DistinctColor): the colours of the records beside it.
+ */
+export function getCreateFormColorDefault<TEntity>(
+  model: BaseModel,
+  field: CreateFormField<TEntity>,
+  colorsInUse?: ReadonlyArray<ColorInUse>,
+): string | undefined {
+  if (field.fieldType !== FormFieldSchemaType.Color) {
+    return undefined;
+  }
+
+  // The field says for itself what it starts as.
+  if (field.defaultValue !== undefined || field.getDefaultValue) {
+    return undefined;
+  }
+
+  // Not a column this field writes.
+  if (
+    !field.field ||
+    field.overrideField ||
+    field.overrideFieldKey ||
+    field.formOnly
+  ) {
+    return undefined;
+  }
+
+  const columnName: string | undefined = Object.keys(field.field)[0];
+
+  if (!columnName) {
+    return undefined;
+  }
+
+  const metadata: TableColumnMetadata | undefined =
+    model.getTableColumnMetadata(columnName);
+
+  if (!metadata || metadata.type !== TableColumnType.Color) {
+    return undefined;
+  }
+
+  // A column with a default of its own starts from it.
+  if (getCreateFormColumnDefault(model, field) !== undefined) {
+    return undefined;
+  }
+
+  /*
+   * A colour the record can go without is left empty: empty means no
+   * colour, or one the server picks itself (a service's).
+   */
+  if (!metadata.required && !field.required) {
+    return undefined;
+  }
+
+  return pickDistinctColor(colorsInUse).toString();
 }

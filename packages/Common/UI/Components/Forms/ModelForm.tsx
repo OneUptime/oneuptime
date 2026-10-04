@@ -35,6 +35,8 @@ import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
   CreateFormColumnDefault,
+  getColorsInUse,
+  getCreateFormColorDefault,
   getCreateFormColumnDefault,
 } from "./Utils/CreateFormDefaults";
 import {
@@ -186,6 +188,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   values?: FormValues<TBaseModel> | undefined;
   // Any step can be opened from the step list (see BasicForm).
   allowAnyStepNavigation?: boolean | undefined;
+  /*
+   * Records of this model listed beside a Create form - the rows of the
+   * table it was opened from (ModelTable hands them over). A colour the form
+   * picks for a new record is one none of them uses yet
+   * (Utils/CreateFormDefaults, getCreateFormColorDefault).
+   */
+  existingItems?: Array<TBaseModel> | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -233,6 +242,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
   > = useRef<Map<unknown, Dictionary<DropdownOptionsCacheEntry>>>(new Map());
 
   const fieldsRunGeneration: MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * The colour a Create form picked for each colour field, by form key. The
+   * fields are worked out again on every render of the page around the form,
+   * and the rows beside it can be fetched again while it is open: the pick is
+   * made once, so the colour the form shows - and that a folded section
+   * compares with - never changes under the user.
+   */
+  const pickedColorDefaults: MutableRefObject<Dictionary<string>> = useRef<
+    Dictionary<string>
+  >({});
 
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
@@ -425,6 +445,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
     return fieldPermissions;
   };
 
+  type HasInitialValueFunction = (key: string) => boolean;
+
+  // Whether the form starts with a value of its own for this key.
+  const hasInitialValue: HasInitialValueFunction = (key: string): boolean => {
+    const value: unknown = (
+      props.initialValues as Record<string, unknown> | undefined
+    )?.[key];
+
+    return value !== undefined && value !== null && value !== "";
+  };
+
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
     fieldsRunGeneration.current = fieldsRunGeneration.current + 1;
     const generation: number = fieldsRunGeneration.current;
@@ -505,11 +536,37 @@ const ModelForm: <TBaseModel extends BaseModel>(
           const columnDefault: CreateFormColumnDefault | undefined =
             getCreateFormColumnDefault(model, field);
 
+          /*
+           * A colour the record cannot be saved without, and whose column
+           * has no default, starts picked: one the records beside the form
+           * do not use yet. Not over a colour the form already starts with.
+           */
+          if (
+            props.formType === FormType.Create &&
+            columnDefault === undefined &&
+            pickedColorDefaults.current[effectiveFieldKey] === undefined &&
+            !hasInitialValue(effectiveFieldKey)
+          ) {
+            const colorDefault: string | undefined = getCreateFormColorDefault(
+              model,
+              field,
+              getColorsInUse(field, props.existingItems),
+            );
+
+            if (colorDefault) {
+              pickedColorDefaults.current[effectiveFieldKey] = colorDefault;
+            }
+          }
+
+          const createDefault: CreateFormColumnDefault | undefined =
+            props.formType === FormType.Create
+              ? columnDefault ?? pickedColorDefaults.current[effectiveFieldKey]
+              : undefined;
+
           fieldsToSet.push({
             ...field,
-            ...(columnDefault !== undefined &&
-            props.formType === FormType.Create
-              ? { defaultValue: columnDefault }
+            ...(createDefault !== undefined
+              ? { defaultValue: createDefault }
               : {}),
             ...(columnDefault !== undefined
               ? { columnDefaultValue: columnDefault }
@@ -1211,6 +1268,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
             arr.push(baseModel);
           }
           valuesToSend[key] = arr;
+        }
+
+        /*
+         * A colour a Create form picked for a new record is held as text
+         * ("#6366f1"), where the picker holds a Color: it is sent as the
+         * Color it stands for, the same as one picked by hand.
+         */
+        if (
+          tableColumnMetadata &&
+          tableColumnMetadata.type === TableColumnType.Color &&
+          typeof valuesToSend[key] === Typeof.String &&
+          (valuesToSend[key] as string).trim()
+        ) {
+          valuesToSend[key] = new Color((valuesToSend[key] as string).trim());
         }
       }
 

@@ -2,6 +2,7 @@ import Field, { FormFieldCollapsibleSection } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 import FormValues from "../Types/FormValues";
 import { getPeoplePickerValueKeys } from "../../PeoplePicker/PeoplePickerTypes";
+import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
 import {
   MORE_FIELDS_SECTION_TITLE as FOLDED_MORE_FIELDS_TITLE,
@@ -161,6 +162,15 @@ export const normalizeFormValue: NormalizeValueFunction = (
 
   if (value instanceof Date) {
     return value.getTime();
+  }
+
+  /*
+   * A colour is held as the Color the picker gives or as the text a Create
+   * form starts with ("#6366f1", Utils/CreateFormDefaults): the same colour
+   * either way.
+   */
+  if (value instanceof Color) {
+    return value.toString().trim().toLowerCase();
   }
 
   return value;

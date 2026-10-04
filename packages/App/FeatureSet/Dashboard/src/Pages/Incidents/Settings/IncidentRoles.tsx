@@ -26,8 +26,15 @@ import React, {
  * A project starts with one role, Incident Commander, and adds the others it
  * uses. The table shows what a role is - its name and description - and
  * nothing about how it is assigned: whether a role takes more than one
- * person lives in its form, folded under Advanced. See
+ * person lives in its form, folded under More fields. See
  * Components/IncidentRole/IncidentRoleSettings for the why.
+ *
+ * The form is one page: a name and a description, then More fields, folded,
+ * with Allow Multiple Users, the icon and the colour. A new role's colour is
+ * already picked - one the listed roles do not use yet (ModelForm,
+ * Forms/Utils/CreateFormDefaults) - and its icon is optional, so nothing in
+ * there has to be opened to create a role. They used to be a second step,
+ * "Appearance", that every new role walked through to pick a colour.
  */
 const IncidentRoles: FunctionComponent<
   PageComponentProps
@@ -72,17 +79,12 @@ const IncidentRoles: FunctionComponent<
         onFetchSuccess={(roles: Array<IncidentRole>) => {
           setPrimaryRoleIds(getPrimaryIncidentRoleIds(roles));
         }}
-        formSteps={[
-          { title: IncidentRoleSettingsCopy.basicInfoStep, id: "basic-info" },
-          { title: IncidentRoleSettingsCopy.appearanceStep, id: "appearance" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: IncidentRoleSettingsCopy.nameFieldTitle,
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: IncidentRoleSettingsCopy.namePlaceholder,
@@ -95,7 +97,6 @@ const IncidentRoles: FunctionComponent<
               description: true,
             },
             title: IncidentRoleSettingsCopy.descriptionFieldTitle,
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: IncidentRoleSettingsCopy.descriptionPlaceholder,
@@ -105,7 +106,6 @@ const IncidentRoles: FunctionComponent<
               canAssignMultipleUsers: true,
             },
             title: IncidentRoleSettingsCopy.allowMultipleUsersTitle,
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description: IncidentRoleSettingsCopy.allowMultipleUsersDescription,
@@ -122,20 +122,20 @@ const IncidentRoles: FunctionComponent<
               roleIcon: true,
             },
             title: IncidentRoleSettingsCopy.iconFieldTitle,
-            stepId: "appearance",
             fieldType: FormFieldSchemaType.Icon,
             required: false,
             placeholder: IncidentRoleSettingsCopy.iconPlaceholder,
+            collapsibleSection: advancedSection,
           },
           {
             field: {
               color: true,
             },
             title: IncidentRoleSettingsCopy.colorFieldTitle,
-            stepId: "appearance",
             fieldType: FormFieldSchemaType.Color,
             required: true,
             placeholder: IncidentRoleSettingsCopy.colorPlaceholder,
+            collapsibleSection: advancedSection,
           },
         ]}
         showRefreshButton={true}

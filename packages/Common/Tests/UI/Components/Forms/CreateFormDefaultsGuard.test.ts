@@ -4,10 +4,12 @@ import path from "path";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   CreateFormColumnDefault,
+  getCreateFormColorDefault,
   getCreateFormColumnDefault,
 } from "../../../../UI/Components/Forms/Utils/CreateFormDefaults";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { RULE_ENABLED_COLUMN } from "../../../../UI/Components/RuleRun/RuleEnabledField";
 import {
   listScanRoots,
@@ -45,7 +47,10 @@ import {
  *     each one that contradicts its column is listed below, with the reason;
  *   - a rule's create form leaves its Enabled switch out (RuleTable does it
  *     for its pages, a rule page on ModelTable marks the field
- *     doNotShowWhenCreating), unless it is listed below, with the reason.
+ *     doNotShowWhenCreating), unless it is listed below, with the reason;
+ *   - a colour the record cannot be saved without starts picked: no create
+ *     form opens on an empty colour picker that blocks Create (ModelForm
+ *     picks one the listed records do not use yet, getCreateFormColorDefault).
  *
  * The detector is pinned on inline snippets first, then run over the real
  * tree with checks that it really read it.
@@ -455,6 +460,60 @@ interface SwitchOnCreateForm {
   columnDefault: unknown;
 }
 
+const COLOR_FIELD_TYPE: string = "FormFieldSchemaType.Color";
+
+/*
+ * The create forms that opened on an empty colour picker before their
+ * colour was picked for them: Settings > Labels, the six state, severity and
+ * monitor status pages (their fields come from StateSettingsTable), Incident
+ * Roles and a status page's bar colour rules.
+ */
+interface ColorForm {
+  file: string;
+  form: string;
+  key: string;
+}
+
+const STATE_SETTINGS_PAGES: Array<[string, string]> = [
+  ["Pages/Incidents/Settings/IncidentState.tsx", "Settings > Incident State"],
+  [
+    "Pages/Incidents/Settings/IncidentSeverity.tsx",
+    "Settings > Incident Severity",
+  ],
+  ["Pages/Alerts/Settings/AlertState.tsx", "Settings > Alert State"],
+  ["Pages/Alerts/Settings/AlertSeverity.tsx", "Settings > Alert Severity"],
+  ["Pages/Monitor/Settings/MonitorStatus.tsx", "Settings > Monitor Status"],
+  [
+    "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceState.tsx",
+    "Settings > Scheduled Maintenance State",
+  ],
+];
+
+export const COLOR_FORMS: Array<ColorForm> = [
+  {
+    file: `${DASHBOARD}/Pages/Settings/Labels.tsx`,
+    form: "ModelTable: Settings > Labels",
+    key: "color",
+  },
+  ...STATE_SETTINGS_PAGES.map(([file, name]: [string, string]): ColorForm => {
+    return {
+      file: `${DASHBOARD}/${file}`,
+      form: `ModelTable: ${name}`,
+      key: "color",
+    };
+  }),
+  {
+    file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentRoles.tsx`,
+    form: "ModelTable: Incidents > Settings > Incident Roles",
+    key: "color",
+  },
+  {
+    file: `${DASHBOARD}/Pages/StatusPages/View/Branding.tsx`,
+    form: "ModelTable: Status Page > Branding > History Chart Bar Color Rules",
+    key: "barColor",
+  },
+];
+
 function formKey(item: { file: string; form: string; key?: string }): string {
   return `${item.file} :: ${item.form}${item.key ? ` :: ${item.key}` : ""}`;
 }
@@ -732,6 +791,185 @@ describe("the project's create forms", () => {
         }
       }
     }
+  });
+
+  /*
+   * A colour field of a create form, with the column it writes: the key the
+   * field names, or - for a field the scan cannot read the key of, such as
+   * StateSettingsTable's selectField<T>("color") - the model's one colour
+   * column. Null when it cannot be told.
+   */
+  interface ColorFieldOnCreateForm {
+    createForm: CreateForm;
+    field: FormFieldFacts;
+    column: string | null;
+  }
+
+  const colorColumnsOf: (model: BaseModel) => Array<string> = (
+    model: BaseModel,
+  ): Array<string> => {
+    return model.getTableColumns().columns.filter((column: string) => {
+      return (
+        model.getTableColumnMetadata(column)?.type === TableColumnType.Color
+      );
+    });
+  };
+
+  const colorFields: Array<ColorFieldOnCreateForm> = createForms.flatMap(
+    (createForm: CreateForm): Array<ColorFieldOnCreateForm> => {
+      return createForm.form.fields
+        .filter((field: FormFieldFacts): boolean => {
+          return (
+            field.fieldType === COLOR_FIELD_TYPE &&
+            !field.isNeverShown &&
+            !field.isEditOnly
+          );
+        })
+        .map((field: FormFieldFacts): ColorFieldOnCreateForm => {
+          const colorColumns: Array<string> = colorColumnsOf(createForm.model);
+          const column: string | null =
+            field.key ||
+            (colorColumns.length === 1 ? (colorColumns[0] as string) : null);
+
+          return { createForm, field, column };
+        });
+    },
+  );
+
+  const describeColorField: (item: ColorFieldOnCreateForm) => string = (
+    item: ColorFieldOnCreateForm,
+  ): string => {
+    return `${item.createForm.form.file}:${item.field.line} ${item.createForm.form.label} - ${item.column || "(column unknown)"}`;
+  };
+
+  test("read every colour field a create form shows", () => {
+    expect(colorFields.length).toBeGreaterThanOrEqual(COLOR_FORMS.length);
+
+    // A form whose model could not be loaded is not judged at all: none is.
+    expect(
+      forms
+        .filter((form: FormFacts): boolean => {
+          return (
+            form.hasCreateForm !== false &&
+            form.fields.some((field: FormFieldFacts): boolean => {
+              return field.fieldType === COLOR_FIELD_TYPE;
+            }) &&
+            !createForms.some((createForm: CreateForm): boolean => {
+              return createForm.form === form;
+            })
+          );
+        })
+        .map((form: FormFacts): string => {
+          return `${form.file}:${form.line} ${form.label}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("never open on an empty colour picker: a colour the record cannot be saved without starts picked", () => {
+    const startingEmpty: Array<string> = colorFields
+      .filter((item: ColorFieldOnCreateForm): boolean => {
+        if (!item.column) {
+          // Which column it writes cannot be told, so neither can this.
+          return true;
+        }
+
+        const metadata: TableColumnMetadata | undefined =
+          item.createForm.model.getTableColumnMetadata(item.column);
+
+        if (!metadata || metadata.type !== TableColumnType.Color) {
+          return true;
+        }
+
+        // A colour the record can go without may start empty.
+        if (!metadata.required) {
+          return false;
+        }
+
+        // A default of its own, written on the field, is a start.
+        if (item.field.hasDefault) {
+          return (
+            item.field.defaultValue === '""' ||
+            item.field.defaultValue === "null"
+          );
+        }
+
+        // A spread could carry a default this scan does not see - or not.
+        if (item.field.hasSpread) {
+          return true;
+        }
+
+        // What ModelForm gives it, worked out by the same function.
+        return (
+          getCreateFormColorDefault(item.createForm.model, {
+            field: { [item.column]: true },
+            fieldType: FormFieldSchemaType.Color,
+            required: true,
+          }) === undefined
+        );
+      })
+      .map(describeColorField);
+
+    expect(startingEmpty).toEqual([]);
+  });
+
+  test("include the forms this was found on, each starting with a colour picked", () => {
+    for (const listed of COLOR_FORMS) {
+      const found: ColorFieldOnCreateForm | undefined = colorFields.find(
+        (item: ColorFieldOnCreateForm): boolean => {
+          return (
+            item.createForm.form.file === listed.file &&
+            item.createForm.form.label === listed.form &&
+            item.column === listed.key
+          );
+        },
+      );
+
+      expect({ ...listed, found: Boolean(found) }).toEqual({
+        ...listed,
+        found: true,
+      });
+
+      // Required, without a default: why the picker used to start empty.
+      const metadata: TableColumnMetadata =
+        found!.createForm.model.getTableColumnMetadata(listed.key);
+
+      expect({ ...listed, required: metadata.required }).toEqual({
+        ...listed,
+        required: true,
+      });
+      expect(metadata.defaultValue).toBeUndefined();
+
+      // Nothing on the page fills it in: ModelForm picks it.
+      expect(found!.field.hasDefault).toBe(false);
+      expect(
+        getCreateFormColorDefault(found!.createForm.model, {
+          field: { [listed.key]: true },
+          fieldType: FormFieldSchemaType.Color,
+          required: true,
+        }),
+      ).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
+  test("fold Incident Roles' colour with its icon: the form is one page", () => {
+    const roles: ColorFieldOnCreateForm | undefined = colorFields.find(
+      (item: ColorFieldOnCreateForm): boolean => {
+        return item.createForm.form.label === COLOR_FORMS[7]!.form;
+      },
+    );
+
+    expect(roles).toBeDefined();
+    expect(roles!.createForm.form.hasSteps).toBe(false);
+    expect(roles!.field.collapsibleSection).toBe("advancedSection");
+    expect(
+      roles!.createForm.form.fields
+        .filter((field: FormFieldFacts): boolean => {
+          return field.key === "roleIcon";
+        })
+        .map((field: FormFieldFacts): string | undefined => {
+          return field.collapsibleSection;
+        }),
+    ).toEqual(["advancedSection"]);
   });
 
   test("include the forms this was found on, now starting the way the API does", () => {

@@ -11,13 +11,9 @@ import ProjectService from "./ProjectService";
 import ServiceLabelRuleEngineService from "./ServiceLabelRuleEngineService";
 import ServiceOwnerRuleEngineService from "./ServiceOwnerRuleEngineService";
 import ArrayUtil from "../../Utils/Array";
-import {
-  Blue500,
-  BrightColors,
-  Gray500,
-  Green500,
-  Yellow500,
-} from "../../Types/BrandColors";
+import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
+import Color from "../../Types/Color";
+import { DISTINCT_COLORS } from "../../Utils/DistinctColor";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -90,10 +86,15 @@ export class Service extends DatabaseService<Model> {
     /*
      * Select a random color when the caller did not provide one. API
      * clients (e.g. Terraform) may set an explicit color; overwriting it
-     * made the field impossible to manage declaratively.
+     * made the field impossible to manage declaratively. From the palette
+     * OneUptime picks new records' colours from (Utils/DistinctColor), not
+     * BrightColors, which holds black and grey: a black service vanished in
+     * the dark theme and a grey one looked switched off.
      */
     if (!createBy.data.serviceColor) {
-      createBy.data.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
+      createBy.data.serviceColor = new Color(
+        ArrayUtil.selectItemByRandom([...DISTINCT_COLORS]).toString(),
+      );
     }
 
     return {
