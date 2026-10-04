@@ -15,6 +15,10 @@ import {
   offsetToPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineMath";
 import { ReplaySignal } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
+import {
+  describeNestedControls,
+  findNestedControls,
+} from "../../Helpers/NestedControls";
 
 /*
  * The track and its lanes, rendered. The Dashboard resolves its own copy
@@ -409,17 +413,83 @@ describe("ReplayTimeline markers", () => {
     expect(notice.getAttribute("title")).toContain("Snapshot too large");
 
     /*
-     * The real browser sequence: pointerdown and pointerup bubble up to
-     * the slider track that contains the button, then click fires on the
-     * button. The track must not treat that as its own click-to-seek, or
-     * one press seeks twice (to the cursor, then to the marker).
+     * The real browser sequence: pointerdown, pointerup, then click on the
+     * button. The track must not treat the press as its own click-to-seek,
+     * or one press seeks twice (to the cursor, then to the marker). The
+     * marker lies over the track rather than inside it, so the press never
+     * reaches the track at all.
      */
-    getTrack();
+    const track: HTMLElement = getTrack();
     firePointer(notice, "pointerdown", 150);
     firePointer(notice, "pointerup", 150);
     fireEvent.click(notice);
 
     expect(seeks).toEqual([89000]);
+    expect(track.contains(notice)).toBe(false);
+  });
+
+  /*
+   * The track is one control - a slider - and a screen reader offers nothing
+   * drawn inside one: a marker inside the track was a button nobody could
+   * reach that way. The markers lie on a layer over the track that lets every
+   * other press through to it.
+   */
+  it("draws notice markers beside the slider, never inside it", () => {
+    const seeks: Array<number> = [];
+
+    render(
+      <ReplayTimeline
+        {...makeProps({
+          markers: [
+            {
+              id: "notice:snapshot-too-large",
+              lane: "track",
+              offsetMs: 90000,
+              kind: "notice",
+              severity: "warn",
+              title: "1:30 Snapshot too large - a stretch may be unplayable",
+              tone: "gray",
+              fidelity: "exact",
+              isHollow: false,
+            },
+          ],
+          onSeek: (offsetMs: number): void => {
+            seeks.push(offsetMs);
+          },
+        })}
+      />,
+    );
+
+    const track: HTMLElement = getTrack();
+    const notice: HTMLElement = screen.getByRole("button", {
+      name: "1:30 Snapshot too large - a stretch may be unplayable",
+    });
+    const layer: HTMLElement = screen.getByTestId("timeline-notice-markers");
+
+    expect(track).toHaveAttribute("role", "slider");
+    expect(track.contains(notice)).toBe(false);
+    expect(layer.contains(notice)).toBe(true);
+    expect(layer.parentElement).toBe(track.parentElement);
+    // Presses anywhere else on the layer reach the track underneath.
+    expect(layer.className).toContain("pointer-events-none");
+    expect(notice.className).toContain("pointer-events-auto");
+    expect(
+      describeNestedControls(
+        findNestedControls(screen.getByTestId("replay-timeline")),
+      ),
+    ).toEqual([]);
+
+    // The track still seeks from a press of its own.
+    firePointer(track, "pointerdown", 500);
+    firePointer(track, "pointerup", 500);
+    expect(seeks.length).toBe(1);
+  });
+
+  it("draws no marker layer when there are no notices", () => {
+    render(<ReplayTimeline {...makeProps()} />);
+
+    expect(screen.queryByTestId("timeline-notice-markers")).toBeNull();
+    expect(screen.queryByTestId("timeline-notice-marker")).toBeNull();
   });
 });
 

@@ -14,7 +14,7 @@ Hvert trin har:
 | **Kræv godkendelse**           | Hvis aktiveret pauser runbook'et efter dette trin og venter på, at en bruger godkender, før næste trin køres. |
 | **Typespecifik konfiguration** | Script, URL, agent osv. — se nedenfor.                                                                        |
 
-Trin kører **i rækkefølge**. Omarranger dem med op/ned-pilene i trin-editoren.
+Trin kører **i rækkefølge**. Træk et trin i håndtaget til venstre i dets overskrift for at ændre rækkefølgen; fra tastaturet fokuserer du håndtaget, trykker på mellemrum, flytter trinnet med piletasterne og trykker på mellemrum igen.
 
 ## Trintyper
 
