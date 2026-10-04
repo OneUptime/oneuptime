@@ -45,16 +45,17 @@ import { translateTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
  * This section used to be a single route, and everything in it — the readiness
  * tiles, the coverage grid, the notification methods and four rule tables that
  * each expand to one card per severity band — was stacked onto one page that
- * ran to well over a dozen screens. It was reorganised into six, and this file
- * is what makes that split cheap: identity and readiness are read by the
- * SECTION rather than by each page, so moving between "Readiness" and "Incident
- * Rules" re-renders rather than re-fetches, and every page in the section
- * agrees about who it is talking about.
+ * ran to well over a dozen screens. It is three pages now - Readiness,
+ * Notification Methods, and On-Call Rules with a tab per kind of rule - and
+ * this file is what makes that split cheap: identity and readiness are read by
+ * the SECTION rather than by each page, so moving between "Readiness" and
+ * "On-Call Rules" re-renders rather than re-fetches, and every page in the
+ * section agrees about who it is talking about.
  *
  * That last part is not a performance note. The whole risk of this section is
  * an administrator editing the wrong person's paging configuration while
- * believing it is their own, and six pages that each answered "whose page is
- * this?" separately would be six chances to answer it differently.
+ * believing it is their own, and pages that each answered "whose page is
+ * this?" separately would be as many chances to answer it differently.
  *
  * WHAT IS DELIBERATELY NOT HERE: any read of a notification METHOD model.
  * UserEmail, UserSMS, UserCall, UserPush, UserWhatsApp, UserTelegram,

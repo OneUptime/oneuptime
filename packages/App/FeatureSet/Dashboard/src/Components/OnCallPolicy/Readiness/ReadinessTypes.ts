@@ -1,5 +1,7 @@
 import PageMap from "../../../Utils/PageMap";
+import Dictionary from "Common/Types/Dictionary";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { getOnCallRuleKindQueryForRuleType } from "Common/Types/NotificationRule/OnCallRuleKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   translatePlural,
@@ -651,32 +653,34 @@ export const getRuleTypeLabel: (ruleType: NotificationRuleType) => string = (
 };
 
 /*
- * Which User Settings page repairs a gap of this rule type.
+ * A User Settings page, and the query that opens it the right way.
+ */
+export interface SettingsPageLink {
+  page: PageMap;
+  query?: Dictionary<string> | undefined;
+}
+
+/*
+ * Where a gap of this rule type is repaired: the On-Call Rules page in User
+ * Settings, opened on the tab that holds the rule type's rules
+ * (`?type=alerts`).
  *
  * It lives here rather than in the surface that first needed it because two
  * surfaces now need it - the admin's responder card and the responder's own
  * setup checklist - and a second copy would be a second opinion about where a
- * hole is fixed. Sending somebody to the page that does not carry the rule they
+ * hole is fixed. Sending somebody to the tab that does not carry the rule they
  * are missing is the failure mode that makes a "fix this" link read as noise.
  *
- * The two go-on-call / go-off-call rule types are edited on the incident
- * on-call rules page (IncidentOnCallRules.tsx:406), not on a page of their own,
- * so they route there along with the incident rules - which is also why the
- * incident page is the default rather than a case of its own.
+ * The two go-on-call / go-off-call rule types have no tab of their own, so
+ * they open the first tab, Incidents, as the page's bare address does.
  */
-export const getPageForRuleType: (ruleType: NotificationRuleType) => PageMap = (
+export const getSettingsPageForRuleType: (
   ruleType: NotificationRuleType,
-): PageMap => {
-  switch (ruleType) {
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-      return PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES;
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-      return PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES;
-    case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-      return PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES;
-    default:
-      return PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
-  }
+) => SettingsPageLink = (ruleType: NotificationRuleType): SettingsPageLink => {
+  return {
+    page: PageMap.USER_SETTINGS_ON_CALL_RULES,
+    query: getOnCallRuleKindQueryForRuleType(ruleType),
+  };
 };
 
 // "Incident · Sev1", or just "Goes on call" for the two severity-less types.

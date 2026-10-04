@@ -14,6 +14,7 @@ import {
   getNoActiveRulesAdvice,
   getRuleLabel,
   getRuleTitle,
+  getSelfFixKey,
   getSelfFixes,
   summarizeCompliance,
 } from "./ComplianceView";
@@ -328,8 +329,8 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           {getSelfFixes(member).map((fix: SelfFix): ReactElement => {
             return (
               <Link
-                key={fix.page}
-                to={RouteUtil.populateRouteParams(RouteMap[fix.page] as Route)}
+                key={getSelfFixKey(fix)}
+                to={RouteUtil.getPageRoute(fix.page, { query: fix.query })}
                 className={FIX_LINK_CLASS_NAME}
               >
                 <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />

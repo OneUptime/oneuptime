@@ -31,6 +31,8 @@ Quando um incidente ou alerta chega à política, **Level 1** aciona seus destin
 
 O resumo no topo da página **Regras de escalonamento** mostra toda a escada: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa no seu cartão; clique no rótulo para ver quem e por quê.
 
+Cada pessoa acionada por um nível é contatada conforme as próprias regras de plantão: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por gravidade que indica qual método de notificação é usado e depois de quanto tempo. Um administrador do projeto pode ver e alterar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**.
+
 ## Editar, reordenar e excluir regras
 
 - **Edit rule** abre a mesma caixa de diálogo de uma página, preenchida com a regra como ela está: seus destinatários, sua espera, e o nome e a descrição em **Avançado**. Adicione ou remova destinatários e salve. Limpar o nome devolve à regra o nome do seu nível.

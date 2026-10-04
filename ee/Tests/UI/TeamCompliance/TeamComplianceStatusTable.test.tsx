@@ -1023,9 +1023,10 @@ describe("the way to the fix", () => {
       name: /Open my incident on-call rules/,
     });
 
+    // The On-Call Rules page, opened on its Incidents tab.
     expect(link).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID.toString()}/user-settings/incident-on-call-rules`,
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
     );
   });
 
@@ -1066,11 +1067,15 @@ describe("the way to the fix", () => {
       }),
     ).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID.toString()}/user-settings/incident-on-call-rules`,
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
     );
   });
 
-  test("two failures fixed on the same page get one link to it", () => {
+  /*
+   * Two failures on the same tab are one link; the incident and alert rules
+   * are two tabs of one page, so two links, each opening its own tab.
+   */
+  test("two failures fixed on the same tab get one link to it", () => {
     const status: TeamComplianceStatusJSON = buildStatus({
       complianceSettings: [
         callForIncidentsRule(),
@@ -1102,6 +1107,20 @@ describe("the way to the fix", () => {
     ).toEqual([
       "Open my incident on-call rules",
       "Open my alert on-call rules",
+    ]);
+
+    expect(
+      within(row(JANE_ID))
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return link.getAttribute("href") || "";
+        })
+        .filter((href: string): boolean => {
+          return href.includes("/user-settings/");
+        }),
+    ).toEqual([
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules`,
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=alerts`,
     ]);
   });
 

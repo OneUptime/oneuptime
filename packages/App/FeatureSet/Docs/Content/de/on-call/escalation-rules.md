@@ -31,6 +31,8 @@ Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** sei
 
 Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: wann jede Stufe alarmiert wird, wen sie alarmiert und was nach der letzten passiert. Eine Stufe, deren Empfänger nicht alle alarmiert werden können, sagt das auf ihrer Karte; klicken Sie auf die Markierung, um zu sehen, wer betroffen ist und warum.
 
+Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Bereitschaftsregeln**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Bereitschaftsregeln**.
+
 ## Regeln bearbeiten, umsortieren und löschen
 
 - **Regel bearbeiten** öffnet denselben einseitigen Dialog, ausgefüllt mit der Regel, wie sie ist: ihre Empfänger, ihre Wartezeit sowie Name und Beschreibung unter **Erweitert**. Fügen Sie Empfänger hinzu oder entfernen Sie sie und speichern Sie. Wird der Name geleert, bekommt die Regel wieder den Namen ihrer Stufe.

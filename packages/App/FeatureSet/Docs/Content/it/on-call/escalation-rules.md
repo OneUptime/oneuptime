@@ -31,6 +31,8 @@ Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i
 
 Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala: quando viene avvisato ogni livello, chi avvisa e cosa succede dopo l'ultimo. Un livello i cui destinatari non possono essere avvisati tutti lo segnala sulla sua scheda; fai clic sull'etichetta per vedere chi e perché.
 
+Ogni persona avvisata da un livello viene raggiunta secondo le proprie regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso, e un riquadro per ogni gravità che indica quale metodo di notifica viene usato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**.
+
 ## Modificare, riordinare ed eliminare le regole
 
 - **Edit rule** apre la stessa finestra di una pagina, compilata con la regola così com'è: i suoi destinatari, la sua attesa, e il nome e la descrizione in **Avanzato**. Aggiungi o rimuovi destinatari e salva. Svuotando il nome, la regola riprende il nome del suo livello.

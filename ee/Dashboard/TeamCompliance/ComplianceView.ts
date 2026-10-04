@@ -1,7 +1,9 @@
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { getSettingsPageForRuleType } from "@oneuptime/dashboard/Components/OnCallPolicy/Readiness/ReadinessTypes";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRule, {
   ComplianceRuleCategory,
@@ -865,14 +867,22 @@ export const countFilteredMembersByStatus: (data: {
 /*
  * Where the signed-in member goes to fix a rule they fail, and what the
  * button says. A method rule is fixed on the notification methods page; an
- * on-call rule on the on-call rules page for its own rule type - sending
- * somebody to a page that does not carry the rule they are missing is how a
- * "fix this" link turns into noise.
+ * on-call rule on the On-Call Rules page, opened on the tab for its own rule
+ * type (`query`, `?type=alerts`) - sending somebody to a tab that does not
+ * carry the rule they are missing is how a "fix this" link turns into noise.
  */
 export interface SelfFix {
   page: PageMap;
+  query?: Dictionary<string> | undefined;
   title: string;
 }
+
+// One fix per page AND tab: two links to the same tab are one link.
+export const getSelfFixKey: (fix: SelfFix) => string = (
+  fix: SelfFix,
+): string => {
+  return `${fix.page}?${new URLSearchParams(fix.query || {}).toString()}`;
+};
 
 export const getSelfFix: (ruleType: string | undefined) => SelfFix = (
   ruleType: string | undefined,
@@ -890,33 +900,26 @@ export const getSelfFix: (ruleType: string | undefined) => SelfFix = (
     };
   }
 
-  let page: PageMap = PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
-
-  switch (definition.notificationRuleType) {
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-      page = PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES;
-      break;
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-      page = PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES;
-      break;
-    case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-      page = PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES;
-      break;
-    default:
-      page = PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
-  }
-
+  /*
+   * The same page and tab a policy's readiness card and the setup checklist
+   * send somebody to for a gap of this rule type: one opinion about where a
+   * hole is fixed.
+   */
   return {
-    page: page,
+    ...getSettingsPageForRuleType(
+      definition.notificationRuleType ||
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    ),
     title: `Open my ${definition.subject || "on-call"} on-call rules`,
   };
 };
 
 /*
- * Every page the signed-in member has to visit to fix what they fail, once
- * each, in the order their failures are listed (oldest rule first). A member
- * failing both a method rule and an on-call rule needs both pages - one link
- * for the first failure alone leaves the second without a way there.
+ * Every page (and On-Call Rules tab) the signed-in member has to visit to fix
+ * what they fail, once each, in the order their failures are listed (oldest
+ * rule first). A member failing both a method rule and an on-call rule needs
+ * both pages - one link for the first failure alone leaves the second without
+ * a way there - and one failing incident and alert rules needs both tabs.
  */
 export const getSelfFixes: (
   member: TeamMemberComplianceJSON,
@@ -928,7 +931,7 @@ export const getSelfFixes: (
 
     if (
       !fixes.some((existing: SelfFix): boolean => {
-        return existing.page === fix.page;
+        return getSelfFixKey(existing) === getSelfFixKey(fix);
       })
     ) {
       fixes.push(fix);
