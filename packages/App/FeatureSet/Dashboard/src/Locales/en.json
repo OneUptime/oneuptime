@@ -24698,5 +24698,21 @@
   "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
   "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Search and attach the monitors affected by this incident. The status pages that list them show it.",
-  "Search and attach the monitors that incidents created from this template should pre-populate.": "Search and attach the monitors that incidents created from this template should pre-populate."
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Search and attach the monitors that incidents created from this template should pre-populate.",
+  "Ends before it starts": "Ends before it starts",
+  "Not measured": "Not measured",
+  "Not reached": "Not reached",
+  "Not started yet": "Not started yet",
+  "Not worked out yet": "Not worked out yet",
+  "OneUptime works it out in the background.": "OneUptime works it out in the background.",
+  "Show on alert pages": "Show on alert pages",
+  "Show on incident pages": "Show on incident pages",
+  "Show on maintenance event pages": "Show on maintenance event pages",
+  "Shown in the Measurements card on each alert's page.": "Shown in the Measurements card on each alert's page.",
+  "Shown in the Measurements card on each incident's page.": "Shown in the Measurements card on each incident's page.",
+  "Shown in the Measurements card on each maintenance event's page.": "Shown in the Measurements card on each maintenance event's page.",
+  "Your team's measurements, worked out for this alert.": "Your team's measurements, worked out for this alert.",
+  "Your team's measurements, worked out for this incident.": "Your team's measurements, worked out for this incident.",
+  "Your team's measurements, worked out for this maintenance event.": "Your team's measurements, worked out for this maintenance event.",
+  "less than a minute": "less than a minute"
 }

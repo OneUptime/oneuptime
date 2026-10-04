@@ -125,9 +125,11 @@ ${presets}
 |--------|-----------------|
 ${moments}
 
-A few options most measurements never need are under **More fields** on the second step: whether the first or the last time a state is reached counts (the first, unless you change it), the unit its charts use, and how **View Chart** sums up many ${words.things}.
+A few options most measurements never need are under **More fields** on the second step: whether the first or the last time a state is reached counts (the first, unless you change it), the unit its charts use, how **View Chart** sums up many ${words.things}, and whether each ${words.thing}'s page shows it (it does, unless you turn that off).
 
 ### Where the numbers show up
+
+Each ${words.thing}'s own page shows its measurements, in a **Measurements** card: the number once both moments have happened, how long it has been running while the clock is still going, or why there is no number.
 
 Choose **View Chart** on a measurement to see it over time. Every measurement is also a metric named \`${words.metricName}\`, which you can add to any dashboard. The key is made from the name when the measurement is created and never changes, so renaming a measurement keeps its history.
 

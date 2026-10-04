@@ -37,6 +37,8 @@ import AffectedResourcesPicker, {
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import { SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS } from "../../../Utils/Measurement/EventMeasurements";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -277,6 +279,10 @@ const ScheduledMaintenanceView: FunctionComponent<
               createdByUser: {
                 name: true,
                 email: true,
+              },
+              // Completed: the measurements card stops waiting on its states.
+              currentScheduledMaintenanceState: {
+                isResolvedState: true,
               },
             },
           });
@@ -759,6 +765,22 @@ const ScheduledMaintenanceView: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+
+          {/*
+           * The project's own measurements - how late it started, how long it
+           * ran over - worked out for this event, under its other facts.
+           * Drawn only when the project shows some on maintenance pages.
+           */}
+          <EventMeasurementsCard
+            source={SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(
+              scheduledMaintenance?.currentScheduledMaintenanceState
+                ?.isResolvedState,
+            )}
+            refreshToken={feedRefreshToken}
+            headerLayout="stacked"
           />
 
           <OverviewCustomFields

@@ -24698,5 +24698,21 @@
   "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "このインシデントの影響を受けたホスト、Kubernetes クラスター、Docker ホスト、データベース、サービスを検索して割り当てます。",
   "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "このテンプレートから作成されたインシデントに事前入力すべきホスト、Kubernetes クラスター、Docker ホスト、またはサービスを検索して添付します。",
   "Search and attach the monitors affected by this incident. The status pages that list them show it.": "このインシデントの影響を受けたモニターを検索して割り当てます。それらを掲載しているステータスページに、このインシデントが表示されます。",
-  "Search and attach the monitors that incidents created from this template should pre-populate.": "このテンプレートから作成されたインシデントに事前入力すべきモニターを検索して添付します。"
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "このテンプレートから作成されたインシデントに事前入力すべきモニターを検索して添付します。",
+  "Ends before it starts": "開始より前に終了しています",
+  "Not measured": "計測なし",
+  "Not reached": "到達せず",
+  "Not started yet": "まだ始まっていません",
+  "Not worked out yet": "まだ算出されていません",
+  "OneUptime works it out in the background.": "OneUptime がバックグラウンドで算出します。",
+  "Show on alert pages": "アラートのページに表示",
+  "Show on incident pages": "インシデントのページに表示",
+  "Show on maintenance event pages": "メンテナンスイベントのページに表示",
+  "Shown in the Measurements card on each alert's page.": "各アラートのページの「測定値」カードに表示されます。",
+  "Shown in the Measurements card on each incident's page.": "各インシデントのページの「測定値」カードに表示されます。",
+  "Shown in the Measurements card on each maintenance event's page.": "各メンテナンスイベントのページの「測定値」カードに表示されます。",
+  "Your team's measurements, worked out for this alert.": "このアラートについて算出した、チームの測定値。",
+  "Your team's measurements, worked out for this incident.": "このインシデントについて算出した、チームの測定値。",
+  "Your team's measurements, worked out for this maintenance event.": "このメンテナンスイベントについて算出した、チームの測定値。",
+  "less than a minute": "1 分未満"
 }
