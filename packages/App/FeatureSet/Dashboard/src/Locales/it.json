@@ -24843,5 +24843,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Ogni quanto viene inviato un report, ad esempio ogni mese o ogni 2 settimane.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "I report successivi partono alla stessa ora. Scegli il giorno 1 di un mese per inviarli il giorno 1 di ogni mese.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Attivalo per inviare di nuovo un report via email agli iscritti, con la stessa pianificazione di prima.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Attivalo per inviare agli iscritti, il giorno 1 di ogni mese alle 09:00, un report via email sul mese precedente. Potrai cambiare la pianificazione una volta attivato."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Attivalo per inviare agli iscritti, il giorno 1 di ogni mese alle 09:00, un report via email sul mese precedente. Potrai cambiare la pianificazione una volta attivato.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Il tuo logo in cima alla pagina del modulo e la tua favicon nella scheda del browser.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Il modulo mostra il logo e la favicon di OneUptime finché non carichi i tuoi.",
+  "The form shows the OneUptime logo until you upload yours.": "Il modulo mostra il logo di OneUptime finché non carichi il tuo.",
+  "The form shows the OneUptime favicon until you upload yours.": "Il modulo mostra la favicon di OneUptime finché non carichi la tua.",
+  "Edit Branding": "Modifica branding",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Mostrato in cima alla pagina del modulo, sopra il suo nome, al posto del logo di OneUptime. Un'immagine PNG, JPEG, GIF, WebP o SVG di 512 KB al massimo.",
+  "The OneUptime logo, until you upload yours.": "Il logo di OneUptime, finché non carichi il tuo.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Ciò che dice il logo, letto dagli screen reader: di solito il nome della tua organizzazione. Se lo lasci vuoto, gli screen reader saltano il logo.",
+  "Your organization's name": "Nome della tua organizzazione",
+  "None. Screen readers skip the logo.": "Nessuno. Gli screen reader saltano il logo.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "L'icona nella scheda del browser mentre il modulo è aperto, al posto della favicon di OneUptime. L'ideale è un'immagine PNG, SVG o ICO quadrata di 128 KB al massimo.",
+  "The OneUptime favicon, until you upload yours.": "La favicon di OneUptime, finché non carichi la tua.",
+  "Upload favicon": "Carica favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" supera il limite di {{size}}.",
+  "Max {{size}} each.": "Massimo {{size}} ciascuno.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "Questi file superano il limite di {{size}}: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Tipi: {{types}}. Massimo {{size}} ciascuno."
 }

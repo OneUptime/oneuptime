@@ -24843,5 +24843,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "La fréquence d'envoi d'un rapport, par exemple tous les mois ou toutes les 2 semaines.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Les rapports suivants partent à la même heure. Choisissez le 1er d'un mois pour envoyer le 1er de chaque mois.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Activez cette option pour envoyer de nouveau un rapport par e-mail aux abonnés, selon la même planification qu'avant.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Activez cette option pour envoyer aux abonnés, le 1er de chaque mois à 09:00, un rapport par e-mail couvrant le mois précédent. Vous pourrez modifier la planification une fois l'option activée."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Activez cette option pour envoyer aux abonnés, le 1er de chaque mois à 09:00, un rapport par e-mail couvrant le mois précédent. Vous pourrez modifier la planification une fois l'option activée.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Votre logo en haut de la page du formulaire, et votre favicon dans l'onglet du navigateur.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Le formulaire affiche le logo et le favicon de OneUptime jusqu'à ce que vous téléversiez les vôtres.",
+  "The form shows the OneUptime logo until you upload yours.": "Le formulaire affiche le logo de OneUptime jusqu'à ce que vous téléversiez le vôtre.",
+  "The form shows the OneUptime favicon until you upload yours.": "Le formulaire affiche le favicon de OneUptime jusqu'à ce que vous téléversiez le vôtre.",
+  "Edit Branding": "Modifier l'image de marque",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Affiché en haut de la page du formulaire, au-dessus de son nom, à la place du logo de OneUptime. Une image PNG, JPEG, GIF, WebP ou SVG de 512 Ko au plus.",
+  "The OneUptime logo, until you upload yours.": "Le logo de OneUptime, jusqu'à ce que vous téléversiez le vôtre.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Ce que dit le logo, lu par les lecteurs d'écran : généralement le nom de votre organisation. Laissez-le vide et les lecteurs d'écran ignorent le logo.",
+  "Your organization's name": "Nom de votre organisation",
+  "None. Screen readers skip the logo.": "Aucun. Les lecteurs d'écran ignorent le logo.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "L'icône de l'onglet du navigateur pendant que le formulaire est ouvert, à la place du favicon de OneUptime. Une image PNG, SVG ou ICO carrée de 128 Ko au plus convient le mieux.",
+  "The OneUptime favicon, until you upload yours.": "Le favicon de OneUptime, jusqu'à ce que vous téléversiez le vôtre.",
+  "Upload favicon": "Téléverser le favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "« {{fileName}} » dépasse la limite de {{size}}.",
+  "Max {{size}} each.": "{{size}} maximum chacun.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "Ces fichiers dépassent la limite de {{size}} : {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Types : {{types}}. {{size}} maximum chacun."
 }

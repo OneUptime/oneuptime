@@ -24843,5 +24843,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "報告的寄送頻率，例如每月或每 2 週。",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "之後的報告在同一時間寄送。選擇某個月的 1 日，即可在每月 1 日寄送。",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "開啟後，將依先前的排程重新寄送電子郵件報告給訂閱者。",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "開啟後，每月 1 日 09:00 將上個月的報告以電子郵件寄給訂閱者。開啟後可以變更排程。"
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "開啟後，每月 1 日 09:00 將上個月的報告以電子郵件寄給訂閱者。開啟後可以變更排程。",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "表單頁面頂端的標誌，以及瀏覽器分頁上的 Favicon。",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "在您上傳自己的標誌和 Favicon 之前，表單會顯示 OneUptime 的標誌和 Favicon。",
+  "The form shows the OneUptime logo until you upload yours.": "在您上傳自己的標誌之前，表單會顯示 OneUptime 的標誌。",
+  "The form shows the OneUptime favicon until you upload yours.": "在您上傳自己的 Favicon 之前，表單會顯示 OneUptime 的 Favicon。",
+  "Edit Branding": "編輯品牌",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "顯示在表單頁面頂端、表單名稱上方，取代 OneUptime 的標誌。請使用不超過 512 KB 的 PNG、JPEG、GIF、WebP 或 SVG 圖片。",
+  "The OneUptime logo, until you upload yours.": "在您上傳自己的標誌之前，顯示 OneUptime 的標誌。",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "螢幕閱讀器讀出的標誌內容：通常是您的組織名稱。留空則螢幕閱讀器會略過標誌。",
+  "Your organization's name": "您的組織名稱",
+  "None. Screen readers skip the logo.": "無。螢幕閱讀器會略過標誌。",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "表單開啟時顯示在瀏覽器分頁上的圖示，取代 OneUptime 的 Favicon。最好使用不超過 128 KB 的正方形 PNG、SVG 或 ICO 圖片。",
+  "The OneUptime favicon, until you upload yours.": "在您上傳自己的 Favicon 之前，顯示 OneUptime 的 Favicon。",
+  "Upload favicon": "上傳 Favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」超過了 {{size}} 的上限。",
+  "Max {{size}} each.": "每個檔案最大 {{size}}。",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "以下檔案超過了 {{size}} 的上限：{{fileNames}}。",
+  "Types: {{types}}. Max {{size}} each.": "類型：{{types}}。每個檔案最大 {{size}}。"
 }

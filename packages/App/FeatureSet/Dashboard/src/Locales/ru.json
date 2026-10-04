@@ -24843,5 +24843,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "Как часто отправляется отчёт, например каждый месяц или раз в 2 недели.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "Следующие отчёты отправляются в то же время суток. Выберите 1-е число месяца, чтобы отправлять 1-го числа каждого месяца.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "Включите, чтобы снова отправлять подписчикам отчёт по email по прежнему расписанию.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Включите, чтобы 1-го числа каждого месяца в 09:00 отправлять подписчикам по email отчёт за предыдущий месяц. Расписание можно изменить после включения."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "Включите, чтобы 1-го числа каждого месяца в 09:00 отправлять подписчикам по email отчёт за предыдущий месяц. Расписание можно изменить после включения.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "Ваш логотип вверху страницы формы и ваш favicon на вкладке браузера.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "Форма показывает логотип и favicon OneUptime, пока вы не загрузите свои.",
+  "The form shows the OneUptime logo until you upload yours.": "Форма показывает логотип OneUptime, пока вы не загрузите свой.",
+  "The form shows the OneUptime favicon until you upload yours.": "Форма показывает favicon OneUptime, пока вы не загрузите свой.",
+  "Edit Branding": "Изменить брендинг",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "Показывается вверху страницы формы над её названием вместо логотипа OneUptime. Изображение PNG, JPEG, GIF, WebP или SVG размером не более 512 КБ.",
+  "The OneUptime logo, until you upload yours.": "Логотип OneUptime, пока вы не загрузите свой.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "Что изображено на логотипе — это зачитывают программы чтения с экрана: обычно название вашей организации. Оставьте поле пустым, и программы чтения с экрана пропустят логотип.",
+  "Your organization's name": "Название вашей организации",
+  "None. Screen readers skip the logo.": "Нет. Программы чтения с экрана пропускают логотип.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "Значок на вкладке браузера, пока форма открыта, вместо favicon OneUptime. Лучше всего подходит квадратное изображение PNG, SVG или ICO размером не более 128 КБ.",
+  "The OneUptime favicon, until you upload yours.": "Favicon OneUptime, пока вы не загрузите свой.",
+  "Upload favicon": "Загрузить favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» превышает ограничение в {{size}}.",
+  "Max {{size}} each.": "Не более {{size}} каждый.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый."
 }

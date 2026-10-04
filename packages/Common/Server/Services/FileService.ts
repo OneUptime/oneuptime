@@ -7,6 +7,7 @@ import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import File from "../../Models/DatabaseModels/File";
+import Dictionary from "../../Types/Dictionary";
 import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -27,6 +28,18 @@ const generateImageAccessToken: () => string = (): string => {
 const ALLOWED_MIME_TYPES: Set<string> = new Set<string>(
   Object.values(MimeType),
 );
+
+/*
+ * What a caller deciding whether a file may be used somewhere needs to know
+ * about it, without its bytes: its type, how many bytes it holds, and the
+ * project it was uploaded in (null when it was uploaded with none, or before
+ * files recorded it).
+ */
+export interface FileFacts {
+  fileType: string;
+  size: number;
+  projectId: ObjectID | null;
+}
 
 export class Service extends DatabaseService<File> {
   public constructor() {
@@ -58,7 +71,54 @@ export class Service extends DatabaseService<File> {
       createBy.data.imageAccessToken = generateImageAccessToken();
     }
 
+    /*
+     * The project the file is uploaded in is the request's - the
+     * dashboard's tenant, an API key's project - never whatever the body
+     * says, so a file can only ever claim the project it was uploaded from.
+     * A record shown outside the project (a form's logo) uses only a file
+     * of its own project.
+     */
+    (createBy.data as unknown as Dictionary<unknown>)["projectId"] =
+      createBy.props.tenantId || null;
+
     return { createBy, carryForward: null };
+  }
+
+  /**
+   * A file's type, size and project, measured in Postgres: a check of
+   * whether a file may be used somewhere never loads its bytes (up to the
+   * 10 MB an upload may be) only to count them. Null when there is no such
+   * file, or the id is not one.
+   */
+  @CaptureSpan()
+  public async getFileFacts(fileId: ObjectID): Promise<FileFacts | null> {
+    if (!ObjectID.isValidUUID(fileId.toString())) {
+      return null;
+    }
+
+    const row:
+      | { fileType?: unknown; size?: unknown; projectId?: unknown }
+      | undefined = await this.getRepository()
+      .createQueryBuilder("file")
+      .select('"file"."fileType"', "fileType")
+      .addSelect('octet_length("file"."file")', "size")
+      .addSelect('"file"."projectId"', "projectId")
+      .where('"file"."_id" = :id', { id: fileId.toString() })
+      .andWhere('"file"."deletedAt" IS NULL')
+      .getRawOne();
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      fileType: typeof row.fileType === "string" ? row.fileType : "",
+      size: Number(row.size) || 0,
+      projectId:
+        typeof row.projectId === "string" && ObjectID.isValidUUID(row.projectId)
+          ? new ObjectID(row.projectId)
+          : null,
+    };
   }
 
   @CaptureSpan()

@@ -13,6 +13,7 @@ Use a form when the people who notice a problem — or who need a change — are
 - **Hidden until someone publishes it** — incidents from a form are never shown on status pages or sent to subscribers when they are declared; maintenance events are not, unless the form says so.
 - **Protected in layers** — an **Accepting Submissions** switch, an optional **IP Allowlist**, a refusal of requests from other websites, rate limits, the instance's captcha, and size limits on every answer.
 - **Every submission kept** — each form's **Submissions** page, and **Forms → Submissions** for all of them, list the answers and link to what each submission created.
+- **Your own branding** — upload a logo for the top of the form's page and a favicon for the browser tab, in the **Branding** section of the **Build** page. Until you do, the form shows OneUptime's.
 
 ## What a form can create
 
@@ -39,7 +40,7 @@ A new form is **Accepting Submissions** as soon as it is created, but nobody can
 
 | Page            | What it holds                                                                                                                       |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Build**       | The form's name and description, and the builder: its questions, the question palette and **Preview**.                               |
+| **Build**       | The form's name and description, its **Branding** — logo and favicon, folded — and the builder: its questions, the question palette and **Preview**. |
 | **On Submit**   | What each submission creates, and how every field of it is filled in. **Edit Settings** changes the defaults and what always applies. |
 | **Share**       | **Accepting Submissions**, the **Share Link**, the message shown after submitting, and the **IP Allowlist**.                          |
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created.                                          |
@@ -74,7 +75,7 @@ Forms let people outside your team create incidents and maintenance events in yo
 | Permission                 | What it allows                                                                                  | Who has it by default                                                                    |
 | -------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | **Create Form**            | Creating forms.                                                                                 | Project Owner, Project Admin                                                             |
-| **Edit Form**              | Changing a form: its questions, its On Submit settings, **Accepting Submissions**, its link and **IP Allowlist**. | Project Owner, Project Admin                                           |
+| **Edit Form**              | Changing a form: its questions, its branding, its On Submit settings, **Accepting Submissions**, its link and **IP Allowlist**. | Project Owner, Project Admin                                           |
 | **Delete Form**            | Deleting a form, and with it its submissions.                                                   | Project Owner, Project Admin                                                             |
 | **Read Form**              | Seeing forms, their questions, their settings and their links.                                  | The above, plus Project Member, Viewer, and the incident and scheduled maintenance roles  |
 | **Read Form Submission**   | Seeing the submissions and their answers.                                                       | Project Owner, Project Admin                                                             |
@@ -137,6 +138,8 @@ Each question has an `id` of its own — letters, digits, `-` and `_` — a `sou
 
 The questions and settings are checked whenever they are saved — from the dashboard, the API, Terraform or a workflow — and a list that breaks a rule is refused with a message that names what is wrong. `shareKey`, the key in the form's link, is set by OneUptime when the form is created, and changing it is what **Reset Link** does.
 
+A form's branding is its `logoFileId`, `logoAltText` and `faviconFileId`. Upload the image first with `POST /api/file`, in the form's project — with an API key of that project, or with its id in the `tenantid` header — sending its `name`, its `fileType`, such as `image/png`, the bytes base64 in `file`, and `isPublic` set to `false`, and set the `_id` it returns. Each image is checked when the form is saved: it must have been uploaded in the form's project, and a logo must be a PNG, JPEG, GIF, WebP or SVG image of 512 KB or less, a favicon one of those or an ICO of 128 KB or less. Set an id to `null` to go back to OneUptime's. See [Branding](/docs/forms/building#branding).
+
 To list a form's submissions:
 
 ```bash
@@ -155,7 +158,7 @@ Forms have the generated workflow components — **On Create Form**, **On Update
 
 ### The public page's own endpoints
 
-The public page talks to two routes that need no API key: `GET /api/form/public/<shareKey>`, which returns the form's name, description and questions, and `POST /api/form/public/<shareKey>/submit`, which submits it. They are the page's own endpoints, not an API to build on: every call goes through the form's protections — see [Sharing & Security](/docs/forms/sharing-and-security) — and they change with the page. To create incidents from your own code, use `POST /api/incident` with an API key — see [Declaring an Incident](/docs/incidents/declaring-incidents).
+The public page talks to two routes that need no API key: `GET /api/form/public/<shareKey>`, which returns the form's name, description and questions — and its logo, the logo's alt text and its favicon, the images base64, when it has them — and `POST /api/form/public/<shareKey>/submit`, which submits it. They are the page's own endpoints, not an API to build on: every call goes through the form's protections — see [Sharing & Security](/docs/forms/sharing-and-security) — and they change with the page. To create incidents from your own code, use `POST /api/incident` with an API key — see [Declaring an Incident](/docs/incidents/declaring-incidents).
 
 ## Where your incident forms went
 

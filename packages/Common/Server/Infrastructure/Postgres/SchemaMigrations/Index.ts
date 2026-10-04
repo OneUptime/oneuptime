@@ -37,6 +37,7 @@ import { TurnOnLinkedAlertSwitchesByDefault1797300000000 } from "./1797300000000
 import { MigrateIncidentFormsToForms1797400000000 } from "./1797400000000-MigrateIncidentFormsToForms";
 import { AddRunbookRuleMatchCriteria1797500000000 } from "./1797500000000-AddRunbookRuleMatchCriteria";
 import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "./1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
+import { AddFormBranding1797700000000 } from "./1797700000000-AddFormBranding";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1274,4 +1275,5 @@ export default [
   MigrateIncidentFormsToForms1797400000000,
   AddRunbookRuleMatchCriteria1797500000000,
   AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
+  AddFormBranding1797700000000,
 ];

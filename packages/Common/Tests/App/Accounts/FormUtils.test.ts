@@ -237,6 +237,114 @@ describe("readPublicForm: what the page believes about the form", () => {
   });
 });
 
+describe("readPublicForm: the form's branding", () => {
+  const PNG: string = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
+
+  const told: (branding: JSONObject) => PublicForm = (
+    branding: JSONObject,
+  ): PublicForm => {
+    return readPublicForm({
+      name: "Report a Problem",
+      fields: [],
+      isCaptchaRequired: false,
+      ...branding,
+    });
+  };
+
+  test("reads the logo, its alt text and the favicon the server described", () => {
+    expect(
+      told({
+        logo: { type: "image/png", data: PNG },
+        logoAltText: "  Acme Inc. ",
+        favicon: { type: "image/svg+xml", data: "PHN2Zz4=" },
+      }),
+    ).toEqual({
+      name: "Report a Problem",
+      fields: [],
+      isCaptchaRequired: false,
+      logo: { type: "image/png", data: PNG },
+      logoAltText: "Acme Inc.",
+      favicon: { type: "image/svg+xml", data: "PHN2Zz4=" },
+    });
+  });
+
+  test("a form without branding is just the form", () => {
+    expect(Object.keys(told({})).sort()).toEqual(
+      ["fields", "isCaptchaRequired", "name"].sort(),
+    );
+  });
+
+  test("never an image it cannot draw safely: then the OneUptime one stays", () => {
+    for (const logo of [
+      { type: "text/html", data: PNG },
+      { type: "image/png", data: "<svg onload=alert(1)>" },
+      { type: "image/png", data: `${PNG}"` },
+      { type: "image/png" },
+      "data:image/png;base64,AAAA",
+      [PNG],
+      null,
+    ]) {
+      const form: PublicForm = told({
+        logo: logo as unknown as JSONObject,
+        logoAltText: "Acme Inc.",
+        favicon: logo as unknown as JSONObject,
+      });
+
+      expect(form.logo).toBeUndefined();
+      // What a logo says goes only with a logo.
+      expect(form.logoAltText).toBeUndefined();
+      expect(form.favicon).toBeUndefined();
+    }
+  });
+
+  test("an ICO is drawn as the favicon, never as the logo", () => {
+    const ico: JSONObject = { type: "image/x-icon", data: "AAABAAEA" };
+    const form: PublicForm = told({
+      logo: ico,
+      logoAltText: "Acme Inc.",
+      favicon: ico,
+    });
+
+    expect(form.logo).toBeUndefined();
+    expect(form.logoAltText).toBeUndefined();
+    expect(form.favicon).toEqual(ico);
+  });
+
+  test("never more than each image may weigh: a logo's worth is too much for a favicon", () => {
+    // The longest base64 of a 128 KB and of a 512 KB image.
+    const faviconSized: string = "A".repeat(Math.ceil((128 * 1024) / 3) * 4);
+    const logoSized: string = "A".repeat(Math.ceil((512 * 1024) / 3) * 4);
+
+    expect(
+      told({ favicon: { type: "image/png", data: faviconSized } }).favicon,
+    ).toBeDefined();
+    expect(
+      told({ favicon: { type: "image/png", data: `${faviconSized}AAAA` } })
+        .favicon,
+    ).toBeUndefined();
+    expect(
+      told({ logo: { type: "image/png", data: logoSized } }).logo,
+    ).toBeDefined();
+    expect(
+      told({ logo: { type: "image/png", data: `${logoSized}AAAA` } }).logo,
+    ).toBeUndefined();
+    expect(
+      told({ favicon: { type: "image/png", data: logoSized } }).favicon,
+    ).toBeUndefined();
+  });
+
+  test("an alt text that is not text, or only spaces, is none", () => {
+    for (const logoAltText of [42, "   ", { text: "Acme" }]) {
+      expect(
+        told({
+          logo: { type: "image/png", data: PNG },
+          logoAltText: logoAltText as unknown as string,
+        }).logoAltText,
+      ).toBeUndefined();
+    }
+  });
+});
+
 describe("readFormSubmissionResult", () => {
   test("keeps the record's number and the form's message", () => {
     expect(

@@ -1,4 +1,5 @@
 import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
+import { AddFormBranding1797700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797700000000-AddFormBranding";
 import {
   LEGACY_PERMISSION_RENAMES,
   MigrateIncidentFormsToForms1797400000000,
@@ -19,6 +20,7 @@ import fs from "fs";
 import path from "path";
 import {
   DefaultNamingStrategy,
+  MigrationInterface,
   QueryRunner,
   getMetadataArgsStorage,
 } from "typeorm";
@@ -205,6 +207,31 @@ function persistedColumns(modelType: unknown): Array<string> {
   return names;
 }
 
+/*
+ * Columns a later migration added to the tables this one creates, by the
+ * migration that added them: this CREATE TABLE never had them.
+ */
+const ADDED_LATER: Array<{
+  migration: MigrationInterface;
+  table: string;
+  columns: Array<string>;
+}> = [
+  {
+    // A form's branding: its logo, what the logo says, its favicon.
+    migration: new AddFormBranding1797700000000(),
+    table: "Form",
+    columns: ["logoFileId", "logoAltText", "faviconFileId"],
+  },
+];
+
+function addedLater(table: string, column: string): boolean {
+  return ADDED_LATER.some(
+    (entry: { table: string; columns: Array<string> }): boolean => {
+      return entry.table === table && entry.columns.includes(column);
+    },
+  );
+}
+
 function formInserts(recorded: Array<Recorded>): Array<Recorded> {
   return recorded.filter((entry: Recorded): boolean => {
     return entry.statement.startsWith('INSERT INTO "Form" (');
@@ -280,7 +307,31 @@ describe("MigrateIncidentFormsToForms migration - up(): the schema", () => {
           table,
           column,
           created: create!.includes(`"${column}"`),
-        }).toEqual({ table, column, created: true });
+        }).toEqual({ table, column, created: !addedLater(table, column) });
+      }
+    }
+  });
+
+  test("every column it does not create is added by the later migration named for it", async () => {
+    for (const entry of ADDED_LATER) {
+      const statements: Array<string> = [];
+
+      await entry.migration.up({
+        query: async (statement: string): Promise<unknown> => {
+          statements.push(statement);
+          return [];
+        },
+      } as unknown as QueryRunner);
+
+      for (const column of entry.columns) {
+        expect({
+          column,
+          added: statements.some((statement: string): boolean => {
+            return statement.startsWith(
+              `ALTER TABLE "${entry.table}" ADD "${column}" `,
+            );
+          }),
+        }).toEqual({ column, added: true });
       }
     }
   });

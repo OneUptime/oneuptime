@@ -24843,5 +24843,22 @@
   "How often a report goes out, such as every month or every 2 weeks.": "هر چند وقت یک بار گزارش ارسال شود، مثلا هر ماه یا هر ۲ هفته.",
   "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.": "گزارش‌های بعدی در همان ساعت ارسال می‌شوند. برای ارسال در روز اول هر ماه، روز اول یکی از ماه‌ها را انتخاب کنید.",
   "Turn this on to email subscribers a report again, on the same schedule as before.": "این را روشن کنید تا گزارش ایمیلی دوباره با همان زمان‌بندی قبلی برای مشترکان ارسال شود.",
-  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "این را روشن کنید تا روز اول هر ماه ساعت ۰۹:۰۰ گزارش ماه قبل برای مشترکان ایمیل شود. پس از روشن شدن می‌توانید زمان‌بندی را تغییر دهید."
+  "Turn this on to email subscribers a report on the 1st of every month at 09:00, covering the month before. You can change the schedule once it is on.": "این را روشن کنید تا روز اول هر ماه ساعت ۰۹:۰۰ گزارش ماه قبل برای مشترکان ایمیل شود. پس از روشن شدن می‌توانید زمان‌بندی را تغییر دهید.",
+  "Your logo at the top of the form's page, and your favicon in the browser tab.": "لوگوی شما در بالای صفحهٔ فرم، و Favicon شما در زبانهٔ مرورگر.",
+  "The form shows the OneUptime logo and favicon until you upload your own.": "تا وقتی لوگو و Favicon خودتان را بارگذاری نکنید، فرم لوگو و Favicon مربوط به OneUptime را نشان می‌دهد.",
+  "The form shows the OneUptime logo until you upload yours.": "تا وقتی لوگوی خودتان را بارگذاری نکنید، فرم لوگوی OneUptime را نشان می‌دهد.",
+  "The form shows the OneUptime favicon until you upload yours.": "تا وقتی Favicon خودتان را بارگذاری نکنید، فرم Favicon مربوط به OneUptime را نشان می‌دهد.",
+  "Edit Branding": "ویرایش برندینگ",
+  "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.": "در بالای صفحهٔ فرم، بالای نام آن، به جای لوگوی OneUptime نمایش داده می‌شود. یک تصویر PNG، JPEG، GIF، WebP یا SVG با حجم حداکثر 512 KB.",
+  "The OneUptime logo, until you upload yours.": "لوگوی OneUptime، تا زمانی که لوگوی خودتان را بارگذاری کنید.",
+  "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.": "آنچه لوگو نشان می‌دهد و صفحه‌خوان‌ها آن را می‌خوانند: معمولاً نام سازمان شما. اگر خالی بماند، صفحه‌خوان‌ها از لوگو می‌گذرند.",
+  "Your organization's name": "نام سازمان شما",
+  "None. Screen readers skip the logo.": "هیچ. صفحه‌خوان‌ها از لوگو می‌گذرند.",
+  "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.": "نمادی که تا وقتی فرم باز است، به جای Favicon مربوط به OneUptime، در زبانهٔ مرورگر نمایش داده می‌شود. یک تصویر مربعی PNG، SVG یا ICO با حجم حداکثر 128 KB بهترین است.",
+  "The OneUptime favicon, until you upload yours.": "Favicon مربوط به OneUptime، تا زمانی که Favicon خودتان را بارگذاری کنید.",
+  "Upload favicon": "بارگذاری Favicon",
+  "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» از سقف {{size}} بزرگ‌تر است.",
+  "Max {{size}} each.": "هر فایل حداکثر {{size}}.",
+  "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}."
 }
