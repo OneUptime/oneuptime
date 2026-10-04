@@ -24691,5 +24691,12 @@
   "More fields": "More fields",
   "More settings": "More settings",
   "{{count}} more": "{{count}} more",
-  "{{count}} more_one": "{{count}} more"
+  "{{count}} more_one": "{{count}} more",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.",
+  "No monitors affected by this incident.": "No monitors affected by this incident.",
+  "No other resources affected by this incident.": "No other resources affected by this incident.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "Search and attach the monitors affected by this incident. The status pages that list them show it.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "Search and attach the monitors that incidents created from this template should pre-populate."
 }

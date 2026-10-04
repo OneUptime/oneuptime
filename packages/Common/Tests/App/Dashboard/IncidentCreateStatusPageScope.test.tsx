@@ -61,6 +61,10 @@ type CapturedField = {
   stepId?: string;
   fieldType?: string;
   required?: boolean;
+  collapsibleSection?: { id: string; title: string };
+  alwaysInSummary?: boolean;
+  defaultValue?: unknown;
+  showIf?: (values: Record<string, unknown>) => boolean;
   dropdownModal?: { type: unknown; labelField: string; valueField: string };
   footerElement?: unknown;
   getFooterElement?: (values: Record<string, unknown>) => unknown;
@@ -333,13 +337,41 @@ afterEach(() => {
 });
 
 describe("the status page picker on the Create page", () => {
-  test("sits in the resources step, right after the monitors", async () => {
+  /*
+   * "Limit to these status pages and notifiy subscribers should be in
+   * advanced" - the maintainer. Folded at the end of the resources step,
+   * after the monitors and the other resources it narrows the reach of.
+   */
+  test("sits in the resources step, folded under More fields after the resources", async () => {
     await renderCreate();
 
     const picker: CapturedField = fieldFor("statusPages");
 
     expect(picker.stepId).toBe("resources-affected");
-    expect(indexOfField("statusPages")).toBe(indexOfField("monitors") + 1);
+    expect(picker.collapsibleSection?.title).toBe("More fields");
+    expect(indexOfField("statusPages")).toBe(indexOfField("hosts") + 1);
+    expect(indexOfField("statusPages")).toBeGreaterThan(
+      indexOfField("monitors"),
+    );
+  });
+
+  test("shares its More fields section with the notify box, which comes right after it", async () => {
+    await renderCreate();
+
+    const notify: CapturedField = fieldFor(
+      "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
+    );
+
+    expect(
+      indexOfField("shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"),
+    ).toBe(indexOfField("statusPages") + 1);
+    expect(notify.collapsibleSection).toBe(
+      fieldFor("statusPages").collapsibleSection,
+    );
+    // The same section the first step folds its options into.
+    expect(notify.collapsibleSection).toBe(
+      fieldFor("isPrivate").collapsibleSection,
+    );
   });
 
   test("is a status page multi-select, which gives it the Labels tab", async () => {
@@ -640,7 +672,7 @@ describe("warnings where the scope meets other fields", () => {
   );
 
   /*
-   * Private Incident sits under Advanced on Incident Details, and the pages
+   * Private Incident sits under More fields on Incident Details, and the pages
    * are picked on Resources Affected, the step after. Whichever is set
    * second says so where it is set: the picker warns too, on its own step.
    */
@@ -918,8 +950,24 @@ describe("the audience on the last step", () => {
     expect(field.description).toBe(
       "Should status page subscribers be notified when this incident is created?",
     );
-    // On Resources Affected, with the monitors and pages it reaches.
+    // On Resources Affected, under More fields with the pages it reaches.
     expect(field.stepId).toBe("resources-affected");
+    expect(field.collapsibleSection?.title).toBe("More fields");
+  });
+
+  /*
+   * Folding the box changed nothing it does: it starts ticked, and the
+   * review step lists it whatever it holds, with who it reaches and the
+   * preview, though the folded options nobody touched are left off.
+   */
+  test("folded, it still starts ticked and is always on the review", async () => {
+    await renderCreate();
+
+    const field: CapturedField = fieldFor(NOTIFY_FIELD);
+
+    expect(field.defaultValue).toBe(true);
+    expect(field.alwaysInSummary).toBe(true);
+    expect(fieldFor("statusPages").alwaysInSummary).toBeUndefined();
   });
 });
 

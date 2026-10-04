@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "تغییر وضعیت مانیتور به",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "جستجوی مانیتورها...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24691,5 +24691,12 @@
   "More fields": "فیلدهای بیشتر",
   "More settings": "تنظیمات بیشتر",
   "{{count}} more": "{{count}} مورد دیگر",
-  "{{count}} more_one": "{{count}} مورد دیگر"
+  "{{count}} more_one": "{{count}} مورد دیگر",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "حوادثی که از این قالب اعلام می‌شوند وضعیت مانیتورهایشان را به این وضعیت تغییر می‌دهند - مانیتورهایی که اینجا انتخاب شده‌اند و هر مانیتوری که هنگام اعلام حادثه انتخاب شود.",
+  "No monitors affected by this incident.": "هیچ مانیتوری تحت تأثیر این حادثه نیست.",
+  "No other resources affected by this incident.": "هیچ منبع دیگری تحت تأثیر این حادثه نیست.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "میزبان‌ها، خوشه‌های Kubernetes، میزبان‌های Docker، پایگاه‌های داده یا سرویس‌های تحت تأثیر این حادثه را جستجو و پیوست کنید.",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "میزبان‌ها، خوشه‌های Kubernetes، میزبان‌های Docker یا سرویس‌هایی را که حوادث ساخته‌شده از این قالب باید از پیش پر کنند جستجو و پیوست کنید.",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "مانیتورهای تحت تأثیر این حادثه را جستجو و پیوست کنید. صفحات وضعیتی که آن‌ها را فهرست می‌کنند، این حادثه را نشان می‌دهند.",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "مانیتورهایی را که حوادث ساخته‌شده از این قالب باید از پیش پر کنند جستجو و پیوست کنید."
 }

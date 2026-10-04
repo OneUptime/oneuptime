@@ -568,7 +568,17 @@ describe("modals that edit affected resources", () => {
         },
       );
 
-      expect(cards).toHaveLength(1);
+      /*
+       * One card, however many pickers it holds: an incident template's
+       * monitors have a picker of their own, above the one for the rest.
+       */
+      expect(
+        new Set(
+          cards.map((usage: PickerEditorUsage): string => {
+            return usage.ownerTag;
+          }),
+        ).size,
+      ).toBe(1);
       expect(cards[0]!.width).toBe("ModalWidth.Medium");
     },
   );

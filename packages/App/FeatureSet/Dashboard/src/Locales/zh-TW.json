@@ -8719,7 +8719,7 @@
   "Change Monitor Status": "Change Monitor Status",
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
-  "Change Monitor Status to": "Change Monitor Status to",
+  "Change Monitor Status to": "將監測器狀態變更為",
   "Change Plan": "Change Plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
@@ -16055,7 +16055,7 @@
   "Search metric names": "Search metric names",
   "Search metrics — e.g. name:http.server.* service:api @container.name:postgres": "Search metrics — e.g. name:http.server.* service:api @container.name:postgres",
   "Search monitor types...": "Search monitor types...",
-  "Search monitors...": "Search monitors...",
+  "Search monitors...": "搜尋監測器...",
   "Search notes": "Search notes",
   "Search notes…": "Search notes…",
   "Search or type attribute": "Search or type attribute",
@@ -24691,5 +24691,12 @@
   "More fields": "更多欄位",
   "More settings": "更多設定",
   "{{count}} more": "另外 {{count}} 項",
-  "{{count}} more_one": "另外 {{count}} 項"
+  "{{count}} more_one": "另外 {{count}} 項",
+  "Incidents declared from this template change the status of their monitors to this one - the monitors picked here and any picked when the incident is declared.": "從此範本宣告的事件會將其監測器的狀態變更為此狀態——包括此處選擇的監測器，以及宣告事件時選擇的任何監測器。",
+  "No monitors affected by this incident.": "沒有受此事件影響的監測器。",
+  "No other resources affected by this incident.": "沒有受此事件影響的其他資源。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.": "搜尋並附加受此事件影響的主機、Kubernetes 叢集、Docker 主機、資料庫或服務。",
+  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.": "搜尋並附加從此範本建立的事件應預先填入的主機、Kubernetes 叢集、Docker 主機或服務。",
+  "Search and attach the monitors affected by this incident. The status pages that list them show it.": "搜尋並附加受此事件影響的監測器。列出這些監測器的狀態頁面會顯示此事件。",
+  "Search and attach the monitors that incidents created from this template should pre-populate.": "搜尋並附加從此範本建立的事件應預先填入的監測器。"
 }
