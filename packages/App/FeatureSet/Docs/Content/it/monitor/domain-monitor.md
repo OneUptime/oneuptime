@@ -28,7 +28,7 @@ I monitor di dominio interrogano i dati WHOIS per i tuoi domini per tracciare i 
 | ------------ | -------------------------------------------- | ------------ |
 | Nome Dominio | Il dominio da monitorare (es. `example.com`) | Sì           |
 
-### Impostazioni Avanzate
+### Altri campi
 
 | Campo        | Descrizione                                                           | Predefinito |
 | ------------ | --------------------------------------------------------------------- | ----------- |

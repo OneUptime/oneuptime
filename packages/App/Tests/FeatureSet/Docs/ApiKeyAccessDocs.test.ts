@@ -5,7 +5,7 @@ import path from "path";
 /*
  * Creating an API key now asks for its Access - Project Admin, Project
  * Member, Viewer or Choose permissions later - with the expiry date folded
- * under Advanced, and Invite User starts on the members team. The guides
+ * under More fields, and Invite User starts on the members team. The guides
  * that walk someone through making a key used to say "give it a name and an
  * expiry" and "grant permissions", which no longer matches the form.
  * Markdown is not compiled, so these pin the guides to the form:
@@ -109,13 +109,13 @@ describe("the Access choices the docs describe", () => {
       "**Creating a key** asks for a name and its **Access**",
     );
     expect(page).toContain(
-      "The description and the expiry date are under **Advanced**",
+      "The description and the expiry date are under **More fields**",
     );
     expect(page).toContain("a key expires a year from the day it is created");
     // The folded section says when the key expires (ApiKeyCreateForm).
     expect(page).toContain("and the folded section says so");
     expect(page).toContain(
-      "**Block Permissions** are under **Advanced** at the bottom of the page",
+      "**Block Permissions** are under **More settings** at the bottom of the page",
     );
     expect(page).toContain("**Add Role**");
   });
@@ -168,7 +168,7 @@ describe("the Terraform quick start", () => {
       expect(page).toContain("**Access**");
       expect(page).toContain("**Project Admin**");
       expect(page).toContain("**Choose permissions later**");
-      expect(page).toContain("**Advanced**");
+      expect(page).toContain("**More fields**");
 
       // The step the form no longer has.
       expect(page).not.toContain("and an expiry.");

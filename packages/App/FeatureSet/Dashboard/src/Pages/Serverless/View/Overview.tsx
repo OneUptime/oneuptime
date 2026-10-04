@@ -379,7 +379,7 @@ const ServerlessFunctionOverview: FunctionComponent<
   ];
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Function Identifier (faas.name)", value: fn.functionIdentifier },
+    { label: "Function Name (faas.name)", value: fn.functionIdentifier },
     { label: "Cloud Platform", value: fn.cloudPlatform },
     { label: "Cloud Provider", value: fn.cloudProvider },
     { label: "Cloud Region", value: fn.cloudRegion },
@@ -445,6 +445,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         }
         quickLinks={quickLinks}
         detailRows={detailRows}
+        settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
         labels={fn.labels}
       />
     </TimeRangeZoomScope>

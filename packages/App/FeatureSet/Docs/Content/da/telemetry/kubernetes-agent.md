@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` bevarer din eksisterende konfiguration (preset, cluster-navn, filtre); angiv eventuelle nye `--set`-tilsidesættelser oven på det.
 
+> **eBPF-span-metrikker har fået nye navne.** `ebpf.features.spanMetrics` sender nu `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme serier under de navne, OBI beholder (de gamle har OBI udfaset). Et dashboard, et diagram eller en metrikkermonitor på et gammelt navn modtager ingen nye data efter opgraderingen og viser ingen fejl — flyt det til det nye navn, og ret også `filters.metrics`-poster, der nævner et gammelt navn.
+
 ## Afinstallering af agenten
 
 ```bash
@@ -412,7 +414,7 @@ Alle slået til som standard. Slå en hvilken som helst fra med `--set ebpf.feat
 | `ebpf.features.*`         | Standard | Hvad den tilføjer                                                  |
 | ------------------------- | -------- | ------------------------------------------------------------------ |
 | `httpMetrics`             | til      | HTTP/gRPC RED-metrikker (request-rate, latency, fejl) pr. tjeneste |
-| `spanMetrics`             | til      | Request-/response-størrelse og -varighed pr. span                  |
+| `spanMetrics`             | til      | Antal kald og varighed for spans (`traces.span.metrics.*`)         |
 | `serviceGraph`            | til      | Caller → callee edge-metrikker; driver service map                 |
 | `networkMetrics`          | til      | Pod-til-pod TCP/UDP flow-tællere                                   |
 | `networkInterZoneMetrics` | fra      | Inter-zone-variant af netværksmetrikker (fordobler kardinalitet)   |
@@ -716,7 +718,7 @@ Den mest almindelige grund — især efter en geninstallation — er en **forker
 ### Ingen metrikker vises
 
 1. Udeluk først en afvist ingestion-nøgle — det er den mest almindelige årsag og er let at overse fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller kør blot diagnosticeringsscriptet).
-2. Kontrollér, at cluster-identifikatoren matcher den værdi, du angav som `clusterName`
+2. Kontrollér, at klyngens **klyngenavn (clusterName)** matcher den værdi, du angav som `clusterName`. Det står på klyngens **Settings**-side under **Cluster Details**; vælg **Edit Details** og åbn **More fields** for at rette det
 3. Verificér RBAC-tilladelserne: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Kontrollér OTel-collector-logsene for eksportfejl
 

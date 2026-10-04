@@ -56,7 +56,7 @@ OneUptime のすべては**プロジェクト**の中にあります。そのプ
 
 追加のチームはいくつでも作成できます。「フロントエンドオンコール」「サポート」「読み取り専用監査」など、それぞれに必要な権限を与えてください。
 
-場所: **設定 → チーム**。チームを開くと **Members** と **Permissions** にアクセスできます。**Block Permissions** は Permissions ページ下部の **Advanced** にあります。
+場所: **設定 → チーム**。チームを開くと **Members** と **Permissions** にアクセスできます。**Block Permissions** は Permissions ページ下部の **More settings** にあります。
 
 ## 権限
 

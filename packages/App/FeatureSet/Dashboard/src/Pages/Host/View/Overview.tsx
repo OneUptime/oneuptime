@@ -10,6 +10,7 @@ import OsVersionDisplay, {
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -1956,6 +1957,16 @@ const HostOverview: FunctionComponent<
             <Card
               title="Identification"
               description="How this host is named and classified."
+              // Edited in one place: the Host Details card on its Settings page.
+              buttons={[
+                <EditInSettingsLink
+                  key="edit-in-settings"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
+                    { modelId: modelId },
+                  )}
+                />,
+              ]}
             >
               <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
                 <Detail<Host>
@@ -1965,7 +1976,7 @@ const HostOverview: FunctionComponent<
                     [
                       {
                         key: "name",
-                        title: "Name",
+                        title: "Display Name",
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.name);
@@ -1973,7 +1984,7 @@ const HostOverview: FunctionComponent<
                       },
                       {
                         key: "hostIdentifier",
-                        title: "Host Identifier",
+                        title: "Host Name (host.name)",
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.hostIdentifier);

@@ -15,7 +15,7 @@ Voor een project:
 1. Ga naar **Project Settings > Notifications > Notification Settings**.
 2. Selecteer bij **Twilio Config** de optie **Create Twilio Config**.
 3. Voer een naam, **Twilio Account SID**, **Twilio Auth Token** en **Twilio Primary Phone Number** in. Voer desgewenst door komma's gescheiden **Twilio Secondary Phone Numbers** voor andere landen in.
-4. Schakel **Set as Project Default** in om deze configuratie te gebruiken voor sms-berichten en oproepen aan projectleden, inclusief bereikbaarheidsmeldingen. Een configuratie aanmaken zonder deze schakelaar in te schakelen selecteert deze niet voor die meldingen.
+4. **Instellen als projectstandaard** staat aan bij de eerste configuratie van het project, zodat sms-berichten en oproepen aan projectleden, inclusief bereikbaarheidsmeldingen, er direct na het opslaan via gaan. Schakel het uit als dit account alleen voor statuspagina's of inkomende oproepen is. Bij elke volgende configuratie staat de schakelaar uit: schakel hem in, of kies **Instellen als projectstandaard** in het rijmenu van de configuratie, om die berichten erheen te verplaatsen. Een API-verzoek dat `isProjectDefault` weglaat, wordt op dezelfde manier behandeld.
 5. Sla op. Slechts één configuratie kan de projectstandaard zijn. Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
 
 Voor een standaard voor de hele installatie kan een beheerder ook **Admin Dashboard > Settings > Call and SMS** openen, de Twilio-inloggegevens en telefoonnummers bewerken en opslaan. Meldingen aan leden gebruiken deze algemene configuratie als hun project geen standaard heeft. Houd het Auth Token geheim.

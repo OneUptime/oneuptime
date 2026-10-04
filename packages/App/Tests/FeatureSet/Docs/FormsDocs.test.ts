@@ -1077,11 +1077,12 @@ describe("Forms docs", () => {
       expect(readSource(FORM_MAPPING_CARD_FILE)).toContain(
         "submitButtonText={FormsCopy.saveChanges}",
       );
+      // On the last step only, and the step list opens any step.
       expect(
         sectionOf(readPage(ON_SUBMIT_PAGE), 2, "The On Submit settings"),
-      ).toContain(`**${FormsCopy.saveChanges}** saves from any of them`);
+      ).toContain(`**${FormsCopy.saveChanges}** is on the last step`);
       expect(readSource(FORM_MAPPING_CARD_FILE)).toContain(
-        "saveFromAnyStep={true}",
+        "allowAnyStepNavigation: true,",
       );
     });
 

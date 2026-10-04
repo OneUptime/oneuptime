@@ -70,7 +70,7 @@ A client stays connected for as long as it is used. One that has not been used f
 
 ### Controlling Who Can Connect Clients
 
-Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team's **Permissions** page, open **Advanced** at the bottom, and add the **Authorize MCP Client** permission under **Block Permissions**. Clients those members already connected stop working at once.
+Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team's **Permissions** page, open **More settings** at the bottom, and add the **Authorize MCP Client** permission under **Block Permissions**. Clients those members already connected stop working at once.
 
 If the project requires single sign-on, sign in to the project with SSO in your browser before you authorize a client. The client's connection lasts as long as that SSO sign-in does; when it lapses, connect the client again.
 

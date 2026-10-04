@@ -41,8 +41,14 @@ import React, {
 } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  CreateFromRecordAddress,
+  CreatedRecordKind,
+  getCreateFromRecordQuery,
+} from "../CreateFromRecord/CreateFromRecord";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
@@ -83,6 +89,13 @@ import {
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
+  /*
+   * The record whose Scheduled Maintenance tab this is - a host, a cluster,
+   * a network site: Create Scheduled Maintenance Event and Create from
+   * Template open the create page with it already picked
+   * (Components/CreateFromRecord).
+   */
+  createFrom?: CreateFromRecordAddress | undefined;
   viewPageRoute?: Route;
   noItemsMessage?: string | undefined;
   /*
@@ -444,6 +457,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
+  // The record this tab belongs to, in the create page's address.
+  const createQuery: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.ScheduledMaintenance,
+    props.createFrom,
+  );
+
   if (!props.disableCreate) {
     /*
      * These route to a dedicated create page instead of the table's built in
@@ -470,8 +489,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           title: "Create Scheduled Maintenance Event",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
+              RouteUtil.getPageRoute(
+                PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+                { query: createQuery },
               ),
             );
           },
@@ -981,19 +1001,17 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               "scheduledMaintenanceTemplateId"
             ] as ObjectID;
 
-            // Navigate to create page with the template id
+            // The create page, filled in from the template.
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                new Route(
-                  (
-                    RouteMap[
-                      PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
-                    ] as Route
-                  ).toString(),
-                ).addQueryParams({
-                  scheduledMaintenanceTemplateId:
-                    scheduledMaintenanceTemplateId.toString(),
-                }),
+              RouteUtil.getPageRoute(
+                PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+                {
+                  query: {
+                    ...createQuery,
+                    scheduledMaintenanceTemplateId:
+                      scheduledMaintenanceTemplateId.toString(),
+                  },
+                },
               ),
             );
           }}

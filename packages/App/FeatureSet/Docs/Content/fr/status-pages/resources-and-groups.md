@@ -26,19 +26,19 @@ Sélectionnez le groupe dans lequel la ressource doit atterrir (ou **Top of page
 
 - **Moniteur** — la liste déroulante des moniteurs de votre projet, texte indicatif **Sélectionner le moniteur**. Obligatoire.
 - **Nom d'affichage** — le texte que lisent les visiteurs. Il se remplit avec le nom du moniteur dès que vous le choisissez, et suit si vous en choisissez un autre, jusqu'à ce que vous tapiez votre propre nom. Il est stocké séparément du nom propre du moniteur : vous pouvez donc le renommer ici sans toucher à la surveillance.
-- **Avancé** — replié. Il contient **Description** (du markdown facultatif affiché sous la ligne, idéal pour une phrase expliquant ce que fait réellement le service) et les [options d'affichage](#options-daffichage-dune-ressource). Laissez-le fermé et la ressource reçoit leurs valeurs par défaut.
+- **Plus de champs** — replié. Il contient **Description** (du markdown facultatif affiché sous la ligne, idéal pour une phrase expliquant ce que fait réellement le service) et les [options d'affichage](#options-daffichage-dune-ressource). Laissez-le fermé et la ressource reçoit leurs valeurs par défaut.
 
-Choisissez un moniteur, cliquez sur **Ajouter un moniteur**, et la ligne est sur la page. Dans un groupe en grille, la fenêtre demande aussi, au-dessus d'**Avancé**, la ligne et la colonne où va le moniteur — voir [Mise en page liste ou grille](#mise-en-page-liste-ou-grille).
+Choisissez un moniteur, cliquez sur **Ajouter un moniteur**, et la ligne est sur la page. Dans un groupe en grille, la fenêtre demande aussi, au-dessus de **Plus de champs**, la ligne et la colonne où va le moniteur — voir [Mise en page liste ou grille](#mise-en-page-liste-ou-grille).
 
 Si votre projet a les groupes de moniteurs activés, un lien sous la liste déroulante indique **Add a Monitor Group instead.** — cliquez dessus et la liste **Moniteur** est remplacée par une liste **Moniteur Groupe** (**Sélectionner le groupe de moniteurs**). Le lien bascule alors en **Add a Monitor instead.** pour revenir en arrière. Servez-vous d'un groupe de moniteurs quand vous voulez qu'une seule ligne de la page représente plusieurs vérifications agrégées.
 
 ### En ajouter plusieurs d'un coup
 
-**Add Multiple** (aussi **Add multiple monitors** dans le menu **More actions**) ouvre **Add Multiple Monitors**. C'est aussi une seule page : une sélection multiple **Moniteurs** au lieu d'une liste déroulante unique, puis la même section repliée **Avancé**, dont les options d'affichage s'appliquent à tous les moniteurs retenus. Chaque ressource reprend le nom d'affichage et la description de son moniteur, et **Ajouter des moniteurs** les ajoute — il n'y a aucune étape à parcourir. C'est la façon la plus rapide d'amorcer une nouvelle page.
+**Add Multiple** (aussi **Add multiple monitors** dans le menu **More actions**) ouvre **Add Multiple Monitors**. C'est aussi une seule page : une sélection multiple **Moniteurs** au lieu d'une liste déroulante unique, puis la même section repliée **Plus de champs**, dont les options d'affichage s'appliquent à tous les moniteurs retenus. Chaque ressource reprend le nom d'affichage et la description de son moniteur, et **Ajouter des moniteurs** les ajoute — il n'y a aucune étape à parcourir. C'est la façon la plus rapide d'amorcer une nouvelle page.
 
 ## Options d'affichage d'une ressource
 
-La section **Avancé** est identique dans le formulaire d'ajout unitaire et dans la fenêtre d'ajout en masse. Elle démarre repliée dans les deux, et aussi dans **Modifier la ressource**, où son en-tête indique **Configuré** quand quelque chose à l'intérieur n'est pas à sa valeur par défaut. Tout ici vaut par ressource — deux lignes du même groupe peuvent être configurées différemment.
+La section **Plus de champs** est identique dans le formulaire d'ajout unitaire et dans la fenêtre d'ajout en masse. Elle démarre repliée dans les deux, et aussi dans **Modifier la ressource**, où son en-tête replié affiche ce qui, à l'intérieur, n'est pas à sa valeur par défaut. Tout ici vaut par ressource — deux lignes du même groupe peuvent être configurées différemment.
 
 | Champ                                                                       | Rôle                                                                                                               |
 | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Cliquez sur **New Group** pour ouvrir **Create New Status Page Group**. C'est un
 - **Nom du groupe** (`name`) — obligatoire. C'est l'intertitre de section que voient les visiteurs.
 - **Parent Group** (`parentStatusPageGroupId`) — facultatif. Laissez **No parent group (top level)** pour garder le groupe au premier niveau. **Add a sub group** le remplit pour vous.
 - **Mise en page** — repliée, et son en-tête indique **List** ou **Grid**. Elle contient le **Mode d'affichage** et les axes d'une grille (voir [Mise en page liste ou grille](#mise-en-page-liste-ou-grille)), et s'ouvre d'elle-même sur un groupe en grille.
-- **Avancé** — replié. Il contient le reste et reprend les options des ressources, à l'échelle du groupe :
+- **Plus de champs** — replié. Il contient le reste et reprend les options des ressources, à l'échelle du groupe :
   - **Description du groupe** (`description`) — du markdown facultatif, affiché sous l'intertitre.
   - **Développer par défaut sur la page de statut** (`isExpandedByDefault`) — activé par défaut : si la section démarre ouverte ou repliée pour les visiteurs.
   - **Afficher l'état actuel du groupe** (`showCurrentStatus`) — activé par défaut. Affiche un état à côté de l'intertitre du groupe.

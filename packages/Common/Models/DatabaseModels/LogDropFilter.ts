@@ -355,6 +355,7 @@ export default class LogDropFilter extends BaseModel {
     title: "Enabled",
     description: "Whether this drop filter is active.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

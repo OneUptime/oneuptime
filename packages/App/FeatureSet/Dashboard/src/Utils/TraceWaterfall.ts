@@ -289,6 +289,53 @@ export function getAncestorIds(tree: SpanTree, spanId: string): Array<string> {
   return ancestors;
 }
 
+export interface SpanSubtreeIds {
+  // The span itself first, then the spans under it, nearest first.
+  spanIds: Array<string>;
+  // Every span under this one in the tree, including any the limit left out.
+  descendantCount: number;
+  // True when the limit left out some of the spans under this one.
+  isTruncated: boolean;
+}
+
+/**
+ * A span and the spans nested under it, breadth-first so a limit keeps the
+ * nearest ones. The span itself always comes first, even when it is not in
+ * the tree; each id is taken once, so a tree that revisits a span cannot
+ * loop.
+ */
+export function getSubtreeSpanIds(
+  tree: SpanTree,
+  spanId: string,
+  limit: number,
+): SpanSubtreeIds {
+  const spanIds: Array<string> = [spanId];
+  const seenIds: Set<string> = new Set([spanId]);
+  const node: WaterfallNode | undefined = tree.nodesById.get(spanId);
+  const queue: Array<WaterfallNode> = node ? [node] : [];
+  let descendantCount: number = 0;
+
+  for (let index: number = 0; index < queue.length; index++) {
+    for (const child of queue[index]!.children) {
+      if (seenIds.has(child.span.spanId)) {
+        continue;
+      }
+      seenIds.add(child.span.spanId);
+      descendantCount += 1;
+      if (spanIds.length < limit) {
+        spanIds.push(child.span.spanId);
+      }
+      queue.push(child);
+    }
+  }
+
+  return {
+    spanIds,
+    descendantCount,
+    isTruncated: spanIds.length - 1 < descendantCount,
+  };
+}
+
 /** The ids of every span that has children: "collapse all". */
 export function getCollapsibleSpanIds(tree: SpanTree): Set<string> {
   const ids: Set<string> = new Set();

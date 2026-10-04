@@ -19,44 +19,52 @@ Tutti e quattro scrivono lo stesso modello, quindi un incidente aperto da una so
 
 ## Dichiararne uno a mano
 
-Aprite **Incidenti → Tutti gli incidenti** e fate clic su **Dichiara incidente** in alto a destra nell'elenco **Incidenti**. Si apre una scheda intitolata **Dichiara nuovo incidente**, che distribuisce il modulo su cinque passaggi: **Dettagli dell'incidente**, **Risorse interessate**, **Ruoli incidente**, **Reperibilità** e **Altro**. Anche il pulsante di invio finale riporta **Dichiara incidente**.
+Aprite **Incidenti → Tutti gli incidenti** e fate clic su **Dichiara incidente** in alto a destra nell'elenco **Incidenti**. Si apre una scheda intitolata **Dichiara nuovo incidente**, che distribuisce il modulo su tre passaggi: **Dettagli dell'incidente**, **Risorse interessate** e **Reperibilità e ruoli**, poi un riepilogo da rivedere. Quando il progetto chiede alcuni dei suoi campi personalizzati dell'incidente alla creazione, un quarto passaggio, **Dettagli**, arriva subito dopo **Risorse interessate**.
 
-Solo il primo passaggio ha campi obbligatori. Se avete fretta, compilate **Dettagli dell'incidente** e inviate: risorse, ruoli e policy di reperibilità potete collegarli dopo, dalle pagine dell'incidente stesso.
+Solo il primo passaggio ha campi obbligatori, più ogni campo personalizzato che gli amministratori hanno segnato come **Obbligatorio alla creazione**. Risorse, policy di reperibilità e ruoli potete aggiungerli anche dopo, dalle pagine dell'incidente. Ogni passaggio prima del riepilogo ha un semplice **Avanti**, e **Dichiara incidente** è nel riepilogo, l'ultimo passaggio.
+
+**Altri campi.** Le opzioni che alla maggior parte degli incidenti non servono mai aspettano, chiuse, sotto un'intestazione **Altri campi** alla fine del loro passaggio; fate clic per aprirle. Da chiusa, l'intestazione nomina ciò che contiene e mostra ogni opzione impostata con il suo valore — impostata da un modello, per esempio — e si apre da sola quando qualcosa al suo interno va corretto. Il riepilogo elenca un'opzione chiusa solo quando è impostata, tranne **Notifica gli iscritti alla pagina di stato**, che elenca sempre, con chi verrà avvisato.
 
 ### Passaggio 1 — Dettagli dell'incidente
 
-- **Titolo** — obbligatorio. Il riassunto di una riga che tutti vedranno nell'elenco, su Slack e (se l'incidente è visibile) sulla vostra pagina di stato. Testo segnaposto: `Incident Title`.
-- **Descrizione** — facoltativa, scritta in Markdown. È il campo che compare sulla pagina di stato, quindi scrivetelo per i clienti e non per il vostro team. Potete modificarlo in seguito da **Descrizione** nel menu laterale dell'incidente.
-- **Dichiarato il** — obbligatorio nel modulo, preimpostato a ora. È il momento da cui viene misurata ogni durata dell'incidente, quindi retrodatatelo se state registrando qualcosa iniziato prima.
-- **Gravità incidente** — obbligatoria. Una delle gravità configurate per il vostro progetto; i nuovi progetti nascono con **Critical Incident**, **Major Incident** e **Minor Incident**.
-- **Stato incidente** — facoltativo. Lasciatelo stare e l'incidente atterra nello stato contrassegnato `isCreatedState`, che nei nuovi progetti è **Identified**. Impostatelo solo se state registrando un incidente già oltre quel punto.
+- **Titolo** — obbligatorio. Il riepilogo di una riga che tutti vedono nell'elenco, in Slack e, se l'incidente è visibile, sulla pagina di stato.
+- **Gravità incidente** — obbligatorio. Una delle gravità configurate per il progetto.
+- **Descrizione** — facoltativa, scritta in Markdown. È ciò che mostra la pagina di stato, quindi scrivetela per i clienti e non per il team.
+
+Sotto **Altri campi**:
+
+- **Dichiarato il** — parte dal momento in cui avete aperto la pagina. Ogni durata dell'incidente si misura da qui: retrodatatelo per registrare un incidente iniziato prima.
+- **Stato iniziale** — facoltativo, e vuoto all'inizio. Lasciato vuoto, l'incidente parte nello stato con il flag `isCreatedState`, o nello stato iniziale del modello. Scegliete uno stato successivo solo per registrare un incidente già preso in carico o risolto.
+- **Etichette** — facoltative. Le etichette raggruppano incidenti correlati, e un team limitato alle etichette vede solo gli incidenti che ne portano una delle sue.
+- **Incidente privato** — disattivato per impostazione predefinita (`isPrivate`). Un incidente privato è visibile solo ai suoi proprietari, agli amministratori e ai proprietari del progetto, ed è nascosto su ogni pagina di stato.
 
 **Se il menu a discesa degli stati fa i capricci.** Se nel vostro progetto nessuno stato porta il flag `isCreatedState`, la chiamata di creazione fallisce e vi dice di aggiungere uno stato di creazione dalle impostazioni. Normalmente succede solo su progetti i cui stati sono stati modificati parecchio — vedete [Stati e gravità degli incidenti](/docs/incidents/states-and-severities).
 
 ### Passaggio 2 — Risorse interessate
 
-- **Risorse interessate** — un unico campo di ricerca che collega monitor, host, cluster Kubernetes, host Docker, host Podman e servizi. Sotto il cofano si tratta di relazioni distinte sull'incidente (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` e altre), ma il modulo le raccoglie in un unico selettore.
-- **Change Monitor Status to** — facoltativo. Sceglie uno stato del monitor che viene applicato a ogni monitor collegato a questo incidente, così dichiarare l'incidente e segnare i monitor come degradati diventa un'azione sola invece di due.
+I monitor vengono per primi, a parte: le pagine di stato vedono un incidente attraverso i suoi monitor, e lo stato verso cui passano i monitor sta subito sotto.
+
+- **Monitor** — una casella di ricerca che collega i monitor interessati dall'incidente (`monitors`). Una pagina di stato mostra l'incidente, e avvisa i suoi iscritti, quando elenca uno di questi monitor.
+- **Cambia lo stato del monitor in** — facoltativo, e mostrato solo quando è scelto almeno un monitor. Applica uno stato a ogni monitor dell'incidente, così dichiarare l'incidente e segnare i monitor come degradati è un'unica azione. Lo stato di un modello compare appena scegliete un monitor; senza monitor scelti non viene salvato alcuno stato.
+- **Altre risorse interessate** — una seconda casella di ricerca per tutto il resto che l'incidente interessa: host, cluster Kubernetes, host Docker e Podman, cluster Proxmox, Ceph e Docker Swarm, vCenter, flotte IoT, database e servizi. Sono relazioni distinte dell'incidente (`hosts`, `kubernetesClusters`, `services` e altre).
+
+La scheda **Risorse interessate** dell'incidente chiede allo stesso modo quando la modificate in seguito.
+
+Sotto **Altri campi**:
+
+- **Limita a queste pagine di stato** — facoltativo. Lasciato vuoto, l'incidente compare su ogni pagina di stato che elenca i suoi monitor, e ne avvisa gli iscritti; con pagine scelte, solo su quelle tra esse. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
+- **Notifica gli iscritti alla pagina di stato** — casella di controllo, attiva per impostazione predefinita (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Sotto di essa, e di nuovo nel riepilogo, il modulo mostra quali pagine di stato verranno avvisate e quanti iscritti ha ciascuna; nel riepilogo, **Anteprima della notifica** mostra l'email che riceveranno. Disattivatela per il rumore interno che volete comunque registrare.
 
 **Collegate i monitor anche quando sembra superfluo.** Il legame tra un incidente e una pagina di stato passa dai monitor dell'incidente: una pagina di stato mostra un incidente quando una delle sue risorse è uno dei monitor dell'incidente. Una notifica di cambio stato agli iscritti viene saltata del tutto se l'incidente non ha monitor collegati. Vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups).
 
-### Passaggio 3 — Ruoli incidente
+### Passaggio 3 — Reperibilità e ruoli
 
-- **Assegna ruoli incidente** — assegnate i membri del team ai ruoli definiti dal vostro progetto. Alcuni ruoli accettano più di un utente.
-
-I ruoli si configurano in **Incidenti → Impostazioni → Ruoli incidente**, dove definite i ruoli assegnabili durante la risposta — Comandante dell'incidente, responder e qualunque altro serva al vostro processo. Se saltate questo passaggio, al primo cambio di stato viene assegnato automaticamente un Comandante dell'incidente, se nessuno ricopre ancora il ruolo.
-
-### Passaggio 4 — Reperibilità
-
-- **Policy di reperibilità** — una selezione multipla delle policy di reperibilità da eseguire alla creazione di questo incidente. Corrisponde a `onCallDutyPolicies` sull'incidente.
+- **Policy di reperibilità** — una selezione multipla delle policy di reperibilità da eseguire alla creazione di questo incidente (`onCallDutyPolicies`).
+- **Assegna ruoli incidente** — chi assume ogni ruolo definito dal progetto. Un ruolo segnato **Principale** che lasciate vuoto è vostro: lo assumete quando l'incidente viene dichiarato.
 
 È l'unico punto in cui una policy di reperibilità viene collegata direttamente a un incidente. Le gravità non portano con sé una policy: la gravità è un'etichetta e influenza la chiamata solo come *criterio di corrispondenza* dentro una regola di reperibilità. Le regole configurate in **Incidenti → Regole → Regole di reperibilità** aggiungono le loro policy a quelle che scegliete qui; l'insieme finale eseguito è l'unione delle due, senza duplicati.
 
-### Passaggio 5 — Altro
-
-- **Etichette** — facoltative e funzionalità avanzata: i membri del team che hanno accesso a queste etichette sono quelli che possono accedere all'incidente.
-- **Notifica gli iscritti alla pagina di stato** — casella di spunta, attiva per impostazione predefinita. Controlla se gli iscritti ricevono un'e-mail sulla creazione dell'incidente (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Disattivatela per il rumore interno che volete comunque tenere agli atti.
-- **Incidente privato** — casella di spunta, disattivata per impostazione predefinita (`isPrivate`). Un incidente privato è visibile solo ai suoi utenti proprietari, ai membri dei suoi team proprietari, agli amministratori e ai proprietari del progetto — ed è nascosto da ogni pagina di stato, qualunque sia il resto delle impostazioni. Nell'elenco degli incidenti li riconoscete da una pillola rossa **Private**.
+I ruoli si configurano in **Incidenti → Impostazioni → Ruoli incidente**. Un nuovo progetto ne ha uno, Incident Commander; aggiungete lì quello che serve al vostro processo.
 
 Il flag **Should be visible on status page?** (`isVisibleOnStatusPage`) non compare nella procedura guidata; il valore predefinito è attivo. Modificatelo in seguito da **Impostazioni** nel menu laterale dell'incidente, dove è etichettato **Visibile sulla pagina di stato**.
 
@@ -66,7 +74,7 @@ Se dichiarate continuamente lo stesso tipo di incidente — stesso schema di tit
 
 Fate clic su **Crea da modello** (il pulsante con solo il contorno accanto a **Dichiara incidente**) e si apre una finestra **Crea incidente da modello**, con un menu a discesa **Seleziona modello di incidente**. Scegliete un modello e il modulo di creazione si apre già compilato; potete comunque cambiare qualsiasi cosa prima di inviare. Se il vostro progetto non ha ancora modelli, ottenete invece una finestra **No Incident Templates**, con un pulsante **Create Template** che vi porta in **Incidenti → Impostazioni → Modelli di incidenti**.
 
-I modelli si costruiscono con una procedura guidata dedicata in sei passaggi — **Informazioni del modello**, **Dettagli dell'incidente**, **Risorse interessate**, **Reperibilità**, **Proprietari**, **Etichette** — con questi campi:
+I modelli si costruiscono con una procedura guidata dedicata — **Informazioni del modello**, **Dettagli dell'incidente**, **Risorse interessate**, **Reperibilità** — più passaggi per i campi personalizzati quando il progetto ne ha. Proprietari ed etichette sono sotto **Altri campi** alla fine di **Dettagli dell'incidente**. **Risorse interessate** chiede come il modulo di dichiarazione — **Monitor**, poi **Cambia lo stato del monitor in**, poi **Altre risorse interessate**, con **Limita a queste pagine di stato** sotto **Altri campi** — tranne che un modello chiede sempre lo stato dei monitor: vale anche per i monitor scelti quando si dichiara un incidente da esso. Questi sono i campi:
 
 | Campo                        | A cosa serve                                           |
 | ---------------------------- | ------------------------------------------------------ |
@@ -76,11 +84,12 @@ I modelli si costruiscono con una procedura guidata dedicata in sei passaggi —
 | **Descrizione**              | Descrizione Markdown precompilata sull'incidente.     |
 | **Gravità incidente**        | Gravità precompilata sull'incidente.                 |
 | **Stato iniziale dell'incidente**   | Lo stato in cui partono gli incidenti creati da questo modello.       |
-| **Risorse interessate**       | Monitor, host, cluster e servizi da collegare.      |
-| **Change Monitor Status to** | Stato del monitor da applicare ai monitor collegati.      |
+| **Monitor** | Monitor da collegare. |
+| **Cambia lo stato del monitor in** | Stato da applicare ai monitor dell'incidente, compresi quelli scelti alla dichiarazione. |
+| **Altre risorse interessate** | Host, cluster e servizi da collegare. |
+| **Limita a queste pagine di stato** | Pagine di stato a cui l'incidente è limitato. |
 | **Policy di reperibilità**           | Policy da eseguire alla creazione dell'incidente.      |
-| **Proprietario - Team**            | I team proprietari degli incidenti creati da questo modello.   |
-| **Proprietario - Utenti**            | Gli utenti proprietari degli incidenti creati da questo modello.   |
+| **Proprietari** | Persone e team proprietari degli incidenti creati da questo modello, scelti da un unico elenco. |
 | **Etichette**                    | Etichette applicate all'incidente.                        |
 
 Qualche regola rapida:
@@ -100,7 +109,7 @@ Ogni voce ha:
 - **Reperibilità → Policy di reperibilità** — le policy eseguite alla creazione di questo incidente.
 - **Ruoli incidente** — preassegnate membri del team ai ruoli.
 - **Ownership & Labels → Team proprietari**, **Utenti proprietari**, **Etichette**.
-- **Opzioni avanzate → Risoluzione automatica dell'incidente** (risolve l'incidente in automatico quando i criteri smettono di corrispondere), **Mostra incidente sulla pagina di stato**, **Incidente privato** e **Note di rimedio**.
+- **Altri campi → Risoluzione automatica dell'incidente** (risolve l'incidente in automatico quando i criteri smettono di corrispondere), **Mostra incidente sulla pagina di stato**, **Incidente privato** e **Note di rimedio**.
 
 Per l'elenco completo dei segnaposto `{{variable}}` utilizzabili in titolo, descrizione e note di rimedio, vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 

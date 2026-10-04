@@ -8,13 +8,13 @@ Når du opretter en plan på siden **Vagtplaner**, spørger formularen om dens *
 
 **Hvem skiftes til at have vagt?** er valgfrit. Lader du det stå tomt, starter planen uden lag: den sætter ingen på vagt, før du tilføjer et lag på dens side **Lag**. Spørgsmålet stilles kun til dem, der må tilføje lag.
 
-Alt andet ligger under **Avanceret**, foldet sammen, indtil du åbner det:
+Alt andet ligger under **Flere felter**, foldet sammen, indtil du åbner det:
 
 - **Hver tørn varer**: **1 dag**, **1 uge**, **2 uger** eller **1 måned**, og **1 uge**, medmindre du ændrer det. Der spørges om det, så snart nogen er valgt. Hver person har vagt så længe, derefter overtager den næste, på det klokkeslæt, planen blev oprettet.
 - **Tidszone**: den tidszone, som overdragelsestider og vagttimer gælder i. Den starter som din egen.
 - **Beskrivelse** og **Etiketter**.
 
-Så længe nogen er valgt, og intet under **Avanceret** er ændret, siger den sammenfoldede overskrift, hvad der vil ske: hver person har vagt i en uge, hvorefter den næste overtager.
+Så længe nogen er valgt, og intet under **Flere felter** er ændret, siger den sammenfoldede overskrift, hvad der vil ske: hver person har vagt i en uge, hvorefter den næste overtager.
 
 ## Lag
 

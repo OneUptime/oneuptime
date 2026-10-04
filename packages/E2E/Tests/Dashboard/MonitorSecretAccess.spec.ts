@@ -77,8 +77,14 @@ test.describe("Monitor secret access", () => {
     return ctx.page.getByTestId("modal");
   };
 
+  // The dialog's action, on its last step (Access) only.
   const submitButton: () => Locator = (): Locator => {
     return modal().getByTestId("modal-footer-submit-button");
+  };
+
+  // The plain Next every step but the last shows.
+  const nextButton: () => Locator = (): Locator => {
+    return modal().getByTestId("modal-footer-next-button");
   };
 
   const card: (access: string) => Locator = (access: string): Locator => {
@@ -134,7 +140,8 @@ test.describe("Monitor secret access", () => {
     });
     await createButton.click();
     await expect(modal()).toBeVisible();
-    await expect(submitButton()).toHaveText("Next");
+    await expect(nextButton()).toHaveText("Next");
+    await expect(submitButton()).toHaveCount(0);
   };
 
   const fillSecretStep: (name: string) => Promise<void> = async (
@@ -146,7 +153,7 @@ test.describe("Monitor secret access", () => {
         exact: true,
       })
       .fill(`value-of-${name}`);
-    await submitButton().click();
+    await nextButton().click();
     await expect(
       modal().getByRole("radiogroup", { name: ACCESS_QUESTION }),
     ).toBeVisible();

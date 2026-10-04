@@ -71,7 +71,7 @@ Se la pagina di stato riporta più componenti, è possibile specificare opzional
 
 Quando è impostato anche un gruppo di componenti, il filtro per nome componente viene applicato **all'interno** di quel gruppo, permettendo di puntare a un singolo componente all'interno di un gruppo più ampio. Quando non è specificato alcun filtro, vengono monitorati tutti i componenti in ambito.
 
-### Opzioni Avanzate
+### Altri campi
 
 #### Timeout
 

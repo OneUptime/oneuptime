@@ -39,7 +39,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 
 A missing part is kept as an empty segment rather than dropped — `aws_ecs||us-east-1` — so a workload that omits `cloud.account.id` lands in a **different** environment from one that sets it. That is the usual reason for seeing two environments where you expected one. The display name is built from the same values: _AWS ECS · us-east-1 · 123456789012_.
 
-Ingest mints both the key and the name. An environment you create by hand is matched on the key alone, so its Resource Identifier must be exactly `platform|account|region`. The create form (**Cloud → All Environments → Create**) asks for the platform, account and region on one page and builds the key from them, and names the environment the way ingest would; to show another name, open **Advanced** and type a **Display Name**.
+Ingest mints both the key and the name. An environment you create by hand is matched on the key alone, so its Resource Identifier must be exactly `platform|account|region`. The create form (**Cloud → All Environments → Create**) asks for the platform, account and region on one page and builds the key from them, and names the environment the way ingest would; to show another name, open **More fields** and type a **Display Name**.
 
 ### Instance identity
 

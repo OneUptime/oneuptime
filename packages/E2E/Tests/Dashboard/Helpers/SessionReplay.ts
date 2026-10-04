@@ -867,7 +867,7 @@ type CreateRumApplicationFunction = (data: {
  * assertion lives at this level.
  *
  * The form asks for one thing, the App Name (service.name). The display name
- * follows it, folded under Advanced, so the application is named after its
+ * follows it, folded under More fields, so the application is named after its
  * service.name exactly as a discovered one is.
  */
 export const createRumApplication: CreateRumApplicationFunction = async (data: {
@@ -913,12 +913,12 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
 
   /*
    * One page: the app name, with the display name, the description and the
-   * labels folded under Advanced (there is no Labels step to walk). The
+   * labels folded under More fields (there is no Labels step to walk). The
    * form's own submit - not one of the list's two Create buttons - creates
    * the application.
    */
   await expect(
-    modal.getByRole("button", { name: /^Advanced/ }),
+    modal.getByRole("button", { name: "More fields", exact: true }),
   ).toHaveAttribute("aria-expanded", "false");
   await expect(
     modal.getByRole("button", { name: "Next", exact: true }),

@@ -692,7 +692,7 @@ function getEmptyTabsTopic(data: ServerlessGuideData): SetupGuideTopic {
 
   return {
     title: "The function is listed, but its tabs are empty",
-    markdown: `The function's overview, **Logs**, **Traces** and **Metrics** show telemetry whose \`faas.name\` equals its **Function Identifier** exactly, including case. ${fix}
+    markdown: `The function's overview, **Logs**, **Traces** and **Metrics** show telemetry whose \`faas.name\` equals its **Function Name (faas.name)** exactly, including case. ${fix}
 
 Also check the time range at the top of the page.`,
   };

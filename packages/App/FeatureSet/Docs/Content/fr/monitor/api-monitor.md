@@ -71,7 +71,7 @@ Sélectionnez la méthode HTTP pour la requête :
 - **PATCH**
 - **HEAD**
 
-### Options avancées
+### Plus de champs
 
 #### En-têtes de requête
 

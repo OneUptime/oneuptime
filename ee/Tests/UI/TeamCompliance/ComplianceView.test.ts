@@ -9,6 +9,7 @@ import {
   NO_SEVERITIES_LEFT_WARNING,
   PROJECT_SWITCHED_CHANNELS,
   RuleWarningGroup,
+  SelfFix,
   areAllRulesPaused,
   countFilteredMembersByStatus,
   countMembersByStatus,
@@ -34,6 +35,7 @@ import {
   getRuleTypeIcon,
   getRuleWarningGroups,
   getSelfFix,
+  getSelfFixKey,
   getSelfFixes,
   hasNoSeveritiesLeft,
   hasServerId,
@@ -1497,30 +1499,51 @@ describe("members", () => {
 });
 
 describe("where a member fixes themselves", () => {
+  /*
+   * A member's on-call rules are one On-Call Rules page with a tab per kind,
+   * so an on-call rule is fixed on that page, opened on its own tab. The
+   * first tab, Incidents, is the page's bare address: no query.
+   */
   test.each([
     [
       ComplianceRuleType.HasIncidentOnCallRules,
-      PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
+      "Incidents",
+      {},
       "Open my incident on-call rules",
     ],
     [
       ComplianceRuleType.HasAlertOnCallRules,
-      PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES,
+      "Alerts",
+      { type: "alerts" },
       "Open my alert on-call rules",
     ],
     [
       ComplianceRuleType.HasIncidentEpisodeOnCallRules,
-      PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES,
+      "Incident Episodes",
+      { type: "incident-episodes" },
       "Open my incident episode on-call rules",
     ],
     [
       ComplianceRuleType.HasAlertEpisodeOnCallRules,
-      PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES,
+      "Alert Episodes",
+      { type: "alert-episodes" },
       "Open my alert episode on-call rules",
     ],
-  ])("%s → %s", (ruleType: string, page: PageMap, title: string) => {
-    expect(getSelfFix(ruleType)).toEqual({ page: page, title: title });
-  });
+  ])(
+    "%s → the %s tab",
+    (
+      ruleType: string,
+      _tab: string,
+      query: Record<string, string>,
+      title: string,
+    ) => {
+      expect(getSelfFix(ruleType)).toEqual({
+        page: PageMap.USER_SETTINGS_ON_CALL_RULES,
+        query: query,
+        title: title,
+      });
+    },
+  );
 
   test("every method rule is fixed on the notification methods page", () => {
     for (const definition of COMPLIANCE_RULE_DEFINITIONS) {
@@ -1566,12 +1589,18 @@ describe("where a member fixes themselves", () => {
         page: PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
         title: "Open my notification methods",
       },
+      /*
+       * One page, two tabs: two links. Each opens the tab its failure is on,
+       * and the second Call-for-incidents failure shares the first's link.
+       */
       {
-        page: PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
+        page: PageMap.USER_SETTINGS_ON_CALL_RULES,
+        query: {},
         title: "Open my incident on-call rules",
       },
       {
-        page: PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES,
+        page: PageMap.USER_SETTINGS_ON_CALL_RULES,
+        query: { type: "alerts" },
         title: "Open my alert on-call rules",
       },
     ]);
@@ -1585,12 +1614,12 @@ describe("where a member fixes themselves", () => {
             issue(emailRule(), EMAIL_REASON),
           ],
         }),
-      ).map((fix: { page: PageMap }) => {
-        return fix.page;
+      ).map((fix: SelfFix): string => {
+        return getSelfFixKey(fix);
       }),
     ).toEqual([
-      PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES,
-      PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
+      `${PageMap.USER_SETTINGS_ON_CALL_RULES}?type=alerts`,
+      `${PageMap.USER_SETTINGS_NOTIFICATION_METHODS}?`,
     ]);
 
     expect(getSelfFixes(buildMember())).toEqual([]);

@@ -30,7 +30,7 @@ I monitor DNSSEC validano l'intera catena di fiducia dalla zona radice fino al t
 | Resolver                     | Elenco separato da virgole di resolver validatori da interrogare (es. `1.1.1.1, 8.8.8.8, 9.9.9.9`)                | Sì           |
 | Verifica Coerenza Nameserver | Interroga direttamente ciascun nameserver autoritativo e verifica che restituiscano lo stesso numero di serie SOA | No           |
 
-### Impostazioni Avanzate
+### Altri campi
 
 | Campo                          | Descrizione                                                           | Predefinito |
 | ------------------------------ | --------------------------------------------------------------------- | ----------- |

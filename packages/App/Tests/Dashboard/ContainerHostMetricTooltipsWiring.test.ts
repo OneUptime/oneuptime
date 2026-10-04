@@ -460,8 +460,8 @@ describe("Docker and Podman pages stay identical", () => {
     "the %s host list shows no metric, so it carries no (i)",
     (runtime: string) => {
       /*
-       * Name, Host Identifier, connection Status, Last Seen, Labels and
-       * Owners are facts about the host record. The day a metric column
+       * Name, Host Name (host.name), connection Status, Last Seen, Labels
+       * and Owners are facts about the host record. The day a metric column
        * (containers, CPU, ...) is added it needs a headerTooltip from the
        * container host record, and this list needs updating.
        */
@@ -475,7 +475,7 @@ describe("Docker and Podman pages stay identical", () => {
 
       expect(titles).toEqual([
         "Name",
-        "Host Identifier",
+        "Host Name (host.name)",
         "Status",
         "Last Seen",
         "Labels",

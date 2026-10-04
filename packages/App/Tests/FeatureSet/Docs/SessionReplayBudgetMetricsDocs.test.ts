@@ -1121,14 +1121,15 @@ describe("Session replay storage budget alerts docs", (): void => {
       );
 
       /*
-       * A metric criterion's If No Data sits in its collapsed Advanced
+       * A metric criterion's If No Data sits in its folded More fields
        * section and sets the metric options' own policy - the one the
        * evaluator reads. (The form has a second If No Data, for
        * evaluate-over-time checks, outside it.)
        */
       const advanced: string =
-        form.split('title="Advanced"')[1]?.split("</CollapsibleSection>")[0] ||
-        "";
+        form
+          .split("title={MORE_FIELDS_SECTION_TITLE}")[1]
+          ?.split("</FoldedSection>")[0] || "";
 
       expect(advanced).toContain('title="If No Data"');
       expect(advanced).toContain("metricMonitorOptions?.onNoDataPolicy");
@@ -1139,7 +1140,7 @@ describe("Session replay storage budget alerts docs", (): void => {
       );
 
       expect(own).toContain("**If No Data**");
-      expect(own).toContain("**Advanced**");
+      expect(own).toContain("**More fields**");
 
       /*
        * The application's own Metrics tab lists the metric types linked to

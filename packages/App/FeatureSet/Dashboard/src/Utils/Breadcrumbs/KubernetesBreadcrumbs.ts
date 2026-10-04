@@ -229,6 +229,10 @@ export function getKubernetesBreadcrumbs(
       "View Cluster",
       "Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Kubernetes", "View Cluster", "Scheduled Maintenance"],
+    ),
 
     // Advanced
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_DELETE, [

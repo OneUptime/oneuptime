@@ -30,7 +30,7 @@ Les moniteurs DNSSEC valident l'ensemble de la chaîne de confiance, de la zone 
 | Résolveurs                                 | Liste séparée par des virgules de résolveurs validateurs à interroger (ex. : `1.1.1.1, 8.8.8.8, 9.9.9.9`)           | Oui         |
 | Vérifier la cohérence des serveurs de noms | Interroger chaque serveur de noms autoritaire directement et vérifier qu'ils retournent le même numéro de série SOA | Non         |
 
-### Paramètres avancés
+### Plus de champs
 
 | Champ                                           | Description                                                                        | Par défaut |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |

@@ -39,7 +39,21 @@ import {
  *     so;
  *   - Declared At starts at the moment the page opened, fixed, so the
  *     Advanced section can tell a time someone set from the one it started
- *     with.
+ *     with;
+ *   - opened from a monitor's Incidents or Alerts tab, the monitor is
+ *     already picked: the tab hands its list the monitor, the list puts it
+ *     in the address, and the page picks it (Components/CreateFromRecord;
+ *     App's CreateFromRecordGuard holds every other record's tabs to it);
+ *   - the monitors are picked apart from every other affected resource, and
+ *     Change Monitor Status to sits right under them, asked only once a
+ *     monitor is picked and never sent without one; the status pages an
+ *     incident is limited to, and whether their subscribers are notified,
+ *     wait under More fields. The maintainer: "Limit to these status pages and
+ *     notifiy subscribers should be in advanced. change monitor stattus
+ *     page to should be outside of advanced", and "we also need to have
+ *     monitors and other affected resources as seperate things (so change
+ *     monitor sttate to makes more sense), only show that dropdown if any
+ *     monitor is selected. Please do this for alert form as well."
  */
 
 // packages/Common/Tests/UI/Components/Forms -> the repository root.
@@ -90,12 +104,12 @@ const INCIDENT_CREATE: FormShape = {
     {
       id: "resources-affected",
       title: "Resources Affected",
-      open: [
-        "monitors",
+      // The monitors, the status they change to, and the other resources.
+      open: ["monitors", "changeMonitorStatusTo", "hosts"],
+      folded: [
         "statusPages",
         "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
       ],
-      folded: ["changeMonitorStatusTo"],
     },
     /*
      * The project's custom fields marked Show on Create, when there are any
@@ -130,6 +144,7 @@ const ALERT_CREATE: FormShape = {
     {
       id: "on-call",
       title: "Resources & On-Call",
+      // Its one monitor, in a dropdown of its own, then the other resources.
       open: ["monitor", "hosts", "onCallDutyPolicies"],
       folded: [],
     },
@@ -531,6 +546,225 @@ describe("Declared At", () => {
   });
 });
 
+describe("opened from a monitor's tab, the monitor is already picked", () => {
+  /*
+   * Declare Incident on a monitor's Incidents tab, and Create Alert on its
+   * Alerts tab, opened these pages with nothing picked: the monitor was
+   * searched for again on the next step, or forgotten, and the new record
+   * never showed on the tab it was made from.
+   */
+  test("the monitor's Incidents and Alerts tabs hand their lists the monitor", () => {
+    for (const [file, table] of [
+      [`${DASHBOARD}/Pages/Monitor/View/Incidents.tsx`, "IncidentsTable"],
+      [`${DASHBOARD}/Pages/Monitor/View/Alerts.tsx`, "AlertsTable"],
+    ] as Array<[string, string]>) {
+      const source: string = dense(file);
+
+      expect(source).toContain(
+        `<${table} query={query} createFrom={{ kind: CreateFromRecordKind.Monitor, id: modelId }} />`,
+      );
+      // The create values the alerts list took and never used are gone.
+      expect(source).not.toContain("createInitialValues");
+    }
+  });
+
+  test("the lists put it in the address of Declare Incident and Create Alert", () => {
+    const incidents: string = dense(
+      `${DASHBOARD}/Components/Incident/IncidentsTable.tsx`,
+    );
+    const alerts: string = dense(
+      `${DASHBOARD}/Components/Alert/AlertsTable.tsx`,
+    );
+
+    expect(incidents).toContain(
+      "RouteUtil.getPageRoute(PageMap.INCIDENT_CREATE, { query: createQuery, })",
+    );
+    expect(incidents).toContain(
+      "query: { ...createQuery, incidentTemplateId: incidentTemplateId.toString(), },",
+    );
+    expect(alerts).toContain(
+      "RouteUtil.getPageRoute(PageMap.ALERT_CREATE, { query: createQuery, })",
+    );
+  });
+
+  test.each([
+    { shape: INCIDENT_CREATE, created: "Incident" },
+    { shape: ALERT_CREATE, created: "Alert" },
+  ] as Array<{ shape: FormShape; created: string }>)(
+    "$shape.label looks the record up, waits for it, and picks it",
+    ({ shape, created }: { shape: FormShape; created: string }) => {
+      const source: string = dense(shape.file);
+
+      expect(source).toContain(
+        `useRecordToCreateFrom( CreatedRecordKind.${created}, )`,
+      );
+      expect(source).toContain(
+        `record: recordToCreateFrom.record, created: CreatedRecordKind.${created},`,
+      );
+      expect(source).toContain("recordToCreateFrom.isLoading");
+    },
+  );
+
+  /*
+   * Picked on a step of its own: the record is not a field of the first
+   * step, and no step is added for it - the steps above are unchanged.
+   */
+  test("the record is picked on the resources step, not on a step of its own", () => {
+    expect(
+      shownOn(formFor(INCIDENT_CREATE), "resources-affected")[0]!.key,
+    ).toBe("monitors");
+    expect(shownOn(formFor(ALERT_CREATE), "on-call")[0]!.key).toBe("monitor");
+  });
+});
+
+describe("the monitors apart, and the status they change to right under them", () => {
+  const incident: string = dense(INCIDENT_CREATE.file);
+  const alert: string = dense(ALERT_CREATE.file);
+
+  // The names of a `const <list>: Array<AffectedResourceType> = [...]`.
+  function typesOf(source: string, list: string): Array<string> {
+    const block: string | undefined = source.match(
+      new RegExp(
+        `const ${list}: Array<AffectedResourceType> = \\[([^\\]]*)\\];`,
+      ),
+    )?.[1];
+
+    expect(`${list}: ${block !== undefined}`).toBe(`${list}: true`);
+
+    return Array.from(block!.matchAll(/"(\w+)"/g)).map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+  }
+
+  test("Declare Incident asks for its monitors in a picker of their own, and for everything else in another", () => {
+    expect(typesOf(incident, "MONITOR_RESOURCE_TYPES")).toEqual(["Monitor"]);
+
+    const others: Array<string> = typesOf(
+      incident,
+      "OTHER_AFFECTED_RESOURCE_TYPES",
+    );
+
+    expect(others).not.toContain("Monitor");
+    expect(others).toEqual(
+      expect.arrayContaining(["Host", "KubernetesCluster", "Service"]),
+    );
+    // The one mixed list is gone.
+    expect(incident).not.toContain("const AFFECTED_RESOURCE_TYPES:");
+
+    const monitors: string = fieldObjectAround(
+      incident,
+      "field: { monitors: true, }",
+    );
+
+    expect(monitors).toContain('title: "Monitors",');
+    expect(monitors).toContain("resourceTypes={MONITOR_RESOURCE_TYPES}");
+    // It writes back the monitors, and nothing it does not show.
+    expect(monitors).toContain("monitors: payload.monitors,");
+    expect(monitors).not.toContain("hosts: payload.hosts,");
+    expect(monitors).not.toContain("hosts={");
+
+    const rest: string = fieldObjectAround(incident, "field: { hosts: true, }");
+
+    expect(rest).toContain('title: "Other Affected Resources",');
+    expect(rest).toContain("resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}");
+    expect(rest).toContain("hosts: payload.hosts,");
+    expect(rest).not.toContain("monitors: payload.monitors,");
+    expect(rest).not.toContain("monitors={");
+
+    // Each picker is named by its own label, for a screen reader.
+    for (const picker of [monitors, rest]) {
+      expect(picker).toContain("ariaLabelledby={elementProps.ariaLabelledby}");
+    }
+  });
+
+  test("Change Monitor Status to is open, right under the monitors, and asked only once a monitor is picked", () => {
+    expect(
+      keysOf(shownOn(formFor(INCIDENT_CREATE), "resources-affected")).slice(
+        0,
+        3,
+      ),
+    ).toEqual(["monitors", "changeMonitorStatusTo", "hosts"]);
+
+    const status: string = fieldObjectAround(
+      incident,
+      "field: { changeMonitorStatusTo: true, }",
+    );
+
+    expect(status).toContain('title: "Change Monitor Status to",');
+    expect(status).toContain("showIf: hasMonitors,");
+    expect(status).not.toContain("collapsibleSection");
+    // It starts from what it is handed - empty, or a template's status.
+    expect(status).not.toContain("defaultValue");
+    expect(status).not.toContain("getDefaultValue");
+
+    // "A monitor is picked" reads the Monitors picker's value, whatever its shape.
+    expect(incident).toContain(
+      "const hasMonitors: IncidentFormPredicate = ( values: FormValues<Incident>, ): boolean => { return hasPickedMonitors(values); };",
+    );
+  });
+
+  test("Declare Incident never sends a monitor status without a monitor", () => {
+    const hook: number = incident.indexOf("onBeforeCreate={async (");
+    const strip: number = incident.indexOf(
+      "omitMonitorStatusWithoutMonitors({ item: item, formValues: formValues, });",
+    );
+
+    expect(hook).toBeGreaterThan(-1);
+    expect(strip).toBeGreaterThan(hook);
+    // Inside the hook: before the fields it hands the form.
+    expect(strip).toBeLessThan(incident.indexOf("fields={[", hook));
+  });
+
+  test("the status page limit and the notify switch wait under More fields, and the switch is always on the review", () => {
+    const pages: string = fieldObjectAround(
+      incident,
+      "field: { statusPages: true, }",
+    );
+
+    expect(pages).toContain("collapsibleSection: advancedSection,");
+    expect(pages).toContain('stepId: "resources-affected",');
+
+    const notify: string = fieldObjectAround(
+      incident,
+      "field: { shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true, }",
+    );
+
+    expect(notify).toContain("collapsibleSection: advancedSection,");
+    expect(notify).toContain('stepId: "resources-affected",');
+    // Still ticked from the start: folding it changes no default.
+    expect(notify).toContain("defaultValue: true,");
+    // Who is emailed, and a preview, on the review even while it is folded.
+    expect(notify).toContain("alwaysInSummary: true,");
+    expect(notify).toContain("<SubscriberNotificationPreviewButton");
+  });
+
+  test("Create Alert keeps its one monitor apart from the other resources, and has no monitor status to show", () => {
+    const monitor: string = fieldObjectAround(
+      alert,
+      "field: { monitor: true, }",
+    );
+
+    expect(monitor).toContain('title: "Monitor",');
+    expect(monitor).toContain("fieldType: FormFieldSchemaType.Dropdown,");
+    expect(monitor).toContain("dropdownModal: { type: Monitor,");
+
+    expect(typesOf(alert, "OTHER_AFFECTED_RESOURCE_TYPES")).not.toContain(
+      "Monitor",
+    );
+
+    const rest: string = fieldObjectAround(alert, "field: { hosts: true, }");
+
+    expect(rest).toContain('title: "Other Affected Resources",');
+    expect(rest).not.toContain("monitors");
+
+    // An alert never changes its monitor's status: there is no such field.
+    expect(alert).not.toContain("changeMonitorStatusTo");
+    expect(alert).not.toContain("MonitorStatus");
+  });
+});
+
 describe("who responds", () => {
   test("Declare Incident and Create Incident Episode put on-call policies and roles on one step, and say who takes an empty role", () => {
     for (const [shape, key, description] of [
@@ -552,8 +786,6 @@ describe("who responds", () => {
 
       expect(field).toContain('stepId: "on-call",');
       expect(field).toContain(`description: "${description}",`);
-      // Starts empty and writes only what is picked (FinishFromAnyStepGuard).
-      expect(field).toContain("customElementCanBeSkipped: true,");
       expect(field).toContain(
         '"Nobody picked. You take any role marked Primary."',
       );

@@ -236,9 +236,17 @@
       "failed": "We could not unsubscribe you. Please try again.",
       "loadFailed": "We could not load this unsubscribe link. Please try again later."
     },
-    "steps": {
-      "details": "Details",
-      "preferences": "Preferences"
+    "preferences": {
+      "title": "Preferences",
+      "description": "Choose what you hear about.",
+      "summary": {
+        "everything": "You will get every update from this status page.",
+        "pickedResources": "You will get updates only about the resources you picked.",
+        "pickedEventTypes": "You will get updates only for the event types you picked.",
+        "pickedResourcesAndEventTypes": "You will get updates only for the resources and event types you picked.",
+        "noResources": "You have not picked any resources yet.",
+        "noEventTypes": "You have not picked any event types yet."
+      }
     }
   },
   "accounts": {

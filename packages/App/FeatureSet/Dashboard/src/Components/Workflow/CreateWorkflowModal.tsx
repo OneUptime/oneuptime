@@ -17,6 +17,10 @@
  * and the rail took a column of the dialog's width away from the picker,
  * which the maintainer found showed too much at once already.
  *
+ * Create Workflow, on the last step, is the wizard's one primary button.
+ * The ways on before it - Use this template, Next - are plain, like Cancel
+ * (Forms/Utils/SteppedFormFooter): they commit nothing.
+ *
  * The order of writes at the end matters. The workflow is created through the
  * ordinary Workflow create path because that is what denormalizes the trigger
  * onto the row (WorkflowService.onCreateSuccess) — build the graph any other
@@ -35,6 +39,10 @@ import React, {
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  SteppedModalFooter,
+  getSteppedModalFooter,
+} from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
@@ -468,29 +476,36 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type SubmitTextFunction = () => string;
-
-  const submitButtonText: SubmitTextFunction = (): string => {
-    if (step === WizardStep.NameIt && showConfigureStep) {
-      return "Next";
-    }
-
-    return "Create Workflow";
-  };
-
-  type PickStepSubmitFunction = (() => void) | undefined;
+  type PickStepNextFunction = (() => void) | undefined;
 
   /*
-   * The first step's primary button, Use this template, is there only while
-   * a template is picked. Before that the step's way on is Start from
+   * The first step's way on in the footer, Use this template, is there only
+   * while a template is picked. Before that the step's way on is Start from
    * scratch, at the top of it, and a disabled "Use this template" beside
    * Cancel read as if a template had to be chosen.
    */
-  const pickStepSubmit: PickStepSubmitFunction = pickedTemplate
+  const pickStepNext: PickStepNextFunction = pickedTemplate
     ? (): void => {
         chooseStart(pickedTemplate);
       }
     : undefined;
+
+  /*
+   * Create Workflow on the last step only - Name, or Configure when the
+   * template asks for settings - and a plain way on before it: Use this
+   * template on the picker, Next on Name. onSubmit checks Name and walks on
+   * to Configure, or checks the settings, before it creates anything.
+   */
+  const footer: SteppedModalFooter = getSteppedModalFooter({
+    hasSteps: true,
+    isOnLastStep:
+      step === WizardStep.Configure ||
+      (step === WizardStep.NameIt && !showConfigureStep),
+    onAction: onSubmit,
+    onNext: step === WizardStep.PickTemplate ? pickStepNext : onSubmit,
+    nextButtonText:
+      step === WizardStep.PickTemplate ? "Use this template" : undefined,
+  });
 
   return (
     <Modal
@@ -500,12 +515,9 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       error={error || undefined}
       isLoading={isCreating}
-      submitButtonText={
-        step === WizardStep.PickTemplate
-          ? "Use this template"
-          : submitButtonText()
-      }
-      onSubmit={step === WizardStep.PickTemplate ? pickStepSubmit : onSubmit}
+      submitButtonText="Create Workflow"
+      onSubmit={footer.onSubmit}
+      secondaryButton={footer.secondaryButton}
       leftFooterElement={
         step === WizardStep.PickTemplate ? (
           <></>

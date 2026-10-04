@@ -260,6 +260,11 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { DetailStyle } from "../../../UI/Components/Detail/Detail";
 import Navigation from "../../../UI/Utils/Navigation";
+import StatusPageEventType from "../../../Types/StatusPage/StatusPageEventType";
+import {
+  RecordStatusPageSuggestions,
+  RecordStatusPageSuggestionsProps,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSuggestions";
 
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
@@ -1257,6 +1262,11 @@ describe("Scheduled maintenance overview page", () => {
         currentValues: Record<string, unknown>,
         setNewFormValues: (values: Record<string, unknown>) => void,
       ) => void;
+      getFooterElement?: (
+        values: Record<string, unknown>,
+        error?: string,
+        footer?: { setValue: (value: unknown) => void },
+      ) => React.ReactElement | undefined;
     }
 
     interface EditCard {
@@ -1318,7 +1328,7 @@ describe("Scheduled maintenance overview page", () => {
         "title",
         "startsAt",
         "endsAt",
-        "Advanced: labels",
+        "More fields: labels",
       ]);
       expect(rowsOn(card, "status-pages")).toEqual([
         "statusPages",
@@ -1353,6 +1363,59 @@ describe("Scheduled maintenance overview page", () => {
 
         expect(columnAccess?.update || []).toEqual([]);
       }
+    });
+
+    /*
+     * The pages that show the event's monitors are suggested under its
+     * status page picker. This dialog does not hold the monitors (the
+     * Affected Resources card edits them), so they are read from the event
+     * - this event, the one the page is for.
+     */
+    test("suggests the status pages that show the event's monitors, read from the event", async () => {
+      const card: EditCard = await editCard();
+      const setValue: MockFunction = getJestMockFunction();
+
+      const footer: React.ReactElement | undefined = fieldOf(
+        card,
+        "statusPages",
+      ).getFooterElement!(
+        { statusPages: ["88888888-8888-4888-8888-888888888888"] },
+        undefined,
+        { setValue: setValue as unknown as (value: unknown) => void },
+      );
+
+      expect(footer).toBeDefined();
+      expect(footer!.type).toBe(RecordStatusPageSuggestions);
+
+      const props: RecordStatusPageSuggestionsProps = footer!
+        .props as RecordStatusPageSuggestionsProps;
+
+      expect(props.modelType).toBe(ScheduledMaintenance);
+      expect(props.modelId.toString()).toBe(EVENT_ID);
+      expect(props.eventType).toBe(StatusPageEventType.ScheduledEvent);
+      expect(props.statusPageIds).toEqual([
+        "88888888-8888-4888-8888-888888888888",
+      ]);
+
+      // A page picked from the suggestions goes to the picker's value.
+      props.onChange([
+        "88888888-8888-4888-8888-888888888888",
+        "99999999-9999-4999-8999-999999999999",
+      ]);
+
+      expect(setValue).toHaveBeenCalledWith([
+        "88888888-8888-4888-8888-888888888888",
+        "99999999-9999-4999-8999-999999999999",
+      ]);
+
+      // Nothing else on the dialog suggests anything.
+      expect(
+        card.formFields
+          .filter((field: EditField): boolean => {
+            return Boolean(field.getFooterElement);
+          })
+          .map(keyOf),
+      ).toEqual(["statusPages"]);
     });
 
     test("shows the event's own window: no default times on an Edit", async () => {

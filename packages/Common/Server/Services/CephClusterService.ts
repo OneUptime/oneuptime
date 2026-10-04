@@ -20,6 +20,10 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -35,9 +39,30 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "ceph-cluster-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+/*
+ * A Ceph cluster is matched to its telemetry by its name (ceph.cluster.name),
+ * so a rename is held to the rules a new Ceph cluster is: no spaces around
+ * it, never blank, and never another Ceph cluster's name
+ * (DiscoveredResourceUpdate).
+ */
+const CEPH_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "Ceph cluster",
+});
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: CEPH_CLUSTER_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()

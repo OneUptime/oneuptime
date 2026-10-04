@@ -166,7 +166,7 @@ OBI extracts several signal families from the captured traffic. All are on by de
 | Signal                                  | Default | What it adds                                                                                                                                                 |
 | --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | on      | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service.                                                                        |
-| `ebpf.features.spanMetrics`             | on      | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation.                                                         |
+| `ebpf.features.spanMetrics`             | on      | Span metrics: call count and duration per service, route/operation, span kind and status — `traces.span.metrics.calls`, `traces.span.metrics.duration` (seconds). |
 | `ebpf.features.serviceGraph`            | on      | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map.                                                            |
 | `ebpf.features.networkMetrics`          | on      | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
 | `ebpf.features.networkInterZoneMetrics` | off     | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling.                                   |
@@ -360,6 +360,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 or earlier** — drop `--reuse-values` and pass your original `--set` flags (or `-f values.yaml`) explicitly. New chart defaults will apply for everything you don't override.
 >
 > If a new feature's pods (e.g. `kubernetes-agent-profiling-*`) don't show up after upgrading, this is almost always why. `helm get values <release>` shows what Helm actually has — fields missing from the output mean defaults weren't merged for them.
+
+> **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 
 ## Uninstalling
 

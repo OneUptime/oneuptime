@@ -18,12 +18,12 @@ import Permission from "../../../../Types/Permission";
 /*
  * Adding a SAML provider, through the real ModelForm and BasicForm with only
  * the network stubbed: the form opens on the four things the identity
- * provider gives (name, sign-on URL, issuer, certificate), can be finished
- * from that first step, and saves a complete provider - RSA-SHA256 and
+ * provider gives (name, sign-on URL, issuer, certificate), walks on to
+ * Sign-in, where the action is, and saves a complete provider - RSA-SHA256 and
  * SHA256, the description from the name, the members team it started on,
  * and off until someone turns it on. The signature and digest methods wait
- * folded under Advanced, whose header says what they are until one is
- * changed. The edit dialog keeps the description in step with a rename,
+ * folded under More fields, whose header names them and says what they are
+ * until one is changed, then shows the changed one as a chip. The edit dialog keeps the description in step with a rename,
  * never touches one somebody wrote, and keeps an older provider's methods.
  */
 
@@ -218,7 +218,25 @@ async function fillTheProvider(): Promise<void> {
   await type("Paste in your x509 certificate here.", CERTIFICATE);
 }
 
+/*
+ * Walks on to the last step with Next - the form's action is there only,
+ * never on a step before it - and presses the action.
+ */
 async function submitWith(buttonName: string): Promise<JSONObject> {
+  for (
+    let step: number = 0;
+    step < 5 && screen.queryByTestId("form-next-button");
+    step++
+  ) {
+    expect(
+      screen.queryByRole("button", { name: buttonName }),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("form-next-button"));
+    });
+  }
+
   await act(async (): Promise<void> => {
     fireEvent.click(screen.getByRole("button", { name: buttonName }));
   });
@@ -240,8 +258,29 @@ async function goToSignIn(): Promise<void> {
 
 async function toggleAdvanced(): Promise<void> {
   await act(async (): Promise<void> => {
-    fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+    fireEvent.click(screen.getByRole("button", { name: "More fields" }));
   });
+}
+
+// The chips a folded header draws for its set fields: "Digest Method: SHA512".
+function setChips(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .filter((item: HTMLElement): boolean => {
+      return item.getAttribute("data-item-set") === "true";
+    })
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+// Every name a folded header lists.
+function listedNames(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
 }
 
 function teamIdsOf(model: JSONObject): Array<string> {
@@ -287,7 +326,7 @@ describe("adding a SAML provider", () => {
     expect(screen.queryByText("Description")).not.toBeInTheDocument();
   });
 
-  test("can be finished from the first step, and saves a complete provider", async () => {
+  test("asks only the first step's four answers, then saves a complete provider from Sign-in", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: WITH_MEMBERS,
@@ -295,8 +334,15 @@ describe("adding a SAML provider", () => {
 
     await fillTheProvider();
 
-    // Everything on Sign-in has an answer, so the action is here already.
+    /*
+     * Everything on Sign-in has an answer already, but the action is on the
+     * last step only: Provider offers Next.
+     */
     expect(activeStep()).toContain("Provider");
+    expect(
+      screen.queryByRole("button", { name: ACTION }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("form-next-button")).toHaveTextContent("Next");
 
     const model: JSONObject = await submitWith(ACTION);
 
@@ -364,7 +410,7 @@ describe("adding a SAML provider", () => {
     expect(capturedModels).toHaveLength(0);
   });
 
-  test("Sign-in shows the team, Enabled off, and Advanced folded with what its defaults are", async () => {
+  test("Sign-in shows the team, Enabled off, and More fields folded with what its defaults are", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: WITH_MEMBERS,
@@ -383,22 +429,30 @@ describe("adding a SAML provider", () => {
       "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.",
     );
     expect(screen.queryByText("Configured")).not.toBeInTheDocument();
-    // Folded: drawn, so its values are kept and sent, but not shown.
-    expect(screen.getByText("Signature Method")).not.toBeVisible();
+    // Folded, its header names what it holds, nothing of it set.
+    expect(listedNames()).toEqual([
+      "Signature Method",
+      "Digest Method",
+      "Description",
+    ]);
+    expect(setChips()).toEqual([]);
+    // Drawn, so its values are kept and sent, but not shown.
+    expect(
+      screen.getByRole("combobox", { name: "Signature Method", hidden: true }),
+    ).not.toBeVisible();
 
     // Opened, it shows what will be saved.
     await toggleAdvanced();
 
-    expect(screen.getByText("Signature Method")).toBeVisible();
     expect(
       screen.getByRole("combobox", { name: "Signature Method" }),
-    ).toBeInTheDocument();
+    ).toBeVisible();
     expect(screen.getByText("RSA-SHA256")).toBeInTheDocument();
     expect(screen.getByText("SHA256")).toBeInTheDocument();
     expect(input("Sign in with Okta").value).toBe("Sign in with Okta");
   });
 
-  test("a method changed under Advanced turns the summary into Configured, and is saved", async () => {
+  test("a method changed under More fields turns the summary into a chip, and is saved", async () => {
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     await renderProviderForm({
@@ -415,13 +469,13 @@ describe("adding a SAML provider", () => {
     await user.click(screen.getByRole("combobox", { name: "Digest Method" }));
     await user.click(await screen.findByRole("option", { name: "SHA512" }));
 
-    // Folded again, it says something is set.
+    // Folded again, it shows what is set.
     await toggleAdvanced();
 
     expect(
       screen.queryByTestId("collapsible-section-summary"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Configured")).toBeInTheDocument();
+    expect(setChips()).toEqual(["Digest Method: SHA512"]);
 
     const model: JSONObject = await submitWith(ACTION);
 
@@ -430,7 +484,7 @@ describe("adding a SAML provider", () => {
     expect(teamIdsOf(model)).toEqual([OWNERS_TEAM_ID]);
   });
 
-  test("a description written under Advanced is saved as written", async () => {
+  test("a description written under More fields is saved as written", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: WITH_MEMBERS,
@@ -498,7 +552,7 @@ describe("editing a SAML provider", () => {
     expect(model["description"]).toBe("Staff only");
   });
 
-  test("an older provider keeps its own methods, and Advanced says it is Configured", async () => {
+  test("an older provider keeps its own methods, and More fields shows them", async () => {
     recordToEdit = {
       ...STORED,
       signatureMethod: "RSA-SHA1",
@@ -513,7 +567,10 @@ describe("editing a SAML provider", () => {
 
     await goToSignIn();
 
-    expect(screen.getByText("Configured")).toBeInTheDocument();
+    expect(setChips()).toEqual([
+      "Signature Method: RSA-SHA1",
+      "Digest Method: SHA1",
+    ]);
     expect(
       screen.queryByTestId("collapsible-section-summary"),
     ).not.toBeInTheDocument();

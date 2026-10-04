@@ -27,18 +27,19 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *   Project      Name, Default Teams (starting on the members team, see
  *                Dashboard Components/Sso/UseDefaultSsoTeams; hidden while
  *                push groups manage team membership), and one folded
- *                Advanced section: Auto Provision Users (on), Auto
+ *                More fields section: Auto Provision Users (on), Auto
  *                Deprovision Users (on), Enable Push Groups (off) and the
  *                description.
- *   Status page  Name, and one folded Advanced section: Auto Provision
+ *   Status page  Name, and one folded More fields section: Auto Provision
  *                Users (on), Auto Deprovision Users (on) and the
  *                description.
  *
  * The three settings are switches that start where their columns do, so
  * what the form shows is what is saved, and turning one off saves it off.
- * While the folded section is at those defaults its header says what they
- * do in a sentence; once something differs it says "Configured". The edit
- * dialogs use the same layout.
+ * Folded, the section's header names what it holds. While all of it is at
+ * those defaults the header also says what they do in a sentence; once
+ * something differs it shows what is set instead ("Auto Deprovision Users:
+ * Off"). The edit dialogs use the same layout.
  *
  * React-free: the pages, the guards and the tests read it.
  */
@@ -73,8 +74,8 @@ export const SCIM_PUSH_GROUPS_DESCRIPTION: string = translationKey(
 );
 
 /*
- * What the folded Advanced section says while everything in it is at its
- * default, in place of the "Configured" badge.
+ * What the folded More fields section says, under the names of what it
+ * holds, while everything in it is at its default.
  */
 export const PROJECT_SCIM_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
   "People added in your identity provider join the default teams, and people removed there leave them.",
@@ -112,7 +113,7 @@ export interface ScimAdvancedOptions {
 }
 
 /**
- * Whether everything the Advanced section folds is where a new connection
+ * Whether everything the More fields section folds is where a new connection
  * starts: provisioning and deprovisioning on, push groups off (a project's
  * connection) and no description. A switch not set yet counts as at its
  * default: the form fills the column's in.
@@ -143,9 +144,10 @@ export type GetScimAdvancedSectionFunction = <TEntity>(
 ) => FormFieldCollapsibleSection<TEntity>;
 
 /*
- * The form's Advanced section: folded on Create and Edit; while everything in
- * it is at its default its header says what that default does, and once
- * something differs it says "Configured".
+ * The form's More fields section: folded on Create and Edit, its header
+ * naming what it holds; while everything in it is at its default the header
+ * says what that default does, and once something differs it shows what is
+ * set.
  */
 export const getScimAdvancedSection: GetScimAdvancedSectionFunction = <TEntity>(
   options?: ScimAdvancedOptions,

@@ -48,6 +48,7 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/incident/generate-postmortem-from-ai/",
   "/incident-episode/generate-postmortem-from-ai/",
   "/incident/subscriber-audience",
+  "/status-page/listing-monitors",
 ];
 
 /*
@@ -92,6 +93,15 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "Incident", "useSubscriberAudience.ts"],
     routePrefix: "/incident/subscriber-audience",
+  },
+  /*
+   * The status pages that show a maintenance event's or an announcement's
+   * monitors, suggested under its status page picker, are all asked for
+   * through this one hook.
+   */
+  {
+    page: ["Components", "StatusPage", "useStatusPagesListingMonitors.ts"],
+    routePrefix: "/status-page/listing-monitors",
   },
 ];
 

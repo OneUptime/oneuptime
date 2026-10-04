@@ -27,14 +27,16 @@ import FormFieldSchemaType from "../Types/FormFieldSchemaType";
  * the field's defaultValue (getCreateFormColumnDefault, below) when the field
  * does not say otherwise. BasicForm then fills the field in with it, draws it
  * from the first paint, sends it untouched - and a folded section that holds
- * it does not say "Configured" over a value nobody changed, because the
- * default is what isFormFieldValueSet compares with.
+ * it does not show a value nobody changed as set, because the default is
+ * what isFormFieldValueSet compares with.
  *
  * What still wins, in order: a value the form starts with (a table's
  * createInitialValues, a form's initialValues), then a field's own
  * defaultValue or getDefaultValue - a deliberate `defaultValue: false` keeps a
- * switch off whatever its column says. Edit forms are untouched: they show
- * the record as it is.
+ * switch off whatever its column says. Edit forms start from nothing but
+ * the record, as it is: they get the column's default only as the field's
+ * columnDefaultValue, which a folded section compares with and no field
+ * starts from.
  *
  * Only plain values the field can show are taken: a boolean for a switch, a
  * choice its options hold for a dropdown, radio group or card picker, a number

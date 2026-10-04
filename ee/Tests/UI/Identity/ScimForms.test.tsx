@@ -176,9 +176,9 @@ const MEMBERS_TEAM_ID: string = "00000000-0000-4000-8000-0000000000a1";
 const OWNERS_TEAM_ID: string = "00000000-0000-4000-8000-0000000000a2";
 const BEARER_TOKEN: string = "4f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e";
 
-const ADVANCED_SUMMARY: string =
+const MORE_FIELDS_SUMMARY: string =
   "People added in your identity provider join the default teams, and people removed there leave them.";
-const STATUS_PAGE_ADVANCED_SUMMARY: string =
+const STATUS_PAGE_MORE_FIELDS_SUMMARY: string =
   "People added in your identity provider can sign in to this status page, and people removed there lose access.";
 
 let createOrUpdate: jest.SpyInstance;
@@ -302,10 +302,31 @@ const typeName: (name: string) => Promise<void> = async (
   });
 };
 
-const toggleAdvanced: () => Promise<void> = async (): Promise<void> => {
+const toggleMoreFields: () => Promise<void> = async (): Promise<void> => {
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+    fireEvent.click(screen.getByRole("button", { name: "More fields" }));
   });
+};
+
+// Every name the folded More fields header lists, set or not.
+const listedNames: () => Array<string> = (): Array<string> => {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+};
+
+// The chips of the set ones: "Auto Deprovision Users: Off".
+const setChips: () => Array<string> = (): Array<string> => {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .filter((item: HTMLElement): boolean => {
+      return item.getAttribute("data-item-set") === "true";
+    })
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
 };
 
 const flip: (name: string) => Promise<void> = async (
@@ -343,7 +364,7 @@ describe("adding a project's SCIM connection", () => {
     teams: [MEMBERS_TEAM_ID],
   } as unknown as FormValues<ProjectSCIM>;
 
-  test("is one page: the name, the default teams on the members team, and Advanced folded with what it does", async () => {
+  test("is one page: the name, the default teams on the members team, and More fields folded with what it does", async () => {
     await renderForm({
       modelType: ProjectSCIM,
       fields: getProjectScimFormFields(),
@@ -358,14 +379,28 @@ describe("adding a project's SCIM connection", () => {
     expect(screen.getByText("Default Teams")).toBeVisible();
     expect(await screen.findByText("Members")).toBeInTheDocument();
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
-      ADVANCED_SUMMARY,
+      MORE_FIELDS_SUMMARY,
     );
     expect(screen.queryByText("Configured")).not.toBeInTheDocument();
 
-    // Folded: drawn, so their values are kept and sent, but not shown.
-    expect(screen.getByText("Auto Provision Users")).not.toBeVisible();
+    // Folded, its header names what it holds, none of it set.
+    expect(listedNames()).toEqual([
+      "Auto Provision Users",
+      "Auto Deprovision Users",
+      "Enable Push Groups",
+      "Description",
+    ]);
+    expect(setChips()).toEqual([]);
 
-    await toggleAdvanced();
+    // Drawn, so their values are kept and sent, but not shown.
+    expect(
+      screen.getByRole("switch", {
+        name: "Auto Provision Users",
+        hidden: true,
+      }),
+    ).not.toBeVisible();
+
+    await toggleMoreFields();
 
     // The switches start where their columns do.
     expect(
@@ -417,7 +452,7 @@ describe("adding a project's SCIM connection", () => {
     });
 
     await typeName("Okta SCIM");
-    await toggleAdvanced();
+    await toggleMoreFields();
     await flip("Auto Provision Users");
     await flip("Auto Deprovision Users");
 
@@ -425,10 +460,14 @@ describe("adding a project's SCIM connection", () => {
       screen.getByRole("switch", { name: "Auto Provision Users" }),
     ).toHaveAttribute("aria-checked", "false");
 
-    // Folded again, it says something is set instead of what the defaults do.
-    await toggleAdvanced();
+    // Folded again, it shows what is set instead of what the defaults do.
+    await toggleMoreFields();
 
-    expect(screen.getByText("Configured")).toBeInTheDocument();
+    expect(setChips()).toEqual([
+      "Auto Provision Users: Off",
+      "Auto Deprovision Users: Off",
+    ]);
+    expect(screen.queryByText("Configured")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("collapsible-section-summary"),
     ).not.toBeInTheDocument();
@@ -451,7 +490,7 @@ describe("adding a project's SCIM connection", () => {
     });
 
     await typeName("Okta SCIM");
-    await toggleAdvanced();
+    await toggleMoreFields();
     await flip("Enable Push Groups");
 
     await waitFor(() => {
@@ -479,7 +518,7 @@ describe("adding a project's SCIM connection", () => {
     expect(teamIdsOf(sentBody(ProjectSCIM))).toEqual([]);
   });
 
-  test("an existing connection with deprovisioning off keeps it off, and Advanced says Configured", async () => {
+  test("an existing connection with deprovisioning off keeps it off, and More fields shows it", async () => {
     recordToEdit = {
       _id: CONNECTION_ID,
       name: "Okta SCIM",
@@ -501,7 +540,11 @@ describe("adding a project's SCIM connection", () => {
       ).toBe("Okta SCIM");
     });
 
-    expect(screen.getByText("Configured")).toBeInTheDocument();
+    // Only what differs from its column's default: provisioning is on, as a connection starts.
+    await waitFor(() => {
+      expect(setChips()).toEqual(["Auto Deprovision Users: Off"]);
+    });
+    expect(screen.queryByText("Configured")).not.toBeInTheDocument();
 
     await typeName("Okta SCIM (EU)");
     await submit("Save Changes");
@@ -517,7 +560,7 @@ describe("adding a project's SCIM connection", () => {
 });
 
 describe("adding a status page's SCIM connection", () => {
-  test("is one page: the name, and Advanced folded with what it does", async () => {
+  test("is one page: the name, and More fields folded with what it does", async () => {
     await renderForm({
       modelType: StatusPageSCIM,
       fields: getStatusPageScimFormFields(),
@@ -530,7 +573,7 @@ describe("adding a status page's SCIM connection", () => {
     expect(screen.queryByText("Default Teams")).not.toBeInTheDocument();
     expect(screen.queryByText("Enable Push Groups")).not.toBeInTheDocument();
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
-      STATUS_PAGE_ADVANCED_SUMMARY,
+      STATUS_PAGE_MORE_FIELDS_SUMMARY,
     );
   });
 
@@ -561,7 +604,7 @@ describe("adding a status page's SCIM connection", () => {
     });
 
     await typeName("Okta SCIM for Status Page");
-    await toggleAdvanced();
+    await toggleMoreFields();
     await flip("Auto Deprovision Users");
     await submit("Create SCIM");
 

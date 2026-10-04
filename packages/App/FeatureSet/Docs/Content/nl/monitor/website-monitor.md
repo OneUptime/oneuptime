@@ -59,7 +59,7 @@ U kunt ook `{{random}}` gebruiken voor een unieke tekenreeks bij elk verzoek:
 https://example.com/health?nocache={{random}}
 ```
 
-### Geavanceerde opties
+### Meer velden
 
 #### Omleidingen niet volgen
 

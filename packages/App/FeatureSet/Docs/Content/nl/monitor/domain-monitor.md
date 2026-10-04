@@ -28,7 +28,7 @@ Domeinmonitors bevragen WHOIS-gegevens voor uw domeinen om registratiedetails bi
 | ---------- | ------------------------------------------- | ------- |
 | Domeinnaam | Het te bewaken domein (bijv. `example.com`) | Ja      |
 
-### Geavanceerde instellingen
+### Meer velden
 
 | Veld            | Beschrijving                                                                 | Standaard |
 | --------------- | ---------------------------------------------------------------------------- | --------- |

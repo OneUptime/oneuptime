@@ -6,11 +6,11 @@ Uma política de plantão aciona pessoas em níveis. Cada regra de escalonamento
 
 Ao criar uma política de plantão na página **Políticas de plantão**, o formulário pede o **Nome** dela e **Quem é acionado primeiro?**. A pergunta usa o mesmo seletor de **Notificar**: agendamentos de plantão, equipes e pessoas, quantos você precisar. Quem você escolher forma a primeira regra de escalonamento da política, **Level 1**, que espera **30 minutos** por uma confirmação antes de acionar o próximo nível. Em seguida, a nova política abre na página **Regras de escalonamento** dela, onde você pode adicionar mais níveis.
 
-**Quem é acionado primeiro?** é opcional. Se você deixar vazio, a política começa sem regras de escalonamento: não aciona ninguém até que você adicione uma, e a visão geral dela avisa isso. A descrição e os rótulos ficam em **Avançado**. A pergunta só aparece para quem pode adicionar regras de escalonamento.
+**Quem é acionado primeiro?** é opcional. Se você deixar vazio, a política começa sem regras de escalonamento: não aciona ninguém até que você adicione uma, e a visão geral dela avisa isso. A descrição e os rótulos ficam em **Mais campos**. A pergunta só aparece para quem pode adicionar regras de escalonamento.
 
 ## Adicionar uma regra de escalonamento
 
-Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral e clique em **Add Escalation Rule**. A caixa de diálogo é uma única página curta com duas perguntas:
+Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral e clique em **Adicionar regra de escalonamento**. A caixa de diálogo é uma única página curta com duas perguntas:
 
 - **Notificar** — quem é acionado neste nível. Um único seletor reúne agendamentos de plantão, equipes e pessoas: clique em **Adicionar destinatário**, pesquise e escolha quantos precisar. É preciso pelo menos um.
   - Um **agendamento de plantão** aciona quem estiver de plantão quando o nível é executado, não uma pessoa fixa.
@@ -18,12 +18,12 @@ Abra a política de plantão, escolha **Regras de escalonamento** no menu latera
   - Uma **pessoa** é acionada diretamente.
 - **Escalonar após (em minutos)** — quanto tempo esperar por uma confirmação antes de acionar o próximo nível. Começa em **30 minutos**; altere conforme o nível.
 
-Todo o resto fica em **Avançado**, recolhido até você abrir:
+Todo o resto fica em **Mais campos**, recolhido até você abrir:
 
 - **Nome** — opcional. Uma regra sem nome recebe o nome do seu nível: a primeira regra de uma política é **Level 1**, a segunda **Level 2**, e assim por diante. O campo de nome mostra o nome que a regra receberá.
 - **Descrição** — notas opcionais, como quem este nível aciona e por quê.
 
-O cabeçalho de **Avançado** mostra **Configurado** quando a regra tem uma descrição ou um nome escolhido por você.
+Recolhido, o cabeçalho de **Mais campos** nomeia os dois e mostra os que a regra tem: uma descrição ou um nome escolhido por você.
 
 ## Como os níveis acionam as pessoas
 
@@ -31,9 +31,11 @@ Quando um incidente ou alerta chega à política, **Level 1** aciona seus destin
 
 O resumo no topo da página **Regras de escalonamento** mostra toda a escada: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa no seu cartão; clique no rótulo para ver quem e por quê.
 
+Cada pessoa acionada por um nível é contatada conforme as próprias regras de plantão: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por gravidade que indica qual método de notificação é usado e depois de quanto tempo. Um administrador do projeto pode ver e alterar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**.
+
 ## Editar, reordenar e excluir regras
 
-- **Edit rule** abre a mesma caixa de diálogo de uma página, preenchida com a regra como ela está: seus destinatários, sua espera, e o nome e a descrição em **Avançado**. Adicione ou remova destinatários e salve. Limpar o nome devolve à regra o nome do seu nível.
+- **Edit rule** abre a mesma caixa de diálogo de uma página, preenchida com a regra como ela está: seus destinatários, sua espera, e o nome e a descrição em **Mais campos**. Adicione ou remova destinatários e salve. Limpar o nome devolve à regra o nome do seu nível.
 - **Move up** e **Move down** no menu **⋯** de uma regra mudam o nível dela. Uma regra com o nome do seu nível mantém um nome que corresponde à sua posição: quando **Level 3** sobe acima de **Level 2**, as duas trocam de nome. Um nome escolhido por você, como **Managers**, continua o mesmo para onde quer que a regra vá.
 - **Delete rule** pede confirmação primeiro e informa quem o nível aciona. Excluir um nível faz os níveis abaixo subirem, e as regras com o nome do seu nível são renomeadas de acordo.
 

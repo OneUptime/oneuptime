@@ -23,13 +23,16 @@ import {
  *
  * A wizard step called "Advanced" is that issue in another shape: every new
  * record has to walk through a page of options almost nobody changes. Those
- * options now go in a collapsed Advanced section (getAdvancedFormSection) at
- * the end of the step before, which a create wizard walks past and an edit
- * dialog shows folded, saying "Configured" when something in it is set.
+ * options now go in a collapsed "More fields" section (getAdvancedFormSection,
+ * called Advanced until the maintainer asked for "something better - like
+ * 'more'") at the end of the step before, which a create wizard walks past
+ * and an edit dialog shows folded, its header naming what is inside and
+ * what of it is set.
  *
  * This guard keeps it that way: no form host may declare a step titled
- * Advanced (Advanced Options, Advanced Settings...) unless it is listed
- * below with the reason it stays.
+ * Advanced (Advanced Options, Advanced Settings...) or More (More fields,
+ * More settings, More options...) - the fold's old name and its new one -
+ * unless it is listed below with the reason it stays.
  *
  * It judges the title the step shows, not how the source spells it. The
  * Admin Dashboard's Global LLM Providers form kept an Advanced step after
@@ -92,7 +95,8 @@ function key(form: { file: string; form?: string; label?: string }): string {
   return `${form.file} :: ${form.form ?? form.label}`;
 }
 
-const ADVANCED_STEP_TITLE: RegExp = /^Advanced\b/i;
+// The fold's old name and its new one: neither is a step's.
+const ADVANCED_STEP_TITLE: RegExp = /^(?:Advanced|More)\b/i;
 
 // What a step's title can say on screen; its source text when unread.
 function titleTextsOf(step: FormStepFacts): Array<string> {
@@ -245,6 +249,31 @@ describe("the step title reader", () => {
     expect(advancedSteps(form)).toHaveLength(3);
   });
 
+  /*
+   * The fold is called More fields now. A step of that name - or More
+   * settings, More options - is the same page of rarely changed options as
+   * an Advanced step was, so it is caught too; a title that only starts with
+   * the letters is not.
+   */
+  test("calls a step titled More one too, the fold's new name", () => {
+    const form: FormFacts = scanPage(DASHBOARD_PAGE, {
+      [DASHBOARD_PAGE]: tableWithSteps([
+        '"Basic Info"',
+        '"More fields"',
+        'translationKey("More settings")',
+        '"More Options"',
+        '"Moreover"',
+      ]),
+      [DASHBOARD_LOCALE]: JSON.stringify({ "More settings": "More settings" }),
+    });
+
+    expect(
+      advancedSteps(form).map((step: FormStepFacts): string | null => {
+        return step.id;
+      }),
+    ).toEqual(["step-1", "step-2", "step-3"]);
+  });
+
   test("reads the status page's translate() keys in its own locale", () => {
     const form: FormFacts = scanPage(STATUS_PAGE_PAGE, {
       [STATUS_PAGE_PAGE]: tableWithSteps([
@@ -387,7 +416,7 @@ describe("rarely used options", () => {
     ).toEqual([]);
   });
 
-  test("sit in a folded Advanced section, never a wizard step of their own", () => {
+  test("sit in a folded More fields section, never a wizard step of their own", () => {
     const allowed: Set<string> = new Set<string>(
       ADVANCED_STEPS_ALLOWED.map(key),
     );

@@ -231,7 +231,7 @@ test.describe("Monitor summary probe picker", () => {
       .first();
     await destination.waitFor({ state: "visible", timeout: 30000 });
     await destination.fill("https://oneuptime.com");
-    // The steps left are optional: Next walks on to choose the probes.
+    // Criteria is not the last step: Next walks on to choose the probes.
     await clickNext({ page });
 
     // Step 3: probes + interval. Clear the defaults, pick one probe only.
@@ -255,7 +255,7 @@ test.describe("Monitor summary probe picker", () => {
       .click();
 
     /*
-     * Probes & Interval is the last step: the labels fold under Advanced on
+     * Probes & Interval is the last step: the labels fold under More fields on
      * Monitor Info, so there is no Labels step to walk on to.
      */
     await expect(

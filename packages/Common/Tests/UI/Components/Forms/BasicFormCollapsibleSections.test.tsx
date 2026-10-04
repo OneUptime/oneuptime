@@ -8,6 +8,7 @@ import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { JSONObject } from "../../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
+import { computeAccessibleDescription } from "dom-accessibility-api";
 import "@testing-library/jest-dom";
 import {
   cleanup,
@@ -93,6 +94,38 @@ async function sectionButton(): Promise<HTMLElement> {
   return screen.findByRole("button", { name: SECTION.title });
 }
 
+/*
+ * The chips a folded header draws for the fields that are set, as read on
+ * screen: "Label: Production".
+ */
+function setChips(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .filter((item: HTMLElement): boolean => {
+      return item.getAttribute("data-item-set") === "true";
+    })
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+// Every name a folded header lists, set or not.
+function listedNames(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+// What a screen reader reads after the header's name, spaces evened out.
+function description(element: HTMLElement): string {
+  return computeAccessibleDescription(element)
+    .replace(/\s+,/g, ",")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 describe("BasicForm collapsible sections", () => {
   afterEach(() => {
     cleanup();
@@ -108,6 +141,8 @@ describe("BasicForm collapsible sections", () => {
     expect(screen.getByTestId("description")).not.toBeVisible();
     expect(screen.getByTestId("label")).not.toBeVisible();
     expect(screen.queryByRole("textbox", { name: /^Description/ })).toBeNull();
+    // Its title says what it holds, so nothing is listed until it is set.
+    expect(listedNames()).toEqual([]);
     expect(screen.queryByText("Configured")).toBeNull();
 
     await user.click(header);
@@ -134,7 +169,12 @@ describe("BasicForm collapsible sections", () => {
 
     expect(description).not.toBeVisible();
     expect(screen.getByTestId("description")).toBe(description);
-    expect(screen.getByText("Configured")).toBeVisible();
+    // Folded, what is set shows as chips that say what it is set to.
+    expect(setChips()).toEqual([
+      "Description: Investigate traffic",
+      "Label: Production",
+    ]);
+    expect(screen.queryByText("Configured")).toBeNull();
 
     await user.click(header);
 
@@ -170,12 +210,13 @@ describe("BasicForm collapsible sections", () => {
     expect(screen.getByTestId("description")).toHaveValue(
       "Existing response instructions",
     );
-    expect(screen.queryByText("Configured")).toBeNull();
+    // Open, the fields say it themselves.
+    expect(setChips()).toEqual([]);
 
     await user.click(header);
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByText("Configured")).toBeVisible();
+    expect(setChips()).toEqual(["Description: Existing response instructions"]);
   });
 
   test("supports keyboard toggles and skips collapsed fields in the tab order", async () => {
@@ -288,10 +329,15 @@ describe("BasicForm collapsible sections", () => {
 
 /*
  * "There should be an advanced section, which should be collapsed by
- * default. You can expand it and click on those options." An Advanced
- * section (getAdvancedFormSection) is folded on Create and on Edit alike,
- * says "Configured" while anything in it is set - worked out from its own
- * fields - and still opens by itself when a field in it fails validation.
+ * default. You can expand it and click on those options." And later: "The
+ * advanced section in the form should be called something better ... show
+ * what things are inside it when collapsed (small summary of things)."
+ *
+ * A More fields section (getAdvancedFormSection) is folded on Create and on
+ * Edit alike, names the fields it holds on its folded header, draws each
+ * one that is set as a chip that says what it is set to - worked out from
+ * its own fields - and still opens by itself when a field in it fails
+ * validation.
  */
 describe("BasicForm Advanced sections", () => {
   afterEach(() => {
@@ -332,10 +378,10 @@ describe("BasicForm Advanced sections", () => {
   ];
 
   async function advancedButton(): Promise<HTMLElement> {
-    return screen.findByRole("button", { name: "Advanced" });
+    return screen.findByRole("button", { name: "More fields" });
   }
 
-  test("starts folded with nothing set, and says nothing on its header", async () => {
+  test("starts folded, naming the fields it holds, with nothing set", async () => {
     renderForm({ fields: ADVANCED_FIELDS, initialValues: {} });
 
     const header: HTMLElement = await advancedButton();
@@ -343,11 +389,19 @@ describe("BasicForm Advanced sections", () => {
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByTestId("field-name")).toBeVisible();
     expect(screen.getByTestId("note")).not.toBeVisible();
+    expect(listedNames()).toEqual(["Show on Create", "Auto Resolve", "Note"]);
     // The default-on switch is in its default position: nothing is set.
+    expect(setChips()).toEqual([]);
     expect(screen.queryByText("Configured")).toBeNull();
+    // Read out with the header.
+    expect(description(header)).toBe("Show on Create, Auto Resolve, Note");
+    // A tile with the More fields icon, grey while nothing is set.
+    expect(screen.getByTestId("folded-section-icon")).toHaveClass(
+      "bg-gray-100",
+    );
   });
 
-  test("stays folded on an Edit form that has something set, and says Configured", async () => {
+  test("stays folded on an Edit form that has something set, and shows it as a chip", async () => {
     renderForm({
       fields: ADVANCED_FIELDS,
       initialValues: { name: "Region", showOnCreate: true },
@@ -356,10 +410,20 @@ describe("BasicForm Advanced sections", () => {
     const header: HTMLElement = await advancedButton();
 
     await waitFor(() => {
-      expect(screen.getByText("Configured")).toBeVisible();
+      expect(setChips()).toEqual(["Show on Create: On"]);
     });
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByTestId("note")).not.toBeVisible();
+    // The unset ones are still named.
+    expect(listedNames()).toEqual([
+      "Show on Create: On",
+      "Auto Resolve",
+      "Note",
+    ]);
+    expect(screen.getByTestId("folded-section-icon")).toHaveClass(
+      "bg-indigo-50",
+    );
+    expect(screen.queryByText("Configured")).toBeNull();
   });
 
   test("counts a default-on switch turned off as set", async () => {
@@ -371,11 +435,11 @@ describe("BasicForm Advanced sections", () => {
     await advancedButton();
 
     await waitFor(() => {
-      expect(screen.getByText("Configured")).toBeVisible();
+      expect(setChips()).toEqual(["Auto Resolve: Off"]);
     });
   });
 
-  test("opens on a click, keeps what is typed, and says Configured once folded again", async () => {
+  test("opens on a click, keeps what is typed, and shows it as a chip once folded again", async () => {
     const { user, handleSubmit }: RenderFormResult = renderForm({
       fields: ADVANCED_FIELDS,
       initialValues: { name: "Region" },
@@ -387,8 +451,8 @@ describe("BasicForm Advanced sections", () => {
 
     expect(header).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByTestId("note")).toBeVisible();
-    // Open, the header has no badge: the fields say it themselves.
-    expect(screen.queryByText("Configured")).toBeNull();
+    // Open, the header lists nothing: the fields say it themselves.
+    expect(listedNames()).toEqual([]);
 
     fireEvent.change(screen.getByTestId("note"), {
       target: { value: "Ask the platform team" },
@@ -397,7 +461,7 @@ describe("BasicForm Advanced sections", () => {
     await user.click(header);
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByText("Configured")).toBeVisible();
+    expect(setChips()).toEqual(["Note: Ask the platform team"]);
 
     await user.click(screen.getByRole("button", { name: "Save Rule" }));
 
@@ -412,7 +476,7 @@ describe("BasicForm Advanced sections", () => {
     );
   });
 
-  test("stops saying Configured when what was set is cleared", async () => {
+  test("stops showing a field as set when what was set is cleared", async () => {
     const { user }: RenderFormResult = renderForm({
       fields: ADVANCED_FIELDS,
       initialValues: { name: "Region", note: "Old note" },
@@ -421,7 +485,7 @@ describe("BasicForm Advanced sections", () => {
     const header: HTMLElement = await advancedButton();
 
     await waitFor(() => {
-      expect(screen.getByText("Configured")).toBeVisible();
+      expect(setChips()).toEqual(["Note: Old note"]);
     });
 
     await user.click(header);
@@ -429,7 +493,68 @@ describe("BasicForm Advanced sections", () => {
     await user.click(header);
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Configured")).toBeNull();
+    expect(setChips()).toEqual([]);
+    expect(listedNames()).toEqual(["Show on Create", "Auto Resolve", "Note"]);
+  });
+
+  test("a section whose own rule says it is not configured shows nothing as set", async () => {
+    // An escalation rule named after its level: its name is no choice.
+    const named: FormFieldCollapsibleSection<JSONObject> =
+      getAdvancedFormSection<JSONObject>({
+        isConfigured: (values: FormValues<JSONObject>): boolean => {
+          return values["note"] !== "Level 2";
+        },
+      });
+
+    renderForm({
+      fields: ADVANCED_FIELDS.map(
+        (candidate: Field<JSONObject>): Field<JSONObject> => {
+          return candidate.collapsibleSection
+            ? { ...candidate, collapsibleSection: named }
+            : candidate;
+        },
+      ),
+      initialValues: { name: "Region", note: "Level 2" },
+    });
+
+    await advancedButton();
+
+    await waitFor(() => {
+      expect(listedNames()).toEqual(["Show on Create", "Auto Resolve", "Note"]);
+    });
+    expect(setChips()).toEqual([]);
+  });
+
+  test("says what its defaults do in a sentence under the fields it names", async () => {
+    const withSummary: FormFieldCollapsibleSection<JSONObject> =
+      getAdvancedFormSection<JSONObject>({
+        getSummary: (values: FormValues<JSONObject>) => {
+          return values["note"]
+            ? undefined
+            : ["The note is left out of the message."];
+        },
+      });
+
+    renderForm({
+      fields: ADVANCED_FIELDS.map(
+        (candidate: Field<JSONObject>): Field<JSONObject> => {
+          return candidate.collapsibleSection
+            ? { ...candidate, collapsibleSection: withSummary }
+            : candidate;
+        },
+      ),
+      initialValues: { name: "Region" },
+    });
+
+    const header: HTMLElement = await advancedButton();
+
+    expect(listedNames()).toEqual(["Show on Create", "Auto Resolve", "Note"]);
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      "The note is left out of the message.",
+    );
+    expect(description(header)).toBe(
+      "Show on Create, Auto Resolve, Note The note is left out of the message.",
+    );
   });
 
   test("opens by itself when a field in it fails validation", async () => {
@@ -476,8 +601,9 @@ describe("BasicForm Advanced sections", () => {
  * "Subscribers are notified when the event is scheduled, starts and ends" -
  * a section whose defaults suit most people folds to the line that says
  * what they are (FormFieldCollapsibleSection.getSummary), worked out from
- * the form's values as they are now. The line takes the place of the
- * "Configured" badge, which shows as before when there is no line.
+ * the form's values as they are now. A section whose title says what it
+ * holds shows the line in place of chips for its set fields, which it shows
+ * when there is no line.
  */
 describe("BasicForm section summaries", () => {
   afterEach(() => {
@@ -588,7 +714,7 @@ describe("BasicForm section summaries", () => {
     ).not.toBeChecked();
   });
 
-  test("says Configured as before when it has nothing to say", async () => {
+  test("shows what is set as chips when it has nothing to say", async () => {
     const quiet: FormFieldCollapsibleSection<JSONObject> = {
       ...NOTIFY,
       openWhenConfigured: false,
@@ -611,8 +737,46 @@ describe("BasicForm section summaries", () => {
     await notifyButton();
 
     await waitFor(() => {
-      expect(screen.getByText("Configured")).toBeVisible();
+      expect(setChips()).toEqual(["Reminder: 1 day"]);
     });
+    // Its title says what it holds: the unset ones are not listed.
+    expect(listedNames()).toEqual(["Reminder: 1 day"]);
     expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+    expect(screen.queryByText("Configured")).toBeNull();
+    // Only More fields wears the icon tile.
+    expect(screen.queryByTestId("folded-section-icon")).toBeNull();
+  });
+
+  test("says Configured when its own rule says so but no field it shows is set", async () => {
+    const configured: FormFieldCollapsibleSection<JSONObject> = {
+      ...NOTIFY,
+      openWhenConfigured: false,
+      isConfigured: (values: FormValues<JSONObject>): boolean => {
+        return values["title"] === "Database upgrade";
+      },
+      getSummary: (): Array<string> => {
+        return [];
+      },
+    };
+
+    renderForm({
+      fields: NOTIFY_FIELDS.map(
+        (candidate: Field<JSONObject>): Field<JSONObject> => {
+          return candidate.collapsibleSection
+            ? { ...candidate, collapsibleSection: configured }
+            : candidate;
+        },
+      ),
+      initialValues: { title: "Database upgrade" },
+    });
+
+    await notifyButton();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("folded-section-badge")).toHaveTextContent(
+        "Configured",
+      );
+    });
+    expect(setChips()).toEqual([]);
   });
 });

@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
@@ -19,9 +18,15 @@ import {
   Teal500,
   Indigo500,
 } from "Common/Types/BrandColors";
-import React, { FunctionComponent, ReactElement } from "react";
+import {
+  TRACE_SCRUB_FIELDS,
+  TRACE_SCRUB_PATTERN_TYPES,
+} from "Common/Types/Telemetry/ScrubRule";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getTraceScrubRuleFormFields } from "../../../Components/Telemetry/ScrubRuleForm";
+import ScrubRulePatternPill from "../../../Components/Telemetry/ScrubRulePatternPill";
 
 interface PillConfig {
   label: string;
@@ -131,26 +136,45 @@ Trace scrub rules automatically detect and remove sensitive data (PII) from your
 
 ### Pattern Types
 
-Email, Credit Card, SSN, Phone Number, IP Address, or your own custom regex.
+Email, Credit Card, SSN, Phone Number, IP Address, Sensitive Attribute Keys (the whole value of every attribute whose key looks sensitive, such as a password or a token), or your own custom regex.
+
+A **Custom Regex** rule needs its pattern: a regular expression for the text to scrub, written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`). Matching is case-sensitive. A pattern that is empty, does not compile, or matches empty text is refused when you save, because the rule would scrub nothing. A rule saved before that check without a usable pattern is marked **Scrubs nothing** in the table: edit it to give it one.
+
+A new rule is named after its pattern type ("Scrub email addresses") until you type a name of your own.
 
 ### Scrub Actions
 
-- **Redact** — replace with \`[REDACTED]\`
+- **Redact** — replace with \`[REDACTED]\` (what a new rule does)
 - **Mask** — partially hide value
 - **Hash** — replace with deterministic SHA-256 hash
 
 ### Fields to Scrub
 
-- **All** — span name, attributes, and event attributes
+- **All** — span name, attributes, and event attributes (what a new rule scrubs)
 - **Span Name** — only the span name
 - **Attributes** — only span attribute values
 - **Events** — only span event attribute values
+
+A **Sensitive Attribute Keys** rule always scrubs attribute and event attribute values, since it matches attribute keys. The action and the fields are under **More fields** in the form.
 `;
 
 const TraceScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * One page that starts from what the rule scrubs: the pattern type, its
+   * regex for Custom Regex, a name that follows the type, and the rest
+   * folded under Advanced at the server's defaults
+   * (Components/Telemetry/ScrubRuleForm, shared with Logs).
+   */
+  const formFields: Array<ModelField<TraceScrubRule>> = useMemo((): Array<
+    ModelField<TraceScrubRule>
+  > => {
+    return getTraceScrubRuleFormFields();
+  }, []);
+
   return (
     <ModelTable<TraceScrubRule>
       modelType={TraceScrubRule}
@@ -182,114 +206,14 @@ const TraceScrubRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No scrub rules found."}
-      createInitialValues={{
-        isEnabled: true,
-        scrubAction: "redact",
-        fieldsToScrub: "all",
+      formFields={formFields}
+      /*
+       * The pattern itself, so a rule that scrubs nothing - a custom one
+       * ingest cannot use - is flagged in its row (ScrubRulePatternPill).
+       */
+      selectMoreFields={{
+        customRegex: true,
       }}
-      onBeforeCreate={async (item: TraceScrubRule) => {
-        // No sortOrder: the server puts a new rule at the end of the list.
-        if (!item.scrubAction) {
-          item.scrubAction = "redact";
-        }
-        if (!item.fieldsToScrub) {
-          item.fieldsToScrub = "all";
-        }
-        if (item.isEnabled === undefined || item.isEnabled === null) {
-          item.isEnabled = true;
-        }
-        return item;
-      }}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Pattern Configuration", id: "pattern-config" },
-        { title: "Scrub Settings", id: "scrub-settings" },
-      ]}
-      formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "e.g. Scrub Email Addresses",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Describe what this scrub rule does.",
-        },
-        {
-          field: { patternType: true },
-          title: "Pattern Type",
-          stepId: "pattern-config",
-          description:
-            "The type of sensitive data to detect. Select 'Custom' to provide your own regex pattern.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            { label: "Email Address", value: "email" },
-            { label: "Credit Card Number", value: "creditCard" },
-            { label: "SSN (Social Security Number)", value: "ssn" },
-            { label: "Phone Number", value: "phoneNumber" },
-            { label: "IP Address", value: "ipAddress" },
-            { label: "Sensitive Attribute Keys", value: "sensitiveKeys" },
-            { label: "Custom Regex", value: "custom" },
-          ],
-        },
-        {
-          field: { customRegex: true },
-          title: "Custom Regex Pattern",
-          stepId: "pattern-config",
-          description: "A regular expression to match sensitive data.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "e.g. \\bSECRET-[A-Z0-9]+\\b",
-          showIf: (values: FormValues<TraceScrubRule>): boolean => {
-            return values.patternType === "custom";
-          },
-        },
-        {
-          field: { scrubAction: true },
-          title: "Scrub Action",
-          stepId: "scrub-settings",
-          description:
-            "How to handle matched data. Mask: partially hide. Hash: replace with deterministic hash. Redact: replace with [REDACTED].",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            { label: "Redact", value: "redact" },
-            { label: "Mask", value: "mask" },
-            { label: "Hash", value: "hash" },
-          ],
-        },
-        {
-          field: { fieldsToScrub: true },
-          title: "Fields to Scrub",
-          stepId: "scrub-settings",
-          description:
-            "Which parts of the span to scrub: span name, attribute values, event attribute values, or all.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            { label: "All (Name, Attributes & Events)", value: "all" },
-            { label: "Span Name Only", value: "name" },
-            { label: "Attributes Only", value: "attributes" },
-            { label: "Event Attributes Only", value: "events" },
-          ],
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "scrub-settings",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-      ]}
       showRefreshButton={true}
       searchableFields={["name", "description"]}
       showViewIdButton={true}
@@ -340,19 +264,14 @@ const TraceScrubRules: FunctionComponent<
           title: "Pattern Type",
           type: FieldType.Element,
           getElement: (item: TraceScrubRule): ReactElement => {
-            const key: string = (item.patternType as string) || "unknown";
-            const config: PillConfig = patternTypeConfig[key] || {
-              label: key,
-              color: Blue500,
-              icon: IconProp.ShieldCheck,
-              tooltip: key,
-            };
             return (
-              <Pill
-                text={config.label}
-                color={config.color}
-                icon={config.icon}
-                tooltip={config.tooltip}
+              <ScrubRulePatternPill
+                patternType={item.patternType}
+                customRegex={item.customRegex}
+                fieldsToScrub={item.fieldsToScrub}
+                patternTypes={patternTypeConfig}
+                knownPatternTypes={TRACE_SCRUB_PATTERN_TYPES}
+                knownFieldsToScrub={TRACE_SCRUB_FIELDS}
               />
             );
           },

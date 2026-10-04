@@ -253,8 +253,13 @@ describe("Telemetry ingestion key create form", () => {
         expect(fieldKey(notice)).toBe("telemetryPayAsYouGoNotice");
         expect(notice.stepId).toBe("billing");
         expect(notice.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-        // A gate: never finished past without being drawn.
-        expect(notice.customElementCanBeSkipped).toBeFalsy();
+        /*
+         * A gate: Billing is the last step, and Create is offered on the
+         * last step only, so the notice is always read before a key exists.
+         */
+        const steps: Array<FormStep<TelemetryIngestionKey>> =
+          getIngestionKeyFormSteps(options);
+        expect(steps[steps.length - 1]?.id).toBe("billing");
         expect(notice.overrideFieldKey).toBeUndefined();
       },
     );
@@ -283,7 +288,7 @@ describe("Telemetry ingestion key create form", () => {
         expect(description.collapsibleSection?.id).toBe(
           ADVANCED_FORM_SECTION_ID,
         );
-        expect(description.collapsibleSection?.title).toBe("Advanced");
+        expect(description.collapsibleSection?.title).toBe("More fields");
         expect(description.collapsibleSection?.openWhenConfigured).toBe(false);
         expect(pinned.collapsibleSection).toBe(description.collapsibleSection);
       }

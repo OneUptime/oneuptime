@@ -6,7 +6,7 @@ Una política de guardia avisa a las personas por niveles. Cada regla de escalad
 
 Cuando creas una política de guardia en la página **Políticas de guardia**, el formulario pide su **Nombre** y **¿A quién se avisa primero?**. La pregunta usa el mismo selector que **Notificar**: horarios de guardia, equipos y personas, tantos como necesites. Quienes elijas forman la primera regla de escalado de la política, **Level 1**, que espera **30 minutos** a que alguien confirme antes de avisar al siguiente nivel. Después, la nueva política se abre en su página **Reglas de escalado**, donde puedes añadir más niveles.
 
-**¿A quién se avisa primero?** es opcional. Si lo dejas vacío, la política empieza sin reglas de escalado: no avisa a nadie hasta que añadas una, y su resumen lo indica. La descripción y las etiquetas están en **Avanzado**. La pregunta solo se muestra a quien puede añadir reglas de escalado.
+**¿A quién se avisa primero?** es opcional. Si lo dejas vacío, la política empieza sin reglas de escalado: no avisa a nadie hasta que añadas una, y su resumen lo indica. La descripción y las etiquetas están en **Más campos**. La pregunta solo se muestra a quien puede añadir reglas de escalado.
 
 ## Añadir una regla de escalado
 
@@ -18,12 +18,12 @@ Abre la política de guardia, elige **Reglas de escalado** en su menú lateral y
   - A una **persona** se le avisa directamente.
 - **Escalar después de (en minutos)** — cuánto esperar una confirmación antes de avisar al siguiente nivel. Empieza en **30 minutos**; cámbialo según convenga al nivel.
 
-Todo lo demás está en **Avanzado**, plegado hasta que lo abras:
+Todo lo demás está en **Más campos**, plegado hasta que lo abras:
 
 - **Nombre** — opcional. Una regla sin nombre se llama como su nivel: la primera regla de una política es **Level 1**, la segunda **Level 2**, y así sucesivamente. El campo del nombre muestra el nombre que recibirá la regla.
 - **Descripción** — notas opcionales, por ejemplo a quién avisa este nivel y por qué.
 
-La cabecera de **Avanzado** indica **Configurado** cuando la regla tiene una descripción o un nombre propio.
+Plegada, la cabecera de **Más campos** nombra los dos y muestra los que tiene la regla: una descripción o un nombre propio.
 
 ## Cómo avisan los niveles
 
@@ -31,9 +31,11 @@ Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus d
 
 El resumen en la parte superior de la página **Reglas de escalado** muestra toda la escalera: cuándo se avisa a cada nivel, a quién avisa y qué pasa después del último. Un nivel cuyos destinatarios no pueden recibir todos el aviso lo indica en su tarjeta; haz clic en la etiqueta para ver quién y por qué.
 
+A cada persona a la que avisa un nivel se la contacta según sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidente, alertas y episodios de alerta, y una tarjeta por gravedad que indica qué método de notificación se usa y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**.
+
 ## Editar, reordenar y eliminar reglas
 
-- **Editar regla** abre el mismo diálogo de una página, relleno con la regla tal como está: sus destinatarios, su espera, y su nombre y descripción en **Avanzado**. Añade o quita destinatarios y guarda. Si vacías el nombre, la regla vuelve a llamarse como su nivel.
+- **Editar regla** abre el mismo diálogo de una página, relleno con la regla tal como está: sus destinatarios, su espera, y su nombre y descripción en **Más campos**. Añade o quita destinatarios y guarda. Si vacías el nombre, la regla vuelve a llamarse como su nivel.
 - **Subir** y **Bajar** en el menú **⋯** de una regla cambian su nivel. Una regla que se llama como su nivel mantiene un nombre acorde con su lugar: cuando **Level 3** sube por encima de **Level 2**, ambas intercambian sus nombres. Un nombre que elegiste, como **Managers**, se mantiene vaya donde vaya la regla.
 - **Eliminar regla** pide confirmación primero e indica a quién avisa el nivel. Al eliminar un nivel, los niveles de debajo suben, y las reglas que se llaman como su nivel se renombran en consecuencia.
 

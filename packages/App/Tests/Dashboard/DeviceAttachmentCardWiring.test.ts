@@ -8,11 +8,12 @@ import path from "path";
  * The card is a .tsx App's compile cannot reach, and its behaviour is
  * rendered under Common/Tests/App/Dashboard/DeviceAttachmentCard.test.tsx.
  * What THIS pins is the wiring that a render test of the card alone cannot
- * see: that the Overview actually mounts it, that the Overview's edit form
- * and read-only detail both carry the MAC field the card depends on, and
- * that the card links the switch to the device page every other endpoint
- * surface links it to. Each of those is a one-line deletion that leaves
- * every other suite green.
+ * see: that the Overview actually mounts it, that the MAC field the card
+ * depends on is shown on the Overview and edited on the device's Settings
+ * page (the one place a device's details are edited - the Overview links
+ * there), and that the card links the switch to the device page every
+ * other endpoint surface links it to. Each of those is a one-line deletion
+ * that leaves every other suite green.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -35,6 +36,13 @@ const OVERVIEW_CODE: string = readDashboardSource(
   "Index.tsx",
 );
 
+const SETTINGS_CODE: string = readDashboardSource(
+  "Pages",
+  "NetworkDevice",
+  "View",
+  "Settings.tsx",
+);
+
 const CARD_CODE: string = readDashboardSource(
   "Components",
   "NetworkDevice",
@@ -52,15 +60,22 @@ describe("the device Overview wires the Connected to card", () => {
     );
   });
 
-  test("the edit form carries the shared MAC Address field", () => {
+  test("the MAC Address field is edited on Settings, which the Overview links to", () => {
     /*
-     * The helper, not a hand-rolled field, on the Address step of the
-     * Overview's stepped edit form, beside the hostname.
+     * A device's details are edited in one place: the Device Settings card,
+     * where the helper puts the MAC on the Address step beside the
+     * hostname. The Overview's details card carries no form of its own,
+     * only the link there.
      */
-    expect(OVERVIEW_CODE).toContain(
+    expect(SETTINGS_CODE).toContain(
       'getMacAddressFormField({ stepId: "address" })',
     );
-    expect(OVERVIEW_CODE).toContain('from "../MacAddressFormField"');
+    expect(SETTINGS_CODE).toContain('from "../MacAddressFormField"');
+    expect(OVERVIEW_CODE).not.toContain("getMacAddressFormField");
+    expect(OVERVIEW_CODE).not.toContain("formFields=");
+    expect(OVERVIEW_CODE).toMatch(
+      /<EditInSettingsLink[\s\S]*PageMap\.NETWORK_DEVICE_VIEW_SETTINGS/,
+    );
   });
 
   test("the read-only detail shows the MAC Address when there is one", () => {

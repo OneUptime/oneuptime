@@ -45,7 +45,7 @@ DNS-monitorer spør DNS-servere om spesifikke posttyper og evaluerer resultatene
 | SRV      | Tjenestelokalisatorposter                  |
 | CAA      | Certificate Authority Authorization-poster |
 
-### Avanserte innstillinger
+### Flere felt
 
 | Felt             | Beskrivelse                                                                  | Standard |
 | ---------------- | ---------------------------------------------------------------------------- | -------- |

@@ -39,7 +39,8 @@ import {
 } from "./Utils/CreateFormDefaults";
 import {
   getPeoplePickerValueKeys,
-  toPeoplePickerIds,
+  PeoplePickerFormValue,
+  toPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
@@ -160,9 +161,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   hideSubmitButton?: undefined | boolean;
   submitButtonStyleType?: ButtonStyleType | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
+  // Whether the step on screen is the last one (see BasicForm).
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
-  // Whether the form can be finished from the step on screen (see BasicForm).
-  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
   onLoadingChange?: undefined | ((isLoading: boolean) => void);
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
@@ -488,17 +488,21 @@ const ModelForm: <TBaseModel extends BaseModel>(
            * the server stores for a field left out - unless the field or the
            * form's initial values say otherwise (Utils/CreateFormDefaults).
            * Without this a switch whose column defaults to on was drawn off
-           * and saved off. An Edit form shows the record as it is.
+           * and saved off. An Edit form shows the record as it is, but its
+           * folded sections still compare with the column's default, so a
+           * switch on because its column starts on is not shown as set.
            */
           const columnDefault: CreateFormColumnDefault | undefined =
-            props.formType === FormType.Create
-              ? getCreateFormColumnDefault(model, field)
-              : undefined;
+            getCreateFormColumnDefault(model, field);
 
           fieldsToSet.push({
             ...field,
-            ...(columnDefault !== undefined
+            ...(columnDefault !== undefined &&
+            props.formType === FormType.Create
               ? { defaultValue: columnDefault }
+              : {}),
+            ...(columnDefault !== undefined
+              ? { columnDefaultValue: columnDefault }
               : {}),
             field: {
               [key]: true,
@@ -1068,7 +1072,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
       /*
        * A people picker's values that are not columns of the model - a
        * template's ownerUsers and ownerTeams - are sent as misc data, as
-       * plain ids. Its columns are saved with the model.
+       * plain ids (one id, for a picker that takes a single pick). Its
+       * columns are saved with the model.
        */
       if (isPeoplePickerField(field) && field.peoplePicker) {
         for (const key of getPeoplePickerValueKeys(field.peoplePicker)) {
@@ -1076,8 +1081,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
             continue;
           }
 
-          if (values[key] !== undefined && values[key] !== null) {
-            result[key] = toPeoplePickerIds(values[key]);
+          if (values[key] === undefined || values[key] === null) {
+            continue;
+          }
+
+          const formValue: PeoplePickerFormValue = toPeoplePickerFormValue(
+            field.peoplePicker,
+            values[key],
+          );
+
+          if (formValue !== null) {
+            result[key] = formValue;
           }
         }
 
@@ -1398,7 +1412,6 @@ const ModelForm: <TBaseModel extends BaseModel>(
         )}
         onFormStepChange={props.onFormStepChange}
         onIsLastFormStep={props.onIsLastFormStep}
-        onCanFinishFromCurrentStep={props.onCanFinishFromCurrentStep}
         fields={fields}
         steps={props.steps}
         onChange={(

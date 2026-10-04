@@ -44,6 +44,8 @@ Par défaut, un abonné reçoit tout ce qui se passe sur la page. Deux bascules 
 - **Permettre aux abonnés de choisir les ressources** (`allowSubscribersToChooseResources`) — désactivé par défaut. Activez-le et le formulaire d'abonnement gagne une bascule **S'abonner à toutes les ressources** ; décochez-la et **Sélectionner les ressources à suivre** apparaît, pour que le visiteur choisisse des ressources une par une.
 - **Permettre aux abonnés de choisir les types d'événements** (`allowSubscribersToChooseEventTypes`) — désactivé par défaut. Même forme : une bascule **S'abonner à tous les types d'événements**, et **Sélectionner les types d'événements à suivre** en dessous lorsqu'elle est décochée.
 
+Si l'une des deux est activée, le formulaire reste sur une seule page : ces choix se trouvent dans **Préférences**, replié sous l'endroit où envoyer les mises à jour. Replié, il indique en une ligne ce que le visiteur recevra (toutes les mises à jour de la page de statut, tant qu'il ne restreint rien), si bien qu'un visiteur qui veut tout clique simplement sur **S'abonner**. La page **Mettre à jour l'abonnement** montre les mêmes choix dépliés.
+
 Les types d'événements sont `Incident`, `Announcement` et `Scheduled Event`.
 
 Les choix atterrissent sur la fiche de l'abonné sous **Is Subscribed to All Resources** (`isSubscribedToAllResources`, `true` par défaut), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, `true` par défaut), **Subscribed to Resources** et **Subscribed to Event Types**.
@@ -82,7 +84,7 @@ Les abonnés entendent parler des trois types d'événements ci-dessus, mais cha
 
 ### Notifications d'annonce
 
-L'annonce elle-même porte **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposé sur le formulaire de création sous la case **Notifier les abonnés de la page de statut**, cochée par défaut. Si l'annonce nomme des moniteurs sous **Moniteurs affectés (facultatif)**, la notification est limitée à ces moniteurs ; laissez le champ vide et tous les abonnés sont prévenus.
+L'annonce elle-même porte **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposé sur le formulaire de création sous la case **Notifier les abonnés de la page de statut** dans **Planification et notifications**, cochée par défaut. Les abonnés sont prévenus une seule fois, dès que l'annonce s'affiche : ce choix se fait donc à la création, et une modification ne le change pas. Si l'annonce nomme des moniteurs sous **Moniteurs affectés**, la notification est limitée à ces moniteurs ; laissez le champ vide et tous les abonnés sont prévenus.
 
 ### Événements de maintenance planifiée
 
@@ -114,12 +116,14 @@ Le SMTP personnalisé vaut la peine d'être mis en place tôt si vous avez des a
 
 Une annonce est un enregistrement au niveau du projet (le modèle `StatusPageAnnouncement`) que vous diffusez vers une ou plusieurs pages de statut, éventuellement limité à certains moniteurs, avec une fenêtre pendant laquelle il est affiché.
 
-Vous en créez une depuis **Pages de statut → Plus → Annonces**, ou depuis **Annonces** dans le menu latéral d'une page de statut donnée. Le formulaire de création est un assistant en quatre étapes :
+Vous en créez une depuis **Pages de statut → Plus → Annonces**, ou depuis **Annonces** dans le menu latéral d'une page de statut donnée. Créée depuis une page de statut, cette page est déjà sélectionnée : un titre et une description suffisent, et **Créer une annonce** vous ramène à la liste **Annonces** de cette page (ou à la liste du projet, si vous avez désélectionné la page en chemin). Le formulaire de création compte deux étapes, puis un récapitulatif :
 
-1. **Informations de base** — **Titre de l'annonce** (obligatoire, au moins deux caractères), **Description** (Markdown, facultative) et **Pièces jointes** pour les fichiers qui doivent accompagner l'annonce sur la page de statut.
-2. **Pages de statut** — **Afficher l'annonce sur ces pages de statut**, une sélection multiple obligatoire. Une même annonce peut viser plusieurs pages à la fois.
-3. **Ressources affectées** — **Moniteurs affectés (facultatif)**. Si vous n'en sélectionnez aucun, tous les abonnés sont prévenus.
-4. **Planification et paramètres** — **Commencer à afficher l'annonce à** (obligatoire, réglé sur maintenant par défaut), **Fin de l'affichage de l'annonce à** (facultatif) et **Notifier les abonnés de la page de statut** (activé par défaut).
+1. **Annonce** — **Titre** (obligatoire, au moins deux caractères) et **Description** (Markdown, obligatoire : c'est le texte qu'on lit sur la page de statut). Les **Pièces jointes**, pour les fichiers qui doivent accompagner l'annonce sur la page de statut, attendent sous **Plus de champs**.
+2. **Pages de statut** — **Afficher l'annonce sur ces pages de statut**, une sélection multiple obligatoire (une même annonce peut viser plusieurs pages à la fois), et **Moniteurs affectés** : si vous n'en sélectionnez aucun, tous les abonnés sont prévenus. Dès que des moniteurs sont choisis, le formulaire propose sous la sélection des pages les pages de statut qui les affichent : « Pages de statut qui affichent les moniteurs concernés : » suivi du nom de chaque page. Cliquez sur un nom pour ajouter cette page, ou sur **Tout ajouter** ; rien n'est choisi à votre place. En dessous, **Planification et notifications** est replié en une ligne qui dit ce qui va se passer : « S'affiche dès maintenant et reste affichée jusqu'à ce que vous y mettiez fin. Les abonnés sont notifiés dès qu'elle s'affiche. » Dépliez-la pour modifier **Commencer à afficher l'annonce à** (maintenant par défaut), **Fin de l'affichage de l'annonce à** (vide : l'annonce reste affichée jusqu'à ce que vous fixiez une fin) ou **Notifier les abonnés de la page de statut** (activé par défaut). La ligne suit vos réponses. La fin doit suivre le début et, pour une nouvelle annonce, être encore à venir : une annonce déjà terminée ne s'afficherait jamais.
+
+Le récapitulatif montre la même ligne. **Créer à partir d'un modèle** remplit le formulaire à partir d'un modèle ; depuis une page de statut, les pages de statut du modèle sont conservées à côté de cette page.
+
+La page de l'annonce la modifie avec les mêmes deux étapes. **Notifier les abonnés de cette mise à jour** se trouve sous la description, et **Planification** contient le début et la fin. Fixer une fin déjà passée est la façon de retirer une annonce.
 
 Les visiteurs lisent les annonces sur `/announcements`, réparties entre **Annonces actives** et **Annonces passées**, chacune datée d'un **Annoncé le**. Les annonces en cours sont en plus épinglées en haut de la page d'aperçu. Quand il n'y a rien à montrer, la page affiche *Aucune annonce* avec la mention qu'aucune n'a été publiée pour l'instant.
 
@@ -141,7 +145,7 @@ L'apparition même des annonces se règle dans la carte **Ce que montre votre pa
 
 ## Les modèles d'annonce
 
-Si vous publiez le même genre d'avis à répétition — un rappel de maintenance mensuel, une dégradation récurrente chez un tiers — préparez-le à l'avance. **Pages de statut → Paramètres → Modèles d'annonce** stocke le modèle `StatusPageAnnouncementTemplate`, et son formulaire demande **Nom du modèle**, **Description du modèle**, **Titre de l'annonce**, **Description**, **Afficher l'annonce sur ces pages de statut**, **Moniteurs affectés (facultatif)** et **Notifier les abonnés** : la diffusion et la décision de notifier sont donc prises une fois pour toutes plutôt qu'à chaque fois.
+Si vous publiez le même genre d'avis à répétition — un rappel de maintenance mensuel, une dégradation récurrente chez un tiers — préparez-le à l'avance. **Pages de statut → Paramètres → Modèles d'annonce** stocke le modèle `StatusPageAnnouncementTemplate`. Son formulaire passe par **Informations du modèle** (**Nom du modèle**, **Description du modèle**), puis par les étapes de l'annonce elle-même : **Annonce** (**Titre**, **Description**) et **Pages de statut** (**Afficher l'annonce sur ces pages de statut**, **Moniteurs affectés** et **Notifier les abonnés de la page de statut**, activé par défaut) : la diffusion et la décision de notifier sont donc prises une fois pour toutes plutôt qu'à chaque fois. Un modèle n'a pas de planification : une annonce créée à partir de lui s'affiche dès sa création, sauf si vous changez cela sous **Planification et notifications**.
 
 ## Les abonnés webhook et la protection contre le SSRF
 

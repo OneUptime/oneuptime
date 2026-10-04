@@ -222,7 +222,9 @@ export default class MessagingEntityKeyResolver {
    * The Kafka, MQTT and NATS spans OBI records on the receiving side of a
    * connection (a broker's, a subscriber's delivery) are SERVER here too:
    * OBI v0.14 sends them as PRODUCER / CONSUMER, and ingest stores them as
-   * SERVER before this runs (ObiReceivingSideMessagingSpan).
+   * SERVER before this runs (ObiReceivingSideMessagingSpan) — except a NATS
+   * client's split delivery naming its broker, kept CONSUMER: it is the
+   * subscriber's own consumption of the subject.
    */
   public static isMessagingSpan(attributes: unknown, kind: unknown): boolean {
     if (kind === SpanKind.Server || !attributes) {

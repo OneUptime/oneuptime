@@ -71,7 +71,7 @@ https://api.example.com/health?nocache={{random}}
 - **PATCH**
 - **HEAD**
 
-### 進階選項
+### 更多欄位
 
 #### 請求標頭
 

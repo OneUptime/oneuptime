@@ -28,7 +28,7 @@ Los monitores de dominio consultan datos WHOIS para tus dominios con el fin de r
 | ----------------- | ---------------------------------------------------- | --------- |
 | Nombre de dominio | El dominio a monitorear (por ejemplo, `example.com`) | Sí        |
 
-### Configuración avanzada
+### Más campos
 
 | Campo                 | Descripción                                                                     | Predeterminado |
 | --------------------- | ------------------------------------------------------------------------------- | -------------- |

@@ -163,7 +163,7 @@ Paden moeten beginnen met het letterlijke voorvoegsel `requestBody.`. Een pad zo
 Een webhook beschrijft alleen wat in die payload staat, dus OneUptime lost een incident nooit op omdat zijn sleutel niet meer voorkomt. Een incident wordt alleen opgelost wanneer een payload expliciet zegt dat die sleutel hersteld is. Aan twee dingen moet tegelijk zijn voldaan:
 
 1. **Field that signals recovery** en **Value that means recovered** zijn ingesteld en komen overeen met de payload. De vergelijking is exact en hoofdlettergevoelig — `Resolved` matcht niet met `resolved`.
-2. Het incident van het criterium heeft **Auto Resolve Incident** aan staan, onder **Advanced Options** in het incidentformulier. Zonder dat worden overeenkomende herstelgebeurtenissen genegeerd en blijven de incidenten open. (Hetzelfde geldt voor alerts en **Auto Resolve Alert**.)
+2. Het incident van het criterium heeft **Auto Resolve Incident** aan staan, onder **More fields** in het incidentformulier. Zonder dat worden overeenkomende herstelgebeurtenissen genegeerd en blijven de incidenten open. (Hetzelfde geldt voor alerts en **Auto Resolve Alert**.)
 
 **Max incidents per request** begrenst de extractie, niet alleen het aanmaken. Sleutels voorbij de limiet zijn ook onzichtbaar voor herstel, dus in een payload met meer unieke sleutels dan de limiet zal een alert die voorbij die limiet `resolved` meldt zijn incident niet sluiten.
 

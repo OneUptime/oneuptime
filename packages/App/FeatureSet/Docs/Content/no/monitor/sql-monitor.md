@@ -57,7 +57,7 @@ Opprett en ny monitor og velg **SQL Query** som monitortype, og fyll deretter in
 - **SQL Query** — den skrivebeskyttede spørringen som skal kjøres (se Skrive spørringen).
 - **Use SSL/TLS** — aktiver for å koble til over TLS. Når dette er aktivert, kan du slå av **Verify server certificate** hvis databasen bruker et selvsignert sertifikat.
 
-### Avanserte alternativer
+### Flere felt
 
 - **Connection Timeout (ms)** — hvor lenge man skal vente på å etablere en tilkobling. Standard `10000`, maksimum `30000`.
 - **Statement Timeout (ms)** — den harde grensen for hvor lenge spørringen kan kjøre. Standard `15000`, maksimum `60000`.

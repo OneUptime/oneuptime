@@ -5,16 +5,18 @@ import {
   AiLaneAdvancedCard,
   AiLaneAdvancedState,
   EMPTY_AI_LANE_ADVANCED_STATE,
+  getAiLaneAdvancedItems,
   getAiLaneAdvancedSummary,
   isAiLaneAdvancedConfigured,
   recordAiLaneAdvancedCard,
 } from "./ProjectAiSettingsCopy";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 
 /*
- * What the folded Advanced section of Incidents (or Alerts) → Settings → AI
- * says about the cards in it, from what each card read: "Configured" while
- * any of them holds a value, and - once every card has read and none holds
- * one - what the defaults do, under the folded header.
+ * What the folded More settings section of Incidents (or Alerts) → Settings
+ * → AI says about the cards in it, from what each card read: their titles,
+ * the ones holding a value drawn as chips, and - once every card has read
+ * and none holds one - what the defaults do, under them.
  *
  * Each card reports what it read through onCardLoaded, when it first loads
  * and again after each save. Recording a read also re-renders the page,
@@ -24,6 +26,8 @@ import {
 
 export interface AiLaneAdvanced {
   isConfigured: boolean;
+  // The cards, by title, for the folded header; a set one is a chip.
+  items: Array<FoldedSectionItem>;
   // What the defaults do, for the folded header; nothing until it is so.
   summary: string | undefined;
   onCardLoaded: (card: AiLaneAdvancedCard) => (item: Project) => void;
@@ -38,6 +42,7 @@ const useAiLaneAdvancedState: (lane: AiLane) => AiLaneAdvanced = (
 
   return {
     isConfigured: isAiLaneAdvancedConfigured(lane, state),
+    items: getAiLaneAdvancedItems(lane, state),
     summary: getAiLaneAdvancedSummary(lane, state),
     onCardLoaded: (card: AiLaneAdvancedCard): ((item: Project) => void) => {
       return (item: Project): void => {

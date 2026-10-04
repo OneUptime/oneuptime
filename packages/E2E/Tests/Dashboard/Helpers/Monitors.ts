@@ -10,7 +10,7 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  * The dashboard "Create Monitor" form (#create-monitor-form) is a multi-step
  * ModelForm:
  *   1. monitor-info  — name + monitorType CardSelect, and the optional labels
- *                      folded under Advanced at the end of the step (the
+ *                      folded under More fields at the end of the step (the
  *                      one step every monitor type walks)
  *   2. criteria      — per-monitor-type destination/config form (skipped for
  *                      Manual). A default offline/online criteria pair is
@@ -18,12 +18,11 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  *                      config fields need filling.
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
  *
- * The submit button keeps the test id "Create Monitor" on every step. It
- * reads "Next" while a step still to come has to be shown first (the
- * criteria, which fill in their own defaults), and "Create Monitor" once
- * every step left is optional - from the criteria step on - with a plain
- * Next beside it. The recipes walk with Next (clickNext) so they reach the
- * interval step, and create on the last step their type shows.
+ * Every step but the last shows a plain Next (#create-monitor-form-next-button,
+ * test id form-next-button); Create Monitor (test id "Create Monitor") is on
+ * the last step the type shows only - Monitor Info for a Manual monitor,
+ * Criteria for a type without probes, Probes & Interval otherwise. The
+ * recipes walk with Next (clickNext) and create on that last step.
  */
 
 export interface MonitorTypeRecipe {
@@ -63,9 +62,8 @@ const submitButtonTestId: string = "Create Monitor";
 const cardSelectSearchTestId: string = "card-select-search";
 
 /*
- * Walks the create form one step on: the one button that reads Next - the
- * main button while a step to come still has to be shown, the plain one
- * beside Create Monitor once every step left is optional. Never creates.
+ * Walks the create form one step on with its Next, which every step but the
+ * last shows instead of Create Monitor. Never creates.
  */
 export const clickNext: (data: { page: Page }) => Promise<void> = async (data: {
   page: Page;
@@ -249,7 +247,7 @@ const selectMonitoringInterval: (data: {
 
 /*
  * Selects zero or more monitor labels on Monitor Info, where they fold under
- * Advanced at the end of the step. Opening the section and waiting for the
+ * More fields at the end of the step. Opening the section and waiting for the
  * combobox even when no labels are requested makes every create recipe prove
  * the field is reachable on the step every monitor type walks.
  */
@@ -262,11 +260,12 @@ export const selectMonitorLabels: (data: {
 }): Promise<void> => {
   const form: Locator = data.page.locator(monitorCreateFormSelector);
   /*
-   * The section's header is a button named by its title alone: the
-   * "Configured" badge a template's labels bring sits outside the name.
+   * The section's header is a button named by its title alone: what it
+   * lists while folded - Labels, and how many a template's labels bring -
+   * describes the button, outside its name.
    */
   const advanced: Locator = form.getByRole("button", {
-    name: "Advanced",
+    name: "More fields",
     exact: true,
   });
   await advanced.waitFor({ state: "visible", timeout: 30000 });
@@ -363,7 +362,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type, and the labels under Advanced at the end of it.
+  // Step 1: name + type, and the labels under More fields at its end.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
   await selectMonitorLabels({ page, labelNames: data.labelNames });
@@ -568,7 +567,7 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type, and the labels under Advanced at the end of it.
+  // Step 1: name + type, and the labels under More fields at its end.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
   await selectMonitorLabels({ page });

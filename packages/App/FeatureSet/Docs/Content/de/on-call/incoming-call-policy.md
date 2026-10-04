@@ -14,7 +14,7 @@ Die Funktion Eingehende Anrufrichtlinie funktioniert so:
 
 1. Eingehende Anrufe auf einer Twilio-Telefonnummer empfangen
 2. Eine anpassbare Begrüßungsnachricht abspielen
-3. Den Anruf durch Eskalationsregeln weiterleiten (Teams, Zeitpläne oder Benutzer)
+3. Den Anruf durch Eskalationsregeln weiterleiten (Bereitschaftspläne oder Personen)
 4. Den Anrufer mit dem ersten verfügbaren Bereitschaftsingenieur verbinden
 5. Zur nächsten Regel eskalieren, wenn niemand antwortet
 
@@ -30,13 +30,14 @@ Da Sie OneUptime selbst hosten, müssen Sie Ihr eigenes Twilio-Konto konfigurier
 
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
 2. Gehen Sie zu **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen**
-3. Klicken Sie auf **Benutzerdefinierte Anruf-/SMS-Konfiguration erstellen**
+3. Klicken Sie unter **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen**
 4. Füllen Sie die folgenden Felder aus:
    - **Name**: Ein verständlicher Name (z. B. "Production Twilio Config")
    - **Beschreibung**: Optionale Beschreibung
    - **Twilio Account SID**: Ihre Twilio Account-SID (beginnt mit `AC`)
    - **Twilio Auth Token**: Ihr Twilio Auth-Token
    - **Twilio-Primärrufnummer**: Eine Telefonnummer aus Ihrem Twilio-Konto für ausgehende Anrufe
+   - **Als Projektstandard festlegen**: bei der ersten Twilio-Konfiguration des Projekts eingeschaltet, sodass auch SMS und Anrufe an die Projektmitglieder über dieses Konto laufen. Schalten Sie es aus, wenn dieses Konto nur für eingehende Anrufe gedacht ist.
 5. Klicken Sie auf **Speichern**
 
 ## Schritt 3: Eingehende Anrufrichtlinie erstellen
@@ -76,17 +77,20 @@ Sie haben zwei Optionen:
 
 ## Schritt 6: Eskalationsregeln konfigurieren
 
-Eskalationsregeln bestimmen, wie Anrufe weitergeleitet werden:
+Eskalationsregeln bestimmen, wer angerufen wird, wenn jemand die Nummer der Richtlinie wählt, von oben nach unten in der Liste:
 
 1. Öffnen Sie Ihre Eingehende Anrufrichtlinie
 2. Gehen Sie zum Tab **Eskalationsregeln**
 3. Klicken Sie auf **Eskalationsregel hinzufügen**
-4. Konfigurieren Sie die Regel:
-   - **Reihenfolge**: Die Prioritätsreihenfolge (niedrigere Zahlen werden zuerst versucht)
-   - **Eskalieren nach (Sekunden)**: Wartezeit vor der Eskalation
-   - **Bereitschaftszeitplan**: Einen Plan auswählen, um den gerade Bereitschafthabenden zu erreichen
-   - **Teams**: Bestimmte Teams auswählen
-   - **Benutzer**: Bestimmte Benutzer auswählen
+4. Füllen Sie die Regel aus. Es ist ein einziger Schritt:
+   - **Wer angerufen wird**: ein Bereitschaftsplan oder eine Person. Ein Bereitschaftsplan lässt das Telefon der Person klingeln, die beim Eingang des Anrufs darin Bereitschaft hat. Personen sind die Mitglieder Ihres Projekts.
+   - **Klingeldauer (in Sekunden)**: wie lange das Telefon klingelt, bevor der Anruf an die nächste Regel weitergeht. Sie beginnt bei 30 Sekunden, und Twilio akzeptiert 5 bis 600.
+   - **Name** und **Beschreibung** sind optional und liegen unter **Weitere Felder**. Eine Regel ohne Namen wird nach ihrem Platz in der Liste angezeigt: **Level 1**, **Level 2**.
+5. Speichern Sie die Regel und fügen Sie für jeden weiteren Bereitschaftsplan und jede weitere Person eine Regel hinzu
+
+Die Regeln werden von oben nach unten angerufen, und eine neue Regel wird am Ende angefügt. Um die Reihenfolge zu ändern, ziehen Sie eine Regel an ihrem Griff oben links; per Tastatur fokussieren Sie den Griff, drücken die Leertaste, verschieben die Regel mit den Pfeiltasten und drücken erneut die Leertaste.
+
+> **Achten Sie auf die Mailbox**: Halten Sie die **Klingeldauer** kürzer als die Zeit, nach der das Telefon der Person einen unbeantworteten Anruf an die Mailbox weitergibt. Nimmt die Mailbox zuerst ab, wird der Anrufer mit ihr verbunden, und der Anruf geht nicht an die nächste Regel weiter. Twilio fügt jedem Klingeln einige Sekunden hinzu.
 
 ## Schritt 7: Sprachnachrichten konfigurieren (optional)
 
@@ -118,6 +122,7 @@ Passen Sie die Nachrichten an, die Anrufer hören:
 - Überprüfen Sie, ob Benutzer verifizierte Telefonnummern in ihren Benachrichtigungseinstellungen haben
 - Prüfen Sie, ob Eskalationsregeln korrekt konfiguriert sind
 - Stellen Sie sicher, dass Bereitschaftspläne für den aktuellen Zeitraum Benutzer zugewiesen haben
+- Landen Anrufe auf der Mailbox eines Ingenieurs, stellen Sie die **Klingeldauer** der Regel kürzer ein als die Zeit, nach der sein Telefon zur Mailbox wechselt
 
 ## Support
 

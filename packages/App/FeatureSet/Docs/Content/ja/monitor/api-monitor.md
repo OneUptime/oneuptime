@@ -71,7 +71,7 @@ https://api.example.com/health?nocache={{random}}
 - **PATCH**
 - **HEAD**
 
-### 詳細オプション
+### その他の項目
 
 #### リクエストヘッダー
 

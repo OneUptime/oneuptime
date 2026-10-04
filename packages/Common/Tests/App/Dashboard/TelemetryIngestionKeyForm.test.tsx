@@ -215,8 +215,18 @@ function descriptionInput(): HTMLElement {
   return within(dialog()).getByPlaceholderText("Ingestion Key Description");
 }
 
+// The dialog's action, Create Ingestion Key: on the last step only.
 function mainButton(): HTMLElement {
   return within(dialog()).getByTestId("modal-footer-submit-button");
+}
+
+function queryMainButton(): HTMLElement | null {
+  return within(dialog()).queryByTestId("modal-footer-submit-button");
+}
+
+// The plain Next every step but the last shows instead.
+function queryNextButton(): HTMLElement | null {
+  return within(dialog()).queryByTestId("modal-footer-next-button");
 }
 
 function progress(): HTMLElement | null {
@@ -243,7 +253,7 @@ function stepTitles(): Array<string> {
 
 // The Advanced header on the step on screen.
 function advancedHeader(): HTMLElement {
-  return within(dialog()).getByRole("button", { name: /^Advanced/ });
+  return within(dialog()).getByRole("button", { name: "More fields" });
 }
 
 function card(keyType: TelemetryIngestionKeyType): HTMLElement {
@@ -292,9 +302,10 @@ async function pickType(
 async function goToBrowserSettings(user: UserEvent): Promise<void> {
   await pickType(user, TelemetryIngestionKeyType.Browser);
   await waitFor(() => {
-    expect(mainButton()).toHaveTextContent("Next");
+    expect(queryNextButton()).toHaveTextContent("Next");
   });
-  await user.click(mainButton());
+  expect(queryMainButton()).not.toBeInTheDocument();
+  await user.click(queryNextButton()!);
   await within(dialog()).findByRole("textbox", { name: "Allowed Origins" });
   await waitFor(() => {
     expect(activeStep()).toBe("Browser Settings");
@@ -517,7 +528,7 @@ describe("Settings > Telemetry Ingestion Keys > Create", () => {
   });
 
   describe("a Browser key", () => {
-    test("brings its Browser Settings step: the step list appears and the main button walks on", async () => {
+    test("brings its Browser Settings step: the step list appears, and Key offers a plain Next instead of Create", async () => {
       const user: UserEvent = await renderPage();
 
       await pickType(user, TelemetryIngestionKeyType.Browser);
@@ -526,10 +537,11 @@ describe("Settings > Telemetry Ingestion Keys > Create", () => {
         expect(stepTitles()).toEqual(["Key", "Browser Settings"]);
       });
       expect(activeStep()).toBe("Key");
-      // Allowed Origins is still to fill in: the main button reads Next.
+      // Key is not the last step now: Next, and no Create.
       await waitFor(() => {
-        expect(mainButton()).toHaveTextContent("Next");
+        expect(queryNextButton()).toHaveTextContent("Next");
       });
+      expect(queryMainButton()).not.toBeInTheDocument();
       expect(
         within(dialog()).queryByRole("textbox", { name: "Allowed Origins" }),
       ).not.toBeInTheDocument();
@@ -638,9 +650,9 @@ describe("Settings > Telemetry Ingestion Keys > Create", () => {
       await pickType(user, TelemetryIngestionKeyType.Server);
       await pickType(user, TelemetryIngestionKeyType.Browser);
       await waitFor(() => {
-        expect(mainButton()).toHaveTextContent("Next");
+        expect(queryNextButton()).toHaveTextContent("Next");
       });
-      await user.click(mainButton());
+      await user.click(queryNextButton()!);
 
       expect(
         await within(dialog()).findByRole("textbox", {
@@ -676,12 +688,13 @@ describe("Settings > Telemetry Ingestion Keys > Create", () => {
           fireEvent.change(originsInput(), { target: { value: ORIGINS } });
         }
 
-        // Every other step is valid, but the pricing has not been shown.
-        expect(mainButton()).toHaveTextContent("Next");
-        expect(
-          within(dialog()).queryByTestId("modal-footer-next-button"),
-        ).not.toBeInTheDocument();
-        await user.click(mainButton());
+        /*
+         * Every other step is valid, but Billing - the last step - has not
+         * been shown, and Create is on the last step only.
+         */
+        expect(queryMainButton()).not.toBeInTheDocument();
+        expect(queryNextButton()).toHaveTextContent("Next");
+        await user.click(queryNextButton()!);
 
         const notice: HTMLElement = await within(dialog()).findByRole(
           "region",

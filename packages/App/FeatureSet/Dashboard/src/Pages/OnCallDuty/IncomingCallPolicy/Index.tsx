@@ -451,7 +451,7 @@ const IncomingCallPolicyView: FunctionComponent<
                         </p>
                         <p className="text-sm text-gray-500">
                           {translator.translateText(
-                            "Add on-call schedules, teams, or users to handle incoming calls",
+                            "Add the on-call schedules or people to call when someone dials this number.",
                           )}
                         </p>
                       </div>

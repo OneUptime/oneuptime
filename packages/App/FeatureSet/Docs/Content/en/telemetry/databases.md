@@ -578,7 +578,7 @@ A database's name defaults to the engine and its endpoint — `PostgreSQL db.exa
 
 ## Alerts on a database
 
-A database's **Alerts** and **Incidents** tabs show what the monitors that name it opened. While the database is in an ongoing scheduled maintenance window, those monitors open no new incidents or alerts, unless they also name a resource that is outside the window. Their status still updates, and what they opened before the window still resolves. Databases can also be attached to incidents, alerts and scheduled maintenance by hand, like any other resource.
+A database's **Alerts** and **Incidents** tabs show what the monitors that name it opened. While the database is in an ongoing scheduled maintenance window, those monitors open no new incidents or alerts, unless they also name a resource that is outside the window. Their status still updates, and what they opened before the window still resolves. Databases can also be attached to incidents, alerts and scheduled maintenance by hand, like any other resource: creating one from the database's own **Incidents**, **Alerts** or **Scheduled Maintenance** tab starts with the database already picked.
 
 ### Recommended monitors
 

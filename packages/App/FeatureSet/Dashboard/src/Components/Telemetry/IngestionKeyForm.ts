@@ -44,9 +44,9 @@ import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
  *     Pinned Service Name under Advanced. A guide that pins a Browser key
  *     asks for the origins on its one page instead.
  *   - Billing, on the Free plan only: the pay-as-you-go notice
- *     (PayAsYouGo.tsx), a step the form cannot be finished without having
- *     shown (Forms/Utils/FinishFromAnyStep.ts) - the same gate on both
- *     doors, because a gate with a way around it is not a gate.
+ *     (PayAsYouGo.tsx), the last step, so it is read before Create - the
+ *     same gate on both doors, because a gate with a way around it is not
+ *     a gate. Create is on the last step only (Forms/Utils/SteppedFormFooter).
  *
  * There is no Summary step: the page is short enough to read before
  * pressing Create, and the key's own page - where its secret is - shows

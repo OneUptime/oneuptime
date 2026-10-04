@@ -358,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` conserve votre configuration existante (préréglage, nom du cluster, filtres) ; transmettez par-dessus tout nouveau remplacement `--set`.
 
+> **Les métriques de span eBPF changent de nom.** `ebpf.features.spanMetrics` envoie désormais `traces.span.metrics.calls` et `traces.span.metrics.duration` (secondes) au lieu de `traces_spanmetrics_calls_total` et `traces_spanmetrics_latency` : les mêmes séries, sous les noms qu'OBI conserve (OBI a déprécié les anciens). Un tableau de bord, un graphique ou un moniteur de métriques basé sur un ancien nom ne reçoit plus de nouvelles données après la mise à niveau, sans aucune erreur : passez-le au nouveau nom, et mettez aussi à jour les entrées de `filters.metrics` qui citent un ancien nom.
+
 ## Désinstallation de l'agent
 
 ```bash
@@ -413,7 +415,7 @@ Toutes activées par défaut. Désactivez-en une avec `--set ebpf.features.<name
 | `ebpf.features.*`         | Par défaut | Ce que cela ajoute                                                                     |
 | ------------------------- | ---------- | -------------------------------------------------------------------------------------- |
 | `httpMetrics`             | activé     | Métriques HTTP/gRPC RED (taux de requêtes, latence, erreurs) par service               |
-| `spanMetrics`             | activé     | Taille et durée des requêtes/réponses par span                                         |
+| `spanMetrics`             | activé     | Nombre d'appels et durée des spans (`traces.span.metrics.*`)                           |
 | `serviceGraph`            | activé     | Métriques d'arêtes entre appelant → appelé ; alimente la carte des services            |
 | `networkMetrics`          | activé     | Compteurs de flux TCP/UDP de pod à pod                                                 |
 | `networkInterZoneMetrics` | désactivé  | Variante inter-zones des métriques réseau (double la cardinalité)                      |
@@ -717,7 +719,7 @@ La raison la plus courante — en particulier après une réinstallation — est
 ### Aucune métrique n'apparaît
 
 1. Excluez d'abord une clé d'ingestion rejetée — c'est la cause la plus courante et elle passe facilement inaperçue du côté de l'agent. Consultez [L'agent affiche « Disconnected »](#lagent-affiche-disconnected) ci-dessus (ou exécutez simplement le script de diagnostic).
-2. Vérifiez que l'identifiant du cluster correspond à la valeur que vous avez transmise comme `clusterName`
+2. Vérifiez que le **nom du cluster (clusterName)** correspond à la valeur que vous avez transmise comme `clusterName`. Il figure sur la page **Settings** du cluster, dans **Cluster Details** ; pour le corriger, choisissez **Edit Details** et ouvrez **More fields**
 3. Vérifiez les autorisations RBAC : `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Vérifiez les journaux du collecteur OTel pour repérer des erreurs d'export
 

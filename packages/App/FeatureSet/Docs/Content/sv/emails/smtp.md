@@ -6,7 +6,28 @@ OneUptime stöder e-postsändning via anpassade SMTP-servrar med tre autentiseri
 - **OAuth 2.0** – Modern autentisering för Microsoft 365 och Google Workspace
 - **Inga** – För reläservrar som inte kräver autentisering
 
-Den här guiden beskriver hur du konfigurerar OAuth 2.0-autentisering för Microsoft 365 och Google Workspace.
+Det första avsnittet nedan visar var varje inställning finns. Resten av guiden handlar om OAuth 2.0-autentisering för Microsoft 365 och Google Workspace.
+
+## Lägga till en SMTP-server
+
+Lägg till ett projekts e-postserver under **Projektinställningar > Aviseringar > Aviseringsinställningar**, i kortet **Anpassade SMTP-konfigurationer**. I en egen installation ställer du in servern som OneUptime själv skickar från under **Admin Dashboard > Inställningar > E-postmeddelanden**, i kortet **Anpassade e-post- och SMTP-inställningar**. Båda formulären frågar efter samma saker, i två steg:
+
+1. **Server**: **Namn** (bara projektkonfigurationer), **Värdnamn**, **Port** (en ny konfiguration börjar på `587`), **Användarnamn** och **Lösenord**.
+2. **Avsändare**: **E-post från** och **Från-namn** som dina e-postmeddelanden kommer från.
+
+Allt annat är hopfällt under **Fler fält** i slutet av steget Server. Så länge det är hopfällt säger rubriken hur e-post skickas, till exempel "E-post skickas via SMTP, med inloggning med användarnamn och lösenord. TLS krävs."
+
+| Fält                  | Vad det gör                                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Transport**         | `SMTP` (standard), eller `Microsoft Graph` för en Microsoft 365-klientorganisation där SMTP AUTH är avstängt. Väljer du Microsoft Graph döljs värdnamn, port, användarnamn och lösenord, och OAuth-fälten visas.                                 |
+| **Kräv TLS**          | På för en ny projektkonfiguration. E-post skickas bara över en krypterad anslutning med ett giltigt certifikat. När detta är av krypteras e-post bara om servern erbjuder det, och certifikatet kontrolleras inte. Port 465 är alltid krypterad. |
+| **Autentiseringstyp** | `Username and Password` (standard), `OAuth`, eller `None` för ett relä som inte kräver inloggning.                                                                                                                                               |
+| **OAuth-fält**        | Providertyp, klient-ID, klienthemlighet, token-URL och omfång, som visas när OAuth eller Microsoft Graph har valts.                                                                                                                              |
+| **Beskrivning**       | En anteckning för ditt team (bara projektkonfigurationer).                                                                                                                                                                                       |
+
+**Microsoft Graph.** Öppna **Fler fält**, ställ **Transport** på `Microsoft Graph` och fyll i en Azure-app med programbehörigheten **Mail.Send**: dess klient-ID och klienthemlighet, token-URL:en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` och omfånget `https://graph.microsoft.com/.default`. E-post skickas från brevlådan i **E-post från**, som måste vara en licensierad brevlåda i din klientorganisation.
+
+När en projektkonfiguration har sparats kontrollerar **Skicka test-e-post** på dess rad att den fungerar.
 
 ## OAuth 2.0-autentisering
 
@@ -30,6 +51,8 @@ När du konfigurerar SMTP med OAuth-autentisering i OneUptime behöver du:
 | **Klienthemlighet**      | Klienthemligheten från din OAuth-leverantör (för Google: privat nyckel)             |
 | **Token-URL**            | OAuth-tokens slutpunkts-URL                                                         |
 | **Omfattning**           | Obligatoriska OAuth-scope(n) för SMTP-åtkomst                                       |
+
+**Autentiseringstyp** och OAuth-fälten finns under **Fler fält** i formulärets steg Server.
 
 ---
 
@@ -120,7 +143,7 @@ I OneUptime, skapa eller redigera en SMTP-konfiguration med dessa inställningar
 | Token-URL            | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`             |
 | Scope                | `https://outlook.office365.com/.default`                                      |
 | Från e-post          | Samma som Användarnamn                                                        |
-| Säker (TLS)          | Aktiverad                                                                     |
+| Kräv TLS             | Aktiverad                                                                     |
 
 Ersätt `<tenant-id>` med ditt Katalog (klient)-ID från Steg 1.
 
@@ -202,7 +225,7 @@ I OneUptime, skapa eller redigera en SMTP-konfiguration med dessa inställningar
 | Token-URL            | `https://oauth2.googleapis.com/token`                                                                                                     |
 | Scope                | `https://mail.google.com/`                                                                                                                |
 | Från e-post          | Samma som Användarnamn                                                                                                                    |
-| Säker (TLS)          | Aktiverad                                                                                                                                 |
+| Kräv TLS             | Aktiverad                                                                                                                                 |
 
 **Viktigt:** För Google (JWT Bearer) är Klient-ID **tjänstkontots e-post** (`client_email`), INTE det numeriska `client_id`. Tjänstkontot personifierar den användare som anges i fältet Användarnamn för att skicka e-post.
 

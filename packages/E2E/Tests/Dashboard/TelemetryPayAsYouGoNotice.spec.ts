@@ -72,9 +72,9 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
   const advanceToBilling: () => Promise<void> = async (): Promise<void> => {
     const modal: Locator = ctx.page.getByTestId("modal");
     /*
-     * The one button that reads Next. Until the Billing step has been read
-     * it is the main button; once it has, the main button creates the key
-     * and a plain Next sits beside it - never a way past the pricing unread.
+     * The plain Next of the Key step. Billing is the last step, and Create
+     * Ingestion Key is on the last step only: never a way past the pricing
+     * unread.
      */
     const nextButton: Locator = modal.getByRole("button", {
       name: "Next",
@@ -375,12 +375,14 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
       .getByPlaceholder("Ingestion Key Name", { exact: true })
       .fill(draftName);
 
-    // The Key page walks on: the Billing step is still to be shown.
-    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+    // The Key page walks on: Billing, the last step, is still to be shown.
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveCount(
+      0,
+    );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveText(
       "Next",
     );
-    await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(0);
-    await modal.getByTestId("modal-footer-submit-button").click();
+    await modal.getByTestId("modal-footer-next-button").click();
     await expect(
       modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
     ).toBeVisible();

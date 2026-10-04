@@ -19,44 +19,52 @@ Les quatre écrivent le même modèle : un incident ouvert par une sonde ressemb
 
 ## Déclarer à la main
 
-Ouvrez **Incidents → Tous les incidents** et cliquez sur **Déclarer un incident** en haut à droite de la liste **Incidents**. Vous arrivez sur une carte intitulée **Déclarer un nouvel incident**, qui étale le formulaire sur cinq étapes : **Détails de l'incident**, **Ressources affectées**, **Rôles d'incident**, **Astreinte** et **Plus**. Le bouton de validation, à la fin, s'intitule lui aussi **Déclarer un incident**.
+Ouvrez **Incidents → Tous les incidents** et cliquez sur **Déclarer un incident** en haut à droite de la liste **Incidents**. Vous arrivez sur une carte intitulée **Déclarer un nouvel incident**, qui répartit le formulaire sur trois étapes : **Détails de l'incident**, **Ressources affectées** et **Astreinte et rôles**, puis un récapitulatif à relire. Lorsque votre projet demande certains de ses champs personnalisés d'incident à la création, une quatrième étape, **Détails**, vient juste après **Ressources affectées**.
 
-Seule la première étape comporte des champs obligatoires. Si vous êtes pressé, remplissez **Détails de l'incident** et validez — vous pourrez rattacher des ressources, attribuer des rôles et ajouter des politiques d'astreinte depuis les pages de l'incident lui-même.
+Seule la première étape comporte des champs obligatoires, ainsi que tout champ personnalisé que vos administrateurs ont marqué **Obligatoire à la création**. Vous pouvez aussi rattacher des ressources, ajouter des politiques d'astreinte et attribuer des rôles plus tard, depuis les pages de l'incident. Chaque étape avant le récapitulatif a un simple **Suivant**, et **Déclarer un incident** se trouve dans le récapitulatif, la dernière étape.
+
+**Plus de champs.** Les options dont la plupart des incidents n'ont jamais besoin attendent, repliées, sous un en-tête **Plus de champs** à la fin de leur étape ; cliquez dessus pour les ouvrir. Replié, l'en-tête nomme ce qu'il contient et affiche chaque option définie avec sa valeur — définie par un modèle, par exemple — et il s'ouvre de lui-même lorsque quelque chose doit y être corrigé. Le récapitulatif ne liste une option repliée que si elle est définie, sauf **Notifier les abonnés de la page de statut**, qu'il liste toujours, avec qui sera notifié.
 
 ### Étape 1 — Détails de l'incident
 
-- **Titre** — obligatoire. Le résumé d'une ligne que tout le monde verra dans la liste, dans Slack et (si l'incident est visible) sur votre page de statut. Texte indicatif : `Incident Title`.
-- **Description** — facultative, rédigée en Markdown. C'est ce champ qui s'affiche sur la page de statut : écrivez-le donc pour vos clients plutôt que pour votre équipe. Vous pourrez le modifier plus tard depuis **Description**, dans le menu latéral de l'incident.
-- **Déclaré le** — obligatoire dans le formulaire, avec l'heure courante par défaut. C'est l'horodatage à partir duquel toutes les durées de l'incident sont mesurées : antidatez-le si vous consignez quelque chose qui a commencé plus tôt.
-- **Gravité de l'incident** — obligatoire. Une des gravités configurées pour votre projet ; les nouveaux projets sont initialisés avec **Incident critique**, **Incident majeur** et **Incident mineur**.
-- **État de l'incident** — facultatif. Laissez-le tel quel et l'incident atterrit dans l'état marqué `isCreatedState`, que les nouveaux projets initialisent à **Identifié**. Ne le renseignez que si vous consignez un incident qui avait déjà dépassé ce point.
+- **Titre** — obligatoire. Le résumé d'une ligne que tout le monde voit dans la liste, dans Slack et, si l'incident est visible, sur votre page de statut.
+- **Gravité de l'incident** — obligatoire. L'une des gravités configurées pour votre projet.
+- **Description** — facultative, rédigée en Markdown. C'est ce qu'affiche la page de statut : rédigez-la pour vos clients plutôt que pour votre équipe.
+
+Sous **Plus de champs** :
+
+- **Déclaré le** — commence au moment où vous avez ouvert la page. Toute durée de l'incident se mesure à partir de lui ; antidatez-le pour enregistrer un incident qui a commencé plus tôt.
+- **État initial** — facultatif, et vide au départ. Laissé vide, l'incident démarre dans l'état marqué `isCreatedState`, ou dans l'état initial du modèle. Ne choisissez un état ultérieur que pour enregistrer un incident déjà pris en compte ou résolu.
+- **Étiquettes** — facultatif. Les étiquettes regroupent les incidents liés, et une équipe limitée à des étiquettes ne voit que les incidents qui portent l'une des siennes.
+- **Incident privé** — désactivé par défaut (`isPrivate`). Un incident privé n'est visible que par ses propriétaires, les administrateurs et les propriétaires du projet, et il est masqué sur toutes les pages de statut.
 
 **Si la liste déroulante des états vous pose problème.** Si aucun état de votre projet ne porte l'indicateur `isCreatedState`, l'appel de création échoue et vous invite à ajouter un état de création depuis les paramètres. Cela n'arrive normalement que sur un projet dont les états ont été largement remaniés — voyez [États et sévérités des incidents](/docs/incidents/states-and-severities).
 
 ### Étape 2 — Ressources affectées
 
-- **Ressources affectées** — un unique champ de recherche qui rattache moniteurs, hôtes, clusters Kubernetes, hôtes Docker, hôtes Podman et services. Sous le capot, ce sont des relations distinctes sur l'incident (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` et d'autres), mais le formulaire les rassemble en un seul sélecteur.
-- **Change Monitor Status to** — facultatif. Choisit un statut de moniteur appliqué à chaque moniteur rattaché à cet incident, de sorte que déclarer l'incident et marquer les moniteurs comme dégradés ne fasse qu'une action au lieu de deux.
+Les moniteurs viennent en premier, à part : les pages de statut voient un incident à travers ses moniteurs, et le statut vers lequel passent les moniteurs se trouve juste en dessous.
+
+- **Moniteurs** — un champ de recherche qui rattache les moniteurs concernés par l'incident (`monitors`). Une page de statut affiche l'incident, et prévient ses abonnés, lorsqu'elle répertorie l'un de ces moniteurs.
+- **Changer le statut du moniteur en** — facultatif, et affiché seulement dès qu'au moins un moniteur est choisi. Applique un statut à chaque moniteur de l'incident, de sorte que déclarer l'incident et marquer ses moniteurs comme dégradés se fasse en une seule action. Le statut d'un modèle apparaît dès que vous choisissez un moniteur ; sans moniteur choisi, aucun statut n'est enregistré.
+- **Autres ressources affectées** — un second champ de recherche pour tout le reste de ce que l'incident touche : hôtes, clusters Kubernetes, hôtes Docker et Podman, clusters Proxmox, Ceph et Docker Swarm, vCenters, flottes IoT, bases de données et services. Ce sont des relations distinctes de l'incident (`hosts`, `kubernetesClusters`, `services` et d'autres).
+
+La carte **Ressources affectées** de l'incident pose les mêmes questions quand vous la modifiez plus tard.
+
+Sous **Plus de champs** :
+
+- **Limiter à ces pages de statut** — facultatif. Laissé vide, l'incident s'affiche sur toutes les pages de statut qui répertorient ses moniteurs, et prévient leurs abonnés ; avec des pages choisies, seulement sur celles-ci parmi elles. Voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience).
+- **Notifier les abonnés de la page de statut** — case à cocher, cochée par défaut (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). En dessous, puis à nouveau dans le récapitulatif, le formulaire indique quelles pages de statut seront prévenues et combien d'abonnés chacune compte ; dans le récapitulatif, **Aperçu de la notification** montre l'e-mail qu'ils recevront. Décochez-la pour le bruit interne que vous voulez tout de même consigner.
 
 **Rattachez des moniteurs même quand cela paraît redondant.** Le lien entre un incident et une page de statut passe par les moniteurs de l'incident : une page de statut affiche un incident lorsque l'une de ses ressources est l'un des moniteurs de l'incident. Une notification de changement d'état aux abonnés est purement et simplement ignorée si l'incident n'a aucun moniteur rattaché. Voyez [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups).
 
-### Étape 3 — Rôles d'incident
+### Étape 3 — Astreinte et rôles
 
-- **Attribuer les rôles de l'incident** — attribuez des membres de l'équipe aux rôles définis par votre projet. Certains rôles acceptent plusieurs utilisateurs.
-
-Les rôles eux-mêmes se configurent dans **Incidents → Paramètres → Rôles d'incident**, où vous définissez les rôles attribuables pendant l'intervention — Responsable d'incident, intervenant, et tout ce dont votre processus a besoin. Si vous sautez cette étape, un Responsable d'incident est attribué automatiquement au premier changement d'état si personne ne tient encore ce rôle.
-
-### Étape 4 — Astreinte
-
-- **Politique d'astreinte** — une sélection multiple des politiques d'astreinte à exécuter à la création de cet incident. Cela correspond à `onCallDutyPolicies` sur l'incident.
+- **Politique d'astreinte** — une sélection multiple des politiques d'astreinte à exécuter à la création de cet incident (`onCallDutyPolicies`).
+- **Attribuer les rôles de l'incident** — qui prend chaque rôle défini par votre projet. Un rôle marqué **Principal** que vous laissez vide vous revient : vous le prenez à la déclaration de l'incident.
 
 C'est le seul endroit où une politique d'astreinte est rattachée directement à un incident. Les gravités ne portent pas de politique d'astreinte — une gravité est une étiquette, et elle n'influence l'alerte qu'en tant que *critère de correspondance* à l'intérieur d'une règle d'astreinte. Les règles configurées dans **Incidents → Règles → Règles d'astreinte** ajoutent leurs politiques par-dessus ce que vous choisissez ici ; l'ensemble finalement exécuté est l'union dédupliquée des deux.
 
-### Étape 5 — Plus
-
-- **Étiquettes** — facultatives, et fonctionnalité avancée : les membres de l'équipe qui ont accès à ces étiquettes sont ceux qui peuvent accéder à l'incident.
-- **Notifier les abonnés de la page de statut** — case à cocher, activée par défaut. Elle décide si les abonnés reçoivent un e-mail annonçant la création de l'incident (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Décochez-la pour le bruit interne que vous voulez quand même consigner.
-- **Incident privé** — case à cocher, décochée par défaut (`isPrivate`). Un incident privé n'est visible que par ses utilisateurs propriétaires, les membres de ses équipes propriétaires, les administrateurs et les propriétaires du projet — et il est masqué de toutes les pages de statut, quel que soit le reste des réglages. La liste des incidents les signale par une pastille rouge **Private**.
+Les rôles eux-mêmes se configurent dans **Incidents → Paramètres → Rôles d'incident**. Un nouveau projet en a un, Incident Commander ; ajoutez-y ce dont votre processus a besoin.
 
 L'indicateur **Should be visible on status page?** (`isVisibleOnStatusPage`) n'est pas dans l'assistant ; il vaut vrai par défaut. Modifiez-le ensuite depuis **Paramètres**, dans le menu latéral de l'incident, où il s'intitule **Visible sur la page de statut**.
 
@@ -66,7 +74,7 @@ Si vous déclarez sans cesse la même forme d'incident — même schéma de titr
 
 Cliquez sur **Créer à partir d'un modèle** (le bouton en contour à côté de **Déclarer un incident**) : une fenêtre **Créer un incident à partir d'un modèle** s'ouvre, avec une liste déroulante **Sélectionner le modèle d'incident**. Choisissez un modèle et le formulaire de création s'ouvre prérempli ; vous pouvez encore tout changer avant de valider. Si votre projet n'a pas encore de modèles, vous obtenez à la place une fenêtre **No Incident Templates**, avec un bouton **Create Template** qui vous emmène dans **Incidents → Paramètres → Modèles d'incident**.
 
-Les modèles se construisent avec leur propre assistant en six étapes — **Informations du modèle**, **Détails de l'incident**, **Ressources affectées**, **Astreinte**, **Propriétaires**, **Étiquettes** — avec ces champs :
+Les modèles se construisent avec leur propre assistant — **Informations du modèle**, **Détails de l'incident**, **Ressources affectées**, **Astreinte** —, plus des étapes de champs personnalisés lorsque votre projet en a. Leurs propriétaires et leurs étiquettes sont sous **Plus de champs** à la fin de **Détails de l'incident**. **Ressources affectées** pose les questions comme le formulaire de déclaration — **Moniteurs**, puis **Changer le statut du moniteur en**, puis **Autres ressources affectées**, avec **Limiter à ces pages de statut** sous **Plus de champs** — sauf qu'un modèle demande toujours le statut des moniteurs : il s'applique aussi aux moniteurs choisis lorsqu'un incident est déclaré à partir de lui. Voici les champs :
 
 | Champ                            | À quoi il sert                                                     |
 | -------------------------------- | ------------------------------------------------------------------ |
@@ -76,11 +84,12 @@ Les modèles se construisent avec leur propre assistant en six étapes — **Inf
 | **Description**                  | La description Markdown préremplie sur l'incident.                 |
 | **Gravité de l'incident**        | La gravité préremplie sur l'incident.                              |
 | **État initial de l'incident**   | L'état dans lequel démarrent les incidents issus de ce modèle.     |
-| **Ressources affectées**         | Les moniteurs, hôtes, clusters et services à rattacher.            |
-| **Change Monitor Status to**     | Le statut de moniteur à appliquer aux moniteurs rattachés.         |
+| **Moniteurs** | Les moniteurs à rattacher. |
+| **Changer le statut du moniteur en** | Le statut à appliquer aux moniteurs de l'incident, y compris ceux choisis à la déclaration. |
+| **Autres ressources affectées** | Les hôtes, clusters et services à rattacher. |
+| **Limiter à ces pages de statut** | Les pages de statut auxquelles l'incident est limité. |
 | **Politique d'astreinte**        | Les politiques à exécuter à la création de l'incident.             |
-| **Propriétaire - Équipes**       | Les équipes propriétaires des incidents issus de ce modèle.        |
-| **Propriétaire - Utilisateurs**  | Les utilisateurs propriétaires des incidents issus de ce modèle.   |
+| **Propriétaires** | Les personnes et les équipes propriétaires des incidents issus de ce modèle, choisies dans une seule liste. |
 | **Étiquettes**                   | Les étiquettes appliquées à l'incident.                            |
 
 Quelques règles rapides :
@@ -100,7 +109,7 @@ Chaque entrée comporte :
 - **Astreinte → Politiques d'astreinte** — les politiques exécutées à la création de cet incident.
 - **Rôles d'incident** — attribuez à l'avance des membres de l'équipe aux rôles.
 - **Propriété et étiquettes → Équipes propriétaires**, **Utilisateurs propriétaires**, **Étiquettes**.
-- **Options avancées → Résoudre automatiquement l'incident** (résout l'incident automatiquement quand les critères cessent de correspondre), **Afficher l'incident sur la page de statut**, **Incident privé** et **Notes de remédiation**.
+- **Plus de champs → Résoudre automatiquement l'incident** (résout l'incident automatiquement quand les critères cessent de correspondre), **Afficher l'incident sur la page de statut**, **Incident privé** et **Notes de remédiation**.
 
 Pour la liste complète des variables `{{variable}}` utilisables dans le titre, la description et les notes de remédiation, voyez [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
 

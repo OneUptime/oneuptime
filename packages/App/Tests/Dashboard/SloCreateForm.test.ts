@@ -27,7 +27,7 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  ADVANCED_FORM_SECTION_TITLE,
+  MORE_FIELDS_SECTION_TITLE,
 } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { getCreateFormColumnDefault } from "Common/UI/Components/Forms/Utils/CreateFormDefaults";
 import Validation from "Common/UI/Components/Forms/Validation";
@@ -231,7 +231,7 @@ describe("the SLO create form", () => {
       Array.from(sections)[0]!;
 
     expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
-    expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
     // Never opened by a default value, only by the user or by an error.
     expect(section.openWhenConfigured).toBe(false);
     expect(section.getSummary).toBe(getSloAdvancedSummary);

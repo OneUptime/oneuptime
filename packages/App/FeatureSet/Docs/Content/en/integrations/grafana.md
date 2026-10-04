@@ -25,7 +25,7 @@ Grafana's webhook payload follows the Alertmanager shape — `status`, an `alert
 
 1. Go to **Monitors → Create Monitor** and choose **Incoming Request**. Open it and click **Documentation** in the left menu to copy the URL.
 2. Open the monitor's **Criteria** and set **Filter Type** to `JavaScript Expression` and **Value** to `"{{requestBody.status}}" === "firing"`.
-3. Declare an incident on match, choose the **On-Call Policies** to page, and turn on **Auto Resolve Incident** under **Advanced Options**.
+3. Declare an incident on match, choose the **On-Call Policies** to page, and turn on **Auto Resolve Incident** under **More fields**.
 4. Under **Settings**, turn on **Group incidents and alerts by a payload field** and set:
 
    | Field                              | Value                               |
@@ -89,7 +89,7 @@ With **Option 2**, add a second **Conditions** branch (`status == resolved`), fi
 ## Troubleshooting
 
 - **Nothing arrives** — confirm Grafana can reach the URL (check Grafana's server logs) and, for Option 2, that the workflow is **Enabled**. OneUptime answers every incoming request with an empty `200` before validating it, so a `200` in Grafana's logs does not confirm the payload was accepted.
-- **Incidents open but never close** — check the recovery field and value on the criteria, and that **Auto Resolve Incident** is on under the incident's **Advanced Options**. The comparison is case-sensitive.
+- **Incidents open but never close** — check the recovery field and value on the criteria, and that **Auto Resolve Incident** is on under the incident's **More fields**. The comparison is case-sensitive.
 - **Only one incident for a payload full of alerts** — you grouped by a label that does not vary inside a notification. Group by `requestBody.alerts[*].fingerprint` instead.
 - **Incident text shows raw `{{...}}` placeholders** — the path did not resolve, and unresolved placeholders are left in place rather than blanked. Reference fields that exist for your alerting version; inspect the trigger output in the **Logs** tab if you used Option 2.
 

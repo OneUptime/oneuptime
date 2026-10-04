@@ -17,8 +17,9 @@ import Permission from "../../../../Types/Permission";
 /*
  * Adding an OpenID Connect provider, through the real ModelForm and
  * BasicForm with only the network stubbed: the form opens on the four
- * things the identity provider gives (name, issuer, client ID, secret), can
- * be finished from that first step, and saves a complete provider - the
+ * things the identity provider gives (name, issuer, client ID, secret),
+ * walks on to Sign-in, where Create OIDC is, and saves a complete provider -
+ * the
  * discovery URL from the issuer, the usual scopes and claim names, the
  * description from the name, the members team it started on, and off until
  * someone turns it on. A discovery URL pasted as the issuer is split into
@@ -182,6 +183,27 @@ async function renderProviderForm(data: {
   await act(async (): Promise<void> => {});
 }
 
+// The chips a folded header draws for its set fields: "Digest Method: SHA512".
+function setChips(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .filter((item: HTMLElement): boolean => {
+      return item.getAttribute("data-item-set") === "true";
+    })
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+// Every name a folded header lists.
+function listedNames(): Array<string> {
+  return screen
+    .queryAllByTestId("folded-section-item")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
 function progress(): HTMLElement {
   return screen.getByRole("navigation", { name: "Progress" });
 }
@@ -207,7 +229,25 @@ async function fillTheProvider(issuer: string): Promise<void> {
   await type("client-secret-value", "a-client-secret");
 }
 
+/*
+ * Walks on to the last step with Next - the form's action is there only,
+ * never on a step before it - and presses the action.
+ */
 async function submitWith(buttonName: string): Promise<JSONObject> {
+  for (
+    let step: number = 0;
+    step < 5 && screen.queryByTestId("form-next-button");
+    step++
+  ) {
+    expect(
+      screen.queryByRole("button", { name: buttonName }),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("form-next-button"));
+    });
+  }
+
   await act(async (): Promise<void> => {
     fireEvent.click(screen.getByRole("button", { name: buttonName }));
   });
@@ -255,7 +295,7 @@ describe("adding an OIDC provider", () => {
     expect(screen.queryByText("Description")).not.toBeInTheDocument();
   });
 
-  test("can be finished from the first step, and saves a complete provider", async () => {
+  test("asks only the first step's four answers, then saves a complete provider from Sign-in", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: {
@@ -265,8 +305,15 @@ describe("adding an OIDC provider", () => {
 
     await fillTheProvider("https://dev-123456.okta.com/oauth2/default");
 
-    // Everything on Sign-in has an answer, so the action is here already.
+    /*
+     * Everything on Sign-in has an answer already, but the action is on the
+     * last step only: Provider offers Next.
+     */
     expect(activeStep()).toContain("Provider");
+    expect(
+      screen.queryByRole("button", { name: ACTION }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("form-next-button")).toHaveTextContent("Next");
 
     const model: JSONObject = await submitWith(ACTION);
 
@@ -371,7 +418,7 @@ describe("adding an OIDC provider", () => {
     expect(capturedModels).toHaveLength(0);
   });
 
-  test("Sign-in shows the team, Enabled off, and Advanced folded with what its defaults do", async () => {
+  test("Sign-in shows the team, Enabled off, and More fields folded with what its defaults do", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: {
@@ -400,9 +447,21 @@ describe("adding an OIDC provider", () => {
       "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.",
     );
 
+    // Folded, it names what it holds; the defaults that follow the issuer and the name are not set.
+    expect(listedNames()).toEqual(
+      expect.arrayContaining([
+        "Discovery URL",
+        "Scopes",
+        "Email Claim Name",
+        "Name Claim Name",
+        "Description",
+      ]),
+    );
+    expect(setChips()).toEqual([]);
+
     // Opened, it shows what will be saved.
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+      fireEvent.click(screen.getByRole("button", { name: "More fields" }));
     });
 
     expect(
@@ -415,7 +474,7 @@ describe("adding an OIDC provider", () => {
     expect(input("Sign in with Okta").value).toBe("Sign in with Okta");
   });
 
-  test("a changed default turns the summary into Configured, and is saved", async () => {
+  test("a changed default turns the summary into a chip of what changed, and is saved", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: {
@@ -430,20 +489,20 @@ describe("adding an OIDC provider", () => {
     });
 
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+      fireEvent.click(screen.getByRole("button", { name: "More fields" }));
     });
 
     await type("email", "upn");
 
-    // Folded again, it says something is set.
+    // Folded again, it shows what changed - and only that.
     await act(async (): Promise<void> => {
-      fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+      fireEvent.click(screen.getByRole("button", { name: "More fields" }));
     });
 
     expect(
       screen.queryByTestId("collapsible-section-summary"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Configured")).toBeInTheDocument();
+    expect(setChips()).toEqual(["Email Claim Name: upn"]);
 
     const model: JSONObject = await submitWith(ACTION);
 

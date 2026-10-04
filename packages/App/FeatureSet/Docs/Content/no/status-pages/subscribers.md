@@ -44,6 +44,8 @@ Som standard får en abonnent alt på siden. To brytere i kortet **Avanserte abo
 - **Tillat abonnenter å velge ressurser** (`allowSubscribersToChooseResources`) — av som standard. Slår du den på, får abonnementsskjemaet en bryter for **Abonner på alle ressurser**; skru den av, og **Velg ressurser å abonnere på** dukker opp så den besøkende kan plukke enkeltressurser.
 - **Tillat abonnenter å velge hendelsestyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samme form: en bryter for **Abonner på alle hendelsestyper**, og **Velg hendelsestyper å abonnere på** under når den skrus av.
 
+Med en av dem slått på er skjemaet fortsatt én side: Disse valgene ligger under **Preferanser**, foldet sammen under hvor oppdateringene skal sendes. Sammenfoldet sier den på én linje hva den besøkende får (alle oppdateringer fra statussiden, til noe snevres inn), så den som vil ha alt, trykker bare på **Abonner**. Siden **Oppdater abonnement** viser de samme valgene foldet ut.
+
 Hendelsestypene er `Incident`, `Announcement` og `Scheduled Event`.
 
 Valgene havner på abonnentoppføringen som **Is Subscribed to All Resources** (`isSubscribedToAllResources`, standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, standard true), **Subscribed to Resources** og **Subscribed to Event Types**.
@@ -82,7 +84,7 @@ Abonnentene hører om de tre hendelsestypene over, men hver kilde har sin egen b
 
 ### Varsler om kunngjøringer
 
-Selve kunngjøringen bærer **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), som i opprettelsesskjemaet vises som avkrysningsboksen **Varsle statussideabonnenter** og står på som standard. Navngir kunngjøringen overvåkinger under **Berørte overvåkinger (valgfritt)**, avgrenses varselet til de overvåkingene; la feltet stå tomt, så varsles alle abonnenter.
+Selve kunngjøringen bærer **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), som i opprettelsesskjemaet vises som avkrysningsboksen **Varsle statussideabonnenter** under **Tidsplan og varsler** og står på som standard. Abonnentene får høre om den én gang, når kunngjøringen begynner å vises, så valget gjøres når den opprettes, og en redigering endrer det ikke. Navngir kunngjøringen overvåkinger under **Berørte monitorer**, avgrenses varselet til de overvåkingene; la feltet stå tomt, så varsles alle abonnenter.
 
 ### Planlagte vedlikeholdshendelser
 
@@ -114,12 +116,14 @@ Egendefinert SMTP er verdt å gjøre tidlig hvis du har e-postabonnenter: e-post
 
 En kunngjøring er en oppføring på prosjektnivå (modellen `StatusPageAnnouncement`) som du sprer til én eller flere statussider, eventuelt avgrenset til bestemte overvåkinger, med et vindu den vises i.
 
-Du oppretter en fra **Statussider → Mer → Kunngjøringer**, eller fra **Kunngjøringer** i sidemenyen til en enkelt statusside. Opprettelsesskjemaet er en veiviser i fire trinn:
+Du oppretter en fra **Statussider → Mer → Kunngjøringer**, eller fra **Kunngjøringer** i sidemenyen til en enkelt statusside. Opprettet fra en statusside er den siden allerede valgt, så en tittel og en beskrivelse er alt som trengs, og **Opprett kunngjøring** tar deg tilbake til sidens liste **Kunngjøringer** (eller til prosjektets liste, hvis du valgte bort siden underveis). Opprettelsesskjemaet har to trinn og deretter en oppsummering:
 
-1. **Grunnleggende informasjon** — **Kunngjøringstittel** (påkrevd, minst to tegn), **Beskrivelse** (Markdown, valgfritt) og **Vedlegg** for filer som skal være tilgjengelige sammen med kunngjøringen på statussiden.
-2. **Statussider** — **Vis kunngjøring på disse statussidene**, et påkrevd flervalg. Én kunngjøring kan treffe flere sider samtidig.
-3. **Berørte ressurser** — **Berørte overvåkinger (valgfritt)**. Velger du ingen, varsles alle abonnenter.
-4. **Tidsplan og innstillinger** — **Begynn å vise kunngjøring fra** (påkrevd, standard nå), **Slutt å vise kunngjøring kl.** (valgfritt) og **Varsle statussideabonnenter** (på som standard).
+1. **Kunngjøring** — **Tittel** (påkrevd, minst to tegn) og **Beskrivelse** (Markdown, påkrevd: det er teksten folk leser på statussiden). **Vedlegg** for filer som skal være tilgjengelige sammen med kunngjøringen på statussiden, ligger under **Flere felt**.
+2. **Statussider** — **Vis kunngjøring på disse statussidene**, et påkrevd flervalg (én kunngjøring kan treffe flere sider på en gang), og **Berørte monitorer**: velger du ingen, varsles alle abonnenter. Når du har valgt monitorer, foreslår skjemaet under valget av sider statussidene som viser dem: "Statussider som viser de berørte monitorene:" fulgt av navnet på hver side. Klikk på et navn for å legge til siden, eller på **Legg til alle**; ingenting velges for deg. Under dem er **Tidsplan og varsler** brettet sammen til én linje som sier hva som vil skje: "Vises nå og blir stående til du avslutter den. Abonnenter varsles når den begynner å vises." Brett den ut for å endre **Begynn å vise kunngjøring fra** (som standard nå), **Slutt å vise kunngjøring kl.** (tom: kunngjøringen blir stående til du angir en slutt) eller **Varsle statussideabonnenter** (på som standard). Linjen følger svarene dine. Slutten må komme etter starten og, for en ny kunngjøring, fortsatt ligge fram i tid: en kunngjøring som allerede er over, ville aldri blitt vist.
+
+Oppsummeringen viser den samme linjen. **Opprett fra mal** fyller ut skjemaet fra en mal; opprettet fra en statusside beholdes malens egne statussider ved siden av den siden.
+
+Kunngjøringens egen side redigerer den i de samme to trinnene. **Varsle abonnenter om denne oppdateringen** står under beskrivelsen, og **Tidsplan** inneholder start og slutt. Å sette en slutt som har passert, er måten å ta ned en kunngjøring på.
 
 Besøkende leser kunngjøringer på `/announcements`, delt i **Aktive kunngjøringer** og **Tidligere kunngjøringer**, hver stemplet med **Kunngjort den**. Kunngjøringer som er aktive akkurat nå, festes i tillegg øverst på oversiktssiden. Når det ikke er noe å vise, står det *Ingen kunngjøringer* på siden, med merknaden om at ingen er publisert så langt.
 
@@ -141,7 +145,7 @@ Om kunngjøringer vises i det hele tatt, stilles inn i kortet **Hva statussiden 
 
 ## Kunngjøringsmaler
 
-Publiserer du den samme typen melding gang på gang — et månedlig vedlikeholdsvarsel, en tilbakevendende tredjepartsdegradering — så lag den ferdig på forhånd. **Statussider → Innstillinger → Kunngjøringsmaler** lagrer modellen `StatusPageAnnouncementTemplate`, og skjemaet der spør etter **Malnavn**, **Malbeskrivelse**, **Kunngjøringstittel**, **Beskrivelse**, **Vis kunngjøring på disse statussidene**, **Berørte overvåkinger (valgfritt)** og **Varsle abonnenter**, slik at spredningen og varslingsvalget gjøres én gang i stedet for hver gang.
+Publiserer du den samme typen melding gang på gang — et månedlig vedlikeholdsvarsel, en tilbakevendende tredjepartsdegradering — så lag den ferdig på forhånd. **Statussider → Innstillinger → Kunngjøringsmaler** lagrer modellen `StatusPageAnnouncementTemplate`. Skjemaet der går gjennom **Malinformasjon** (**Malnavn**, **Malbeskrivelse**) og deretter kunngjøringens egne trinn: **Kunngjøring** (**Tittel**, **Beskrivelse**) og **Statussider** (**Vis kunngjøring på disse statussidene**, **Berørte monitorer** og **Varsle statussideabonnenter**, på som standard), slik at spredningen og varslingsvalget gjøres én gang i stedet for hver gang. En mal har ingen tidsplan: en kunngjøring laget fra den vises fra den opprettes, med mindre du endrer det under **Tidsplan og varsler**.
 
 ## Webhook-abonnenter og SSRF-beskyttelse
 

@@ -71,7 +71,7 @@ Apri i **Criteria** del monitor e modifica il primo criterio.
 
 - Attiva _When filters match, change monitor status_ e impostalo su **Offline** (o Degraded).
 - Attiva _When filters match, declare an incident_. Imposta **Title**, **Severity** e le **On-Call Policies** da allertare.
-- Sotto **Advanced Options** di quell'incidente, attiva **Auto Resolve Incident**. Senza questo, le notifiche di ripristino vengono ignorate e gli incidenti restano aperti per sempre.
+- Sotto **More fields** di quell'incidente, attiva **Auto Resolve Incident**. Senza questo, le notifiche di ripristino vengono ignorate e gli incidenti restano aperti per sempre.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Risoluzione dei problemi
 
 - **Non arriva nulla** — verifica che Alertmanager riesca a raggiungere l'URL; controlla i suoi log per errori di consegna. OneUptime risponde a ogni richiesta con un `200` vuoto prima di validare qualsiasi cosa, quindi un `200` non conferma che il payload sia stato accettato. Controlla invece la timeline del monitor.
-- **Gli incidenti si aprono ma non si chiudono mai** — controlla `send_resolved: true` in Alertmanager, il campo e il valore di ripristino nel criterio (il confronto distingue maiuscole e minuscole) e **Auto Resolve Incident** sotto le **Advanced Options** dell'incidente. Due cause più sottili: un payload con più chiavi distinte di **Max incidents per request** nasconde al ripristino anche quelle oltre il limite; e se è proprio la notifica `resolved` a essere scartata dall'unificazione in ingest (sotto), l'incidente resta bloccato per sempre, perché Alertmanager ripete le notifiche di attivazione ma non quelle di risoluzione. Chiudi quelle a mano.
+- **Gli incidenti si aprono ma non si chiudono mai** — controlla `send_resolved: true` in Alertmanager, il campo e il valore di ripristino nel criterio (il confronto distingue maiuscole e minuscole) e **Auto Resolve Incident** sotto le **More fields** dell'incidente. Due cause più sottili: un payload con più chiavi distinte di **Max incidents per request** nasconde al ripristino anche quelle oltre il limite; e se è proprio la notifica `resolved` a essere scartata dall'unificazione in ingest (sotto), l'incidente resta bloccato per sempre, perché Alertmanager ripete le notifiche di attivazione ma non quelle di risoluzione. Chiudi quelle a mano.
 - **Nessun incidente, stato del monitor invariato** — il percorso di raggruppamento deve iniziare con il letterale `requestBody.`, e solo il primo `[*]` di un percorso è un carattere jolly. Entrambi gli errori falliscono in silenzio.
 - **Il testo dell'incidente mostra segnaposto `{{...}}` grezzi** — il percorso non si è risolto, e OneUptime lascia i segnaposto non risolti al loro posto anziché svuotarli. Regole diverse impostano annotazioni diverse, quindi fai riferimento a campi che esistono davvero per le tue regole (`commonAnnotations` rispetto alle `annotations` del singolo allarme).
 - **Un solo incidente per un payload pieno di allarmi** — hai raggruppato su una label che non varia all'interno di una notifica, molto spesso una che è anche nel `group_by` della tua route. Raggruppa invece su `requestBody.alerts[*].fingerprint`.

@@ -30,7 +30,7 @@ DNSSEC-Monitore validieren die gesamte Vertrauenskette von der Root-Zone bis zu 
 | Resolver                     | Kommagetrennte Liste validierender Resolver für Abfragen (z. B. `1.1.1.1, 8.8.8.8, 9.9.9.9`)                | Ja           |
 | Nameserver-Konsistenz prüfen | Jeden autoritativen Nameserver direkt abfragen und überprüfen, ob sie dieselbe SOA-Seriennummer zurückgeben | Nein         |
 
-### Erweiterte Einstellungen
+### Weitere Felder
 
 | Feld                          | Beschreibung                                                                                 | Standard |
 | ----------------------------- | -------------------------------------------------------------------------------------------- | -------- |

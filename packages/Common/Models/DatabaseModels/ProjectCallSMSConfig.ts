@@ -566,7 +566,12 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Project Default",
     description:
-      "When set, all SMS and Calls sent to project team members (on-call notifications, alerts, verification codes, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. This does not affect status pages — they use the config explicitly assigned to each status page.",
+      "When set, all SMS and Calls sent to project team members (on-call notifications, alerts, verification codes, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. A project's first Twilio config becomes the project default when this is not set on create; an explicit false is kept. This does not affect status pages — they use the config explicitly assigned to each status page.",
+    /*
+     * False for every config but a project's first: ProjectCallSMSConfigService
+     * makes the first one the default when the create leaves this out, and
+     * the dashboard's create form starts the switch on for it.
+     */
     defaultValue: false,
   })
   @Column({

@@ -224,8 +224,10 @@ const getPeoplePickerSummaryElement: <T extends GenericObject>(
  * user's (isFormFieldValueSet: a value other than empty or its default, a
  * switch off its default). Declare Incident's Advanced options left alone
  * would otherwise come back as four rows nobody touched, on the one screen
- * meant to confirm what was chosen. A field shown only under a condition
- * follows that condition, as everywhere else.
+ * meant to confirm what was chosen. A folded field marked alwaysInSummary
+ * is listed whatever it holds: a default to read before saving, such as
+ * whether status page subscribers are emailed. A field shown only under a
+ * condition follows that condition, as everywhere else.
  */
 export const isListedInFormSummary: <T extends GenericObject>(
   field: Field<T>,
@@ -238,7 +240,7 @@ export const isListedInFormSummary: <T extends GenericObject>(
     return false;
   }
 
-  if (field.collapsibleSection) {
+  if (field.collapsibleSection && !field.alwaysInSummary) {
     return isFormFieldValueSet(field, formValues);
   }
 

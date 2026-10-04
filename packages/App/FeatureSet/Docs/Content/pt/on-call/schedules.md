@@ -8,13 +8,13 @@ Ao criar um agendamento na página **Agendamentos de plantão**, o formulário p
 
 **Quem se reveza?** é opcional. Se ficar vazio, o agendamento começa sem camadas: não coloca ninguém de plantão até você adicionar uma camada na página **Camadas**. A pergunta só é feita a quem pode adicionar camadas.
 
-Todo o resto fica em **Avançado**, recolhido até você abrir:
+Todo o resto fica em **Mais campos**, recolhido até você abrir:
 
 - **Cada turno dura**: **1 dia**, **1 semana**, **2 semanas** ou **1 mês**, e **1 semana** se você não mudar. É perguntado assim que alguém é escolhido. Cada pessoa fica de plantão por esse tempo e depois a próxima assume, no horário em que o agendamento foi criado.
 - **Fuso horário**: o fuso horário em que valem os horários de passagem e as horas de plantão. Começa com o seu.
 - **Descrição** e **Rótulos**.
 
-Enquanto houver alguém escolhido e nada em **Avançado** tiver sido alterado, o cabeçalho recolhido diz o que vai acontecer: cada pessoa fica de plantão por uma semana e depois a próxima assume.
+Enquanto houver alguém escolhido e nada em **Mais campos** tiver sido alterado, o cabeçalho recolhido diz o que vai acontecer: cada pessoa fica de plantão por uma semana e depois a próxima assume.
 
 ## Camadas
 

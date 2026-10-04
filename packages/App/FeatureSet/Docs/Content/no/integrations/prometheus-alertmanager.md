@@ -71,7 +71,7 @@ Alertmanager sender `Content-Type: application/json`, som OneUptime trenger for 
 
 - Slå på _When filters match, change monitor status_ og sett den til **Offline** (eller Degraded).
 - Slå på _When filters match, declare an incident_. Angi **Title**, **Severity** og de **On-Call Policies** som skal varsles.
-- Under **Advanced Options** på den hendelsen slår du på **Auto Resolve Incident**. Uten dette ignoreres gjenopprettingsvarsler, og hendelser blir stående åpne for alltid.
+- Under **More fields** på den hendelsen slår du på **Auto Resolve Incident**. Uten dette ignoreres gjenopprettingsvarsler, og hendelser blir stående åpne for alltid.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Feilsøking
 
 - **Ingenting kommer frem** — bekreft at Alertmanager kan nå URL-en; sjekk loggene dens for leveringsfeil. OneUptime svarer på hver forespørsel med en tom `200` før noe valideres, så en `200` bekrefter ikke at nyttelasten ble godtatt. Se på monitorens tidslinje i stedet.
-- **Hendelser åpnes, men lukkes aldri** — sjekk `send_resolved: true` i Alertmanager, gjenopprettingsfeltet og -verdien på kriteriet (sammenligningen skiller mellom store og små bokstaver), og **Auto Resolve Incident** under hendelsens **Advanced Options**. To mer subtile årsaker: en nyttelast med flere unike nøkler enn **Max incidents per request** skjuler også dem forbi grensen for gjenoppretting; og hvis det nettopp er `resolved`-varslingen som droppes av sammenslåing ved ingest (nedenfor), blir hendelsen stående fast permanent, fordi Alertmanager gjentar firing-varslinger, men ikke resolved-varslinger. Lukk disse for hånd.
+- **Hendelser åpnes, men lukkes aldri** — sjekk `send_resolved: true` i Alertmanager, gjenopprettingsfeltet og -verdien på kriteriet (sammenligningen skiller mellom store og små bokstaver), og **Auto Resolve Incident** under hendelsens **More fields**. To mer subtile årsaker: en nyttelast med flere unike nøkler enn **Max incidents per request** skjuler også dem forbi grensen for gjenoppretting; og hvis det nettopp er `resolved`-varslingen som droppes av sammenslåing ved ingest (nedenfor), blir hendelsen stående fast permanent, fordi Alertmanager gjentar firing-varslinger, men ikke resolved-varslinger. Lukk disse for hånd.
 - **Ingen hendelser i det hele tatt, monitorstatus uendret** — grupperingsstien må begynne med det bokstavelige `requestBody.`, og bare det første `[*]` i en sti er et jokertegn. Begge feilene feiler lydløst.
 - **Hendelsesteksten viser rå `{{...}}`-plassholdere** — stien ble ikke løst, og OneUptime lar uløste plassholdere stå i stedet for å tømme dem. Ulike regler setter ulike annotasjoner, så vis til felter som faktisk finnes for reglene dine (`commonAnnotations` mot `annotations` per varsel).
 - **Bare én hendelse for en nyttelast full av varsler** — du grupperte etter en label som ikke varierer innenfor en varsling, oftest en som også står i rutens `group_by`. Grupper etter `requestBody.alerts[*].fingerprint` i stedet.

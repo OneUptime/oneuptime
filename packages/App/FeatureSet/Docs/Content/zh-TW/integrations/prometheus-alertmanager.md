@@ -71,7 +71,7 @@ Alertmanager 會送出 `Content-Type: application/json`，OneUptime 需要它才
 
 - 開啟 _When filters match, change monitor status_，並設為 **Offline**（或 Degraded）。
 - 開啟 _When filters match, declare an incident_。設定 **Title**、**Severity** 以及要呼叫的 **On-Call Policies**。
-- 在該事件的 **Advanced Options** 下開啟 **Auto Resolve Incident**。否則復原通知會被忽略，事件將永遠處於開啟狀態。
+- 在該事件的 **More fields** 下開啟 **Auto Resolve Incident**。否則復原通知會被忽略，事件將永遠處於開啟狀態。
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## 疑難排解
 
 - **什麼都沒收到** —— 確認 Alertmanager 能連到該 URL；檢查它的記錄檔有無投遞錯誤。OneUptime 會在驗證任何內容之前就以空的 `200` 回應每個請求，因此 `200` 並不能確認酬載已被接受。請改看監控器的時間軸。
-- **事件會開啟但從不關閉** —— 檢查 Alertmanager 中的 `send_resolved: true`、條件中的復原欄位與值（比較區分大小寫），以及事件 **Advanced Options** 下的 **Auto Resolve Incident**。還有兩個更隱微的原因：當酬載中不同鍵的數量超過 **Max incidents per request** 時，超出上限的鍵對復原同樣看不見；另外，如果被入口合併（見下）丟棄的正好是 `resolved` 通知，該事件就會被永久擱置，因為 Alertmanager 會重送觸發通知，卻不會重送已解決的通知。這些只能手動關閉。
+- **事件會開啟但從不關閉** —— 檢查 Alertmanager 中的 `send_resolved: true`、條件中的復原欄位與值（比較區分大小寫），以及事件 **More fields** 下的 **Auto Resolve Incident**。還有兩個更隱微的原因：當酬載中不同鍵的數量超過 **Max incidents per request** 時，超出上限的鍵對復原同樣看不見；另外，如果被入口合併（見下）丟棄的正好是 `resolved` 通知，該事件就會被永久擱置，因為 Alertmanager 會重送觸發通知，卻不會重送已解決的通知。這些只能手動關閉。
 - **完全沒有事件，監控器狀態也沒變** —— 分組路徑必須以字面的 `requestBody.` 開頭，而且路徑中只有第一個 `[*]` 是萬用字元。這兩個錯誤都會靜默失敗。
 - **事件文字中出現原始的 `{{...}}` 佔位符** —— 路徑沒有解析成功，而 OneUptime 會原樣保留未解析的佔位符，而不是清空它們。不同規則設定的註解不同，因此請引用你的規則中確實存在的欄位（`commonAnnotations` 或每則警示各自的 `annotations`）。
 - **一份滿是警示的酬載只產生一個事件** —— 你以一個在通知內部不會變化的標籤分組，最常見的是同時出現在路由 `group_by` 中的那個標籤。請改以 `requestBody.alerts[*].fingerprint` 分組。

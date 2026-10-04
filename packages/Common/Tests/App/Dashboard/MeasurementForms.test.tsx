@@ -194,6 +194,10 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 type Page = FunctionComponent<PageComponentProps>;
 
@@ -442,7 +446,7 @@ function queryDropdownNamed(name: string): HTMLElement | null {
 }
 
 function advancedHeader(): HTMLElement {
-  return within(form()).getByRole("button", { name: /^Advanced/ });
+  return within(form()).getByRole("button", { name: "More fields" });
 }
 
 function stateRow(
@@ -750,7 +754,7 @@ describe.each(PAGES)("$label - Create", (entry: PageCase) => {
     // Folded: present, but out of sight until opened.
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(dropdownNamed("Show durations in")).not.toBeVisible();
-    expect(advancedHeader()).not.toHaveTextContent("Configured");
+    expect(setChips(advancedHeader())).toEqual([]);
 
     await user.click(advancedHeader());
 
@@ -792,7 +796,7 @@ describe.each(PAGES)("$label - Create", (entry: PageCase) => {
 
     // Folded again, it still says something in it is set.
     await user.click(advancedHeader());
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     await clickCreate(user);
 
@@ -884,7 +888,7 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
     ).toHaveTextContent(entry.saved.roleEndLabel);
 
     // The last time counts: Advanced says something in it is set.
-    expect(advancedHeader()).toHaveTextContent("Configured");
+    expect(hasSetChip(advancedHeader())).toBe(true);
 
     await user.click(advancedHeader());
 
@@ -906,8 +910,22 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
     await user.clear(name);
     await user.type(name, "Time to resolve");
 
+    /*
+     * Save Changes is on the last step only. Every step of an edit form is
+     * filled in already, so the step list opens the last one.
+     */
+    expect(
+      within(form()).queryByRole("button", { name: "Save Changes" }),
+    ).toBeNull();
+
+    const steps: Array<HTMLElement> = within(
+      within(form()).getByRole("navigation", { name: "Progress" }),
+    ).getAllByRole("listitem");
+
+    await user.click(steps[steps.length - 1] as HTMLElement);
+
     await user.click(
-      within(form()).getByRole("button", { name: "Save Changes" }),
+      await within(form()).findByRole("button", { name: "Save Changes" }),
     );
 
     await waitFor(() => {

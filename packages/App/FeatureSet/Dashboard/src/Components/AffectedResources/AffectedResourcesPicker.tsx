@@ -130,6 +130,13 @@ export interface ComponentProps {
    * without offering to change it.
    */
   readOnly?: boolean | undefined;
+  /*
+   * The id of the label the search input is named by - a form field's own
+   * label (CustomElementProps.ariaLabelledby). A step can hold two pickers,
+   * Declare Incident's Monitors and Other Affected Resources, and a screen
+   * reader tells them apart by their labels.
+   */
+  ariaLabelledby?: string | undefined;
 }
 
 interface ResourceConfig {
@@ -1758,6 +1765,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           disabled={props.disabled}
           aria-autocomplete="list"
           aria-expanded={isOpen}
+          aria-labelledby={props.ariaLabelledby}
           role="combobox"
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             setSearchQuery(event.target.value);

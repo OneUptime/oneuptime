@@ -1,0 +1,3845 @@
+{
+  "description": [
+    "NATS and MQTT spans OBI exported in KinD (Kubernetes 1.34) from nats-server 2.11.17 with JetStream (in the cluster, on the host network, and outside the cluster where OBI cannot name it), nats.js 2.29.3 clients (core pub/sub, request-reply, a JetStream producer, an acking pull and push consumer, an app whose service.name is \"nats\") and mosquitto 2 with MQTT clients, under the kubernetes-agent chart's rendered OBI DaemonSet and config. Clients connected before OBI started, then again under it.",
+    "body: what OBI exported, as a collector's file exporter wrote it (OTLP/JSON), at most two spans per shape, OBI version and service.peer.name presence; resource attributes trimmed to the ones ingest reads.",
+    "spans: per span, OBI's own event type as its trace printer (OTEL_EBPF_TRACE_PRINTER=text) logged it, the workload's role, and the kind to store: SERVER for every *Server event type but a client's split delivery naming its broker (C2, kept as exported), SERVER for a MSG a broker wrote (B4), and the exported kind for every other client-typed span. v013Kind is the kind OBI v0.13 gives the same span."
+  ],
+  "obiVersion": "v0.13.0",
+  "captures": {
+    "v0.13.0-genericgo": "OBI v0.13.0 with the chart's config and the generic tracer",
+    "v0.13.0-gotracer": "OBI v0.13.0 with the chart's config and the Go tracer, which records no NATS span of nats-server"
+  },
+  "shapes": {
+    "C1": "NATS client: its PUB (client-typed), server.address names the broker's Service, equal ports",
+    "C1 host-network broker": "C1 against a host-network nats-server, through its Service",
+    "C1 external broker": "C1 against a broker outside the cluster: server.address is its IP",
+    "C1 app named like broker": "C1 of an application whose service.name is the broker's (\"nats\")",
+    "C2": "NATS client: the MSG OBI split off its ack, pull or request (NATSServer, unreversed): server.address the broker, server.port its listening port, network.peer the client itself",
+    "C2 host-network broker": "C2 from a host-network nats-server, through its Service",
+    "C2 external broker": "C2 from a broker OBI cannot name: server.address falls back to the client's own service name",
+    "C2 app named like broker": "C2 of an application whose service.name is the broker's: server.address equals its own name",
+    "C3": "NATS client: a MSG OBI reversed (NATSServer): server.address the client's own name, server.port its ephemeral port",
+    "B1": "nats-server: a PUB it read (NATSServer)",
+    "B2": "nats-server: a MSG it delivered, consistently oriented (NATSServer)",
+    "B3": "nats-server: the MSG OBI split off a MSG + PUB exchange the broker wrote first (NATSServer, unreversed): server.address the subscriber, server.port its ephemeral port, network.peer the broker itself",
+    "B3-main": "nats-server: the PUB of that exchange, typed client-side (NATSClient): equal ports, the subscriber named",
+    "B4": "nats-server: a MSG it wrote, typed client-side (NATSClient): equal ports, the subscriber named",
+    "host-network B1": "B1 on a host-network nats-server: server.address names the node",
+    "host-network B2": "B2 on a host-network nats-server: server.address names the node",
+    "host-network B3": "B3 on a host-network nats-server",
+    "host-network B3-main": "B3-main on a host-network nats-server",
+    "host-network B4": "B4 on a host-network nats-server",
+    "MQTT client publish": "MQTT client: its PUBLISH (MQTTClient)",
+    "MQTT client reversed delivery": "MQTT subscriber: a PUBLISH delivered to it, reversed (MQTTServer)",
+    "MQTT broker receiving-side": "mosquitto: a PUBLISH or SUBSCRIBE it read (MQTTServer)",
+    "MQTT broker publish": "mosquitto: a PUBLISH it delivered to a subscriber, typed client-side (MQTTClient): kept PRODUCER, as v0.13 sent it"
+  },
+  "spans": [
+    {
+      "spanId": "2f4d7ee5cb3e78df",
+      "shape": "C1",
+      "capture": "v0.13.0-genericgo",
+      "workload": "js-producer",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "862a49d29b67e2fc",
+      "shape": "C1",
+      "capture": "v0.13.0-gotracer",
+      "workload": "js-producer",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "39216cf70f95f577",
+      "shape": "C1 host-network broker",
+      "capture": "v0.13.0-genericgo",
+      "workload": "hn-js-producer",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "08cafb0ffd2a7da1",
+      "shape": "C1 host-network broker",
+      "capture": "v0.13.0-gotracer",
+      "workload": "hn-js-producer",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "04f806f6bec4a291",
+      "shape": "C1 external broker",
+      "capture": "v0.13.0-genericgo",
+      "workload": "ext-js-producer",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "3ac0b1e02bae4176",
+      "shape": "C1 external broker",
+      "capture": "v0.13.0-gotracer",
+      "workload": "ext-js-producer",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "757b740b64597f71",
+      "shape": "C1 app named like broker",
+      "capture": "v0.13.0-genericgo",
+      "workload": "orders-gateway",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "2f3834ef18f11b7b",
+      "shape": "C1 app named like broker",
+      "capture": "v0.13.0-gotracer",
+      "workload": "orders-gateway",
+      "role": "client",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "5d1c1dd8511d7593",
+      "shape": "C2",
+      "capture": "v0.13.0-genericgo",
+      "workload": "js-producer",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "096abd4326c45507",
+      "shape": "C2",
+      "capture": "v0.13.0-gotracer",
+      "workload": "js-producer",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "70f8bf9464b89258",
+      "shape": "C2 host-network broker",
+      "capture": "v0.13.0-genericgo",
+      "workload": "hn-js-producer",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "2c0fd2844f91b97d",
+      "shape": "C2 host-network broker",
+      "capture": "v0.13.0-gotracer",
+      "workload": "hn-js-producer",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "3b0efd5232cf6e4b",
+      "shape": "C2 external broker",
+      "capture": "v0.13.0-genericgo",
+      "workload": "ext-js-producer",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "2abdd922f2a9daab",
+      "shape": "C2 external broker",
+      "capture": "v0.13.0-gotracer",
+      "workload": "ext-js-producer",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "22da04ff162fcf1a",
+      "shape": "C2 app named like broker",
+      "capture": "v0.13.0-genericgo",
+      "workload": "orders-gateway",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "46d764f3516610ef",
+      "shape": "C2 app named like broker",
+      "capture": "v0.13.0-gotracer",
+      "workload": "orders-gateway",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "991a7de07bbe6cc1",
+      "shape": "C3",
+      "capture": "v0.13.0-genericgo",
+      "workload": "ps-subscriber",
+      "role": "client",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "12796fbd4ecb20c4",
+      "shape": "B1",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "161a4ad951042693",
+      "shape": "B1",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "03d487493201ce0d",
+      "shape": "B2",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "21568ede766fda8f",
+      "shape": "B2",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "0700394462b3dd7f",
+      "shape": "B3",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "1469e3582333ef8f",
+      "shape": "B3",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "11f25838be810abb",
+      "shape": "B3-main",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "17e59704ee7a6a74",
+      "shape": "B3-main",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "01de8d131521e677",
+      "shape": "B4",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_CONSUMER",
+      "v013Kind": "SPAN_KIND_CONSUMER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "1117587f710c44f5",
+      "shape": "B4",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_CONSUMER",
+      "v013Kind": "SPAN_KIND_CONSUMER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "101a6dd8b8749beb",
+      "shape": "host-network B1",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "10f6ecd9e8116956",
+      "shape": "host-network B1",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "13965fb2b318b54a",
+      "shape": "host-network B2",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "4b06c1a0746184bc",
+      "shape": "host-network B2",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "061a7114d5ea87aa",
+      "shape": "host-network B3",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "2ebf62c41772fc5e",
+      "shape": "host-network B3",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "0898651659faa09f",
+      "shape": "host-network B3-main",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "175bd530495d2924",
+      "shape": "host-network B3-main",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "29e7981a1d8f51a7",
+      "shape": "host-network B4",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_CONSUMER",
+      "v013Kind": "SPAN_KIND_CONSUMER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "4dc1392522d45e0c",
+      "shape": "host-network B4",
+      "capture": "v0.13.0-genericgo",
+      "workload": "nats-hostnet",
+      "role": "broker",
+      "obiEventType": "NATSClient",
+      "exportedKind": "SPAN_KIND_CONSUMER",
+      "v013Kind": "SPAN_KIND_CONSUMER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "69b70c264f23f1fa",
+      "shape": "MQTT client publish",
+      "capture": "v0.13.0-genericgo",
+      "workload": "mqtt-publisher",
+      "role": "client",
+      "obiEventType": "MQTTClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "9d9b0effc6e10cce",
+      "shape": "MQTT client publish",
+      "capture": "v0.13.0-gotracer",
+      "workload": "mqtt-publisher",
+      "role": "client",
+      "obiEventType": "MQTTClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "3db92380b40795f5",
+      "shape": "MQTT client reversed delivery",
+      "capture": "v0.13.0-genericgo",
+      "workload": "mqtt-subscriber",
+      "role": "client",
+      "obiEventType": "MQTTServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "5ca0e6759b1ecd81",
+      "shape": "MQTT client reversed delivery",
+      "capture": "v0.13.0-gotracer",
+      "workload": "mqtt-subscriber",
+      "role": "client",
+      "obiEventType": "MQTTServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "14fcbb2d034e4204",
+      "shape": "MQTT broker receiving-side",
+      "capture": "v0.13.0-genericgo",
+      "workload": "mosquitto",
+      "role": "broker",
+      "obiEventType": "MQTTServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "1b44f601f7ab30cd",
+      "shape": "MQTT broker receiving-side",
+      "capture": "v0.13.0-gotracer",
+      "workload": "mosquitto",
+      "role": "broker",
+      "obiEventType": "MQTTServer",
+      "exportedKind": "SPAN_KIND_SERVER",
+      "v013Kind": "SPAN_KIND_SERVER",
+      "expectedStoredKind": "SPAN_KIND_SERVER"
+    },
+    {
+      "spanId": "16e45e777b33ff86",
+      "shape": "MQTT broker publish",
+      "capture": "v0.13.0-genericgo",
+      "workload": "mosquitto",
+      "role": "broker",
+      "obiEventType": "MQTTClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    },
+    {
+      "spanId": "049f271fd308623e",
+      "shape": "MQTT broker publish",
+      "capture": "v0.13.0-gotracer",
+      "workload": "mosquitto",
+      "role": "broker",
+      "obiEventType": "MQTTClient",
+      "exportedKind": "SPAN_KIND_PRODUCER",
+      "v013Kind": "SPAN_KIND_PRODUCER",
+      "expectedStoredKind": "SPAN_KIND_PRODUCER"
+    }
+  ],
+  "body": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "js-producer" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "js-producer" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "js-producer-5555b7b9c9-fv98w" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "js-producer-5555b7b9c9-fv98w" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "9d203cdbf98658095e0c1bc3bce96789",
+                "spanId": "2f4d7ee5cb3e78df",
+                "name": "publish js.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791059624902933177",
+                "endTimeUnixNano": "1791059624935053969",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "js.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.212.229" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "9d203cdbf98658095e0c1bc3bce96789",
+                "spanId": "5d1c1dd8511d7593",
+                "name": "process _INBOX.AWW00YVBQ0VEC9SSHDVCQN.AWW00YVBQ0VEC9SSHDY7ZN",
+                "kind": 2,
+                "startTimeUnixNano": "1791059624902932178",
+                "endTimeUnixNano": "1791059624935052970",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.AWW00YVBQ0VEC9SSHDVCQN.AWW00YVBQ0VEC9SSHDY7ZN"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "30" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.112" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "42340" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "js-producer" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "js-producer" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "js-producer-77cc9f8949-zp2n7" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "js-producer-77cc9f8949-zp2n7" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "6f92366f920c9bbec43d3b6e89ccf540",
+                "spanId": "862a49d29b67e2fc",
+                "name": "publish js.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791060208181102794",
+                "endTimeUnixNano": "1791060208188290044",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "js.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.212.229" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "02e25a158cd96deeb4582d7b31ac7d20",
+                "spanId": "096abd4326c45507",
+                "name": "process _INBOX.MIUQ8HUG208PXT6QLKE77A.MIUQ8HUG208PXT6QLKHNTU",
+                "kind": 2,
+                "startTimeUnixNano": "1791060208595103253",
+                "endTimeUnixNano": "1791060208610421169",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.MIUQ8HUG208PXT6QLKE77A.MIUQ8HUG208PXT6QLKHNTU"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "30" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.147" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "34892" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "hn-js-producer" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "hn-js-producer" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "hn-js-producer-789b6cf77f-s44nz" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "hn-js-producer-789b6cf77f-s44nz" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "e157e2382ae7e09fc18196705a029c9c",
+                "spanId": "39216cf70f95f577",
+                "name": "publish hn.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791059464148505505",
+                "endTimeUnixNano": "1791059464151339047",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats-hostnet" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "hn.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "nats-hostnet" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.224.60" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4223" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "8ea90eb6fc0eab39e57ee5e9ce4b6da9",
+                "spanId": "70f8bf9464b89258",
+                "name": "process _INBOX.OIGWQX94YZGC7B49E0970M.OIGWQX94YZGC7B49E0AHVS",
+                "kind": 2,
+                "startTimeUnixNano": "1791059624817207260",
+                "endTimeUnixNano": "1791059624819750302",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats-hostnet" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.OIGWQX94YZGC7B49E0970M.OIGWQX94YZGC7B49E0AHVS"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "32" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.111" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "46782" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "hn-js-producer" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "hn-js-producer" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "hn-js-producer-5bf4d48d4f-6rmhw" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "hn-js-producer-5bf4d48d4f-6rmhw" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "1c209ded688caf146a4e3825d8923e86",
+                "spanId": "08cafb0ffd2a7da1",
+                "name": "publish hn.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791060053023641500",
+                "endTimeUnixNano": "1791060053025621834",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats-hostnet" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "hn.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "nats-hostnet" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.224.60" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4223" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "adfb6d7d5fb0be01c370b15591f53050",
+                "spanId": "2c0fd2844f91b97d",
+                "name": "process _INBOX.Y6Z8OBF7Z6Y7BC0FPPT1ZG.Y6Z8OBF7Z6Y7BC0FPPTO4S",
+                "kind": 2,
+                "startTimeUnixNano": "1791060208292896252",
+                "endTimeUnixNano": "1791060208312606877",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats-hostnet" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.Y6Z8OBF7Z6Y7BC0FPPT1ZG.Y6Z8OBF7Z6Y7BC0FPPTO4S"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "32" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.145" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "47554" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "ext-js-producer" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "ext-js-producer" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "ext-js-producer-77b76b4bcf-wphpj" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "ext-js-producer-77b76b4bcf-wphpj" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "8ed9e4d37b4fe7f79995fd1686c0a180",
+                "spanId": "04f806f6bec4a291",
+                "name": "publish ext.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791059465975342298",
+                "endTimeUnixNano": "1791059465976927340",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "172.21.0.11" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "ext.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "172.21.0.11" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "172.21.0.11" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "dfb464da0ee7829ff25ca71311687f9b",
+                "spanId": "3b0efd5232cf6e4b",
+                "name": "process _INBOX.KV5IPGIUK0137HFM8KFTAB.KV5IPGIUK0137HFM8KJC32",
+                "kind": 2,
+                "startTimeUnixNano": "1791059624904180636",
+                "endTimeUnixNano": "1791059624933365594",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "ext-js-producer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.KV5IPGIUK0137HFM8KFTAB.KV5IPGIUK0137HFM8KJC32"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "34" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.102" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "46494" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "ext-js-producer" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "ext-js-producer" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "ext-js-producer-64b6c67bd9-x9lwx" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "ext-js-producer-64b6c67bd9-x9lwx" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "23db1c9cd9069cec8214fcd22165729e",
+                "spanId": "3ac0b1e02bae4176",
+                "name": "publish ext.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791060063625964671",
+                "endTimeUnixNano": "1791060063781649421",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "172.21.0.11" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "ext.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "172.21.0.11" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "172.21.0.11" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "6128e80630c0f6793ec0564f76d083df",
+                "spanId": "2abdd922f2a9daab",
+                "name": "process _INBOX.UVU3FRFKD1B17ZSAL2M291.UVU3FRFKD1B17ZSAL2MC0J",
+                "kind": 2,
+                "startTimeUnixNano": "1791060064210343297",
+                "endTimeUnixNano": "1791060064213616172",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "ext-js-producer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.UVU3FRFKD1B17ZSAL2M291.UVU3FRFKD1B17ZSAL2MC0J"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "34" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.139" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "44514" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "nats" } },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "orders-gateway" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "orders-gateway-64b47996fc-ndzx4" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "orders-gateway-64b47996fc-ndzx4" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "2455ab2da0b8bb946062284d6b8ccd76",
+                "spanId": "757b740b64597f71",
+                "name": "publish rr.echo",
+                "kind": 4,
+                "startTimeUnixNano": "1791059624448061802",
+                "endTimeUnixNano": "1791059624450013469",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "rr.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "8" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.212.229" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "c6b9e7954b8327d7242f9c3024442458",
+                "spanId": "22da04ff162fcf1a",
+                "name": "process _INBOX.9NF13H499BBGG70F8L7DI3.9NF13H499BBGG70F8L7P93",
+                "kind": 2,
+                "startTimeUnixNano": "1791059467672514924",
+                "endTimeUnixNano": "1791059467675403174",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.9NF13H499BBGG70F8L7DI3.9NF13H499BBGG70F8L7P93"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "13" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.106" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "36014" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "nats" } },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "orders-gateway" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "orders-gateway-684664dc47-845rz" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "orders-gateway-684664dc47-845rz" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "3c8bd04619c7e8b9114c3fbc956ded8f",
+                "spanId": "2f3834ef18f11b7b",
+                "name": "publish rr.echo",
+                "kind": 4,
+                "startTimeUnixNano": "1791060208029032752",
+                "endTimeUnixNano": "1791060208043796419",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "rr.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "8" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.212.229" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "71a3c7d7d72da755ca7bdc45b53f0645",
+                "spanId": "46d764f3516610ef",
+                "name": "process _INBOX.8PVRPQFEB2ZJZXNNREVKTZ.8PVRPQFEB2ZJZXNNREVXY7",
+                "kind": 2,
+                "startTimeUnixNano": "1791060066131654839",
+                "endTimeUnixNano": "1791060066154248381",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.8PVRPQFEB2ZJZXNNREVKTZ.8PVRPQFEB2ZJZXNNREVXY7"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "13" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.156" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "42328" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "ps-subscriber" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "ps-subscriber" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "ps-subscriber-789cc4c855-68d2g" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "ps-subscriber-789cc4c855-68d2g" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "57744265050c96c157ab0133de5e2e5d",
+                "spanId": "991a7de07bbe6cc1",
+                "name": "process ps.orders.created",
+                "kind": 2,
+                "startTimeUnixNano": "1791059767213158382",
+                "endTimeUnixNano": "1791059767373657299",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "ps-subscriber" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "57330" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "ps.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "9" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.212.229" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "nats" } },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "go" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "nats" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "nats-7c75f75454-slszh" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "nats-7c75f75454-slszh" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "5bc4b352f3b37154df42643dbc4354af",
+                "spanId": "12796fbd4ecb20c4",
+                "name": "publish $JS.API.INFO",
+                "kind": 2,
+                "startTimeUnixNano": "1791059643788233714",
+                "endTimeUnixNano": "1791059643790886297",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "$JS.API.INFO" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "0" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.126" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "34350" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "0ffdee71959f9a88d8ff123b40ad062b",
+                "spanId": "161a4ad951042693",
+                "name": "publish ps.orders.created",
+                "kind": 2,
+                "startTimeUnixNano": "1791059625957550511",
+                "endTimeUnixNano": "1791059626375260470",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "ps.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "9" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.117" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "41842" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "e1405a042c33053c112f496e798b6b02",
+                "spanId": "03d487493201ce0d",
+                "name": "process js.orders.created",
+                "kind": 2,
+                "startTimeUnixNano": "1791059645577890340",
+                "endTimeUnixNano": "1791059645847382798",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "js.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "10" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.127" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "41616" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "63f0f4bde011dae24bbf1f3298b294b4",
+                "spanId": "21568ede766fda8f",
+                "name": "process _INBOX.BOK1F96DSHRHH5SWKOHW52.BOK1F96DSHRHH5SWKOHWDW",
+                "kind": 2,
+                "startTimeUnixNano": "1791059645443954714",
+                "endTimeUnixNano": "1791059645444322048",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "nats" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4222" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.BOK1F96DSHRHH5SWKOHW52.BOK1F96DSHRHH5SWKOHWDW"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "30" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.130" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "48576" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "a58edf54d58f2cab143e7691dcfffc86",
+                "spanId": "0700394462b3dd7f",
+                "name": "process js.orders.created",
+                "kind": 2,
+                "startTimeUnixNano": "1791059624931695470",
+                "endTimeUnixNano": "1791059625000052303",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "js-pull-consumer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "42622" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "js.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.100" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "cf90b713583ee4b46e09288aad542804",
+                "spanId": "1469e3582333ef8f",
+                "name": "process rr.echo",
+                "kind": 2,
+                "startTimeUnixNano": "1791059465878664173",
+                "endTimeUnixNano": "1791059465883823631",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "rr-responder" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "35700" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "rr.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "8" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.100" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4222" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "f462c84f46ac370d9a5edb7b6bfa47bd",
+                "spanId": "11f25838be810abb",
+                "name": "publish js.orders.created",
+                "kind": 4,
+                "startTimeUnixNano": "1791059466062747506",
+                "endTimeUnixNano": "1791059466467540590",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "js-producer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "42340" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "js.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "js-producer" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.112" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "42340" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "453f0e78fd162e8fbb7fbd3dec9804cf",
+                "spanId": "17e59704ee7a6a74",
+                "name": "publish rr.echo",
+                "kind": 4,
+                "startTimeUnixNano": "1791059625595860094",
+                "endTimeUnixNano": "1791059626065235303",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "rr-requester" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "46626" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "rr.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "8" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "rr-requester" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.116" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "46626" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "a1ccb4311c6777cd15132afcdf4f89ea",
+                "spanId": "01de8d131521e677",
+                "name": "process rr.echo",
+                "kind": 5,
+                "startTimeUnixNano": "1791059645053096381",
+                "endTimeUnixNano": "1791059646952221840",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "rr-responder" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "57920" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "rr.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "6" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "rr-responder" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.131" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "57920" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "6aac9c72abef0c12f00315342ada1d19",
+                "spanId": "1117587f710c44f5",
+                "name": "process js.orders.created",
+                "kind": 5,
+                "startTimeUnixNano": "1791059645573361672",
+                "endTimeUnixNano": "1791059645573548506",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "js-push-consumer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "41616" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "js.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "10" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "js-push-consumer" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.127" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "41616" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "nats-hostnet" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "go" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "nats-hostnet" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "nats-hostnet-6dddb5465b-kvs2x" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "nats-hostnet-6dddb5465b-kvs2x" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "4e9c1e924c46e64049b0f893c0764542",
+                "spanId": "101a6dd8b8749beb",
+                "name": "publish _INBOX.G86S5CDB8R8AL5DJO5QQI2.G86S5CDB8R8AL5DJO5QQOI",
+                "kind": 2,
+                "startTimeUnixNano": "1791059644071991756",
+                "endTimeUnixNano": "1791059644500868923",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "fu-nats-worker" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.G86S5CDB8R8AL5DJO5QQI2.G86S5CDB8R8AL5DJO5QQOI"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "11" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.128" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "58880" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "0f749d1cf8857386107144ff0637095d",
+                "spanId": "10f6ecd9e8116956",
+                "name": "publish $JS.API.INFO",
+                "kind": 2,
+                "startTimeUnixNano": "1791059640407641587",
+                "endTimeUnixNano": "1791059640409941920",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "fu-nats-worker" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "$JS.API.INFO" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "0" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.124" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "34200" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "0e95bfdb3338d89ac9753768ab2e561e",
+                "spanId": "13965fb2b318b54a",
+                "parentSpanId": "deee1d784804b7ed",
+                "name": "process _INBOX.6SY8V5SV9XEACZZRB2GM9K.6SY8V5SV9XEACZZRB2INBT",
+                "kind": 2,
+                "startTimeUnixNano": "1791059625128869094",
+                "endTimeUnixNano": "1791059625140988011",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "fu-nats-worker" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.6SY8V5SV9XEACZZRB2GM9K.6SY8V5SV9XEACZZRB2INBT"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "13" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.107" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "50248" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "a933cc1202ea0e0bac0c9941ce7b0e54",
+                "spanId": "4b06c1a0746184bc",
+                "parentSpanId": "b50fe287fdab51e5",
+                "name": "process _INBOX.OIGWQX94YZGC7B49E0970M.OIGWQX94YZGC7B49E0AHYQ",
+                "kind": 2,
+                "startTimeUnixNano": "1791059625285787719",
+                "endTimeUnixNano": "1791059625386449386",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "fu-nats-worker" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "4223" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.OIGWQX94YZGC7B49E0970M.OIGWQX94YZGC7B49E0AHYQ"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "32" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.111" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "46782" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "965041144e3ccdbbe8050322bc172366",
+                "spanId": "061a7114d5ea87aa",
+                "name": "process hn.orders.created",
+                "kind": 2,
+                "startTimeUnixNano": "1791059625801164803",
+                "endTimeUnixNano": "1791059625821107344",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "hn-js-push-consumer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "59896" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "hn.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "172.21.0.10" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4223" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "698ed9a1e2f92136aee1a379f8a7de8b",
+                "spanId": "2ebf62c41772fc5e",
+                "parentSpanId": "248650da768df68a",
+                "name": "process hn.echo",
+                "kind": 2,
+                "startTimeUnixNano": "1791059624679540052",
+                "endTimeUnixNano": "1791059624680222677",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "hn-responder" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "47196" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "hn.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "8" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "172.21.0.10" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "4223" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "0e95bfdb3338d89ac9753768ab2e561e",
+                "spanId": "0898651659faa09f",
+                "parentSpanId": "37e8bcc5e878abcf",
+                "name": "publish _INBOX.6SY8V5SV9XEACZZRB2GM9K.6SY8V5SV9XEACZZRB2INBT",
+                "kind": 4,
+                "startTimeUnixNano": "1791059625129049094",
+                "endTimeUnixNano": "1791059625140794719",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "hn-responder" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "47196" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "_INBOX.6SY8V5SV9XEACZZRB2GM9K.6SY8V5SV9XEACZZRB2INBT"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "13" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "hn-responder" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.109" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "47196" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "7f786765f5587299686713597299a2a1",
+                "spanId": "175bd530495d2924",
+                "name": "publish $JS.ACK.HNORDERS.hn-audit.1.572.572.1791059624817511635.0",
+                "kind": 4,
+                "startTimeUnixNano": "1791059624819494343",
+                "endTimeUnixNano": "1791059624829868093",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "hn-js-push-consumer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "59896" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": {
+                      "stringValue": "$JS.ACK.HNORDERS.hn-audit.1.572.572.1791059624817511635.0"
+                    }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "4" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "hn-js-push-consumer" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.105" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "59896" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "a1cf09f66c47756e5ba3229b2a34cc2d",
+                "spanId": "29e7981a1d8f51a7",
+                "name": "process hn.orders.created",
+                "kind": 5,
+                "startTimeUnixNano": "1791059625143859969",
+                "endTimeUnixNano": "1791059625625285136",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "hn-js-push-consumer" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "59896" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "hn.orders.created" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "12" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "hn-js-push-consumer" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.105" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "59896" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "c45596b4804e1ccdf7132fb15f868848",
+                "spanId": "4dc1392522d45e0c",
+                "name": "process hn.echo",
+                "kind": 5,
+                "startTimeUnixNano": "1791059645741729422",
+                "endTimeUnixNano": "1791059645964285631",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "hn-responder" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "58880" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "nats" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "hn.echo" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.message.envelope.size",
+                    "value": { "intValue": "6" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "hn-responder" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.128" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "58880" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "mqtt-publisher" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "mqtt-publisher" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "mqtt-publisher-6c4f777cdb-xw4dw" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "mqtt-publisher-6c4f777cdb-xw4dw" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "bf55965ce81ddfb6312fe04bee321c33",
+                "spanId": "69b70c264f23f1fa",
+                "name": "publish sensors/temp",
+                "kind": 4,
+                "startTimeUnixNano": "1791059467166506590",
+                "endTimeUnixNano": "1791059467167531882",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mosquitto" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "1883" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "mosquitto" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.56.243" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "1883" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "mqtt-publisher" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "mqtt-publisher" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "mqtt-publisher-55dc9dd868-kct8c" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "mqtt-publisher-55dc9dd868-kct8c" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "109161945bcc0f9a00bd857c0b112631",
+                "spanId": "9d9b0effc6e10cce",
+                "name": "publish sensors/temp",
+                "kind": 4,
+                "startTimeUnixNano": "1791060075025593010",
+                "endTimeUnixNano": "1791060075036109344",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mosquitto" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "1883" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "mosquitto" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.56.243" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "1883" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "mqtt-subscriber" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "mqtt-subscriber" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "mqtt-subscriber-579c8b996-tzwd6" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "mqtt-subscriber-579c8b996-tzwd6" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "e7f6322c366b71ec96a82b48ec67fe0b",
+                "spanId": "3db92380b40795f5",
+                "name": "publish sensors/temp",
+                "kind": 2,
+                "startTimeUnixNano": "1791059624806276761",
+                "endTimeUnixNano": "1791059625263815594",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mqtt-subscriber" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "49446" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.56.243" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "1883" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.name",
+              "value": { "stringValue": "mqtt-subscriber" }
+            },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "nodejs" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "mqtt-subscriber" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "mqtt-subscriber-84f8984d6-c8xfr" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "mqtt-subscriber-84f8984d6-c8xfr" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "ce96bf0d2e92c2cba9c848a5b549ff2d",
+                "spanId": "5ca0e6759b1ecd81",
+                "name": "publish sensors/temp",
+                "kind": 2,
+                "startTimeUnixNano": "1791060208700988544",
+                "endTimeUnixNano": "1791060209097619919",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mqtt-subscriber" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "55716" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.96.56.243" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "1883" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "mosquitto" } },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "generic" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "mosquitto" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "mosquitto-7c99f6d9fb-k9bfr" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "mosquitto-7c99f6d9fb-k9bfr" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "6a381fdaa3f9fcb9e59765e99bab85a8",
+                "spanId": "14fcbb2d034e4204",
+                "name": "publish sensors/temp",
+                "kind": 2,
+                "startTimeUnixNano": "1791059463504378754",
+                "endTimeUnixNano": "1791059463910745880",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mosquitto" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "1883" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.104" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "34800" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "a16e46b0bbbd790bfd3f8f9cd78bd438",
+                "spanId": "16e45e777b33ff86",
+                "name": "publish sensors/temp",
+                "kind": 4,
+                "startTimeUnixNano": "1791059625260259844",
+                "endTimeUnixNano": "1791059625268635886",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mqtt-subscriber" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "49446" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "mqtt-subscriber" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.108" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "49446" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "stringValue": "mosquitto" } },
+            {
+              "key": "service.namespace",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": { "stringValue": "opentelemetry" }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": { "stringValue": "generic" }
+            },
+            {
+              "key": "telemetry.distro.name",
+              "value": { "stringValue": "opentelemetry-ebpf-instrumentation" }
+            },
+            {
+              "key": "telemetry.distro.version",
+              "value": { "stringValue": "v0.13.0" }
+            },
+            {
+              "key": "k8s.cluster.name",
+              "value": { "stringValue": "fu-nats" }
+            },
+            {
+              "key": "k8s.namespace.name",
+              "value": { "stringValue": "natsfu" }
+            },
+            {
+              "key": "k8s.deployment.name",
+              "value": { "stringValue": "mosquitto" }
+            },
+            {
+              "key": "k8s.pod.name",
+              "value": { "stringValue": "mosquitto-56797657d-nkfwt" }
+            },
+            {
+              "key": "k8s.node.name",
+              "value": { "stringValue": "fu-nats-worker" }
+            },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "mosquitto-56797657d-nkfwt" }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "5e289be227e26c1614cbab0f898c8af8",
+                "spanId": "1b44f601f7ab30cd",
+                "name": "process sensors/#",
+                "kind": 2,
+                "startTimeUnixNano": "1791060240936156961",
+                "endTimeUnixNano": "1791060240944854753",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mosquitto" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "1883" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/#" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "process" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.169" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "58808" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "ad4ee7bea3cf7fbd0e294482747f9989",
+                "spanId": "049f271fd308623e",
+                "name": "publish sensors/temp",
+                "kind": 4,
+                "startTimeUnixNano": "1791060208695149628",
+                "endTimeUnixNano": "1791060208701105086",
+                "attributes": [
+                  {
+                    "key": "server.address",
+                    "value": { "stringValue": "mqtt-subscriber" }
+                  },
+                  { "key": "server.port", "value": { "intValue": "55716" } },
+                  {
+                    "key": "messaging.system",
+                    "value": { "stringValue": "mqtt" }
+                  },
+                  {
+                    "key": "messaging.destination.name",
+                    "value": { "stringValue": "sensors/temp" }
+                  },
+                  {
+                    "key": "messaging.client.id",
+                    "value": { "stringValue": "" }
+                  },
+                  {
+                    "key": "messaging.operation.name",
+                    "value": { "stringValue": "publish" }
+                  },
+                  {
+                    "key": "messaging.operation.type",
+                    "value": { "stringValue": "send" }
+                  },
+                  {
+                    "key": "service.peer.name",
+                    "value": { "stringValue": "mqtt-subscriber" }
+                  },
+                  {
+                    "key": "network.peer.address",
+                    "value": { "stringValue": "10.244.1.151" }
+                  },
+                  {
+                    "key": "network.peer.port",
+                    "value": { "intValue": "55716" }
+                  },
+                  { "key": "span.metrics.skip", "value": { "boolValue": true } }
+                ],
+                "status": {}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -4,9 +4,9 @@ import path from "path";
 
 /*
  * Creating a team now asks for its Access - Project Admin, Project Member,
- * Viewer or Choose permissions later - with the description under Advanced,
+ * Viewer or Choose permissions later - with the description under More fields,
  * and a team's Block Permissions moved from a page of their own onto its
- * Permissions page, folded under Advanced. Markdown is not compiled, so
+ * Permissions page, folded under More settings. Markdown is not compiled, so
  * these pin the guides to the dashboard:
  *
  *   - Users & Permissions (English) names every Access choice the form
@@ -15,7 +15,7 @@ import path from "path";
  *     team is kept if its role is refused;
  *   - in every docs language, "where to find it" no longer lists Block
  *     Permissions as a team page beside Members and Permissions, but says
- *     it is under Advanced on the Permissions page;
+ *     it is under More settings on the Permissions page;
  *   - the MCP server guide (English and Persian) says where to add
  *     Authorize MCP Client as a block.
  *
@@ -137,7 +137,7 @@ describe("Users & Permissions on creating a team", () => {
   it("says where the description went and where a new team opens", () => {
     const section: string = teamsSection();
 
-    expect(section).toContain("The description is under **Advanced**.");
+    expect(section).toContain("The description is under **More fields**.");
     expect(section).toContain(
       "A team with a role opens on its **Members** page",
     );
@@ -162,7 +162,7 @@ describe("where a team's Block Permissions are", () => {
   });
 
   it.each(languages())(
-    "%s: not a team page beside Members and Permissions, but under Advanced",
+    "%s: not a team page beside Members and Permissions, but under More settings",
     (language: string) => {
       const page: string = readPage(language, "permissions/index");
 
@@ -178,7 +178,7 @@ describe("where a team's Block Permissions are", () => {
         });
 
       expect(line).toBeDefined();
-      expect(line).toContain("**Advanced**");
+      expect(line).toContain("**More settings**");
 
       // Never three team pages in a row, as every language used to say.
       expect(page).not.toMatch(THREE_TEAM_PAGES);
@@ -187,14 +187,14 @@ describe("where a team's Block Permissions are", () => {
 
   it("English: the allow and block lists are both on the Permissions page", () => {
     expect(readPage("en", "permissions/index")).toContain(
-      "Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **Advanced** at the bottom of the page.",
+      "Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **More settings** at the bottom of the page.",
     );
   });
 });
 
 describe("the MCP server guide", () => {
   it.each(["en", "fa"])(
-    "%s: adds Authorize MCP Client as a block under Advanced on the team's Permissions page",
+    "%s: adds Authorize MCP Client as a block under More settings on the team's Permissions page",
     (language: string) => {
       const page: string = readPage(language, "ai/mcp-server");
       const line: string | undefined = page
@@ -205,7 +205,7 @@ describe("the MCP server guide", () => {
 
       expect(line).toBeDefined();
       expect(line).toContain("**Permissions**");
-      expect(line).toContain("**Advanced**");
+      expect(line).toContain("**More settings**");
       expect(line).toContain("**Block Permissions**");
     },
   );

@@ -10,17 +10,17 @@ Open a status page, and the side menu's **Branding** section has three items:
 
 | Page                       | What you set there                                                                                                                                                                                                                  |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Branding**               | Logo and cover image, page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **Advanced**: history chart colors, languages and search engine indexing. |
+| **Branding**               | Logo and cover image, page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **More settings**: history chart colors, languages and search engine indexing. |
 | **Custom Domains**         | Your own domain, its DNS record, and its free SSL certificate.                                                                                                                                                                      |
 | **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript.                                                                                                                                                                            |
 
-Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the **Overall Uptime Percent**, which **Downtime Monitor Statuses** count against uptime, and the "Powered by OneUptime" line.
+Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the overall uptime percent, which monitor statuses count against uptime, and the "Powered by OneUptime" line. All three are rows of the **What your status page shows** card there.
 
 Branding used to be split across separate **Essential Branding**, **Header**, **Footer**, **Overview Page** and **Languages** screens. Their old addresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` and `{id}/languages`) now open the **Branding** page, so old bookmarks and links still work.
 
 ## The Branding page
 
-**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **Advanced**, at the bottom of the page.
+**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **More settings**, at the bottom of the page.
 
 ### Logo and cover image
 
@@ -51,16 +51,16 @@ Good for: pointing visitors back to your marketing site, your docs, or a support
 
 Legal, privacy and terms links belong here. Header links are for navigation; footer links are for the fine print.
 
-### Advanced
+### More settings
 
-The last section of the page is folded, because few people ever change what is in it. Its header says what it holds ("History chart colors, languages, and whether search engines may list this page."), and it reads **Configured** while anything in it differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it.
+The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four cards — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it.
 
 **History chart colors.** These are the only built-in color controls on a status page.
 
 - **Default Bar Color of the History Chart** — **Edit Default Bar Color** opens the **Default Bar Color** picker. Every new status page starts with green. With bar color rules, it is also the color of a day no rule matches. A day the page has no data for is always drawn grey.
 - **Rules for Bar Colors of History Chart** — an ordered, drag-sortable table of rules. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table columns read `When Uptime Percent >=` and `Then, Bar Color is`. Order matters, so arrange them the way you want them evaluated. With no rules, each day's bar takes the color of the lowest monitor status of that day.
 
-How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is the **Downtime Monitor Statuses** card on the same screen.
+How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is **Counts as downtime**, in the same row of that card.
 
 **Languages.** The **Languages** card is about the language switcher visitors get in the page footer. **Edit Languages** opens two fields:
 
@@ -75,10 +75,12 @@ Use it when: the page is internal-only or still being set up. Turn **Allow Searc
 
 ## Uptime percent and downtime statuses
 
-The **Overall Uptime Percent** and **Downtime Monitor Statuses** cards are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), under the **What your status page shows** card:
+Both are in the **Uptime History** row of the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`). There is no **Edit** button: each saves the moment you change it.
 
-- **Overall Uptime Percent** — **Edit Settings** opens the **Show Overall Uptime Percent** toggle and a **Select Uptime Precision** dropdown, which defaults to two decimals (`99.99% (Two Decimal)`). On OneUptime Cloud, showing the overall uptime percent needs the **Scale** plan.
-- **Downtime Monitor Statuses** — **Edit Statuses** opens a multi-select described as "These monitor statuses are considered as down". This is how you decide whether, say, a degraded status counts against uptime on this page.
+- **Show Overall Uptime Percent** — a switch, off by default. While it is on, **Precision** beside it picks how many decimals the percentage shows: `99%`, `99.9%`, `99.99%` (the default) or `99.999%`. On OneUptime Cloud, turning the percentage on needs the **Scale** plan; its precision can be changed on every plan.
+- **Counts as downtime** — the monitor statuses, as colored chips, whose time counts against uptime on this page. This is how you decide whether, say, a degraded status counts against uptime on this page. At least one status stays picked.
+
+They used to be two cards of their own, **Overall Uptime Percent** and **Downtime Monitor Statuses**, each behind an **Edit** button. See [Choosing what shows on the page](/docs/status-pages/index#choosing-what-shows-on-the-page) for the rest of the card.
 
 ## Custom HTML, CSS and JavaScript
 
@@ -91,7 +93,7 @@ The **Overall Uptime Percent** and **Downtime Monitor Statuses** cards are on **
 - **Custom CSS** — placeholder `Insert Custom CSS here.`
 - **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
 
-**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **Advanced** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
+**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
 
 > Custom JavaScript runs in your visitors' browsers on a page people load precisely when they are worried something is broken. Keep it small, keep it self-hosted where you can, and test it before you rely on it.
 
@@ -120,7 +122,7 @@ Click **Create Status Page Domain**. The dialog is one page:
 
 - **Subdomain**: the label only, placeholder `status (leave blank for root)`. Enter just `status`, not the whole hostname. Leave it blank or enter `@` to use the root/apex domain.
 - **Domain**: your verified domains, placeholder `Select domain`. A domain you have not verified is not listed, because it would be refused.
-- **Advanced**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required.
+- **More fields**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required.
 
 Click **Create Status Page Domain**. The dialog closes and the new domain's **DNS Setup** opens.
 
@@ -159,7 +161,7 @@ Every OneUptime certificate is ordered from one shared Let's Encrypt account, an
 
 If an order fails, the domain's Status column says so, with the reason on the line below, and **Check now** in **DNS Setup** shows it too. OneUptime keeps trying on its own, waiting a little longer after each failure in a row, so a domain whose order keeps failing does not use up the orders every other domain needs. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details. Once you have fixed the cause, click **Check now** to order again straight away. It places at most one order per domain every 15 minutes; a click in between shows how the last order went.
 
-If you uploaded your own certificate under **Advanced**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
+If you uploaded your own certificate under **More fields**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
 
 ## Reissuing a certificate
 
@@ -171,7 +173,7 @@ Its modal, **Reissue SSL Certificate for this Status Page**, asks LetsEncrypt fo
 
 The action does not appear on a domain using a certificate you uploaded yourself; there is no LetsEncrypt certificate there for us to reissue, so upload a new one by editing the domain instead. It also does not appear before the domain's first certificate is ordered, which happens on its own once its CNAME record is verified.
 
-The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Custom Domains**.
+The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Branding → Custom Domains**, which work the same way as status page custom domains: see [Sharing & Public Dashboards](/docs/dashboards/sharing#custom-domains).
 
 ## Reading the domain Status column
 

@@ -36,6 +36,9 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSubscriberNotificationsSection } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * A template is an event to schedule again and again, so its form walks the
@@ -65,11 +68,18 @@ const isRecurring: (
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
   excludeAffectedResources?: boolean;
+  /*
+   * The template being edited, on its view page: that Edit leaves the
+   * resources out, so the status pages showing its monitors are suggested
+   * from the template's own.
+   */
+  templateId?: ObjectID | undefined;
 }) => ModelField<ScheduledMaintenanceTemplate>[];
 
 export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
   excludeAffectedResources?: boolean;
+  templateId?: ObjectID | undefined;
 }): ModelField<ScheduledMaintenanceTemplate>[] => {
   let fields: ModelField<ScheduledMaintenanceTemplate>[] = [
     {
@@ -161,8 +171,6 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
           "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that events created from this template should pre-populate.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
-        // The picker writes only what is picked: the form can be finished without it.
-        customElementCanBeSkipped: true,
         getCustomElement: (
           values: FormValues<ScheduledMaintenanceTemplate>,
           elementProps: CustomElementProps,
@@ -264,6 +272,11 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   }
 
   fields = fields.concat([
+    /*
+     * Under it, the pages that show the affected monitors, one click to add:
+     * the form's own monitors, or on the view page's Edit (which leaves the
+     * resources to their own card) the template's.
+     */
     {
       field: {
         statusPages: true,
@@ -279,6 +292,17 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       },
       required: false,
       placeholder: "Select Status Pages",
+      getFooterElement:
+        getStatusPageSuggestionsFooter<ScheduledMaintenanceTemplate>({
+          eventType: StatusPageEventType.ScheduledEvent,
+          monitorsOf:
+            data.excludeAffectedResources && data.templateId
+              ? {
+                  modelType: ScheduledMaintenanceTemplate,
+                  modelId: data.templateId,
+                }
+              : undefined,
+        }),
     },
     /*
      * Folded to one line that says what happens; it opens by itself on a
@@ -327,8 +351,6 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       description:
         "Remind subscribers before the event starts, for example 1 day before.",
       fieldType: FormFieldSchemaType.CustomComponent,
-      // Starts with no reminders, and writes only the ones added.
-      customElementCanBeSkipped: true,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
         props: CustomElementProps,
@@ -429,8 +451,6 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       description:
         "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
       fieldType: FormFieldSchemaType.CustomComponent,
-      // Writes an interval only when one is typed or picked.
-      customElementCanBeSkipped: true,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
         props: CustomElementProps,

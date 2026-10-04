@@ -82,7 +82,7 @@ Fill in the following fields:
 - **API Key**: Your API key (required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral; optional for Ollama and OpenAI-compatible servers)
 - **Model Name**: The specific model to use (e.g., `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **Base URL** (optional): Custom API endpoint URL (required for Azure OpenAI, Ollama, and OpenAI Compatible; optional for others)
-- **Advanced**, collapsed under the fields above: **Set as Default**, which is on for a new provider because AI features only use the project's default provider, and **Additional Parameters**, an optional JSON object of extra parameters sent to the provider with every request (for example `{"temperature": 0.2}`)
+- **More fields**, folded under the fields above: **Set as Default**, which is on for a new provider because AI features only use the project's default provider, and **Additional Parameters**, an optional JSON object of extra parameters sent to the provider with every request (for example `{"temperature": 0.2}`)
 
 ## Provider-Specific Configuration
 

@@ -127,7 +127,7 @@ test.describe("Runners live under Runbooks", () => {
 
       /*
        * Create a Runner through the form: Runner (the labels folded under
-       * Advanced at its end), then Capabilities.
+       * More fields at its end), then Capabilities.
        */
       await page
         .getByTestId("card-button")
@@ -138,14 +138,15 @@ test.describe("Runners live under Runbooks", () => {
         .getByPlaceholder("prod-eu-runner", { exact: true })
         .fill(runnerName);
       /*
-       * A name is all a Runner needs: Create Runner is on offer from the
-       * first step, and a plain Next walks the optional ones.
+       * A name is all a Runner needs, but Create Runner is on the last step
+       * only: a plain Next walks the optional ones.
        */
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
       const next: Locator = modal.getByTestId("modal-footer-next-button");
-      await expect(submit).toHaveText("Create Runner");
+      await expect(submit).toHaveCount(0);
+      await expect(next).toHaveText("Next");
       await expect(
-        modal.getByRole("button", { name: "Advanced", exact: true }),
+        modal.getByRole("button", { name: "More fields", exact: true }),
       ).toHaveAttribute("aria-expanded", "false");
       await next.click();
       // Capabilities, the last step: nothing to walk on to.

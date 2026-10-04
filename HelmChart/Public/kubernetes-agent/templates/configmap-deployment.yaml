@@ -458,6 +458,20 @@ data:
             {{- end }}
       {{- end }}
 
+      {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
+      # Drop the HTTP server datapoints OBI v0.14 records for its own Node.js
+      # agent injection: GET /json/list (and /json/version) and the WebSocket
+      # upgrade (/*, 101) on the app's inspector port 9229, which would
+      # otherwise show up as routes of every Node.js app in its request
+      # metrics (ebpf.dropNodeInspectorMetrics). Its traces are dropped by
+      # OneUptime on ingest. Only OBI's datapoints are considered.
+      filter/ebpf-node-inspector:
+        error_mode: ignore
+        metrics:
+          datapoint:
+            - '{{ include "kubernetes-agent.ebpfNodeInspectorMetricCondition" . | replace "'" "''" }}'
+      {{- end }}
+
       {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
       # Keep .Values.sampling.traces.percentage% of traces, drop the rest.
       # The decision is a hash of the trace ID, so every span of a trace is
@@ -527,6 +541,10 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
+            # Before batch, so a dropped datapoint never takes a batch slot.
+            - filter/ebpf-node-inspector
+            {{- end }}
             - batch
           exporters:
             - otlphttp

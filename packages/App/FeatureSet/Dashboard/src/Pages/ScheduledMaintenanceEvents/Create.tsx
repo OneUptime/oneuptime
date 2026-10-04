@@ -10,6 +10,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -18,6 +19,11 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -53,6 +59,8 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
+import { getStatusPageSuggestionsFooter } from "../../Components/StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
@@ -65,6 +73,13 @@ import {
   getSubscriberNotificationsSection,
   moveMaintenanceEndWithStart,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  CreatedRecordKind,
+  pickRecordToCreateFrom,
+} from "../../Components/CreateFromRecord/CreateFromRecord";
+import useRecordToCreateFrom, {
+  RecordToCreateFromState,
+} from "../../Components/CreateFromRecord/useRecordToCreateFrom";
 
 /*
  * Two steps - Event and Resources Affected - and the review step (see
@@ -79,8 +94,11 @@ const subscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaint
   getSubscriberNotificationsSection<ScheduledMaintenance>();
 
 /*
- * Every resource type the "Resources Affected" step offers. The editor and
- * the review step's read-only picker both take this list, so the summary
+ * Every resource type the "Resources Affected" step offers: what the event's
+ * own Edit offers, so an event created from a Proxmox cluster's, a
+ * vCenter's, a Ceph or Docker Swarm cluster's or an IoT fleet's Scheduled
+ * Maintenance tab keeps it picked (Components/CreateFromRecord). The editor
+ * and the review step's read-only picker both take this list, so the summary
  * names every type the editor lets the user pick.
  */
 const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
@@ -89,6 +107,11 @@ const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "KubernetesCluster",
   "DockerHost",
   "PodmanHost",
+  "ProxmoxCluster",
+  "VMwareVCenter",
+  "CephCluster",
+  "DockerSwarmCluster",
+  "IoTFleet",
   "DatabaseServer",
   "NetworkSite",
   "Service",
@@ -105,6 +128,27 @@ const ScheduledMaintenanceCreate: FunctionComponent<
     initialValuesForScheduledMaintenance,
     setInitialValuesForScheduledMaintenance,
   ] = useState<JSONObject>({});
+
+  /*
+   * The host, cluster, site or other resource whose Scheduled Maintenance
+   * tab the page was opened from (?hostId=, ?networkSiteId=, ...): picked on
+   * Resources Affected, ahead of a template's resources, and the breadcrumbs
+   * go back through its tab. Opened from the project's list, there is none.
+   */
+  const recordToCreateFrom: RecordToCreateFromState = useRecordToCreateFrom(
+    CreatedRecordKind.ScheduledMaintenance,
+  );
+
+  // One identity per load: the form latches its initial values once.
+  const formInitialValues: JSONObject = useMemo(() => {
+    return pickRecordToCreateFrom({
+      values: initialValuesForScheduledMaintenance,
+      record: recordToCreateFrom.record,
+      created: CreatedRecordKind.ScheduledMaintenance,
+    });
+  }, [initialValuesForScheduledMaintenance, recordToCreateFrom.record]);
+
+  const isPageLoading: boolean = isLoading || recordToCreateFrom.isLoading;
 
   useEffect(() => {
     if (Navigation.getQueryStringByName("scheduledMaintenanceTemplateId")) {
@@ -287,12 +331,12 @@ const ScheduledMaintenanceCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
-          {!isLoading && !error && (
+          {!isPageLoading && !error && (
             <ModelForm<ScheduledMaintenance>
               modelType={ScheduledMaintenance}
-              initialValues={initialValuesForScheduledMaintenance}
+              initialValues={formInitialValues}
               name="Create New Scheduled Maintenance Event"
               id="create-scheduledMaintenance-form"
               steps={[
@@ -433,8 +477,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  // The picker writes only what is picked: the form can be finished without it.
-                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     values: FormValues<ScheduledMaintenance>,
                     elementProps: CustomElementProps,
@@ -448,6 +490,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
                         podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                        proxmoxClusters={
+                          values.proxmoxClusters as Array<ProxmoxCluster>
+                        }
+                        vmwareVCenters={
+                          values.vmwareVCenters as Array<VMwareVCenter>
+                        }
+                        cephClusters={values.cephClusters as Array<CephCluster>}
+                        dockerSwarmClusters={
+                          values.dockerSwarmClusters as Array<DockerSwarmCluster>
+                        }
+                        iotFleets={values.iotFleets as Array<IoTFleet>}
                         databaseServers={
                           values.databaseServers as Array<DatabaseServer>
                         }
@@ -489,6 +542,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
+                          proxmoxClusters: payload.proxmoxClusters,
+                          vmwareVCenters: payload.vmwareVCenters,
+                          cephClusters: payload.cephClusters,
+                          dockerSwarmClusters: payload.dockerSwarmClusters,
+                          iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
                           networkSites: payload.networkSites,
                           services: payload.services,
@@ -512,6 +570,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       item.kubernetesClusters,
                       item.dockerHosts,
                       item.podmanHosts,
+                      item.proxmoxClusters,
+                      item.vmwareVCenters,
+                      item.cephClusters,
+                      item.dockerSwarmClusters,
+                      item.iotFleets,
                       item.databaseServers,
                       item.networkSites,
                       item.services,
@@ -537,6 +600,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         dockerHosts={item.dockerHosts as Array<DockerHost>}
                         podmanHosts={item.podmanHosts as Array<PodmanHost>}
+                        proxmoxClusters={
+                          item.proxmoxClusters as Array<ProxmoxCluster>
+                        }
+                        vmwareVCenters={
+                          item.vmwareVCenters as Array<VMwareVCenter>
+                        }
+                        cephClusters={item.cephClusters as Array<CephCluster>}
+                        dockerSwarmClusters={
+                          item.dockerSwarmClusters as Array<DockerSwarmCluster>
+                        }
+                        iotFleets={item.iotFleets as Array<IoTFleet>}
                         databaseServers={
                           item.databaseServers as Array<DatabaseServer>
                         }
@@ -553,9 +627,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * hosts/kubernetesClusters/dockerHosts/podmanHosts/
-                 * databaseServers/networkSites/services on load and submit. The picker writes
-                 * to every one of these relations, but only the anchor
-                 * field's key (monitors) is otherwise captured.
+                 * proxmoxClusters/vmwareVCenters/cephClusters/
+                 * dockerSwarmClusters/iotFleets/databaseServers/networkSites/
+                 * services on load and submit. The picker writes to every one
+                 * of these relations, but only the anchor field's key
+                 * (monitors) is otherwise captured.
                  */
                 {
                   field: { hosts: true },
@@ -598,6 +674,56 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 },
                 {
+                  field: { proxmoxClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { vmwareVCenters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { cephClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { dockerSwarmClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { iotFleets: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
                   field: { databaseServers: true },
                   stepId: "resources-affected",
                   title: "",
@@ -627,6 +753,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     return false;
                   },
                 },
+                /*
+                 * Starts empty: picking a page publishes the event there and
+                 * tells its subscribers. Under it, the pages that show the
+                 * affected monitors, one click to add.
+                 */
                 {
                   field: {
                     statusPages: true,
@@ -642,6 +773,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select Status Pages",
+                  getFooterElement:
+                    getStatusPageSuggestionsFooter<ScheduledMaintenance>({
+                      eventType: StatusPageEventType.ScheduledEvent,
+                    }),
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
@@ -733,8 +868,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   description:
                     "Remind subscribers before the event starts, for example 1 day before.",
                   fieldType: FormFieldSchemaType.CustomComponent,
-                  // Starts with no reminders, and writes only the ones added.
-                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     value: FormValues<ScheduledMaintenance>,
                     props: CustomElementProps,

@@ -8,9 +8,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Modal's secondaryButton: a plain button the footer draws between Cancel
- * and the submit button - the stepped edit form's Next, beside a Save that
- * works from any step. The submit button stays the dialog's one primary
- * action, so the secondary button is drawn plain, like Cancel.
+ * and the submit button - a stepped form's Next, on every step but the last
+ * (Forms/Utils/SteppedFormFooter.ts). Next commits nothing, and the submit
+ * button, on the last step, is the dialog's one primary action, so the
+ * secondary button is drawn plain, like Cancel.
  */
 
 const PLAIN_CLASS: string = "bg-white";
@@ -99,6 +100,62 @@ describe("Modal secondaryButton", () => {
     await userEvent.click(screen.getByTestId("modal-footer-secondary-button"));
 
     expect(onNext).not.toHaveBeenCalled();
+  });
+
+  test("on a step that is not the last: Cancel and a plain Next, no submit button, nothing primary", () => {
+    render(
+      <Modal
+        title="Create Probe"
+        submitButtonText="Create Probe"
+        onClose={getJestMockFunction()}
+        secondaryButton={{
+          title: "Next",
+          dataTestId: "modal-footer-next-button",
+          onClick: getJestMockFunction(),
+        }}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    expect(
+      footerButtons().map((button: HTMLElement): string => {
+        return button.textContent || "";
+      }),
+    ).toEqual(["Cancel", "Next"]);
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
+
+    for (const button of footerButtons()) {
+      expect(button.className).not.toContain(PRIMARY_CLASS);
+    }
+  });
+
+  test("is drawn even when the footer has nothing else: no Cancel, no submit button", async () => {
+    const onNext: MockFunction = getJestMockFunction();
+
+    render(
+      <Modal
+        title="Create LLM Provider"
+        secondaryButton={{
+          title: "Next",
+          dataTestId: "modal-footer-next-button",
+          onClick: onNext,
+        }}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    const next: HTMLElement = screen.getByTestId("modal-footer-next-button");
+
+    expect(next).toHaveTextContent("Next");
+    expect(next.className).toContain(PLAIN_CLASS);
+
+    await userEvent.click(next);
+
+    expect(onNext).toHaveBeenCalledTimes(1);
   });
 
   test("is not drawn unless asked for", () => {

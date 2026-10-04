@@ -194,6 +194,38 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "Inviting someone to a project, one page as the Dashboard's Invite User is: the email, the name only when the address has no account yet, the team - its members team to start with, named in the team's description - and the master admin's auto-accept box, as on the Admin Dashboard's other add-to-project forms. Three rows for a known address. As two steps (User, Team) Invite could be pressed on the first without ever seeing which team the invitation was for.",
   },
+  /*
+   * "Adding an on-call override asks who is away and who covers, in plain
+   * words, starting now" (UserOverrideFormGuard).
+   */
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx`,
+    form: "ModelTable: On-Call Policy > User Overrides",
+    reason:
+      "Adding a user override: who is away (you, to start with), who covers, when it starts (now) and when it ends - four short rows, two of them filled in. They are read back together before saving, so nobody books an override the wrong way round or for the wrong week. As two steps (Users, Time Window) the end only came after a Next, a page away from who it was for.",
+  },
+  /*
+   * "Log and trace drop filters, scrub rules and pipelines start from what
+   * the rule does": a scrub rule starts from the pattern type it scrubs
+   * (Components/Telemetry/ScrubRuleForm).
+   */
+  ...[
+    [
+      `${DASHBOARD}/Pages/Logs/Settings/ScrubRules.tsx`,
+      "ModelTable: Logs > Settings > Scrub Rules",
+    ],
+    [
+      `${DASHBOARD}/Pages/Traces/Settings/ScrubRules.tsx`,
+      "ModelTable: Traces > Settings > Scrub Rules",
+    ],
+  ].map(([file, form]: Array<string>): ListedForm => {
+    return {
+      file: file!,
+      form: form!,
+      reason:
+        "A log or trace scrub rule: what it scrubs (the pattern type), the name - filled in from the type - and one folded Advanced header that says what the defaults do (the description, the action, the fields and Enabled, at the server's defaults). The fourth row, Custom Regex Pattern, appears only under a Custom Regex type, right below the type it belongs to. It walked Basic Info, Pattern Configuration and Scrub Settings, which asked for a name before anyone had said what the rule was for.",
+    };
+  }),
   {
     file: `${DASHBOARD}/Components/OnCallPolicy/CalendarFeed/SharedCalendarFeedCard.tsx`,
     form: "CardModelDetail: Shared Calendar Feed > Settings",
@@ -595,7 +627,6 @@ describe("the long form detector", () => {
         hasDefault: false,
         hasSpread: false,
         collapsibleSection: section,
-        customElementCanBeSkipped: false,
         customElementComponents: [],
         file: "Page.tsx",
         line: 1,
@@ -1280,6 +1311,100 @@ describe("the project's forms", () => {
       ).size,
     ).toBe(1);
   });
+
+  /*
+   * Subscribing on a status page: where to send updates, then Preferences
+   * folded to one line that says what the visitor will get, and Subscribe -
+   * one page for every channel. It walked two steps for a while (the
+   * address, then the preferences), which made a visitor who wanted
+   * everything press Next before Subscribe. The preference fields come from
+   * one helper (getSubscribePreferenceFields), followed into its file.
+   */
+  test.each([
+    [
+      "EmailSubscribe.tsx",
+      "Status Page > Email Subscribe",
+      ["subscriberEmail"],
+    ],
+    ["SmsSubscribe.tsx", "Status Page > SMS Subscribe", ["subscriberPhone"]],
+    [
+      "SlackSubscribe.tsx",
+      "Status Page > Slack Subscribe",
+      ["slackWorkspaceName", "slackIncomingWebhookUrl"],
+    ],
+    [
+      "MicrosoftTeamsSubscribe.tsx",
+      "Status Page > Microsoft Teams Subscribe",
+      ["microsoftTeamsWorkspaceName", "microsoftTeamsIncomingWebhookUrl"],
+    ],
+    [
+      "WebhookSubscribe.tsx",
+      "Status Page > Webhook Subscribe",
+      ["subscriberWebhook"],
+    ],
+  ])(
+    "include the status page's %s: one page, the preferences folded",
+    (file: string, name: string, contactKeys: Array<string>) => {
+      const found: Array<FormFacts> = forms.filter(
+        (form: FormFacts): boolean => {
+          return (
+            form.file ===
+              `packages/App/FeatureSet/StatusPage/src/Pages/Subscribe/${file}` &&
+            form.label === `ModelForm: ${name}`
+          );
+        },
+      );
+
+      expect(found).toHaveLength(1);
+
+      const form: FormFacts = found[0]!;
+
+      expect(form.hasSteps).toBe(false);
+      expect(form.uncountableReasons).toEqual([]);
+      // Where updates go, and the one folded Preferences header.
+      expect(countFormRows(form)).toBe(contactKeys.length + 1);
+      expect(
+        form.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection === undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.key;
+          }),
+      ).toEqual(contactKeys);
+      expect(
+        form.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection !== undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.key;
+          }),
+      ).toEqual([
+        "isSubscribedToAllResources",
+        "statusPageResources",
+        "isSubscribedToAllEventTypes",
+        "statusPageEventTypes",
+      ]);
+      // One section between them, and no field naming a step.
+      expect(
+        new Set(
+          form.fields
+            .filter((candidate: FormFieldFacts): boolean => {
+              return candidate.collapsibleSection !== undefined;
+            })
+            .map((candidate: FormFieldFacts): string => {
+              return candidate.collapsibleSection!;
+            }),
+        ).size,
+      ).toBe(1);
+      expect(
+        form.fields.filter((candidate: FormFieldFacts): boolean => {
+          return candidate.stepId !== undefined;
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test("with steps never lose a field to a missing or mistyped step", () => {
     expect(

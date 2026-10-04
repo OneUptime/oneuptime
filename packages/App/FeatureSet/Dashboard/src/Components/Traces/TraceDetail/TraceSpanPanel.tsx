@@ -48,6 +48,7 @@ import {
   ProfilePresenceGate,
   buildExceptionsGroupRoute,
   buildTraceFlamegraphRequest,
+  describeSpanProfileScope,
   getProfilePresenceGate,
 } from "../../../Utils/TraceCorrelatedSignals";
 import {
@@ -66,7 +67,7 @@ import {
   getSpanTiming,
   pluralize,
 } from "../../../Utils/TraceDetailPresentation";
-import { WaterfallSpan } from "../../../Utils/TraceWaterfall";
+import { SpanSubtreeIds, WaterfallSpan } from "../../../Utils/TraceWaterfall";
 import { makeSpanSignalId } from "../../SessionReplay/Rail/ReplaySignalTypes";
 import LlmSpanPanel from "../LlmSpanPanel";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
@@ -78,6 +79,11 @@ export interface ComponentProps {
   parentSpan: WaterfallSpan | null;
   parentService: TraceServiceInfo | null;
   childCount: number;
+  /*
+   * This span and the spans under it. The Profile tab covers them all:
+   * profilers often link a request's samples to a child span instead.
+   */
+  subtree: SpanSubtreeIds;
   selfTime: SpanSelfTime | undefined;
   traceStartUnixNano: number;
   traceDurationUnixNano: number;
@@ -149,6 +155,8 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
 
   const [profileSampleCount, setProfileSampleCount] = useState<number>(0);
   const [replayRoute, setReplayRoute] = useState<Route | null>(null);
+
+  const profileSpanIdsKey: string = props.subtree.spanIds.join(",");
 
   /*
    * Generation counters for the lazy tab fetches, bumped only when the span
@@ -226,14 +234,17 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     };
   }, [props.traceId, spanId]);
 
-  // The Profile tab only exists when this span has profile samples.
+  /*
+   * The Profile tab only exists when this span, or a span under it, has
+   * profile samples.
+   */
   useEffect(() => {
     let cancelled: boolean = false;
 
     const checkProfile: () => Promise<void> = async (): Promise<void> => {
       const requestBody: JSONObject | null = buildTraceFlamegraphRequest({
         traceId: props.traceId,
-        spanIds: [spanId],
+        spanIds: props.subtree.spanIds,
       });
       if (!requestBody) {
         return;
@@ -264,7 +275,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-  }, [props.traceId, spanId]);
+  }, [props.traceId, spanId, profileSpanIdsKey]);
 
   const sessionId: string = fullSpan?.sessionId?.toString() || "";
 
@@ -928,7 +939,18 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
 
       case "profile":
         return (
-          <TraceScopedFlamegraph traceId={props.traceId} spanIds={[spanId]} />
+          <div data-testid="span-profile">
+            <p className="mb-3 text-xs text-gray-500">
+              {describeSpanProfileScope({
+                sampleCount: profileSampleCount,
+                subtree: props.subtree,
+              })}
+            </p>
+            <TraceScopedFlamegraph
+              traceId={props.traceId}
+              spanIds={props.subtree.spanIds}
+            />
+          </div>
         );
 
       case "ai":

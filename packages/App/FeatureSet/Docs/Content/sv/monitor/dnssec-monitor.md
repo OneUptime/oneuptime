@@ -30,7 +30,7 @@ DNSSEC-monitorer validerar hela förtroendekedjan från rotzonen ner till din do
 | Resolvrar                        | Kommaseparerad lista över validerande resolvrar att fråga (t.ex. `1.1.1.1, 8.8.8.8, 9.9.9.9`)      | Ja           |
 | Kontrollera namnserverkonsekvens | Frågar varje auktoritativ namnserver direkt och verifierar att de returnerar samma SOA-serienummer | Nej          |
 
-### Avancerade inställningar
+### Fler fält
 
 | Fält                              | Beskrivning                                                                    | Standard |
 | --------------------------------- | ------------------------------------------------------------------------------ | -------- |

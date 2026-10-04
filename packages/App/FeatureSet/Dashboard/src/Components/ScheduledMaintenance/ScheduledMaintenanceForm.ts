@@ -35,8 +35,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *      and Change Monitor Status to folded under Advanced.
  *
  * and the review step after them. Only the title has to be typed: every
- * other field has a default or is optional, so the form can be finished
- * from the first step (Forms/Utils/FinishFromAnyStep).
+ * other field has a default or is optional, so Next walks the other steps
+ * without asking for anything, and Create Scheduled Maintenance Event is on
+ * the review step, the last one (Forms/Utils/SteppedFormFooter).
  *
  * The scheduled maintenance template forms and the event's own edit card
  * put the fields they hold on the same steps - a template adds its name and

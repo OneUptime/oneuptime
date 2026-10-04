@@ -44,6 +44,8 @@ Por padrão, um assinante recebe tudo o que há na página. Duas chaves no cart�
 - **Permitir que assinantes escolham recursos** (`allowSubscribersToChooseResources`) — desligado por padrão. Ligue e o formulário de inscrição ganha uma chave **Inscrever-se em todos os recursos**; desmarque-a e aparece **Selecionar recursos para inscrever-se**, para o visitante escolher recurso a recurso.
 - **Permitir que assinantes escolham tipos de evento** (`allowSubscribersToChooseEventTypes`) — desligado por padrão. Mesmo formato: uma chave **Inscrever-se em todos os tipos de eventos** e, quando ela é desmarcada, **Selecionar tipos de eventos para inscrever-se** logo abaixo.
 
+Com qualquer um dos dois ligado, o formulário continua sendo uma página só: essas escolhas ficam em **Preferências**, recolhido abaixo de para onde enviar as atualizações. Recolhido, ele diz em uma linha o que o visitante vai receber (todas as atualizações da página de status, até que ele restrinja algo), então quem quer tudo só clica em **Inscrever-se**. A página **Atualizar inscrição** mostra as mesmas escolhas abertas.
+
 Os tipos de evento são `Incident`, `Announcement` e `Scheduled Event`.
 
 As escolhas ficam gravadas no registro do assinante como **Is Subscribed to All Resources** (`isSubscribedToAllResources`, `true` por padrão), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, `true` por padrão), **Subscribed to Resources** e **Subscribed to Event Types**.
@@ -82,7 +84,7 @@ Os assinantes recebem os três tipos de evento citados acima, mas cada origem te
 
 ### Notificações de anúncio
 
-O próprio anúncio carrega **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposto no formulário de criação como a caixa **Notificar assinantes da página de status**, marcada por padrão. Se o anúncio nomear monitores em **Monitores afetados (Opcional)**, a notificação fica restrita a esses monitores; deixe em branco e todos os assinantes são notificados.
+O próprio anúncio carrega **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposto no formulário de criação como a caixa **Notificar assinantes da página de status** em **Agendamento e notificações**, marcada por padrão. Os assinantes ficam sabendo uma única vez, quando o anúncio começa a ser exibido; por isso a escolha é feita na criação, e uma edição não a altera. Se o anúncio nomear monitores em **Monitores afetados**, a notificação fica restrita a esses monitores; deixe em branco e todos os assinantes são notificados.
 
 ### Eventos de manutenção programada
 
@@ -114,12 +116,14 @@ Vale configurar o SMTP próprio cedo se você tem assinantes por e-mail: uma men
 
 Um anúncio é um registro no nível do projeto (o modelo `StatusPageAnnouncement`) que você distribui para uma ou mais páginas de status, opcionalmente restrito a monitores específicos, com uma janela durante a qual ele é exibido.
 
-Você cria um em **Páginas de status → Mais → Anúncios**, ou em **Anúncios** no menu lateral de uma página de status individual. O formulário de criação é um assistente de quatro etapas:
+Você cria um em **Páginas de status → Mais → Anúncios**, ou em **Anúncios** no menu lateral de uma página de status individual. Criado a partir de uma página de status, essa página já vem selecionada, então um título e uma descrição bastam, e **Criar anúncio** leva você de volta à lista **Anúncios** dessa página (ou à lista do projeto, se você a desmarcou no caminho). O formulário de criação tem duas etapas e depois uma revisão:
 
-1. **Informações básicas** — **Título do anúncio** (obrigatório, ao menos dois caracteres), **Descrição** (Markdown, opcional) e **Anexos**, para arquivos que devem acompanhar o anúncio na página de status.
-2. **Páginas de status** — **Mostrar anúncio nestas páginas de status**, uma seleção múltipla obrigatória. Um anúncio pode atingir várias páginas de uma vez.
-3. **Recursos afetados** — **Monitores afetados (Opcional)**. Se você não selecionar nenhum, todos os assinantes são notificados.
-4. **Agendamento e configurações** — **Começar a mostrar anúncio em** (obrigatório, o padrão é agora), **Parar de exibir o anúncio em** (opcional) e **Notificar assinantes da página de status** (marcado por padrão).
+1. **Anúncio** — **Título** (obrigatório, ao menos dois caracteres) e **Descrição** (Markdown, obrigatória: é o texto que as pessoas leem na página de status). Os **Anexos**, para arquivos que devem acompanhar o anúncio na página de status, ficam em **Mais campos**.
+2. **Páginas de status** — **Mostrar anúncio nestas páginas de status**, uma seleção múltipla obrigatória (um anúncio pode atingir várias páginas de uma vez), e **Monitores afetados**: se você não selecionar nenhum, todos os assinantes são notificados. Assim que você escolhe monitores, o formulário sugere, abaixo da seleção de páginas, as páginas de status que os mostram: "Páginas de status que mostram os monitores afetados:" seguido do nome de cada página. Clique em um nome para adicionar essa página, ou em **Adicionar todas**; nada é escolhido por você. Abaixo, **Agendamento e notificações** fica recolhido em uma linha que diz o que vai acontecer: "É exibido agora e permanece até você encerrá-lo. Os assinantes são notificados quando ele começa a ser exibido." Abra a seção para mudar **Começar a mostrar anúncio em** (o padrão é agora), **Parar de exibir o anúncio em** (vazio: o anúncio fica visível até você definir um fim) ou **Notificar assinantes da página de status** (marcado por padrão). A linha acompanha suas respostas. O fim tem de vir depois do início e, num anúncio novo, ainda estar por vir: um anúncio que já terminou nunca seria exibido.
+
+A revisão mostra a mesma linha. **Criar a partir de modelo** preenche o formulário a partir de um modelo; criado a partir de uma página de status, as páginas de status do modelo são mantidas ao lado dessa página.
+
+A página do próprio anúncio o edita nas mesmas duas etapas. **Notificar os assinantes sobre esta atualização** fica abaixo da descrição, e **Agendamento** contém o início e o fim. Definir um fim que já passou é a forma de retirar um anúncio.
 
 Os visitantes leem os anúncios em `/announcements`, divididos entre **Anúncios ativos** e **Anúncios anteriores**, cada um marcado com **Anunciado em**. Anúncios que estão no ar também ficam fixados no topo da página de visão geral. Quando não há nada a mostrar, a página diz *Sem anúncios*, com a observação de que nenhum foi publicado até agora.
 
@@ -141,7 +145,7 @@ Se os anúncios aparecem ou não é definido no cartão **O que sua página de s
 
 ## Modelos de anúncio
 
-Se você publica o mesmo tipo de aviso repetidamente — o alerta mensal de manutenção, aquela degradação recorrente de um terceiro — deixe pronto. **Páginas de status → Configurações → Modelos de anúncios** guarda o modelo `StatusPageAnnouncementTemplate`, e seu formulário pede **Nome do modelo**, **Descrição do modelo**, **Título do anúncio**, **Descrição**, **Mostrar anúncio nestas páginas de status**, **Monitores afetados (Opcional)** e **Notificar assinantes** — assim a distribuição e a decisão de notificar são tomadas uma vez, e não a cada publicação.
+Se você publica o mesmo tipo de aviso repetidamente — o alerta mensal de manutenção, aquela degradação recorrente de um terceiro — deixe pronto. **Páginas de status → Configurações → Modelos de anúncios** guarda o modelo `StatusPageAnnouncementTemplate`. Seu formulário passa por **Informações do modelo** (**Nome do modelo**, **Descrição do modelo**) e depois pelas etapas do próprio anúncio: **Anúncio** (**Título**, **Descrição**) e **Páginas de status** (**Mostrar anúncio nestas páginas de status**, **Monitores afetados** e **Notificar assinantes da página de status**, marcado por padrão) — assim a distribuição e a decisão de notificar são tomadas uma vez, e não a cada publicação. Um modelo não tem agendamento: um anúncio criado a partir dele é exibido desde a criação, a menos que você mude isso em **Agendamento e notificações**.
 
 ## Assinantes de webhook e proteção contra SSRF
 

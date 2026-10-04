@@ -288,7 +288,7 @@ describe("Creating an ingestion key from a setup guide", () => {
         within(dialog()).queryByTestId("card-select-option-Browser"),
       ).not.toBeInTheDocument();
       expect(
-        within(dialog()).getByRole("button", { name: /^Advanced/ }),
+        within(dialog()).getByRole("button", { name: "More fields" }),
       ).toHaveAttribute("aria-expanded", "false");
       expect(
         within(dialog()).getByPlaceholderText("Ingestion Key Description"),
@@ -449,7 +449,7 @@ describe("Creating an ingestion key from a setup guide", () => {
       );
 
       await user.click(
-        within(dialog()).getByRole("button", { name: /^Advanced/ }),
+        within(dialog()).getByRole("button", { name: "More fields" }),
       );
       fireEvent.change(
         within(dialog()).getByPlaceholderText("storefront-web"),
@@ -494,8 +494,15 @@ describe("Creating an ingestion key from a setup guide", () => {
               }),
           ).toEqual(["Key", "Billing"]);
         });
-        expect(mainButton()).toHaveTextContent("Next");
-        await user.click(mainButton());
+        // Create is on Billing, the last step, only: a plain Next here.
+        expect(
+          within(dialog()).queryByTestId("modal-footer-submit-button"),
+        ).not.toBeInTheDocument();
+        const next: HTMLElement = within(dialog()).getByTestId(
+          "modal-footer-next-button",
+        );
+        expect(next).toHaveTextContent("Next");
+        await user.click(next);
 
         const notice: HTMLElement = await within(dialog()).findByRole(
           "region",

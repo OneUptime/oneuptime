@@ -13,11 +13,11 @@ import { Outlet, useParams } from "react-router-dom";
 /*
  * The Users > View > On-Call section layout.
  *
- * A PATHLESS route: it adds no segment to the URL, it exists so that the six
- * pages under it share one load of the identity and readiness they all need,
- * one permission decision, and one "you are editing on behalf of" banner.
- * Navigating between Readiness, Notification Methods and the four rule pages
- * therefore re-renders rather than re-fetches.
+ * A PATHLESS route: it adds no segment to the URL, it exists so that the
+ * three pages under it share one load of the identity and readiness they all
+ * need, one permission decision, and one "you are editing on behalf of"
+ * banner. Navigating between Readiness, Notification Methods and On-Call
+ * Rules (and between its tabs) therefore re-renders rather than re-fetches.
  *
  * The two loads are separated on purpose — see useUserOnCallData. The identity
  * one blocks the whole section, because a page that offers to change how

@@ -71,7 +71,7 @@ request के लिए HTTP method चुनें:
 - **PATCH**
 - **HEAD**
 
-### Advanced Options
+### और फ़ील्ड
 
 #### Request Headers
 

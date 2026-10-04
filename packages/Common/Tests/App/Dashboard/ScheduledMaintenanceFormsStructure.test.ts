@@ -12,6 +12,7 @@ import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/Schedul
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   getFormSteps,
   getTemplateFormFields,
@@ -55,7 +56,8 @@ const VIEW_FILE: string = `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/In
 const TEMPLATE_FILE: string = `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx`;
 const TEMPLATE_VIEW_FILE: string = `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplateView.tsx`;
 
-const ADVANCED: string = "Advanced";
+// The folded section of rarely needed fields, as getAdvancedFormSection titles it.
+const ADVANCED: string = MORE_FIELDS_SECTION_TITLE;
 const SUBSCRIBER_NOTIFICATIONS: string = "Subscriber Notifications";
 
 const NOTIFY_SWITCHES: Array<string> = [

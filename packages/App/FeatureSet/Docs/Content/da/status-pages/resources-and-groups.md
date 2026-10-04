@@ -26,19 +26,19 @@ Vælg den gruppe, ressourcen skal lande i (eller **Top of page** for en række u
 
 - **Overvågning** — rullelisten over monitorer i dit projekt, pladsholder **Vælg overvågning**. Påkrævet.
 - **Visningsnavn** — den tekst, besøgende læser. Den udfyldes med monitorens navn, når du vælger den, og følger med, når du vælger en anden monitor, indtil du selv skriver et navn. Den gemmes adskilt fra monitorens eget navn, så du kan omdøbe den her uden at røre ved overvågningen.
-- **Avanceret** — klappet sammen. Den rummer **Beskrivelse** (valgfri markdown, der vises under rækken, god til en sætning om, hvad tjenesten faktisk gør) og [visningsindstillingerne](#visningsindstillinger-på-en-ressource). Lader du den være lukket, får ressourcen deres standardværdier.
+- **Flere felter** — klappet sammen. Den rummer **Beskrivelse** (valgfri markdown, der vises under rækken, god til en sætning om, hvad tjenesten faktisk gør) og [visningsindstillingerne](#visningsindstillinger-på-en-ressource). Lader du den være lukket, får ressourcen deres standardværdier.
 
-Vælg en monitor, klik **Tilføj monitor**, og rækken er på siden. I en gittergruppe spørger dialogen også om den række og den kolonne, monitoren skal stå i, over **Avanceret** — se [Listelayout kontra gitterlayout](#listelayout-kontra-gitterlayout).
+Vælg en monitor, klik **Tilføj monitor**, og rækken er på siden. I en gittergruppe spørger dialogen også om den række og den kolonne, monitoren skal stå i, over **Flere felter** — se [Listelayout kontra gitterlayout](#listelayout-kontra-gitterlayout).
 
 Har dit projekt monitorgrupper slået til, står der et link under rullelisten: **Add a Monitor Group instead.** — klik det, og rullelisten **Overvågning** byttes ud med en **Monitor Gruppe**-rulleliste (**Vælg overvågningsgruppe**). Linket vender så om til **Add a Monitor instead.**, så du kan gå tilbage. Brug en monitorgruppe, når én række på siden skal repræsentere flere tjek under ét.
 
 ### At tilføje flere ad gangen
 
-**Add Multiple** (også **Add multiple monitors** i **More actions**-menuen) åbner **Add Multiple Monitors**. Den er også én side: en **Monitorer**-multivælger i stedet for én rulleliste, og derefter den samme sammenklappede **Avanceret**-sektion, hvis visningsindstillinger gælder alle de monitorer, du har valgt. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Add Monitors** tilføjer dem — der er ingen trin at gå igennem. Det er den hurtigste måde at fylde en ny side op på.
+**Add Multiple** (også **Add multiple monitors** i **More actions**-menuen) åbner **Add Multiple Monitors**. Den er også én side: en **Monitorer**-multivælger i stedet for én rulleliste, og derefter den samme sammenklappede **Flere felter**-sektion, hvis visningsindstillinger gælder alle de monitorer, du har valgt. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Add Monitors** tilføjer dem — der er ingen trin at gå igennem. Det er den hurtigste måde at fylde en ny side op på.
 
 ## Visningsindstillinger på en ressource
 
-Sektionen **Avanceret** er den samme på enkelt-formularen og i bulk-modalen. Den starter sammenklappet begge steder, og også i **Rediger ressource**, hvor dens overskrift siger **Konfigureret**, når noget i den ikke står på sin standard. Alt her gælder per ressource — to rækker i samme gruppe kan sagtens være sat op forskelligt.
+Sektionen **Flere felter** er den samme på enkelt-formularen og i bulk-modalen. Den starter sammenklappet begge steder, og også i **Rediger ressource**, hvor dens sammenklappede overskrift viser, hvad i den der ikke står på sin standard. Alt her gælder per ressource — to rækker i samme gruppe kan sagtens være sat op forskelligt.
 
 | Felt                                                     | Formål                                                                                                       |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ Klik **New Group** for at åbne **Create New Status Page Group**. Den er én sid
 - **Gruppenavn** (`name`) — påkrævet. Det er den sektionsoverskrift, besøgende ser.
 - **Parent Group** (`parentStatusPageGroupId`) — valgfri. Lad den stå på **No parent group (top level)** for at holde gruppen på øverste niveau. **Add a sub group** udfylder den for dig.
 - **Layout** — klappet sammen, og dens overskrift siger **List** eller **Grid**. Den rummer **Visningstilstand** og et gitters akser (se [Listelayout kontra gitterlayout](#listelayout-kontra-gitterlayout)), og den åbner af sig selv på en gittergruppe.
-- **Avanceret** — klappet sammen. Den rummer resten og spejler ressourceindstillingerne på gruppeniveau:
+- **Flere felter** — klappet sammen. Den rummer resten og spejler ressourceindstillingerne på gruppeniveau:
   - **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
   - **Udvid på statusside som standard** (`isExpandedByDefault`) — slået til som standard: om sektionen starter åben eller sammenklappet for besøgende.
   - **Vis aktuel gruppestatus** (`showCurrentStatus`) — slået til som standard. Viser en status ved siden af gruppeoverskriften.
