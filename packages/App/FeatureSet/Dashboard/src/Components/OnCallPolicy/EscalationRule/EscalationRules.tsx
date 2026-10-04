@@ -1739,7 +1739,11 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:shrink-0">
+          {/*
+            Under the description on a phone, at the right edge, as a card
+            header's actions always are; beside the title from sm up.
+          */}
+          <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:shrink-0 sm:self-auto">
             <Button
               title="Refresh"
               icon={IconProp.Refresh}
