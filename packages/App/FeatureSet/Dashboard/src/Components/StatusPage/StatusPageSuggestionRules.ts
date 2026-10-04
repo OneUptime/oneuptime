@@ -27,9 +27,9 @@ import { getIdsFromFormValue } from "../Incident/IncidentStatusPageScopeForm";
  * already picked - or while the answer is on its way, or failed.
  *
  * The server works out which pages list the monitors
- * (POST /status-page/listing-monitors, StatusPagesListingMonitors), through
- * monitor groups too, and names only the pages the reader can read, that are
- * not archived and that show this kind of event.
+ * (StatusPagesListingMonitors, asked by useStatusPagesListingMonitors),
+ * through monitor groups too, and names only the pages the reader can read,
+ * that are not archived and that show this kind of event.
  *
  * React-free, so App's tests can read it; the component is
  * StatusPageSuggestions.tsx.
