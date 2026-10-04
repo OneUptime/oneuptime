@@ -17,14 +17,15 @@ Logs-Monitore suchen und zählen Logs, die bestimmten Filtern in einem Zeitfenst
 1. Gehen Sie zu **Monitore** im OneUptime-Dashboard
 2. Klicken Sie auf **Monitor erstellen**
 3. Wählen Sie **Protokolle** als Monitortyp
-4. Wählen Sie die zu überwachenden Telemetrie-Dienste aus
-5. Konfigurieren Sie bei Bedarf Log-Filter und Kriterien
+4. Legen Sie fest, welche Logs gezählt werden: den Text, den sie enthalten, das Zeitfenster und die Schweregrade
+5. Um sie auf Telemetrie-Dienste, Infrastruktur-Entitäten oder Attribute einzugrenzen, öffnen Sie **Weitere Felder** unter diesen Filtern
+6. Konfigurieren Sie bei Bedarf die Kriterien
 
 ## Konfigurationsoptionen
 
 ### Telemetrie-Dienste
 
-Wählen Sie einen oder mehrere Dienste aus, von denen Logs überwacht werden sollen. Dienste müssen Logs über OpenTelemetry an OneUptime senden.
+Wählen Sie unter **Weitere Felder** einen oder mehrere Dienste aus, von denen Logs überwacht werden sollen. Lassen Sie das Feld leer, um Logs aller Dienste zu überwachen. Dienste müssen Logs über OpenTelemetry an OneUptime senden.
 
 ### Log-Filter
 

@@ -17,14 +17,15 @@ Traces monitors search and count spans matching specific filters. This enables y
 1. Go to **Monitors** in the OneUptime Dashboard
 2. Click **Create Monitor**
 3. Select **Traces** as the monitor type
-4. Select the telemetry services to monitor
-5. Configure span filters and criteria as needed
+4. Choose the spans to count: the span name, the time window and the span statuses
+5. To narrow them to telemetry services, infrastructure entities or attributes, open **More fields** below these filters
+6. Configure the criteria as needed
 
 ## Configuration Options
 
 ### Telemetry Services
 
-Select one or more services to monitor traces from. Services must be sending traces to OneUptime via OpenTelemetry.
+Select one or more services to monitor traces from, under **More fields**. Leave it empty to monitor spans from every service. Services must be sending traces to OneUptime via OpenTelemetry.
 
 ### Span Filters
 

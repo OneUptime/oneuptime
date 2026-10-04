@@ -18,14 +18,15 @@ Uitzonderingsmonitors tellen en filteren uitzonderingen die aan specifieke crite
 1. Ga naar **Monitoren** in het OneUptime-dashboard
 2. Klik op **Monitor maken**
 3. Selecteer **Uitzonderingen** als het monitortype
-4. Selecteer de te bewaken telemetriediensten
-5. Configureer uitzonderingsfilters en criteria naar wens
+4. Kies welke uitzonderingen worden geteld: het bericht, de uitzonderingstypen, de omgevingen en het tijdvenster
+5. Open **Meer velden** onder deze filters om ze te beperken tot telemetriediensten of infrastructuurentiteiten, of om ook opgeloste en gearchiveerde uitzonderingen te tellen
+6. Configureer de criteria naar wens
 
 ## Configuratie-opties
 
 ### Telemetriediensten
 
-Selecteer een of meer diensten waarvan uitzonderingen worden bewaakt. Diensten moeten uitzonderingsgegevens via OpenTelemetry naar OneUptime sturen.
+Selecteer onder **Meer velden** een of meer diensten waarvan uitzonderingen worden bewaakt. Laat het leeg om uitzonderingen van alle diensten te bewaken. Diensten moeten uitzonderingsgegevens via OpenTelemetry naar OneUptime sturen.
 
 ### Uitzonderingsfilters
 

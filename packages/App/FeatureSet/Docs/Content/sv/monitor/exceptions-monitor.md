@@ -18,14 +18,15 @@ Undantagsmonitorer räknar och filtrerar undantag som matchar specifika kriterie
 1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Undantag** som monitortyp
-4. Välj de telemetritjänster att övervaka
-5. Konfigurera undantagsfilter och kriterier efter behov
+4. Välj vilka undantag som ska räknas: meddelandet, undantagstyperna, miljöerna och tidsfönstret
+5. Öppna **Fler fält** under de här filtren för att begränsa dem till telemetritjänster eller infrastrukturentiteter, eller för att även räkna lösta och arkiverade undantag
+6. Konfigurera kriterierna efter behov
 
 ## Konfigurationsalternativ
 
 ### Telemetritjänster
 
-Välj en eller flera tjänster att övervaka undantag från. Tjänster måste skicka undantagsdata till OneUptime via OpenTelemetry.
+Välj under **Fler fält** en eller flera tjänster att övervaka undantag från. Lämna fältet tomt för att övervaka undantag från alla tjänster. Tjänster måste skicka undantagsdata till OneUptime via OpenTelemetry.
 
 ### Undantagsfilter
 

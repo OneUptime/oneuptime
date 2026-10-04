@@ -17,14 +17,15 @@ Logs monitors एक time window पर specific filters से match करन�
 1. OneUptime Dashboard में **मॉनिटर** पर जाएं
 2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **लॉग** चुनें
-4. monitor करने के लिए telemetry services चुनें
-5. आवश्यकतानुसार log filters और criteria configure करें
+4. गिने जाने वाले logs चुनें: उनमें शामिल text, time window और severity levels
+5. उन्हें telemetry services, infrastructure entities या attributes तक सीमित करने के लिए इन filters के नीचे **More fields** खोलें
+6. आवश्यकतानुसार criteria configure करें
 
 ## Configuration Options
 
 ### Telemetry Services
 
-logs monitor करने के लिए एक या अधिक services चुनें। Services को OpenTelemetry के माध्यम से OneUptime को logs भेजने चाहिए।
+**More fields** में logs monitor करने के लिए एक या अधिक services चुनें। सभी services के logs monitor करने के लिए इसे खाली छोड़ दें। Services को OpenTelemetry के माध्यम से OneUptime को logs भेजने चाहिए।
 
 ### Log Filters
 

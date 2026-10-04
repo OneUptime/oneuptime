@@ -18,14 +18,15 @@ Exceptions monitors specific criteria से match करने वाले exc
 1. OneUptime Dashboard में **मॉनिटर** पर जाएं
 2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **अपवाद** चुनें
-4. monitor करने के लिए telemetry services चुनें
-5. आवश्यकतानुसार exception filters और criteria configure करें
+4. गिने जाने वाले exceptions चुनें: message, exception types, environments और time window
+5. उन्हें telemetry services या infrastructure entities तक सीमित करने, या resolved और archived exceptions को भी गिनने के लिए इन filters के नीचे **More fields** खोलें
+6. आवश्यकतानुसार criteria configure करें
 
 ## Configuration Options
 
 ### Telemetry Services
 
-exceptions monitor करने के लिए एक या अधिक services चुनें। Services को OpenTelemetry के माध्यम से OneUptime को exception data भेजना चाहिए।
+**More fields** में exceptions monitor करने के लिए एक या अधिक services चुनें। सभी services के exceptions monitor करने के लिए इसे खाली छोड़ दें। Services को OpenTelemetry के माध्यम से OneUptime को exception data भेजना चाहिए।
 
 ### Exception Filters
 

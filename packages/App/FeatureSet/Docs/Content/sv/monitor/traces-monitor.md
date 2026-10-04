@@ -17,14 +17,15 @@ Spårningsmonitorer söker och räknar spans som matchar specifika filter. Detta
 1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Spår** som monitortyp
-4. Välj de telemetritjänster att övervaka
-5. Konfigurera span-filter och kriterier efter behov
+4. Välj vilka spans som ska räknas: span-namnet, tidsfönstret och span-statusarna
+5. Öppna **Fler fält** under de här filtren för att begränsa dem till telemetritjänster, infrastrukturentiteter eller attribut
+6. Konfigurera kriterierna efter behov
 
 ## Konfigurationsalternativ
 
 ### Telemetritjänster
 
-Välj en eller flera tjänster att övervaka spårningar från. Tjänster måste skicka spårningar till OneUptime via OpenTelemetry.
+Välj under **Fler fält** en eller flera tjänster att övervaka spårningar från. Lämna fältet tomt för att övervaka spans från alla tjänster. Tjänster måste skicka spårningar till OneUptime via OpenTelemetry.
 
 ### Span-filter
 
