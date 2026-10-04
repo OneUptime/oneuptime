@@ -7,8 +7,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import React, { ReactElement, useEffect } from "react";
 import {
   Location,
   MemoryRouter,
@@ -19,7 +26,7 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * THE SPLIT ITSELF.
+ * THE SECTION'S SHAPE.
  *
  * Users > View > Notification Rules was one route that rendered, in one scroll:
  * a readiness summary with four stat tiles and a prose consequence, a masked
@@ -28,38 +35,42 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * incident and six alert severities that is around fifty cards under a
  * diagnosis nobody could still see by the time they reached the controls.
  *
- * It is six pages now, and the failures worth writing down about a page split
- * are not "does the new page render" — the suites next door already assert what
- * each page contains. They are the ones that make a split silently WORSE than
- * what it replaced:
+ * It was split into six pages, four of them one per kind of rule. Those four
+ * are one On-Call Rules page now, with a tab per kind - the same page, drawn by
+ * the same component, as the member's own User Settings. So the section is
+ * three pages: Readiness, Notification Methods, On-Call Rules.
  *
- *   - A DEAD BOOKMARK. The old URL is in tickets, chat scrollback and at least
- *     one runbook. It has to keep landing somewhere useful, and "somewhere
- *     useful" is the overview, not a 404 and not the middle of the rule pages.
+ * The failures worth writing down are the ones that make the change silently
+ * WORSE than what it replaced:
  *
- *   - A PAGE THAT STILL RENDERS EVERYTHING. Splitting a route four ways buys
- *     nothing if each of the four still mounts all four rule types. The
- *     assertion is per-route and counts the tables that actually mounted.
+ *   - A DEAD BOOKMARK. The old URLs - the combined one and the four per kind -
+ *     are in tickets, chat scrollback and at least one runbook. They have to
+ *     keep landing somewhere useful: the combined one on the overview, each
+ *     per-kind one on its own tab (OnCallRulesRedirects.test.tsx follows those
+ *     through the real routes).
  *
- *   - THE WRONG SEVERITY AXIS ON ONE ROUTE. A rule is tied to its band by
+ *   - A PAGE THAT STILL RENDERS EVERYTHING. One page for four kinds is only
+ *     better than four pages if it draws one kind at a time. The assertion
+ *     counts the tables that are MOUNTED, tab by tab.
+ *
+ *   - THE WRONG SEVERITY AXIS ON ONE TAB. A rule is tied to its band by
  *     `incidentSeverityId` or `alertSeverityId`, and the severity MODEL does
  *     not follow from the rule type the way the names suggest: an alert episode
  *     is banded by AlertSeverity, an incident episode by IncidentSeverity.
- *     Splitting four tables across four routes is exactly the edit in which one
- *     of them gets the other's props, and nothing throws — the table just lists
+ *     Nothing throws when a tab gets the other's props — the table just lists
  *     every severity's rules at once. The two severity models here return
  *     DISJOINT id sets, which is the only fixture shape in which that is
  *     visible.
  *
- *   - A SECTION THAT REFETCHES PER PAGE. The six pages share one layout that
- *     loads the target user and their readiness once. If a page reached for its
- *     own copy, moving between them would issue a fresh pair of reads each time
+ *   - A SECTION THAT REFETCHES PER PAGE. The pages share one layout that loads
+ *     the target user and their readiness once. If a page reached for its own
+ *     copy, moving between them would issue a fresh pair of reads each time
  *     and — much worse — two pages could disagree about WHO they are editing,
  *     which is the failure this whole surface is written to avoid.
  *
- *   - AN UNREACHABLE PAGE. Six routes are worth nothing if the menu names four,
- *     so the side menu is asserted against the route table rather than against
- *     a list of strings copied out of the component.
+ *   - AN UNREACHABLE PAGE. Three routes are worth nothing if the menu names
+ *     two, so the side menu is asserted against the route table rather than
+ *     against a list of strings copied out of the component.
  */
 
 const PROJECT_ID_STRING: string = "10000000-0000-4000-8000-000000000001";
@@ -152,28 +163,18 @@ jest.mock("react-i18next", () => {
  * The rule tables are stubbed down to the two facts this file is about: which
  * rule type a table filters on, and which severity band it was mounted for.
  * Rendering the real ModelTable would drag in the pager and the facet bar, none
- * of which says anything about how the pages were split.
+ * of which says anything about how the page draws its kinds.
+ *
+ * The stub keeps the tables that are MOUNTED right now, keyed by identity, and
+ * forgets one when it unmounts - so "only the open tab is drawn" is asserted
+ * against what is on screen, not against everything ever rendered.
  */
 interface CapturedTableProps {
   query: Record<string, ObjectID | NotificationRuleType | undefined>;
   userPreferencesKey: string;
 }
 
-let capturedTables: Array<CapturedTableProps> = [];
-
-type GetCapturedTablesFunction = () => Array<CapturedTableProps>;
-
-/*
- * The captured list is REPLACED between tests rather than emptied in place, so
- * a closure built inside the `for` loops below would otherwise read whichever
- * array happened to be bound when the loop ran. Going through a stable function
- * makes each test see the list as it stands when that test executes, which is
- * also what stops eslint's no-loop-func from being right about it.
- */
-const getCapturedTables: GetCapturedTablesFunction =
-  (): Array<CapturedTableProps> => {
-    return capturedTables;
-  };
+let mountedTables: Map<string, CapturedTableProps> = new Map();
 
 type TableIdentityFunction = (props: CapturedTableProps) => string;
 
@@ -188,23 +189,33 @@ const tableIdentity: TableIdentityFunction = (
   }`;
 };
 
+type GetMountedTablesFunction = () => Array<CapturedTableProps>;
+
+/*
+ * Through a stable function, because the map is REPLACED between tests and a
+ * closure built in a loop below would otherwise read whichever one was bound
+ * when the loop ran.
+ */
+const getMountedTables: GetMountedTablesFunction =
+  (): Array<CapturedTableProps> => {
+    return Array.from(mountedTables.values());
+  };
+
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (props: CapturedTableProps) => {
       const identity: string = tableIdentity(props);
 
-      const existingIndex: number = capturedTables.findIndex(
-        (candidate: CapturedTableProps): boolean => {
-          return tableIdentity(candidate) === identity;
-        },
-      );
+      mountedTables.set(identity, props);
 
-      if (existingIndex === -1) {
-        capturedTables.push(props);
-      } else {
-        capturedTables[existingIndex] = props;
-      }
+      useEffect(() => {
+        mountedTables.set(identity, props);
+
+        return (): void => {
+          mountedTables.delete(identity);
+        };
+      }, [identity]);
 
       return null;
     },
@@ -216,12 +227,7 @@ import UserViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Use
 import UserViewOnCallLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Layout";
 import UserViewNotificationMethods from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods";
 import UserViewOnCallReadiness from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Readiness";
-import UserViewOnCallRules, {
-  ALERT_EPISODE_RULES_PROPS,
-  ALERT_RULES_PROPS,
-  INCIDENT_EPISODE_RULES_PROPS,
-  INCIDENT_RULES_PROPS,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Rules";
+import UserViewOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Rules";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -240,12 +246,14 @@ import { JSONObject } from "../../../Types/JSON";
 import Link from "../../../Types/Link";
 import Name from "../../../Types/Name";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
+import OnCallRuleKind from "../../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { activeLinkTitles } from "./SideMenuHarness";
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const SIGNED_IN_USER_ID: ObjectID = new ObjectID(SIGNED_IN_USER_ID_STRING);
@@ -315,8 +323,8 @@ const READINESS_PAYLOAD: JSONObject = {
 };
 
 /*
- * The six pages of the section, as the ROUTE TABLE spells them, paired with the
- * component each route mounts. Everything below reads this rather than a
+ * The three pages of the section, as the ROUTE TABLE spells them, paired with
+ * the component each route mounts. Everything below reads this rather than a
  * hand-written list of paths, so a page whose route is renamed is a compile
  * error or a failing render rather than a test that quietly stops covering it.
  */
@@ -325,12 +333,6 @@ interface SectionPage {
   menuTitle: string;
   breadcrumbTitle: string;
   element: ReactElement;
-  /* The rule type this page is expected to mount tables for, if any. */
-  ruleType?: NotificationRuleType | undefined;
-  /* The severity ids the tables on this page must be banded by. */
-  severityIds?: Array<string> | undefined;
-  /* Ids from the OTHER severity model, which must never appear on it. */
-  foreignSeverityIds?: Array<string> | undefined;
 }
 
 const SECTION_PAGES: Array<SectionPage> = [
@@ -347,46 +349,76 @@ const SECTION_PAGES: Array<SectionPage> = [
     element: <UserViewNotificationMethods {...pageProps} />,
   },
   {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES,
-    menuTitle: "Incident On-Call Rules",
-    breadcrumbTitle: "Incident On-Call Rules",
-    element: <UserViewOnCallRules {...INCIDENT_RULES_PROPS} />,
+    pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
+    menuTitle: "On-Call Rules",
+    breadcrumbTitle: "On-Call Rules",
+    element: <UserViewOnCallRules {...pageProps} />,
+  },
+];
+
+const RULES_PAGE: SectionPage = SECTION_PAGES[2]!;
+
+/*
+ * The four tabs of the On-Call Rules page: the kind in its address, the tab's
+ * name, the rule type of its tables, and the severity band ids they must be
+ * drawn for - with the OTHER model's ids, which must never appear on it.
+ */
+interface TabCase {
+  kind: OnCallRuleKind;
+  tabName: string;
+  ruleType: NotificationRuleType;
+  severityIds: Array<string>;
+  foreignSeverityIds: Array<string>;
+}
+
+const INCIDENT_IDS: Array<string> = [
+  INCIDENT_SEVERITY_ONE_ID,
+  INCIDENT_SEVERITY_TWO_ID,
+];
+const ALERT_IDS: Array<string> = [ALERT_SEVERITY_ONE_ID, ALERT_SEVERITY_TWO_ID];
+
+const TAB_CASES: Array<TabCase> = [
+  {
+    kind: OnCallRuleKind.Incidents,
+    tabName: "Incidents",
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-    severityIds: [INCIDENT_SEVERITY_ONE_ID, INCIDENT_SEVERITY_TWO_ID],
-    foreignSeverityIds: [ALERT_SEVERITY_ONE_ID, ALERT_SEVERITY_TWO_ID],
+    severityIds: INCIDENT_IDS,
+    foreignSeverityIds: ALERT_IDS,
   },
+  /*
+   * The crossed pair: an incident EPISODE is banded by IncidentSeverity while
+   * an alert episode is banded by AlertSeverity. Deriving one axis from the
+   * other — "is this an episode?" — gets exactly this row wrong.
+   */
   {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES,
-    menuTitle: "Incident Episode On-Call Rules",
-    breadcrumbTitle: "Incident Episode On-Call Rules",
-    element: <UserViewOnCallRules {...INCIDENT_EPISODE_RULES_PROPS} />,
+    kind: OnCallRuleKind.IncidentEpisodes,
+    tabName: "Incident Episodes",
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
-    /*
-     * The crossed pair: an incident EPISODE is banded by IncidentSeverity while
-     * an alert episode is banded by AlertSeverity. Deriving one axis from the
-     * other — "is this an episode?" — gets exactly this row wrong.
-     */
-    severityIds: [INCIDENT_SEVERITY_ONE_ID, INCIDENT_SEVERITY_TWO_ID],
-    foreignSeverityIds: [ALERT_SEVERITY_ONE_ID, ALERT_SEVERITY_TWO_ID],
+    severityIds: INCIDENT_IDS,
+    foreignSeverityIds: ALERT_IDS,
   },
   {
-    pageMapKey: PageMap.USER_VIEW_ALERT_ON_CALL_RULES,
-    menuTitle: "Alert On-Call Rules",
-    breadcrumbTitle: "Alert On-Call Rules",
-    element: <UserViewOnCallRules {...ALERT_RULES_PROPS} />,
+    kind: OnCallRuleKind.Alerts,
+    tabName: "Alerts",
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-    severityIds: [ALERT_SEVERITY_ONE_ID, ALERT_SEVERITY_TWO_ID],
-    foreignSeverityIds: [INCIDENT_SEVERITY_ONE_ID, INCIDENT_SEVERITY_TWO_ID],
+    severityIds: ALERT_IDS,
+    foreignSeverityIds: INCIDENT_IDS,
   },
   {
-    pageMapKey: PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES,
-    menuTitle: "Alert Episode On-Call Rules",
-    breadcrumbTitle: "Alert Episode On-Call Rules",
-    element: <UserViewOnCallRules {...ALERT_EPISODE_RULES_PROPS} />,
+    kind: OnCallRuleKind.AlertEpisodes,
+    tabName: "Alert Episodes",
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
-    severityIds: [ALERT_SEVERITY_ONE_ID, ALERT_SEVERITY_TWO_ID],
-    foreignSeverityIds: [INCIDENT_SEVERITY_ONE_ID, INCIDENT_SEVERITY_TWO_ID],
+    severityIds: ALERT_IDS,
+    foreignSeverityIds: INCIDENT_IDS,
   },
+];
+
+// The four pages the tabs replaced, as their URLs ended.
+const RETIRED_RULE_PAGE_PATHS: Array<string> = [
+  "incident-on-call-rules",
+  "incident-episode-on-call-rules",
+  "alert-on-call-rules",
+  "alert-episode-on-call-rules",
 ];
 
 type LastPathForFunction = (pageMapKey: PageMap) => string;
@@ -401,7 +433,7 @@ const lastPathFor: LastPathForFunction = (pageMapKey: PageMap): string => {
   return RouteUtil.getLastPathForKey(pageMapKey);
 };
 
-type RenderPageFunction = (page: SectionPage) => HTMLElement;
+type RenderPageFunction = (page: SectionPage, search?: string) => HTMLElement;
 
 /*
  * The real nesting: the `:id` parent, the pathless section layout, then the
@@ -409,13 +441,16 @@ type RenderPageFunction = (page: SectionPage) => HTMLElement;
  * pins "the section knows whose configuration it is showing" to the URL rather
  * than to a stub.
  */
-const renderPage: RenderPageFunction = (page: SectionPage): HTMLElement => {
+const renderPage: RenderPageFunction = (
+  page: SectionPage,
+  search: string = "",
+): HTMLElement => {
   const path: string = lastPathFor(page.pageMapKey);
 
   const { container } = render(
     <MemoryRouter
       initialEntries={[
-        `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/${path}`,
+        `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/${path}${search}`,
       ]}
     >
       <RouterRoutes>
@@ -468,8 +503,38 @@ const settle: SettleFunction = async (): Promise<void> => {
   );
 };
 
+type WaitForTablesOfFunction = (tabCase: TabCase) => Promise<void>;
+
+// Until the open tab's tables, and only they, are on screen.
+const waitForTablesOf: WaitForTablesOfFunction = async (
+  tabCase: TabCase,
+): Promise<void> => {
+  await waitFor(
+    (): void => {
+      expect(pendingRequestCount).toBe(0);
+      expect(getMountedTables()).toHaveLength(tabCase.severityIds.length);
+
+      for (const table of getMountedTables()) {
+        expect(table.query["ruleType"]).toBe(tabCase.ruleType);
+      }
+    },
+    { timeout: 4000 },
+  );
+};
+
+type BandedIdsFunction = () => Array<string>;
+
+const bandedIds: BandedIdsFunction = (): Array<string> => {
+  return getMountedTables().map((table: CapturedTableProps): string => {
+    const severityId: ObjectID | NotificationRuleType | undefined =
+      table.query["incidentSeverityId"] ?? table.query["alertSeverityId"];
+
+    return severityId ? severityId.toString() : "";
+  });
+};
+
 beforeEach((): void => {
-  capturedTables = [];
+  mountedTables = new Map();
   pendingRequestCount = 0;
 
   getListMock.mockReset();
@@ -602,63 +667,114 @@ describe("the old combined route", () => {
   });
 });
 
-describe("each route renders its own page and nothing else", () => {
-  for (const page of SECTION_PAGES) {
-    if (!page.ruleType) {
-      continue;
-    }
+describe("the On-Call Rules page draws one kind at a time", () => {
+  for (const tabCase of TAB_CASES) {
+    test(`?type=${tabCase.kind} opens the ${tabCase.tabName} tab, and only its tables are drawn`, async () => {
+      renderPage(RULES_PAGE, `?type=${tabCase.kind}`);
 
-    test(`${page.menuTitle} mounts tables for one rule type only`, async () => {
-      renderPage(page);
+      await waitForTablesOf(tabCase);
 
-      await settle();
-
-      await waitFor((): void => {
-        expect(getCapturedTables().length).toBeGreaterThan(0);
-      });
-
-      /*
-       * The point of the split, counted. The route this page replaced mounted
-       * eight tables — four rule types times two severity bands — and every one
-       * of them was on screen at once.
-       */
-      expect(getCapturedTables()).toHaveLength(page.severityIds!.length);
-
-      for (const table of getCapturedTables()) {
-        expect(table.query["ruleType"]).toBe(page.ruleType);
-      }
-    });
-
-    test(`${page.menuTitle} bands its tables by the right severity model`, async () => {
-      renderPage(page);
-
-      await settle();
-
-      await waitFor((): void => {
-        expect(getCapturedTables()).toHaveLength(page.severityIds!.length);
-      });
-
-      const bandedIds: Array<string> = getCapturedTables().map(
-        (table: CapturedTableProps): string => {
-          const severityId: ObjectID | NotificationRuleType | undefined =
-            table.query["incidentSeverityId"] ?? table.query["alertSeverityId"];
-
-          return severityId ? severityId.toString() : "";
-        },
+      expect(screen.getByTestId(`tab-${tabCase.tabName}`)).toHaveAttribute(
+        "aria-selected",
+        "true",
       );
 
-      expect(bandedIds.sort()).toEqual([...page.severityIds!].sort());
+      /*
+       * The point of the tabs, counted. The single page the section started
+       * as mounted eight tables here - four rule types times two severity
+       * bands - and every one of them was on screen at once.
+       */
+      expect(getMountedTables()).toHaveLength(tabCase.severityIds.length);
+    });
+
+    test(`the ${tabCase.tabName} tab bands its tables by the right severity model`, async () => {
+      renderPage(RULES_PAGE, `?type=${tabCase.kind}`);
+
+      await waitForTablesOf(tabCase);
+
+      expect(bandedIds().sort()).toEqual([...tabCase.severityIds].sort());
 
       /*
-       * The disjoint fixture doing its job: a page handed the other model's
+       * The disjoint fixture doing its job: a tab handed the other model's
        * props would list these ids instead, and nothing else in the render
        * would look wrong.
        */
-      for (const foreignId of page.foreignSeverityIds!) {
-        expect(bandedIds).not.toContain(foreignId);
+      for (const foreignId of tabCase.foreignSeverityIds) {
+        expect(bandedIds()).not.toContain(foreignId);
       }
     });
   }
+
+  test("a bare address opens Incidents", async () => {
+    renderPage(RULES_PAGE);
+
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    expect(screen.getByTestId("tab-Incidents")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  test("an address naming no tab we have opens Incidents rather than nothing", async () => {
+    renderPage(RULES_PAGE, "?type=everything");
+
+    await waitForTablesOf(TAB_CASES[0]!);
+  });
+
+  test("opening another tab draws its kind and drops the one before", async () => {
+    renderPage(RULES_PAGE);
+
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    for (const tabCase of TAB_CASES.slice(1)) {
+      fireEvent.click(screen.getByTestId(`tab-${tabCase.tabName}`));
+
+      await waitForTablesOf(tabCase);
+
+      expect(bandedIds().sort()).toEqual([...tabCase.severityIds].sort());
+    }
+  });
+
+  test("the address follows the open tab, and the first tab is the bare address", async () => {
+    renderPage(RULES_PAGE);
+
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    fireEvent.click(screen.getByTestId("tab-Alert Episodes"));
+
+    await waitForTablesOf(TAB_CASES[3]!);
+
+    /*
+     * In place, with no history entry: a reload or a copied link opens the
+     * same tab, and Back still leaves the page rather than walking its tabs.
+     */
+    expect(new URLSearchParams(window.location.search).get("type")).toBe(
+      "alert-episodes",
+    );
+
+    fireEvent.click(screen.getByTestId("tab-Incidents"));
+
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    expect(new URLSearchParams(window.location.search).get("type")).toBeNull();
+  });
+
+  test("the four tabs are the four kinds, in order", async () => {
+    renderPage(RULES_PAGE);
+
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    expect(
+      screen.getAllByRole("tab").map((tab: HTMLElement): string => {
+        return tab.textContent?.trim() || "";
+      }),
+    ).toEqual(
+      TAB_CASES.map((tabCase: TabCase): string => {
+        return tabCase.tabName;
+      }),
+    );
+  });
 
   test("the readiness page mounts no rule table at all", async () => {
     renderPage(SECTION_PAGES[0]!);
@@ -667,18 +783,24 @@ describe("each route renders its own page and nothing else", () => {
 
     /*
      * The overview diagnoses and does not repair. A readiness page that also
-     * drew the rule tables would be the page this split exists to break up,
-     * wearing a new name.
+     * drew the rule tables would be the page this section was split to break
+     * up, wearing a new name.
      */
-    expect(capturedTables).toHaveLength(0);
+    expect(getMountedTables()).toHaveLength(0);
   });
 });
 
 describe("the section shares one load of the person it is about", () => {
-  test("a rule page reads identity and readiness exactly once", async () => {
-    renderPage(SECTION_PAGES[2]!);
+  test("the rules page reads identity and readiness exactly once, however many tabs are opened", async () => {
+    renderPage(RULES_PAGE);
 
-    await settle();
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    for (const tabCase of TAB_CASES.slice(1)) {
+      fireEvent.click(screen.getByTestId(`tab-${tabCase.tabName}`));
+
+      await waitForTablesOf(tabCase);
+    }
 
     const teamMemberReads: number = getListMock.mock.calls.filter(
       (call: Array<any>): boolean => {
@@ -692,7 +814,7 @@ describe("the section shares one load of the person it is about", () => {
 
   test("every page asks about the user in the URL, never the signed-in admin", async () => {
     for (const page of SECTION_PAGES) {
-      capturedTables = [];
+      mountedTables = new Map();
       getListMock.mockClear();
       apiGetMock.mockClear();
 
@@ -721,6 +843,24 @@ describe("the section shares one load of the person it is about", () => {
       expect(readinessUrl).toContain(TARGET_USER_ID_STRING);
 
       cleanup();
+    }
+  });
+
+  test("the rule tables are about the user in the URL, on every tab", async () => {
+    renderPage(RULES_PAGE);
+
+    await waitForTablesOf(TAB_CASES[0]!);
+
+    for (const tabCase of TAB_CASES) {
+      if (tabCase !== TAB_CASES[0]) {
+        fireEvent.click(screen.getByTestId(`tab-${tabCase.tabName}`));
+
+        await waitForTablesOf(tabCase);
+      }
+
+      for (const table of getMountedTables()) {
+        expect(table.query["userId"]?.toString()).toBe(TARGET_USER_ID_STRING);
+      }
     }
   });
 
@@ -761,7 +901,7 @@ describe("the section shares one load of the person it is about", () => {
        * Not merely "nothing drawn": nothing requested either. A refused page
        * that still fetches a colleague's readiness has already disclosed the
        * thing it declined to render — and because the refusal lives in the
-       * LAYOUT, one check covers all six rather than five plus whichever one
+       * LAYOUT, one check covers all three rather than two plus whichever one
        * somebody forgets.
        */
       expect(apiGetMock).not.toHaveBeenCalled();
@@ -795,7 +935,7 @@ describe("every page is reachable", () => {
     );
   };
 
-  test("the side menu names all six pages, pointing at the route table's own paths", () => {
+  test("the side menu names all three pages, pointing at the route table's own paths", () => {
     const links: Array<{ title: string; href: string }> = renderMenu();
 
     for (const page of SECTION_PAGES) {
@@ -812,6 +952,55 @@ describe("every page is reachable", () => {
 
       expect(link).toBeDefined();
       expect(link!.href).toBe(expectedHref);
+    }
+  });
+
+  test("the On-Call section is those three entries, in order, and no rule page of its own per kind", () => {
+    render(
+      <MemoryRouter>
+        <UserViewSideMenu modelId={TARGET_USER_ID} hasCustomFields={false} />
+      </MemoryRouter>,
+    );
+
+    const onCallHeading: HTMLElement | undefined = Array.from(
+      document.querySelectorAll("h6"),
+    ).find((heading: HTMLElement): boolean => {
+      return heading.textContent?.trim() === "On-Call";
+    });
+
+    expect(onCallHeading).toBeDefined();
+
+    const allTitles: Array<string> = Array.from(
+      document.querySelectorAll("a"),
+    ).map((anchor: HTMLAnchorElement): string => {
+      return anchor.textContent?.trim() || "";
+    });
+
+    const readinessIndex: number = allTitles.indexOf("Readiness");
+
+    expect(allTitles.slice(readinessIndex, readinessIndex + 3)).toEqual([
+      "Readiness",
+      "Notification Methods",
+      "On-Call Rules",
+    ]);
+
+    for (const retiredTitle of [
+      "Incident On-Call Rules",
+      "Incident Episode On-Call Rules",
+      "Alert On-Call Rules",
+      "Alert Episode On-Call Rules",
+    ]) {
+      expect(allTitles).not.toContain(retiredTitle);
+    }
+
+    for (const href of Array.from(document.querySelectorAll("a")).map(
+      (anchor: HTMLAnchorElement): string => {
+        return anchor.getAttribute("href") || "";
+      },
+    )) {
+      for (const retiredPath of RETIRED_RULE_PAGE_PATHS) {
+        expect(href.endsWith(`/${retiredPath}`)).toBe(false);
+      }
     }
   });
 
@@ -849,7 +1038,7 @@ describe("every page is reachable", () => {
     /*
      * Your own configuration needs no grant at all — Permission.CurrentUser
      * already carries it — so an ordinary member reaching their own row sees
-     * the same six pages.
+     * the same three pages.
      */
     for (const page of SECTION_PAGES) {
       expect(
@@ -857,6 +1046,46 @@ describe("every page is reachable", () => {
           return candidate.title === page.menuTitle;
         }),
       ).toBe(true);
+    }
+  });
+
+  test("the On-Call Rules entry stays marked whichever tab is open", async () => {
+    const rulesHref: string = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.USER_VIEW_ON_CALL_RULES] as Route,
+      { modelId: TARGET_USER_ID },
+    ).toString();
+
+    for (const search of ["", "?type=alerts", "?type=incident-episodes"]) {
+      window.history.pushState({}, "", `${rulesHref}${search}`);
+      Navigation.setLocation({
+        pathname: rulesHref,
+        search: search,
+        hash: "",
+        state: null,
+        key: "test",
+      } as Location);
+
+      await act(async (): Promise<void> => {
+        render(
+          <MemoryRouter>
+            <UserViewSideMenu
+              modelId={TARGET_USER_ID}
+              hasCustomFields={false}
+            />
+          </MemoryRouter>,
+        );
+      });
+
+      expect(activeLinkTitles()).toEqual(["On-Call Rules"]);
+
+      const rulesLink: HTMLElement | null = screen
+        .getByText("On-Call Rules")
+        .closest("a");
+
+      // The bare address: a menu link never pins a tab.
+      expect(rulesLink!.getAttribute("href")).toBe(rulesHref);
+
+      cleanup();
     }
   });
 
@@ -876,15 +1105,15 @@ describe("every page is reachable", () => {
 
       /*
        * A page with no breadcrumb entry renders a bare title and no way back up
-       * — survivable on one route, six times worse once a single page became a
-       * section somebody navigates around inside.
+       * — survivable on one route, worse once a single page became a section
+       * somebody navigates around inside.
        */
       expect(titles).toContain(page.breadcrumbTitle);
       expect(titles[0]).toBe("Project");
     }
   });
 
-  test("the six routes are distinct URLs", () => {
+  test("the three routes are distinct URLs", () => {
     const paths: Array<string> = SECTION_PAGES.map(
       (page: SectionPage): string => {
         return (RouteMap[page.pageMapKey] as Route).toString();
@@ -901,5 +1130,31 @@ describe("every page is reachable", () => {
     expect(paths).not.toContain(
       (RouteMap[PageMap.USER_VIEW_NOTIFICATION_RULES] as Route).toString(),
     );
+  });
+
+  test("the route table no longer has a page per kind of rule", () => {
+    const routes: Array<string> = Object.values(RouteMap).map(
+      (route: Route): string => {
+        return route.toString();
+      },
+    );
+
+    for (const retiredPath of RETIRED_RULE_PAGE_PATHS) {
+      expect(
+        routes.filter((route: string): boolean => {
+          return route.endsWith(`/${retiredPath}`);
+        }),
+      ).toEqual([]);
+    }
+
+    expect(
+      Object.keys(PageMap).filter((key: string): boolean => {
+        return (
+          key.startsWith("USER_VIEW_") &&
+          key.endsWith("_ON_CALL_RULES") &&
+          key !== "USER_VIEW_ON_CALL_RULES"
+        );
+      }),
+    ).toEqual([]);
   });
 });

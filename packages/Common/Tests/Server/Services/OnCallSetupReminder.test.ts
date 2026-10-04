@@ -185,11 +185,14 @@ function onlyMail(): SentMail {
 }
 
 /*
- * One case per severity-scoped rule type: the settings tab a gap of that type
- * should link to. All four are covered because sending somebody to the wrong tab
- * produces a screen with nothing wrong on it, which reads as a false alarm - and
- * the mapping is four near-identical lines of the kind that get copy-pasted with
- * one value left unchanged.
+ * One case per severity-scoped rule type: the On-Call Rules tab a gap of that
+ * type should link to. All four are covered because sending somebody to the
+ * wrong tab produces a screen with nothing wrong on it, which reads as a false
+ * alarm - and the mapping is four near-identical lines of the kind that get
+ * copy-pasted with one value left unchanged.
+ *
+ * Spelled out rather than built from OnCallRuleKind, so a renamed tab fails
+ * here: the address is in every reminder already sent.
  */
 interface GapLinkCase {
   ruleType: NotificationRuleType;
@@ -199,20 +202,31 @@ interface GapLinkCase {
 const GAP_LINK_CASES: Array<GapLinkCase> = [
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-    path: "incident-on-call-rules",
+    path: "on-call-rules?type=incidents",
   },
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
-    path: "incident-episode-on-call-rules",
+    path: "on-call-rules?type=incident-episodes",
   },
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-    path: "alert-on-call-rules",
+    path: "on-call-rules?type=alerts",
   },
   {
     ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
-    path: "alert-episode-on-call-rules",
+    path: "on-call-rules?type=alert-episodes",
   },
+];
+
+/*
+ * The four pages the On-Call Rules tabs replaced. They still forward, but a
+ * reminder written today links straight to the tab.
+ */
+const RETIRED_RULE_PAGE_PATHS: Array<string> = [
+  "incident-on-call-rules",
+  "incident-episode-on-call-rules",
+  "alert-on-call-rules",
+  "alert-episode-on-call-rules",
 ];
 
 /*
@@ -238,9 +252,15 @@ function registerGapLinkTest(gapCase: GapLinkCase): void {
       userIds: [USER_A],
     });
 
-    expect(onlyMail().message).toContain(
+    const message: string = onlyMail().message;
+
+    expect(message).toContain(
       `/${PROJECT_ID.toString()}/user-settings/${gapCase.path}`,
     );
+
+    for (const retiredPath of RETIRED_RULE_PAGE_PATHS) {
+      expect(message).not.toContain(`/user-settings/${retiredPath}`);
+    }
   });
 }
 
@@ -579,7 +599,7 @@ describe("OnCallSetupReminderService - the deep link points at the broken thing"
     });
 
     expect(onlyMail().message).toContain(
-      `/${PROJECT_ID.toString()}/user-settings/alert-on-call-rules`,
+      `/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=alerts`,
     );
   });
 
@@ -610,7 +630,7 @@ describe("OnCallSetupReminderService - the deep link points at the broken thing"
     });
 
     expect(onlyMail().message).toContain(
-      `/${PROJECT_ID.toString()}/user-settings/alert-episode-on-call-rules`,
+      `/${PROJECT_ID.toString()}/user-settings/on-call-rules?type=alert-episodes`,
     );
   });
 });

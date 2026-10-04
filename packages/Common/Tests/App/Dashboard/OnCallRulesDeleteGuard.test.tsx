@@ -16,7 +16,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React from "react";
+import React, { ReactElement } from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -29,9 +30,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * "are you sure". Passing tests were not evidence the feature existed.
  *
  * So these tests deliberately do NOT render the modal. They render the real
- * page component, click the real Delete control on a real table row, and assert
- * on what appears - which is the only thing that can distinguish "the guard is
- * built" from "the guard is wired". Put a page back to `isDeleteable={true}`
+ * page component - the On-Call Rules page, opened on a kind's tab through its
+ * address - click the real Delete control on a real table row, and assert on
+ * what appears, which is the only thing that can distinguish "the guard is
+ * built" from "the guard is wired". Put a tab back to `isDeleteable={true}`
  * with no action button and its tests here fail, because the stock
  * confirmation carries none of the numbers they assert on.
  */
@@ -114,10 +116,8 @@ jest.mock("react-i18next", () => {
   };
 });
 
-import AlertOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/AlertOnCallRules";
-import IncidentOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/IncidentOnCallRules";
-import IncidentEpisodeOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/IncidentEpisodeOnCallRules";
-import EpisodeOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/EpisodeOnCallRules";
+import UserSettingsOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallRules";
+import OnCallRuleKind from "../../../Types/NotificationRule/OnCallRuleKind";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
@@ -134,6 +134,26 @@ import User from "../../../UI/Utils/User";
 
 const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
 const USER_ID: string = "aaaaaaaa-1111-4111-8111-111111111111";
+
+/*
+ * The signed-in user's On-Call Rules page, opened on one kind's tab the way
+ * every link opens it: through `?type=` in its address.
+ */
+type OnCallRulesPageAtFunction = (kind: OnCallRuleKind) => ReactElement;
+
+const onCallRulesPageAt: OnCallRulesPageAtFunction = (
+  kind: OnCallRuleKind,
+): ReactElement => {
+  return (
+    <MemoryRouter
+      initialEntries={[
+        `/dashboard/${PROJECT_ID}/user-settings/on-call-rules?type=${kind}`,
+      ]}
+    >
+      <UserSettingsOnCallRules {...({} as any)} />
+    </MemoryRouter>
+  );
+};
 
 const SEV1_ID: string = "eeeeeeee-5555-4555-8555-555555555555";
 const SEV2_ID: string = "ffffffff-6666-4666-8666-666666666666";
@@ -315,7 +335,7 @@ const mockPage: MockPageFunction = (fixture: PageFixture): void => {
 
       /*
        * The modal's read carries no ruleType - it wants everything this user
-       * has, across all four rule-type pages.
+       * has, across all four tabs.
        */
       if (!query["ruleType"]) {
         return Promise.resolve(listResult(fixture.rules.map(ruleModel)));
@@ -565,7 +585,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       severityModelType: IncidentSeverity,
     });
 
-    render(<IncidentOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Incidents));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);
@@ -595,7 +615,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       severityModelType: IncidentSeverity,
     });
 
-    render(<IncidentOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Incidents));
 
     const rows: Array<HTMLElement> = await waitForRows(2);
     expectEveryRowOffersDelete(rows);
@@ -632,7 +652,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       okResponse(readinessJson({ reachedVia: ["Team"] })) as never,
     );
 
-    render(<IncidentOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Incidents));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);
@@ -658,7 +678,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       severityModelType: IncidentSeverity,
     });
 
-    render(<IncidentOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Incidents));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);
@@ -697,7 +717,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       severityModelType: IncidentSeverity,
     });
 
-    render(<IncidentOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Incidents));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);
@@ -766,7 +786,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
       severityModelType: IncidentSeverity,
     });
 
-    render(<IncidentOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Incidents));
 
     await settleAfterRulesLoad();
 
@@ -794,13 +814,11 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
 });
 
 /*
- * The other three pages are near-identical copies of the first (the shared
- * extraction is a separate piece of work), so each one is checked for the same
- * property rather than the same four. A copy that was missed is a page where
- * deleting the last rule is still silent, and that is exactly what a
- * copy-paste-and-forget produces.
+ * The other three tabs draw the same table with another kind's props, so each
+ * one is checked for the same property rather than the same four. A tab wired
+ * differently is one where deleting the last rule is still silent.
  */
-describe("The other three rule pages carry the same guard", () => {
+describe("The other three tabs carry the same guard", () => {
   test("alert rules", async () => {
     mockPage({
       severities: [alertSeverity(SEV2_ID, "Sev2")],
@@ -817,7 +835,7 @@ describe("The other three rule pages carry the same guard", () => {
       severityModelType: AlertSeverity,
     });
 
-    render(<AlertOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.Alerts));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);
@@ -847,7 +865,7 @@ describe("The other three rule pages carry the same guard", () => {
       severityModelType: AlertSeverity,
     });
 
-    render(<EpisodeOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.AlertEpisodes));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);
@@ -877,7 +895,7 @@ describe("The other three rule pages carry the same guard", () => {
       severityModelType: IncidentSeverity,
     });
 
-    render(<IncidentEpisodeOnCallRules {...({} as any)} />);
+    render(onCallRulesPageAt(OnCallRuleKind.IncidentEpisodes));
 
     const rows: Array<HTMLElement> = await waitForRows(1);
     expectEveryRowOffersDelete(rows);

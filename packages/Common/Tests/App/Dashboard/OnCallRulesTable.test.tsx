@@ -8,13 +8,15 @@ import {
   test,
 } from "@jest/globals";
 import { cleanup, render, waitFor } from "@testing-library/react";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { ReactElement } from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The four on-call rule pages - incident, alert, incident episode, alert
- * episode - were four ~370-line copies of one another and are now four sets of
- * props on one shared component. Everything a copy-paste page got wrong loudly
+ * The four kinds of on-call rule - incident, alert, incident episode, alert
+ * episode - were four ~370-line page copies of one another, and are now four
+ * tabs of one On-Call Rules page, each drawing one shared component with its
+ * kind's props (Components/NotificationRule/OnCallRuleKinds.ts). Everything a copy-paste page got wrong loudly
  * (a compile error, a missing import) a props object gets wrong silently, and
  * two of those silent failures page real people at the wrong time:
  *
@@ -30,8 +32,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     one of the two axes from the other gets one of those pages wrong.
  *
  * The third pin here is the stored-preferences key. It has to carry the
- * severity id because one table is rendered per severity on a single route;
- * drop the id and paging one table repaginates every other table on the page.
+ * severity id because one table is rendered per severity on a single tab;
+ * drop the id and paging one table repaginates every other table on the tab.
  * That is a pure-UX bug, invisible to the type checker, and it was already
  * explained in a comment in the original source - which is exactly why it is
  * asserted rather than trusted to survive the next edit.
@@ -39,7 +41,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The fourth is where the "Notification Method" dropdown comes from, which is
  * now two different places depending on whose rules are on screen. For the
  * signed-in user it is still nine reads of the nine method models, and that
- * path is the four settings pages every existing user relies on. For anybody
+ * path is the On-Call Rules page every existing user relies on. For anybody
  * else those reads are REFUSED - the models are scoped to the person who owns
  * the device, because the columns behind them are the raw phone number, the
  * webhook bearer url, the push device token, the telegram chat id and the
@@ -159,7 +161,7 @@ interface CapturedTableProps {
   formFields: Array<CapturedFormField>;
   selectMoreFields: Record<string, unknown>;
   columns: Array<CapturedColumn>;
-  cardProps: { title: string; description: string };
+  cardProps: { title: ReactElement; description: string };
 }
 
 let capturedTables: Array<CapturedTableProps> = [];
@@ -178,10 +180,7 @@ import OnCallRulesTable, {
   NotificationMethodChoice,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import AlertOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/AlertOnCallRules";
-import EpisodeOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/EpisodeOnCallRules";
-import IncidentEpisodeOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/IncidentEpisodeOnCallRules";
-import IncidentOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/IncidentOnCallRules";
+import UserSettingsOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallRules";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
@@ -195,8 +194,11 @@ import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import Route from "../../../Types/API/Route";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import Color from "../../../Types/Color";
 import Email from "../../../Types/Email";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
+import OnCallRuleKind from "../../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -269,16 +271,22 @@ type BuildSeverities = (
   modelType: SeverityModelType,
 ) => Array<IncidentSeverity | AlertSeverity>;
 
+const SEVERITY_ONE_COLOR: string = "#ef4444";
+
 const buildSeverities: BuildSeverities = (
   modelType: SeverityModelType,
 ): Array<IncidentSeverity | AlertSeverity> => {
   return [
-    { id: SEVERITY_ONE_ID, name: "Sev 1" },
-    { id: SEVERITY_TWO_ID, name: "Sev 2" },
-  ].map((spec: { id: string; name: string }) => {
+    { id: SEVERITY_ONE_ID, name: "Sev 1", color: SEVERITY_ONE_COLOR },
+    // A severity without a colour: its card has no dot, and nothing breaks.
+    { id: SEVERITY_TWO_ID, name: "Sev 2", color: "" },
+  ].map((spec: { id: string; name: string; color: string }) => {
     const severity: IncidentSeverity | AlertSeverity = new modelType();
     severity._id = spec.id;
     severity.name = spec.name;
+    if (spec.color) {
+      severity.color = new Color(spec.color);
+    }
     return severity;
   });
 };
@@ -465,9 +473,38 @@ const renderAndSettle: RenderAndSettle = async (
   });
 };
 
+/*
+ * The signed-in user's own On-Call Rules page (User Settings), opened on one
+ * kind's tab through its address, the way every link opens it.
+ */
+type OwnPageAt = (kind: OnCallRuleKind) => ReactElement;
+
+const ownPageAt: OwnPageAt = (kind: OnCallRuleKind): ReactElement => {
+  return (
+    <MemoryRouter
+      initialEntries={[
+        `/dashboard/${PROJECT_ID_STRING}/user-settings/on-call-rules?type=${kind}`,
+      ]}
+    >
+      <UserSettingsOnCallRules {...pageProps} />
+    </MemoryRouter>
+  );
+};
+
+// A card's title is an element: the severity's colour and name.
+type RenderTitle = (table: CapturedTableProps) => HTMLElement;
+
+const renderTitle: RenderTitle = (table: CapturedTableProps): HTMLElement => {
+  const { container }: { container: HTMLElement } = render(
+    table.cardProps.title,
+  );
+
+  return container;
+};
+
 interface RuleTypeCase {
   label: string;
-  Page: FunctionComponent<PageComponentProps>;
+  kind: OnCallRuleKind;
   severityModelType: SeverityModelType;
   wrongSeverityModelType: SeverityModelType;
   foreignKeyColumn: "incidentSeverityId" | "alertSeverityId";
@@ -476,8 +513,8 @@ interface RuleTypeCase {
 }
 
 /*
- * Note the crossed pair in the middle two rows: the ALERT episode page reads
- * AlertSeverity while the INCIDENT episode page reads IncidentSeverity. That
+ * Note the crossed pair in the middle two rows: the ALERT episode tab reads
+ * AlertSeverity while the INCIDENT episode tab reads IncidentSeverity. That
  * crossing is the whole reason the severity model and the foreign key column
  * are two separate props, and a case table is the only shape that makes an
  * accidental re-derivation fail on exactly one row instead of passing on all
@@ -486,7 +523,7 @@ interface RuleTypeCase {
 const RULE_TYPE_CASES: Array<RuleTypeCase> = [
   {
     label: "incident",
-    Page: IncidentOnCallRules,
+    kind: OnCallRuleKind.Incidents,
     severityModelType: IncidentSeverity,
     wrongSeverityModelType: AlertSeverity,
     foreignKeyColumn: "incidentSeverityId",
@@ -495,7 +532,7 @@ const RULE_TYPE_CASES: Array<RuleTypeCase> = [
   },
   {
     label: "alert",
-    Page: AlertOnCallRules,
+    kind: OnCallRuleKind.Alerts,
     severityModelType: AlertSeverity,
     wrongSeverityModelType: IncidentSeverity,
     foreignKeyColumn: "alertSeverityId",
@@ -504,7 +541,7 @@ const RULE_TYPE_CASES: Array<RuleTypeCase> = [
   },
   {
     label: "alert episode",
-    Page: EpisodeOnCallRules,
+    kind: OnCallRuleKind.AlertEpisodes,
     severityModelType: AlertSeverity,
     wrongSeverityModelType: IncidentSeverity,
     foreignKeyColumn: "alertSeverityId",
@@ -513,7 +550,7 @@ const RULE_TYPE_CASES: Array<RuleTypeCase> = [
   },
   {
     label: "incident episode",
-    Page: IncidentEpisodeOnCallRules,
+    kind: OnCallRuleKind.IncidentEpisodes,
     severityModelType: IncidentSeverity,
     wrongSeverityModelType: AlertSeverity,
     foreignKeyColumn: "incidentSeverityId",
@@ -577,11 +614,9 @@ describe("OnCallRulesTable", () => {
   });
 
   for (const testCase of RULE_TYPE_CASES) {
-    const Page: FunctionComponent<PageComponentProps> = testCase.Page;
-
     describe(`${testCase.label} rules`, () => {
       test("enumerates its own severity model and never the other one", async () => {
-        await renderAndSettle(<Page {...pageProps} />);
+        await renderAndSettle(ownPageAt(testCase.kind));
 
         const requested: Array<unknown> = getRequestedModelTypes();
 
@@ -590,7 +625,7 @@ describe("OnCallRulesTable", () => {
       });
 
       test("filters each table on its own severity foreign key column", async () => {
-        await renderAndSettle(<Page {...pageProps} />);
+        await renderAndSettle(ownPageAt(testCase.kind));
 
         expect(getCapturedTables()).toHaveLength(2);
 
@@ -619,7 +654,7 @@ describe("OnCallRulesTable", () => {
       });
 
       test("stamps the same severity foreign key column on a newly created rule", async () => {
-        await renderAndSettle(<Page {...pageProps} />);
+        await renderAndSettle(ownPageAt(testCase.kind));
 
         const created: UserNotificationRule =
           await getCapturedTables()[0]!.onBeforeCreate(
@@ -640,7 +675,7 @@ describe("OnCallRulesTable", () => {
       });
 
       test("keeps the severity id in each table's user preferences key", async () => {
-        await renderAndSettle(<Page {...pageProps} />);
+        await renderAndSettle(ownPageAt(testCase.kind));
 
         const keys: Array<string> = getCapturedTables().map(
           (table: CapturedTableProps) => {
@@ -663,10 +698,8 @@ describe("OnCallRulesTable", () => {
     const keys: Array<string> = [];
 
     for (const testCase of RULE_TYPE_CASES) {
-      const Page: FunctionComponent<PageComponentProps> = testCase.Page;
-
       capturedTables = [];
-      await renderAndSettle(<Page {...pageProps} />);
+      await renderAndSettle(ownPageAt(testCase.kind));
 
       capturedTables.forEach((table: CapturedTableProps) => {
         keys.push(table.userPreferencesKey);
@@ -676,7 +709,7 @@ describe("OnCallRulesTable", () => {
     }
 
     /*
-     * Four pages, two severities each. If any two keys collided the distinct
+     * Four tabs, two severities each. If any two keys collided the distinct
      * count would drop, and the two tables sharing a key would share a stored
      * page size and a slice of URL state.
      */
@@ -708,9 +741,6 @@ describe("OnCallRulesTable", () => {
         userPreferencesKeyPrefix="admin-notification-rules-table"
         userId={OTHER_USER_ID}
         notificationMethods={notificationMethods}
-        getTitle={(severityName: string): string => {
-          return severityName;
-        }}
         getDescription={(severityName: string): string => {
           return severityName;
         }}
@@ -957,12 +987,12 @@ describe("OnCallRulesTable", () => {
   test("the signed-in user's own table still asks for the method relations", async () => {
     /*
      * The other half of the seam, and the regression that would actually be
-     * noticed: the four self-serve pages render this same cell from the nested
-     * relations, and reading your own address unmasked is both allowed and the
-     * more useful thing to show. Narrowing the projection for everybody would
-     * blank the method column on every settings page in the product.
+     * noticed: your own On-Call Rules page renders this same cell from the
+     * nested relations, and reading your own address unmasked is both allowed
+     * and the more useful thing to show. Narrowing the projection for
+     * everybody would blank the method column on every tab of it.
      */
-    await renderAndSettle(<IncidentOnCallRules {...pageProps} />);
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Incidents));
 
     const projection: Array<string> = getMethodProjectionKeys(
       capturedTables[0]!,
@@ -975,13 +1005,13 @@ describe("OnCallRulesTable", () => {
 
   test("the signed-in user's own table still reads the method models itself", async () => {
     /*
-     * The regression surface. Four settings pages every existing user already
-     * relies on read their own nine models to fill this dropdown, and reading
+     * The regression surface. The settings page every existing user already
+     * relies on reads their own nine models to fill this dropdown, and reading
      * your own rows is exactly what those models allow. Nothing about the admin
      * surface is a reason to change it - and an unmasked label is more use to
      * somebody looking at their own phone number than a mask of it.
      */
-    await renderAndSettle(<IncidentOnCallRules {...pageProps} />);
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Incidents));
 
     const requested: Array<unknown> = getRequestedModelTypes();
 
@@ -1025,9 +1055,6 @@ describe("OnCallRulesTable", () => {
         userPreferencesKeyPrefix="admin-notification-rules-table"
         userId={currentUserId}
         notificationMethods={SUPPLIED_METHODS}
-        getTitle={(severityName: string): string => {
-          return severityName;
-        }}
         getDescription={(severityName: string): string => {
           return severityName;
         }}
@@ -1048,9 +1075,6 @@ describe("OnCallRulesTable", () => {
         userPreferencesKeyPrefix="admin-notification-rules-table"
         userId={OTHER_USER_ID}
         isEditable={false}
-        getTitle={(severityName: string): string => {
-          return severityName;
-        }}
         getDescription={(severityName: string): string => {
           return severityName;
         }}
@@ -1086,7 +1110,7 @@ describe("OnCallRulesTable", () => {
      * deleting the rule and adding it back is a window during which the person
      * is not paged at all.
      */
-    await renderAndSettle(<IncidentOnCallRules {...pageProps} />);
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Incidents));
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.isCreateable).toBe(true);
@@ -1102,26 +1126,77 @@ describe("OnCallRulesTable", () => {
     });
   });
 
-  test("renders the per-severity card copy the self-serve pages had before the extraction", async () => {
-    await renderAndSettle(<IncidentOnCallRules {...pageProps} />);
+  /*
+   * A card is titled by its severity - the name the project gave it, and its
+   * colour - rather than a sentence around the name: every new project's first
+   * incident severity is "Critical Incident", so "<severity> incidents" would
+   * read "Critical Incident incidents". The tab says which kind; the
+   * description says what the card is for.
+   */
+  test("titles each card by its severity: the project's name and its colour", async () => {
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Incidents));
 
-    expect(capturedTables[0]!.cardProps.title).toBe(
-      "Sev 1 Severity:  When I am on call and Sev 1 is assigned to me...",
-    );
-    expect(capturedTables[0]!.cardProps.description).toBe(
-      "Here are the rules when you are on call and Sev 1 is assigned to you.",
+    const first: HTMLElement = renderTitle(capturedTables[0]!);
+
+    expect(first.textContent).toBe("Sev 1");
+
+    const dot: HTMLElement | null = first.querySelector(
+      '[data-testid="on-call-rules-severity-title"] [aria-hidden="true"]',
     );
 
-    cleanup();
-    capturedTables = [];
+    expect(dot).not.toBeNull();
+    expect(dot!.style.backgroundColor).toBe("rgb(239, 68, 68)");
+  });
 
-    await renderAndSettle(<EpisodeOnCallRules {...pageProps} />);
+  test("a severity without a colour is titled by its name alone", async () => {
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Incidents));
 
-    expect(capturedTables[0]!.cardProps.title).toBe(
-      "Sev 1 Severity Episode:  When I am on call and Sev 1 severity episode is assigned to me...",
-    );
-    expect(capturedTables[0]!.cardProps.description).toBe(
-      "Here are the rules when you are on call and Sev 1 Severity episode is assigned to you.",
-    );
+    const second: HTMLElement = renderTitle(capturedTables[1]!);
+
+    expect(second.textContent).toBe("Sev 2");
+    expect(second.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
+
+  test.each([
+    [
+      OnCallRuleKind.Incidents,
+      "How you are notified when an incident of this severity is assigned to you while you are on call.",
+    ],
+    [
+      OnCallRuleKind.IncidentEpisodes,
+      "How you are notified when an incident episode of this severity is assigned to you while you are on call.",
+    ],
+    [
+      OnCallRuleKind.Alerts,
+      "How you are notified when an alert of this severity is assigned to you while you are on call.",
+    ],
+    [
+      OnCallRuleKind.AlertEpisodes,
+      "How you are notified when an alert episode of this severity is assigned to you while you are on call.",
+    ],
+  ])(
+    "the %s tab says what each of its cards is for",
+    async (kind: OnCallRuleKind, description: string) => {
+      await renderAndSettle(ownPageAt(kind));
+
+      expect(getCapturedTables()).toHaveLength(2);
+
+      for (const table of getCapturedTables()) {
+        expect(table.cardProps.description).toBe(description);
+      }
+    },
+  );
+
+  test("lists the severities most severe first, with their colours", async () => {
+    await renderAndSettle(ownPageAt(OnCallRuleKind.Alerts));
+
+    const severityRead: any = getListMock.mock.calls.find((call: Array<any>) => {
+      return call[0].modelType === AlertSeverity;
+    });
+
+    expect(severityRead).toBeDefined();
+    expect(severityRead[0].sort).toEqual({ order: SortOrder.Ascending });
+    expect(severityRead[0].select).toEqual({ name: true, color: true });
+    expect(severityRead[0].query.projectId.toString()).toBe(PROJECT_ID_STRING);
   });
 });
