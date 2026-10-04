@@ -22,7 +22,9 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import FileAPI from "../../../Server/API/FileAPI";
-import FormAPI, { FORM_FOREIGN_PAGE_MESSAGE } from "../../../Server/API/FormAPI";
+import FormAPI, {
+  FORM_FOREIGN_PAGE_MESSAGE,
+} from "../../../Server/API/FormAPI";
 import Redis from "../../../Server/Infrastructure/Redis";
 import FileService from "../../../Server/Services/FileService";
 import FormService, {
@@ -396,9 +398,7 @@ describe("a form's logo and favicon over HTTP", () => {
       return read;
     }) as never);
 
-    jest
-      .spyOn(FormService, "isProjectOnPlan")
-      .mockResolvedValue(true as never);
+    jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true as never);
 
     jest
       .spyOn(SameOriginRequest, "getInstanceOrigin")

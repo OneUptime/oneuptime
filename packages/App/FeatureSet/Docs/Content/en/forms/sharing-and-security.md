@@ -46,6 +46,8 @@ Every request passes these checks, in this order:
 7. What the answers and the settings make must be creatable: an incident needs a severity, an event an end after its start.
 8. A submission must fit within the form's hourly allowance — see [Rate limits](#rate-limits).
 
+A form's logo and favicon are part of the form: they are sent inside the answer that opens it, base64, only once it has passed the first four checks, and never from an address of their own. Nobody can fetch them without the form, and no file can be fetched by its id through a form; the files themselves stay private.
+
 ### IP allowlist
 
 To limit a form to your own networks, fill in **IP Allowlist** on the **Access** card, one entry per line: an IPv4 address such as `203.0.113.7`, an IPv6 address such as `2001:db8::7`, or an IPv4 range in CIDR notation such as `10.0.0.0/8`. IPv6 ranges are not supported — list each IPv6 address on a line of its own. An IPv6 address matches however it is written, in capitals or with its zeros spelled out. An IPv4 address must be written as one: written the IPv6 way, such as `::ffff:203.0.113.7`, it is refused.

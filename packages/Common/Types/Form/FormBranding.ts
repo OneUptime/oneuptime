@@ -231,8 +231,11 @@ export const encodeBase64: EncodeBase64Function = (
   bytes: Uint8Array,
 ): string => {
   if (typeof Buffer !== "undefined") {
-    return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-      .toString("base64");
+    return Buffer.from(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
+    ).toString("base64");
   }
 
   let binary: string = "";
@@ -340,7 +343,9 @@ export const getPublicFormImage: GetPublicFormImageFunction = (
   };
 };
 
-export type ReadFormLogoAltTextFunction = (value: unknown) => string | undefined;
+export type ReadFormLogoAltTextFunction = (
+  value: unknown,
+) => string | undefined;
 
 // The logo's alt text, trimmed and capped; undefined when there is none.
 export const readFormLogoAltText: ReadFormLogoAltTextFunction = (
@@ -397,7 +402,8 @@ export const getPublicFormBranding: GetPublicFormBrandingFunction = (data: {
 };
 
 // Base64 as btoa writes it: groups of four, padded with "=".
-const BASE64_PATTERN: RegExp = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const BASE64_PATTERN: RegExp =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 // The longest base64 an image of the most a form's image may weigh takes.
 const BASE64_MAX_LENGTH: number =

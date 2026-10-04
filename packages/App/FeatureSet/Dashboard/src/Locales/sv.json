@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "Ingen. Skärmläsare hoppar över logotypen.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Ikonen i webbläsarfliken medan formuläret är öppet, i stället för OneUptimes favicon. En kvadratisk PNG- eller SVG-bild på högst 1 MB fungerar bäst.",
   "The OneUptime favicon, until you upload yours.": "OneUptimes favicon, tills du laddar upp din egen.",
-  "Upload favicon": "Ladda upp favicon"
+  "Upload favicon": "Ladda upp favicon",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" överskrider gränsen på {{size}} MB.",
+  "Max {{size}} MB each.": "Högst {{size}} MB per fil.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "De här filerna överskrider gränsen på {{size}} MB: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "Typer: {{types}}. Högst {{size}} MB per fil."
 }

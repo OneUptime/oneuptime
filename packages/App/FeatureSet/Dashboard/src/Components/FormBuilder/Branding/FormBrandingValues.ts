@@ -4,6 +4,7 @@ import Form from "Common/Models/DatabaseModels/Form";
 import Select from "Common/Types/BaseDatabase/Select";
 import MimeType from "Common/Types/File/MimeType";
 import {
+  FORM_BRANDING_IMAGE_MAX_BYTES,
   FORM_BRANDING_IMAGE_TYPES,
   getPublicFormBranding,
   PublicFormBranding,
@@ -53,6 +54,13 @@ export const FORM_BRANDING_UPLOAD_TYPES: Array<MimeType> =
   FORM_BRANDING_IMAGE_TYPES.map((type: string): MimeType => {
     return type as MimeType;
   });
+
+/*
+ * The most an image the section uploads may weigh, in megabytes: what the
+ * server takes, so a larger one is refused before it is uploaded.
+ */
+export const FORM_BRANDING_UPLOAD_MAX_MEGABYTES: number =
+  FORM_BRANDING_IMAGE_MAX_BYTES / (1024 * 1024);
 
 export type ReadFormBrandingValuesFunction = (
   form: Form | null | undefined,

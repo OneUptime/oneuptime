@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "Geen. Schermlezers slaan het logo over.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Het pictogram in het browsertabblad zolang het formulier open is, in plaats van de favicon van OneUptime. Een vierkante PNG- of SVG-afbeelding van maximaal 1 MB werkt het best.",
   "The OneUptime favicon, until you upload yours.": "De favicon van OneUptime, tot u uw eigen favicon uploadt.",
-  "Upload favicon": "Favicon uploaden"
+  "Upload favicon": "Favicon uploaden",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" is groter dan de limiet van {{size}} MB.",
+  "Max {{size}} MB each.": "Maximaal {{size}} MB per bestand.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "Deze bestanden zijn groter dan de limiet van {{size}} MB: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "Typen: {{types}}. Maximaal {{size}} MB per bestand."
 }

@@ -305,306 +305,304 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe.each([false, true])(
-  "with billing %s",
-  (isBillingOn: boolean) => {
-    beforeEach(() => {
-      setBillingEnabled(isBillingOn);
+describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
+  beforeEach(() => {
+    setBillingEnabled(isBillingOn);
+  });
+
+  test("the switch is what the service reads", () => {
+    expect(billingEnabled).toBe(isBillingOn);
+  });
+
+  describe("writes: what a form's logo and favicon may be", () => {
+    test("a new form with a PNG logo and an SVG favicon, by id", async () => {
+      const form: Form = newForm({
+        logoFileId: new ObjectID(LOGO_FILE_ID),
+        faviconFileId: new ObjectID(FAVICON_FILE_ID),
+      });
+
+      await expect(create(form)).resolves.toBeDefined();
+      expect(filesRead()).toEqual([LOGO_FILE_ID, FAVICON_FILE_ID]);
     });
 
-    test("the switch is what the service reads", () => {
-      expect(billingEnabled).toBe(isBillingOn);
-    });
+    test("reads each file as root, its type and its bytes, and nothing else", async () => {
+      await update({ logoFileId: LOGO_FILE_ID });
 
-    describe("writes: what a form's logo and favicon may be", () => {
-      test("a new form with a PNG logo and an SVG favicon, by id", async () => {
-        const form: Form = newForm({
-          logoFileId: new ObjectID(LOGO_FILE_ID),
-          faviconFileId: new ObjectID(FAVICON_FILE_ID),
-        });
-
-        await expect(create(form)).resolves.toBeDefined();
-        expect(filesRead()).toEqual([LOGO_FILE_ID, FAVICON_FILE_ID]);
-      });
-
-      test("reads each file as root, its type and its bytes, and nothing else", async () => {
-        await update({ logoFileId: LOGO_FILE_ID });
-
-        expect(fileFindOneById).toHaveBeenCalledTimes(1);
-        expect(fileFindOneById.mock.calls[0]![0]).toEqual({
-          id: new ObjectID(LOGO_FILE_ID),
-          select: { _id: true, fileType: true, file: true },
-          props: { isRoot: true, ignoreHooks: true },
-        });
-      });
-
-      test("the dashboard's spelling: the relation, as its dialog sends it", async () => {
-        const logo: File = new File();
-        logo._id = LOGO_FILE_ID;
-        logo.name = "logo.png";
-        logo.fileType = MimeType.png;
-
-        await expect(
-          update({ logoFile: logo as unknown as JSONObject }),
-        ).resolves.toBeDefined();
-        expect(filesRead()).toEqual([LOGO_FILE_ID]);
-      });
-
-      test("refuses a document as the logo, and a web page as the favicon", async () => {
-        const pdf: Exception | undefined = await refusal(
-          update({ logoFileId: PDF_FILE_ID }),
-        );
-        const html: Exception | undefined = await refusal(
-          update({ faviconFileId: HTML_FILE_ID }),
-        );
-
-        expect(pdf).toBeInstanceOf(BadDataException);
-        expect(pdf?.message).toBe(FORM_LOGO_TYPE_MESSAGE);
-        expect(html).toBeInstanceOf(BadDataException);
-        expect(html?.message).toBe(FORM_FAVICON_TYPE_MESSAGE);
-      });
-
-      test("refuses an image over 1 MB", async () => {
-        expect(
-          (await refusal(update({ logoFileId: HUGE_FILE_ID })))?.message,
-        ).toBe(FORM_LOGO_TOO_LARGE_MESSAGE);
-        expect(
-          (await refusal(update({ faviconFileId: HUGE_FILE_ID })))?.message,
-        ).toBe(FORM_FAVICON_TOO_LARGE_MESSAGE);
-      });
-
-      test("refuses a file that does not exist", async () => {
-        expect(
-          (await refusal(update({ logoFileId: MISSING_FILE_ID })))?.message,
-        ).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
-        expect(
-          (
-            await refusal(
-              create(
-                newForm({ faviconFileId: new ObjectID(MISSING_FILE_ID) }),
-              ),
-            )
-          )?.message,
-        ).toBe(FORM_FAVICON_NOT_FOUND_MESSAGE);
-      });
-
-      test("refuses a reference that is not a file id, without asking Postgres", async () => {
-        const error: Exception | undefined = await refusal(
-          update({ logoFileId: "../../etc/passwd" }),
-        );
-
-        expect(error).toBeInstanceOf(BadDataException);
-        expect(error?.message).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
-        expect(fileFindOneById).not.toHaveBeenCalled();
-      });
-
-      test("refuses two spellings that point at different files", async () => {
-        const error: Exception | undefined = await refusal(
-          update({
-            logoFileId: LOGO_FILE_ID,
-            logoFile: { _id: PDF_FILE_ID },
-          }),
-        );
-
-        expect(error).toBeInstanceOf(BadDataException);
-        expect(error?.message).toBe("Conflicting logo references were provided.");
-        expect(fileFindOneById).not.toHaveBeenCalled();
-      });
-
-      test("checks the logo and the favicon each against its own file", async () => {
-        const error: Exception | undefined = await refusal(
-          update({ logoFileId: LOGO_FILE_ID, faviconFileId: PDF_FILE_ID }),
-        );
-
-        expect(error?.message).toBe(FORM_FAVICON_TYPE_MESSAGE);
-        expect(filesRead()).toEqual([LOGO_FILE_ID, PDF_FILE_ID]);
-      });
-
-      test("taking a logo or favicon off the form needs no check", async () => {
-        await expect(
-          update({ logoFileId: null, faviconFile: null }),
-        ).resolves.toBeDefined();
-        expect(fileFindOneById).not.toHaveBeenCalled();
-      });
-
-      test("a write that does not touch them reads no file", async () => {
-        await update({ name: "Report an Outage" });
-        await update({ logoAltText: "Acme Inc." });
-        await create(newForm());
-
-        expect(fileFindOneById).not.toHaveBeenCalled();
-      });
-
-      test("never makes a file public, or changes it at all", async () => {
-        await update({ logoFileId: LOGO_FILE_ID, faviconFileId: FAVICON_FILE_ID });
-        await create(newForm({ logoFileId: new ObjectID(LOGO_FILE_ID) }));
-
-        expect(makeFilePublic).not.toHaveBeenCalled();
-        expect(fileUpdateOneById).not.toHaveBeenCalled();
-        expect(FILES[LOGO_FILE_ID]!.isPublic).toBe(false);
+      expect(fileFindOneById).toHaveBeenCalledTimes(1);
+      expect(fileFindOneById.mock.calls[0]![0]).toEqual({
+        id: new ObjectID(LOGO_FILE_ID),
+        select: { _id: true, fileType: true, file: true },
+        props: { isRoot: true, ignoreHooks: true },
       });
     });
 
-    describe("the public read: the form's own images, inside the form", () => {
-      function getPublicForm(
-        data: { shareKey?: string; clientIp?: string | undefined } = {},
-      ): Promise<PublicForm> {
-        return FormService.getPublicForm({
-          shareKey: "shareKey" in data ? data.shareKey : SHARE_KEY,
-          clientIp: "clientIp" in data ? data.clientIp : CLIENT_IP,
-        });
-      }
+    test("the dashboard's spelling: the relation, as its dialog sends it", async () => {
+      const logo: File = new File();
+      logo._id = LOGO_FILE_ID;
+      logo.name = "logo.png";
+      logo.fileType = MimeType.png;
 
-      test("a form without branding is told nothing more than before", async () => {
-        const form: PublicForm = await getPublicForm();
+      await expect(
+        update({ logoFile: logo as unknown as JSONObject }),
+      ).resolves.toBeDefined();
+      expect(filesRead()).toEqual([LOGO_FILE_ID]);
+    });
 
-        expect(Object.keys(form).sort()).toEqual(
-          ["fields", "isCaptchaRequired", "name"].sort(),
-        );
-      });
+    test("refuses a document as the logo, and a web page as the favicon", async () => {
+      const pdf: Exception | undefined = await refusal(
+        update({ logoFileId: PDF_FILE_ID }),
+      );
+      const html: Exception | undefined = await refusal(
+        update({ faviconFileId: HTML_FILE_ID }),
+      );
 
-      test("hands over the logo, its alt text and the favicon, the images base64", async () => {
-        storedForm = publicForm({
-          logoFile: FILES[LOGO_FILE_ID],
-          logoAltText: "Acme Inc.",
-          faviconFile: FILES[FAVICON_FILE_ID],
-        });
+      expect(pdf).toBeInstanceOf(BadDataException);
+      expect(pdf?.message).toBe(FORM_LOGO_TYPE_MESSAGE);
+      expect(html).toBeInstanceOf(BadDataException);
+      expect(html?.message).toBe(FORM_FAVICON_TYPE_MESSAGE);
+    });
 
-        const form: PublicForm = await getPublicForm();
+    test("refuses an image over 1 MB", async () => {
+      expect(
+        (await refusal(update({ logoFileId: HUGE_FILE_ID })))?.message,
+      ).toBe(FORM_LOGO_TOO_LARGE_MESSAGE);
+      expect(
+        (await refusal(update({ faviconFileId: HUGE_FILE_ID })))?.message,
+      ).toBe(FORM_FAVICON_TOO_LARGE_MESSAGE);
+    });
 
-        expect(form.logo).toEqual({
-          type: "image/png",
-          data: LOGO_BYTES.toString("base64"),
-        });
-        expect(form.logoAltText).toBe("Acme Inc.");
-        expect(form.favicon).toEqual({
-          type: "image/svg+xml",
-          data: FAVICON_BYTES.toString("base64"),
-        });
-
-        // Nothing that names a file: no id, no name, no address.
-        const serialized: string = JSON.stringify(form);
-
-        for (const secret of [
-          LOGO_FILE_ID,
-          FAVICON_FILE_ID,
-          `${LOGO_FILE_ID}.bin`,
-          "/file/",
-          FORM_ID,
-          PROJECT_ID.toString(),
-        ]) {
-          expect(serialized).not.toContain(secret);
-        }
-      });
-
-      test("reads them with the form, through its own relations, in the one lookup", async () => {
-        await getPublicForm();
-
-        expect(formFindOneBy).toHaveBeenCalledTimes(1);
-        expect(lookupSelect()).toMatchObject({
-          logoAltText: true,
-          logoFile: { file: true, fileType: true },
-          faviconFile: { file: true, fileType: true },
-        });
-        // Never by a file's id.
-        expect(fileFindOneById).not.toHaveBeenCalled();
-      });
-
-      test("a submission never reads them", async () => {
-        storedForm = publicForm({ isEnabled: false });
-
-        await refusal(
-          FormService.submitPublicForm({
-            shareKey: SHARE_KEY,
-            request: { data: { answers: {} } },
-            clientIp: CLIENT_IP,
-          }),
-        );
-
-        const select: Record<string, unknown> = lookupSelect();
-
-        expect(formFindOneBy).toHaveBeenCalledTimes(1);
-        expect(select).not.toHaveProperty("logoFile");
-        expect(select).not.toHaveProperty("faviconFile");
-        expect(select).not.toHaveProperty("logoAltText");
-      });
-
-      test("never hands over a file a form should not show, whatever its row holds", async () => {
-        storedForm = publicForm({
-          logoFile: FILES[HTML_FILE_ID],
-          logoAltText: "Acme Inc.",
-          faviconFile: FILES[HUGE_FILE_ID],
-        });
-
-        const form: PublicForm = await getPublicForm();
-
-        expect(form.logo).toBeUndefined();
-        expect(form.logoAltText).toBeUndefined();
-        expect(form.favicon).toBeUndefined();
-        expect(JSON.stringify(form)).not.toContain(
-          FILES[HTML_FILE_ID]!.file!.toString("base64"),
-        );
-        expect(JSON.stringify(form)).not.toContain("<script>");
-      });
-
-      test("a form that is turned off hands over nothing, as any other unavailable form", async () => {
-        storedForm = publicForm({
-          isEnabled: false,
-          logoFile: FILES[LOGO_FILE_ID],
-        });
-
-        const error: Exception | undefined = await refusal(getPublicForm());
-
-        expect(error).toBeInstanceOf(NotFoundException);
-        expect(error?.message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
-        expect(JSON.stringify(error)).not.toContain(
-          LOGO_BYTES.toString("base64"),
-        );
-      });
-
-      test("a network the form does not allow gets no logo", async () => {
-        storedForm = publicForm({
-          ipWhitelist: "198.51.100.0/24",
-          logoFile: FILES[LOGO_FILE_ID],
-        });
-
-        const error: Exception | undefined = await refusal(getPublicForm());
-
-        expect(error).toBeInstanceOf(ForbiddenException);
-        expect(error?.message).toBe(FORM_NETWORK_NOT_ALLOWED_MESSAGE);
-      });
-
-      test("a link to another form, or to none, gets nothing", async () => {
-        storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID] });
-
-        for (const shareKey of [
-          "0f8fad5b-d9cb-469f-a165-70867728950e",
-          LOGO_FILE_ID,
-          "not-a-key",
-        ]) {
-          expect(await refusal(getPublicForm({ shareKey }))).toBeInstanceOf(
-            NotFoundException,
-          );
-        }
-      });
-
-      test("a project whose plan does not include forms gets nothing, when billing is on", async () => {
-        storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID] });
-
+    test("refuses a file that does not exist", async () => {
+      expect(
+        (await refusal(update({ logoFileId: MISSING_FILE_ID })))?.message,
+      ).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
+      expect(
         (
-          SubscriptionPlan.isFeatureAccessibleOnCurrentPlan as unknown as MockedFn
-        ).mockReturnValue(false);
-
-        const result: Exception | undefined = await refusal(getPublicForm());
-
-        if (isBillingOn) {
-          expect(result).toBeInstanceOf(NotFoundException);
-          expect(result?.message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
-        } else {
-          // Without billing every project has every feature.
-          expect(result).toBeUndefined();
-        }
-      });
+          await refusal(
+            create(newForm({ faviconFileId: new ObjectID(MISSING_FILE_ID) })),
+          )
+        )?.message,
+      ).toBe(FORM_FAVICON_NOT_FOUND_MESSAGE);
     });
-  },
-);
+
+    test("refuses a reference that is not a file id, without asking Postgres", async () => {
+      const error: Exception | undefined = await refusal(
+        update({ logoFileId: "../../etc/passwd" }),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error?.message).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
+      expect(fileFindOneById).not.toHaveBeenCalled();
+    });
+
+    test("refuses two spellings that point at different files", async () => {
+      const error: Exception | undefined = await refusal(
+        update({
+          logoFileId: LOGO_FILE_ID,
+          logoFile: { _id: PDF_FILE_ID },
+        }),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error?.message).toBe("Conflicting logo references were provided.");
+      expect(fileFindOneById).not.toHaveBeenCalled();
+    });
+
+    test("checks the logo and the favicon each against its own file", async () => {
+      const error: Exception | undefined = await refusal(
+        update({ logoFileId: LOGO_FILE_ID, faviconFileId: PDF_FILE_ID }),
+      );
+
+      expect(error?.message).toBe(FORM_FAVICON_TYPE_MESSAGE);
+      expect(filesRead()).toEqual([LOGO_FILE_ID, PDF_FILE_ID]);
+    });
+
+    test("taking a logo or favicon off the form needs no check", async () => {
+      await expect(
+        update({ logoFileId: null, faviconFile: null }),
+      ).resolves.toBeDefined();
+      expect(fileFindOneById).not.toHaveBeenCalled();
+    });
+
+    test("a write that does not touch them reads no file", async () => {
+      await update({ name: "Report an Outage" });
+      await update({ logoAltText: "Acme Inc." });
+      await create(newForm());
+
+      expect(fileFindOneById).not.toHaveBeenCalled();
+    });
+
+    test("never makes a file public, or changes it at all", async () => {
+      await update({
+        logoFileId: LOGO_FILE_ID,
+        faviconFileId: FAVICON_FILE_ID,
+      });
+      await create(newForm({ logoFileId: new ObjectID(LOGO_FILE_ID) }));
+
+      expect(makeFilePublic).not.toHaveBeenCalled();
+      expect(fileUpdateOneById).not.toHaveBeenCalled();
+      expect(FILES[LOGO_FILE_ID]!.isPublic).toBe(false);
+    });
+  });
+
+  describe("the public read: the form's own images, inside the form", () => {
+    function getPublicForm(
+      data: { shareKey?: string; clientIp?: string | undefined } = {},
+    ): Promise<PublicForm> {
+      return FormService.getPublicForm({
+        shareKey: "shareKey" in data ? data.shareKey : SHARE_KEY,
+        clientIp: "clientIp" in data ? data.clientIp : CLIENT_IP,
+      });
+    }
+
+    test("a form without branding is told nothing more than before", async () => {
+      const form: PublicForm = await getPublicForm();
+
+      expect(Object.keys(form).sort()).toEqual(
+        ["fields", "isCaptchaRequired", "name"].sort(),
+      );
+    });
+
+    test("hands over the logo, its alt text and the favicon, the images base64", async () => {
+      storedForm = publicForm({
+        logoFile: FILES[LOGO_FILE_ID],
+        logoAltText: "Acme Inc.",
+        faviconFile: FILES[FAVICON_FILE_ID],
+      });
+
+      const form: PublicForm = await getPublicForm();
+
+      expect(form.logo).toEqual({
+        type: "image/png",
+        data: LOGO_BYTES.toString("base64"),
+      });
+      expect(form.logoAltText).toBe("Acme Inc.");
+      expect(form.favicon).toEqual({
+        type: "image/svg+xml",
+        data: FAVICON_BYTES.toString("base64"),
+      });
+
+      // Nothing that names a file: no id, no name, no address.
+      const serialized: string = JSON.stringify(form);
+
+      for (const secret of [
+        LOGO_FILE_ID,
+        FAVICON_FILE_ID,
+        `${LOGO_FILE_ID}.bin`,
+        "/file/",
+        FORM_ID,
+        PROJECT_ID.toString(),
+      ]) {
+        expect(serialized).not.toContain(secret);
+      }
+    });
+
+    test("reads them with the form, through its own relations, in the one lookup", async () => {
+      await getPublicForm();
+
+      expect(formFindOneBy).toHaveBeenCalledTimes(1);
+      expect(lookupSelect()).toMatchObject({
+        logoAltText: true,
+        logoFile: { file: true, fileType: true },
+        faviconFile: { file: true, fileType: true },
+      });
+      // Never by a file's id.
+      expect(fileFindOneById).not.toHaveBeenCalled();
+    });
+
+    test("a submission never reads them", async () => {
+      storedForm = publicForm({ isEnabled: false });
+
+      await refusal(
+        FormService.submitPublicForm({
+          shareKey: SHARE_KEY,
+          request: { data: { answers: {} } },
+          clientIp: CLIENT_IP,
+        }),
+      );
+
+      const select: Record<string, unknown> = lookupSelect();
+
+      expect(formFindOneBy).toHaveBeenCalledTimes(1);
+      expect(select).not.toHaveProperty("logoFile");
+      expect(select).not.toHaveProperty("faviconFile");
+      expect(select).not.toHaveProperty("logoAltText");
+    });
+
+    test("never hands over a file a form should not show, whatever its row holds", async () => {
+      storedForm = publicForm({
+        logoFile: FILES[HTML_FILE_ID],
+        logoAltText: "Acme Inc.",
+        faviconFile: FILES[HUGE_FILE_ID],
+      });
+
+      const form: PublicForm = await getPublicForm();
+
+      expect(form.logo).toBeUndefined();
+      expect(form.logoAltText).toBeUndefined();
+      expect(form.favicon).toBeUndefined();
+      expect(JSON.stringify(form)).not.toContain(
+        FILES[HTML_FILE_ID]!.file!.toString("base64"),
+      );
+      expect(JSON.stringify(form)).not.toContain("<script>");
+    });
+
+    test("a form that is turned off hands over nothing, as any other unavailable form", async () => {
+      storedForm = publicForm({
+        isEnabled: false,
+        logoFile: FILES[LOGO_FILE_ID],
+      });
+
+      const error: Exception | undefined = await refusal(getPublicForm());
+
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect(error?.message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
+      expect(JSON.stringify(error)).not.toContain(
+        LOGO_BYTES.toString("base64"),
+      );
+    });
+
+    test("a network the form does not allow gets no logo", async () => {
+      storedForm = publicForm({
+        ipWhitelist: "198.51.100.0/24",
+        logoFile: FILES[LOGO_FILE_ID],
+      });
+
+      const error: Exception | undefined = await refusal(getPublicForm());
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error?.message).toBe(FORM_NETWORK_NOT_ALLOWED_MESSAGE);
+    });
+
+    test("a link to another form, or to none, gets nothing", async () => {
+      storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID] });
+
+      for (const shareKey of [
+        "0f8fad5b-d9cb-469f-a165-70867728950e",
+        LOGO_FILE_ID,
+        "not-a-key",
+      ]) {
+        expect(await refusal(getPublicForm({ shareKey }))).toBeInstanceOf(
+          NotFoundException,
+        );
+      }
+    });
+
+    test("a project whose plan does not include forms gets nothing, when billing is on", async () => {
+      storedForm = publicForm({ logoFile: FILES[LOGO_FILE_ID] });
+
+      (
+        SubscriptionPlan.isFeatureAccessibleOnCurrentPlan as unknown as MockedFn
+      ).mockReturnValue(false);
+
+      const result: Exception | undefined = await refusal(getPublicForm());
+
+      if (isBillingOn) {
+        expect(result).toBeInstanceOf(NotFoundException);
+        expect(result?.message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
+      } else {
+        // Without billing every project has every feature.
+        expect(result).toBeUndefined();
+      }
+    });
+  });
+});

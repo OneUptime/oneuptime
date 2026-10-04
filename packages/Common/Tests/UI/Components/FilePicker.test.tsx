@@ -1,4 +1,7 @@
-import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
+import FilePicker, {
+  DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES,
+  getMaxFileSizeInMegabytes,
+} from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -134,6 +137,92 @@ describe("FilePicker", () => {
   it("should display max file size message", () => {
     render(<FilePicker {...defaultProps} />);
     expect(screen.getByText(/Max 10MB each/)).toBeInTheDocument();
+  });
+
+  /*
+   * A picker for something smaller than any upload - a form's logo takes
+   * 1 MB - says its own limit, and refuses a larger file before it is
+   * uploaded, so it never promises more than the field keeps.
+   */
+  describe("a limit of its own", () => {
+    it("says its own limit, with the types it takes", () => {
+      render(<FilePicker {...defaultProps} maxFileSizeInMegabytes={1} />);
+
+      expect(
+        screen.getByText("Types: PNG. Max 1 MB each."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Max 10MB each/)).not.toBeInTheDocument();
+    });
+
+    it("says its own limit without types too", () => {
+      render(
+        <FilePicker
+          {...defaultProps}
+          mimeTypes={[]}
+          maxFileSizeInMegabytes={1}
+        />,
+      );
+
+      expect(screen.getByText("Max 1 MB each.")).toBeInTheDocument();
+    });
+
+    it("refuses a larger file before uploading it, and says why", async () => {
+      const big: File = new File([new Uint8Array(1024 * 1024 + 1)], "big.png", {
+        type: MimeType.png,
+      });
+
+      render(<FilePicker {...defaultProps} maxFileSizeInMegabytes={1} />);
+
+      await act(async () => {
+        fireEvent.drop(screen.getByText("Upload files"), {
+          dataTransfer: { files: [big], types: ["Files"] },
+        });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('"big.png" exceeds the 1 MB limit.'),
+        ).toBeInTheDocument();
+      });
+      expect(ModelAPI.create).not.toHaveBeenCalled();
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it("takes a file of exactly its limit", async () => {
+      const exact: File = new File([new Uint8Array(1024 * 1024)], "exact.png", {
+        type: MimeType.png,
+      });
+      // jsdom's File cannot read itself; the upload reads these bytes.
+      exact.arrayBuffer = async (): Promise<ArrayBuffer> => {
+        return new ArrayBuffer(1024 * 1024);
+      };
+      (
+        ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
+      ).mockResolvedValue(await mockCreateResponse(exact));
+
+      render(<FilePicker {...defaultProps} maxFileSizeInMegabytes={1} />);
+
+      await act(async () => {
+        fireEvent.drop(screen.getByText("Upload files"), {
+          dataTransfer: { files: [exact], types: ["Files"] },
+        });
+      });
+
+      await waitFor(() => {
+        expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("is never more than the 10 MB every upload is held to", () => {
+      expect(DEFAULT_MAX_FILE_SIZE_IN_MEGABYTES).toBe(10);
+
+      for (const value of [undefined, 0, -1, Number.NaN, 10, 50]) {
+        expect(getMaxFileSizeInMegabytes(value)).toBe(10);
+      }
+
+      expect(getMaxFileSizeInMegabytes(1)).toBe(1);
+      expect(getMaxFileSizeInMegabytes(0.5)).toBe(0.5);
+    });
   });
 
   // Initial value tests - NEW TESTS replacing skipped ones

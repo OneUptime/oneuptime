@@ -67,6 +67,7 @@ import FormBrandingSection, {
   FORM_BRANDING_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingSection";
 import {
+  FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
   FORM_BRANDING_UPLOAD_TYPES,
   FormBrandingValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingValues";
@@ -148,12 +149,13 @@ describe("folded", () => {
     renderSection();
 
     expect(header()).toHaveAttribute("aria-expanded", "false");
-    expect(within(header()).getByTestId("folded-section-title")).toHaveTextContent(
-      "Branding",
-    );
     expect(
-      within(section()).getByTestId("folded-section"),
-    ).toHaveAttribute("data-collapsed", "true");
+      within(header()).getByTestId("folded-section-title"),
+    ).toHaveTextContent("Branding");
+    expect(within(section()).getByTestId("folded-section")).toHaveAttribute(
+      "data-collapsed",
+      "true",
+    );
     // Nothing inside can be reached while folded.
     expect(within(section()).getByTestId("folded-section-body")).toHaveClass(
       "invisible",
@@ -287,13 +289,12 @@ describe("open", () => {
     open();
 
     expect(
-      within(screen.getByTestId("form-branding-logo")).getByTestId(
-        "form-logo",
-      ),
+      within(screen.getByTestId("form-branding-logo")).getByTestId("form-logo"),
     ).toHaveAttribute("data-logo", "oneuptime");
-    expect(
-      screen.getByTestId("form-branding-favicon-image"),
-    ).toHaveAttribute("data-favicon", "oneuptime");
+    expect(screen.getByTestId("form-branding-favicon-image")).toHaveAttribute(
+      "data-favicon",
+      "oneuptime",
+    );
   });
 });
 
@@ -340,9 +341,12 @@ describe("Edit Branding", () => {
       ["faviconFile", "Favicon", FormFieldSchemaType.ImageFile, false],
     ]);
 
-    // Uploads offer exactly the image types the server takes.
+    // Uploads offer exactly the image types and the size the server takes.
     expect(fields[0]!.fileTypes).toEqual(FORM_BRANDING_UPLOAD_TYPES);
     expect(fields[2]!.fileTypes).toEqual(FORM_BRANDING_UPLOAD_TYPES);
+    expect(FORM_BRANDING_UPLOAD_MAX_MEGABYTES).toBe(1);
+    expect(fields[0]!.maxFileSizeInMegabytes).toBe(1);
+    expect(fields[2]!.maxFileSizeInMegabytes).toBe(1);
     expect(fields[0]!.description).toBe(FormsCopy.logoDescription);
     expect(fields[1]!.description).toBe(FormsCopy.logoAltTextDescription);
     expect(fields[1]!.placeholder).toBe(FormsCopy.logoAltTextPlaceholder);
@@ -397,9 +401,7 @@ describe("Edit Branding", () => {
     open();
 
     expect(
-      within(screen.getByTestId("form-branding-logo")).getByTestId(
-        "form-logo",
-      ),
+      within(screen.getByTestId("form-branding-logo")).getByTestId("form-logo"),
     ).toHaveAttribute("data-logo", "form");
     expect(screen.queryByTestId("form-branding-edit")).not.toBeInTheDocument();
   });

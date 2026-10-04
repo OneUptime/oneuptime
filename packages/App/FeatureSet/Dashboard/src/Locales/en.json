@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "None. Screen readers skip the logo.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.",
   "The OneUptime favicon, until you upload yours.": "The OneUptime favicon, until you upload yours.",
-  "Upload favicon": "Upload favicon"
+  "Upload favicon": "Upload favicon",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" exceeds the {{size}} MB limit.",
+  "Max {{size}} MB each.": "Max {{size}} MB each.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "These files exceed the {{size}} MB limit: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "Types: {{types}}. Max {{size}} MB each."
 }

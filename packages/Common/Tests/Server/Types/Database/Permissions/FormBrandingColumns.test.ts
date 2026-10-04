@@ -115,9 +115,9 @@ describe("Form branding columns - who may set and see them", () => {
       expect(form.isFileColumn(relation)).toBe(true);
     }
 
-    expect(form.getTableColumnMetadata("logoFile").manyToOneRelationColumn).toBe(
-      "logoFileId",
-    );
+    expect(
+      form.getTableColumnMetadata("logoFile").manyToOneRelationColumn,
+    ).toBe("logoFileId");
     expect(
       form.getTableColumnMetadata("faviconFile").manyToOneRelationColumn,
     ).toBe("faviconFileId");

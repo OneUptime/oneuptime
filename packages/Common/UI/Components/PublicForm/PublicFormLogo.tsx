@@ -47,9 +47,10 @@ const PublicFormLogo: FunctionComponent<ComponentProps> = (
   // The form's logo that would not draw: the OneUptime logo stands in for it.
   const [failedSource, setFailedSource] = useState<string | null>(null);
 
-  const className: string = `mx-auto h-10 w-auto max-w-full object-contain sm:h-12 ${
-    props.className || ""
-  }`.trim();
+  const className: string =
+    `mx-auto h-10 w-auto max-w-full object-contain sm:h-12 ${
+      props.className || ""
+    }`.trim();
 
   if (!source || failedSource === source) {
     return (

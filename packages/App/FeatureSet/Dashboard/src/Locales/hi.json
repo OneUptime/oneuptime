@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "कोई नहीं। स्क्रीन रीडर लोगो को छोड़ देते हैं।",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "फ़ॉर्म खुला रहने तक ब्राउज़र टैब में दिखने वाला आइकन, OneUptime favicon की जगह। 1 MB या उससे छोटी वर्गाकार PNG या SVG छवि सबसे अच्छी रहती है।",
   "The OneUptime favicon, until you upload yours.": "OneUptime का favicon, जब तक आप अपना favicon अपलोड नहीं करते।",
-  "Upload favicon": "favicon अपलोड करें"
+  "Upload favicon": "favicon अपलोड करें",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" {{size}} MB की सीमा से बड़ी है।",
+  "Max {{size}} MB each.": "हर फ़ाइल अधिकतम {{size}} MB।",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "ये फ़ाइलें {{size}} MB की सीमा से बड़ी हैं: {{fileNames}}।",
+  "Types: {{types}}. Max {{size}} MB each.": "प्रकार: {{types}}। हर फ़ाइल अधिकतम {{size}} MB।"
 }

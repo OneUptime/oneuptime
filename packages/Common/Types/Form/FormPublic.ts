@@ -11,10 +11,7 @@ import {
 } from "../CustomField/CustomFieldValueValidator";
 import Email from "../Email";
 import { JSONObject, JSONValue } from "../JSON";
-import {
-  getPublicFormBranding,
-  PublicFormImage,
-} from "./FormBranding";
+import { getPublicFormBranding, PublicFormImage } from "./FormBranding";
 import ObjectID from "../ObjectID";
 import {
   FORM_CHOICE_QUESTION_TYPES,

@@ -1,6 +1,6 @@
 # Building a Form
 
-A form's **Build** page is where you decide what it asks. The questions are on the left, in the order the public page shows them; **Add a Question**, on the right, lists everything you can add. Select a question to edit it where it is, drag it to move it, and click **Save Changes** when the form reads the way you want.
+A form's **Build** page is where you decide what it asks, and how its page looks. The questions are on the left, in the order the public page shows them; **Add a Question**, on the right, lists everything you can add. Select a question to edit it where it is, drag it to move it, and click **Save Changes** when the form reads the way you want. Above the questions, folded, is the form's [Branding](#branding): its logo and favicon.
 
 ## The builder
 
@@ -12,6 +12,24 @@ A form's **Build** page is where you decide what it asks. The questions are on t
 - **Save Changes** saves every change at once. Until you save, the builder says **Unsaved changes** and offers **Discard Changes**, and the browser asks before you leave the page. A form can have up to 50 questions.
 
 People who may read a form but not edit it see the builder read-only.
+
+## Branding
+
+**Branding**, folded above the questions, is how the form's page looks: your logo at the top of the page, above the form's name, and your favicon in the browser tab while the form is open. Until you upload your own, the form shows the OneUptime logo and favicon.
+
+Folded, the section lists **Logo** and **Favicon** — drawn as set once the form has its own — and says which OneUptime ones are still in force. Open it to see both as the page shows them: the logo as it sits at the top of the page, and the favicon in a browser tab beside the form's name, which is the tab's title.
+
+**Edit Branding** changes them in one dialog:
+
+| Field             | What it is                                                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Logo**          | Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 1 MB or less. Remove it to go back to the OneUptime logo. |
+| **Logo Alt Text** | What the logo says, read out by screen readers: usually your organization's name. Asked once there is a logo. Leave it empty and screen readers skip the logo — the form's name follows it anyway. |
+| **Favicon**       | The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image works best, of 1 MB or less.                                    |
+
+The logo keeps the height of the OneUptime logo it replaces, and a wide one is fitted to the page's width. Every image is checked when it is saved — from the dashboard, the API, Terraform or a workflow. A logo that is not an image is refused with "The logo must be a PNG, JPEG, GIF, WebP or SVG image.", one that is too large with "The logo must be 1 MB or smaller.", and one whose upload is gone with "The logo's file could not be found. Upload the logo again." A favicon is refused the same way, in the same words.
+
+**Preview** shows the logo as the page does. People who may read a form but not edit it see its branding without **Edit Branding**. The logo and favicon reach the form's page only inside the form itself — see [Sharing & Security](/docs/forms/sharing-and-security#what-protects-a-form).
 
 ## What you can add
 
@@ -99,11 +117,11 @@ The form cannot be saved while a question has one of the last three: **Save Chan
 
 ## Preview
 
-**Preview** opens the form exactly as people see it at its link — the same questions, inputs, options and checks — and lets you fill it in. Nothing you enter there is submitted: **Submit** only checks your answers, and **Fill It In Again** starts over. The preview shows the questions as they are in the builder, saved or not, and says when it leaves a flagged question out.
+**Preview** opens the form exactly as people see it at its link — the same logo, questions, inputs, options and checks — and lets you fill it in. Nothing you enter there is submitted: **Submit** only checks your answers, and **Fill It In Again** starts over. The preview shows the questions as they are in the builder, saved or not, and says when it leaves a flagged question out.
 
 ## What the submitter sees
 
-The public page shows the form's name and description, then the questions, then **Submit**. It is in the submitter's language when OneUptime has it — the language they last chose in OneUptime on that browser, or else the one their browser asks for — and in English otherwise. Your questions, options and help texts are shown as you wrote them.
+The public page shows the form's logo — the OneUptime logo until you upload yours — then the form's name and description, the questions, and **Submit**, and the browser tab shows the form's name and its favicon. It is in the submitter's language when OneUptime has it — the language they last chose in OneUptime on that browser, or else the one their browser asks for — and in English otherwise. Your questions, options and help texts are shown as you wrote them.
 
 After submitting, the page says "Thank you — your response was submitted." and gives the number of what was created — "Your reference number is INC-42." — followed by the form's thank-you message, if you wrote one on the **Share** page. **Submit another response** opens an empty form. The submitter gets no email and no way back to the incident or event.
 

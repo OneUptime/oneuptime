@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "Нет. Программы чтения с экрана пропускают логотип.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Значок на вкладке браузера, пока форма открыта, вместо favicon OneUptime. Лучше всего подходит квадратное изображение PNG или SVG размером не более 1 МБ.",
   "The OneUptime favicon, until you upload yours.": "Favicon OneUptime, пока вы не загрузите свой.",
-  "Upload favicon": "Загрузить favicon"
+  "Upload favicon": "Загрузить favicon",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "«{{fileName}}» превышает ограничение в {{size}} МБ.",
+  "Max {{size}} MB each.": "Не более {{size}} МБ каждый.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}} МБ: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "Типы: {{types}}. Не более {{size}} МБ каждый."
 }

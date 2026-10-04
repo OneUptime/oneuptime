@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "هیچ. صفحه‌خوان‌ها از لوگو می‌گذرند.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "نمادی که تا وقتی فرم باز است، به جای Favicon مربوط به OneUptime، در زبانهٔ مرورگر نمایش داده می‌شود. یک تصویر مربعی PNG یا SVG با حجم حداکثر 1 MB بهترین است.",
   "The OneUptime favicon, until you upload yours.": "Favicon مربوط به OneUptime، تا زمانی که Favicon خودتان را بارگذاری کنید.",
-  "Upload favicon": "بارگذاری Favicon"
+  "Upload favicon": "بارگذاری Favicon",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "«{{fileName}}» از سقف {{size}} مگابایت بزرگ‌تر است.",
+  "Max {{size}} MB each.": "هر فایل حداکثر {{size}} مگابایت.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} مگابایت بزرگ‌ترند: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}} مگابایت."
 }

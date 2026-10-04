@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "Keiner. Screenreader überspringen das Logo.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "Das Symbol im Browser-Tab, solange das Formular geöffnet ist, anstelle des OneUptime-Favicons. Am besten eignet sich ein quadratisches PNG- oder SVG-Bild mit höchstens 1 MB.",
   "The OneUptime favicon, until you upload yours.": "Das Favicon von OneUptime, bis Sie Ihr eigenes hochladen.",
-  "Upload favicon": "Favicon hochladen"
+  "Upload favicon": "Favicon hochladen",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" überschreitet das Limit von {{size}} MB.",
+  "Max {{size}} MB each.": "Je höchstens {{size}} MB.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "Diese Dateien überschreiten das Limit von {{size}} MB: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "Typen: {{types}}. Je höchstens {{size}} MB."
 }

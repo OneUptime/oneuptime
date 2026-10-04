@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "없음. 스크린 리더가 로고를 건너뜁니다.",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "양식이 열려 있는 동안 OneUptime 파비콘 대신 브라우저 탭에 표시되는 아이콘입니다. 1MB 이하의 정사각형 PNG 또는 SVG 이미지가 가장 좋습니다.",
   "The OneUptime favicon, until you upload yours.": "직접 업로드하기 전까지는 OneUptime 파비콘입니다.",
-  "Upload favicon": "파비콘 업로드"
+  "Upload favicon": "파비콘 업로드",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "\"{{fileName}}\" 파일이 {{size}}MB 제한을 초과합니다.",
+  "Max {{size}} MB each.": "파일당 최대 {{size}}MB.",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "다음 파일이 {{size}}MB 제한을 초과합니다: {{fileNames}}.",
+  "Types: {{types}}. Max {{size}} MB each.": "형식: {{types}}. 파일당 최대 {{size}}MB."
 }

@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "なし。スクリーンリーダーはロゴを読み飛ばします。",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "フォームを開いている間、OneUptime のファビコンの代わりにブラウザーのタブに表示されるアイコンです。1 MB 以下の正方形の PNG または SVG 画像が最適です。",
   "The OneUptime favicon, until you upload yours.": "独自のファビコンをアップロードするまでは OneUptime のファビコンです。",
-  "Upload favicon": "ファビコンをアップロード"
+  "Upload favicon": "ファビコンをアップロード",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "「{{fileName}}」は {{size}} MB の上限を超えています。",
+  "Max {{size}} MB each.": "各ファイル最大 {{size}} MB。",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "次のファイルは {{size}} MB の上限を超えています: {{fileNames}}。",
+  "Types: {{types}}. Max {{size}} MB each.": "種類: {{types}}。各ファイル最大 {{size}} MB。"
 }

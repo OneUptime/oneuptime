@@ -178,9 +178,9 @@ describe("getFileBytes - a stored file's bytes, however they arrived", () => {
   });
 
   test("an ArrayBuffer", () => {
-    expect(
-      Array.from(getFileBytes(new Uint8Array(PNG_BYTES).buffer)!),
-    ).toEqual(PNG_BYTES);
+    expect(Array.from(getFileBytes(new Uint8Array(PNG_BYTES).buffer)!)).toEqual(
+      PNG_BYTES,
+    );
   });
 
   test("the JSON a Buffer turns into, and the API's wrapper around it", () => {
@@ -188,9 +188,9 @@ describe("getFileBytes - a stored file's bytes, however they arrived", () => {
 
     expect(json).toEqual({ type: "Buffer", data: PNG_BYTES });
     expect(Array.from(getFileBytes(json)!)).toEqual(PNG_BYTES);
-    expect(
-      Array.from(getFileBytes({ _type: "Buffer", value: json })!),
-    ).toEqual(PNG_BYTES);
+    expect(Array.from(getFileBytes({ _type: "Buffer", value: json })!)).toEqual(
+      PNG_BYTES,
+    );
     expect(Array.from(getFileBytes(PNG_BYTES)!)).toEqual(PNG_BYTES);
   });
 
@@ -418,9 +418,9 @@ describe("readFormLogoAltText", () => {
 
 describe("readPublicFormImage - what the page will draw of what it was handed", () => {
   test("an allowed type in real base64", () => {
-    expect(readPublicFormImage({ type: "image/png", data: PNG_BASE64 })).toEqual(
-      { type: "image/png", data: PNG_BASE64 },
-    );
+    expect(
+      readPublicFormImage({ type: "image/png", data: PNG_BASE64 }),
+    ).toEqual({ type: "image/png", data: PNG_BASE64 });
     expect(
       readPublicFormImage({ type: "IMAGE/WEBP", data: "AAAA", extra: 1 }),
     ).toEqual({ type: "image/webp", data: "AAAA" });
@@ -478,17 +478,15 @@ describe("readPublicFormImage - what the page will draw of what it was handed", 
   test("round trips what the server tells", () => {
     const told: PublicFormImage = getPublicFormImage(pngFile())!;
 
-    expect(readPublicFormImage(JSON.parse(JSON.stringify(told)))).toEqual(
-      told,
-    );
+    expect(readPublicFormImage(JSON.parse(JSON.stringify(told)))).toEqual(told);
   });
 });
 
 describe("getPublicFormImageUrl", () => {
   test("a data: URL of the image's own type", () => {
-    expect(
-      getPublicFormImageUrl({ type: "image/png", data: PNG_BASE64 }),
-    ).toBe(`data:image/png;base64,${PNG_BASE64}`);
+    expect(getPublicFormImageUrl({ type: "image/png", data: PNG_BASE64 })).toBe(
+      `data:image/png;base64,${PNG_BASE64}`,
+    );
   });
 });
 

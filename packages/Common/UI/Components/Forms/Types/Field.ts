@@ -196,6 +196,12 @@ export default interface Field<TEntity> {
     accessControlColumnTitle: string;
   };
   fileTypes?: Array<MimeType> | undefined;
+  /*
+   * File and ImageFile fields: the largest file the field takes, in
+   * megabytes, when it is less than the 10 MB every upload is held to. The
+   * picker says so, and refuses a larger file before uploading it.
+   */
+  maxFileSizeInMegabytes?: number | undefined;
   sideLink?: FormFieldSideLink | undefined;
   validation?: {
     minLength?: number | undefined;

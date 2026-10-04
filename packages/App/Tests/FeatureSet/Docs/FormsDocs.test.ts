@@ -78,6 +78,11 @@ import {
   FormFieldSource,
   getDefaultFormFields,
 } from "Common/Types/Form/FormField";
+import {
+  FORM_LOGO_NOT_FOUND_MESSAGE,
+  FORM_LOGO_TOO_LARGE_MESSAGE,
+  FORM_LOGO_TYPE_MESSAGE,
+} from "Common/Types/Form/FormBranding";
 import { validateFormIpAllowlist } from "Common/Types/Form/FormIpAllowlist";
 import {
   FORM_MULTI_SELECT_MAX_CHOICES,
@@ -1101,6 +1106,10 @@ describe("Forms docs", () => {
         FormMessage.CaptchaFailed,
         FORM_FOREIGN_PAGE_MESSAGE,
         FORM_SUBMISSION_BODY_MESSAGE,
+        // Saving a logo the public page could not draw (Branding).
+        FORM_LOGO_TYPE_MESSAGE,
+        FORM_LOGO_TOO_LARGE_MESSAGE,
+        FORM_LOGO_NOT_FOUND_MESSAGE,
       ];
 
       for (const sentence of quoted) {

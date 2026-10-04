@@ -24822,5 +24822,9 @@
   "None. Screen readers skip the logo.": "无。屏幕阅读器会跳过徽标。",
   "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG or SVG image of 1 MB or less works best.": "表单打开时显示在浏览器标签页上的图标，取代 OneUptime 的网站图标。最好使用不超过 1 MB 的正方形 PNG 或 SVG 图片。",
   "The OneUptime favicon, until you upload yours.": "在您上传自己的网站图标之前，显示 OneUptime 的网站图标。",
-  "Upload favicon": "上传网站图标"
+  "Upload favicon": "上传网站图标",
+  "\"{{fileName}}\" exceeds the {{size}} MB limit.": "“{{fileName}}”超过了 {{size}} MB 的上限。",
+  "Max {{size}} MB each.": "每个文件最大 {{size}} MB。",
+  "These files exceed the {{size}} MB limit: {{fileNames}}.": "以下文件超过了 {{size}} MB 的上限：{{fileNames}}。",
+  "Types: {{types}}. Max {{size}} MB each.": "类型：{{types}}。每个文件最大 {{size}} MB。"
 }

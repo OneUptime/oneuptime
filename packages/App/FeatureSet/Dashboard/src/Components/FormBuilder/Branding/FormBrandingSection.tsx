@@ -1,5 +1,6 @@
 import FormsCopy from "../FormsCopy";
 import {
+  FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
   FORM_BRANDING_UPLOAD_TYPES,
   FormBrandingValues,
   getFormBrandingItems,
@@ -48,6 +49,20 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export const FORM_BRANDING_TEST_ID: string = "form-branding";
 
+/*
+ * The form's page is always light, so the two previews of it are too, in
+ * the dashboard's dark theme as well: a dark logo must be judged on the
+ * page it will sit on. Arbitrary colours, which the dark theme's class
+ * remaps (Theme.css) leave alone: the page's background (gray-50), a
+ * browser tab (white), their border (gray-200) and the tab's title
+ * (gray-700).
+ */
+export const FORM_PAGE_PREVIEW_CLASS_NAME: string =
+  "border-[#e5e7eb] bg-[#f9fafb]";
+export const FORM_TAB_PREVIEW_CLASS_NAME: string =
+  "border-[#e5e7eb] bg-[#ffffff]";
+export const FORM_TAB_TITLE_PREVIEW_CLASS_NAME: string = "text-[#374151]";
+
 export interface ComponentProps {
   formId: ObjectID;
   // The form's name: the title of its browser tab, beside the favicon.
@@ -87,7 +102,10 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
             <div className="text-sm font-medium text-gray-900">
               {tx("Logo")}
             </div>
-            <div className="mt-2 flex h-24 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 px-4">
+            <div
+              className={`mt-2 flex h-24 items-center justify-center overflow-hidden rounded-lg border px-4 ${FORM_PAGE_PREVIEW_CLASS_NAME}`}
+              data-testid="form-branding-logo-preview"
+            >
               <PublicFormLogo
                 logo={preview.logo}
                 altText={preview.logoAltText}
@@ -119,8 +137,13 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
              * A browser tab: the favicon beside the form's name, which is
              * the tab's title while the form is open.
              */}
-            <div className="mt-2 flex h-24 items-end justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 px-4">
-              <div className="flex min-w-0 max-w-full items-center gap-2 rounded-t-lg border border-b-0 border-gray-200 bg-white px-3 py-2">
+            <div
+              className={`mt-2 flex h-24 items-end justify-center overflow-hidden rounded-lg border px-4 ${FORM_PAGE_PREVIEW_CLASS_NAME}`}
+              data-testid="form-branding-favicon-preview"
+            >
+              <div
+                className={`flex min-w-0 max-w-full items-center gap-2 rounded-t-lg border border-b-0 px-3 py-2 ${FORM_TAB_PREVIEW_CLASS_NAME}`}
+              >
                 <img
                   className="h-4 w-4 flex-none object-contain"
                   src={
@@ -132,7 +155,9 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
                   data-testid="form-branding-favicon-image"
                   data-favicon={preview.favicon ? "form" : "oneuptime"}
                 />
-                <span className="truncate text-sm text-gray-700">
+                <span
+                  className={`truncate text-sm ${FORM_TAB_TITLE_PREVIEW_CLASS_NAME}`}
+                >
                   {props.formName}
                 </span>
               </div>
@@ -197,6 +222,7 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
                 description: FormsCopy.logoDescription,
                 fieldType: FormFieldSchemaType.ImageFile,
                 fileTypes: FORM_BRANDING_UPLOAD_TYPES,
+                maxFileSizeInMegabytes: FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
                 required: false,
                 placeholder: "Upload logo",
               },
@@ -222,6 +248,7 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
                 description: FormsCopy.faviconDescription,
                 fieldType: FormFieldSchemaType.ImageFile,
                 fileTypes: FORM_BRANDING_UPLOAD_TYPES,
+                maxFileSizeInMegabytes: FORM_BRANDING_UPLOAD_MAX_MEGABYTES,
                 required: false,
                 placeholder: FormsCopy.uploadFavicon,
               },
