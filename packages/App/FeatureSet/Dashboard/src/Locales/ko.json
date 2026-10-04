@@ -24626,5 +24626,10 @@
   "The account's password, or the API key your provider gives you for SMTP.": "계정 비밀번호 또는 제공업체가 SMTP용으로 발급한 API 키입니다.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "이메일을 보내는 주소입니다. 서버에서 이 주소로 보내는 것을 허용해야 합니다. Microsoft Graph에서는 메일을 보내는 사서함입니다.",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "제공업체가 알려 준 포트로, 보통 587입니다. 포트 465는 항상 암호화됩니다.",
-  "When the announcement shows on its status pages.": "공지사항이 상태 페이지에 표시되는 시점입니다."
+  "When the announcement shows on its status pages.": "공지사항이 상태 페이지에 표시되는 시점입니다.",
+  "None of these configs is the project default, so the SMS and calls to people in this project do not go through them. To send them through one, use Set as Project Default on its row.": "이 구성 중 어느 것도 프로젝트 기본값이 아니므로 이 프로젝트 구성원에게 보내는 SMS와 통화는 이 구성들을 거치지 않습니다. 그중 하나를 통해 보내려면 해당 행에서 '프로젝트 기본값으로 설정'을 사용하세요.",
+  "Paid from the project's balance, unless the project has a default Twilio Config.": "프로젝트에 기본 Twilio 구성이 없으면 프로젝트 잔액에서 지불됩니다.",
+  "This is the project's first Twilio config, so it starts as the project default: the SMS and calls to people in this project, such as on-call alerts and verification codes, will go through it. Turn this off if this account is only for status pages or incoming calls.": "프로젝트의 첫 번째 Twilio 구성이므로 처음부터 프로젝트 기본값이 됩니다. 온콜 알림과 인증 코드 등 이 프로젝트 구성원에게 보내는 SMS와 통화가 이 구성을 거칩니다. 이 계정을 상태 페이지나 수신 전화에만 사용하려면 끄세요.",
+  "Use your own Twilio account for SMS and calls. The first config you add becomes the project default, which sends the SMS and calls to people in this project.": "SMS와 통화에 자체 Twilio 계정을 사용하세요. 처음 추가한 구성이 프로젝트 기본값이 되어 이 프로젝트 구성원에게 SMS와 통화를 보냅니다.",
+  "Use your own Twilio account for SMS and calls. The project default sends the SMS and calls to people in this project.": "SMS와 통화에 자체 Twilio 계정을 사용하세요. 프로젝트 기본값이 이 프로젝트 구성원에게 SMS와 통화를 보냅니다."
 }

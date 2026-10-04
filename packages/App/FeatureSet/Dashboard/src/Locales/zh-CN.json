@@ -24626,5 +24626,10 @@
   "The account's password, or the API key your provider gives you for SMTP.": "账户密码，或提供商为 SMTP 提供的 API 密钥。",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "您的邮件的发件地址。您的服务器必须允许从该地址发送；使用 Microsoft Graph 时，它就是发送邮件的邮箱。",
   "The port your provider gives you, usually 587. Port 465 is always encrypted.": "提供商给出的端口，通常为 587。端口 465 始终加密。",
-  "When the announcement shows on its status pages.": "公告何时显示在其状态页上。"
+  "When the announcement shows on its status pages.": "公告何时显示在其状态页上。",
+  "None of these configs is the project default, so the SMS and calls to people in this project do not go through them. To send them through one, use Set as Project Default on its row.": "这些配置都不是项目默认配置，因此发给此项目成员的短信和呼叫不会经过它们。要通过其中一个发送，请在其所在行使用“设为项目默认”。",
+  "Paid from the project's balance, unless the project has a default Twilio Config.": "从项目余额中支付，除非项目有默认的 Twilio 配置。",
+  "This is the project's first Twilio config, so it starts as the project default: the SMS and calls to people in this project, such as on-call alerts and verification codes, will go through it. Turn this off if this account is only for status pages or incoming calls.": "这是项目的第一个 Twilio 配置，因此它一开始就是项目默认配置：发给此项目成员的短信和呼叫（例如值班警报和验证码）将通过它发送。如果此账户仅用于状态页面或来电，请关闭此选项。",
+  "Use your own Twilio account for SMS and calls. The first config you add becomes the project default, which sends the SMS and calls to people in this project.": "使用您自己的 Twilio 账户发送短信和拨打电话。您添加的第一个配置将成为项目默认配置，用于向此项目的成员发送短信和拨打电话。",
+  "Use your own Twilio account for SMS and calls. The project default sends the SMS and calls to people in this project.": "使用您自己的 Twilio 账户发送短信和拨打电话。项目默认配置用于向此项目的成员发送短信和拨打电话。"
 }
