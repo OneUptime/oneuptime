@@ -13,13 +13,17 @@ import PeopleSearchPopup, {
 import {
   addToPeoplePickerValue,
   getPeoplePickerOptionKey,
+  getPeoplePickerValueKeySet,
   PeoplePickerKind,
   PeoplePickerOption,
   PeoplePickerValue,
   removeFromPeoplePickerValue,
   replacePeoplePickerValue,
 } from "./PeoplePickerTypes";
-import usePeopleOptions, { PeopleOptionsLookup } from "./usePeopleOptions";
+import usePeopleOptions, {
+  getPeoplePickerValueSignature,
+  PeopleOptionsLookup,
+} from "./usePeopleOptions";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -48,6 +52,9 @@ import React, {
  * replaces the last one, of whatever kind, and closes the list. Its pick
  * comes first and the button after it, reading "Change" once something is
  * picked.
+ *
+ * Whoever `excluded` names is left out of the search list - a user
+ * override's "Who covers?" does not offer the person who is away.
  */
 
 export interface ComponentProps {
@@ -68,6 +75,12 @@ export interface ComponentProps {
   onBlur?: (() => void) | undefined;
   // One pick at most: a pick replaces the last one and closes the list.
   isSinglePick?: boolean | undefined;
+  /*
+   * Records the search list leaves out, as ids per kind: someone another
+   * field of the form already holds (the person who is away, in a "Who
+   * covers?" picker). A pick already made still shows as a chip.
+   */
+  excluded?: PeoplePickerValue | undefined;
 }
 
 // The button of a single-pick picker once something is picked.
@@ -130,6 +143,11 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       }),
     );
   }, [picks]);
+
+  // Left out of the search list: what another field of the form holds.
+  const excludedKeys: Set<string> = useMemo((): Set<string> => {
+    return getPeoplePickerValueKeySet(props.excluded);
+  }, [getPeoplePickerValueSignature(props.kinds, props.excluded || {})]);
 
   const change: (next: PeoplePickerValue) => void = (
     next: PeoplePickerValue,
@@ -280,6 +298,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
         popup={popup}
         kinds={props.kinds}
         selectedKeys={selectedKeys}
+        excludedKeys={excludedKeys}
         selectionMode={props.isSinglePick ? "single" : "toggle"}
         onPick={onPick}
         onOptionsLoaded={lookup.remember}

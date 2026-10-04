@@ -56,6 +56,11 @@ export interface ComponentProps {
   kinds: Array<PeoplePickerKind>;
   // Keys (getPeoplePickerOptionKey) of what is picked already.
   selectedKeys: Set<string>;
+  /*
+   * Keys of rows the list never shows, whatever is searched: someone
+   * another field already holds (the person who is away, in "Who covers?").
+   */
+  excludedKeys?: Set<string> | undefined;
   selectionMode: PeopleSearchSelectionMode;
   /*
    * A row was picked. isPicked says whether it was picked already (in toggle
@@ -209,12 +214,15 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               return false;
             }
 
+            const key: string = getPeoplePickerOptionKey(row.kind, row.id);
+
+            if (props.excludedKeys?.has(key)) {
+              return false;
+            }
+
             // Only the Owners page leaves out what is picked already.
             return (
-              props.selectionMode !== "add" ||
-              !props.selectedKeys.has(
-                getPeoplePickerOptionKey(row.kind, row.id),
-              )
+              props.selectionMode !== "add" || !props.selectedKeys.has(key)
             );
           }),
         };
@@ -222,7 +230,13 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       .filter((group: RowGroup): boolean => {
         return group.rows.length > 0;
       });
-  }, [rows, kindsSignature, props.selectedKeys, props.selectionMode]);
+  }, [
+    rows,
+    kindsSignature,
+    props.selectedKeys,
+    props.excludedKeys,
+    props.selectionMode,
+  ]);
 
   const visibleRows: Array<PeoplePickerOption> = useMemo(() => {
     return groups.flatMap((group: RowGroup): Array<PeoplePickerOption> => {

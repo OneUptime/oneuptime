@@ -1,5 +1,8 @@
 import UserElement from "../../../Components/User/User";
-import OnCallPolicyView from "../OnCallPolicy";
+import {
+  getUserOverrideFormFields,
+  prepareUserOverrideForCreate,
+} from "./UserOverrideForm";
 import ObjectID from "Common/Types/ObjectID";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -7,17 +10,25 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Navigation from "Common/UI/Utils/Navigation";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import User from "Common/Models/DatabaseModels/User";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ProjectUser from "../../../Utils/ProjectUser";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ProjectUtil from "Common/UI/Utils/Project";
+import UserUtil from "Common/UI/Utils/User";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * The user overrides of one on-call policy (its User Overrides tab), or the
+ * project's global ones (On-Call Duty > User Overrides), which apply to
+ * every policy.
+ *
+ * Each row reads as the override does: who is away, who covers, from when,
+ * until when. Adding one asks the same four things, with you as the person
+ * away and now as the start (UserOverrideForm.ts).
+ */
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -37,70 +48,29 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     query.onCallDutyPolicyId = new IsNull();
   }
 
-  let columns: Columns<OnCallDutyPolicyUserOverride> = [];
-  let filters: Array<Filter<OnCallDutyPolicyUserOverride>> = [];
-
-  if (props.onCallDutyPolicyId) {
-    // add a column for the policy name
-    columns = columns.concat([
-      {
-        field: {
-          onCallDutyPolicy: {
-            name: true,
-          },
-        },
-        title: "Policy Name",
-        type: FieldType.Element,
-        getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
-          if (item["onCallDutyPolicy"]) {
-            return (
-              <OnCallPolicyView
-                onCallPolicy={item["onCallDutyPolicy"] as OnCallDutyPolicy}
-              />
-            );
-          }
-          return <p>{translator.translateText("No on-call policy.")}</p>;
-        },
-      },
-    ]);
-
-    filters = filters.concat([
-      {
-        title: "On Call Policy",
-        type: FieldType.Entity,
-        field: {
-          onCallDutyPolicy: true,
-        },
-        filterEntityType: OnCallDutyPolicy,
-        filterQuery: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        filterDropdownField: {
-          label: "name",
-          value: "_id",
-        },
-      },
-    ]);
-  }
-
-  filters = filters.concat([
+  /*
+   * Every row of the table belongs to the one policy the page is about, or
+   * to none, so there is no policy column or filter: it would say the same
+   * thing on every row.
+   */
+  const filters: Array<Filter<OnCallDutyPolicyUserOverride>> = [
     {
-      title: "Starts At",
+      title: "Starts",
       type: FieldType.Date,
       field: {
         startsAt: true,
       },
     },
     {
-      title: "Ends At",
+      title: "Ends",
       type: FieldType.Date,
       field: {
         endsAt: true,
       },
     },
-  ]);
+  ];
 
-  columns = columns.concat([
+  const columns: Columns<OnCallDutyPolicyUserOverride> = [
     {
       field: {
         overrideUser: {
@@ -109,7 +79,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
           profilePictureId: true,
         },
       },
-      title: "Override User",
+      title: "Away",
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
         if (item["overrideUser"]) {
@@ -126,7 +96,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
           profilePictureId: true,
         },
       },
-      title: "Route Alerts To User",
+      title: "Covered by",
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
         if (item["routeAlertsToUser"]) {
@@ -139,74 +109,30 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
       field: {
         startsAt: true,
       },
-      title: "Starts At",
+      title: "Starts",
       type: FieldType.DateTime,
     },
     {
       field: {
         endsAt: true,
       },
-      title: "Ends At",
+      title: "Ends",
       type: FieldType.DateTime,
-    },
-  ]);
-
-  const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> = [
-    {
-      field: {
-        overrideUser: true,
-      },
-      title: "Override User",
-      stepId: "users",
-      description: "Select the user who will override the on-call duty.",
-      fieldType: FormFieldSchemaType.Dropdown,
-      required: true,
-      placeholder: "Select Override User",
-      fetchDropdownOptions: async () => {
-        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-          ProjectUtil.getCurrentProjectId()!,
-        );
-      },
-    },
-    {
-      field: {
-        routeAlertsToUser: true,
-      },
-      title: "Route Alerts To User",
-      stepId: "users",
-      description: "Select the user to whom alerts will be routed.",
-      fieldType: FormFieldSchemaType.Dropdown,
-      required: true,
-      placeholder: "Select User to Route Alerts",
-      fetchDropdownOptions: async () => {
-        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-          ProjectUtil.getCurrentProjectId()!,
-        );
-      },
-    },
-    {
-      field: {
-        startsAt: true,
-      },
-      title: "Starts At",
-      stepId: "time-window",
-      description: "Select the start date and time for the override.",
-      fieldType: FormFieldSchemaType.DateTime,
-      required: true,
-      placeholder: "Select Start Date and Time",
-    },
-    {
-      field: {
-        endsAt: true,
-      },
-      title: "Ends At",
-      stepId: "time-window",
-      description: "Select the end date and time for the override.",
-      fieldType: FormFieldSchemaType.DateTime,
-      required: true,
-      placeholder: "Select End Date and Time",
     },
   ];
+
+  /*
+   * Who is away starts as the person adding the override, read when the
+   * page opens: booking your own leave is what this form is most often for.
+   */
+  const currentUserId: string = UserUtil.getUserId().toString();
+
+  const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
+    useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
+      return getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
+        currentUserId: currentUserId,
+      });
+    }, [currentUserId]);
 
   return (
     <>
@@ -220,26 +146,23 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={false}
-        onBeforeCreate={(item: OnCallDutyPolicyUserOverride) => {
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          if (props.onCallDutyPolicyId) {
-            item.onCallDutyPolicyId = props.onCallDutyPolicyId;
-          }
-
-          return Promise.resolve(item);
+        createVerb="Add"
+        onBeforeCreate={async (
+          item: OnCallDutyPolicyUserOverride,
+        ): Promise<OnCallDutyPolicyUserOverride> => {
+          return prepareUserOverrideForCreate(item, {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            onCallDutyPolicyId: props.onCallDutyPolicyId,
+          });
         }}
         cardProps={{
           title: props.onCallDutyPolicyId
             ? "On-Call Policy User Overrides"
             : "Global User Overrides",
           description: props.onCallDutyPolicyId
-            ? "Overrides are usually useful when the user is on vacation or sick leave and you want to temporarily assign the on-call duty to another user."
-            : "Global overrides are useful for assigning on-call duties across all policies when a user is unavailable.",
+            ? "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
+            : "While someone is away, an override sends their pages from every on-call policy to the person who covers. To cover someone on one policy only, add the override on that policy's User Overrides page.",
         }}
-        formSteps={[
-          { title: "Users", id: "users" },
-          { title: "Time Window", id: "time-window" },
-        ]}
         formFields={formFields}
         noItemsMessage={
           props.onCallDutyPolicyId

@@ -513,9 +513,20 @@ describe("The overrides card states the substitution in full", () => {
     const row: HTMLElement = within(card).getByTestId("active-override-row");
 
     expect(row.textContent).toContain(USER_A_NAME);
-    expect(row.textContent).toContain("Overridden");
+    expect(row.textContent).toContain("Away");
     expect(row.textContent).toContain(USER_B_NAME);
-    expect(row.textContent).toContain("Alerts go here");
+    expect(row.textContent).toContain("Covering");
+
+    /*
+     * In that order: the person away first, then the person covering - the
+     * words the Add User Override form asks with ("Who is away?", "Who
+     * covers?").
+     */
+    const text: string = row.textContent || "";
+
+    expect(text.indexOf(USER_A_NAME)).toBeLessThan(text.indexOf("Away"));
+    expect(text.indexOf("Away")).toBeLessThan(text.indexOf(USER_B_NAME));
+    expect(text.indexOf(USER_B_NAME)).toBeLessThan(text.indexOf("Covering"));
   });
 
   test("marks an override that is running right now", async () => {
