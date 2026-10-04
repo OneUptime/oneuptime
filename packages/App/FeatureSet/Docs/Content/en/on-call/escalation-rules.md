@@ -31,6 +31,8 @@ When an incident or alert reaches the policy, **Level 1** pages its responders s
 
 The summary at the top of the **Escalation Rules** page shows the whole ladder: when each level is paged, who it pages, and what happens after the last one. A level whose responders cannot all be paged says so on its card; click the label to see who and why.
 
+Each person a level pages is reached the way their own on-call rules say: **User Settings** > **On-Call Rules**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **On-Call Rules**.
+
 ## Editing, reordering and deleting rules
 
 - **Edit rule** opens the same one-page dialog, filled in with the rule as it is: its responders, its wait, and its name and description under **Advanced**. Add or remove responders and save. Clearing the name gives the rule its level's name again.

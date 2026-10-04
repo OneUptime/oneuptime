@@ -31,6 +31,8 @@ När en incident eller ett larm når policyn larmar **Level 1** sina mottagare d
 
 Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå där inte alla mottagare kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför.
 
+Hur varje person som en nivå larmar nås bestäms av personens egna jourregler: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som används och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**.
+
 ## Redigera, ordna om och ta bort regler
 
 - **Edit rule** öppnar samma dialog på en sida, ifylld med regeln som den är: dess mottagare, dess väntetid och dess namn och beskrivning under **Avancerad**. Lägg till eller ta bort mottagare och spara. Tömmer du namnet får regeln sin nivås namn igen.

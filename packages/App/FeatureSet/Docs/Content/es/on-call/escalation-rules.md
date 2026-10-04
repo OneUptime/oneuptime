@@ -31,6 +31,8 @@ Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus d
 
 El resumen en la parte superior de la página **Reglas de escalado** muestra toda la escalera: cuándo se avisa a cada nivel, a quién avisa y qué pasa después del último. Un nivel cuyos destinatarios no pueden recibir todos el aviso lo indica en su tarjeta; haz clic en la etiqueta para ver quién y por qué.
 
+A cada persona a la que avisa un nivel se la contacta según sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidente, alertas y episodios de alerta, y una tarjeta por gravedad que indica qué método de notificación se usa y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**.
+
 ## Editar, reordenar y eliminar reglas
 
 - **Editar regla** abre el mismo diálogo de una página, relleno con la regla tal como está: sus destinatarios, su espera, y su nombre y descripción en **Avanzado**. Añade o quita destinatarios y guarda. Si vacías el nombre, la regla vuelve a llamarse como su nivel.

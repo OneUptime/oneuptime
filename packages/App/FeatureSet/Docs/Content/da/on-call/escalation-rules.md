@@ -31,6 +31,8 @@ Når en hændelse eller en advarsel når politikken, tilkalder **Level 1** sine 
 
 Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår hvert niveau tilkaldes, hvem det tilkalder, og hvad der sker efter det sidste. Et niveau, hvor ikke alle modtagere kan tilkaldes, siger det på sit kort; klik på mærkatet for at se hvem og hvorfor.
 
+Hvordan hver person, et niveau tilkalder, bliver nået, bestemmer vedkommendes egne vagtregler: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der bruges og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**.
+
 ## Rediger, omordn og slet regler
 
 - **Edit rule** åbner den samme dialog på én side, udfyldt med reglen, som den er: dens modtagere, dens ventetid og dens navn og beskrivelse under **Avanceret**. Tilføj eller fjern modtagere, og gem. Tømmer du navnet, får reglen igen sit niveaus navn.
