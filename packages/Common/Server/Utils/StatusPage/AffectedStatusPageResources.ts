@@ -1,4 +1,5 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
@@ -30,25 +31,40 @@ import Select from "../../Types/Database/Select";
  */
 export default class AffectedStatusPageResources {
   /*
-   * The affected resources, keyed by the status page's id as the senders
-   * look a page up (statusPage._id). A page that lists none of the monitors
-   * has no entry. An event that names no monitor affects no resource, and
-   * nothing is looked up.
+   * The affected resources on the status pages the event is on, keyed by the
+   * page's id as the senders look a page up (statusPage._id). Only those
+   * pages' resources are read. A page that lists none of the monitors has no
+   * entry. An event that names no monitor, or is on no page, affects no
+   * resource, and nothing is looked up.
    */
   public static async findForMonitors(data: {
     monitors?: Array<Monitor> | undefined;
     monitorIds?: Array<ObjectID> | undefined;
+    // The status pages the event is shown on.
+    statusPages: Array<StatusPage>;
     select: Select<StatusPageResource>;
   }): Promise<Dictionary<Array<StatusPageResource>>> {
-    const monitorIds: Array<ObjectID> = this.getMonitorIds(data);
+    const monitorIds: Array<ObjectID> = this.distinctIds([
+      ...(data.monitorIds || []),
+      ...(data.monitors || []).map((monitor: Monitor): string | undefined => {
+        return monitor._id;
+      }),
+    ]);
 
-    if (monitorIds.length === 0) {
+    const statusPageIds: Array<ObjectID> = this.distinctIds(
+      data.statusPages.map((statusPage: StatusPage): string | undefined => {
+        return statusPage._id;
+      }),
+    );
+
+    if (monitorIds.length === 0 || statusPageIds.length === 0) {
       return {};
     }
 
     const resources: Array<StatusPageResource> =
       await StatusPageResourceService.findByMonitors({
         monitorIds: monitorIds,
+        statusPageIds: statusPageIds,
         select: {
           ...data.select,
           // Needed to group by page and to dedupe, whatever the caller asked for.
@@ -99,21 +115,11 @@ export default class AffectedStatusPageResources {
     return byStatusPage;
   }
 
-  // The monitors' ids, each once, in the order given.
-  private static getMonitorIds(data: {
-    monitors?: Array<Monitor> | undefined;
-    monitorIds?: Array<ObjectID> | undefined;
-  }): Array<ObjectID> {
-    const candidates: Array<ObjectID | string | undefined> = [
-      ...(data.monitorIds || []),
-      ...(data.monitors || []).map(
-        (monitor: Monitor): ObjectID | string | undefined => {
-          return monitor._id || monitor.id || undefined;
-        },
-      ),
-    ];
-
-    const monitorIds: Array<ObjectID> = [];
+  // The ids, each once, in the order given. A record never saved has none.
+  private static distinctIds(
+    candidates: Array<ObjectID | string | undefined>,
+  ): Array<ObjectID> {
+    const ids: Array<ObjectID> = [];
     const seen: Set<string> = new Set();
 
     for (const candidate of candidates) {
@@ -124,9 +130,9 @@ export default class AffectedStatusPageResources {
       }
 
       seen.add(id.toLowerCase());
-      monitorIds.push(new ObjectID(id));
+      ids.push(new ObjectID(id));
     }
 
-    return monitorIds;
+    return ids;
   }
 }

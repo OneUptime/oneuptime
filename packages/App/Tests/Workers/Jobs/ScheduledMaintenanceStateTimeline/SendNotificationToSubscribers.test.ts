@@ -1572,14 +1572,30 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       (sentWebhooks()[0]!["data"] as JSONObject)["resourcesAffected"],
     ).toBe(GROUPED_RESOURCES_TEXT);
 
-    const args: { monitorIds: Array<ObjectID>; select: JSONObject } = mock(
-      StatusPageResourceService.findByMonitors,
-    ).mock.calls[0]![0] as { monitorIds: Array<ObjectID>; select: JSONObject };
+    const args: {
+      monitorIds: Array<ObjectID>;
+      statusPageIds: Array<ObjectID>;
+      select: JSONObject;
+    } = mock(StatusPageResourceService.findByMonitors).mock.calls[0]![0] as {
+      monitorIds: Array<ObjectID>;
+      statusPageIds: Array<ObjectID>;
+      select: JSONObject;
+    };
     expect(
       args.monitorIds.map((monitorId: ObjectID): string => {
         return monitorId.toString();
       }),
     ).toEqual([MONITOR_ID.toString()]);
+    // Only the pages the event is on.
+    expect(
+      args.statusPageIds.map((statusPageId: ObjectID): string => {
+        return statusPageId.toString();
+      }),
+    ).toEqual(
+      PAGES.map((fixture: PageFixture): string => {
+        return fixture.id.toString();
+      }),
+    );
     expect(args.select["statusPageGroupId"]).toBe(true);
     expect(args.select["statusPageGroup"]).toEqual({ name: true });
   });

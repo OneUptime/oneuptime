@@ -50,6 +50,26 @@ export interface AskedQueries {
 // The SQL QueryHelper.any/in writes, for a column called "col".
 const RAW_IN_LIST: RegExp = /^\(col IN \(:\.\.\.\w+\)\)$/;
 
+// Each IN list's values, lower-cased, read once per condition: a query can list thousands.
+const inListValues: WeakMap<FindOperator<unknown>, Set<string>> = new WeakMap();
+
+function valuesOf(operator: FindOperator<unknown>): Set<string> {
+  let values: Set<string> | undefined = inListValues.get(operator);
+
+  if (!values) {
+    values = new Set(
+      Object.values(operator.objectLiteralParameters || {})
+        .flat()
+        .map((item: unknown): string => {
+          return String(item).toLowerCase();
+        }),
+    );
+    inListValues.set(operator, values);
+  }
+
+  return values;
+}
+
 /*
  * Whether a query condition admits `value`. Understands exactly the shapes
  * QueryHelper writes for these reads - a plain id, and the Raw IN list of
@@ -83,12 +103,7 @@ function conditionAdmits(
       return false;
     }
 
-    return Object.values(operator.objectLiteralParameters || {})
-      .flat()
-      .map((item: unknown): string => {
-        return String(item).toLowerCase();
-      })
-      .includes(value.toLowerCase());
+    return valuesOf(operator).has(value.toLowerCase());
   }
 
   throw new Error(

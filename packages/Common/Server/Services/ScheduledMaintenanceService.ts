@@ -207,6 +207,7 @@ export class Service extends DatabaseService<Model> {
       const statusPageToResources: Dictionary<Array<StatusPageResource>> =
         await AffectedStatusPageResources.findForMonitors({
           monitors: event.monitors || [],
+          statusPages: event.statusPages || [],
           select: {
             _id: true,
             displayName: true,

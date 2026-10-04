@@ -214,12 +214,13 @@ const notifySubscribersOfAnnouncement: (data: {
      * The resources the announcement affects on each status page: its
      * monitors, and the monitor groups that hold them. A subscriber who
      * picked a monitor group hears about an announcement on any monitor in
-     * it, as one who picked the monitor does. Looked up once for every page;
-     * an announcement that names no monitor affects no resource.
+     * it, as one who picked the monitor does. Looked up once for all of its
+     * pages; an announcement that names no monitor affects no resource.
      */
     const statusPageToResources: Dictionary<Array<StatusPageResource>> =
       await AffectedStatusPageResources.findForMonitors({
         monitors: announcement.monitors || [],
+        statusPages: statusPages,
         select: {
           _id: true,
           displayName: true,

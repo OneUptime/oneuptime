@@ -29,6 +29,16 @@ import ts from "typescript";
  *
  * Both ask findByMonitors. The list of senders is exact: a new one has to be
  * added here, and pick one of the two.
+ *
+ * A job file exists to send, so nothing in it reads status page resources
+ * (aliased imports included). A service that also sends
+ * (ScheduledMaintenanceService) may use the resource service for other
+ * work, but not in the function or method that sends.
+ *
+ * IncidentStatusPageScopeCallSites.test.ts guards the incident side's own
+ * rules (scope, which pages a status page shows); this guards that every
+ * sender, incident or not, gets its resources from the lookup that follows
+ * monitor groups.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "..", "..");
@@ -92,6 +102,12 @@ interface ServiceCall {
   receiver: string;
   method: string;
   line: number;
+  /*
+   * Whether the call is in a function or method that calls
+   * shouldSendNotification: the top-level one, so a helper arrow inside it
+   * counts as part of it.
+   */
+  inSendingFunction: boolean;
 }
 
 interface FileFacts {
@@ -99,6 +115,8 @@ interface FileFacts {
   calls: Array<ServiceCall>;
   // Modules imported, as written.
   importedModules: Array<string>;
+  // The names this file calls StatusPageResourceService by.
+  resourceServiceNames: Array<string>;
 }
 
 function parse(fileName: string, text: string): ts.SourceFile {
@@ -111,11 +129,71 @@ function parse(fileName: string, text: string): ts.SourceFile {
   );
 }
 
+function serviceCallOf(
+  node: ts.Node,
+): { receiver: string; method: string } | null {
+  if (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    ts.isIdentifier(node.expression.expression)
+  ) {
+    return {
+      receiver: node.expression.expression.text,
+      method: node.expression.name.text,
+    };
+  }
+
+  return null;
+}
+
+function isShouldSendNotificationCall(node: ts.Node): boolean {
+  const call: { receiver: string; method: string } | null = serviceCallOf(node);
+
+  return (
+    call !== null &&
+    call.receiver === "StatusPageSubscriberService" &&
+    call.method === "shouldSendNotification"
+  );
+}
+
+/*
+ * The outermost function or method around a node, or the file itself for
+ * code at the top level.
+ */
+function outermostFunction(node: ts.Node): ts.Node {
+  let outermost: ts.Node = node.getSourceFile();
+  let current: ts.Node | undefined = node.parent;
+
+  while (current && !ts.isSourceFile(current)) {
+    if (ts.isFunctionLike(current)) {
+      outermost = current;
+    }
+
+    current = current.parent;
+  }
+
+  return outermost;
+}
+
+function isInside(node: ts.Node, scopes: Set<ts.Node>): boolean {
+  let current: ts.Node | undefined = node;
+
+  while (current) {
+    if (scopes.has(current)) {
+      return true;
+    }
+
+    current = current.parent;
+  }
+
+  return false;
+}
+
 /*
  * The calls a source makes on an identifier (Service.method(...)), whether
- * it calls StatusPageSubscriberService.shouldSendNotification, and what it
- * imports. Read from the AST, so a comment or a string that names a method
- * is not a call.
+ * it calls StatusPageSubscriberService.shouldSendNotification and from
+ * where, what it imports, and the names it gives the resource service. Read
+ * from the AST, so a comment or a string that names a method is not a call.
  */
 function readFacts(fileName: string, text: string): FileFacts {
   const source: ts.SourceFile = parse(fileName, text);
@@ -123,44 +201,72 @@ function readFacts(fileName: string, text: string): FileFacts {
     callsShouldSendNotification: false,
     calls: [],
     importedModules: [],
+    resourceServiceNames: [RESOURCE_SERVICE],
   };
+  const sendingFunctions: Set<ts.Node> = new Set();
 
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+  const findSenders: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       ts.isImportDeclaration(node) &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
       facts.importedModules.push(node.moduleSpecifier.text);
-    }
 
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression)
-    ) {
-      const call: ServiceCall = {
-        receiver: node.expression.expression.text,
-        method: node.expression.name.text,
-        line:
-          source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-      };
+      const clause: ts.ImportClause | undefined = node.importClause;
 
-      facts.calls.push(call);
+      if (RESOURCE_SERVICE_MODULE.test(node.moduleSpecifier.text) && clause) {
+        if (clause.name) {
+          facts.resourceServiceNames.push(clause.name.text);
+        }
 
-      if (
-        call.receiver === "StatusPageSubscriberService" &&
-        call.method === "shouldSendNotification"
-      ) {
-        facts.callsShouldSendNotification = true;
+        const bindings: ts.NamedImportBindings | undefined =
+          clause.namedBindings;
+
+        if (bindings && ts.isNamespaceImport(bindings)) {
+          facts.resourceServiceNames.push(bindings.name.text);
+        }
+
+        if (bindings && ts.isNamedImports(bindings)) {
+          for (const element of bindings.elements) {
+            facts.resourceServiceNames.push(element.name.text);
+          }
+        }
       }
     }
 
-    ts.forEachChild(node, visit);
+    if (isShouldSendNotificationCall(node)) {
+      facts.callsShouldSendNotification = true;
+      sendingFunctions.add(outermostFunction(node));
+    }
+
+    ts.forEachChild(node, findSenders);
   };
 
-  visit(source);
+  findSenders(source);
+
+  const collectCalls: (node: ts.Node) => void = (node: ts.Node): void => {
+    const call: { receiver: string; method: string } | null =
+      serviceCallOf(node);
+
+    if (call) {
+      facts.calls.push({
+        ...call,
+        line:
+          source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        inSendingFunction: isInside(node, sendingFunctions),
+      });
+    }
+
+    ts.forEachChild(node, collectCalls);
+  };
+
+  collectCalls(source);
 
   return facts;
+}
+
+function describeCall(call: ServiceCall): string {
+  return `${call.receiver}.${call.method} (line ${call.line})`;
 }
 
 function callsOn(facts: FileFacts, receiver: string): Array<string> {
@@ -168,9 +274,7 @@ function callsOn(facts: FileFacts, receiver: string): Array<string> {
     .filter((call: ServiceCall): boolean => {
       return call.receiver === receiver;
     })
-    .map((call: ServiceCall): string => {
-      return `${call.receiver}.${call.method} (line ${call.line})`;
-    });
+    .map(describeCall);
 }
 
 function calls(facts: FileFacts, receiver: string, method: string): boolean {
@@ -182,25 +286,38 @@ function calls(facts: FileFacts, receiver: string, method: string): boolean {
 /*
  * What a sender breaks, in words: reading status page resources itself, or
  * not asking the lookup its kind of event goes through.
+ *
+ * A job exists to send, so nothing in its file reads status page resources.
+ * A service that also sends (ScheduledMaintenanceService) may use the
+ * resource service for other work, just not in the function or method that
+ * sends.
  */
 function senderProblems(data: {
   facts: FileFacts;
   isIncidentSender: boolean;
+  isJob: boolean;
 }): Array<string> {
   const problems: Array<string> = [];
   const { facts } = data;
 
-  for (const call of callsOn(facts, RESOURCE_SERVICE)) {
-    problems.push(
-      `reads status page resources itself (${call}); get them from ${
-        data.isIncidentSender ? INCIDENT_SCOPE : AFFECTED_RESOURCES
-      }, which also follows monitor groups`,
-    );
+  for (const call of facts.calls) {
+    if (
+      facts.resourceServiceNames.includes(call.receiver) &&
+      (data.isJob || call.inSendingFunction)
+    ) {
+      problems.push(
+        `reads status page resources itself (${describeCall(call)}); get them from ${
+          data.isIncidentSender ? INCIDENT_SCOPE : AFFECTED_RESOURCES
+        }, which also follows monitor groups`,
+      );
+    }
   }
 
-  for (const moduleName of facts.importedModules) {
-    if (RESOURCE_SERVICE_MODULE.test(moduleName)) {
-      problems.push(`imports ${moduleName}`);
+  if (data.isJob) {
+    for (const moduleName of facts.importedModules) {
+      if (RESOURCE_SERVICE_MODULE.test(moduleName)) {
+        problems.push(`imports ${moduleName}`);
+      }
     }
   }
 
@@ -235,6 +352,10 @@ function senderProblems(data: {
   }
 
   return problems;
+}
+
+function isJobFile(relativePath: string): boolean {
+  return relativePath.includes("/Workers/Jobs/");
 }
 
 function repositoryPath(absolutePath: string): string {
@@ -297,9 +418,13 @@ describe("subscriber notifications find an event's resources through the lookup 
       const facts: FileFacts = readFacts(file, readRepositoryFile(file));
 
       expect(facts.callsShouldSendNotification).toBe(true);
-      expect(senderProblems({ facts: facts, isIncidentSender: true })).toEqual(
-        [],
-      );
+      expect(
+        senderProblems({
+          facts: facts,
+          isIncidentSender: true,
+          isJob: isJobFile(file),
+        }),
+      ).toEqual([]);
     },
   );
 
@@ -309,9 +434,13 @@ describe("subscriber notifications find an event's resources through the lookup 
       const facts: FileFacts = readFacts(file, readRepositoryFile(file));
 
       expect(facts.callsShouldSendNotification).toBe(true);
-      expect(senderProblems({ facts: facts, isIncidentSender: false })).toEqual(
-        [],
-      );
+      expect(
+        senderProblems({
+          facts: facts,
+          isIncidentSender: false,
+          isJob: isJobFile(file),
+        }),
+      ).toEqual([]);
     },
   );
 
@@ -378,10 +507,12 @@ describe("the subscriber resource lookup scanner", () => {
     StatusPageSubscriberService.shouldSendNotification({ subscriber, statusPageResources, statusPage, eventType });
   `;
 
+  // A job file that sends, with the given code after the send.
   function problemsOf(text: string, isIncidentSender: boolean): Array<string> {
     return senderProblems({
       facts: readFacts("Example.ts", SENDER_HEAD + text),
       isIncidentSender: isIncidentSender,
+      isJob: true,
     });
   }
 
@@ -413,16 +544,67 @@ describe("the subscriber resource lookup scanner", () => {
     ]);
   });
 
-  test("an aliased import of the resource service is caught", () => {
+  test("an aliased import of the resource service is caught, and so are its calls", () => {
     expect(
       problemsOf(
         `
         import Resources from "Common/Server/Services/StatusPageResourceService";
+        const rows = await Resources.findAllBy({ query: { monitorId } });
         const byPage = await AffectedStatusPageResources.findForMonitors({ monitors, select });
         `,
         false,
       ),
-    ).toEqual(["imports Common/Server/Services/StatusPageResourceService"]);
+    ).toEqual([
+      "reads status page resources itself (Resources.findAllBy (line 6)); get them from AffectedStatusPageResources, which also follows monitor groups",
+      "imports Common/Server/Services/StatusPageResourceService",
+    ]);
+  });
+
+  /*
+   * A service that also sends may use the resource service for other work,
+   * just not in the method that sends - nor in a helper arrow inside it.
+   */
+  const SENDING_SERVICE: string = `
+    import Resources from "../../Server/Services/StatusPageResourceService";
+
+    export class Service {
+      public async addResources(): Promise<void> {
+        await Resources.findBy({ query: { statusPageId } });
+      }
+
+      public async notify(events: Array<Event>): Promise<void> {
+        for (const event of events) {
+          const byPage = await AffectedStatusPageResources.findForMonitors({ monitors, statusPages, select });
+          const pick = async () => {
+            return READ_IN_SEND;
+          };
+          StatusPageSubscriberService.shouldSendNotification({ subscriber, statusPageResources, statusPage, eventType });
+        }
+      }
+    }
+  `;
+
+  function serviceProblems(readInSend: string): Array<string> {
+    return senderProblems({
+      facts: readFacts(
+        "Service.ts",
+        SENDING_SERVICE.replace("READ_IN_SEND", readInSend),
+      ),
+      isIncidentSender: false,
+      isJob: false,
+    });
+  }
+
+  test("a service may use the resource service outside the method that sends", () => {
+    expect(serviceProblems("null")).toEqual([]);
+  });
+
+  test("a service that reads resources in the method that sends is caught, inside a helper arrow too", () => {
+    expect(
+      serviceProblems("await Resources.findAllBy({ query: { monitorId } })"),
+    ).toEqual([
+      "reads status page resources itself (Resources.findAllBy (line 13)); get them from AffectedStatusPageResources, which also follows monitor groups",
+    ]);
   });
 
   test("an event sender that asks AffectedStatusPageResources passes, whatever its comments say", () => {

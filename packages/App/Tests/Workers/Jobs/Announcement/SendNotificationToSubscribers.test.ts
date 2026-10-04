@@ -150,7 +150,8 @@ jest.mock(
 /*
  * The job reads the resources an announcement affects through
  * AffectedStatusPageResources, which asks findByMonitors - the lookup that
- * also follows monitor groups - once for every status page.
+ * also follows monitor groups - once per announcement, for all of its status
+ * pages.
  */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
   return { __esModule: true, default: { findByMonitors: jest.fn() } };
@@ -341,8 +342,8 @@ let skipRows: Array<Row> = [];
 
 /*
  * The StatusPageResource rows each status page lists for the announcement's
- * monitors. findByMonitors answers them all at once, as it does for every
- * page that shows the monitors.
+ * monitors. findByMonitors answers for the pages it is asked about, all at
+ * once.
  */
 let resourcesByStatusPage: Record<string, Array<StatusPageResource>> = {};
 
@@ -603,7 +604,14 @@ function variablesByChannel(): Record<string, Record<string, string>> {
 
 interface ResourceLookup {
   monitorIds: Array<ObjectID>;
+  statusPageIds: Array<ObjectID>;
   select: JSONObject;
+}
+
+function idsOf(ids: Array<ObjectID>): Array<string> {
+  return ids.map((id: ObjectID): string => {
+    return id.toString();
+  });
 }
 
 function resourceLookups(): Array<ResourceLookup> {
@@ -777,9 +785,18 @@ beforeEach(() => {
     STATUS_PAGE_URL as never,
   );
 
+  // Answers only for the status pages it is asked about, as the real one does.
   mock(StatusPageResourceService.findByMonitors).mockImplementation(
-    async (): Promise<Array<StatusPageResource>> => {
-      return Object.values(resourcesByStatusPage).flat();
+    async (args: unknown): Promise<Array<StatusPageResource>> => {
+      const askedFor: Array<string> = idsOf(
+        (args as ResourceLookup).statusPageIds || [],
+      );
+
+      return askedFor.flatMap(
+        (statusPageId: string): Array<StatusPageResource> => {
+          return resourcesByStatusPage[statusPageId] || [];
+        },
+      );
     },
   );
 
@@ -1894,6 +1911,11 @@ describe.each(TRIGGERS)(
 
       // One lookup answers every page; each page gets only its own.
       expect(resourceLookups()).toHaveLength(1);
+      expect(idsOf(resourceLookups()[0]!.statusPageIds)).toEqual([
+        STATUS_PAGE_ID.toString(),
+        SECOND_STATUS_PAGE_ID.toString(),
+        THIRD_STATUS_PAGE_ID.toString(),
+      ]);
 
       expect(sentSms()).toEqual([
         `SMS|[${RESOURCES_AFFECTED}]`,
@@ -1938,11 +1960,14 @@ describe.each(TRIGGERS)(
           name: true,
         },
       });
-      expect(
-        lookups[0]!.monitorIds.map((monitorId: ObjectID): string => {
-          return monitorId.toString();
-        }),
-      ).toEqual([API_MONITOR_ID.toString(), WEBSITE_MONITOR_ID.toString()]);
+      expect(idsOf(lookups[0]!.monitorIds)).toEqual([
+        API_MONITOR_ID.toString(),
+        WEBSITE_MONITOR_ID.toString(),
+      ]);
+      // Only the pages the announcement is on.
+      expect(idsOf(lookups[0]!.statusPageIds)).toEqual([
+        STATUS_PAGE_ID.toString(),
+      ]);
     });
 
     test("keeps the default messages unchanged for an announcement scoped to resources", async () => {
@@ -2319,6 +2344,39 @@ describe.each(TRIGGERS)(
         [ResourceFan.Everything, ResourceFan.Group, ResourceFan.OtherGroup].map(
           fanEmail,
         ),
+      );
+    });
+
+    test("a failed lookup marks the notification Failed with the reason, and tells nobody", async () => {
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      givenSubscribers(
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers,
+      );
+      mock(StatusPageResourceService.findByMonitors).mockRejectedValue(
+        new Error("database went away") as never,
+      );
+
+      await runJob(trigger.job);
+
+      /*
+       * Without the affected resources the job cannot tell who picked them,
+       * so it sends nothing, rather than everything, and says why. Retry
+       * sends it again to every page.
+       */
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual(
+        trigger.name === "created"
+          ? {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Failed,
+              subscriberNotificationStatusMessage: "database went away",
+            }
+          : {
+              subscriberNotificationStatusOnAnnouncementUpdated:
+                StatusPageSubscriberNotificationStatus.Failed,
+              subscriberNotificationStatusMessageOnAnnouncementUpdated:
+                "database went away",
+            },
       );
     });
 

@@ -113,12 +113,16 @@ export class Service extends DatabaseService<Model> {
    * so the page suggested and the subscribers told agree.
    *
    * Every row is read, however many there are: a resource left out is a
-   * subscriber who is silently not told.
+   * subscriber who is silently not told. A caller that knows which status
+   * pages the event is on passes them as statusPageIds, and only those
+   * pages' resources are read.
    */
   @CaptureSpan()
   public async findByMonitors(data: {
     monitors?: Array<Monitor>;
     monitorIds?: Array<ObjectID>;
+    // Only these pages' resources. Left out: every page that shows the monitors.
+    statusPageIds?: Array<ObjectID> | undefined;
     select: Select<Model>;
   }): Promise<Array<Model>> {
     let resolvedMonitorIds: Array<ObjectID>;
@@ -137,26 +141,36 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    if (resolvedMonitorIds.length === 0) {
+    // No status page to look on: nothing on any page is affected.
+    if (resolvedMonitorIds.length === 0 || data.statusPageIds?.length === 0) {
       return [];
     }
 
-    // Find status page resources directly linked to monitors
-    const statusPageResources: Array<Model> = await this.findAllBy({
-      query: {
-        monitorId: QueryHelper.any(resolvedMonitorIds),
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-      skip: 0,
-      select: data.select,
-    });
+    const onTheStatusPages: Query<Model> = data.statusPageIds
+      ? { statusPageId: QueryHelper.any(data.statusPageIds) }
+      : {};
 
-    // Find monitor groups that contain the affected monitors
-    const monitorGroupResources: Array<MonitorGroupResource> =
-      await MonitorGroupResourceService.findAllBy({
+    /*
+     * The monitors' own resources, and the monitor groups that hold the
+     * monitors. Neither read needs the other.
+     */
+    const [statusPageResources, monitorGroupResources]: [
+      Array<Model>,
+      Array<MonitorGroupResource>,
+    ] = await Promise.all([
+      this.findAllBy({
+        query: {
+          monitorId: QueryHelper.any(resolvedMonitorIds),
+          ...onTheStatusPages,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+        skip: 0,
+        select: data.select,
+      }),
+      MonitorGroupResourceService.findAllBy({
         query: {
           monitorId: QueryHelper.any(resolvedMonitorIds),
         },
@@ -168,7 +182,8 @@ export class Service extends DatabaseService<Model> {
           monitorGroupId: true,
         },
         skip: 0,
-      });
+      }),
+    ]);
 
     // Each group once, however many of the monitors it holds.
     const monitorGroupIds: Array<ObjectID> = [];
@@ -196,6 +211,7 @@ export class Service extends DatabaseService<Model> {
       const groupStatusPageResources: Array<Model> = await this.findAllBy({
         query: {
           monitorGroupId: QueryHelper.any(monitorGroupIds),
+          ...onTheStatusPages,
         },
         props: {
           isRoot: true,

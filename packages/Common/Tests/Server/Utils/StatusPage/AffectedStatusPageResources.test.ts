@@ -167,13 +167,26 @@ function useScenarioRows(): AskedQueries {
   });
 }
 
+const ALL_PAGES: Array<string> = [PUBLIC_PAGE, EU_PAGE, INTERNAL_PAGE];
+
+// The status pages an event is on, as the senders read them.
+function pages(ids: Array<string>): Array<StatusPage> {
+  return ids.map((id: string): StatusPage => {
+    const statusPage: StatusPage = new StatusPage();
+    statusPage._id = id;
+    return statusPage;
+  });
+}
+
 async function affectedBy(
   monitorIds: Array<string>,
+  statusPageIds: Array<string> = ALL_PAGES,
 ): Promise<Dictionary<Array<StatusPageResource>>> {
   return await AffectedStatusPageResources.findForMonitors({
     monitorIds: monitorIds.map((id: string): ObjectID => {
       return new ObjectID(id);
     }),
+    statusPages: pages(statusPageIds),
     select: SELECT,
   });
 }
@@ -311,6 +324,7 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
     expect(
       await AffectedStatusPageResources.findForMonitors({
         monitors: [],
+        statusPages: pages(ALL_PAGES),
         select: SELECT,
       }),
     ).toEqual({});
@@ -319,12 +333,16 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
     expect(
       await AffectedStatusPageResources.findForMonitors({
         monitors: [new Monitor()],
+        statusPages: pages(ALL_PAGES),
         select: SELECT,
       }),
     ).toEqual({});
 
     expect(
-      await AffectedStatusPageResources.findForMonitors({ select: SELECT }),
+      await AffectedStatusPageResources.findForMonitors({
+        statusPages: pages(ALL_PAGES),
+        select: SELECT,
+      }),
     ).toEqual({});
 
     expect(findByMonitors).not.toHaveBeenCalled();
@@ -344,6 +362,7 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
       await AffectedStatusPageResources.findForMonitors({
         monitors: [db, dbAgain, new Monitor()],
         monitorIds: [new ObjectID(DB_MONITOR)],
+        statusPages: pages(ALL_PAGES),
         select: SELECT,
       });
 
@@ -366,11 +385,53 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
     expect(asked.statusPageResources).toHaveLength(2);
     expect(Object.keys(asked.statusPageResources[1]!)).toEqual([
       "monitorGroupId",
+      "statusPageId",
     ]);
     expect(inListIds(asked.statusPageResources[1]!["monitorGroupId"])).toEqual([
       BACKEND_GROUP,
       EDGE_GROUP,
     ]);
+  });
+
+  test("reads only the resources of the status pages the event is on", async () => {
+    const asked: AskedQueries = useScenarioRows();
+
+    const affected: Dictionary<Array<StatusPageResource>> = await affectedBy(
+      [DB_MONITOR],
+      [EU_PAGE],
+    );
+
+    /*
+     * The public page shows the database through its backend group, but the
+     * event is not on it.
+     */
+    expect(namesByPage(affected)).toEqual({
+      [EU_PAGE]: ["Database", "Backend"],
+    });
+
+    // Both resource reads - the monitors' own, and their groups' - ask for it.
+    expect(asked.statusPageResources).toHaveLength(2);
+
+    for (const query of asked.statusPageResources) {
+      expect(inListIds(query["statusPageId"])).toEqual([EU_PAGE]);
+    }
+  });
+
+  test("an event that is on no status page affects nothing, and nothing is looked up", async () => {
+    const asked: AskedQueries = useScenarioRows();
+
+    expect(await affectedBy([DB_MONITOR], [])).toEqual({});
+    // A page that was never saved has no id to look on.
+    expect(
+      await AffectedStatusPageResources.findForMonitors({
+        monitorIds: [new ObjectID(DB_MONITOR)],
+        statusPages: [new StatusPage()],
+        select: SELECT,
+      }),
+    ).toEqual({});
+
+    expect(asked.statusPageResources).toEqual([]);
+    expect(asked.monitorGroupMemberships).toEqual([]);
   });
 
   test("reads the caller's columns, plus the id and the page every resource is grouped by", async () => {
@@ -382,25 +443,44 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
 
     await AffectedStatusPageResources.findForMonitors({
       monitorIds: [new ObjectID(DB_MONITOR)],
+      statusPages: pages([PUBLIC_PAGE, PUBLIC_PAGE, EU_PAGE]),
       select: { displayName: true },
     });
 
     expect(findByMonitors).toHaveBeenCalledTimes(1);
+
+    const lookup: { select: unknown; statusPageIds: Array<ObjectID> } =
+      findByMonitors.mock.calls[0]![0] as {
+        select: unknown;
+        statusPageIds: Array<ObjectID>;
+      };
+
+    expect(lookup.select).toEqual({
+      displayName: true,
+      _id: true,
+      statusPageId: true,
+    });
+    // Each page once.
     expect(
-      (findByMonitors.mock.calls[0]![0] as { select: unknown }).select,
-    ).toEqual({ displayName: true, _id: true, statusPageId: true });
+      lookup.statusPageIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([PUBLIC_PAGE, EU_PAGE]);
   });
 
   test("reads every resource, past the 10,000 rows of one query", async () => {
     const PAGE_COUNT: number = 10_001;
     const resources: Array<StatusPageResourceRow> = [];
+    const statusPageIds: Array<string> = [];
 
     for (let index: number = 0; index < PAGE_COUNT; index++) {
       const suffix: string = index.toString(16).padStart(12, "0");
+      const statusPageId: string = `b1000000-0000-4000-8000-${suffix}`;
 
+      statusPageIds.push(statusPageId);
       resources.push({
         _id: `d0000000-0000-4000-8000-${suffix}`,
-        statusPageId: `b1000000-0000-4000-8000-${suffix}`,
+        statusPageId: statusPageId,
         displayName: `API ${index}`,
         monitorId: API_MONITOR,
       });
@@ -411,9 +491,10 @@ describe("AffectedStatusPageResources.findForMonitors, through the real monitor 
       memberships: MEMBERSHIPS,
     });
 
-    const affected: Dictionary<Array<StatusPageResource>> = await affectedBy([
-      API_MONITOR,
-    ]);
+    const affected: Dictionary<Array<StatusPageResource>> = await affectedBy(
+      [API_MONITOR],
+      statusPageIds,
+    );
 
     expect(Object.keys(affected)).toHaveLength(PAGE_COUNT);
     // Two reads of the monitor's own resources: 10,000 rows, then the last.

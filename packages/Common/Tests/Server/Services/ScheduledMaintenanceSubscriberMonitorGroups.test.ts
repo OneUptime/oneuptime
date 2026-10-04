@@ -16,6 +16,7 @@ import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  AskedQueries,
   MonitorGroupMembershipRow,
   StatusPageResourceRow,
   useMonitorGroupStatusPageRows,
@@ -103,7 +104,17 @@ const EU_BACKEND: StatusPageResourceRow = {
   monitorGroupId: BACKEND_GROUP,
 };
 
+// A page the event is not on, which also lists the database.
+const OTHER_PAGE: string = "b0000000-0000-4000-8000-000000000009";
+const OTHER_DB: StatusPageResourceRow = {
+  _id: "e0000000-0000-4000-8000-000000000009",
+  statusPageId: OTHER_PAGE,
+  displayName: "Database",
+  monitorId: DB_MONITOR,
+};
+
 let subscribersByPage: Record<string, Array<StatusPageSubscriber>> = {};
+let asked: AskedQueries;
 
 function accepted(): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(200, {}, {});
@@ -183,13 +194,14 @@ function sentEmails(): Array<{ to: string; resourcesAffected: string }> {
 
 describe("scheduled maintenance 'scheduled' and reminder notifications reach a monitor group's subscribers", () => {
   beforeEach(() => {
-    useMonitorGroupStatusPageRows({
+    asked = useMonitorGroupStatusPageRows({
       resources: [
         PUBLIC_API,
         PUBLIC_BACKEND,
         PUBLIC_BILLING,
         EU_DB,
         EU_BACKEND,
+        OTHER_DB,
       ],
       memberships: MEMBERSHIPS,
     });
@@ -284,6 +296,27 @@ describe("scheduled maintenance 'scheduled' and reminder notifications reach a m
         return email.to === "database-and-backend@acme.com";
       }),
     ).toHaveLength(1);
+  });
+
+  test("reads only the resources of the status pages the event is on", async () => {
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      scheduledEvent([DB_MONITOR]),
+    ]);
+
+    /*
+     * Both resource reads, the monitors' own and their groups', ask for the
+     * event's two pages and no other.
+     */
+    expect(asked.statusPageResources).toHaveLength(2);
+
+    for (const query of asked.statusPageResources) {
+      expect(
+        Object.values(
+          (query["statusPageId"] as { objectLiteralParameters: JSONObject })
+            .objectLiteralParameters,
+        ).flat(),
+      ).toEqual([PUBLIC_PAGE, EU_PAGE]);
+    }
   });
 
   test("an event on a monitor listed directly tells that monitor's subscribers, and no group's", async () => {

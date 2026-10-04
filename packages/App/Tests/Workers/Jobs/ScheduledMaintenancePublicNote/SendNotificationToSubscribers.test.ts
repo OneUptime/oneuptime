@@ -2124,15 +2124,26 @@ describe.each(TRIGGERS)(
       await runJob(trigger.job);
 
       expect(StatusPageResourceService.findByMonitors).toHaveBeenCalledTimes(1);
+
+      const lookup: {
+        monitorIds: Array<ObjectID>;
+        statusPageIds: Array<ObjectID>;
+      } = mock(StatusPageResourceService.findByMonitors).mock.calls[0]![0] as {
+        monitorIds: Array<ObjectID>;
+        statusPageIds: Array<ObjectID>;
+      };
+
       expect(
-        (
-          mock(StatusPageResourceService.findByMonitors).mock.calls[0]![0] as {
-            monitorIds: Array<ObjectID>;
-          }
-        ).monitorIds.map((monitorId: ObjectID): string => {
+        lookup.monitorIds.map((monitorId: ObjectID): string => {
           return monitorId.toString();
         }),
       ).toEqual([MONITOR_ID.toString()]);
+      // Only the pages the event is on.
+      expect(
+        lookup.statusPageIds.map((statusPageId: ObjectID): string => {
+          return statusPageId.toString();
+        }),
+      ).toEqual([STATUS_PAGE_ID.toString()]);
     });
   },
 );
