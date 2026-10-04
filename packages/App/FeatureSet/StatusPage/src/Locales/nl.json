@@ -236,9 +236,17 @@
       "failed": "Afmelden is mislukt. Probeer het opnieuw.",
       "loadFailed": "Deze afmeldlink kon niet worden geladen. Probeer het later opnieuw."
     },
-    "steps": {
-      "details": "Details",
-      "preferences": "Voorkeuren"
+    "preferences": {
+      "title": "Voorkeuren",
+      "description": "Kies waarover u op de hoogte wordt gehouden.",
+      "summary": {
+        "everything": "U ontvangt alle updates van deze statuspagina.",
+        "pickedResources": "U ontvangt alleen updates over de bronnen die u hebt gekozen.",
+        "pickedEventTypes": "U ontvangt alleen updates van de gebeurtenistypen die u hebt gekozen.",
+        "pickedResourcesAndEventTypes": "U ontvangt alleen updates over de bronnen en gebeurtenistypen die u hebt gekozen.",
+        "noResources": "U hebt nog geen bronnen gekozen.",
+        "noEventTypes": "U hebt nog geen gebeurtenistypen gekozen."
+      }
     }
   },
   "accounts": {

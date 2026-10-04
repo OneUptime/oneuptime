@@ -236,9 +236,17 @@
       "failed": "구독을 취소하지 못했습니다. 다시 시도해 주세요.",
       "loadFailed": "이 구독 취소 링크를 불러오지 못했습니다. 나중에 다시 시도해 주세요."
     },
-    "steps": {
-      "details": "세부 정보",
-      "preferences": "환경설정"
+    "preferences": {
+      "title": "환경설정",
+      "description": "받을 소식을 선택하세요.",
+      "summary": {
+        "everything": "이 상태 페이지의 모든 업데이트를 받습니다.",
+        "pickedResources": "선택한 리소스에 대한 업데이트만 받습니다.",
+        "pickedEventTypes": "선택한 이벤트 유형의 업데이트만 받습니다.",
+        "pickedResourcesAndEventTypes": "선택한 리소스와 이벤트 유형에 대한 업데이트만 받습니다.",
+        "noResources": "아직 리소스를 선택하지 않았습니다.",
+        "noEventTypes": "아직 이벤트 유형을 선택하지 않았습니다."
+      }
     }
   },
   "accounts": {

@@ -1312,6 +1312,100 @@ describe("the project's forms", () => {
     ).toBe(1);
   });
 
+  /*
+   * Subscribing on a status page: where to send updates, then Preferences
+   * folded to one line that says what the visitor will get, and Subscribe -
+   * one page for every channel. It walked two steps for a while (the
+   * address, then the preferences), which made a visitor who wanted
+   * everything press Next before Subscribe. The preference fields come from
+   * one helper (getSubscribePreferenceFields), followed into its file.
+   */
+  test.each([
+    [
+      "EmailSubscribe.tsx",
+      "Status Page > Email Subscribe",
+      ["subscriberEmail"],
+    ],
+    ["SmsSubscribe.tsx", "Status Page > SMS Subscribe", ["subscriberPhone"]],
+    [
+      "SlackSubscribe.tsx",
+      "Status Page > Slack Subscribe",
+      ["slackWorkspaceName", "slackIncomingWebhookUrl"],
+    ],
+    [
+      "MicrosoftTeamsSubscribe.tsx",
+      "Status Page > Microsoft Teams Subscribe",
+      ["microsoftTeamsWorkspaceName", "microsoftTeamsIncomingWebhookUrl"],
+    ],
+    [
+      "WebhookSubscribe.tsx",
+      "Status Page > Webhook Subscribe",
+      ["subscriberWebhook"],
+    ],
+  ])(
+    "include the status page's %s: one page, the preferences folded",
+    (file: string, name: string, contactKeys: Array<string>) => {
+      const found: Array<FormFacts> = forms.filter(
+        (form: FormFacts): boolean => {
+          return (
+            form.file ===
+              `packages/App/FeatureSet/StatusPage/src/Pages/Subscribe/${file}` &&
+            form.label === `ModelForm: ${name}`
+          );
+        },
+      );
+
+      expect(found).toHaveLength(1);
+
+      const form: FormFacts = found[0]!;
+
+      expect(form.hasSteps).toBe(false);
+      expect(form.uncountableReasons).toEqual([]);
+      // Where updates go, and the one folded Preferences header.
+      expect(countFormRows(form)).toBe(contactKeys.length + 1);
+      expect(
+        form.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection === undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.key;
+          }),
+      ).toEqual(contactKeys);
+      expect(
+        form.fields
+          .filter((candidate: FormFieldFacts): boolean => {
+            return candidate.collapsibleSection !== undefined;
+          })
+          .map((candidate: FormFieldFacts): string => {
+            return candidate.key;
+          }),
+      ).toEqual([
+        "isSubscribedToAllResources",
+        "statusPageResources",
+        "isSubscribedToAllEventTypes",
+        "statusPageEventTypes",
+      ]);
+      // One section between them, and no field naming a step.
+      expect(
+        new Set(
+          form.fields
+            .filter((candidate: FormFieldFacts): boolean => {
+              return candidate.collapsibleSection !== undefined;
+            })
+            .map((candidate: FormFieldFacts): string => {
+              return candidate.collapsibleSection!;
+            }),
+        ).size,
+      ).toBe(1);
+      expect(
+        form.fields.filter((candidate: FormFieldFacts): boolean => {
+          return candidate.stepId !== undefined;
+        }),
+      ).toEqual([]);
+    },
+  );
+
   test("with steps never lose a field to a missing or mistyped step", () => {
     expect(
       findStepProblems(forms).map((problem: FormStepProblem): string => {

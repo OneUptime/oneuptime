@@ -44,6 +44,8 @@ Per impostazione predefinita un iscritto riceve tutto quello che c'è sulla pagi
 - **Consenti agli iscritti di scegliere le risorse** (`allowSubscribersToChooseResources`) — spento per impostazione predefinita. Accendilo e il modulo di iscrizione guadagna un interruttore **Iscriviti a tutte le risorse**; togli la spunta e compare **Seleziona le risorse a cui iscriverti**, così il visitatore sceglie le singole risorse.
 - **Consenti agli iscritti di scegliere i tipi di evento** (`allowSubscribersToChooseEventTypes`) — spento per impostazione predefinita. Stessa forma: un interruttore **Iscriviti a tutti i tipi di eventi** e, quando lo togli, **Seleziona i tipi di eventi a cui iscriverti** sotto.
 
+Con uno dei due attivo, il modulo resta una sola pagina: queste scelte stanno in **Preferenze**, chiuso sotto il campo dove inviare gli aggiornamenti. Chiuso, dice in una riga cosa riceverà il visitatore (tutti gli aggiornamenti della pagina di stato, finché non restringe la scelta), quindi chi vuole tutto preme semplicemente **Iscriviti**. La pagina **Aggiorna iscrizione** mostra le stesse scelte aperte.
+
 I tipi di evento sono `Incident`, `Announcement` e `Scheduled Event`.
 
 Le scelte finiscono sul record dell'iscritto come **Is Subscribed to All Resources** (`isSubscribedToAllResources`, predefinito true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, predefinito true), **Subscribed to Resources** e **Subscribed to Event Types**.

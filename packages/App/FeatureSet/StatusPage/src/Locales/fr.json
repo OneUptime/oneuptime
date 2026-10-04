@@ -236,9 +236,17 @@
       "failed": "Le désabonnement a échoué. Veuillez réessayer.",
       "loadFailed": "Impossible de charger ce lien de désabonnement. Veuillez réessayer plus tard."
     },
-    "steps": {
-      "details": "Détails",
-      "preferences": "Préférences"
+    "preferences": {
+      "title": "Préférences",
+      "description": "Choisissez ce dont vous voulez être informé.",
+      "summary": {
+        "everything": "Vous recevrez toutes les mises à jour de cette page de statut.",
+        "pickedResources": "Vous ne recevrez que les mises à jour des ressources que vous avez choisies.",
+        "pickedEventTypes": "Vous ne recevrez que les mises à jour des types d'événements que vous avez choisis.",
+        "pickedResourcesAndEventTypes": "Vous ne recevrez que les mises à jour des ressources et des types d'événements que vous avez choisis.",
+        "noResources": "Vous n'avez encore choisi aucune ressource.",
+        "noEventTypes": "Vous n'avez encore choisi aucun type d'événement."
+      }
     }
   },
   "accounts": {

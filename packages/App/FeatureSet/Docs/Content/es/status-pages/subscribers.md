@@ -44,6 +44,8 @@ Por defecto un suscriptor recibe todo lo de la página. Dos interruptores de la 
 - **Permitir a los suscriptores elegir recursos** (`allowSubscribersToChooseResources`) — apagado por defecto. Actívalo y el formulario de suscripción gana un interruptor **Suscribirse a todos los recursos**; desmárcalo y aparece **Seleccionar recursos para suscribirse**, para que el visitante escoja recursos concretos.
 - **Permitir a los suscriptores elegir tipos de eventos** (`allowSubscribersToChooseEventTypes`) — apagado por defecto. Funciona igual: un interruptor **Suscribirse a todos los tipos de eventos** y, debajo, **Seleccionar tipos de eventos para suscribirse** cuando lo desmarcas.
 
+Con cualquiera de los dos activado, el formulario sigue siendo una sola página: estas opciones están en **Preferencias**, plegado bajo el campo de adónde enviar las actualizaciones. Plegado, dice en una línea lo que recibirá el visitante (todas las actualizaciones de la página de estado, mientras no acote nada), así que quien lo quiere todo solo pulsa **Suscribirse**. La página **Actualizar suscripción** muestra las mismas opciones desplegadas.
+
 Los tipos de evento son `Incident`, `Announcement` y `Scheduled Event`.
 
 Esas decisiones se guardan en el registro del suscriptor como **Is Subscribed to All Resources** (`isSubscribedToAllResources`, true por defecto), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, true por defecto), **Subscribed to Resources** y **Subscribed to Event Types**.

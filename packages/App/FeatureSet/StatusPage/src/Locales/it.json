@@ -236,9 +236,17 @@
       "failed": "Impossibile annullare l'iscrizione. Riprova.",
       "loadFailed": "Impossibile caricare questo link per annullare l'iscrizione. Riprova più tardi."
     },
-    "steps": {
-      "details": "Dettagli",
-      "preferences": "Preferenze"
+    "preferences": {
+      "title": "Preferenze",
+      "description": "Scegli di cosa vuoi essere informato.",
+      "summary": {
+        "everything": "Riceverai tutti gli aggiornamenti di questa pagina di stato.",
+        "pickedResources": "Riceverai solo gli aggiornamenti sulle risorse che hai scelto.",
+        "pickedEventTypes": "Riceverai solo gli aggiornamenti dei tipi di eventi che hai scelto.",
+        "pickedResourcesAndEventTypes": "Riceverai solo gli aggiornamenti sulle risorse e sui tipi di eventi che hai scelto.",
+        "noResources": "Non hai ancora scelto nessuna risorsa.",
+        "noEventTypes": "Non hai ancora scelto nessun tipo di evento."
+      }
     }
   },
   "accounts": {

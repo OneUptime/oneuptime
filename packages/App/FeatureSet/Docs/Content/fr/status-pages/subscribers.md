@@ -44,6 +44,8 @@ Par défaut, un abonné reçoit tout ce qui se passe sur la page. Deux bascules 
 - **Permettre aux abonnés de choisir les ressources** (`allowSubscribersToChooseResources`) — désactivé par défaut. Activez-le et le formulaire d'abonnement gagne une bascule **S'abonner à toutes les ressources** ; décochez-la et **Sélectionner les ressources à suivre** apparaît, pour que le visiteur choisisse des ressources une par une.
 - **Permettre aux abonnés de choisir les types d'événements** (`allowSubscribersToChooseEventTypes`) — désactivé par défaut. Même forme : une bascule **S'abonner à tous les types d'événements**, et **Sélectionner les types d'événements à suivre** en dessous lorsqu'elle est décochée.
 
+Si l'une des deux est activée, le formulaire reste sur une seule page : ces choix se trouvent dans **Préférences**, replié sous l'endroit où envoyer les mises à jour. Replié, il indique en une ligne ce que le visiteur recevra (toutes les mises à jour de la page de statut, tant qu'il ne restreint rien), si bien qu'un visiteur qui veut tout clique simplement sur **S'abonner**. La page **Mettre à jour l'abonnement** montre les mêmes choix dépliés.
+
 Les types d'événements sont `Incident`, `Announcement` et `Scheduled Event`.
 
 Les choix atterrissent sur la fiche de l'abonné sous **Is Subscribed to All Resources** (`isSubscribedToAllResources`, `true` par défaut), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, `true` par défaut), **Subscribed to Resources** et **Subscribed to Event Types**.

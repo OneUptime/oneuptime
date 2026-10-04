@@ -44,6 +44,8 @@ Standardmäßig bekommt ein Abonnent alles, was auf der Seite steht. Zwei Schalt
 - **Abonnenten erlauben, Ressourcen auszuwählen** (`allowSubscribersToChooseResources`) – standardmäßig aus. Schalten Sie es ein, bekommt das Abonnementformular einen Schalter **Alle Ressourcen abonnieren**; nehmen Sie den heraus, erscheint **Ressourcen zum Abonnieren auswählen**, und der Besucher kann einzelne Ressourcen anhaken.
 - **Abonnenten erlauben, Ereignistypen auszuwählen** (`allowSubscribersToChooseEventTypes`) – standardmäßig aus. Gleiche Form: ein Schalter **Alle Ereignistypen abonnieren**, und darunter **Ereignistypen zum Abonnieren auswählen**, sobald er nicht gesetzt ist.
 
+Ist einer der beiden Schalter an, bleibt das Formular eine Seite: Diese Auswahl steht unter **Einstellungen**, eingeklappt unter dem Feld, wohin Updates gehen. Eingeklappt sagt der Abschnitt in einer Zeile, was der Besucher erhält – bis er etwas eingrenzt, alle Updates der Statusseite –, sodass jemand, der alles möchte, einfach auf **Abonnieren** klickt. Die Seite **Abonnement aktualisieren** zeigt dieselbe Auswahl aufgeklappt.
+
 Die Ereignistypen sind `Incident`, `Announcement` und `Scheduled Event`.
 
 Die Auswahl landet auf dem Abonnentendatensatz als **Is Subscribed to All Resources** (`isSubscribedToAllResources`, Standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, Standard true), **Subscribed to Resources** und **Subscribed to Event Types**.
