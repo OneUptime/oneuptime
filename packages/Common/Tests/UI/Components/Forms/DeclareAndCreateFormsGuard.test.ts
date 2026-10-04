@@ -809,7 +809,7 @@ describe("who responds", () => {
     );
     // Each remove button names the person and the role it takes them off.
     expect(picker).toContain(
-      'aria-label={translator.translateTemplate( "Remove {{member}} from {{role}}", { member: name, role: role.name }, )}',
+      'aria-label={translator.translateTemplate( "Remove {{member}} from {{role}}", { member: name, role: roleName }, )}',
     );
     expect(picker).not.toContain(
       'aria-label={translator.translateText("Remove")}',

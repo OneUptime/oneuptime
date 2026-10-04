@@ -38,6 +38,7 @@ import {
   assignmentsToCriteriaRoles,
   criteriaRolesToAssignments,
   IncidentRoleChoice,
+  keepKnownRoles,
   RoleAssignment,
 } from "../../IncidentRole/IncidentRoleAssignments";
 
@@ -119,9 +120,16 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
    */
   const moreFieldsItems: Array<FoldedSectionItem> =
     getIncidentMoreFieldsItems(criteriaIncident);
-  const hasIncidentTeam: boolean = Boolean(
-    criteriaIncident.incidentMemberRoles?.length,
-  );
+  /*
+   * Who the rule names for each role, as the role picker holds it. Set only
+   * for roles the project still has: a row for a deleted role names nobody
+   * who can be assigned, and no card shows it.
+   */
+  const roleAssignments: Array<RoleAssignment> = useMemo(() => {
+    return criteriaRolesToAssignments(criteriaIncident.incidentMemberRoles);
+  }, [criteriaIncident.incidentMemberRoles]);
+  const hasIncidentTeam: boolean =
+    keepKnownRoles(roleAssignments, props.incidentRoleOptions || []).length > 0;
 
   /*
    * The variables this monitor's incident description and remediation notes
@@ -296,9 +304,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <IncidentRoleFormField
               roles={props.incidentRoleOptions}
               users={props.userDropdownOptions}
-              initialValue={criteriaRolesToAssignments(
-                criteriaIncident.incidentMemberRoles,
-              )}
+              initialValue={roleAssignments}
               onChange={(assignments: Array<RoleAssignment>) => {
                 updateField(
                   "incidentMemberRoles",

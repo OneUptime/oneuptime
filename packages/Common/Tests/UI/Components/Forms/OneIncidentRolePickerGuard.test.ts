@@ -627,10 +627,15 @@ describe("2. roles are assigned with one picker", () => {
     expect(form).toContain("roles={props.incidentRoleOptions}");
     expect(form).toContain("users={props.userDropdownOptions}");
     expect(form).toContain(
-      "initialValue={criteriaRolesToAssignments( criteriaIncident.incidentMemberRoles, )}",
+      "return criteriaRolesToAssignments(criteriaIncident.incidentMemberRoles);",
     );
+    expect(form).toContain("initialValue={roleAssignments}");
     expect(form).toContain(
       'updateField( "incidentMemberRoles", assignmentsToCriteriaRoles(assignments), );',
+    );
+    // A row for a role the project no longer has does not count as set.
+    expect(form).toContain(
+      "keepKnownRoles(roleAssignments, props.incidentRoleOptions || []).length > 0;",
     );
     // Its own dropdown per role, and their words, are gone.
     expect(form).not.toContain("canAssignMultipleUsers");
@@ -658,8 +663,9 @@ describe("2. roles are assigned with one picker", () => {
 
     expect(field).toContain("<IncidentRoleFormField");
     expect(field).toContain(
-      "initialValue={episodeRolesToAssignments(props.initialValue)}",
+      "return episodeRolesToAssignments(props.initialValue);",
     );
+    expect(field).toContain("initialValue={initialValue}");
     expect(field).toContain(
       "props.onChange?.(assignmentsToEpisodeRoles(assignments));",
     );
@@ -685,6 +691,15 @@ describe("2. roles are assigned with one picker", () => {
     // A form that has the roles and the people hands them in.
     expect(picker).toContain("roles?: Array<IncidentRoleChoice> | undefined;");
     expect(picker).toContain("users?: Array<DropdownOption> | undefined;");
+  });
+
+  test("the picker says where roles are made when there are none, on every form", () => {
+    const picker: string = dense(ROLE_PICKER);
+
+    expect(picker).toContain(
+      'translator.translateText( "No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.", )',
+    );
+    expect(picker).not.toContain("No incident roles found.");
   });
 });
 

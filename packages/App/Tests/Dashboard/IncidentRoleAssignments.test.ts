@@ -5,6 +5,7 @@ import {
   criteriaRolesToAssignments,
   episodeRolesToAssignments,
   getPickedUserIds,
+  keepKnownRoles,
   INCIDENT_ROLE_CHOICE_SELECT,
   IncidentRoleChoice,
   RoleAssignment,
@@ -326,6 +327,50 @@ describe("the picker's own rules", () => {
     sortIncidentRoleChoices(roles);
 
     expect(roles[0]!.name).toBe("Scribe");
+  });
+});
+
+describe("roles the project no longer has", () => {
+  const roles: Array<IncidentRoleChoice> = [
+    { id: COMMANDER, name: "Incident Commander", isPrimaryRole: true },
+    { id: RESPONDER, name: "Responder", canAssignMultipleUsers: true },
+  ];
+
+  test("are dropped from the value, and the rest keep their order", () => {
+    expect(
+      keepKnownRoles(
+        [
+          { roleId: RESPONDER, userIds: [BOB] },
+          { roleId: SCRIBE, userIds: [ALICE] },
+          { roleId: COMMANDER, userIds: [CAROL] },
+        ],
+        roles,
+      ),
+    ).toEqual([
+      { roleId: RESPONDER, userIds: [BOB] },
+      { roleId: COMMANDER, userIds: [CAROL] },
+    ]);
+  });
+
+  test("a value for roles that all still exist is kept as it is", () => {
+    const value: Array<RoleAssignment> = [
+      { roleId: COMMANDER, userIds: [ALICE] },
+      { roleId: RESPONDER, userIds: [BOB, CAROL] },
+    ];
+
+    expect(keepKnownRoles(value, roles)).toEqual(value);
+  });
+
+  test("a role with nobody in it is not kept either", () => {
+    expect(keepKnownRoles([{ roleId: COMMANDER, userIds: [] }], roles)).toEqual(
+      [],
+    );
+  });
+
+  test("with no roles at all, nothing is kept", () => {
+    expect(
+      keepKnownRoles([{ roleId: COMMANDER, userIds: [ALICE] }], []),
+    ).toEqual([]);
   });
 });
 

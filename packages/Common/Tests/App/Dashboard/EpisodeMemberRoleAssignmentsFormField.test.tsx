@@ -315,7 +315,7 @@ describe("a grouping rule's episode role assignments", () => {
     ).toBeInTheDocument();
   });
 
-  test("with no roles in the project, say so", async () => {
+  test("with no roles in the project, say where roles are made", async () => {
     answerRoles([]);
 
     await act(async (): Promise<void> => {
@@ -323,7 +323,9 @@ describe("a grouping rule's episode role assignments", () => {
     });
 
     expect(
-      await screen.findByText("No incident roles found."),
+      await screen.findByText(
+        "No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.",
+      ),
     ).toBeInTheDocument();
   });
 });

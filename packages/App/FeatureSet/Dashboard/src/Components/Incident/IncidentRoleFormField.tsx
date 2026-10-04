@@ -3,12 +3,14 @@ import React, {
   ReactElement,
   useEffect,
   useId,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -30,6 +32,7 @@ import {
   getPickedUserIds,
   INCIDENT_ROLE_CHOICE_SELECT,
   IncidentRoleChoice,
+  keepKnownRoles,
   RoleAssignment,
   sortIncidentRoleChoices,
   toIncidentRoleChoice,
@@ -85,6 +88,14 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
     props.initialValue || [],
   );
 
+  /*
+   * The value as of the last change, for the next one to build on: two
+   * changes that land before React draws again (a pick and a removal in one
+   * batch) must both count.
+   */
+  const latestAssignments: React.MutableRefObject<Array<RoleAssignment>> =
+    useRef<Array<RoleAssignment>>(assignments);
+
   useEffect(() => {
     if (!needsRoles && !needsUsers) {
       setIsLoading(false);
@@ -107,33 +118,33 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
           );
         }
 
-        if (needsRoles) {
-          const rolesResult: ListResult<IncidentRole> =
-            await ModelAPI.getList<IncidentRole>({
-              modelType: IncidentRole,
-              query: {
-                projectId: projectId,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: INCIDENT_ROLE_CHOICE_SELECT,
-              sort: {
-                name: SortOrder.Ascending,
-              },
-            });
+        // The two reads do not wait for each other.
+        const [rolesResult, users] = await Promise.all([
+          needsRoles
+            ? ModelAPI.getList<IncidentRole>({
+                modelType: IncidentRole,
+                query: {
+                  projectId: projectId,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                select: INCIDENT_ROLE_CHOICE_SELECT,
+                sort: {
+                  name: SortOrder.Ascending,
+                },
+              })
+            : Promise.resolve(null),
+          needsUsers
+            ? ProjectUser.fetchProjectUsersAsDropdownOptions(projectId)
+            : Promise.resolve(null),
+        ]);
 
-          if (isCurrent) {
-            setLoadedRoles(rolesResult.data.map(toIncidentRoleChoice));
-          }
+        if (isCurrent && rolesResult) {
+          setLoadedRoles(rolesResult.data.map(toIncidentRoleChoice));
         }
 
-        if (needsUsers) {
-          const users: Array<DropdownOption> =
-            await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId);
-
-          if (isCurrent) {
-            setLoadedUsers(users);
-          }
+        if (isCurrent && users) {
+          setLoadedUsers(users);
         }
       } catch (err) {
         if (isCurrent) {
@@ -155,26 +166,32 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
     };
   }, [needsRoles, needsUsers]);
 
-  const roles: Array<IncidentRoleChoice> = sortIncidentRoleChoices(
-    props.roles || loadedRoles,
-  );
+  const roles: Array<IncidentRoleChoice> = useMemo(() => {
+    return sortIncidentRoleChoices(props.roles || loadedRoles);
+  }, [props.roles, loadedRoles]);
   const userOptions: Array<DropdownOption> = props.users || loadedUsers;
 
   /*
-   * Worked out from the assignments on screen and told to the form right
-   * away - not from inside a state update, which React may run while it
-   * renders, when a form must not be told anything.
+   * A change to one role's people, worked out from the value as of the last
+   * change and told to the form right away - not from inside a state update,
+   * which React may run while it renders, when a form must not be told
+   * anything. Roles the project no longer has are dropped from the value: no
+   * card shows them, so nobody could take them off.
    */
-  const setPeopleForRole: (roleId: string, userIds: Array<string>) => void = (
+  const changePeopleForRole: (
     roleId: string,
-    userIds: Array<string>,
+    change: (userIds: Array<string>) => Array<string>,
+  ) => void = (
+    roleId: string,
+    change: (userIds: Array<string>) => Array<string>,
   ): void => {
-    const next: Array<RoleAssignment> = withRoleUsers(
-      assignments,
-      roleId,
-      userIds,
+    const current: Array<RoleAssignment> = latestAssignments.current;
+    const next: Array<RoleAssignment> = keepKnownRoles(
+      withRoleUsers(current, roleId, change(getPickedUserIds(current, roleId))),
+      roles,
     );
 
+    latestAssignments.current = next;
     setAssignments(next);
     props.onChange?.(next);
   };
@@ -198,10 +215,13 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
     return <ErrorMessage message={error} />;
   }
 
+  // Where roles are made, as every form that picks them says.
   if (roles.length === 0) {
     return (
       <p className="text-gray-500">
-        {translator.translateText("No incident roles found.")}
+        {translator.translateText(
+          "No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.",
+        )}
       </p>
     );
   }
@@ -211,6 +231,11 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
       {roles.map((role: IncidentRoleChoice) => {
         const picked: Array<string> = getPickedUserIds(assignments, role.id);
         const canAddMore: boolean = canPickAnotherPerson(role, picked.length);
+        // A role is never drawn, or read out, without a name.
+        const roleName: string =
+          role.name ||
+          translator.translateText("Unknown Role") ||
+          "Unknown Role";
         // The role's name names its picker for a screen reader.
         const roleNameId: string = `${pickerId}-role-${role.id}`;
 
@@ -224,7 +249,7 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
               <div className="flex items-center space-x-2">
                 <div id={roleNameId}>
                   <RoleLabel
-                    name={role.name}
+                    name={roleName}
                     color={role.color ? new Color(role.color) : undefined}
                     icon={role.icon}
                   />
@@ -253,14 +278,16 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                         type="button"
                         aria-label={translator.translateTemplate(
                           "Remove {{member}} from {{role}}",
-                          { member: name, role: role.name },
+                          { member: name, role: roleName },
                         )}
                         onClick={() => {
-                          setPeopleForRole(
+                          changePeopleForRole(
                             role.id,
-                            picked.filter((id: string): boolean => {
-                              return id !== userId;
-                            }),
+                            (userIds: Array<string>): Array<string> => {
+                              return userIds.filter((id: string): boolean => {
+                                return id !== userId;
+                              });
+                            },
                           );
                         }}
                         className="ml-2 text-gray-500 hover:text-gray-700"
@@ -289,7 +316,14 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                       value: DropdownValue | Array<DropdownValue> | null,
                     ) => {
                       if (value && typeof value === "string") {
-                        setPeopleForRole(role.id, [...picked, value]);
+                        changePeopleForRole(
+                          role.id,
+                          (userIds: Array<string>): Array<string> => {
+                            return userIds.includes(value)
+                              ? userIds
+                              : [...userIds, value];
+                          },
+                        );
                       }
                     }}
                   />

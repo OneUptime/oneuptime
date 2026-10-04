@@ -110,8 +110,9 @@ jest.mock("../../../UI/Utils/Translation", () => {
     "Select User",
     "Unknown User",
     "Only one user can be assigned to this role.",
-    "No incident roles found.",
+    "No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.",
     "Remove {{member}} from {{role}}",
+    "Unknown Role",
     "Project not found",
   ];
 
@@ -366,14 +367,40 @@ describe("the incident roles picker", () => {
     ).toBeInTheDocument();
   });
 
-  test("with no roles at all, says so in the reader's language", async () => {
+  test("with no roles at all, says where roles are made, in the reader's language", async () => {
     answerRoles([]);
 
     await renderField();
 
     expect(
-      await screen.findByText("«No incident roles found.»"),
+      await screen.findByText(
+        "«No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.»",
+      ),
     ).toBeInTheDocument();
+  });
+
+  test("reads the roles and the people at the same time, not one after the other", async () => {
+    let answerTheRoles: () => void = (): void => {};
+
+    getListMock.mockImplementation((() => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        answerTheRoles = (): void => {
+          resolve({ data: [], count: 0, skip: 0, limit: 0 });
+        };
+      });
+    }) as never);
+
+    await act(async (): Promise<void> => {
+      render(<IncidentRoleFormField />);
+    });
+
+    // The people are asked for while the roles are still on their way.
+    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(fetchUsersMock).toHaveBeenCalledTimes(1);
+
+    await act(async (): Promise<void> => {
+      answerTheRoles();
+    });
   });
 
   test("reads the project's roles once, with what the cards show", async () => {
@@ -558,11 +585,89 @@ describe("a form that has the roles and the people already", () => {
     expect(fetchUsersMock).not.toHaveBeenCalled();
   });
 
-  test("handed no roles at all, says there are none", async () => {
+  test("handed no roles at all, says where roles are made", async () => {
     await renderWith({ roles: [], users: USERS });
 
-    expect(screen.getByText("«No incident roles found.»")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "«No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.»",
+      ),
+    ).toBeInTheDocument();
     expect(getListMock).not.toHaveBeenCalled();
+  });
+
+  test("a role without a name is called Unknown Role, on its card, its picker and its remove buttons", async () => {
+    const user: UserEvent = await renderWith({
+      roles: [{ id: RESPONDER_ID, name: "", canAssignMultipleUsers: true }],
+      users: USERS,
+      initialValue: [{ roleId: RESPONDER_ID, userIds: [ALICE_ID] }],
+    });
+
+    const card: HTMLElement = screen.getByTestId("incident-role-card");
+
+    expect(within(card).getByText("«Unknown Role»")).toBeInTheDocument();
+    expect(
+      within(card).getByRole("combobox", { name: "«Unknown Role»" }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "«Remove Alice from «Unknown Role»»",
+      }),
+    );
+
+    expect(changes[changes.length - 1]).toEqual([]);
+  });
+
+  test("a role the project no longer has is dropped from the value at the next change", async () => {
+    const DELETED_ROLE_ID: string = "22222222-2222-4222-8222-000000000099";
+    const user: UserEvent = await renderWith({
+      roles: ROLES,
+      users: USERS,
+      initialValue: [
+        { roleId: DELETED_ROLE_ID, userIds: [ALICE_ID] },
+        { roleId: RESPONDER_ID, userIds: [BOB_ID] },
+      ],
+    });
+
+    // No card shows it, so nobody could take it off.
+    expect(screen.getAllByTestId("incident-role-card")).toHaveLength(2);
+
+    await pick(user, cardOf("Incident Commander"), "Alice");
+
+    expect(changes[changes.length - 1]).toEqual([
+      { roleId: RESPONDER_ID, userIds: [BOB_ID] },
+      { roleId: COMMANDER_ID, userIds: [ALICE_ID] },
+    ]);
+  });
+
+  test("two changes that land before the picker draws again both count", async () => {
+    await renderWith({
+      roles: ROLES,
+      users: USERS,
+      initialValue: [{ roleId: RESPONDER_ID, userIds: [ALICE_ID, BOB_ID] }],
+    });
+
+    const responder: HTMLElement = cardOf("Responder");
+    const removeAlice: HTMLElement = within(responder).getByRole("button", {
+      name: "«Remove Alice from Responder»",
+    });
+    const removeBob: HTMLElement = within(responder).getByRole("button", {
+      name: "«Remove Bob from Responder»",
+    });
+
+    // One batch: React draws once, after both clicks.
+    act(() => {
+      removeAlice.click();
+      removeBob.click();
+    });
+
+    expect(changes).toEqual([
+      [{ roleId: RESPONDER_ID, userIds: [BOB_ID] }],
+      [],
+    ]);
+    expect(within(cardOf("Responder")).queryByText("Alice")).toBeNull();
+    expect(within(cardOf("Responder")).queryByText("Bob")).toBeNull();
   });
 });
 

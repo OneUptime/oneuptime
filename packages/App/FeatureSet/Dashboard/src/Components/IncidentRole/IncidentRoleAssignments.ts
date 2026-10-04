@@ -169,6 +169,31 @@ export const withRoleUsers: (
 };
 
 /*
+ * The assignments to roles the project still has. A monitor rule or a
+ * grouping rule can name someone for a role that was deleted since: no card
+ * shows it, so nobody could take it off, and nobody is ever assigned it. The
+ * picker drops it from the value it hands on, and the monitor rule does not
+ * count it as set.
+ */
+export const keepKnownRoles: (
+  assignments: Array<RoleAssignment>,
+  roles: Array<IncidentRoleChoice>,
+) => Array<RoleAssignment> = (
+  assignments: Array<RoleAssignment>,
+  roles: Array<IncidentRoleChoice>,
+): Array<RoleAssignment> => {
+  const roleIds: Set<string> = new Set<string>(
+    roles.map((role: IncidentRoleChoice): string => {
+      return role.id;
+    }),
+  );
+
+  return assignments.filter((assignment: RoleAssignment): boolean => {
+    return roleIds.has(assignment.roleId) && assignment.userIds.length > 0;
+  });
+};
+
+/*
  * An id as a saved row holds it: an ObjectID once the monitor's JSON is
  * read back, a plain string in a grouping rule - or, read raw, the
  * { _type: "ObjectID", value } JSON an ObjectID is saved as. Both object

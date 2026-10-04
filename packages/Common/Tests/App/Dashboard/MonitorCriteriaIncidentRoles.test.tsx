@@ -387,6 +387,21 @@ describe("a monitor rule's incident roles", () => {
     expect(fetchUsersMock).not.toHaveBeenCalled();
   });
 
+  test("a row for a role the project no longer has does not make the section read as set, and the next pick drops it", async () => {
+    const DELETED_ROLE_ID: string = "22222222-2222-4222-8222-000000000099";
+    const user: UserEvent = await renderRule({
+      rows: [row(DELETED_ROLE_ID, ALICE_ID)],
+    });
+
+    // Nobody this rule names can be assigned, so it folds like an unset one.
+    expect(sectionHeader()).toHaveAttribute("aria-expanded", "false");
+
+    await openRoles(user);
+    await pick(user, "Responder", "Bob");
+
+    expect(savedRows()).toEqual([{ roleId: RESPONDER_ID, userId: BOB_ID }]);
+  });
+
   test("with no incident roles in the project, has no Incident Roles section", async () => {
     await renderRule({ roles: [] });
 

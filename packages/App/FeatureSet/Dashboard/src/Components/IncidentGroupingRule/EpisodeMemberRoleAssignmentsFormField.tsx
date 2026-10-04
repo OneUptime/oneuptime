@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { EpisodeMemberRoleAssignment } from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentRoleFormField from "../Incident/IncidentRoleFormField";
 import {
@@ -25,10 +25,14 @@ export interface EpisodeMemberRoleAssignmentsFormFieldProps {
 const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   EpisodeMemberRoleAssignmentsFormFieldProps
 > = (props: EpisodeMemberRoleAssignmentsFormFieldProps): ReactElement => {
+  const initialValue: Array<RoleAssignment> = useMemo(() => {
+    return episodeRolesToAssignments(props.initialValue);
+  }, [props.initialValue]);
+
   return (
     <div>
       <IncidentRoleFormField
-        initialValue={episodeRolesToAssignments(props.initialValue)}
+        initialValue={initialValue}
         onChange={(assignments: Array<RoleAssignment>) => {
           props.onChange?.(assignmentsToEpisodeRoles(assignments));
         }}
