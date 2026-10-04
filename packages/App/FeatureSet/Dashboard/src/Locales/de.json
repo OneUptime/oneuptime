@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "{{member}} aus {{role}} entfernen",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" überschreitet das Limit von {{size}}.",
   "Max {{size}} each.": "Je höchstens {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Diese Dateien überschreiten das Limit von {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Je höchstens {{size}}."
+  "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Je höchstens {{size}}.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Aus dieser Vorlage gemeldete Vorfälle beginnen in diesem Status. Leer lassen für den üblichen Anfangsstatus.",
+  "The usual starting state": "Der übliche Anfangsstatus",
+  "Who takes each role on this incident.": "Wer welche Rolle in diesem Vorfall übernimmt."
 }

@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "حذف {{member}} از {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» از سقف {{size}} بزرگ‌تر است.",
   "Max {{size}} each.": "هر فایل حداکثر {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}."
+  "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید.",
+  "The usual starting state": "وضعیت آغازین معمول",
+  "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد."
 }

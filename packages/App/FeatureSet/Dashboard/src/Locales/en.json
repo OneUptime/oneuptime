@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" exceeds the {{size}} limit.",
   "Max {{size}} each.": "Max {{size}} each.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "These files exceed the {{size}} limit: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Types: {{types}}. Max {{size}} each."
+  "Types: {{types}}. Max {{size}} each.": "Types: {{types}}. Max {{size}} each.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",
+  "The usual starting state": "The usual starting state",
+  "Who takes each role on this incident.": "Who takes each role on this incident."
 }

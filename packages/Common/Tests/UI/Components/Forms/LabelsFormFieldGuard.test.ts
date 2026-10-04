@@ -869,7 +869,9 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     label: "ModelTable: Settings > Incident Templates",
     /*
      * The Owners and Labels steps, one optional field each, fold under
-     * Advanced on Incident Details, as a maintenance template's do on Event.
+     * Advanced on Incident Details, as a maintenance template's do on Event,
+     * after the Initial Incident State (left empty: the usual starting
+     * state, as on Declare Incident).
      */
     steps: [
       "template-info",
@@ -881,13 +883,8 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       "Its custom field steps are spread in between, from the project's custom fields at runtime.",
     rows: {
       "incident-details": {
-        open: [
-          "title",
-          "description",
-          "incidentSeverity",
-          "initialIncidentState",
-        ],
-        folded: ["owners", "labels"],
+        open: ["title", "description", "incidentSeverity"],
+        folded: ["initialIncidentState", "owners", "labels"],
       },
     },
   },
@@ -897,13 +894,8 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     steps: ["template-info", "incident-details", "on-call"],
     rows: {
       "incident-details": {
-        open: [
-          "title",
-          "description",
-          "incidentSeverity",
-          "initialIncidentState",
-        ],
-        folded: LABELS_ONLY,
+        open: ["title", "description", "incidentSeverity"],
+        folded: ["initialIncidentState", LABELS_KEY],
       },
     },
   },

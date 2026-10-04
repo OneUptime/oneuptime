@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "{{member}} verwijderen uit {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" is groter dan de limiet van {{size}}.",
   "Max {{size}} each.": "Maximaal {{size}} per bestand.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Deze bestanden zijn groter dan de limiet van {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Maximaal {{size}} per bestand."
+  "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Maximaal {{size}} per bestand.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidenten die vanuit deze sjabloon worden gemeld, beginnen in deze status. Laat leeg voor de gebruikelijke beginstatus.",
+  "The usual starting state": "De gebruikelijke beginstatus",
+  "Who takes each role on this incident.": "Wie welke rol op zich neemt bij dit incident."
 }

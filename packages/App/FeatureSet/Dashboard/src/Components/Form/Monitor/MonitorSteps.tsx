@@ -39,6 +39,10 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ProjectUser from "../../../Utils/ProjectUser";
+import {
+  INCIDENT_ROLE_CHOICE_SELECT,
+  toIncidentRoleChoice,
+} from "../../IncidentRole/IncidentRoleAssignments";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorCriteriaAlignmentUtil, {
   CriteriaSeedIds,
@@ -332,19 +336,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setUserDropdownOptions(userOptions);
       }
 
-      // Fetch incident roles
+      /*
+       * Fetch incident roles, once for every rule's incidents: each draws
+       * the declare form's role picker, which reads what it shows of a role
+       * - its icon and whether it is primary too.
+       */
       const incidentRoleList: ListResult<IncidentRole> = await ModelAPI.getList(
         {
           modelType: IncidentRole,
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            canAssignMultipleUsers: true,
-          },
+          select: INCIDENT_ROLE_CHOICE_SELECT,
           sort: {
             isPrimaryRole: SortOrder.Descending,
             name: SortOrder.Ascending,
@@ -353,16 +356,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       );
 
       if (incidentRoleList.data) {
-        setIncidentRoleOptions(
-          incidentRoleList.data.map((i: IncidentRole) => {
-            return {
-              id: i._id!,
-              name: i.name || "Unknown Role",
-              color: i.color?.toString(),
-              canAssignMultipleUsers: i.canAssignMultipleUsers || false,
-            };
-          }),
-        );
+        setIncidentRoleOptions(incidentRoleList.data.map(toIncidentRoleChoice));
       }
 
       const operationalMonitorStatusId: ObjectID | undefined =

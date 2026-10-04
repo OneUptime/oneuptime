@@ -2,8 +2,8 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
-  useCallback,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
@@ -25,47 +25,75 @@ import ProjectUser from "../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  canPickAnotherPerson,
+  getPickedUserIds,
+  INCIDENT_ROLE_CHOICE_SELECT,
+  IncidentRoleChoice,
+  RoleAssignment,
+  sortIncidentRoleChoices,
+  toIncidentRoleChoice,
+  withRoleUsers,
+} from "../IncidentRole/IncidentRoleAssignments";
 
-export interface RoleAssignment {
-  roleId: string;
-  userIds: string[];
-}
+export type { IncidentRoleChoice, RoleAssignment };
 
 export interface IncidentRoleFormFieldProps {
   onChange?: ((value: Array<RoleAssignment>) => void) | undefined;
   initialValue?: Array<RoleAssignment> | undefined;
-}
-
-interface RoleData {
-  id: ObjectID;
-  name: string;
-  color: Color;
-  icon?: IconProp;
-  canAssignMultipleUsers: boolean;
-  isPrimaryRole: boolean;
+  /*
+   * The project's roles and people, for a form that has them already: the
+   * monitor criteria read them once for every incident they declare. Each
+   * one left out, the picker reads itself.
+   */
+  roles?: Array<IncidentRoleChoice> | undefined;
+  users?: Array<DropdownOption> | undefined;
 }
 
 /*
  * Who takes each incident role, one card per role: the role's name, a
- * Primary tag on the roles the person declaring takes when nobody is picked
- * for them, the people picked so far, and a picker for one more - for a role
- * that takes only one person, until it has one. Incident episodes use it too
- * (IncidentEpisodeRoleFormField): they share the project's incident roles.
+ * Primary tag on the primary roles (Incident Commander), the people picked
+ * so far, and a picker for one more - for a role that takes only one
+ * person, until it has one.
+ *
+ * The one role picker. Every form that assigns incident roles draws it:
+ * Declare Incident, Create Incident Episode (IncidentEpisodeRoleFormField:
+ * episodes share the project's incident roles), a monitor rule's incident
+ * (Form/Monitor/MonitorCriteriaIncidentForm) and a grouping rule's episodes
+ * (IncidentGroupingRule/EpisodeMemberRoleAssignmentsFormField). The last two
+ * keep the rows they always stored and convert them to this picker's value
+ * and back (IncidentRole/IncidentRoleAssignments). There is no "Multiple"
+ * tag: a role that takes several people keeps its picker, and a role that
+ * takes one says so once it has one, which is all the tag ever told.
+ * Common/Tests/UI/Components/Forms/OneIncidentRolePickerGuard holds every
+ * form to it.
  */
 const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
   props: IncidentRoleFormFieldProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const pickerId: string = useId();
+
+  const needsRoles: boolean = props.roles === undefined;
+  const needsUsers: boolean = props.users === undefined;
+
+  const [isLoading, setIsLoading] = useState<boolean>(needsRoles || needsUsers);
   const [error, setError] = useState<string>("");
-  const [roles, setRoles] = useState<Array<RoleData>>([]);
-  const [userOptions, setUserOptions] = useState<Array<DropdownOption>>([]);
+  const [loadedRoles, setLoadedRoles] = useState<Array<IncidentRoleChoice>>([]);
+  const [loadedUsers, setLoadedUsers] = useState<Array<DropdownOption>>([]);
   const [assignments, setAssignments] = useState<Array<RoleAssignment>>(
     props.initialValue || [],
   );
 
-  const fetchRolesAndUsers: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
+  useEffect(() => {
+    if (!needsRoles && !needsUsers) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const load: () => Promise<void> = async (): Promise<void> => {
       setIsLoading(true);
       setError("");
 
@@ -73,140 +101,94 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
         if (!projectId) {
-          setError(
+          throw new Error(
             translator.translateText("Project not found") ||
               "Project not found",
           );
-          setIsLoading(false);
-          return;
         }
 
-        // Fetch incident roles
-        const rolesResult: ListResult<IncidentRole> =
-          await ModelAPI.getList<IncidentRole>({
-            modelType: IncidentRole,
-            query: {
-              projectId: projectId,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              color: true,
-              roleIcon: true,
-              canAssignMultipleUsers: true,
-              isPrimaryRole: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
+        if (needsRoles) {
+          const rolesResult: ListResult<IncidentRole> =
+            await ModelAPI.getList<IncidentRole>({
+              modelType: IncidentRole,
+              query: {
+                projectId: projectId,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              select: INCIDENT_ROLE_CHOICE_SELECT,
+              sort: {
+                name: SortOrder.Ascending,
+              },
+            });
 
-        const roleData: Array<RoleData> = rolesResult.data
-          .map((role: IncidentRole): RoleData => {
-            const data: RoleData = {
-              id: role.id!,
-              name: role.name || "",
-              color: role.color || new Color("#000000"),
-              canAssignMultipleUsers: role.canAssignMultipleUsers || false,
-              isPrimaryRole: role.isPrimaryRole || false,
-            };
+          if (isCurrent) {
+            setLoadedRoles(rolesResult.data.map(toIncidentRoleChoice));
+          }
+        }
 
-            if (role.roleIcon) {
-              data.icon = role.roleIcon;
-            }
+        if (needsUsers) {
+          const users: Array<DropdownOption> =
+            await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId);
 
-            return data;
-          })
-          .sort((a: RoleData, b: RoleData) => {
-            // Primary roles first, then sort by name
-            if (a.isPrimaryRole && !b.isPrimaryRole) {
-              return -1;
-            }
-            if (!a.isPrimaryRole && b.isPrimaryRole) {
-              return 1;
-            }
-            return a.name.localeCompare(b.name);
-          });
-
-        setRoles(roleData);
-
-        // Fetch project users
-        const users: Array<DropdownOption> =
-          await ProjectUser.fetchProjectUsersAsDropdownOptions(projectId);
-        setUserOptions(users);
+          if (isCurrent) {
+            setLoadedUsers(users);
+          }
+        }
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        if (isCurrent) {
+          setError(API.getFriendlyMessage(err));
+        }
       }
 
-      setIsLoading(false);
-    }, []);
+      if (isCurrent) {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    fetchRolesAndUsers();
-  }, [fetchRolesAndUsers]);
+    load().catch(() => {
+      // load() reports its own failures.
+    });
 
-  const updateAssignment: (roleId: string, userIds: string[]) => void =
-    useCallback(
-      (roleId: string, userIds: string[]): void => {
-        setAssignments((prevAssignments: Array<RoleAssignment>) => {
-          const existingIndex: number = prevAssignments.findIndex(
-            (a: RoleAssignment) => {
-              return a.roleId === roleId;
-            },
-          );
+    return () => {
+      isCurrent = false;
+    };
+  }, [needsRoles, needsUsers]);
 
-          let newAssignments: Array<RoleAssignment>;
-
-          if (userIds.length === 0) {
-            // Remove the assignment if no users selected
-            newAssignments = prevAssignments.filter((a: RoleAssignment) => {
-              return a.roleId !== roleId;
-            });
-          } else if (existingIndex >= 0) {
-            // Update existing assignment
-            newAssignments = [...prevAssignments];
-            newAssignments[existingIndex] = { roleId, userIds };
-          } else {
-            // Add new assignment
-            newAssignments = [...prevAssignments, { roleId, userIds }];
-          }
-
-          // Notify parent of change
-          if (props.onChange) {
-            props.onChange(newAssignments);
-          }
-
-          return newAssignments;
-        });
-      },
-      [props.onChange],
-    );
-
-  const getSelectedUsersForRole: (roleId: string) => string[] = useCallback(
-    (roleId: string): string[] => {
-      const assignment: RoleAssignment | undefined = assignments.find(
-        (a: RoleAssignment) => {
-          return a.roleId === roleId;
-        },
-      );
-      return assignment?.userIds || [];
-    },
-    [assignments],
+  const roles: Array<IncidentRoleChoice> = sortIncidentRoleChoices(
+    props.roles || loadedRoles,
   );
+  const userOptions: Array<DropdownOption> = props.users || loadedUsers;
 
-  const removeUserFromRole: (roleId: string, userId: string) => void =
-    useCallback(
-      (roleId: string, userId: string): void => {
-        const currentUsers: string[] = getSelectedUsersForRole(roleId);
-        const newUsers: string[] = currentUsers.filter((id: string) => {
-          return id !== userId;
-        });
-        updateAssignment(roleId, newUsers);
-      },
-      [getSelectedUsersForRole, updateAssignment],
+  /*
+   * Worked out from the assignments on screen and told to the form right
+   * away - not from inside a state update, which React may run while it
+   * renders, when a form must not be told anything.
+   */
+  const setPeopleForRole: (roleId: string, userIds: Array<string>) => void = (
+    roleId: string,
+    userIds: Array<string>,
+  ): void => {
+    const next: Array<RoleAssignment> = withRoleUsers(
+      assignments,
+      roleId,
+      userIds,
     );
+
+    setAssignments(next);
+    props.onChange?.(next);
+  };
+
+  // A person no longer in the project is still named, as Unknown User.
+  const nameOf: (userId: string) => string = (userId: string): string => {
+    return (
+      userOptions.find((option: DropdownOption): boolean => {
+        return option.value === userId;
+      })?.label ||
+      translator.translateText("Unknown User") ||
+      "Unknown User"
+    );
+  };
 
   if (isLoading) {
     return <ComponentLoader />;
@@ -226,25 +208,27 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
 
   return (
     <div className="space-y-4">
-      {roles.map((role: RoleData) => {
-        const selectedUsers: string[] = getSelectedUsersForRole(
-          role.id.toString(),
-        );
-        const canAddMore: boolean =
-          role.canAssignMultipleUsers || selectedUsers.length === 0;
+      {roles.map((role: IncidentRoleChoice) => {
+        const picked: Array<string> = getPickedUserIds(assignments, role.id);
+        const canAddMore: boolean = canPickAnotherPerson(role, picked.length);
+        // The role's name names its picker for a screen reader.
+        const roleNameId: string = `${pickerId}-role-${role.id}`;
 
         return (
           <div
-            key={role.id.toString()}
+            key={role.id}
+            data-testid="incident-role-card"
             className="border border-gray-200 rounded-lg p-4"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2">
-                <RoleLabel
-                  name={role.name}
-                  color={role.color}
-                  icon={role.icon}
-                />
+                <div id={roleNameId}>
+                  <RoleLabel
+                    name={role.name}
+                    color={role.color ? new Color(role.color) : undefined}
+                    icon={role.icon}
+                  />
+                </div>
                 {role.isPrimaryRole && (
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
                     {translator.translateText("Primary")}
@@ -253,28 +237,31 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
               </div>
             </div>
 
-            {/* Selected users */}
-            {selectedUsers.length > 0 && (
+            {/* The people picked */}
+            {picked.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
-                {selectedUsers.map((userId: string) => {
-                  const userOption: DropdownOption | undefined =
-                    userOptions.find((opt: DropdownOption) => {
-                      return opt.value === userId;
-                    });
+                {picked.map((userId: string) => {
+                  const name: string = nameOf(userId);
+
                   return (
                     <div
                       key={userId}
                       className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm"
                     >
-                      <span>
-                        {userOption?.label ||
-                          translator.translateText("Unknown User")}
-                      </span>
+                      <span>{name}</span>
                       <button
                         type="button"
-                        aria-label={translator.translateText("Remove")}
+                        aria-label={translator.translateTemplate(
+                          "Remove {{member}} from {{role}}",
+                          { member: name, role: role.name },
+                        )}
                         onClick={() => {
-                          removeUserFromRole(role.id.toString(), userId);
+                          setPeopleForRole(
+                            role.id,
+                            picked.filter((id: string): boolean => {
+                              return id !== userId;
+                            }),
+                          );
                         }}
                         className="ml-2 text-gray-500 hover:text-gray-700"
                       >
@@ -286,23 +273,23 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
               </div>
             )}
 
-            {/* User selection dropdown */}
+            {/* One more person */}
             {canAddMore && (
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <Dropdown
                     placeholder="Select User"
-                    options={userOptions.filter((opt: DropdownOption) => {
-                      // Filter out already selected users
-                      return !selectedUsers.includes(opt.value as string);
+                    ariaLabelledby={roleNameId}
+                    options={userOptions.filter((option: DropdownOption) => {
+                      // The people picked already are not offered again.
+                      return !picked.includes(option.value as string);
                     })}
                     value={undefined}
                     onChange={(
                       value: DropdownValue | Array<DropdownValue> | null,
                     ) => {
                       if (value && typeof value === "string") {
-                        const newUsers: string[] = [...selectedUsers, value];
-                        updateAssignment(role.id.toString(), newUsers);
+                        setPeopleForRole(role.id, [...picked, value]);
                       }
                     }}
                   />

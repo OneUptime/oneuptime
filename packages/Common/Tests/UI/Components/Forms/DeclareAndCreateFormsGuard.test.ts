@@ -807,7 +807,15 @@ describe("who responds", () => {
     expect(picker).toContain(
       'translator.translateText( "Only one user can be assigned to this role.", )',
     );
-    expect(picker).toContain('aria-label={translator.translateText("Remove")}');
+    // Each remove button names the person and the role it takes them off.
+    expect(picker).toContain(
+      'aria-label={translator.translateTemplate( "Remove {{member}} from {{role}}", { member: name, role: role.name }, )}',
+    );
+    expect(picker).not.toContain(
+      'aria-label={translator.translateText("Remove")}',
+    );
+    // Each role's picker is named by the role.
+    expect(picker).toContain("ariaLabelledby={roleNameId}");
   });
 
   test("incident episodes use the incident's role picker, not a copy of it", () => {

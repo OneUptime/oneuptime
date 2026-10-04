@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "從{{role}}中移除{{member}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "「{{fileName}}」超過了 {{size}} 的上限。",
   "Max {{size}} each.": "每個檔案最大 {{size}}。",
   "These files exceed the {{size}} limit: {{fileNames}}.": "以下檔案超過了 {{size}} 的上限：{{fileNames}}。",
-  "Types: {{types}}. Max {{size}} each.": "類型：{{types}}。每個檔案最大 {{size}}。"
+  "Types: {{types}}. Max {{size}} each.": "類型：{{types}}。每個檔案最大 {{size}}。",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "從此範本宣告的事件以此狀態開始。留空則使用一般的初始狀態。",
+  "The usual starting state": "一般的初始狀態",
+  "Who takes each role on this incident.": "由誰擔任此事件的各個角色。"
 }

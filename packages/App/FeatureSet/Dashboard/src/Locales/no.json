@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "Fjern {{member}} fra {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "\"{{fileName}}\" overskrider grensen på {{size}}.",
   "Max {{size}} each.": "Maks. {{size}} per fil.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Disse filene overskrider grensen på {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Maks. {{size}} per fil."
+  "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Maks. {{size}} per fil.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Hendelser som erklæres fra denne malen, starter i denne tilstanden. La stå tom for den vanlige starttilstanden.",
+  "The usual starting state": "Den vanlige starttilstanden",
+  "Who takes each role on this incident.": "Hvem som tar hver rolle i denne hendelsen."
 }

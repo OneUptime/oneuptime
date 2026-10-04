@@ -21516,7 +21516,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "Снять {{member}} с роли {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24860,5 +24860,8 @@
   "\"{{fileName}}\" exceeds the {{size}} limit.": "«{{fileName}}» превышает ограничение в {{size}}.",
   "Max {{size}} each.": "Не более {{size}} каждый.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
-  "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый."
+  "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Инциденты, объявленные из этого шаблона, начинаются в этом состоянии. Оставьте пустым для обычного начального состояния.",
+  "The usual starting state": "Обычное начальное состояние",
+  "Who takes each role on this incident.": "Кто берёт каждую роль в этом инциденте."
 }
