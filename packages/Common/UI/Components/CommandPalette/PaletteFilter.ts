@@ -947,6 +947,21 @@ export const getHighlightSegments: (
     }
   }
 
+  /*
+   * A space or hyphen between two marked words is marked too, so "on call"
+   * marks "On-Call" as one run rather than two with a gap.
+   */
+  for (let index: number = 1; index < text.length - 1; index++) {
+    if (
+      !marked[index] &&
+      marked[index - 1] &&
+      marked[index + 1] &&
+      !LETTER_OR_DIGIT.test(text.charAt(index))
+    ) {
+      marked[index] = true;
+    }
+  }
+
   const segments: Array<PaletteHighlightSegment> = [];
 
   for (let index: number = 0; index < text.length; index++) {

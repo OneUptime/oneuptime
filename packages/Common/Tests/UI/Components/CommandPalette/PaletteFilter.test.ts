@@ -625,10 +625,22 @@ describe("getHighlightSegments", () => {
   });
 
   test("marks each query word where it starts a word, in any order", () => {
+    expect(
+      getHighlightSegments("Monitor Status Settings", "settings mon"),
+    ).toEqual([
+      { text: "Mon", isMatch: true },
+      { text: "itor Status ", isMatch: false },
+      { text: "Settings", isMatch: true },
+    ]);
+  });
+
+  test("a space or hyphen between two marked words is marked with them", () => {
     expect(getHighlightSegments("API Keys", "keys api")).toEqual([
-      { text: "API", isMatch: true },
-      { text: " ", isMatch: false },
-      { text: "Keys", isMatch: true },
+      { text: "API Keys", isMatch: true },
+    ]);
+    expect(getHighlightSegments("On-Call Duty", "on call")).toEqual([
+      { text: "On-Call", isMatch: true },
+      { text: " Duty", isMatch: false },
     ]);
   });
 
