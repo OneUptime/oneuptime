@@ -78,7 +78,10 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         name="Runner Details"
         cardProps={{
           title: "Runner Details",
-          // Only a Runner the Kubernetes agent chart installed has something to say.
+          /*
+           * The title says what the card holds. Only a Runner the Kubernetes
+           * agent chart installed has more to say: why its form is short.
+           */
           description: kubernetesAgentRunnerNote ? (
             <span data-testid="kubernetes-agent-runner-note">
               {kubernetesAgentRunnerNote}

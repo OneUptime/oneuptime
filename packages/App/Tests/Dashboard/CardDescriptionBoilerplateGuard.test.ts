@@ -29,7 +29,9 @@ import ts from "typescript";
  *   - "List of", "A list of", "The list of", "This is a list of": the same;
  *   - "This is the timeline and feed": the feeds' old filler;
  *   - "Manage ... here.": a sentence that only says the page is for
- *     managing what it shows.
+ *     managing what it shows;
+ *   - "Basic information about this X." / "Overview of this X.": a details
+ *     card's title already says that. Such a card needs no description.
  *
  * A string that has to keep such an opener goes in ALLOWED, with the reason.
  * Say what the list or card is for instead: what the items are, what they
@@ -79,6 +81,10 @@ const OPENERS: Array<Opener> = [
   {
     name: "Manage ... here",
     pattern: /^Manage\b[\s\S]*\bhere\.?$/i,
+  },
+  {
+    name: "Basic information about this / Overview of this",
+    pattern: /^(?:Basic\s+information\s+about|Overview\s+of)\s+this\b/i,
   },
 ];
 
@@ -301,6 +307,8 @@ describe("the openers this guard refuses", () => {
     "This is a list of your invoices.",
     "This is the timeline and feed for this incident. You can see all the updates and information about this incident here.",
     "Manage your incident settings here.",
+    "Basic information about this pipeline.",
+    "Overview of this Docker host.",
     "Manage team members from your identity provider or disable Push Groups in Settings > SCIM to make changes here.",
     "  Here is a description that a long JSX line wrapped.  ",
   ])("refuses %j", (sentence: string) => {
@@ -318,6 +326,8 @@ describe("the openers this guard refuses", () => {
     "Hereford cattle",
     "Listening on port 8080.",
     "No monitors yet.",
+    "Overview",
+    "An overview of this cluster's health, as a chart.",
   ])("accepts %j", (sentence: string) => {
     expect(findOpener(sentence)).toBeUndefined();
   });

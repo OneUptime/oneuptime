@@ -2863,7 +2863,6 @@ const ProxmoxClusterOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Proxmox cluster.",
           buttons: [
             <EditInSettingsLink
               key="edit-in-settings"

@@ -421,8 +421,9 @@ describe("every new sentence is translated in every language", () => {
 /*
  * A details card whose title already says what it holds - "Workflow
  * Details" over a workflow's name and description - had a description that
- * said it again ("Here are more details for this workflow."). Those cards
- * have no description now.
+ * said it again ("Here are more details for this workflow.", "Basic
+ * information about this pipeline.", "Overview of this Docker host."). Those
+ * cards have no description now.
  */
 const TITLE_SAYS_IT_ALL: Array<[string, string]> = [
   ["Pages/Settings/ProjectSettings.tsx", "Project Details"],
@@ -448,6 +449,21 @@ const TITLE_SAYS_IT_ALL: Array<[string, string]> = [
   ["Pages/MonitorGroup/View/Index.tsx", "Monitor Group Details"],
   ["Pages/Settings/LlmProviderView.tsx", "LLM Provider Details"],
   ["Pages/Runbook/Runners/RunnerView.tsx", "Runner Status"],
+  ["Pages/Traces/Settings/PipelineView.tsx", "Pipeline Details"],
+  ["Pages/Logs/Settings/PipelineView.tsx", "Pipeline Details"],
+  ["Pages/Traces/Settings/DropFilterView.tsx", "Drop Filter Details"],
+  ["Pages/Logs/Settings/DropFilterView.tsx", "Drop Filter Details"],
+  ["Pages/Kubernetes/View/Index.tsx", "Cluster Details"],
+  ["Pages/Proxmox/View/Index.tsx", "Cluster Details"],
+  ["Pages/VMware/View/Index.tsx", "vCenter Details"],
+  ["Pages/Docker/View/Overview.tsx", "Docker Host Details"],
+  ["Pages/Podman/View/Overview.tsx", "Podman Host Details"],
+  ["Pages/Ceph/View/Index.tsx", "Ceph Cluster Details"],
+  [
+    "Pages/StatusPages/Settings/SubscriberNotificationTemplateView.tsx",
+    "Template Overview",
+  ],
+  ["Pages/Runbook/View/Index.tsx", "Runbook"],
 ];
 
 interface CardObject {
@@ -456,7 +472,22 @@ interface CardObject {
   description: ts.Expression | undefined;
 }
 
-// Every object literal in the file with a string `title`, and its keys.
+// Whether `node` is what a card is handed: `cardProps={{ ... }}` or `cardProps: { ... }`.
+function isCardProps(node: ts.ObjectLiteralExpression): boolean {
+  const parent: ts.Node = node.parent;
+
+  if (ts.isPropertyAssignment(parent)) {
+    return parent.name.getText() === "cardProps";
+  }
+
+  return (
+    ts.isJsxExpression(parent) &&
+    ts.isJsxAttribute(parent.parent) &&
+    parent.parent.name.getText() === "cardProps"
+  );
+}
+
+// Every card's props in the file with a string `title`, and their keys.
 function getTitledObjects(file: string): Array<CardObject> {
   const text: string = readDashboard(file);
   const source: ts.SourceFile = ts.createSourceFile(
@@ -469,7 +500,7 @@ function getTitledObjects(file: string): Array<CardObject> {
   const objects: Array<CardObject> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (ts.isObjectLiteralExpression(node)) {
+    if (ts.isObjectLiteralExpression(node) && isCardProps(node)) {
       let title: string | undefined = undefined;
       let description: ts.Expression | undefined = undefined;
       const properties: Array<string> = [];

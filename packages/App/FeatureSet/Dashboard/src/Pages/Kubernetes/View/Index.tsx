@@ -2942,7 +2942,6 @@ const KubernetesClusterOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Kubernetes cluster.",
           buttons: [
             <EditInSettingsLink
               key="edit-in-settings"
