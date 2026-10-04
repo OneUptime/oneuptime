@@ -234,11 +234,11 @@ describe("one menu entry in each place, and no page per kind", () => {
     const routeMap: string = readDashboard("Utils/RouteMap.ts");
 
     expect(
-      (pageMap.match(/^\s*USER_(SETTINGS|VIEW)_\w*ON_CALL_RULES\b/gm) || []).map(
-        (key: string): string => {
-          return key.trim();
-        },
-      ),
+      (
+        pageMap.match(/^\s*USER_(SETTINGS|VIEW)_\w*ON_CALL_RULES\b/gm) || []
+      ).map((key: string): string => {
+        return key.trim();
+      }),
     ).toEqual(["USER_SETTINGS_ON_CALL_RULES", "USER_VIEW_ON_CALL_RULES"]);
 
     for (const retired of RETIRED_RULE_PAGE_PATHS) {
@@ -367,9 +367,9 @@ describe("the old addresses are named once, and linked from nowhere", () => {
     );
 
     if (fs.existsSync(complianceView)) {
-      expect(
-        stripComments(fs.readFileSync(complianceView, "utf8")),
-      ).toContain("getOnCallRuleKindQueryForRuleType(");
+      expect(stripComments(fs.readFileSync(complianceView, "utf8"))).toContain(
+        "getOnCallRuleKindQueryForRuleType(",
+      );
     }
   });
 });

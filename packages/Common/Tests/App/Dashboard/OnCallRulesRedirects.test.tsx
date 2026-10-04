@@ -380,9 +380,7 @@ describe("a member's rules: the four old pages under Users", () => {
       visit(`${USERS}/${USER_ID}/${oldPath}`, "users");
 
       expect(pageName()).toBe("UserViewOnCallRules");
-      expect(landedOn()).toBe(
-        `${USERS}/${USER_ID}/on-call-rules?type=${kind}`,
-      );
+      expect(landedOn()).toBe(`${USERS}/${USER_ID}/on-call-rules?type=${kind}`);
       /*
        * Inside the member's view and its On-Call section, once each: the
        * forward itself does not wait for (or repeat) the section's reads.

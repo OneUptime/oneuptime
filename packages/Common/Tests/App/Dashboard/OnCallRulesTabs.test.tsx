@@ -245,12 +245,7 @@ describe("the tabs", () => {
       screen.getAllByRole("tab").map((tab: HTMLElement): string => {
         return tab.textContent?.trim() || "";
       }),
-    ).toEqual([
-      "Incidents",
-      "Incident Episodes",
-      "Alerts",
-      "Alert Episodes",
-    ]);
+    ).toEqual(["Incidents", "Incident Episodes", "Alerts", "Alert Episodes"]);
   });
 
   test("agree with the kinds' definitions", () => {
@@ -361,9 +356,7 @@ describe("opening a tab", () => {
 
     fireEvent.click(screen.getByTestId("tab-Alert Episodes"));
 
-    const params: URLSearchParams = new URLSearchParams(
-      window.location.search,
-    );
+    const params: URLSearchParams = new URLSearchParams(window.location.search);
 
     expect(params.get("from")).toBe("email");
     expect(params.get("type")).toBe("alert-episodes");

@@ -125,7 +125,9 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_RULES] || ""}
+          path={
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_RULES] || ""
+          }
           element={
             <UserSettingsOnCallRules
               {...props}

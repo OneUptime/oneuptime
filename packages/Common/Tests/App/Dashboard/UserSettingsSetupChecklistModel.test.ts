@@ -488,10 +488,7 @@ describe("setup checklist - paging rules", () => {
       }),
     );
 
-    const methodStep: SetupStep | undefined = findStep(
-      checklist,
-      "add-method",
-    );
+    const methodStep: SetupStep | undefined = findStep(checklist, "add-method");
 
     expect(methodStep!.pageMap).toBe(
       PageMap.USER_SETTINGS_NOTIFICATION_METHODS,

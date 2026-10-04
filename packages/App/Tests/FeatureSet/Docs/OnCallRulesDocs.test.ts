@@ -101,11 +101,11 @@ function allDocsFiles(directory: string = CONTENT_DIR): Array<string> {
 
 describe("the docs send people to the one On-Call Rules page", () => {
   it("names the menu entries the dashboard really has", () => {
-    expect(readRepoFile(USER_SETTINGS_MENU)).toContain('title: "On-Call Rules"');
-    expect(readRepoFile(USER_VIEW_MENU)).toContain('title: "On-Call Rules"');
-    expect(readPage("en")).toContain(
-      "**User Settings** > **On-Call Rules**",
+    expect(readRepoFile(USER_SETTINGS_MENU)).toContain(
+      'title: "On-Call Rules"',
     );
+    expect(readRepoFile(USER_VIEW_MENU)).toContain('title: "On-Call Rules"');
+    expect(readPage("en")).toContain("**User Settings** > **On-Call Rules**");
   });
 
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(

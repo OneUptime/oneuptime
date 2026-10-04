@@ -1190,9 +1190,11 @@ describe("OnCallRulesTable", () => {
   test("lists the severities most severe first, with their colours", async () => {
     await renderAndSettle(ownPageAt(OnCallRuleKind.Alerts));
 
-    const severityRead: any = getListMock.mock.calls.find((call: Array<any>) => {
-      return call[0].modelType === AlertSeverity;
-    });
+    const severityRead: any = getListMock.mock.calls.find(
+      (call: Array<any>) => {
+        return call[0].modelType === AlertSeverity;
+      },
+    );
 
     expect(severityRead).toBeDefined();
     expect(severityRead[0].sort).toEqual({ order: SortOrder.Ascending });

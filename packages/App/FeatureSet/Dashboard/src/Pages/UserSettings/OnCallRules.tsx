@@ -15,7 +15,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 const UserSettingsOnCallRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  return <OnCallRulesTabs userPreferencesKeyPrefix="user-notification-rules-table" />;
+  return (
+    <OnCallRulesTabs userPreferencesKeyPrefix="user-notification-rules-table" />
+  );
 };
 
 export default UserSettingsOnCallRules;

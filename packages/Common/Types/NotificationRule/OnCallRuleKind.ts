@@ -62,15 +62,16 @@ export const MOVED_ON_CALL_RULES_PATHS: Readonly<
   "alert-episode-on-call-rules": OnCallRuleKind.AlertEpisodes,
 };
 
-const RULE_TYPE_BY_KIND: Readonly<Record<OnCallRuleKind, NotificationRuleType>> =
-  {
-    [OnCallRuleKind.Incidents]: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-    [OnCallRuleKind.IncidentEpisodes]:
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
-    [OnCallRuleKind.Alerts]: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-    [OnCallRuleKind.AlertEpisodes]:
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
-  };
+const RULE_TYPE_BY_KIND: Readonly<
+  Record<OnCallRuleKind, NotificationRuleType>
+> = {
+  [OnCallRuleKind.Incidents]: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+  [OnCallRuleKind.IncidentEpisodes]:
+    NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+  [OnCallRuleKind.Alerts]: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+  [OnCallRuleKind.AlertEpisodes]:
+    NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+};
 
 // The rule type every rule on a kind's tab has.
 export const getRuleTypeForOnCallRuleKind: (

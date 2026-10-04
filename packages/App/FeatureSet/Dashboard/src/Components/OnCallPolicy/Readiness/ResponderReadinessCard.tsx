@@ -109,7 +109,9 @@ const getFix: (
 };
 
 // The fix's page, on the right tab, inside the dashboard.
-const getFixRoute: (fix: ReadinessFix) => Route = (fix: ReadinessFix): Route => {
+const getFixRoute: (fix: ReadinessFix) => Route = (
+  fix: ReadinessFix,
+): Route => {
   return RouteUtil.addQuery(
     RouteUtil.populateRouteParams(RouteMap[fix.page] as Route),
     fix.query,
