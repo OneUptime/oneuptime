@@ -4,6 +4,7 @@ import TeamPermissionTable, {
 } from "../../../Components/Team/TeamPermissionTable";
 import ObjectID from "Common/Types/ObjectID";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   Fragment,
@@ -14,13 +15,14 @@ import React, {
 
 /*
  * A team's Permissions page: what its members can do, then - folded under
- * Advanced - what they can never do.
+ * More settings - what they can never do.
  *
  * Block permissions had a page of their own, next to Permissions in the
  * team's menu and as prominent as what the team can do, though few teams
- * ever need one. They now sit in the Advanced section at the bottom of this
- * page, as on an API key's page, which says "Configured" while the team has
- * any. The old Block Permissions address forwards here (TeamsRoutes).
+ * ever need one. They now sit in the More settings section at the bottom of
+ * this page, as on an API key's page, whose folded header shows how many
+ * the team has. The old Block Permissions address forwards here
+ * (TeamsRoutes).
  */
 export const TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID: string =
   "team-permissions-advanced-section";
@@ -43,7 +45,13 @@ const TeamViewPermissions: FunctionComponent<PageComponentProps> = (
       {/* What they can never do, folded away. */}
       <AdvancedPageSection
         description="Block permissions: what this team can never do, even when one of its roles or permissions allows it."
-        isConfigured={blockPermissionCount > 0}
+        items={[
+          foldedSectionItem("Block Permissions", {
+            key: "blockPermissions",
+            isSet: blockPermissionCount > 0,
+            value: String(blockPermissionCount),
+          }),
+        ]}
         dataTestId={TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID}
       >
         <TeamPermissionTable

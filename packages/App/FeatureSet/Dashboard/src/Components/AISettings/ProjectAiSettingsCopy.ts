@@ -1,4 +1,8 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 
 /*
  * What the project's AI settings pages say, in one place: Incidents →
@@ -16,8 +20,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * flipped, named for what it does ("Investigate new incidents"), on the
  * shared switch rows (Common/UI/Components/ModelSwitch). What narrows or
  * caps the work - which incidents are investigated, how many run at once,
- * how much may run each day - is folded under Advanced, whose folded line
- * says what the defaults do. Two things are said only when they are true:
+ * how much may run each day - is folded under More settings, whose folded
+ * header names those cards and says what the defaults do. Two things are said only when they are true:
  * that Enable AI is off (with the switch that turns it on), and that the
  * project has no LLM provider OneUptime AI can use.
  *
@@ -298,7 +302,71 @@ export const isAiLaneAdvancedValueSet: (value: unknown) => boolean = (
   return true;
 };
 
-// Whether anything under a lane's Advanced is set: its "Configured" badge.
+/*
+ * The cards under a lane's More settings, by title, as its folded header
+ * lists them - each one a chip once a limit in it is set, so folding never
+ * hides a limit in force.
+ */
+export const AI_LANE_ADVANCED_CARD_TITLES: Record<
+  AiLane,
+  Record<AiLaneAdvancedCard, string>
+> = {
+  [AiLane.Incident]: {
+    [AiLaneAdvancedCard.WhichAreInvestigated]: translationKey(
+      "Which incidents are investigated",
+    ),
+    [AiLaneAdvancedCard.InvestigationLimits]: translationKey(
+      "Investigation limits",
+    ),
+    [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
+  },
+  [AiLane.Alert]: {
+    [AiLaneAdvancedCard.WhichAreInvestigated]: translationKey(
+      "Which alerts are investigated",
+    ),
+    [AiLaneAdvancedCard.InvestigationLimits]: translationKey(
+      "Investigation limits",
+    ),
+    [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
+  },
+};
+
+// Whether a card under a lane's More settings holds a limit.
+export const isAiLaneAdvancedCardConfigured: (
+  lane: AiLane,
+  card: AiLaneAdvancedCard,
+  state: AiLaneAdvancedState,
+) => boolean = (
+  lane: AiLane,
+  card: AiLaneAdvancedCard,
+  state: AiLaneAdvancedState,
+): boolean => {
+  return getAiLaneAdvancedCardColumns(lane, card).some(
+    (column: string): boolean => {
+      return isAiLaneAdvancedValueSet(state.values[column]);
+    },
+  );
+};
+
+// What the folded More settings header lists: the three cards, set or not.
+export const getAiLaneAdvancedItems: (
+  lane: AiLane,
+  state: AiLaneAdvancedState,
+) => Array<FoldedSectionItem> = (
+  lane: AiLane,
+  state: AiLaneAdvancedState,
+): Array<FoldedSectionItem> => {
+  return AI_LANE_ADVANCED_CARDS.map(
+    (card: AiLaneAdvancedCard): FoldedSectionItem => {
+      return foldedSectionItem(AI_LANE_ADVANCED_CARD_TITLES[lane][card], {
+        key: card,
+        isSet: isAiLaneAdvancedCardConfigured(lane, card, state),
+      });
+    },
+  );
+};
+
+// Whether anything under a lane's More settings is set.
 export const isAiLaneAdvancedConfigured: (
   lane: AiLane,
   state: AiLaneAdvancedState,
@@ -314,7 +382,7 @@ export interface AiLanePageCopy {
   // The switches card.
   switchesCardTitle: string;
   switchesCardDescription: string;
-  // The Advanced section.
+  // The More settings section.
   advancedDescription: string;
   advancedDefaultsSummary: string;
 }
@@ -349,11 +417,11 @@ export const AI_LANE_PAGE_COPY: Record<AiLane, AiLanePageCopy> = {
 };
 
 /*
- * The line under the folded Advanced header: what the defaults do, once
- * every card has read and none holds anything. Nothing until then - a
+ * The line under the folded More settings header: what the defaults do,
+ * once every card has read and none holds anything. Nothing until then - a
  * "nothing limits AI" read before the limits are known could be untrue -
- * and nothing while a limit is set, when the header says "Configured" and
- * the description says what is in there.
+ * and nothing while a limit is set, when the header draws that card as a
+ * chip.
  */
 export const getAiLaneAdvancedSummary: (
   lane: AiLane,

@@ -1,13 +1,17 @@
 import IP from "Common/Types/IP/IP";
 import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * An IP allowlist: the ipWhitelist column a status page and a dashboard
- * each have, one entry a line, edited under Advanced on the page that says
- * who can see them (a status page's Access, a dashboard's Sharing).
+ * each have, one entry a line, edited under More settings on the page that
+ * says who can see them (a status page's Access, a dashboard's Sharing).
  *
  * The server enforces it whenever the column holds anything at all
  * (StatusPageService.hasReadAccess, DashboardService.hasReadAccess, both
@@ -49,6 +53,25 @@ export const isIpAllowlistInForce: (
   ipAllowlist: string | null | undefined,
 ) => boolean = (ipAllowlist: string | null | undefined): boolean => {
   return Boolean(ipAllowlist && ipAllowlist.length > 0);
+};
+
+/*
+ * The allowlist as a folded More settings header lists it: a chip with how
+ * many entries it holds while it is in force, its name otherwise. Unread
+ * (null), it is listed by name.
+ */
+export const getIpAllowlistFoldedItem: (
+  ipAllowlist: string | null | undefined,
+) => FoldedSectionItem = (
+  ipAllowlist: string | null | undefined,
+): FoldedSectionItem => {
+  const entryCount: number = getIpAllowlistEntries(ipAllowlist).length;
+
+  return foldedSectionItem(IpAllowlistCopy.title, {
+    key: IP_ALLOWLIST_COLUMN,
+    isSet: isIpAllowlistInForce(ipAllowlist),
+    value: entryCount > 0 ? String(entryCount) : undefined,
+  });
 };
 
 // The list's entries as the server reads them: trimmed, blank lines left out.

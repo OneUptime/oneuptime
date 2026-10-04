@@ -89,8 +89,8 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
 
       <AdvancedPageSection
         description={AI_LANE_PAGE_COPY[AiLane.Alert].advancedDescription}
+        items={advanced.items}
         summary={advanced.summary}
-        isConfigured={advanced.isConfigured}
         dataTestId={AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Alert]}
       >
         <CardModelDetail<Project>

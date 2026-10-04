@@ -1,17 +1,23 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS,
+  getMonitorOptionsMoreFieldsItems,
+} from "../MonitorMoreFields";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { parseMonitorStepRetriesInput } from "Common/Types/Monitor/MonitorStepRetries";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepExternalStatusPageMonitor: MonitorStepExternalStatusPageMonitor;
@@ -21,9 +27,6 @@ export interface ComponentProps {
 const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-  const [showAdvancedOptions, setShowAdvancedOptions] =
-    useState<boolean>(false);
 
   const providerDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(ExternalStatusPageProviderType);
@@ -76,23 +79,21 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {!showAdvancedOptions && (
-        <div className="mt-1 -ml-3">
-          <Button
-            title="Advanced: Component Filters, Timeout and Retries"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            onClick={() => {
-              setShowAdvancedOptions(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showAdvancedOptions && (
-        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">
-            {translator.translateText("Advanced Options")}
-          </h4>
+      {/*
+       * More fields, folded like every form's: options most monitors
+       * leave at their defaults. Its header names them and shows the
+       * ones changed.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
+        items={getMonitorOptionsMoreFieldsItems(
+          props.monitorStepExternalStatusPageMonitor,
+          EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS,
+        )}
+        dataTestId="external-status-page-monitor-more-fields"
+      >
+        <div className="space-y-4">
 
           <div>
             <FieldLabelElement
@@ -180,7 +181,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      )}
+      </FoldedSection>
     </div>
   );
 };

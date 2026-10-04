@@ -8,6 +8,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -19,12 +20,12 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * An API key's page, in the order it is used: what the key is (and the key
- * itself, to copy), what it can do, resetting it, then - folded under
- * Advanced - what it can never do, and deleting it.
+ * itself, to copy), what it can do, resetting it, then - folded under More
+ * settings - what it can never do, and deleting it.
  *
  * Block permissions are rarely needed and were always on screen, as large as
- * what the key can do; they now sit in the Advanced section, which says
- * "Configured" while the key has any.
+ * what the key can do; they now sit in the More settings section, whose
+ * folded header shows how many the key has.
  */
 const APIKeyView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -150,7 +151,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
       {/* What the key can never do, folded away. */}
       <AdvancedPageSection
         description="Block permissions: what this key can never do, even when one of its roles or permissions allows it."
-        isConfigured={blockPermissionCount > 0}
+        items={[
+          foldedSectionItem("Block Permissions", {
+            key: "blockPermissions",
+            isSet: blockPermissionCount > 0,
+            value: String(blockPermissionCount),
+          }),
+        ]}
         dataTestId="api-key-advanced-section"
       >
         <ApiKeyPermissionTable

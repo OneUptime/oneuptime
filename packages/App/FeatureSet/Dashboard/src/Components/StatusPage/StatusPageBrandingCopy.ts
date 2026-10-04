@@ -2,6 +2,10 @@ import Color from "Common/Types/Color";
 import { Green } from "Common/Types/BrandColors";
 import { DEFAULT_STATUS_PAGE_LANGUAGE } from "Common/Types/StatusPage/StatusPageLanguage";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 
 /*
  * A status page's Branding page (Status Pages -> a page -> Branding ->
@@ -16,8 +20,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * nearly everyone sets, in the order a visitor meets it (the logo and cover
  * image, the title and description, the favicon, the header's links, the
  * text at the top of the overview, the footer), and folds what few people
- * ever change under Advanced: the history chart's colors, the languages and
- * search engine indexing. The overall uptime % and what counts as downtime,
+ * ever change under More settings: the history chart's colors, the
+ * languages and search engine indexing. The overall uptime % and what counts as downtime,
  * which were on Overview Page, are about what the page shows, so they are on
  * Advanced Settings now.
  *
@@ -32,8 +36,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export type BrandingSwitchColumn = "enableSearchEngineIndexing";
 
 export const StatusPageBrandingCopy: {
-  // Under the folded Advanced section's title, folded or open.
+  // Under the More settings section's title, once it is open.
   advancedDescription: string;
+  // The cards under More settings, as its folded header names them.
+  defaultBarColorTitle: string;
+  barColorRulesTitle: string;
   overviewDescriptionTitle: string;
   overviewDescriptionDescription: string;
   overviewDescriptionEditButton: string;
@@ -49,6 +56,8 @@ export const StatusPageBrandingCopy: {
   advancedDescription: translationKey(
     "History chart colors, languages, and whether search engines may list this page.",
   ),
+  defaultBarColorTitle: translationKey("Default Bar Color"),
+  barColorRulesTitle: translationKey("Bar Color Rules"),
   overviewDescriptionTitle: translationKey("Overview Page Description"),
   overviewDescriptionDescription: translationKey(
     "Shown at the top of your status page's overview, above everything else. Markdown is supported.",
@@ -76,7 +85,7 @@ export const StatusPageBrandingCopy: {
 export const SEARCH_ENGINE_INDEXING_SWITCH_TEST_ID: string =
   "branding-switch-enableSearchEngineIndexing";
 
-// The data-testid of the Branding page's folded Advanced section.
+// The data-testid of the Branding page's folded More settings section.
 export const BRANDING_ADVANCED_SECTION_TEST_ID: string =
   "status-page-branding-advanced";
 
@@ -110,11 +119,63 @@ export const isDefaultBarColorChosen: (
 };
 
 /*
- * Whether anything in the Advanced section is set to something other than
- * what a new status page starts with, so the folded section says
- * "Configured" and folding never hides a setting that is in force: a chosen
- * default bar color, any bar color rule, a default language other than
- * English, a shorter list of languages, or search engines kept away.
+ * Whether the languages differ from what a new status page starts with: a
+ * default language other than English, or a shorter list to switch to.
+ */
+export const areBrandingLanguagesChosen: (
+  values: BrandingAdvancedValues,
+) => boolean = (values: BrandingAdvancedValues): boolean => {
+  if (
+    values.defaultLanguage &&
+    values.defaultLanguage !== DEFAULT_STATUS_PAGE_LANGUAGE
+  ) {
+    return true;
+  }
+
+  return Boolean(values.enabledLanguages && values.enabledLanguages.length > 0);
+};
+
+/*
+ * What the folded More settings header lists: its four cards, each a chip
+ * once it differs from what a new status page starts with, so folding
+ * never hides a setting in force.
+ */
+export const getBrandingAdvancedItems: (
+  values: BrandingAdvancedValues,
+) => Array<FoldedSectionItem> = (
+  values: BrandingAdvancedValues,
+): Array<FoldedSectionItem> => {
+  const ruleCount: number = values.barColorRuleCount || 0;
+
+  return [
+    foldedSectionItem(StatusPageBrandingCopy.defaultBarColorTitle, {
+      key: "defaultBarColor",
+      isSet: isDefaultBarColorChosen(values.defaultBarColor),
+    }),
+    foldedSectionItem(StatusPageBrandingCopy.barColorRulesTitle, {
+      key: "barColorRules",
+      isSet: ruleCount > 0,
+      value: String(ruleCount),
+    }),
+    foldedSectionItem(StatusPageBrandingCopy.languagesTitle, {
+      key: "languages",
+      isSet: areBrandingLanguagesChosen(values),
+    }),
+    foldedSectionItem(StatusPageBrandingCopy.searchEngineIndexingTitle, {
+      key: "searchEngineIndexing",
+      // The column defaults to on and is not nullable: only false is off.
+      isSet: values.enableSearchEngineIndexing === false,
+      value: translationKey("Off"),
+      translateValue: true,
+    }),
+  ];
+};
+
+/*
+ * Whether anything in the More settings section is set to something other
+ * than what a new status page starts with: a chosen default bar color, any
+ * bar color rule, a default language other than English, a shorter list of
+ * languages, or search engines kept away.
  */
 export const isBrandingAdvancedConfigured: (
   values: BrandingAdvancedValues,
@@ -127,14 +188,7 @@ export const isBrandingAdvancedConfigured: (
     return true;
   }
 
-  if (
-    values.defaultLanguage &&
-    values.defaultLanguage !== DEFAULT_STATUS_PAGE_LANGUAGE
-  ) {
-    return true;
-  }
-
-  if (values.enabledLanguages && values.enabledLanguages.length > 0) {
+  if (areBrandingLanguagesChosen(values)) {
     return true;
   }
 

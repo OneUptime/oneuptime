@@ -1,4 +1,13 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  SQL_MONITOR_MORE_FIELDS,
+  getMonitorOptionsMoreFieldsItems,
+} from "../MonitorMoreFields";
 import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import SqlDatabaseType, {
   SqlDatabaseTypeUtil,
@@ -11,7 +20,6 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
@@ -28,8 +36,6 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [showAdvancedOptions, setShowAdvancedOptions] =
-    useState<boolean>(false);
 
   const databaseTypeOptions: Array<DropdownOption> =
     SqlDatabaseTypeUtil.getSupportedDatabaseTypes().map(
@@ -264,23 +270,21 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {!showAdvancedOptions && (
-        <div className="mt-1 -ml-3">
-          <Button
-            title="Advanced: Timeouts and Row Limit"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            onClick={() => {
-              setShowAdvancedOptions(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showAdvancedOptions && (
-        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">
-            {translator.translateText("Advanced Options")}
-          </h4>
+      {/*
+       * More fields, folded like every form's: options most monitors
+       * leave at their defaults. Its header names them and shows the
+       * ones changed.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
+        items={getMonitorOptionsMoreFieldsItems(
+          props.monitorStepSqlMonitor,
+          SQL_MONITOR_MORE_FIELDS,
+        )}
+        dataTestId="sql-monitor-more-fields"
+      >
+        <div className="space-y-4">
 
           <div>
             <FieldLabelElement
@@ -339,7 +343,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      )}
+      </FoldedSection>
     </div>
   );
 };

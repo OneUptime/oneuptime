@@ -16,7 +16,12 @@ import React, {
 import OwnersPicker, {
   OwnersPickerValue,
 } from "Common/UI/Components/PeoplePicker/OwnersPicker";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -25,7 +30,7 @@ import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariable
 import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
-import { hasAlertAdvancedOptions } from "./CriteriaAdvancedOptions";
+import { getAlertMoreFieldsItems } from "./MonitorMoreFields";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -81,8 +86,11 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaAlert.onCallPolicyIds?.length,
   );
-  // Only what the user chose: a default rule's auto-resolve does not count.
-  const hasAdvancedOptions: boolean = hasAlertAdvancedOptions(criteriaAlert);
+  /*
+   * The More fields section's options, by name, the ones the user chose
+   * as chips: a default rule's auto-resolve does not count.
+   */
+  const moreFieldsItems: Array<FoldedSectionItem> = getAlertMoreFieldsItems(criteriaAlert);
 
   /*
    * The variables this monitor's alert description and remediation notes
@@ -167,11 +175,10 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Description - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="Description"
         description="Optional alert description"
         badge={hasDescription ? "Set" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasDescription}
       >
         <div>
@@ -191,14 +198,13 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
       {/* Ownership & Labels - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="Ownership & Labels"
         description="Assign owners and labels to the alert"
         badge={hasOwnershipOrLabels ? "Configured" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasOwnershipOrLabels}
       >
         <div className="space-y-4">
@@ -255,14 +261,13 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
       {/* On-Call - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="On-Call"
         description="Configure on-call policy escalation"
         badge={hasNotifications ? "Configured" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasNotifications}
       >
         <div>
@@ -295,15 +300,18 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             placeholder="Select On-Call Policies"
           />
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
-      {/* Advanced Options - Collapsible */}
-      <CollapsibleSection
-        title="Advanced Options"
+      {/*
+       * More fields - folded, like every form's: what most rules never
+       * change. Its header names the options and shows the ones chosen.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
         description="Auto-resolve and remediation settings"
-        badge={hasAdvancedOptions ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasAdvancedOptions}
+        items={moreFieldsItems}
+        dataTestId="criteria-alert-more-fields"
       >
         <div className="space-y-4">
           <div>
@@ -346,7 +354,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
     </div>
   );
 };
