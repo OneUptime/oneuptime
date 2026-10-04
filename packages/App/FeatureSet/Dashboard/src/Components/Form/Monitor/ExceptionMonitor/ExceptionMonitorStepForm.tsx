@@ -12,7 +12,8 @@ import React, {
 } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
@@ -57,6 +58,21 @@ type ExceptionMonitorFormValues = {
   includeArchived: boolean;
   lastXSecondsOfExceptions: number;
 };
+
+/*
+ * The filters that narrow an exception monitor down further - telemetry
+ * service and infrastructure entity - and the switches that count resolved
+ * or archived exceptions too fold under the same More fields section as the
+ * rarely needed fields of every other form, instead of the Show / Hide
+ * Advanced Options link this form had of its own. Folded, the section's
+ * header names them and shows each one a monitor uses as a chip ("Include
+ * Resolved Exceptions: On"), so editing a monitor never hides a filter it
+ * has. Folded fields stay mounted: the preview below and the saved step
+ * always get the whole filter set. Built once, so every render hands its
+ * fields the same section.
+ */
+const MORE_EXCEPTION_FILTERS: FormFieldCollapsibleSection<ExceptionMonitorFormValues> =
+  getAdvancedFormSection<ExceptionMonitorFormValues>();
 
 const DURATION_OPTIONS: Array<{ label: string; value: number }> = [
   { label: "Last 5 seconds", value: 5 },
@@ -145,21 +161,6 @@ const toMonitorConfig: ToMonitorConfigFunction = (
   };
 };
 
-type HasAdvancedConfigurationFunction = (
-  monitor: MonitorStepExceptionMonitor,
-) => boolean;
-
-const hasAdvancedConfiguration: HasAdvancedConfigurationFunction = (
-  monitor: MonitorStepExceptionMonitor,
-) => {
-  return Boolean(
-    monitor.includeResolved ||
-      monitor.includeArchived ||
-      (monitor.telemetryServiceIds && monitor.telemetryServiceIds.length > 0) ||
-      (monitor.entityKeys && monitor.entityKeys.length > 0),
-  );
-};
-
 const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -167,15 +168,13 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
     toFormValues(props.monitorStepExceptionMonitor),
   );
 
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(
-    hasAdvancedConfiguration(props.monitorStepExceptionMonitor),
-  );
-
+  /*
+   * Only the values follow the step handed back: whether More fields is
+   * open is the section's own, so typing in a filter above it never folds
+   * it again (the old link closed whenever no folded filter was set yet).
+   */
   useEffect(() => {
     setFormValues(toFormValues(props.monitorStepExceptionMonitor));
-    setShowAdvancedOptions(
-      hasAdvancedConfiguration(props.monitorStepExceptionMonitor),
-    );
   }, [props.monitorStepExceptionMonitor]);
 
   type HandleFormChangeFunction = (values: ExceptionMonitorFormValues) => void;
@@ -185,12 +184,6 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
   ) => {
     setFormValues(values);
     props.onMonitorStepExceptionMonitorChanged(toMonitorConfig(values));
-  };
-
-  const handleAdvancedToggle: () => void = (): void => {
-    setShowAdvancedOptions((current: boolean): boolean => {
-      return !current;
-    });
   };
 
   /*
@@ -452,9 +445,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Telemetry Service",
             description: "Select telemetry services to scope this monitor.",
             hideOptionalLabel: true,
-            showIf: (): boolean => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_EXCEPTION_FILTERS,
           },
           {
             field: {
@@ -476,9 +467,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Infrastructure Entity",
             description: "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
-            showIf: (): boolean => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_EXCEPTION_FILTERS,
           },
           {
             field: {
@@ -489,9 +478,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "By default, exceptions marked as resolved are not counted (an exception that occurs again is automatically un-resolved and counted). Enable this to count resolved exceptions too.",
             hideOptionalLabel: true,
-            showIf: (): boolean => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_EXCEPTION_FILTERS,
           },
           {
             field: {
@@ -502,24 +489,10 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "By default, exceptions that are archived are not counted. Enable this to count archived exceptions too.",
             hideOptionalLabel: true,
-            showIf: (): boolean => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_EXCEPTION_FILTERS,
           },
         ]}
       />
-
-      <div className="-ml-3">
-        <Button
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          title={
-            showAdvancedOptions
-              ? "Hide Advanced Options"
-              : "Show Advanced Options"
-          }
-          onClick={handleAdvancedToggle}
-        />
-      </div>
 
       <div>
         <HorizontalRule />

@@ -9,11 +9,27 @@ import {
 } from "Common/Types/SecurityEvent/OcsfEventClass";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import SecurityEventsMonitorPreview from "../../../Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
 import SecurityEventAttributeUtil from "../../../SecurityEvents/SecurityEventAttributeUtil";
+
+/*
+ * The filters that narrow a security event monitor down further - telemetry
+ * service and attributes - fold under the same More fields section as the
+ * rarely needed fields of every other form, instead of the Show / Hide
+ * Advanced Options link this form had of its own. Severity and class stay
+ * on screen (issue #3398). Folded, the section's header names its filters
+ * and shows each one a monitor uses as a chip ("Filter by Attributes: 1" on
+ * a monitor created from a detection rule), so editing a monitor never
+ * hides a filter it has. Folded fields stay mounted: the preview below and
+ * the saved step always get the whole filter set. Built once, so every
+ * render hands its fields the same section.
+ */
+const MORE_SECURITY_EVENT_FILTERS: FormFieldCollapsibleSection<MonitorStepSecurityEventsMonitor> =
+  getAdvancedFormSection<MonitorStepSecurityEventsMonitor>();
 
 export interface ComponentProps {
   monitorStepSecurityEventsMonitor: MonitorStepSecurityEventsMonitor;
@@ -33,46 +49,34 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
     props.monitorStepSecurityEventsMonitor,
   );
 
-  let showAdvancedOptionsByDefault: boolean = false;
-
-  if (
-    (monitorStepSecurityEventsMonitor.telemetryServiceIds &&
-      monitorStepSecurityEventsMonitor.telemetryServiceIds.length > 0) ||
-    (monitorStepSecurityEventsMonitor.attributes &&
-      Object.keys(monitorStepSecurityEventsMonitor.attributes).length > 0)
-  ) {
-    showAdvancedOptionsByDefault = true;
-  }
-
-  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(
-    showAdvancedOptionsByDefault,
-  );
-
   /*
-   * Attribute-key suggestions for the attributes dictionary — fetched
-   * once when the advanced options are (or open) visible, so the keys the
+   * Attribute-key suggestions for the attributes dictionary, so the keys the
    * project's events actually carry (threat.matched, device.hostname, ...)
-   * autocomplete instead of being typed from memory.
+   * autocomplete instead of being typed from memory. Fetched once, as the
+   * form opens - as the log and trace monitors' keys are (MonitorStep) - so
+   * they are there by the time someone opens More fields to use them. The
+   * form only shows while a monitor's filters are being set up, never on a
+   * page that is merely browsed.
    */
   const [attributeKeys, setAttributeKeys] = React.useState<Array<string>>([]);
-  const [attributeKeysFetched, setAttributeKeysFetched] =
-    React.useState<boolean>(false);
 
   React.useEffect(() => {
-    if (!showAdvancedOptions || attributeKeysFetched) {
-      return;
-    }
-
-    setAttributeKeysFetched(true);
+    let isUnmounted: boolean = false;
 
     SecurityEventAttributeUtil.getAttributeKeys()
       .then((keys: Array<string>) => {
-        setAttributeKeys(keys);
+        if (!isUnmounted) {
+          setAttributeKeys(keys);
+        }
       })
       .catch(() => {
         // Recoverable: the dictionary still accepts hand-typed keys.
       });
-  }, [showAdvancedOptions, attributeKeysFetched]);
+
+    return () => {
+      isUnmounted = true;
+    };
+  }, []);
 
   return (
     <div>
@@ -154,9 +158,9 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
           },
           {
             /*
-             * Always visible, like Event Class — hiding severity behind
-             * the advanced toggle read as "monitors cannot filter by
-             * severity" (issue #3398).
+             * Always on screen, like Event Class — hidden behind the old
+             * advanced toggle, severity read as "monitors cannot filter
+             * by severity" (issue #3398). Never fold it.
              */
             field: {
               severityNames: true,
@@ -203,9 +207,7 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Telemetry Service",
             description: "Select the telemetry services you want to monitor.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_SECURITY_EVENT_FILTERS,
           },
           {
             field: {
@@ -224,25 +226,10 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "You can filter the security events based on the attributes that are attached to them.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_SECURITY_EVENT_FILTERS,
           },
         ]}
       />
-      <div className="-ml-3">
-        <Button
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          title={
-            showAdvancedOptions
-              ? "Hide Advanced Options"
-              : "Show Advanced Options"
-          }
-          onClick={() => {
-            return setShowAdvancedOptions(!showAdvancedOptions);
-          }}
-        />
-      </div>
       <div>
         <HorizontalRule />
         <FieldLabelElement

@@ -340,15 +340,15 @@ describe("Detection rule → monitor deep link", () => {
 });
 
 describe("Security Events monitor step form", () => {
-  test("Event Class and Event Severity are first-class fields, not advanced options", () => {
+  test("Event Class and Event Severity are first-class fields, not folded away", () => {
     const source: string = stripComments(stepFormSource);
 
     /*
-     * Find each field block and assert it carries no showIf. The block
-     * ends at the next `field: {` — if a showIf lives between, the field
-     * went back behind the advanced toggle. Severity joined class here
-     * for issue #3398: hidden behind the toggle, it read as "monitors
-     * cannot filter by severity".
+     * Find each field block and assert it carries no showIf and no folded
+     * section. The block ends at the next `field: {` — if either lives
+     * between, the field went back out of sight. Severity joined class
+     * here for issue #3398: hidden behind the old advanced toggle, it read
+     * as "monitors cannot filter by severity".
      */
     for (const fieldName of ["classNames: true", "severityNames: true"]) {
       const fieldStart: number = source.indexOf(fieldName);
@@ -362,11 +362,19 @@ describe("Security Events monitor step form", () => {
           : source.slice(fieldStart, nextField);
 
       expect(fieldBlock).not.toContain("showIf");
+      expect(fieldBlock).not.toContain("collapsibleSection");
     }
   });
 
-  test("service and attribute filters stay behind the advanced toggle", () => {
+  test("service and attribute filters fold under the shared More fields section", () => {
     const source: string = stripComments(stepFormSource);
+
+    // The section every form folds its rarely needed fields into.
+    expect(source).toMatch(
+      /MORE_SECURITY_EVENT_FILTERS:[^=]*=\s*getAdvancedFormSection<MonitorStepSecurityEventsMonitor>\(\)/,
+    );
+    // Not the old Show / Hide Advanced Options link of its own.
+    expect(source).not.toContain("showAdvancedOptions");
 
     for (const fieldName of ["telemetryServiceIds: true", "attributes: true"]) {
       const fieldStart: number = source.indexOf(fieldName);
@@ -379,7 +387,10 @@ describe("Security Events monitor step form", () => {
           ? source.slice(fieldStart)
           : source.slice(fieldStart, nextField);
 
-      expect(fieldBlock).toContain("showAdvancedOptions");
+      expect(fieldBlock).toContain(
+        "collapsibleSection: MORE_SECURITY_EVENT_FILTERS",
+      );
+      expect(fieldBlock).not.toContain("showIf");
     }
   });
 });
