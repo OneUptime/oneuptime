@@ -521,6 +521,30 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     };
 
     /*
+     * A field's footer setting the field's value (FieldFooterProps): the way
+     * FormField stores a pick - the field's own onChange first, with the
+     * values as they are, then the value itself.
+     */
+    const setFieldValueFromFooter: (
+      field: Field<T>,
+      fieldName: string,
+      value: JSONValue,
+    ) => void = (field: Field<T>, fieldName: string, value: JSONValue): void => {
+      if (field.onChange) {
+        field.onChange(
+          value,
+          refCurrentValue.current,
+          (values: FormValues<T>) => {
+            refCurrentValue.current = values;
+            setCurrentValue(refCurrentValue.current);
+          },
+        );
+      }
+
+      setFieldValue(fieldName, value);
+    };
+
+    /*
      * Hands the form's values to onSubmit, normalised for the API. Called once
      * every step that is going to be validated has been.
      */
@@ -1095,6 +1119,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 touched[fieldName]
                                   ? errors[fieldName] || undefined
                                   : undefined,
+                                {
+                                  setValue: (value: JSONValue): void => {
+                                    setFieldValueFromFooter(
+                                      field,
+                                      fieldName,
+                                      value,
+                                    );
+                                  },
+                                },
                               )}
                           </div>
                         </Fragment>

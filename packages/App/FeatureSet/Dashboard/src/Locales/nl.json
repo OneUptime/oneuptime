@@ -24611,5 +24611,12 @@
   "{{count}} seconds": "{{count}} seconden",
   "{{count}} seconds_one": "{{count}} seconde",
   "End Showing Announcement At must be in the future.": "Het einde van de weergave moet in de toekomst liggen.",
-  "When the announcement shows on its status pages.": "Wanneer de aankondiging op de statuspagina's wordt getoond."
+  "When the announcement shows on its status pages.": "Wanneer de aankondiging op de statuspagina's wordt getoond.",
+  "Add all": "Alles toevoegen",
+  "Add {{statusPageName}}": "{{statusPageName}} toevoegen",
+  "Added {{count}} status pages.": "{{count}} statuspagina's toegevoegd.",
+  "Added {{count}} status pages._one": "{{count}} statuspagina toegevoegd.",
+  "Added {{statusPageName}} to the status pages.": "{{statusPageName}} toegevoegd aan de statuspagina's.",
+  "Status pages that show the affected monitors:": "Statuspagina's die de getroffen monitoren tonen:",
+  "Status pages that show the affected monitors:_one": "Statuspagina's die de getroffen monitor tonen:"
 }

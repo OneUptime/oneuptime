@@ -24611,5 +24611,12 @@
   "{{count}} seconds": "{{count}} sekunder",
   "{{count}} seconds_one": "{{count}} sekund",
   "End Showing Announcement At must be in the future.": "Slutten på visningen må være i fremtiden.",
-  "When the announcement shows on its status pages.": "Når kunngjøringen vises på statussidene sine."
+  "When the announcement shows on its status pages.": "Når kunngjøringen vises på statussidene sine.",
+  "Add all": "Legg til alle",
+  "Add {{statusPageName}}": "Legg til {{statusPageName}}",
+  "Added {{count}} status pages.": "La til {{count}} statussider.",
+  "Added {{count}} status pages._one": "La til {{count}} statusside.",
+  "Added {{statusPageName}} to the status pages.": "La til {{statusPageName}} i statussidene.",
+  "Status pages that show the affected monitors:": "Statussider som viser de berørte monitorene:",
+  "Status pages that show the affected monitors:_one": "Statussider som viser den berørte monitoren:"
 }

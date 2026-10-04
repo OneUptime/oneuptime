@@ -24611,5 +24611,12 @@
   "{{count}} seconds": "{{count}} secondi",
   "{{count}} seconds_one": "{{count}} secondo",
   "End Showing Announcement At must be in the future.": "La fine della visualizzazione deve essere nel futuro.",
-  "When the announcement shows on its status pages.": "Quando l'annuncio viene mostrato sulle sue pagine di stato."
+  "When the announcement shows on its status pages.": "Quando l'annuncio viene mostrato sulle sue pagine di stato.",
+  "Add all": "Aggiungi tutte",
+  "Add {{statusPageName}}": "Aggiungi {{statusPageName}}",
+  "Added {{count}} status pages.": "{{count}} pagine di stato aggiunte.",
+  "Added {{count}} status pages._one": "{{count}} pagina di stato aggiunta.",
+  "Added {{statusPageName}} to the status pages.": "Pagina di stato aggiunta: {{statusPageName}}.",
+  "Status pages that show the affected monitors:": "Pagine di stato che mostrano i monitor interessati:",
+  "Status pages that show the affected monitors:_one": "Pagine di stato che mostrano il monitor interessato:"
 }

@@ -24611,5 +24611,12 @@
   "{{count}} seconds": "{{count}} 秒",
   "{{count}} seconds_one": "{{count}} 秒",
   "End Showing Announcement At must be in the future.": "停止显示公告的时间必须是将来的时间。",
-  "When the announcement shows on its status pages.": "公告何时显示在其状态页上。"
+  "When the announcement shows on its status pages.": "公告何时显示在其状态页上。",
+  "Add all": "全部添加",
+  "Add {{statusPageName}}": "添加{{statusPageName}}",
+  "Added {{count}} status pages.": "已添加 {{count}} 个状态页面。",
+  "Added {{count}} status pages._one": "已添加 {{count}} 个状态页面。",
+  "Added {{statusPageName}} to the status pages.": "已将{{statusPageName}}添加到状态页面。",
+  "Status pages that show the affected monitors:": "显示受影响监视器的状态页面：",
+  "Status pages that show the affected monitors:_one": "显示受影响监视器的状态页面："
 }

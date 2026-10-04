@@ -36,6 +36,9 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSubscriberNotificationsSection } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * A template is an event to schedule again and again, so its form walks the
@@ -65,11 +68,18 @@ const isRecurring: (
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
   excludeAffectedResources?: boolean;
+  /*
+   * The template being edited, on its view page: that Edit leaves the
+   * resources out, so the status pages showing its monitors are suggested
+   * from the template's own.
+   */
+  templateId?: ObjectID | undefined;
 }) => ModelField<ScheduledMaintenanceTemplate>[];
 
 export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
   excludeAffectedResources?: boolean;
+  templateId?: ObjectID | undefined;
 }): ModelField<ScheduledMaintenanceTemplate>[] => {
   let fields: ModelField<ScheduledMaintenanceTemplate>[] = [
     {
@@ -264,6 +274,11 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   }
 
   fields = fields.concat([
+    /*
+     * Under it, the pages that show the affected monitors, one click to add:
+     * the form's own monitors, or on the view page's Edit (which leaves the
+     * resources to their own card) the template's.
+     */
     {
       field: {
         statusPages: true,
@@ -279,6 +294,17 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       },
       required: false,
       placeholder: "Select Status Pages",
+      getFooterElement:
+        getStatusPageSuggestionsFooter<ScheduledMaintenanceTemplate>({
+          eventType: StatusPageEventType.ScheduledEvent,
+          monitorsOf:
+            data.excludeAffectedResources && data.templateId
+              ? {
+                  modelType: ScheduledMaintenanceTemplate,
+                  modelId: data.templateId,
+                }
+              : undefined,
+        }),
     },
     /*
      * Folded to one line that says what happens; it opens by itself on a
