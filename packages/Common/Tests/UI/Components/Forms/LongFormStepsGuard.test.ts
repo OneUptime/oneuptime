@@ -627,7 +627,6 @@ describe("the long form detector", () => {
         hasDefault: false,
         hasSpread: false,
         collapsibleSection: section,
-        customElementCanBeSkipped: false,
         customElementComponents: [],
         file: "Page.tsx",
         line: 1,

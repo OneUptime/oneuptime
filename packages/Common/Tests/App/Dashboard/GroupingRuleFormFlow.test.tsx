@@ -280,11 +280,60 @@ async function clickSubmit(): Promise<void> {
   });
 }
 
+// The form's action: on the last step only.
+function querySubmitButton(): HTMLElement | null {
+  return within(dialog()).queryByTestId("modal-footer-submit-button");
+}
+
+// The plain Next every step but the last shows instead.
+function nextButton(): HTMLElement {
+  return within(dialog()).getByTestId("modal-footer-next-button");
+}
+
+// Presses Next: it checks the step on screen, then walks on.
+async function clickNext(): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(nextButton());
+  });
+}
+
+// Walks on with Next to the last step, where the action is, and presses it.
+async function walkOnAndSubmit(): Promise<void> {
+  for (let step: number = 0; step < 8 && !querySubmitButton(); step++) {
+    await clickNext();
+  }
+
+  await clickSubmit();
+}
+
 /*
- * Walks on with the one button that reads Next: the main button while a later
- * step still asks for something, the plain one beside the action once every
- * step left is optional.
+ * An edit form's step list opens any step: the last one, where Save Changes
+ * is, then Save Changes.
  */
+async function saveFromTheLastStep(): Promise<void> {
+  const titles: Array<string> = stepTitles();
+  const last: string = titles[titles.length - 1] as string;
+
+  if (activeStep() !== last) {
+    expect(querySubmitButton()).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(
+          within(dialog()).getByRole("navigation", { name: "Progress" }),
+        ).getByText(last),
+      );
+    });
+    await waitFor(() => {
+      expect(activeStep()).toBe(last);
+    });
+  }
+
+  expect(submitButton()).toHaveTextContent("Save Changes");
+  await clickSubmit();
+}
+
+// Walks on with the plain Next, to the step with this title.
 async function goToStep(title: string): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(within(dialog()).getByRole("button", { name: "Next" }));
@@ -380,7 +429,9 @@ describe("creating a grouping rule", () => {
       "aria-checked",
       "false",
     );
-    expect(submitButton()).toHaveTextContent("Next");
+    // The action is on the last step only: a plain Next here.
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
 
     await goToStep("Which Incidents");
     expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
@@ -564,7 +615,7 @@ describe("creating a grouping rule", () => {
       target: { value: "" },
     });
 
-    await clickSubmit();
+    await clickNext();
 
     await waitFor(() => {
       expect(screen.getByTestId("time-window-setting-error")).toHaveTextContent(
@@ -589,7 +640,7 @@ describe("creating a grouping rule", () => {
     await openIncidentCreateForm();
 
     fireEvent.change(nameInput(), { target: { value: "" } });
-    await clickSubmit();
+    await clickNext();
 
     await waitFor(() => {
       expect(
@@ -617,11 +668,9 @@ describe("creating a grouping rule", () => {
     });
 
     await goToStep("Which Incidents");
-    // Every advanced step is optional: the rule can be created from here.
-    expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
-    expect(
-      within(dialog()).getByTestId("modal-footer-next-button"),
-    ).toHaveTextContent("Next");
+    // Every advanced step is optional, but Create is on the last step only.
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
     await goToStep("Episode Lifecycle");
 
     expect(switchNamed("Reopen recently resolved episodes")).toHaveAttribute(
@@ -673,7 +722,7 @@ describe("creating a grouping rule", () => {
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
   });
 
-  test("with advanced settings shown, the rule is created from Which Incidents, the advanced steps at their defaults", async () => {
+  test("with advanced settings shown, Create waits for the last step, and the advanced steps keep their defaults", async () => {
     await openIncidentCreateForm();
 
     await act(async (): Promise<void> => {
@@ -684,22 +733,18 @@ describe("creating a grouping rule", () => {
       expect(stepTitles()).toContain("Episode Lifecycle");
     });
 
-    // Which Incidents draws the conditions builder: it has to be shown first.
-    expect(submitButton()).toHaveTextContent("Next");
-    expect(
-      within(dialog()).queryByTestId("modal-footer-next-button"),
-    ).not.toBeInTheDocument();
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
 
     await goToStep("Which Incidents");
 
-    await waitFor(() => {
-      expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
-    });
+    // Every step left is optional, and still the action waits for the last.
+    expect(querySubmitButton()).not.toBeInTheDocument();
 
-    await clickSubmit();
+    await walkOnAndSubmit();
     await waitForSave();
 
-    expect(activeStep()).toBe("Which Incidents");
+    expect(activeStep()).toBe("On-Call & Ownership");
     expect(submitted()["enableReopenWindow"]).not.toBe(true);
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
     expect(submitted()["enableInactivityTimeout"]).not.toBe(true);
@@ -802,7 +847,7 @@ describe("editing an existing grouping rule", () => {
     );
   }
 
-  test("a simple rule opens on its answer, with nothing else to walk through", async () => {
+  test("a simple rule opens on its answer, one step from Save Changes", async () => {
     await openIncidentEditForm(
       existingRule({
         groupByIncidentTitle: true,
@@ -821,7 +866,9 @@ describe("editing an existing grouping rule", () => {
       "aria-checked",
       "false",
     );
-    expect(submitButton()).toHaveTextContent("Save Changes");
+    // Save Changes is on Which Incidents, the last step: Next here.
+    expect(querySubmitButton()).not.toBeInTheDocument();
+    expect(nextButton()).toHaveTextContent("Next");
   });
 
   test("a custom mix with lifecycle and paging opens with all of it showing", async () => {
@@ -884,7 +931,7 @@ describe("editing an existing grouping rule", () => {
       }),
     );
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -930,7 +977,7 @@ describe("editing an existing grouping rule", () => {
 
     expect(switchNamed("Enabled")).toHaveAttribute("aria-checked", "false");
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()["isEnabled"]).toBe(false);
@@ -946,7 +993,7 @@ describe("editing an existing grouping rule", () => {
     );
 
     await pickMode("severity");
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -985,7 +1032,7 @@ describe("editing an existing grouping rule", () => {
     });
     expect(minutesInput("resolve-delay-setting")).toHaveValue(5);
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -1051,7 +1098,7 @@ describe("editing an existing grouping rule", () => {
       expect(switchNamed(name)).toHaveAttribute("aria-checked", "false");
     }
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(
@@ -1096,7 +1143,7 @@ describe("editing an existing grouping rule", () => {
     });
     expect(minutesInput("reopen-window-setting")).toHaveValue(30);
 
-    await clickSubmit();
+    await saveFromTheLastStep();
     await waitForSave();
 
     expect(submitted()).toEqual(

@@ -176,8 +176,14 @@ describe("Telemetry ingestion key create form", () => {
     ).toBe(2);
     expect(source).toContain('{ id: "billing", title: "Billing" }');
     expect(source).toContain('return { ...field, stepId: "billing" };');
-    // A gate the form can be finished past without drawing is not a gate.
-    expect(source).not.toContain("customElementCanBeSkipped");
+    /*
+     * Billing is the last step, and a stepped form offers Create on its last
+     * step only (SteppedFormFooter), so the notice is read before a key is
+     * made.
+     */
+    expect(source).toMatch(
+      /\.\.\.\(hasBillingStep \? \[\{ id: "billing", title: "Billing" \}\] : \[\]\),\s*\];/,
+    );
   });
 
   test("the shared form has no Summary step and folds the description under Advanced", () => {

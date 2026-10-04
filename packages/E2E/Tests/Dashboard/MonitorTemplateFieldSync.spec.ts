@@ -296,10 +296,10 @@ test.describe("Monitor template field sync settings", () => {
     await createForm
       .getByPlaceholder("Monitor Name")
       .fill("New API from defaults");
-    const nextOrCreate: Locator = page.getByTestId("Create Monitor");
+    const create: Locator = page.getByTestId("Create Monitor");
     /*
-     * The one button that reads Next: the main button until the criteria
-     * have been shown, the plain one beside Create Monitor after.
+     * The plain Next every step but the last shows; Create Monitor is on
+     * the last step only.
      */
     const next: Locator = createForm.getByRole("button", {
       name: "Next",
@@ -320,7 +320,8 @@ test.describe("Monitor template field sync settings", () => {
       createForm.getByPlaceholder("Header Value").first(),
     ).toHaveValue("template-default");
     await capture(page, test.info(), "new-monitor-template-defaults");
-    await expect(nextOrCreate).toHaveText("Create Monitor");
+    // Criteria is not the last step: Next, not Create Monitor.
+    await expect(create).toHaveCount(0);
     await next.click();
     /*
      * Probes & Interval is the last step: the template's labels fold under
@@ -330,8 +331,8 @@ test.describe("Monitor template field sync settings", () => {
       createForm.getByText("Monitoring Interval", { exact: true }),
     ).toBeVisible();
     await expect(next).toHaveCount(0);
-    await expect(nextOrCreate).toHaveText("Create Monitor");
-    await nextOrCreate.click();
+    await expect(create).toHaveText("Create Monitor");
+    await create.click();
     const monitorViewPattern: RegExp = new RegExp(
       `/dashboard/${projectId}/monitors/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:/|$)`,
       "i",

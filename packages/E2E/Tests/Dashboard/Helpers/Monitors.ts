@@ -18,12 +18,11 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  *                      config fields need filling.
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
  *
- * The submit button keeps the test id "Create Monitor" on every step. It
- * reads "Next" while a step still to come has to be shown first (the
- * criteria, which fill in their own defaults), and "Create Monitor" once
- * every step left is optional - from the criteria step on - with a plain
- * Next beside it. The recipes walk with Next (clickNext) so they reach the
- * interval step, and create on the last step their type shows.
+ * Every step but the last shows a plain Next (#create-monitor-form-next-button,
+ * test id form-next-button); Create Monitor (test id "Create Monitor") is on
+ * the last step the type shows only - Monitor Info for a Manual monitor,
+ * Criteria for a type without probes, Probes & Interval otherwise. The
+ * recipes walk with Next (clickNext) and create on that last step.
  */
 
 export interface MonitorTypeRecipe {
@@ -63,9 +62,8 @@ const submitButtonTestId: string = "Create Monitor";
 const cardSelectSearchTestId: string = "card-select-search";
 
 /*
- * Walks the create form one step on: the one button that reads Next - the
- * main button while a step to come still has to be shown, the plain one
- * beside Create Monitor once every step left is optional. Never creates.
+ * Walks the create form one step on with its Next, which every step but the
+ * last shows instead of Create Monitor. Never creates.
  */
 export const clickNext: (data: { page: Page }) => Promise<void> = async (data: {
   page: Page;

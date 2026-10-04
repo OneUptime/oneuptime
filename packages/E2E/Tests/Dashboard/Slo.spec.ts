@@ -1102,7 +1102,9 @@ test.describe("SLOs", () => {
       .getByPlaceholder("Every production API monitor")
       .fill(ctx.monitorRuleName);
     await expect(form.getByRole("switch")).toHaveCount(0);
-    await submitButton.click();
+    // Create SLO Monitor Rule is on the last step only: a plain Next here.
+    await expect(submitButton).toHaveCount(0);
+    await page.getByTestId("modal-footer-next-button").click();
 
     /*
      * Step 2 - Match Criteria. The rule model's legacy label / name /

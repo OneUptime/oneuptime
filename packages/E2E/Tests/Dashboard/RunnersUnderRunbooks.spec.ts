@@ -138,12 +138,13 @@ test.describe("Runners live under Runbooks", () => {
         .getByPlaceholder("prod-eu-runner", { exact: true })
         .fill(runnerName);
       /*
-       * A name is all a Runner needs: Create Runner is on offer from the
-       * first step, and a plain Next walks the optional ones.
+       * A name is all a Runner needs, but Create Runner is on the last step
+       * only: a plain Next walks the optional ones.
        */
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
       const next: Locator = modal.getByTestId("modal-footer-next-button");
-      await expect(submit).toHaveText("Create Runner");
+      await expect(submit).toHaveCount(0);
+      await expect(next).toHaveText("Next");
       await expect(
         modal.getByRole("button", { name: "Advanced", exact: true }),
       ).toHaveAttribute("aria-expanded", "false");

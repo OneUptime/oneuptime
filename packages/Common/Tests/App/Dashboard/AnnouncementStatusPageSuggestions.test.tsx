@@ -397,6 +397,16 @@ describe("Create Announcement from a template that names a monitor", () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId("status-page-suggestions-line")).toBeNull();
 
+    // Create is on the review, the last step, only: Next walks there.
+    expect(
+      screen.queryByRole("button", { name: "Create Announcement" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(currentStepTitle()).toBe("Summary");
+    });
+
     fireEvent.click(
       screen.getByRole("button", { name: "Create Announcement" }),
     );

@@ -88,7 +88,6 @@ const MODAL_STRINGS: Array<string> = [
   "Description",
   "What is this workflow for?",
   "Back",
-  "Next",
   "Create Workflow",
   "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
 ];
@@ -120,6 +119,11 @@ const STRINGS: Array<string> = Array.from(
   new Set([
     ...PICKER_STRINGS,
     ...MODAL_STRINGS,
+    /*
+     * The Name step's Next, before Configure: the shared stepped footer's
+     * (Forms/Utils/SteppedFormFooter), which the dialog translates.
+     */
+    "Next",
     ...VIEW_STRINGS,
     ...SUBCATEGORY_STRINGS,
   ]),

@@ -23,8 +23,9 @@ import { getJestSpyOn } from "../../Spy";
 /*
  * The On Submit page's mapping card: every field of what a submission
  * creates and where its value comes from, and Edit Settings - a stepped
- * dialog that saves from any step, keeps what was typed when a save is
- * refused, and starts on the stored settings each time it opens.
+ * dialog whose step list opens any step, with Save Changes on the last one
+ * only; it keeps what was typed when a save is refused, and starts on the
+ * stored settings each time it opens.
  *
  * The project's records the card reads, and the network, are stubbed; the
  * card, its rows and the dialog are the real ones.
@@ -220,6 +221,28 @@ function saveButton(): HTMLElement {
   return within(modal()).getByTestId("modal-footer-submit-button");
 }
 
+/*
+ * Save Changes is on the last step only. Every step is filled in already,
+ * so the step list opens the last one: then Save Changes.
+ */
+async function saveFromTheLastStep(): Promise<void> {
+  const steps: Array<HTMLElement> = within(
+    within(modal()).getByRole("navigation", { name: "Progress" }),
+  ).getAllByRole("listitem");
+
+  await act(async () => {
+    fireEvent.click(steps[steps.length - 1] as HTMLElement);
+  });
+
+  await waitFor(() => {
+    expect(saveButton()).toHaveTextContent(FormsCopy.saveChanges);
+  });
+
+  await act(async () => {
+    fireEvent.click(saveButton());
+  });
+}
+
 describe("the rows", () => {
   test("an incident form's card, row by row", async () => {
     await renderCard();
@@ -356,7 +379,7 @@ describe("the rows", () => {
 });
 
 describe("Edit Settings", () => {
-  test("opens on the stored settings, saving from the first step", async () => {
+  test("opens on the stored settings, and saves a change on the first step from the last", async () => {
     await renderCard({
       targetSettings: {
         defaultTitle: "Reported",
@@ -368,7 +391,10 @@ describe("Edit Settings", () => {
     await openSettings();
 
     expect(defaultTitleInput()).toHaveValue("Reported");
-    expect(saveButton()).toHaveTextContent(FormsCopy.saveChanges);
+    // Save Changes is on the last step only: a plain Next here.
+    expect(
+      within(modal()).queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
     expect(
       within(modal()).getByTestId("modal-footer-next-button"),
     ).toBeInTheDocument();
@@ -377,9 +403,7 @@ describe("Edit Settings", () => {
       target: { value: "  Reported through the form  " },
     });
 
-    await act(async () => {
-      fireEvent.click(saveButton());
-    });
+    await saveFromTheLastStep();
 
     await waitFor(() => {
       expect(updateByIdMock).toHaveBeenCalledTimes(1);
@@ -418,9 +442,7 @@ describe("Edit Settings", () => {
       target: { value: "Typed before the refusal" },
     });
 
-    await act(async () => {
-      fireEvent.click(saveButton());
-    });
+    await saveFromTheLastStep();
 
     await waitFor(() => {
       expect(
@@ -451,9 +473,7 @@ describe("Edit Settings", () => {
 
     fireEvent.change(defaultTitleInput(), { target: { value: "Abandoned" } });
 
-    await act(async () => {
-      fireEvent.click(saveButton());
-    });
+    await saveFromTheLastStep();
 
     await waitFor(() => {
       expect(within(modal()).getByText("Refused.")).toBeInTheDocument();

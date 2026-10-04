@@ -160,7 +160,14 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       .fill(projectName);
 
     if (IS_BILLING_ENABLED) {
-      await modalSubmitButton.click();
+      /*
+       * Basic is not the last step: its plain Next walks on to Select Plan,
+       * the last step, where Create Project is.
+       */
+      await page
+        .getByTestId("modal")
+        .getByTestId("modal-footer-next-button")
+        .click();
 
       await selectProjectPlan({
         page,
@@ -287,24 +294,31 @@ export const submitIngestionKeyModal: SubmitIngestionKeyModalFunction =
       .fill(data.keyName);
 
     const modal: Locator = data.page.getByTestId("modal");
-    const submit: Locator = data.page.getByTestId("modal-footer-submit-button");
+    const submit: Locator = modal.getByTestId("modal-footer-submit-button");
+    const next: Locator = modal.getByTestId("modal-footer-next-button");
     const activeStep: Locator = modal.locator('[aria-current="step"]').first();
 
+    /*
+     * Every step but the last shows a plain Next (the Free plan's Billing
+     * step comes after the key's own); Create Ingestion Key is on the last
+     * step only. Walk with Next until it is there.
+     */
     for (let press: number = 0; press < 5; press++) {
-      const label: string = ((await submit.textContent()) || "").trim();
+      await expect(submit.or(next)).toBeVisible({ timeout: 30000 });
+
+      if ((await next.count()) === 0) {
+        break;
+      }
+
       const stepBefore: string =
         (await activeStep.count()) > 0
           ? ((await activeStep.textContent()) || "").trim()
           : "";
 
-      await submit.click();
-
-      if (label !== "Next") {
-        break;
-      }
-
+      await next.click();
       await expect(activeStep).not.toHaveText(stepBefore);
     }
 
+    await submit.click();
     await modal.waitFor({ state: "hidden" });
   };

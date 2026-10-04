@@ -287,8 +287,6 @@ const EpisodeCreate: FunctionComponent<
                   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
-                // Writes only the roles someone fills in.
-                customElementCanBeSkipped: true,
                 overrideFieldKey: "episodeRoles",
                 getCustomElement: (
                   _value: FormValues<IncidentEpisode>,

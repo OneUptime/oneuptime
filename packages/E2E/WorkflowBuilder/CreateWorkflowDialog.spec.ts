@@ -96,8 +96,17 @@ function templateRow(dialog: Locator, name: string): Locator {
     .getByRole("option", { name: name, exact: true });
 }
 
+// Create Workflow: the wizard's one primary button, on its last step only.
 function submitButton(dialog: Locator): Locator {
   return dialog.getByTestId("modal-footer-submit-button");
+}
+
+/*
+ * The plain way on before the last step: Use this template on the picker,
+ * Next on a Name step that has Configure after it.
+ */
+function nextButton(dialog: Locator): Locator {
+  return dialog.getByTestId("modal-footer-next-button");
 }
 
 test.describe("Create a workflow", () => {
@@ -117,6 +126,7 @@ test.describe("Create a workflow", () => {
     );
     // The footer holds Cancel alone until a template is picked.
     await expect(submitButton(dialog)).toHaveCount(0);
+    await expect(nextButton(dialog)).toHaveCount(0);
     await expect(dialog.getByTestId("modal-footer-close-button")).toBeVisible();
 
     // Start from scratch sits above the templates, and spans the step.
@@ -191,14 +201,17 @@ test.describe("Create a workflow", () => {
       1,
     );
 
-    await expect(submitButton(dialog)).toHaveText("Use this template");
-    await submitButton(dialog).click();
+    // Plain: it only walks on. Create Workflow is the one primary button.
+    await expect(nextButton(dialog)).toHaveText("Use this template");
+    await expect(submitButton(dialog)).toHaveCount(0);
+    await nextButton(dialog).click();
 
     await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
       SLACK_WORKFLOW_NAME,
     );
-    await expect(submitButton(dialog)).toHaveText("Next");
-    await submitButton(dialog).click();
+    await expect(nextButton(dialog)).toHaveText("Next");
+    await expect(submitButton(dialog)).toHaveCount(0);
+    await nextButton(dialog).click();
 
     const webhook: Locator = dialog.getByTestId(
       "workflow-variable-slackWebhookUrl",
@@ -322,7 +335,7 @@ test.describe("Create a workflow", () => {
       "No templates match your search.",
     );
     await expect(templateOptions(dialog)).toHaveCount(0);
-    await expect(submitButton(dialog)).toHaveCount(0);
+    await expect(nextButton(dialog)).toHaveCount(0);
     await expect(
       dialog.getByTestId("workflow-start-from-scratch"),
     ).toBeVisible();
@@ -356,7 +369,7 @@ test.describe("Create a workflow", () => {
     await expect(dialog.getByTestId("workflow-template-details")).toHaveCount(
       0,
     );
-    await expect(submitButton(dialog)).toHaveCount(0);
+    await expect(nextButton(dialog)).toHaveCount(0);
   });
 
   test("Back from Name keeps the template picked, its details open, and the focus on the list", async ({
@@ -378,7 +391,7 @@ test.describe("Create a workflow", () => {
     await expect(row).toHaveAttribute("aria-selected", "true");
     await expect(row.getByTestId("workflow-template-details")).toBeVisible();
     await expect(dialog.getByRole("listbox")).toBeFocused();
-    await expect(submitButton(dialog)).toHaveText("Use this template");
+    await expect(nextButton(dialog)).toHaveText("Use this template");
   });
 
   test("a setting that cannot be saved takes the new workflow away again, and says why", async ({
@@ -389,8 +402,10 @@ test.describe("Create a workflow", () => {
     const dialog: Locator = await openDialog(page, "&failVariables=true");
 
     await templateRow(dialog, SLACK_TEMPLATE_NAME).click();
-    await submitButton(dialog).click();
-    await submitButton(dialog).click();
+    // Use this template, then Next: both plain, before the last step.
+    await nextButton(dialog).click();
+    await expect(dialog.getByTestId("workflow-name-input")).toBeVisible();
+    await nextButton(dialog).click();
     await dialog
       .getByTestId("workflow-variable-slackWebhookUrl")
       .fill(SLACK_WEBHOOK_URL);

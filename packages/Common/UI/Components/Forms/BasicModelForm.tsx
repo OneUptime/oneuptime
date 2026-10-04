@@ -39,7 +39,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   name?: string | undefined;
   steps?: undefined | Array<FormStep<TBaseModel>>;
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
-  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
   onFormStepChange?: undefined | ((stepId: string) => void);
   title?: undefined | string;
   description?: undefined | string;
@@ -131,7 +130,6 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
       maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
       error={props.error}
       onIsLastFormStep={props.onIsLastFormStep}
-      onCanFinishFromCurrentStep={props.onCanFinishFromCurrentStep}
       hideSubmitButton={props.hideSubmitButton}
       ref={props.formRef}
       summary={props.summary}

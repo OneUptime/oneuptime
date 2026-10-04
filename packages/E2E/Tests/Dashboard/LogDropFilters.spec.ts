@@ -125,10 +125,8 @@ test.describe("Log Drop Filters", () => {
     await form.waitFor({ state: "visible", timeout: 30000 });
 
     /*
-     * The one button that reads Next walks the wizard. A create wizard
-     * offers its action as soon as every step left is optional: on Match
-     * the main button already reads Create Log Drop Filter, the Action step
-     * having its default (Drop), and a plain Next beside it walks on.
+     * The plain Next walks the wizard: Match shows Next and no action, and
+     * Create Log Drop Filter is on Action, the last step, only.
      */
     const nextButton: Locator = modal.getByRole("button", {
       name: "Next",

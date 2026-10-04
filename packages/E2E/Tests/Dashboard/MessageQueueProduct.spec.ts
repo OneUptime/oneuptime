@@ -785,12 +785,13 @@ test.describe.skip("Queues Product", () => {
 
     /*
      * Two steps - Messaging System, then Queue Info (with the labels folded
-     * under Advanced at its end) - and only the first asks for anything:
-     * Create Queue is on offer from it, with a plain Next to the optional one.
+     * under Advanced at its end). Only the first asks for anything, but
+     * Create Queue is on the last step only: the first shows a plain Next.
      */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
     const next: Locator = modal.getByTestId("modal-footer-next-button");
-    await expect(submit).toHaveText("Create Queue");
+    await expect(next).toHaveText("Next");
+    await expect(submit).toHaveCount(0);
     await next.click();
 
     /*
@@ -1088,11 +1089,11 @@ test.describe.skip("Queues Product", () => {
     ).toHaveValue(`Created from queue ${DESTINATION}.`);
 
     /*
-     * "Next" (the submit button keeps its "Create Monitor" test id on every
-     * step) opens the Metrics monitor's query: the metric, and the topic
+     * Next - Monitor Info is not the last step, so it shows Next, not Create
+     * Monitor - opens the Metrics monitor's query: the metric, and the topic
      * filter under "Filters & grouping", open because the query has one.
      */
-    await page.getByTestId("Create Monitor").click();
+    await form.getByRole("button", { name: "Next", exact: true }).click();
     await expect(
       form.getByText("Metric Monitor Configuration", { exact: true }).first(),
     ).toBeVisible({ timeout: 30000 });

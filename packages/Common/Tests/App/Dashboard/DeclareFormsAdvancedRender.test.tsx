@@ -36,7 +36,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     under Advanced - which says nothing until something in it is set, and
  *     "Configured" when a template or a private alert set something;
  *   - three steps and the review, not six;
- *   - the main button declares from the first step;
+ *   - Declare Incident is on the review, the last step, only: the steps
+ *     before it offer a plain Next, and nothing primary;
  *   - declared without opening Advanced, the incident is sent no state (the
  *     server starts it in the project's starting state) and the moment the
  *     page opened as Declared At;
@@ -386,20 +387,7 @@ describe("Declare Incident", () => {
     expect(advancedBadge()).toBeNull();
   });
 
-  test("the main button declares from the first step, with Next beside it", async () => {
-    await renderPage(IncidentCreate, "/dashboard/incidents/create");
-
-    await screen.findByText("Title");
-
-    expect(
-      screen.getByRole("button", { name: "Declare Incident" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Next", exact: true }),
-    ).toBeInTheDocument();
-  });
-
-  test("declared from the first step, it is sent no state and the moment the page opened", async () => {
+  test("the first step offers a plain Next, and Declare Incident is on the review, the last step, only", async () => {
     const user: UserEvent = await renderPage(
       IncidentCreate,
       "/dashboard/incidents/create",
@@ -415,7 +403,57 @@ describe("Declare Incident", () => {
       "Critical Incident",
     );
 
-    await user.click(screen.getByRole("button", { name: "Declare Incident" }));
+    // Every step after this one is optional, and still: Next, not Declare.
+    for (let step: number = 0; step < 3; step++) {
+      expect(
+        screen.queryByRole("button", { name: "Declare Incident" }),
+      ).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Next", exact: true }).className,
+      ).not.toContain("bg-indigo-600");
+
+      await user.click(
+        screen.getByRole("button", { name: "Next", exact: true }),
+      );
+    }
+
+    const declare: HTMLElement = await screen.findByRole("button", {
+      name: "Declare Incident",
+    });
+
+    expect(declare.className).toContain("bg-indigo-600");
+    expect(
+      screen.queryByRole("button", { name: "Next", exact: true }),
+    ).toBeNull();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("declared without opening Advanced, it is sent no state and the moment the page opened", async () => {
+    const user: UserEvent = await renderPage(
+      IncidentCreate,
+      "/dashboard/incidents/create",
+    );
+
+    await user.type(
+      await screen.findByRole("textbox", { name: /^Title/ }),
+      "Checkout is down",
+    );
+    await pickOption(
+      user,
+      screen.getByRole("combobox", { name: /^Incident Severity/ }),
+      "Critical Incident",
+    );
+
+    // Walk to the review, the last step, where Declare Incident is.
+    for (let step: number = 0; step < 3; step++) {
+      await user.click(
+        screen.getByRole("button", { name: "Next", exact: true }),
+      );
+    }
+
+    await user.click(
+      await screen.findByRole("button", { name: "Declare Incident" }),
+    );
 
     await waitFor(() => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);

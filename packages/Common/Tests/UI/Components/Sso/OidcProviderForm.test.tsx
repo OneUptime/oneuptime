@@ -17,8 +17,9 @@ import Permission from "../../../../Types/Permission";
 /*
  * Adding an OpenID Connect provider, through the real ModelForm and
  * BasicForm with only the network stubbed: the form opens on the four
- * things the identity provider gives (name, issuer, client ID, secret), can
- * be finished from that first step, and saves a complete provider - the
+ * things the identity provider gives (name, issuer, client ID, secret),
+ * walks on to Sign-in, where Create OIDC is, and saves a complete provider -
+ * the
  * discovery URL from the issuer, the usual scopes and claim names, the
  * description from the name, the members team it started on, and off until
  * someone turns it on. A discovery URL pasted as the issuer is split into
@@ -207,7 +208,25 @@ async function fillTheProvider(issuer: string): Promise<void> {
   await type("client-secret-value", "a-client-secret");
 }
 
+/*
+ * Walks on to the last step with Next - the form's action is there only,
+ * never on a step before it - and presses the action.
+ */
 async function submitWith(buttonName: string): Promise<JSONObject> {
+  for (
+    let step: number = 0;
+    step < 5 && screen.queryByTestId("form-next-button");
+    step++
+  ) {
+    expect(
+      screen.queryByRole("button", { name: buttonName }),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("form-next-button"));
+    });
+  }
+
   await act(async (): Promise<void> => {
     fireEvent.click(screen.getByRole("button", { name: buttonName }));
   });
@@ -255,7 +274,7 @@ describe("adding an OIDC provider", () => {
     expect(screen.queryByText("Description")).not.toBeInTheDocument();
   });
 
-  test("can be finished from the first step, and saves a complete provider", async () => {
+  test("asks only the first step's four answers, then saves a complete provider from Sign-in", async () => {
     await renderProviderForm({
       formType: FormType.Create,
       initialValues: {
@@ -265,8 +284,15 @@ describe("adding an OIDC provider", () => {
 
     await fillTheProvider("https://dev-123456.okta.com/oauth2/default");
 
-    // Everything on Sign-in has an answer, so the action is here already.
+    /*
+     * Everything on Sign-in has an answer already, but the action is on the
+     * last step only: Provider offers Next.
+     */
     expect(activeStep()).toContain("Provider");
+    expect(
+      screen.queryByRole("button", { name: ACTION }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("form-next-button")).toHaveTextContent("Next");
 
     const model: JSONObject = await submitWith(ACTION);
 
