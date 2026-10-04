@@ -248,7 +248,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
    * fields are worked out again on every render of the page around the form,
    * and the rows beside it can be fetched again while it is open: the pick is
    * made once, so the colour the form shows - and that a folded section
-   * compares with - never changes under the user.
+   * compares with - never changes under the user. One pick per record: a
+   * form never resets itself after a save, and every Create opens a form of
+   * its own (a table's dialog is unmounted when it closes).
    */
   const pickedColorDefaults: MutableRefObject<Dictionary<string>> = useRef<
     Dictionary<string>
@@ -447,13 +449,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
   type HasInitialValueFunction = (key: string) => boolean;
 
-  // Whether the form starts with a value of its own for this key.
+  /*
+   * Whether the form starts with a value of its own for this key - empty
+   * included, as BasicForm reads it: it fills in a default only where the
+   * value is undefined.
+   */
   const hasInitialValue: HasInitialValueFunction = (key: string): boolean => {
-    const value: unknown = (
-      props.initialValues as Record<string, unknown> | undefined
-    )?.[key];
-
-    return value !== undefined && value !== null && value !== "";
+    return (
+      (props.initialValues as Record<string, unknown> | undefined)?.[key] !==
+      undefined
+    );
   };
 
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {

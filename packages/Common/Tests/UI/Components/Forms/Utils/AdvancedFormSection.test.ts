@@ -372,8 +372,31 @@ describe("isFormFieldValueSet", () => {
   test("a colour compares as its lowercase text", () => {
     expect(normalizeFormValue(new Color("#6366F1"))).toBe("#6366f1");
     expect(normalizeFormValue(new Color(" #0891b2 "))).toBe("#0891b2");
-    // Text is left as it is: only a Color is read as a colour.
+    // Text on its own is left as it is: it may not be a colour at all.
     expect(normalizeFormValue("#6366F1")).toBe("#6366F1");
+  });
+
+  test("a colour field's text compares as a colour, whatever its case", () => {
+    const written: Field<JSONObject> = field(
+      "color",
+      FormFieldSchemaType.Color,
+      { defaultValue: "#6366F1" },
+    );
+
+    expect(
+      isFormFieldValueSet(written, {
+        color: new Color("#6366f1") as unknown as JSONObject,
+      }),
+    ).toBe(false);
+    expect(isFormFieldValueSet(written, { color: " #6366f1 " })).toBe(false);
+    expect(isFormFieldValueSet(written, { color: "#0891B2" })).toBe(true);
+
+    // Only a colour field: other text keeps its case.
+    const text: Field<JSONObject> = field("code", FormFieldSchemaType.Text, {
+      defaultValue: "ABC",
+    });
+
+    expect(isFormFieldValueSet(text, { code: "abc" })).toBe(true);
   });
 
   test("reads a field kept under an override key", () => {

@@ -482,6 +482,25 @@ describe("a Create form's colour", () => {
     expect(String(model["color"])).toBe("#ef4444");
   });
 
+  test("leaves a colour the form starts empty on purpose empty, as BasicForm would", async () => {
+    await renderForm<Label>({
+      modelType: Label,
+      fields: [NAME_FIELD, COLOR_FIELD],
+      initialValues: { color: null } as unknown as FormValues<Label>,
+    });
+
+    // Nothing fills it in: the form said what it starts with.
+    expect(colorInput()).toHaveValue("");
+
+    await typeName();
+    await submit();
+
+    expect(
+      await screen.findByText("Label Color is required."),
+    ).toBeInTheDocument();
+    expect(capturedModels).toHaveLength(0);
+  });
+
   test("keeps a field's own default", async () => {
     await renderForm<Label>({
       modelType: Label,

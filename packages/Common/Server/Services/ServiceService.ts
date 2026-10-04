@@ -10,10 +10,8 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import ServiceLabelRuleEngineService from "./ServiceLabelRuleEngineService";
 import ServiceOwnerRuleEngineService from "./ServiceOwnerRuleEngineService";
-import ArrayUtil from "../../Utils/Array";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
-import Color from "../../Types/Color";
-import { DISTINCT_COLORS } from "../../Utils/DistinctColor";
+import { pickRandomDistinctColor } from "../../Utils/DistinctColor";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -92,9 +90,7 @@ export class Service extends DatabaseService<Model> {
      * the dark theme and a grey one looked switched off.
      */
     if (!createBy.data.serviceColor) {
-      createBy.data.serviceColor = new Color(
-        ArrayUtil.selectItemByRandom([...DISTINCT_COLORS]).toString(),
-      );
+      createBy.data.serviceColor = pickRandomDistinctColor();
     }
 
     return {

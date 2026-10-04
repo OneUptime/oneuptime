@@ -144,7 +144,7 @@ Labels are project-wide tags you attach to resources. They serve two purposes: f
 
 A label restriction is satisfied if the resource carries **at least one** of the labels on the permission. A resource with no labels at all matches no label-restricted permission.
 
-Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels in the list don't use yet; pick another if you like.
+Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like.
 
 ## API keys
 

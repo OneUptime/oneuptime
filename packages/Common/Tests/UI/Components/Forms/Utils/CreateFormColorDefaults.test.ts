@@ -252,16 +252,35 @@ describe("a colour field left as it always started", () => {
       ),
     ).toBeUndefined();
 
-    // Unless the form itself will not save without one.
+    // Unless the form itself never saves without one.
     expect(getCreateFormColorDefault(service, colorField("serviceColor"))).toBe(
       INDIGO,
     );
+
+    /*
+     * Asked for only sometimes: left empty, or the colour would be sent
+     * when the form does not ask for it.
+     */
     expect(
       getCreateFormColorDefault(
         service,
         colorField("serviceColor", {
           required: (): boolean => {
             return true;
+          },
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a required column is picked for whatever the field says about required", () => {
+    // The server refuses the record without it, so the form picks one.
+    expect(
+      getCreateFormColorDefault(
+        new Label(),
+        colorField("color", {
+          required: (): boolean => {
+            return false;
           },
         }),
       ),

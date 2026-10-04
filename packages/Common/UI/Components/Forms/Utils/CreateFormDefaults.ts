@@ -139,14 +139,26 @@ const getChoiceValues: ChoiceValuesFunction = <TEntity>(
   );
 };
 
-/**
- * The column default a field of a Create form starts with, or undefined when
- * the field keeps starting as it always did (see the note above).
- */
-export function getCreateFormColumnDefault<TEntity>(
+interface WrittenColumn {
+  name: string;
+  metadata: TableColumnMetadata;
+}
+
+type GetWrittenColumnFunction = <TEntity>(
   model: BaseModel,
   field: CreateFormField<TEntity>,
-): CreateFormColumnDefault | undefined {
+) => WrittenColumn | undefined;
+
+/*
+ * The column a field writes, when the field leaves what it starts as to the
+ * form: no defaultValue or getDefaultValue of its own, and a real column -
+ * not an overrideField, a value sent as misc data under a key of its own, or
+ * a form-only helper. Both defaults below start only such a field.
+ */
+const getWrittenColumn: GetWrittenColumnFunction = <TEntity>(
+  model: BaseModel,
+  field: CreateFormField<TEntity>,
+): WrittenColumn | undefined => {
   // The field says for itself what it starts as.
   if (field.defaultValue !== undefined || field.getDefaultValue) {
     return undefined;
@@ -162,20 +174,51 @@ export function getCreateFormColumnDefault<TEntity>(
     return undefined;
   }
 
-  const columnName: string | undefined = Object.keys(field.field)[0];
+  const name: string | undefined = Object.keys(field.field)[0];
 
-  if (!columnName || !field.fieldType) {
+  if (!name || !field.fieldType) {
     return undefined;
   }
 
   const metadata: TableColumnMetadata | undefined =
-    model.getTableColumnMetadata(columnName);
+    model.getTableColumnMetadata(name);
 
-  if (!metadata) {
+  return metadata ? { name, metadata } : undefined;
+};
+
+type GetColorColumnDefaultFunction = (
+  metadata: TableColumnMetadata,
+) => string | undefined;
+
+// A colour column's own default, as the picker writes a colour, if it is one.
+const getColorColumnDefault: GetColorColumnDefaultFunction = (
+  metadata: TableColumnMetadata,
+): string | undefined => {
+  const columnDefault: unknown = metadata.defaultValue;
+
+  const color: string | null =
+    columnDefault instanceof Color || typeof columnDefault === "string"
+      ? columnDefault.toString().trim().toLowerCase()
+      : null;
+
+  return color && parseColor(color) ? color : undefined;
+};
+
+/**
+ * The column default a field of a Create form starts with, or undefined when
+ * the field keeps starting as it always did (see the note above).
+ */
+export function getCreateFormColumnDefault<TEntity>(
+  model: BaseModel,
+  field: CreateFormField<TEntity>,
+): CreateFormColumnDefault | undefined {
+  const column: WrittenColumn | undefined = getWrittenColumn(model, field);
+
+  if (!column || !field.fieldType) {
     return undefined;
   }
 
-  const columnDefault: unknown = metadata.defaultValue;
+  const columnDefault: unknown = column.metadata.defaultValue;
 
   if (SWITCH_FIELD_TYPES.has(field.fieldType)) {
     return typeof columnDefault === "boolean" ? columnDefault : undefined;
@@ -205,14 +248,9 @@ export function getCreateFormColumnDefault<TEntity>(
     return columnDefault;
   }
 
+  // Only a default the picker can show: a colour.
   if (field.fieldType === FormFieldSchemaType.Color) {
-    // Only a default the picker can show: a colour, as text, as it writes it.
-    const color: string | null =
-      columnDefault instanceof Color || typeof columnDefault === "string"
-        ? columnDefault.toString().trim().toLowerCase()
-        : null;
-
-    return color && parseColor(color) ? color : undefined;
+    return getColorColumnDefault(column.metadata);
   }
 
   return undefined;
@@ -255,11 +293,11 @@ export function getColorsInUse<TEntity>(
  * ("#6366f1"), or undefined when the field starts as it always did.
  *
  * Picked for a field that writes a colour column the record cannot be saved
- * without (the column, or the field, is required) and that says nothing about
- * what it starts as - no defaultValue or getDefaultValue of its own, and no
- * column default, which getCreateFormColumnDefault gives it instead. The
- * colour is the first of the palette that none of `colorsInUse` looks like
- * (Utils/DistinctColor): the colours of the records beside it.
+ * without (the column is required, or the field always is) and that says
+ * nothing about what it starts as - no defaultValue or getDefaultValue of its
+ * own, and no column default, which getCreateFormColumnDefault gives it
+ * instead. The colour is the first of the palette that none of `colorsInUse`
+ * looks like (Utils/DistinctColor): the colours of the records beside it.
  */
 export function getCreateFormColorDefault<TEntity>(
   model: BaseModel,
@@ -270,44 +308,24 @@ export function getCreateFormColorDefault<TEntity>(
     return undefined;
   }
 
-  // The field says for itself what it starts as.
-  if (field.defaultValue !== undefined || field.getDefaultValue) {
-    return undefined;
-  }
+  const column: WrittenColumn | undefined = getWrittenColumn(model, field);
 
-  // Not a column this field writes.
-  if (
-    !field.field ||
-    field.overrideField ||
-    field.overrideFieldKey ||
-    field.formOnly
-  ) {
-    return undefined;
-  }
-
-  const columnName: string | undefined = Object.keys(field.field)[0];
-
-  if (!columnName) {
-    return undefined;
-  }
-
-  const metadata: TableColumnMetadata | undefined =
-    model.getTableColumnMetadata(columnName);
-
-  if (!metadata || metadata.type !== TableColumnType.Color) {
+  if (!column || column.metadata.type !== TableColumnType.Color) {
     return undefined;
   }
 
   // A column with a default of its own starts from it.
-  if (getCreateFormColumnDefault(model, field) !== undefined) {
+  if (getColorColumnDefault(column.metadata) !== undefined) {
     return undefined;
   }
 
   /*
    * A colour the record can go without is left empty: empty means no
-   * colour, or one the server picks itself (a service's).
+   * colour, or one the server picks itself (a service's). So is one the
+   * form asks for only sometimes (a required function): the colour would
+   * be sent when it is not asked for.
    */
-  if (!metadata.required && !field.required) {
+  if (!column.metadata.required && field.required !== true) {
     return undefined;
   }
 

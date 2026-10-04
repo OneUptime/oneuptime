@@ -489,6 +489,12 @@ const STATE_SETTINGS_PAGES: Array<[string, string]> = [
   ],
 ];
 
+const INCIDENT_ROLES_FORM: ColorForm = {
+  file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentRoles.tsx`,
+  form: "ModelTable: Incidents > Settings > Incident Roles",
+  key: "color",
+};
+
 export const COLOR_FORMS: Array<ColorForm> = [
   {
     file: `${DASHBOARD}/Pages/Settings/Labels.tsx`,
@@ -502,11 +508,7 @@ export const COLOR_FORMS: Array<ColorForm> = [
       key: "color",
     };
   }),
-  {
-    file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentRoles.tsx`,
-    form: "ModelTable: Incidents > Settings > Incident Roles",
-    key: "color",
-  },
+  INCIDENT_ROLES_FORM,
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/Branding.tsx`,
     form: "ModelTable: Status Page > Branding > History Chart Bar Color Rules",
@@ -954,7 +956,10 @@ describe("the project's create forms", () => {
   test("fold Incident Roles' colour with its icon: the form is one page", () => {
     const roles: ColorFieldOnCreateForm | undefined = colorFields.find(
       (item: ColorFieldOnCreateForm): boolean => {
-        return item.createForm.form.label === COLOR_FORMS[7]!.form;
+        return (
+          item.createForm.form.file === INCIDENT_ROLES_FORM.file &&
+          item.createForm.form.label === INCIDENT_ROLES_FORM.form
+        );
       },
     );
 

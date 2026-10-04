@@ -9,8 +9,9 @@ import {
   getColorHue,
   pickColorForName,
   pickDistinctColor,
+  pickRandomDistinctColor,
 } from "../../Utils/DistinctColor";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -333,6 +334,44 @@ describe("picking a colour for a new record", () => {
 
     expect(DISTINCT_COLORS[0]!.toString()).toBe(PALETTE[0]);
     expect(pickDistinctColor().toString()).toBe(PALETTE[0]);
+  });
+});
+
+describe("a colour picked at random", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("is any colour of the palette, and only those", () => {
+    const seen: Set<string> = new Set<string>();
+
+    for (let index: number = 0; index < PALETTE.length; index++) {
+      jest
+        .spyOn(Math, "random")
+        .mockReturnValueOnce((index + 0.5) / PALETTE.length);
+      seen.add(pickRandomDistinctColor().toString());
+    }
+
+    expect(Array.from(seen)).toEqual(PALETTE);
+  });
+
+  test("stays in the palette at the very edges of Math.random", () => {
+    jest.spyOn(Math, "random").mockReturnValueOnce(0);
+    expect(pickRandomDistinctColor().toString()).toBe(PALETTE[0]);
+
+    jest.spyOn(Math, "random").mockReturnValueOnce(0.9999999999);
+    expect(pickRandomDistinctColor().toString()).toBe(
+      PALETTE[PALETTE.length - 1],
+    );
+  });
+
+  test("hands out a colour of its own", () => {
+    jest.spyOn(Math, "random").mockReturnValueOnce(0);
+
+    const picked: Color = pickRandomDistinctColor();
+    picked.color = "#000000";
+
+    expect(DISTINCT_COLORS[0]!.toString()).toBe(PALETTE[0]);
   });
 });
 

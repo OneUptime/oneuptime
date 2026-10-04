@@ -185,6 +185,22 @@ export const pickDistinctColor: PickDistinctColorFunction = (
   return new Color(best.toString());
 };
 
+type PickRandomDistinctColorFunction = () => Color;
+
+/**
+ * Any colour of the palette, at random: for a record created where the
+ * records beside it are not at hand - a service a caller sent no colour for.
+ */
+export const pickRandomDistinctColor: PickRandomDistinctColorFunction =
+  (): Color => {
+    const index: number = Math.min(
+      Math.floor(Math.random() * DISTINCT_COLORS.length),
+      DISTINCT_COLORS.length - 1,
+    );
+
+    return new Color(DISTINCT_COLORS[index]!.toString());
+  };
+
 type PickColorForNameFunction = (name: string) => Color;
 
 /**
