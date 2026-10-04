@@ -327,9 +327,16 @@ async function type(label: string, value: string): Promise<void> {
   });
 }
 
+/*
+ * The footer's one way on: a plain Next on every step but the last, the
+ * dialog's action on the last step only.
+ */
 async function clickFooter(): Promise<void> {
   await act(async (): Promise<void> => {
-    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+    fireEvent.click(
+      within(dialog()).queryByTestId("modal-footer-next-button") ||
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+    );
   });
   await settle();
 }

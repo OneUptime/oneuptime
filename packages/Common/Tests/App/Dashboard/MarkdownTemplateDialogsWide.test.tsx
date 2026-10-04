@@ -251,9 +251,8 @@ async function walkToTheEditor(
       await user.type(blank, "Checkout outage");
     }
 
-    await user.click(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    );
+    // Every step but the last walks on with its plain Next.
+    await user.click(within(dialog()).getByTestId("modal-footer-next-button"));
 
     await waitFor(() => {
       expect(dialog()).toBeInTheDocument();

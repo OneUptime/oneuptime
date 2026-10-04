@@ -183,6 +183,30 @@ describe("getSteppedModalFooter", () => {
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
+  test("a Next that waits for something is drawn disabled, and still plain", () => {
+    const footer: SteppedModalFooter = getSteppedModalFooter({
+      hasSteps: true,
+      isOnLastStep: false,
+      onAction: undefined,
+      onNext: getJestMockFunction(),
+      nextButtonText: "Validate and preview",
+      isNextButtonDisabled: true,
+    });
+
+    expect(footer.onSubmit).toBeUndefined();
+    expect(footer.secondaryButton?.title).toBe("Validate and preview");
+    expect(footer.secondaryButton?.disabled).toBe(true);
+
+    expect(
+      getSteppedModalFooter({
+        hasSteps: true,
+        isOnLastStep: false,
+        onAction: undefined,
+        onNext: getJestMockFunction(),
+      }).secondaryButton?.disabled,
+    ).toBeUndefined();
+  });
+
   test("Next calls whatever walks on at the time it is pressed", () => {
     const first: MockFunction = getJestMockFunction();
 

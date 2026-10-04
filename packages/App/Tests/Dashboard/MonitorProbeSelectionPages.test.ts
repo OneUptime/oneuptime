@@ -254,7 +254,13 @@ describe("Probe view page makes an edit saveable and visible", () => {
     }
   });
 
-  test("its edit dialog keeps Save on every step, so an edit is never stranded", () => {
+  /*
+   * The probe's edit dialog is one page (above), so Save Changes is on it.
+   * A stepped edit dialog would keep an edit within reach too: its step list
+   * opens any step, and Save Changes is on the last one, after checking
+   * every step (Forms/Utils/SteppedFormFooter.ts).
+   */
+  test("an edit is never stranded: a stepped edit dialog opens any step, and saves from the last", () => {
     const modal: string = squash(
       fs.readFileSync(
         path.join(
@@ -278,16 +284,12 @@ describe("Probe view page makes an edit saveable and visible", () => {
         "const isEditFormWithSteps: boolean = hasSteps && props.formProps.formType === FormType.Update;",
       ),
     );
-    /*
-     * The buttons come from getSteppedFormFooter: an edit form saves from
-     * any step, its action ("Save") on the main button of every one.
-     */
-    expect(modal).toContain(squash("savesFromAnyStep: isEditFormWithSteps,"));
     expect(modal).toContain(
-      squash('actionText: props.submitButtonText || "Save",'),
+      squash("allowAnyStepNavigation={isEditFormWithSteps}"),
     );
+    expect(modal).toContain(squash("onSubmit={footer.onSubmit}"));
     expect(modal).toContain(
-      squash("submitButtonText={footer.primaryButtonText}"),
+      squash("secondaryButton={footer.secondaryButton}"),
     );
     expect(modal).toContain("submitAllSteps()");
 
@@ -303,7 +305,7 @@ describe("Probe view page makes an edit saveable and visible", () => {
           "Components",
           "Forms",
           "Utils",
-          "FinishFromAnyStep.ts",
+          "SteppedFormFooter.ts",
         ),
         "utf8",
       ),
@@ -311,7 +313,7 @@ describe("Probe view page makes an edit saveable and visible", () => {
 
     expect(footer).toContain(
       squash(
-        "if (data.savesFromAnyStep) { return { primaryButtonText: data.actionText, primaryButtonSubmitsAllSteps: true, showNextButton: !data.isOnLastStep, }; }",
+        "if (!data.hasSteps || data.isOnLastStep) { return { showActionButton: true, showNextButton: false, }; }",
       ),
     );
   });

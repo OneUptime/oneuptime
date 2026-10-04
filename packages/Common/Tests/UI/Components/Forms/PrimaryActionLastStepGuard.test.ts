@@ -447,6 +447,8 @@ describe("the project's front ends", () => {
       "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx",
       // Create a workflow: its own steps, Create Workflow only on the last.
       "packages/App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal.tsx",
+      // Import label rules: the file, then the preview, where Import is.
+      "packages/Common/UI/Components/LabelRule/ImportLabelRulesModal.tsx",
     ]) {
       expect(`${file}: ${factsOf(file).callsSteppedModalFooter}`).toBe(
         `${file}: true`,

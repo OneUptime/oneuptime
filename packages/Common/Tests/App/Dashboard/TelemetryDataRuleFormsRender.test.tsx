@@ -758,13 +758,16 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
       within(dialog()).queryByRole("button", { name: "Advanced" }),
     ).toBeNull();
 
-    // Drop is already picked, so the filter can be created from here.
+    /*
+     * Drop is already picked on Action, and still the filter is created on
+     * Action, the last step, only: Match offers a plain Next.
+     */
     expect(
-      within(dialog()).getByTestId("modal-footer-submit-button"),
-    ).toHaveTextContent(`Create ${page.singularName}`);
+      within(dialog()).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
     expect(
       within(dialog()).getByTestId("modal-footer-next-button"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent("Next");
   });
 
   test("shows Drop picked on Action, and Enabled folded under Advanced", async () => {
@@ -790,10 +793,15 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     ).toBeNull();
   });
 
-  test("creates a drop filter from Match, on, with Drop", async () => {
+  test("creates a drop filter on, with Drop, from Action as it starts", async () => {
     const user: UserEvent = await renderPage(page.Page);
     await screen.findByText(`Create New ${page.singularName}`);
     await fillMatch(user, "Noisy records");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
+    });
+    await within(dialog()).findByRole("combobox", { name: "Action" });
 
     await submit();
 

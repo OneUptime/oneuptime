@@ -571,6 +571,26 @@ describe("creating a role", () => {
   });
 });
 
+/*
+ * Save Changes is on the last step only. An edit dialog's step list opens
+ * any step: the last one, then Save Changes.
+ */
+async function saveFromTheLastStep(): Promise<void> {
+  expect(
+    within(dialog()).queryByTestId("modal-footer-submit-button"),
+  ).toBeNull();
+
+  const steps: Array<HTMLElement> = within(
+    within(dialog()).getByRole("navigation", { name: "Progress" }),
+  ).getAllByRole("listitem");
+
+  fireEvent.click(steps[steps.length - 1] as HTMLElement);
+
+  fireEvent.click(
+    await within(dialog()).findByTestId("modal-footer-submit-button"),
+  );
+}
+
 describe("editing a role", () => {
   test("Incident Commander's form has no Allow Multiple Users, and no Advanced", async () => {
     rows = [COMMANDER, RESPONDER];
@@ -630,7 +650,7 @@ describe("editing a role", () => {
 
     expect(multipleUsersSwitch()).toHaveAttribute("aria-checked", "true");
 
-    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+    await saveFromTheLastStep();
 
     await waitFor(() => {
       expect(saved).toHaveLength(1);
@@ -647,7 +667,7 @@ describe("editing a role", () => {
     await renderPage();
     await openEdit(COMMANDER);
 
-    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+    await saveFromTheLastStep();
 
     await waitFor(() => {
       expect(saved).toHaveLength(1);

@@ -114,6 +114,8 @@ export type GetSteppedModalFooterFunction = (data: {
    */
   nextButtonText?: string | undefined;
   nextButtonDataTestId?: string | undefined;
+  // Next waits for something on the step (a file to read, say).
+  isNextButtonDisabled?: boolean | undefined;
 }) => SteppedModalFooter;
 
 export const getSteppedModalFooter: GetSteppedModalFooterFunction = (data: {
@@ -123,6 +125,7 @@ export const getSteppedModalFooter: GetSteppedModalFooterFunction = (data: {
   onNext: (() => void) | undefined;
   nextButtonText?: string | undefined;
   nextButtonDataTestId?: string | undefined;
+  isNextButtonDisabled?: boolean | undefined;
 }): SteppedModalFooter => {
   const footer: SteppedFormFooter = getSteppedFormFooter({
     hasSteps: data.hasSteps,
@@ -138,6 +141,7 @@ export const getSteppedModalFooter: GetSteppedModalFooterFunction = (data: {
         ? {
             title: data.nextButtonText || NEXT_BUTTON_TEXT,
             dataTestId: data.nextButtonDataTestId || MODAL_NEXT_BUTTON_TEST_ID,
+            disabled: data.isNextButtonDisabled || undefined,
             onClick: () => {
               onNext();
             },

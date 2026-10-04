@@ -906,8 +906,22 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
     await user.clear(name);
     await user.type(name, "Time to resolve");
 
+    /*
+     * Save Changes is on the last step only. Every step of an edit form is
+     * filled in already, so the step list opens the last one.
+     */
+    expect(
+      within(form()).queryByRole("button", { name: "Save Changes" }),
+    ).toBeNull();
+
+    const steps: Array<HTMLElement> = within(
+      within(form()).getByRole("navigation", { name: "Progress" }),
+    ).getAllByRole("listitem");
+
+    await user.click(steps[steps.length - 1] as HTMLElement);
+
     await user.click(
-      within(form()).getByRole("button", { name: "Save Changes" }),
+      await within(form()).findByRole("button", { name: "Save Changes" }),
     );
 
     await waitFor(() => {
