@@ -855,5 +855,21 @@
   "This action cannot be undone.": "Denna åtgärd kan inte ångras.",
   "and {{remaining}} more": "och {{remaining}} till",
   "Type {{name}} to confirm.": "Skriv {{name}} för att bekräfta.",
-  "Configured": "Konfigurerat"
+  "Configured": "Konfigurerat",
+  "Server": "Server",
+  "Username": "Användarnamn",
+  "Sender": "Avsändare",
+  "Require TLS": "Kräv TLS",
+  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.": "E-post skickas bara över en krypterad anslutning med ett giltigt certifikat. När detta är av krypteras e-post bara om servern erbjuder det, och certifikatet kontrolleras inte. Port 465 är alltid krypterad.",
+  "Mail is sent over SMTP without signing in.": "E-post skickas via SMTP utan inloggning.",
+  "Mail is sent over SMTP, signing in with OAuth.": "E-post skickas via SMTP, med inloggning via OAuth.",
+  "Mail is sent over SMTP, signing in with the username and password.": "E-post skickas via SMTP, med inloggning med användarnamn och lösenord.",
+  "Mail is sent through Microsoft Graph, signing in with OAuth.": "E-post skickas via Microsoft Graph, med inloggning via OAuth.",
+  "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP fungerar med de flesta e-postservrar. Välj Microsoft Graph om SMTP AUTH är avstängt i din Microsoft 365-klientorganisation: e-post går då via Graph-API:et med en app som har behörigheten Mail.Send, och värdnamn, port och lösenord används inte.",
+  "TLS is required.": "TLS krävs.",
+  "TLS is used only if the server offers it.": "TLS används bara om servern erbjuder det.",
+  "The account OneUptime signs in as, often the email address you send from.": "Kontot som OneUptime loggar in med, ofta e-postadressen du skickar från.",
+  "The account's password, or the API key your provider gives you for SMTP.": "Kontots lösenord, eller API-nyckeln som din leverantör ger dig för SMTP.",
+  "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "Adressen som dina e-postmeddelanden kommer från. Din server måste tillåta att skicka från den; med Microsoft Graph är det brevlådan som skickar.",
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "Porten som din leverantör anger, vanligtvis 587. Port 465 är alltid krypterad."
 }

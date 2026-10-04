@@ -6,7 +6,28 @@ OneUptime तीन authentication methods के साथ custom SMTP servers 
 - **OAuth 2.0** - Microsoft 365 और Google Workspace के लिए आधुनिक authentication
 - **कोई नहीं** - उन relay servers के लिए जिन्हें authentication की आवश्यकता नहीं है
 
-यह मार्गदर्शिका Microsoft 365 और Google Workspace के लिए OAuth 2.0 authentication configure करने का तरीका बताती है।
+नीचे का पहला खंड दिखाता है कि हर सेटिंग कहाँ है। इस गाइड का बाकी हिस्सा Microsoft 365 और Google Workspace के लिए OAuth 2.0 प्रमाणीकरण बताता है।
+
+## SMTP सर्वर जोड़ना
+
+किसी प्रोजेक्ट का मेल सर्वर **प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना सेटिंग्स** में **कस्टम SMTP कॉन्फ़िग्स** कार्ड में जोड़ें। सेल्फ-होस्टेड इंस्टॉलेशन में, जिस सर्वर से OneUptime स्वयं भेजता है, वह **Admin Dashboard > सेटिंग्स > ईमेल** में **कस्टम ईमेल और SMTP सेटिंग्स** कार्ड में सेट होता है। दोनों फ़ॉर्म दो चरणों में एक ही चीज़ें पूछते हैं:
+
+1. **सर्वर**: **नाम** (केवल प्रोजेक्ट कॉन्फ़िग), **होस्टनाम**, **पोर्ट** (नया कॉन्फ़िग `587` से शुरू होता है), **उपयोगकर्ता नाम** और **पासवर्ड**।
+2. **प्रेषक**: वह **प्रेषक ईमेल** और **प्रेषक नाम** जिनसे आपके ईमेल आते हैं।
+
+बाकी सब कुछ सर्वर चरण के अंत में **उन्नत** के अंदर बंद रहता है। बंद रहने पर इसका शीर्षक बताता है कि मेल कैसे भेजा जाता है, उदाहरण के लिए "मेल SMTP से भेजा जाता है, उपयोगकर्ता नाम और पासवर्ड से साइन इन करके। TLS आवश्यक है।"
+
+| फ़ील्ड | यह क्या करता है |
+| --- | --- |
+| **ट्रांसपोर्ट** | `SMTP` (डिफ़ॉल्ट), या उस Microsoft 365 टेनेंट के लिए `Microsoft Graph` जिसमें SMTP AUTH बंद है। Microsoft Graph चुनने पर होस्टनाम, पोर्ट, उपयोगकर्ता नाम और पासवर्ड छिप जाते हैं और OAuth फ़ील्ड दिखते हैं। |
+| **TLS आवश्यक करें** | नए प्रोजेक्ट कॉन्फ़िग में चालू। मेल केवल मान्य प्रमाणपत्र वाले एन्क्रिप्टेड कनेक्शन पर भेजा जाता है। इसे बंद करने पर, मेल केवल तभी एन्क्रिप्ट होता है जब सर्वर इसकी पेशकश करे, और प्रमाणपत्र की जाँच नहीं होती। पोर्ट 465 हमेशा एन्क्रिप्टेड होता है। |
+| **प्रमाणीकरण प्रकार** | `Username and Password` (डिफ़ॉल्ट), `OAuth`, या ऐसे रिले के लिए `None` जिसे साइन इन की ज़रूरत नहीं। |
+| **OAuth फ़ील्ड** | प्रदाता प्रकार, क्लाइंट ID, क्लाइंट सीक्रेट, टोकन URL और स्कोप, जो OAuth या Microsoft Graph चुनने पर दिखते हैं। |
+| **विवरण** | आपकी टीम के लिए एक नोट (केवल प्रोजेक्ट कॉन्फ़िग)। |
+
+**Microsoft Graph.** **उन्नत** खोलें, **ट्रांसपोर्ट** को `Microsoft Graph` पर सेट करें, और **Mail.Send** एप्लिकेशन अनुमति वाला Azure ऐप भरें: उसका क्लाइंट ID और क्लाइंट सीक्रेट, टोकन URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` और स्कोप `https://graph.microsoft.com/.default`। मेल **प्रेषक ईमेल** वाले मेलबॉक्स से भेजा जाता है, जो आपके टेनेंट में लाइसेंस वाला मेलबॉक्स होना चाहिए।
+
+प्रोजेक्ट कॉन्फ़िग सहेजने के बाद, उसकी पंक्ति पर **परीक्षण ईमेल भेजें** जाँचता है कि वह काम करता है।
 
 ## OAuth 2.0 Authentication
 
@@ -30,6 +51,8 @@ OneUptime में OAuth authentication के साथ SMTP configure कर�
 | **क्लाइंट सीक्रेट**     | आपके OAuth provider से Client secret (Google के लिए: private key)                        |
 | **Token URL**           | OAuth token endpoint URL                                                                 |
 | **दायरा**               | SMTP access के लिए आवश्यक OAuth scope(s)                                                 |
+
+**प्रमाणीकरण प्रकार** और OAuth फ़ील्ड फ़ॉर्म के सर्वर चरण में **उन्नत** के अंदर हैं।
 
 ---
 
@@ -120,7 +143,7 @@ OneUptime में, इन settings के साथ एक SMTP configuration 
 | Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`            |
 | Scope               | `https://outlook.office365.com/.default`                                     |
 | From Email          | Username के समान                                                             |
-| Secure (TLS)        | सक्षम                                                                        |
+| TLS आवश्यक करें        | सक्षम                                                                        |
 
 `<tenant-id>` को चरण 1 से अपने Directory (tenant) ID से बदलें।
 
@@ -202,7 +225,7 @@ OneUptime में, इन settings के साथ एक SMTP configuration 
 | Token URL           | `https://oauth2.googleapis.com/token`                                                                                                        |
 | Scope               | `https://mail.google.com/`                                                                                                                   |
 | From Email          | Username के समान                                                                                                                             |
-| Secure (TLS)        | सक्षम                                                                                                                                        |
+| TLS आवश्यक करें        | सक्षम                                                                                                                                        |
 
 **महत्वपूर्ण:** Google (JWT Bearer) के लिए, Client ID **service account email** (`client_email`) है, numerical `client_id` नहीं। service account emails भेजने के लिए Username field में निर्दिष्ट user को impersonate करेगा।
 

@@ -855,5 +855,21 @@
   "This action cannot be undone.": "このアクションは元に戻すことができません。",
   "and {{remaining}} more": "他 {{remaining}} 件",
   "Type {{name}} to confirm.": "確認のため {{name}} と入力してください。",
-  "Configured": "設定済み"
+  "Configured": "設定済み",
+  "Server": "サーバー",
+  "Username": "ユーザー名",
+  "Sender": "送信者",
+  "Require TLS": "TLS を必須にする",
+  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.": "メールは有効な証明書を持つ暗号化された接続でのみ送信されます。オフの場合、メールはサーバーが対応しているときだけ暗号化され、証明書は確認されません。ポート 465 は常に暗号化されます。",
+  "Mail is sent over SMTP without signing in.": "メールはサインインせずに SMTP で送信されます。",
+  "Mail is sent over SMTP, signing in with OAuth.": "メールは SMTP で送信され、OAuth でサインインします。",
+  "Mail is sent over SMTP, signing in with the username and password.": "メールは SMTP で送信され、ユーザー名とパスワードでサインインします。",
+  "Mail is sent through Microsoft Graph, signing in with OAuth.": "メールは Microsoft Graph で送信され、OAuth でサインインします。",
+  "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.": "SMTP はほとんどのメールサーバーで使えます。Microsoft 365 テナントで SMTP AUTH が無効になっている場合は Microsoft Graph を選択してください。メールは Mail.Send 権限を持つアプリを使って Graph API 経由で送信され、ホスト名、ポート、パスワードは使用されません。",
+  "TLS is required.": "TLS は必須です。",
+  "TLS is used only if the server offers it.": "TLS はサーバーが対応している場合にのみ使用されます。",
+  "The account OneUptime signs in as, often the email address you send from.": "OneUptime がサインインに使うアカウント。多くの場合、送信元のメールアドレスです。",
+  "The account's password, or the API key your provider gives you for SMTP.": "アカウントのパスワード、またはプロバイダーから SMTP 用に発行された API キー。",
+  "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.": "メールの送信元アドレス。サーバーがこのアドレスからの送信を許可している必要があります。Microsoft Graph の場合は、送信を行うメールボックスです。",
+  "The port your provider gives you, usually 587. Port 465 is always encrypted.": "プロバイダーから指定されたポート。通常は 587 です。ポート 465 は常に暗号化されます。"
 }
