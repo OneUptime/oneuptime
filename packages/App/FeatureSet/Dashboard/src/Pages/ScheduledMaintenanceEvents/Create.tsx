@@ -74,6 +74,10 @@ import {
   moveMaintenanceEndWithStart,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
 import {
+  hasPickedMonitors,
+  omitMonitorStatusWithoutMonitors,
+} from "../../Components/Incident/ChangeMonitorStatusField";
+import {
   CreatedRecordKind,
   pickRecordToCreateFrom,
 } from "../../Components/CreateFromRecord/CreateFromRecord";
@@ -94,15 +98,27 @@ const subscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaint
   getSubscriberNotificationsSection<ScheduledMaintenance>();
 
 /*
- * Every resource type the "Resources Affected" step offers: what the event's
- * own Edit offers, so an event created from a Proxmox cluster's, a
- * vCenter's, a Ceph or Docker Swarm cluster's or an IoT fleet's Scheduled
- * Maintenance tab keeps it picked (Components/CreateFromRecord). The editor
- * and the review step's read-only picker both take this list, so the summary
- * names every type the editor lets the user pick.
+ * The "Resources Affected" step asks for the event's monitors in a picker of
+ * their own, with "Change Monitor Status to" right under them, and for
+ * everything else it affects in a second picker - the shape of Declare
+ * Incident. The maintainer, on the incident form: "we also need to have
+ * monitors and other affected resources as seperate things (so change
+ * monitor sttate to makes more sense), only show that dropdown if any
+ * monitor is selected." The status acts on the monitors alone: they change
+ * to it while the event is ongoing.
+ *
+ * Together the two pickers offer what the event's own Edit offers, split the
+ * same way (Components/ScheduledMaintenance/
+ * ScheduledMaintenanceAffectedResourcesFormFields), so an event created from
+ * a Proxmox cluster's, a vCenter's, a Ceph or Docker Swarm cluster's, an IoT
+ * fleet's or a network site's Scheduled Maintenance tab keeps it picked
+ * (Components/CreateFromRecord). Each editor and its review step's read-only
+ * picker take the same list, so the summary names every type the editor
+ * lets the user pick.
  */
-const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
-  "Monitor",
+const MONITOR_RESOURCE_TYPES: Array<AffectedResourceType> = ["Monitor"];
+
+const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "Host",
   "KubernetesCluster",
   "DockerHost",
@@ -116,6 +132,13 @@ const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "NetworkSite",
   "Service",
 ];
+
+// Change Monitor Status to is asked only once the event has a monitor.
+const hasMonitors: (values: FormValues<ScheduledMaintenance>) => boolean = (
+  values: FormValues<ScheduledMaintenance>,
+): boolean => {
+  return hasPickedMonitors(values);
+};
 
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
@@ -339,6 +362,23 @@ const ScheduledMaintenanceCreate: FunctionComponent<
               initialValues={formInitialValues}
               name="Create New Scheduled Maintenance Event"
               id="create-scheduledMaintenance-form"
+              /*
+               * Change Monitor Status to is asked only once a monitor is
+               * picked. Without one, a status the form still holds - a
+               * template's, or one picked before the last monitor was
+               * removed - is not sent: there is no monitor for it to change,
+               * and an event's status cannot be changed once it is created.
+               */
+              onBeforeCreate={async (
+                item: ScheduledMaintenance,
+                _miscDataProps: JSONObject,
+                formValues: JSONObject,
+              ): Promise<ScheduledMaintenance> => {
+                return omitMonitorStatusWithoutMonitors({
+                  item: item,
+                  formValues: formValues,
+                });
+              }}
               steps={[
                 {
                   title: "Event",
@@ -467,14 +507,19 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     );
                   },
                 }),
+                /*
+                 * The event's monitors, on their own: Change Monitor Status
+                 * to right below acts on them, and the status pages that show
+                 * them are suggested under the status page picker.
+                 */
                 {
                   field: {
                     monitors: true,
                   },
-                  title: "Resources Affected",
+                  title: "Monitors",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+                    "Search and attach the monitors affected by this scheduled maintenance.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -484,6 +529,145 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     return (
                       <AffectedResourcesPicker
                         monitors={values.monitors as Array<Monitor>}
+                        resourceTypes={MONITOR_RESOURCE_TYPES}
+                        placeholder="Search monitors..."
+                        ariaLabelledby={elementProps.ariaLabelledby}
+                        onChange={(payload: unknown) => {
+                          elementProps.onChange?.(payload);
+                        }}
+                      />
+                    );
+                  },
+                  onChange: (
+                    value: unknown,
+                    currentValues: FormValues<ScheduledMaintenance>,
+                    setNewFormValues: (
+                      values: FormValues<ScheduledMaintenance>,
+                    ) => void,
+                  ) => {
+                    /*
+                     * FormField's CustomComponent path calls our onChange
+                     * first and then setFieldValue(fieldName, value), which
+                     * puts the picker's whole payload in `monitors`. Defer
+                     * the split via microtask so it runs after that lands and
+                     * our write wins. Only the monitors are this picker's to
+                     * write.
+                     */
+                    if (isAffectedResourcesPayload(value)) {
+                      const payload: typeof value = value;
+                      queueMicrotask(() => {
+                        setNewFormValues({
+                          ...currentValues,
+                          monitors: payload.monitors,
+                        } as FormValues<ScheduledMaintenance>);
+                      });
+                    }
+                  },
+                  /*
+                   * Bare IDs once the picker has written to the form, or
+                   * {_id, name} objects from a template the user has not
+                   * touched: the read-only picker names both, looking up any
+                   * name it lacks.
+                   */
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
+                    if (!hasMonitors(item)) {
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No monitors affected by this scheduled maintenance event.",
+                          )}
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <AffectedResourcesPicker
+                        readOnly={true}
+                        monitors={item.monitors as Array<Monitor>}
+                        resourceTypes={MONITOR_RESOURCE_TYPES}
+                        onChange={() => {
+                          // Read-only: nothing to change.
+                        }}
+                      />
+                    );
+                  },
+                },
+                /*
+                 * Right under the monitors it acts on, and only once one is
+                 * picked: without a monitor there is nothing for it to
+                 * change. The monitors change to it when the event starts,
+                 * and back to operational when it ends. Hidden, it keeps what
+                 * it holds - a template's status, or one picked before the
+                 * last monitor was removed - and shows it again with the next
+                 * monitor; onBeforeCreate never sends it without one.
+                 */
+                {
+                  field: {
+                    changeMonitorStatusTo: true,
+                  },
+                  title: "Change Monitor Status to",
+                  stepId: "resources-affected",
+                  description:
+                    "When the event starts, its monitors change to this status, and back to operational when it ends.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: MonitorStatus,
+                    labelField: "name",
+                    valueField: "_id",
+                    sort: {
+                      priority: SortOrder.Ascending,
+                    },
+                  },
+                  required: false,
+                  placeholder: "Monitor Status",
+                  showIf: hasMonitors,
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
+                    if (!item.changeMonitorStatusTo) {
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+                          )}
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <FetchMonitorStatuses
+                        monitorStatusIds={[
+                          new ObjectID(item.changeMonitorStatusTo.toString()),
+                        ]}
+                        shouldAnimate={false}
+                      />
+                    );
+                  },
+                },
+                /*
+                 * Everything else the event affects. Anchored on `hosts`; its
+                 * payload is split back into each relation by the onChange
+                 * below, and the hidden registrations further down load and
+                 * send the rest.
+                 */
+                {
+                  field: {
+                    hosts: true,
+                  },
+                  title: "Other Affected Resources",
+                  stepId: "resources-affected",
+                  description:
+                    "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  required: false,
+                  getCustomElement: (
+                    values: FormValues<ScheduledMaintenance>,
+                    elementProps: CustomElementProps,
+                  ) => {
+                    return (
+                      <AffectedResourcesPicker
                         hosts={values.hosts as Array<Host>}
                         kubernetesClusters={
                           values.kubernetesClusters as Array<KubernetesCluster>
@@ -506,13 +690,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         networkSites={values.networkSites as Array<NetworkSite>}
                         services={values.services as Array<Service>}
-                        resourceTypes={AFFECTED_RESOURCE_TYPES}
+                        resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
+                        ariaLabelledby={elementProps.ariaLabelledby}
                         onChange={(payload: unknown) => {
-                          /*
-                           * Field.onChange below handles the split; we still
-                           * forward to elementProps.onChange so FormField's
-                           * internal pipeline triggers it.
-                           */
                           elementProps.onChange?.(payload);
                         }}
                       />
@@ -526,18 +706,14 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     ) => void,
                   ) => {
                     /*
-                     * FormField's CustomComponent path calls our onChange
-                     * first and then setFieldValue(fieldName, value). The
-                     * latter would otherwise stuff our payload object into
-                     * the `monitors` slot. Defer the split via microtask so
-                     * it runs after setFieldValue lands and our writes win.
+                     * Deferred, as the monitors' split is. The monitors are
+                     * the other picker's: not written here.
                      */
                     if (isAffectedResourcesPayload(value)) {
                       const payload: typeof value = value;
                       queueMicrotask(() => {
                         setNewFormValues({
                           ...currentValues,
-                          monitors: payload.monitors,
                           hosts: payload.hosts,
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
@@ -556,16 +732,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   /*
                    * The form holds bare IDs once the picker has written to
-                   * it, or {_id, name} objects from a template prefill the
-                   * user has not touched. The read-only picker takes both and
-                   * looks up any name it lacks, so the review step names
-                   * every resource the user picked instead of counting them.
+                   * it, or {_id, name} objects from a template prefill or the
+                   * record the page was opened from. The read-only picker
+                   * takes both and looks up any name it lacks, so the review
+                   * step names every resource the user picked instead of
+                   * counting them.
                    */
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
                     const hasResources: boolean = [
-                      item.monitors,
                       item.hosts,
                       item.kubernetesClusters,
                       item.dockerHosts,
@@ -585,7 +761,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       return (
                         <p>
                           {translator.translateText(
-                            "No resources affected by this scheduled maintenance event.",
+                            "No other resources affected by this scheduled maintenance event.",
                           )}
                         </p>
                       );
@@ -593,7 +769,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     return (
                       <AffectedResourcesPicker
                         readOnly={true}
-                        monitors={item.monitors as Array<Monitor>}
                         hosts={item.hosts as Array<Host>}
                         kubernetesClusters={
                           item.kubernetesClusters as Array<KubernetesCluster>
@@ -616,7 +791,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         networkSites={item.networkSites as Array<NetworkSite>}
                         services={item.services as Array<Service>}
-                        resourceTypes={AFFECTED_RESOURCE_TYPES}
+                        resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
                         onChange={() => {
                           // Read-only: nothing to change.
                         }}
@@ -626,23 +801,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
-                 * hosts/kubernetesClusters/dockerHosts/podmanHosts/
-                 * proxmoxClusters/vmwareVCenters/cephClusters/
-                 * dockerSwarmClusters/iotFleets/databaseServers/networkSites/
-                 * services on load and submit. The picker writes to every one
-                 * of these relations, but only the anchor field's key
-                 * (monitors) is otherwise captured.
+                 * kubernetesClusters/dockerHosts/podmanHosts/proxmoxClusters/
+                 * vmwareVCenters/cephClusters/dockerSwarmClusters/iotFleets/
+                 * databaseServers/networkSites/services on load and submit
+                 * (hosts is the second picker's anchor above).
                  */
-                {
-                  field: { hosts: true },
-                  stepId: "resources-affected",
-                  title: "",
-                  fieldType: FormFieldSchemaType.Text,
-                  required: false,
-                  showIf: () => {
-                    return false;
-                  },
-                },
                 {
                   field: { kubernetesClusters: true },
                   stepId: "resources-affected",
@@ -911,53 +1074,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     );
                   },
                   required: false,
-                },
-                /*
-                 * Last on its step, folded: it changes the monitors' status
-                 * while the event is ongoing.
-                 */
-                {
-                  field: {
-                    changeMonitorStatusTo: true,
-                  },
-                  title: "Change Monitor Status to ",
-                  stepId: "resources-affected",
-                  description:
-                    "This will change the status of all the monitors attached when the event starts.",
-                  collapsibleSection: advancedSection,
-                  fieldType: FormFieldSchemaType.Dropdown,
-                  dropdownModal: {
-                    type: MonitorStatus,
-                    labelField: "name",
-                    valueField: "_id",
-                    sort: {
-                      priority: SortOrder.Ascending,
-                    },
-                  },
-                  required: false,
-                  placeholder: "Monitor Status",
-                  getSummaryElement: (
-                    item: FormValues<ScheduledMaintenance>,
-                  ) => {
-                    if (!item.changeMonitorStatusTo) {
-                      return (
-                        <p>
-                          {translator.translateText(
-                            "Status of the monitors will not be changed when this scheduled maintenance event starts.",
-                          )}
-                        </p>
-                      );
-                    }
-
-                    return (
-                      <FetchMonitorStatuses
-                        monitorStatusIds={[
-                          new ObjectID(item.changeMonitorStatusTo.toString()),
-                        ]}
-                        shouldAnimate={false}
-                      />
-                    );
-                  },
                 },
               ]}
               onSuccess={(createdItem: ScheduledMaintenance) => {

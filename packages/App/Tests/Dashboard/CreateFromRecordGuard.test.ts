@@ -616,11 +616,12 @@ describe("the create forms offer every resource they can be opened from", () => 
    * writes back only what its onChange splits out and its hidden fields
    * register: a record of any other type would be dropped on save.
    *
-   * A form can ask with more than one picker: Declare Incident asks for the
-   * incident's monitors on their own, and for everything else in a second
-   * picker, as the incident's Affected Resources Edit does. `lists` names
-   * the create page's lists in the order its pickers are drawn, and the
-   * Edit's pickers must offer the same lists in the same order.
+   * A form can ask with more than one picker: Declare Incident and Create
+   * Scheduled Maintenance Event ask for the monitors on their own, and for
+   * everything else in a second picker, as the record's Affected Resources
+   * Edit does. `lists` names the create page's lists in the order its
+   * pickers are drawn, and the Edit's pickers must offer the same lists in
+   * the same order.
    */
   const FORMS: Array<{
     created: CreatedRecordKind;
@@ -643,8 +644,8 @@ describe("the create forms offer every resource they can be opened from", () => 
     {
       created: CreatedRecordKind.ScheduledMaintenance,
       file: "Pages/ScheduledMaintenanceEvents/Create.tsx",
-      lists: ["AFFECTED_RESOURCE_TYPES"],
-      edit: "Pages/ScheduledMaintenanceEvents/View/Index.tsx",
+      lists: ["MONITOR_RESOURCE_TYPES", "OTHER_AFFECTED_RESOURCE_TYPES"],
+      edit: "Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields.tsx",
     },
   ];
 

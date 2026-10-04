@@ -146,14 +146,21 @@ import IncidentGroupingRulesPage from "../../../../App/FeatureSet/Dashboard/src/
 import AlertGroupingRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertGroupingRules";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
+  EPISODE_OWNERS_FIELD_KEY,
+  EPISODE_OWNER_TEAMS_COLUMN,
+  EPISODE_OWNER_USERS_COLUMN,
   GROUPING_MODE_FIELD_KEY,
   GROUPING_RULE_COPY,
   GroupingMode,
   GroupingRuleKind,
+  LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+  LegacyDefaultAssigneeAction,
   SHOW_ADVANCED_SETTINGS_FIELD_KEY,
   getGroupingRuleSummarySelect,
   getNewGroupingRuleValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import IncidentGroupingRule from "../../../Models/DatabaseModels/IncidentGroupingRule";
 import AlertGroupingRule from "../../../Models/DatabaseModels/AlertGroupingRule";
 import Route from "../../../Types/API/Route";
@@ -204,8 +211,15 @@ const SHARED_FORM_COLUMNS: Array<string> = [
   "episodeDescriptionTemplate",
   "episodeLabels",
   "onCallDutyPolicies",
-  "defaultAssignToTeam",
-  "defaultAssignToUser",
+  // Who owns the episodes the rule opens: one people picker.
+  "episodeOwnerUsers",
+  "episodeOwnerTeams",
+  /*
+   * The old default assignee: no longer asked for, but still read - the
+   * edit form says a rule has one - and cleared once somebody settles it.
+   */
+  "defaultAssignToTeamId",
+  "defaultAssignToUserId",
 ];
 
 const PAGES: Array<PageCase> = [
@@ -432,13 +446,18 @@ describe.each(PAGES)(
 
     test("the form still reads and writes every column it did before", () => {
       renderPage(pageCase);
-      const registered: Set<string> = new Set<string>(
-        latestTable()
-          .formFields.filter((field: ModelField<any>) => {
-            return !field.formOnly;
-          })
-          .map(fieldKey),
-      );
+      const registered: Set<string> = new Set<string>();
+
+      for (const field of latestTable().formFields) {
+        // A people picker writes one value per kind it offers.
+        for (const kind of field.peoplePicker?.kinds || []) {
+          registered.add(kind.valueKey);
+        }
+
+        if (!field.formOnly) {
+          registered.add(fieldKey(field));
+        }
+      }
 
       for (const column of pageCase.formColumns) {
         expect({ column, registered: registered.has(column) }).toEqual({
@@ -449,6 +468,196 @@ describe.each(PAGES)(
 
       // And never the order number, which is dragged.
       expect(registered.has("priority")).toBe(false);
+    });
+
+    test("On-Call & Ownership asks who owns the episodes with one people picker", () => {
+      renderPage(pageCase);
+
+      const pickers: Array<ModelField<any>> = latestTable().formFields.filter(
+        (field: ModelField<any>) => {
+          return field.fieldType === FormFieldSchemaType.PeoplePicker;
+        },
+      );
+
+      expect(pickers).toHaveLength(1);
+
+      const owners: ModelField<any> = pickers[0]!;
+
+      expect(fieldKey(owners)).toBe(EPISODE_OWNERS_FIELD_KEY);
+      expect(owners.title).toBe("Episode Owners");
+      expect(owners.title).toBe(GROUPING_RULE_COPY.episodeOwnersTitle);
+      expect(owners.description).toBe(
+        "Added as owners of every episode this rule opens, and notified like any other owner.",
+      );
+      expect(owners.stepId).toBe("on-call-ownership");
+      expect(owners.spanFullRow).toBe(true);
+      expect(owners.required).toBe(false);
+      // People first, then teams, saved to the rule's own two lists.
+      expect(
+        owners.peoplePicker?.kinds.map(
+          (kind: { kind: PeoplePickerKind; valueKey: string }) => {
+            return [kind.kind, kind.valueKey];
+          },
+        ),
+      ).toEqual([
+        [PeoplePickerKind.User, EPISODE_OWNER_USERS_COLUMN],
+        [PeoplePickerKind.Team, EPISODE_OWNER_TEAMS_COLUMN],
+      ]);
+      expect(owners.formOnly).toBe(true);
+    });
+
+    test("no field asks for a default assignee any more - the old pair is only read", () => {
+      renderPage(pageCase);
+
+      const oldPair: Array<ModelField<any>> = latestTable().formFields.filter(
+        (field: ModelField<any>) => {
+          return fieldKey(field).startsWith("defaultAssignTo");
+        },
+      );
+
+      expect(oldPair.map(fieldKey).sort()).toEqual([
+        "defaultAssignToTeamId",
+        "defaultAssignToUserId",
+      ]);
+
+      for (const field of oldPair) {
+        expect(field.showIf?.({ [fieldKey(field)]: "id" })).toBe(false);
+        expect(field.stepId).toBe("on-call-ownership");
+      }
+
+      expect(
+        latestTable().formFields.map((field: ModelField<any>) => {
+          return field.title;
+        }),
+      ).not.toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^Default Assign To (Team|User)$/),
+        ]),
+      );
+    });
+
+    test("the line about an old default assignee shows only while the rule has one", () => {
+      renderPage(pageCase);
+
+      const line: ModelField<any> | undefined = latestTable().formFields.find(
+        (field: ModelField<any>) => {
+          return field.overrideFieldKey === LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY;
+        },
+      );
+
+      expect(line).toBeDefined();
+      expect(line!.formOnly).toBe(true);
+      expect(line!.stepId).toBe("on-call-ownership");
+      expect(line!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+
+      expect(line!.showIf!({})).toBe(false);
+      // A new rule never has one.
+      expect(line!.showIf!(latestTable().createInitialValues)).toBe(false);
+      expect(line!.showIf!({ defaultAssignToTeamId: "team" })).toBe(true);
+      expect(line!.showIf!({ defaultAssignToUserId: "user" })).toBe(true);
+      // Settled: Add as owners or Remove wrote null.
+      expect(
+        line!.showIf!({
+          defaultAssignToTeamId: null,
+          defaultAssignToUserId: null,
+        }),
+      ).toBe(false);
+
+      // It sits right under the owners picker.
+      const keys: Array<string> = latestTable().formFields.map(
+        (field: ModelField<any>) => {
+          return field.overrideFieldKey || fieldKey(field);
+        },
+      );
+
+      expect(keys.indexOf(LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY)).toBeGreaterThan(
+        keys.indexOf(EPISODE_OWNERS_FIELD_KEY),
+      );
+    });
+
+    test("the line's buttons settle the old pair: Add as owners moves it into the owners", () => {
+      renderPage(pageCase);
+
+      const line: ModelField<any> = latestTable().formFields.find(
+        (field: ModelField<any>) => {
+          return field.overrideFieldKey === LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY;
+        },
+      )!;
+
+      let written: Record<string, unknown> = {};
+
+      line.onChange!(
+        {
+          action: LegacyDefaultAssigneeAction.AddAsOwners,
+          userId: "user-1",
+          teamId: "team-1",
+        },
+        {
+          defaultAssignToUserId: "user-1",
+          defaultAssignToTeamId: "team-1",
+          episodeOwnerUsers: ["user-2"],
+        },
+        (values: Record<string, unknown>): void => {
+          written = values;
+        },
+      );
+
+      expect(written).toEqual({
+        defaultAssignToUserId: null,
+        defaultAssignToTeamId: null,
+        episodeOwnerUsers: ["user-2", "user-1"],
+        episodeOwnerTeams: ["team-1"],
+      });
+
+      line.onChange!(
+        { action: LegacyDefaultAssigneeAction.Remove },
+        {
+          defaultAssignToUserId: "user-1",
+          episodeOwnerUsers: ["user-2"],
+        },
+        (values: Record<string, unknown>): void => {
+          written = values;
+        },
+      );
+
+      expect(written).toEqual({
+        defaultAssignToUserId: null,
+        defaultAssignToTeamId: null,
+        episodeOwnerUsers: ["user-2"],
+      });
+
+      // Anything else is not the line's to act on.
+      written = {};
+      line.onChange!("add-as-owners", {}, (values: Record<string, unknown>) => {
+        written = values;
+      });
+      expect(written).toEqual({});
+    });
+
+    test("On-Call & Ownership has no section headings: each field says what it does", () => {
+      renderPage(pageCase);
+
+      const onTheStep: Array<ModelField<any>> = latestTable().formFields.filter(
+        (field: ModelField<any>) => {
+          return field.stepId === "on-call-ownership";
+        },
+      );
+
+      expect(
+        onTheStep.filter((field: ModelField<any>) => {
+          return Boolean(field.sectionTitle);
+        }),
+      ).toEqual([]);
+
+      const onCall: ModelField<any> | undefined = onTheStep.find(
+        (field: ModelField<any>) => {
+          return fieldKey(field) === "onCallDutyPolicies";
+        },
+      );
+
+      expect(onCall?.description).toBe(
+        "On-call policies to fire when an episode is created by this rule.",
+      );
     });
 
     test("its form-only controls are never saved", () => {

@@ -45,8 +45,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     review, the last step;
  *   - moving the start moves the end with it, and the end must come after
  *     the start;
- *   - Owners and Labels wait under Advanced on Event, Change Monitor Status
- *     to under Advanced on Resources Affected;
+ *   - Owners and Labels wait under Advanced on Event; Resources Affected
+ *     asks for the monitors apart from the other resources, with Change
+ *     Monitor Status to right under them once one is picked (covered in
+ *     ScheduledMaintenanceMonitorsApart.test.tsx);
  *   - the three subscriber switches and the reminders are folded to the one
  *     line that says what happens, that line follows the switches, and the
  *     review step shows it;
@@ -619,7 +621,7 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(labelsLabel).toBeVisible();
   });
 
-  test("Resources Affected shows the status pages, one line about subscribers, and Advanced", async () => {
+  test("Resources Affected shows the monitors, the other resources, the status pages and one line about subscribers", async () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
@@ -649,19 +651,27 @@ describe("Create Scheduled Maintenance Event", () => {
       "Reminders before the event",
     ]);
 
-    // Change Monitor Status to is the one field folded under Advanced here.
-    const advanced: HTMLElement = sectionHeader("More fields");
-
-    expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(setChips()).toEqual([]);
-    expect(fieldLabelsIn(sectionBody(advanced))).toEqual([
-      "Change Monitor Status to",
+    /*
+     * The step's fields, in order. Change Monitor Status to is not among
+     * them until a monitor is picked, and nothing is folded under More
+     * fields here any more.
+     */
+    expect(fieldLabelsIn(form())).toEqual([
+      "Monitors",
+      "Other Affected Resources",
+      "Show event on these status pages",
+      "When the event is scheduled",
+      "When the event starts",
+      "When the event ends",
+      "Reminders before the event",
     ]);
+    expect(
+      screen.queryByText("Change Monitor Status to", { exact: false }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "More fields" })).toBeNull();
+    expect(setChips()).toEqual([]);
 
-    fireEvent.click(advanced);
-
-    expect(sectionBody(advanced)).toBeVisible();
-    // Nothing on the step left is required; Create is still on it only.
+    // Nothing on the step is required; Create is still on the review only.
     expect(queryCreateButton()).toBeNull();
     expect(nextButton()).toBeInTheDocument();
   });
