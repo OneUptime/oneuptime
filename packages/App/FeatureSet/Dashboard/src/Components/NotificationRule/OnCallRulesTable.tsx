@@ -2,8 +2,10 @@ import NotificationMethodView, {
   DeletionImpactModal,
 } from "../NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "./NotifyAfterMinutesDropdownOptions";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import type {
+  OnCallRuleSeverity,
+  SeverityForeignKeyColumn,
+} from "./OnCallRuleKinds";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -55,27 +57,12 @@ import React, {
 } from "react";
 
 /*
- * One severity band on a project. Incidents and alerts each have their own
- * severity model, and this component has to work with either, so the union is
- * the widest thing it ever needs: both classes carry `name`, both carry `id`,
- * and nothing else here is read off them.
+ * The severity band a table is for, and the rule column that ties a rule to
+ * it. Both live with the four kinds of rule in OnCallRuleKinds.ts, which says
+ * why they are two separate things; re-exported for the callers that always
+ * found them here.
  */
-export type OnCallRuleSeverity = IncidentSeverity | AlertSeverity;
-
-/*
- * The column on UserNotificationRule that ties a rule to its severity band.
- *
- * This is the SECOND axis, and it is deliberately independent of the severity
- * model above rather than derived from it. The four rule types do not line up
- * the way the names suggest: the alert *episode* page reads AlertSeverity, the
- * incident *episode* page reads IncidentSeverity, so "is this an episode?" tells
- * you nothing about which column to write. Deriving one axis from the other is
- * how you end up writing `alertSeverityId` on a table that filters on
- * `incidentSeverityId` - which does not error, it just returns a table that
- * silently lists rules for EVERY severity, and pages the user for a Sev 4 the
- * same way it pages them for a Sev 1.
- */
-export type SeverityForeignKeyColumn = "incidentSeverityId" | "alertSeverityId";
+export type { OnCallRuleSeverity, SeverityForeignKeyColumn };
 
 /*
  * One pickable notification method, described WITHOUT its underlying row.
@@ -363,8 +350,11 @@ export interface ComponentProps {
    */
   userPreferencesKeyPrefix: string;
 
-  /* Card heading and blurb, given the severity's name. */
-  getTitle: (severityName: string) => string;
+  /*
+   * What each card is for, given the severity's name. Already translated: a
+   * card's title is the severity itself (its colour and the name the project
+   * gave it), so all the words are here.
+   */
   getDescription: (severityName: string) => string;
 
   /*
@@ -414,8 +404,8 @@ export interface ComponentProps {
    * into that. Both doors are shut by the same `isViewerTheOwner` switch.
    *
    * The self-serve path is left exactly as it was because it is not the same
-   * question: those four settings pages are a person reading their own rows, the
-   * unmasked labels are theirs, and readiness is not fetched there at all.
+   * question: your own On-Call Rules page is a person reading their own rows,
+   * the unmasked labels are theirs, and readiness is not fetched there at all.
    */
   notificationMethods?: Array<NotificationMethodChoice> | undefined;
 
@@ -470,15 +460,50 @@ const OPT_OUT_LABEL: string = translationKey(
 );
 
 /*
- * The on-call notification rules table, one per severity band.
+ * A card's title: the severity, as the project named and coloured it.
  *
- * This was four ~370-line pages (incident, alert, incident episode, alert
- * episode) that were ~95% identical and had already drifted apart: two of them
- * still carried a commented-out block for rule types the other two had dropped.
- * Every one of them fetched the same seven notification-method models the same
- * way, built the same dropdown, and rendered the same two columns. Phase 3 needs
- * a fifth caller - an admin looking at somebody else's configuration - and a
- * fifth copy was not a thing worth having.
+ * Not a sentence around the name. A project's severities are often named
+ * after the kind of thing they rate ("Critical Incident" is every new
+ * project's first), so "<severity> incidents" would read "Critical Incident
+ * incidents"; the tab above already says which kind the cards are for, and
+ * each card's description says the rest. The name is the project's own word,
+ * shown as written rather than looked up as something to translate.
+ */
+const SeverityCardTitle: FunctionComponent<{
+  severity: OnCallRuleSeverity;
+}> = (props: { severity: OnCallRuleSeverity }): ReactElement => {
+  const color: string | undefined = props.severity.color?.toString();
+
+  return (
+    <span
+      className="inline-flex items-center gap-2"
+      data-testid="on-call-rules-severity-title"
+    >
+      {color ? (
+        <span
+          aria-hidden="true"
+          className="h-3 w-3 flex-shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        ></span>
+      ) : (
+        <></>
+      )}
+      <span>{props.severity.name || ""}</span>
+    </span>
+  );
+};
+
+/*
+ * The on-call notification rules for ONE kind of rule (incident, incident
+ * episode, alert or alert episode): a card per severity band.
+ *
+ * This was four ~370-line pages that were ~95% identical and had already
+ * drifted apart: two of them still carried a commented-out block for rule
+ * types the other two had dropped. Every one of them fetched the same seven
+ * notification-method models the same way, built the same dropdown, and
+ * rendered the same two columns. It is drawn by OnCallRulesTabs, one tab per
+ * kind, on your own On-Call Rules page and on an admin's view of somebody
+ * else's.
  */
 const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -617,9 +642,9 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    *
    * `singularName` is what ModelTable puts in the create button, the modal
    * title, the delete confirmation and the bulk labels, so setting it once
-   * carries the name to every one of those without a prop per surface. On the
-   * self-serve pages it stays undefined and the model's own "Notification Rule"
-   * is used, which keeps those four pages byte-identical to what shipped.
+   * carries the name to every one of those without a prop per surface. On
+   * your own page it stays undefined and the model's own "Notification Rule"
+   * is used.
    */
   const ruleSingularName: string | undefined = props.onBehalfOfName
     ? translator.translateTemplate("Notification Rule for {{name}}", {
@@ -664,10 +689,10 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * still going to page you for that severity, and whether anyone is relying on
    * you answering.
    *
-   * THIS LIVES HERE, IN THE SHARED COMPONENT, and not on the four settings
-   * pages it shipped on. Those pages are now four calls into this file, so a
-   * guard left behind in them would be a guard nothing runs - four Delete
-   * buttons back on the generic "are you sure", with the counts silently gone.
+   * THIS LIVES HERE, IN THE SHARED COMPONENT, and not on the pages that draw
+   * it. They are calls into this file (one per tab), so a guard left behind in
+   * them would be a guard nothing runs - Delete buttons back on the generic
+   * "are you sure", with the counts silently gone.
    */
   const [ruleToDelete, setRuleToDelete] = useState<UserNotificationRule | null>(
     null,
@@ -920,7 +945,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         isEditable={isEditable}
         isCreateable={isEditable}
         cardProps={{
-          title: props.getTitle(severityName),
+          title: <SeverityCardTitle severity={severity} />,
           description: props.getDescription(severityName),
         }}
         noItemsMessage={props.noItemsMessage || DEFAULT_NO_ITEMS_MESSAGE}
@@ -1015,8 +1040,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
               /*
                * The owner reads their own identifiers unmasked, out of the
-               * relations selected above - unchanged, and the four self-serve
-               * pages are the whole reason it stays that way.
+               * relations selected above - unchanged, and your own On-Call
+               * Rules page is the whole reason it stays that way.
                */
               if (isViewerTheOwner) {
                 return (
@@ -1280,6 +1305,10 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
+      /*
+       * Most severe first (order 1 is the most severe), the order the
+       * project's own severity settings list them in.
+       */
       const severityList: ListResult<OnCallRuleSeverity> =
         await ModelAPI.getList({
           modelType: props.severityModelType,
@@ -1290,8 +1319,11 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
+            color: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         });
 
       if (isViewerTheOwner) {
@@ -1312,11 +1344,10 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     });
     /*
      * The two things that change what this fetch returns: whose methods to load
-     * and which severity model to enumerate. On the four self-serve pages both
-     * are fixed for the life of the route, so this behaves exactly as the
-     * mount-once effect it replaces. The admin surface is the one that can hold
-     * a mounted instance and point it somewhere else, and a stale severity list
-     * there would render tables banded by the previous user's project.
+     * and which severity model to enumerate. Each tab mounts its own instance,
+     * so both are fixed for the life of a tab and this behaves as a mount-once
+     * effect. An instance that is pointed somewhere else would otherwise keep
+     * a stale severity list and render tables banded by the previous kind.
      */
   }, [targetUserId?.toString(), props.severityModelType]);
 

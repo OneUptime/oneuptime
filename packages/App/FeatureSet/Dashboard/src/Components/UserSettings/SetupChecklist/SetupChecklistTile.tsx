@@ -128,7 +128,10 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
     }
 
     Navigation.navigate(
-      RouteUtil.populateRouteParams(RouteMap[step.pageMap] as Route),
+      RouteUtil.addQuery(
+        RouteUtil.populateRouteParams(RouteMap[step.pageMap] as Route),
+        step.pageQuery,
+      ),
     );
   };
 

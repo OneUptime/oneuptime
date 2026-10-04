@@ -2,22 +2,21 @@ import ComponentProps from "../Pages/PageComponentProps";
 import UserSettingsLayout from "../Pages/UserSettings/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { UserSettingsRoutePath } from "../Utils/RouteMap";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 import Route from "Common/Types/API/Route";
+import OnCallRuleKind, {
+  MOVED_ON_CALL_RULES_PATHS,
+  getOnCallRuleKindQuery,
+} from "Common/Types/NotificationRule/OnCallRuleKind";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import UserSettingsNotificationMethods from "../Pages/UserSettings/NotificationMethods";
 import UserSettingsCustomFields from "../Pages/UserSettings/CustomFields";
-import UserSettingsIncidentNotificationRules from "../Pages/UserSettings/IncidentOnCallRules";
+import UserSettingsOnCallRules from "../Pages/UserSettings/OnCallRules";
 
 import UserSettingsMicrosoftTeamsIntegration from "../Pages/UserSettings/MicrosoftTeamsIntegration";
-
-import UserSettingsAlertNotificationRules from "../Pages/UserSettings/AlertOnCallRules";
-
-import UserSettingsAlertEpisodeNotificationRules from "../Pages/UserSettings/EpisodeOnCallRules";
-
-import UserSettingsIncidentEpisodeNotificationRules from "../Pages/UserSettings/IncidentEpisodeOnCallRules";
 
 import UserSettingsNotificationLogs from "../Pages/UserSettings/OnCallLogs";
 import UserSettingsNotificationLogsTimeline from "../Pages/UserSettings/OnCallLogsTimeline";
@@ -126,20 +125,40 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={
-            UserSettingsRoutePath[
-              PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES
-            ] || ""
-          }
+          path={UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_RULES] || ""}
           element={
-            <UserSettingsIncidentNotificationRules
+            <UserSettingsOnCallRules
               {...props}
-              pageRoute={
-                RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route
-              }
+              pageRoute={RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route}
             />
           }
         />
+
+        {/*
+         * The four pages On-Call Rules replaced, one per kind of rule. Their
+         * addresses are in bookmarks and in older reminder emails, so each
+         * forwards to the tab it used to be.
+         */}
+        {Object.keys(MOVED_ON_CALL_RULES_PATHS).map(
+          (movedPath: string): ReactElement => {
+            const kind: OnCallRuleKind = MOVED_ON_CALL_RULES_PATHS[
+              movedPath
+            ] as OnCallRuleKind;
+
+            return (
+              <PageRoute
+                key={movedPath}
+                path={movedPath}
+                element={
+                  <MovedPageRedirect
+                    pageMap={PageMap.USER_SETTINGS_ON_CALL_RULES}
+                    searchParams={getOnCallRuleKindQuery(kind)}
+                  />
+                }
+              />
+            );
+          },
+        )}
 
         <PageRoute
           path={
@@ -167,57 +186,6 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] ||
-            ""
-          }
-          element={
-            <UserSettingsAlertNotificationRules
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            UserSettingsRoutePath[
-              PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
-            ] || ""
-          }
-          element={
-            <UserSettingsAlertEpisodeNotificationRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            UserSettingsRoutePath[
-              PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
-            ] || ""
-          }
-          element={
-            <UserSettingsIncidentEpisodeNotificationRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
                 ] as Route
               }
             />

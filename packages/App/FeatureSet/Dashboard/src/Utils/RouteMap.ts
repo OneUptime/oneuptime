@@ -4,6 +4,7 @@ import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { ON_CALL_RULES_PAGE_PATH } from "Common/Types/NotificationRule/OnCallRuleKind";
 import { getDeveloperDocsRouteMapEntries } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 export const MonitorsRoutePath: Dictionary<string> = {
@@ -1092,10 +1093,7 @@ export const UsersRoutePath: Dictionary<string> = {
   [PageMap.USER_VIEW_NOTIFICATION_RULES]: `${RouteParams.ModelID}/notification-rules`,
   [PageMap.USER_VIEW_ON_CALL_READINESS]: `${RouteParams.ModelID}/on-call-readiness`,
   [PageMap.USER_VIEW_NOTIFICATION_METHODS]: `${RouteParams.ModelID}/notification-methods`,
-  [PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES]: `${RouteParams.ModelID}/incident-on-call-rules`,
-  [PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES]: `${RouteParams.ModelID}/incident-episode-on-call-rules`,
-  [PageMap.USER_VIEW_ALERT_ON_CALL_RULES]: `${RouteParams.ModelID}/alert-on-call-rules`,
-  [PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES]: `${RouteParams.ModelID}/alert-episode-on-call-rules`,
+  [PageMap.USER_VIEW_ON_CALL_RULES]: `${RouteParams.ModelID}/${ON_CALL_RULES_PAGE_PATH}`,
   [PageMap.USER_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.USER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -1188,15 +1186,10 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_CUSTOM_FIELDS]: "custom-fields",
   [PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.USER_SETTINGS_NOTIFICATION_METHODS]: "notification-methods",
-  [PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]: "incident-on-call-rules",
+  [PageMap.USER_SETTINGS_ON_CALL_RULES]: ON_CALL_RULES_PAGE_PATH,
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]:
     "microsoft-teams-integration",
-  [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: "alert-on-call-rules",
-  [PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES]:
-    "alert-episode-on-call-rules",
-  [PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES]:
-    "incident-episode-on-call-rules",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
@@ -6333,9 +6326,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]: new Route(
+  [PageMap.USER_SETTINGS_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
-      UserSettingsRoutePath[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES]
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_RULES]
     }`,
   ),
 
@@ -6348,26 +6341,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
-    }`,
-  ),
-
-  [PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/user-settings/${
-      UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES]
-    }`,
-  ),
-
-  [PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/user-settings/${
-      UserSettingsRoutePath[PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES]
-    }`,
-  ),
-
-  [PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/user-settings/${
-      UserSettingsRoutePath[
-        PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES
-      ]
     }`,
   ),
 
@@ -6456,27 +6429,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES]: new Route(
+  [PageMap.USER_VIEW_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/users/${
-      UsersRoutePath[PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES]
-    }`,
-  ),
-
-  [PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/users/${
-      UsersRoutePath[PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES]
-    }`,
-  ),
-
-  [PageMap.USER_VIEW_ALERT_ON_CALL_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/users/${
-      UsersRoutePath[PageMap.USER_VIEW_ALERT_ON_CALL_RULES]
-    }`,
-  ),
-
-  [PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/users/${
-      UsersRoutePath[PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES]
+      UsersRoutePath[PageMap.USER_VIEW_ON_CALL_RULES]
     }`,
   ),
 
@@ -7412,6 +7367,31 @@ export class RouteUtil {
     }
 
     return tempRoute;
+  }
+
+  /*
+   * The route with a query string after it, for a link that opens a page a
+   * particular way: the On-Call Rules page on its alerts tab is
+   * `.../on-call-rules?type=alerts`. Values are encoded; no query, or an
+   * empty one, leaves the route as it was.
+   */
+  public static addQuery(
+    route: Route,
+    query?: Dictionary<string> | undefined,
+  ): Route {
+    if (!query || Object.keys(query).length === 0) {
+      return route;
+    }
+
+    const encoded: Dictionary<string> = {};
+
+    for (const name of Object.keys(query)) {
+      encoded[encodeURIComponent(name)] = encodeURIComponent(
+        query[name] as string,
+      );
+    }
+
+    return new Route(route.toString()).addQueryParams(encoded);
   }
 
   public static getRoutes(): Array<{ path: string }> {

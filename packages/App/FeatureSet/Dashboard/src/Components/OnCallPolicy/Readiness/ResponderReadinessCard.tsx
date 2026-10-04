@@ -26,10 +26,11 @@ import {
   ReadinessSummaryWire,
   ResponderSourceValue,
   UserReadinessWire,
+  SettingsPageLink,
   getCoverageCellLabel,
   getCoverageGaps,
-  getPageForRuleType,
   getResponderSourceLabel,
+  getSettingsPageForRuleType,
   getSelfAddressedConsequence,
   getStatusConsequence,
   getStatusShortLabel,
@@ -74,8 +75,7 @@ export interface ComponentProps {
  * else's account is a paging-hijack vector — so for anyone but the signed-in
  * user the action is to ask them, with the destination already written down.
  */
-interface ReadinessFix {
-  page: PageMap;
+interface ReadinessFix extends SettingsPageLink {
   actionTitle: string;
 }
 
@@ -95,24 +95,35 @@ const getFix: (
 
   const firstGap: ReadinessCoverageCellWire | undefined = gaps[0];
 
+  /*
+   * The On-Call Rules page, on the tab of the first hole. With no hole named
+   * (a partially ready responder whose gaps were not reported), the page's
+   * first tab.
+   */
   return {
-    page: firstGap
-      ? getPageForRuleType(firstGap.ruleType)
-      : PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
+    ...(firstGap
+      ? getSettingsPageForRuleType(firstGap.ruleType)
+      : { page: PageMap.USER_SETTINGS_ON_CALL_RULES }),
     actionTitle: "Add the missing rules",
   };
 };
 
-// The dashboard-absolute link, so it survives being pasted into an email.
-const getAbsoluteRouteUrl: (page: PageMap) => string = (
-  page: PageMap,
-): string => {
-  const route: Route = RouteUtil.populateRouteParams(RouteMap[page] as Route);
+// The fix's page, on the right tab, inside the dashboard.
+const getFixRoute: (fix: ReadinessFix) => Route = (fix: ReadinessFix): Route => {
+  return RouteUtil.addQuery(
+    RouteUtil.populateRouteParams(RouteMap[fix.page] as Route),
+    fix.query,
+  );
+};
 
+// The dashboard-absolute link, so it survives being pasted into an email.
+const getAbsoluteRouteUrl: (fix: ReadinessFix) => string = (
+  fix: ReadinessFix,
+): string => {
   return new URL(
     DASHBOARD_URL.protocol,
     DASHBOARD_URL.hostname,
-    route,
+    getFixRoute(fix),
   ).toString();
 };
 
@@ -157,7 +168,7 @@ const getMailToHref: (params: {
     ),
     "",
     translateTemplate("You can fix it here: {{link}}", {
-      link: getAbsoluteRouteUrl(params.fix.page),
+      link: getAbsoluteRouteUrl(params.fix),
     }),
     "",
     translateTemplate("Thank you!"),
@@ -406,9 +417,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
               buttonSize={ButtonSize.Small}
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(RouteMap[fix.page] as Route),
-                );
+                Navigation.navigate(getFixRoute(fix));
               }}
             />
           ) : (
