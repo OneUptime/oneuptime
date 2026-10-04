@@ -213,23 +213,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
 
     /*
-     * Nothing may re-seed a form the user has already typed into. The guard
-     * above latches once, which is enough on its own, but "the value the user
-     * entered survives" is the one property of a form that must never quietly
-     * regress - so it is asserted directly rather than inferred from the order
-     * two effects happen to run in.
-     */
-    const hasUserEdited: MutableRefObject<boolean> = useRef(false);
-
-    /*
-     * The values fields wrote before the form took its initial values. A
-     * field that fills itself in as it is drawn - a rule's conditions
-     * builder writes the conditions it shows - runs its effect before the
-     * form's own (React runs a child's effects first), so when it is on the
-     * first step it writes before the form has taken its initial values and
-     * defaults. What it wrote is kept, and the form still takes the rest:
-     * skipping them started a Create form with every other field empty, so
-     * a switch whose column starts on was saved off.
+     * Nothing may re-seed what was already written into a form: "the value
+     * entered survives" is the one property of a form that must never
+     * quietly regress. The guard above latches once, so the form takes its
+     * initial values and defaults only once, and nobody can type before it
+     * does - the fields are drawn in the same pass.
+     *
+     * A field can write first, though: one that fills itself in as it is
+     * drawn - a rule's conditions builder writes the conditions it shows -
+     * runs its effect before the form's own (React runs a child's effects
+     * first), so on a form's first step it writes before the form has taken
+     * its initial values. These are the values written (or cleared) that
+     * way. They are kept over the initial values and defaults, and the form
+     * still takes the rest: skipping them all, as the form once did, started
+     * a Create form with every other field empty, so a switch whose column
+     * starts on was saved off.
      */
     const valuesWrittenBeforeInitialValues: MutableRefObject<Set<string>> =
       useRef<Set<string>>(new Set<string>());
@@ -500,8 +498,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         [fieldName]: value as any,
       };
 
-      hasUserEdited.current = true;
-
       if (!isInitialValuesSet.current) {
         valuesWrittenBeforeInitialValues.current.add(fieldName);
       }
@@ -521,7 +517,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     /*
      * A field's onChange replacing the form's values (setNewFormValues): a
      * name filled in from a pick, say. Before the form has taken its initial
-     * values, the values it changed are kept over them, as setFieldValue's.
+     * values, the values it changed - set, or left out to clear them - are
+     * kept over them, as setFieldValue's are.
      */
     const setFormValuesFromField: (values: FormValues<T>) => void = (
       values: FormValues<T>,
@@ -534,9 +531,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         const current: Record<string, unknown> = (refCurrentValue.current ||
           {}) as Record<string, unknown>;
 
-        for (const key of Object.keys(next)) {
+        for (const key of new Set<string>([
+          ...Object.keys(current),
+          ...Object.keys(next),
+        ])) {
           if (next[key] !== current[key]) {
-            hasUserEdited.current = true;
             valuesWrittenBeforeInitialValues.current.add(key);
           }
         }
@@ -927,15 +926,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       /*
        * Nothing re-seeds what a field already wrote: a field that fills
        * itself in as it is drawn writes before this runs, and what it wrote
-       * is kept over the initial values and defaults (see
-       * valuesWrittenBeforeInitialValues). Nobody can type before this runs:
-       * the fields are drawn in the same pass.
+       * (or cleared) is kept over the initial values and defaults (see
+       * valuesWrittenBeforeInitialValues).
        */
-      if (hasUserEdited.current) {
-        for (const fieldName of valuesWrittenBeforeInitialValues.current) {
-          (values as any)[fieldName] = (refCurrentValue.current as any)[
-            fieldName
-          ];
+      const written: Record<string, unknown> = (refCurrentValue.current ||
+        {}) as Record<string, unknown>;
+
+      for (const fieldName of valuesWrittenBeforeInitialValues.current) {
+        if (Object.prototype.hasOwnProperty.call(written, fieldName)) {
+          (values as any)[fieldName] = written[fieldName];
+        } else {
+          delete (values as any)[fieldName];
         }
       }
 

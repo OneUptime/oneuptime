@@ -66,7 +66,14 @@ import {
  *     formFields={[...criteria, ...getOwnerRuleActionFields<HostOwnerRule>()]}
  *
  * Common/Tests/UI/Components/Forms/ResourceRuleFormsGuard.test.ts holds every
- * label and owner rule page to this.
+ * label and owner rule page to this. The incident, alert, scheduled
+ * maintenance, monitor and status page rules keep forms of their own for now
+ * (the first three ask which resources' labels or owners to inherit as
+ * well); the guard lists them, and the same helpers apply when they move.
+ *
+ * The name is filled in in the creator's language, as data: a rule named in
+ * German follows its picks for a German editor, and keeps its name for an
+ * English one, who reads it as a name somebody gave it.
  */
 
 // The step ModelForm draws as one conditions builder (RuleCriteriaModelForm).

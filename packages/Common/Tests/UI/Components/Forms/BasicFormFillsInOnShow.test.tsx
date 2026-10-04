@@ -217,4 +217,29 @@ describe("a field that fills itself in on a form's first step", () => {
     expect(values["notifyOwners"]).toBe(false);
     expect(values["channel"]).toBe("sms");
   });
+
+  test("keeps a value its onChange cleared as it was drawn cleared, default or not", async () => {
+    const rendered: Rendered = await renderForm({
+      fields: fieldsWith({
+        writes: { filters: [] },
+        onChange: (
+          _value: unknown,
+          currentValues: FormValues<JSONObject>,
+          setNewFormValues: (values: FormValues<JSONObject>) => void,
+        ): void => {
+          const values: JSONObject = { ...(currentValues as JSONObject) };
+          delete values["channel"];
+          setNewFormValues(values as FormValues<JSONObject>);
+        },
+      }),
+      initialValues: { name: "Add production", channel: "sms" },
+    });
+
+    const values: JSONObject = await submitAll(rendered);
+
+    expect(values["channel"]).toBeUndefined();
+    // What it did not touch still takes its starting value and default.
+    expect(values["name"]).toBe("Add production");
+    expect(values["notifyOwners"]).toBe(true);
+  });
 });
