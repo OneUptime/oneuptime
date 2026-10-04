@@ -221,6 +221,7 @@
     "categories": {
       "account": "Account",
       "actions": "Actions",
+      "pages": "Pages",
       "quickLinks": "Quick links"
     },
     "sections": {
@@ -24809,5 +24810,6 @@
   "Your team's measurements, worked out for this alert.": "Your team's measurements, worked out for this alert.",
   "Your team's measurements, worked out for this incident.": "Your team's measurements, worked out for this incident.",
   "Your team's measurements, worked out for this maintenance event.": "Your team's measurements, worked out for this maintenance event.",
-  "less than a minute": "less than a minute"
+  "less than a minute": "less than a minute",
+  "User Settings": "User Settings"
 }

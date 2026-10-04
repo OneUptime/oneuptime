@@ -204,31 +204,32 @@
   },
   "commandPalette": {
     "actions": {
-      "activeIncidents": "Active Incidents",
-      "adminDashboard": "Admin Dashboard",
+      "activeIncidents": "Incidenti attivi",
+      "adminDashboard": "Dashboard amministratore",
       "askAi": "Ask AI",
-      "createAlert": "Create Alert",
-      "createAnnouncement": "Create Announcement",
-      "createMonitor": "Create Monitor",
-      "createScheduledMaintenance": "Create Scheduled Maintenance",
-      "darkTheme": "Switch to dark theme",
-      "declareIncident": "Declare Incident",
-      "lightTheme": "Switch to light theme",
-      "logOut": "Log out",
-      "myOnCallPolicies": "My On-Call Policies",
-      "projectInvitations": "Project Invitations"
+      "createAlert": "Crea avviso",
+      "createAnnouncement": "Crea annuncio",
+      "createMonitor": "Crea monitor",
+      "createScheduledMaintenance": "Crea manutenzione programmata",
+      "darkTheme": "Passa al tema scuro",
+      "declareIncident": "Dichiara incidente",
+      "lightTheme": "Passa al tema chiaro",
+      "logOut": "Esci",
+      "myOnCallPolicies": "I miei criteri di reperibilità",
+      "projectInvitations": "Inviti al progetto"
     },
     "categories": {
       "account": "Account",
-      "actions": "Actions",
-      "quickLinks": "Quick links"
+      "actions": "Azioni",
+      "pages": "Pagine",
+      "quickLinks": "Collegamenti rapidi"
     },
     "sections": {
-      "alerts": "Alerts",
-      "incidents": "Incidents",
-      "monitors": "Monitors",
-      "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "alerts": "Avvisi",
+      "incidents": "Incidenti",
+      "monitors": "Monitor",
+      "onCallPolicies": "Policy di reperibilità",
+      "statusPages": "Pagine di stato"
     }
   },
   "keyboardShortcuts": {
@@ -24809,5 +24810,6 @@
   "Your team's measurements, worked out for this alert.": "Le misurazioni del tuo team, calcolate per questo avviso.",
   "Your team's measurements, worked out for this incident.": "Le misurazioni del tuo team, calcolate per questo incidente.",
   "Your team's measurements, worked out for this maintenance event.": "Le misurazioni del tuo team, calcolate per questo evento di manutenzione.",
-  "less than a minute": "meno di un minuto"
+  "less than a minute": "meno di un minuto",
+  "User Settings": "Impostazioni utente"
 }

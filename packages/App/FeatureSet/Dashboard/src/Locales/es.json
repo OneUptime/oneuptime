@@ -221,6 +221,7 @@
     "categories": {
       "account": "Cuenta",
       "actions": "Acciones",
+      "pages": "Páginas",
       "quickLinks": "Enlaces rápidos"
     },
     "sections": {
@@ -24809,5 +24810,6 @@
   "Your team's measurements, worked out for this alert.": "Las mediciones de tu equipo, calculadas para esta alerta.",
   "Your team's measurements, worked out for this incident.": "Las mediciones de tu equipo, calculadas para este incidente.",
   "Your team's measurements, worked out for this maintenance event.": "Las mediciones de tu equipo, calculadas para este evento de mantenimiento.",
-  "less than a minute": "menos de un minuto"
+  "less than a minute": "menos de un minuto",
+  "User Settings": "Ajustes de usuario"
 }

@@ -54,6 +54,7 @@ interface FlatEntry {
   description?: string | undefined;
   icon?: IconProp | undefined;
   iconColor?: string | undefined;
+  breadcrumb?: Array<string> | undefined;
   shortcut?: Array<KeyboardShortcutKey> | undefined;
   /** The id recorded into recents — only static commands carry one. */
   recentCommandId: string | null;
@@ -99,6 +100,7 @@ const commandToEntry: CommandToEntryFunction = (
     description: command.description,
     icon: command.icon,
     iconColor: command.iconColor,
+    breadcrumb: command.breadcrumb,
     shortcut: command.shortcut,
     recentCommandId: command.id,
     onSelect: command.onSelect,
@@ -328,7 +330,15 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
         }
       }
 
-      groupByCategory(props.commands).forEach(
+      /*
+       * Pages and the actions on them are offered while searching only:
+       * listed here they would be hundreds of rows to scroll past.
+       */
+      groupByCategory(
+        props.commands.filter((command: PaletteCommand): boolean => {
+          return !command.isSearchOnly;
+        }),
+      ).forEach(
         (group: { category: string; commands: Array<PaletteCommand> }) => {
           pushSection(
             getPaletteSectionId(group.category),
@@ -386,6 +396,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               description: result.description,
               icon: result.icon,
               iconColor: result.iconColor,
+              breadcrumb: undefined,
               shortcut: undefined,
               recentCommandId: null,
               onSelect: result.onSelect,
@@ -692,6 +703,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
                               description: entry.description,
                               icon: entry.icon,
                               iconColor: entry.iconColor,
+                              breadcrumb: entry.breadcrumb,
                               shortcut: entry.shortcut,
                             }}
                             query={query}
