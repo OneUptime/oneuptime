@@ -12,6 +12,7 @@ import MeasurementUnit, {
   MEASUREMENT_UNIT_SPELLINGS,
 } from "Common/Types/Measurement/MeasurementUnit";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   CUSTOM_MEASUREMENT_PRESET_ID,
   MEASUREMENT_LAST_TIME_TEMPLATE,
@@ -644,6 +645,11 @@ export interface MeasurementPageCopy {
   startOccurrenceDescription: string;
   endOccurrenceDescription: string;
   chartSummaryDescription: string;
+  // The switch under More fields that puts a measurement on each event's page.
+  showOnViewTitle: string;
+  showOnViewDescription: string;
+  // The Measurements card on an event's own page (EventMeasurementsCard).
+  eventCardDescription: string;
 }
 
 export const MEASUREMENT_PAGE_COPY: Record<
@@ -679,6 +685,13 @@ export const MEASUREMENT_PAGE_COPY: Record<
       "For example, an incident that is resolved, reopened and resolved again.",
     chartSummaryDescription:
       "How View Chart sums up many incidents. Average is the usual choice.",
+    showOnViewTitle: translationKey("Show on incident pages"),
+    showOnViewDescription: translationKey(
+      "Shown in the Measurements card on each incident's page.",
+    ),
+    eventCardDescription: translationKey(
+      "Your team's measurements, worked out for this incident.",
+    ),
   },
   [MeasurementDomain.Alert]: {
     cardTitle: "Alert Measurements",
@@ -708,6 +721,13 @@ export const MEASUREMENT_PAGE_COPY: Record<
       "For example, an alert that is resolved, reopened and resolved again.",
     chartSummaryDescription:
       "How View Chart sums up many alerts. Average is the usual choice.",
+    showOnViewTitle: translationKey("Show on alert pages"),
+    showOnViewDescription: translationKey(
+      "Shown in the Measurements card on each alert's page.",
+    ),
+    eventCardDescription: translationKey(
+      "Your team's measurements, worked out for this alert.",
+    ),
   },
   [MeasurementDomain.ScheduledMaintenance]: {
     cardTitle: "Scheduled Maintenance Measurements",
@@ -738,7 +758,52 @@ export const MEASUREMENT_PAGE_COPY: Record<
       "Only matters if an event's timeline has the same state twice.",
     chartSummaryDescription:
       "How View Chart sums up many maintenance events. Average is the usual choice.",
+    showOnViewTitle: translationKey("Show on maintenance event pages"),
+    showOnViewDescription: translationKey(
+      "Shown in the Measurements card on each maintenance event's page.",
+    ),
+    eventCardDescription: translationKey(
+      "Your team's measurements, worked out for this maintenance event.",
+    ),
   },
+};
+
+/*
+ * The words of the Measurements card on an incident's, an alert's or a
+ * maintenance event's own page (Components/Measurement/EventMeasurementsCard),
+ * where each measurement reads as a number or as one short state. A state
+ * names what is true of this event, never the API's status: "Not reached",
+ * not "Pending".
+ */
+export const MEASUREMENT_VALUE_COPY: {
+  cardTitle: string;
+  running: string;
+  lessThanAMinute: string;
+  notStarted: string;
+  notReached: string;
+  notMeasured: string;
+  endsBeforeStart: string;
+  notWorkedOut: string;
+  notWorkedOutReason: string;
+} = {
+  cardTitle: translationKey("Measurements"),
+  // The clock has started and has not stopped: "Running for 12 minutes".
+  running: translationKey("Running for {{duration}}"),
+  // A running clock under a minute, which ticks every 30 seconds.
+  lessThanAMinute: translationKey("less than a minute"),
+  // The start has not happened, or happens later (a scheduled start).
+  notStarted: translationKey("Not started yet"),
+  // Over, and the moment it waited for never came: never acknowledged.
+  notReached: translationKey("Not reached"),
+  // Not Applicable: a moment can never happen. The server says why.
+  notMeasured: translationKey("Not measured"),
+  // Invalid: the recorded end is before the start. The server says by how much.
+  endsBeforeStart: translationKey("Ends before it starts"),
+  // No value for this event yet, as just after the measurement is created.
+  notWorkedOut: translationKey("Not worked out yet"),
+  notWorkedOutReason: translationKey(
+    "OneUptime works it out in the background.",
+  ),
 };
 
 /*
@@ -767,6 +832,10 @@ export const getMeasurementSetupText: () => Array<string> =
       for (const value of Object.values(copy)) {
         text.add(value);
       }
+    }
+
+    for (const value of Object.values(MEASUREMENT_VALUE_COPY)) {
+      text.add(value);
     }
 
     for (const options of [

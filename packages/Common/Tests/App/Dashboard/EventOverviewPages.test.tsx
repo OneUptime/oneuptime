@@ -206,6 +206,12 @@ jest.mock(
   },
 );
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Measurement/EventMeasurementsCard",
+  () => {
+    return stubModule("Measurements");
+  },
+);
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryCompanionSignalTabs",
   () => {
     return stubModule("Telemetry");
@@ -347,6 +353,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import Permission from "../../../Types/Permission";
+import {
+  ALERT_EVENT_MEASUREMENTS,
+  EventMeasurementSource,
+  INCIDENT_EVENT_MEASUREMENTS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/EventMeasurements";
 
 const EVENT_ID: string = "11111111-1111-4111-8111-111111111111";
 const OTHER_EVENT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -481,6 +492,8 @@ interface PageCase {
   expectedDetailTitles: Array<string>;
   leftColumnOrder: Array<string>;
   rightColumnOrder: Array<string>;
+  // Where the Measurements card reads this kind of event's measurements.
+  measurementsSource: EventMeasurementSource;
 }
 
 interface StateSpec {
@@ -573,10 +586,12 @@ const INCIDENT_CASE: PageCase = {
   ],
   rightColumnOrder: [
     "stub-card-Incident Details",
+    "stub-Measurements",
     "stub-Roles",
     "stub-card-Affected Resources",
     "stub-CustomFields",
   ],
+  measurementsSource: INCIDENT_EVENT_MEASUREMENTS,
 };
 
 const ALERT_CASE: PageCase = {
@@ -652,9 +667,11 @@ const ALERT_CASE: PageCase = {
   ],
   rightColumnOrder: [
     "stub-card-Alert Details",
+    "stub-Measurements",
     "stub-card-Affected Resources",
     "stub-CustomFields",
   ],
+  measurementsSource: ALERT_EVENT_MEASUREMENTS,
 };
 
 // Created, acknowledged at 5m, resolved at 20m, reopened at 60m, acknowledged again at 70m.
@@ -744,7 +761,7 @@ let currentEventId: string = EVENT_ID;
 
 /*
  * Every stub that was ever rendered with `id` in an id prop: its own
- * incidentId / alertId / subjectId / modelId, or a detail card's
+ * incidentId / alertId / subjectId / modelId / eventId, or a detail card's
  * modelDetailProps.modelId.
  */
 function stubsRenderedWithId(id: string): Array<string> {
@@ -762,6 +779,7 @@ function stubsRenderedWithId(id: string): Array<string> {
           props["alertId"],
           props["subjectId"],
           props["modelId"],
+          props["eventId"],
           detailProps?.["modelId"],
         ].some((value: unknown): boolean => {
           return value instanceof ObjectID && value.toString() === id;
@@ -1258,6 +1276,136 @@ describe.each([
           "CardModelDetail:Affected Resources",
         ).createEditModalWidth,
       ).toBe(ModalWidth.Medium);
+    });
+  });
+
+  describe("measurements card", () => {
+    interface MeasurementsProps {
+      source: EventMeasurementSource;
+      eventId: ObjectID;
+      isEventOver: boolean;
+      refreshKey: string;
+      headerLayout: string;
+    }
+
+    test("reads this event's own measurements, in a stacked card", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const props: MeasurementsProps =
+        latestProps<MeasurementsProps>("Measurements");
+
+      expect(props.source).toBe(pageCase.measurementsSource);
+      expect(props.eventId.toString()).toBe(EVENT_ID);
+      expect(props.headerLayout).toBe("stacked");
+      expect(mountCounts["Measurements"]).toBe(1);
+    });
+
+    test("an open event's measurements still wait on its states", async () => {
+      // Reopened and acknowledged again: open.
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(latestProps<MeasurementsProps>("Measurements").isEventOver).toBe(
+        false,
+      );
+    });
+
+    test("a resolved event's do not: the card is told it is over", async () => {
+      serve(pageCase, {
+        timeline: [
+          [CREATED_STATE_ID, 0],
+          [RESOLVED_STATE_ID, 20],
+        ],
+        title: "Checkout slow",
+      });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      expect(latestProps<MeasurementsProps>("Measurements").isEventOver).toBe(
+        true,
+      );
+    });
+
+    test("an action makes it read again, in place, and says when the event is over", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const before: MeasurementsProps =
+        latestProps<MeasurementsProps>("Measurements");
+
+      serve(pageCase, {
+        timeline: [...REOPENED_TIMELINE, [RESOLVED_STATE_ID, 100]],
+        title: "Checkout slow (resolved)",
+      });
+
+      act(() => {
+        latestProps<ChangeStateProps>(
+          pageCase.changeStateKey,
+        ).onActionComplete();
+      });
+
+      await waitFor(() => {
+        expect(latestProps<MeasurementsProps>("Measurements").isEventOver).toBe(
+          true,
+        );
+      });
+
+      const after: MeasurementsProps =
+        latestProps<MeasurementsProps>("Measurements");
+
+      // The state timeline changed, so the key did: the card reads again.
+      expect(after.refreshKey).not.toBe(before.refreshKey);
+      // The same card, told to read again: never unmounted.
+      expect(mountCounts["Measurements"]).toBe(1);
+    });
+
+    /*
+     * Only a state change moves a measurement. An AI report arriving, a
+     * note, a role or a details edit refresh the feed or the page, and the
+     * card must not read its rows again for any of them.
+     */
+    test("nothing but a state change makes it read again", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const key: string =
+        latestProps<MeasurementsProps>("Measurements").refreshKey;
+
+      act(() => {
+        latestProps<InvestigationPanelProps>(
+          "InvestigationPanel",
+        ).onAnalysisAvailable();
+      });
+      await flush();
+
+      expect(latestProps<MeasurementsProps>("Measurements").refreshKey).toBe(
+        key,
+      );
+
+      // A details edit re-reads the page, the same timeline included.
+      act(() => {
+        latestProps<CardModelDetailProps>(
+          `CardModelDetail:${pageCase.detailsCardName}`,
+        ).onSaveSuccess!();
+      });
+      await waitFor(() => {
+        expect(countItemReads()).toBeGreaterThan(1);
+      });
+      await flush();
+
+      expect(latestProps<MeasurementsProps>("Measurements").refreshKey).toBe(
+        key,
+      );
     });
   });
 
@@ -1994,6 +2142,43 @@ const namedSlo: NamedSloFunction = (name: string): ServiceLevelObjective => {
 };
 
 describe("incident-only behaviour", () => {
+  /*
+   * Measurements can start when the incident was declared, and the server
+   * works them out again when that time is corrected.
+   */
+  test("a corrected declared time makes the Measurements card read again", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const before: string = latestProps<{ refreshKey: string }>(
+      "Measurements",
+    ).refreshKey;
+
+    getItemMock.mockImplementation(() => {
+      const incident: Incident = INCIDENT_CASE.buildEvent(
+        "Checkout slow",
+      ) as Incident;
+      incident.declaredAt = minutesAfterStart(-5);
+      return Promise.resolve(incident);
+    });
+
+    act(() => {
+      latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
+        .onSaveSuccess!();
+    });
+
+    await waitFor(() => {
+      expect(
+        latestProps<{ refreshKey: string }>("Measurements").refreshKey,
+      ).not.toBe(before);
+    });
+  });
+
   test("the header names who declared the incident once the details card has read it", async () => {
     serve(INCIDENT_CASE, {
       timeline: REOPENED_TIMELINE,

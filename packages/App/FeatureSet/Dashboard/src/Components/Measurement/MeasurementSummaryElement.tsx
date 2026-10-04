@@ -16,6 +16,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   form: MeasurementForm;
   measurement: MeasurementValues;
+  /*
+   * The text's size and colour. The list draws it as a value; an event's
+   * Measurements card as the quiet line under a measurement's name.
+   */
+  className?: string | undefined;
 }
 
 /*
@@ -57,7 +62,10 @@ const MeasurementSummaryElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <span className="text-sm text-gray-900" data-testid="measurement-summary">
+    <span
+      className={props.className || "text-sm text-gray-900"}
+      data-testid="measurement-summary"
+    >
       {describe(summary.start)}
       <span className="mx-1.5 text-gray-400">→</span>
       {describe(summary.end)}

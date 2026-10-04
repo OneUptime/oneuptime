@@ -37,6 +37,11 @@ import AffectedResourcesPicker, {
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -277,6 +282,16 @@ const ScheduledMaintenanceView: FunctionComponent<
               createdByUser: {
                 name: true,
                 email: true,
+              },
+              /*
+               * For the Measurements card: whether the event has ended
+               * (nothing it waits for comes after that), and which state it
+               * is in (a new one is when its values can have changed).
+               */
+              currentScheduledMaintenanceState: {
+                _id: true,
+                isEndedState: true,
+                isResolvedState: true,
               },
             },
           });
@@ -759,6 +774,28 @@ const ScheduledMaintenanceView: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+
+          {/*
+           * The project's own measurements - how late it started, how long it
+           * ran over - worked out for this event, under its other facts.
+           * Drawn only when the project shows some on maintenance pages.
+           */}
+          <EventMeasurementsCard
+            source={SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(
+              scheduledMaintenance?.currentScheduledMaintenanceState
+                ?.isEndedState ||
+                scheduledMaintenance?.currentScheduledMaintenanceState
+                  ?.isResolvedState,
+            )}
+            refreshKey={getEventMeasurementRefreshKey({
+              currentStateId:
+                scheduledMaintenance?.currentScheduledMaintenanceState?._id,
+              times: [eventStartsAt, eventEndsAt],
+            })}
+            headerLayout="stacked"
           />
 
           <OverviewCustomFields
