@@ -232,7 +232,10 @@ import IncidentCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages
 import MonitorCustomField from "../../../Models/DatabaseModels/MonitorCustomField";
 import Route from "../../../Types/API/Route";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 interface MonitorFieldRow {
   name: string;
@@ -633,7 +636,9 @@ describe("Create Mapped Custom Field", () => {
       null,
     );
     expect(within(form).queryByText("Map Value From")).toBeNull();
-    expect(within(form).queryByRole("button", { name: "More fields" })).toBeNull();
+    expect(
+      within(form).queryByRole("button", { name: "More fields" }),
+    ).toBeNull();
     expect(
       within(form).queryByRole("navigation", { name: "Progress" }),
     ).toBeNull();

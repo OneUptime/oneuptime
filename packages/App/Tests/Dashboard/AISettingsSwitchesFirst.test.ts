@@ -385,7 +385,8 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
     expect(page).toContain("<AdvancedPageSection");
     expect(page).toContain("summary={advanced.summary}");
-    expect(page).toContain("isConfigured={advanced.isConfigured}");
+    // Its cards, by name, the ones holding a limit as chips.
+    expect(page).toContain("items={advanced.items}");
     expect(page.indexOf("<ProjectAiNotice")).toBeLessThan(
       page.indexOf("<ProjectAiSwitchesCard"),
     );

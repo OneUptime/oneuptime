@@ -112,7 +112,10 @@ import Permission from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 type RoleRow = {
   _id: string;

@@ -8,21 +8,29 @@ import { within } from "@testing-library/react";
  * settings.
  */
 
-function itemsIn(container?: HTMLElement): Array<HTMLElement> {
+/*
+ * A header a query did not find (null) is an error, not the whole page: read
+ * as the page, a missing header would pass for one that shows nothing.
+ */
+function itemsIn(container?: HTMLElement | null): Array<HTMLElement> {
+  if (container === null) {
+    throw new Error("The folded section header to read was not found.");
+  }
+
   const scope: HTMLElement = container || document.body;
 
   return within(scope).queryAllByTestId("folded-section-item");
 }
 
 // Every name a folded header lists, set or not, as read on screen.
-export function listedNames(container?: HTMLElement): Array<string> {
+export function listedNames(container?: HTMLElement | null): Array<string> {
   return itemsIn(container).map((item: HTMLElement): string => {
     return (item.textContent || "").trim();
   });
 }
 
 // The chips of the set ones: "Name: value", or the name alone.
-export function setChips(container?: HTMLElement): Array<string> {
+export function setChips(container?: HTMLElement | null): Array<string> {
   return itemsIn(container)
     .filter((item: HTMLElement): boolean => {
       return item.getAttribute("data-item-set") === "true";
@@ -33,7 +41,7 @@ export function setChips(container?: HTMLElement): Array<string> {
 }
 
 // Whether a folded header shows anything as set.
-export function hasSetChip(container?: HTMLElement): boolean {
+export function hasSetChip(container?: HTMLElement | null): boolean {
   return setChips(container).length > 0;
 }
 

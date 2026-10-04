@@ -319,9 +319,9 @@ describe("AdvancedPageSection", () => {
     );
 
     expect(section).toHaveClass("mb-5");
-    expect(
-      within(section).getByRole("button", { name: "More settings" }),
-    ).toBe(header());
+    expect(within(section).getByRole("button", { name: "More settings" })).toBe(
+      header(),
+    );
     // A card among cards: rounded like them, with their shadow.
     expect(within(section).getByTestId("folded-section")).toHaveClass(
       "rounded-xl",

@@ -473,9 +473,7 @@ describe("the Create On-Call Schedule form", () => {
       "Description",
       "Labels",
     ]);
-    expect(
-      getByTextOutsideFoldedHeaders(modal, "Timezone"),
-    ).not.toBeVisible();
+    expect(getByTextOutsideFoldedHeaders(modal, "Timezone")).not.toBeVisible();
     expect(within(modal).getByPlaceholderText("Description")).not.toBeVisible();
     expect(
       within(modal).getByText(LABELS_FORM_FIELD_DESCRIPTION),

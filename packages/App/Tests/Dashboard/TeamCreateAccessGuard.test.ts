@@ -229,8 +229,8 @@ describe("a team's block permissions fold under Advanced on its Permissions page
     expect(block).toBeGreaterThan(advanced);
     expect(advancedEnd).toBeGreaterThan(block);
 
-    // "Configured" while the team has a block.
-    expect(page).toContain("isConfigured={blockPermissionCount > 0}");
+    // Block Permissions is a chip, with how many, while the team has any.
+    expect(page).toContain("isSet: blockPermissionCount > 0");
     expect(page).toContain(
       "onPermissionCountChange={(count: number) => { setBlockPermissionCount(count); }}",
     );

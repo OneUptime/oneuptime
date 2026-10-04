@@ -365,7 +365,9 @@ test.describe("Monitor probe selection", () => {
       timeout: 30000,
     });
     await expect(
-      advanced.locator("[data-testid='folded-section-item'][data-item-set='true']"),
+      advanced.locator(
+        "[data-testid='folded-section-item'][data-item-set='true']",
+      ),
     ).toContainText(": On");
     await advanced.click();
     const reloadedToggle: Locator = page.getByRole("switch", {

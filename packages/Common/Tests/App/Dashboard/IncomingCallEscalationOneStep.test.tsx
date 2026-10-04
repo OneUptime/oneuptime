@@ -166,7 +166,10 @@ import Permission from "../../../Types/Permission";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 

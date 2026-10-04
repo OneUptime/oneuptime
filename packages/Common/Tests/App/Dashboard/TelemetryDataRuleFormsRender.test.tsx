@@ -235,7 +235,10 @@ import {
   TRACE_SCRUB_FIELDS,
   TRACE_SCRUB_PATTERN_TYPES,
 } from "../../../Types/Telemetry/ScrubRule";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 function dialog(): HTMLElement {
   return screen.getByTestId("modal");

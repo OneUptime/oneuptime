@@ -167,8 +167,9 @@ describe("a workflow step's advanced settings", () => {
 
       const folded: Array<Argument> = foldedArgumentsOf(metadata);
 
-      expect(await screen.findByRole("button", { name: "More fields" }))
-        .toHaveAttribute("aria-expanded", "false");
+      expect(
+        await screen.findByRole("button", { name: "More fields" }),
+      ).toHaveAttribute("aria-expanded", "false");
 
       // The folded header names them (a long list says how many more).
       const names: Array<string> = listed();

@@ -149,20 +149,16 @@ export const getBrandingAdvancedItems: (
 
   return [
     foldedSectionItem(StatusPageBrandingCopy.defaultBarColorTitle, {
-      key: "defaultBarColor",
       isSet: isDefaultBarColorChosen(values.defaultBarColor),
     }),
     foldedSectionItem(StatusPageBrandingCopy.barColorRulesTitle, {
-      key: "barColorRules",
       isSet: ruleCount > 0,
       value: String(ruleCount),
     }),
     foldedSectionItem(StatusPageBrandingCopy.languagesTitle, {
-      key: "languages",
       isSet: areBrandingLanguagesChosen(values),
     }),
     foldedSectionItem(StatusPageBrandingCopy.searchEngineIndexingTitle, {
-      key: "searchEngineIndexing",
       // The column defaults to on and is not nullable: only false is off.
       isSet: values.enableSearchEngineIndexing === false,
       value: translationKey("Off"),

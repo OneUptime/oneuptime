@@ -158,9 +158,7 @@ const COLOR_TOKENS: Array<string> = Array.from(
 describe("folded sections in the dark theme", () => {
   test("use no dark: variants and build no colour class from a template", () => {
     expect(CODE).not.toContain("dark:");
-    expect(CODE).not.toMatch(
-      /(?:bg|text|border|ring|divide|from|via|to)-\$\{/,
-    );
+    expect(CODE).not.toMatch(/(?:bg|text|border|ring|divide|from|via|to)-\$\{/);
   });
 
   test("every colour class they use is remapped for dark mode", () => {

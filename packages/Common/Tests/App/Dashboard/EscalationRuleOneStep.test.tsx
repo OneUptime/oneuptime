@@ -141,7 +141,10 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 

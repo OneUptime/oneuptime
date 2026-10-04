@@ -421,7 +421,16 @@ describe("adding an OIDC provider", () => {
       "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.",
     );
 
-    // The defaults that follow the issuer and the name are not set.
+    // Folded, it names what it holds; the defaults that follow the issuer and the name are not set.
+    expect(listedNames()).toEqual(
+      expect.arrayContaining([
+        "Discovery URL",
+        "Scopes",
+        "Email Claim Name",
+        "Name Claim Name",
+        "Description",
+      ]),
+    );
     expect(setChips()).toEqual([]);
 
     // Opened, it shows what will be saved.

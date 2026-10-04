@@ -27,7 +27,6 @@ export interface ComponentProps {
 const DnsMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const recordTypeOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(DnsRecordType);
 
@@ -104,7 +103,6 @@ const DnsMonitorStepForm: FunctionComponent<ComponentProps> = (
         dataTestId="dns-monitor-more-fields"
       >
         <div className="space-y-4">
-
           <div>
             <FieldLabelElement
               title="Port"

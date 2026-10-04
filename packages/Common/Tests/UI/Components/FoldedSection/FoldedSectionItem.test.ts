@@ -67,7 +67,11 @@ describe("what a folded section is called", () => {
       expect(RETIRED_FOLD_TITLE.test(title)).toBe(true);
     }
 
-    for (const title of ["More fields", "Advancement", "Subscriber Notifications"]) {
+    for (const title of [
+      "More fields",
+      "Advancement",
+      "Subscriber Notifications",
+    ]) {
       expect(RETIRED_FOLD_TITLE.test(title)).toBe(false);
     }
   });

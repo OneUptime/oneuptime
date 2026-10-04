@@ -194,7 +194,10 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 type Page = FunctionComponent<PageComponentProps>;
 

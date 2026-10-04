@@ -27,7 +27,6 @@ export interface ComponentProps {
 const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const lookupMethodOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(DomainLookupMethod);
 
@@ -86,7 +85,6 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
         dataTestId="domain-monitor-more-fields"
       >
         <div className="space-y-4">
-
           <div>
             <FieldLabelElement
               title="Timeout (ms)"

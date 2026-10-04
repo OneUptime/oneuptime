@@ -22,7 +22,6 @@ export interface ComponentProps {
 const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   return (
     <div className="space-y-5">
       <div>
@@ -98,7 +97,6 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
         dataTestId="dnssec-monitor-more-fields"
       >
         <div className="space-y-4">
-
           <div>
             <FieldLabelElement
               title="Signature Expiry Warning (days)"

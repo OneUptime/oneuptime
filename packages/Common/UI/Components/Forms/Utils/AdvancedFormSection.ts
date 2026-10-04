@@ -245,6 +245,14 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     defaultValue = field.getDefaultValue(values);
   }
 
+  /*
+   * No default of its own: its column's, which ModelForm hands an Edit form
+   * too - there the field does not start from it, the record does.
+   */
+  if (defaultValue === undefined) {
+    defaultValue = field.columnDefaultValue;
+  }
+
   defaultValue = normalizeFormValue(defaultValue);
 
   // Never touched: whatever it is, it is what the form starts with.

@@ -172,7 +172,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const SLO_DEFAULTS_SUMMARY: string =
   "Measured over a rolling 30-day window, and At Risk when less than 20% of the error budget is left.";

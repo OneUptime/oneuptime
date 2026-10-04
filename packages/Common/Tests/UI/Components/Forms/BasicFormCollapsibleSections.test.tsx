@@ -216,9 +216,7 @@ describe("BasicForm collapsible sections", () => {
     await user.click(header);
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(setChips()).toEqual([
-      "Description: Existing response instructions",
-    ]);
+    expect(setChips()).toEqual(["Description: Existing response instructions"]);
   });
 
   test("supports keyboard toggles and skips collapsed fields in the tab order", async () => {

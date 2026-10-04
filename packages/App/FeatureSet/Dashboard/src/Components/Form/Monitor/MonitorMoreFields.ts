@@ -243,9 +243,15 @@ export const getIncidentMoreFieldsItems: (
 
 // A monitor rule's alert More fields, by the same rule.
 export const getAlertMoreFieldsItems: (
-  alert: Pick<CriteriaAlert, "autoResolveAlert" | "remediationNotes" | "isPrivate">,
+  alert: Pick<
+    CriteriaAlert,
+    "autoResolveAlert" | "remediationNotes" | "isPrivate"
+  >,
 ) => Array<FoldedSectionItem> = (
-  alert: Pick<CriteriaAlert, "autoResolveAlert" | "remediationNotes" | "isPrivate">,
+  alert: Pick<
+    CriteriaAlert,
+    "autoResolveAlert" | "remediationNotes" | "isPrivate"
+  >,
 ): Array<FoldedSectionItem> => {
   return [
     switchItem(
@@ -283,7 +289,7 @@ export interface MonitorOptionSpec {
 }
 
 export type GetMonitorOptionsMoreFieldsItemsFunction = (
-  values: object | undefined,
+  values: unknown,
   specs: Array<MonitorOptionSpec>,
 ) => Array<FoldedSectionItem>;
 
@@ -294,7 +300,7 @@ export type GetMonitorOptionsMoreFieldsItemsFunction = (
  */
 export const getMonitorOptionsMoreFieldsItems: GetMonitorOptionsMoreFieldsItemsFunction =
   (
-    values: object | undefined,
+    values: unknown,
     specs: Array<MonitorOptionSpec>,
   ): Array<FoldedSectionItem> => {
     const record: Record<string, unknown> = (values || {}) as Record<

@@ -90,7 +90,8 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
    * The More fields section's options, by name, the ones the user chose
    * as chips: a default rule's auto-resolve does not count.
    */
-  const moreFieldsItems: Array<FoldedSectionItem> = getAlertMoreFieldsItems(criteriaAlert);
+  const moreFieldsItems: Array<FoldedSectionItem> =
+    getAlertMoreFieldsItems(criteriaAlert);
 
   /*
    * The variables this monitor's alert description and remediation notes

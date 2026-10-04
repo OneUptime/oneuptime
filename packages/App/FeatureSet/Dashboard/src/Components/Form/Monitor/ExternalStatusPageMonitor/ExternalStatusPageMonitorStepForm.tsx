@@ -27,7 +27,6 @@ export interface ComponentProps {
 const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const providerDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(ExternalStatusPageProviderType);
 
@@ -94,7 +93,6 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
         dataTestId="external-status-page-monitor-more-fields"
       >
         <div className="space-y-4">
-
           <div>
             <FieldLabelElement
               title="Component Group Filter (Optional)"

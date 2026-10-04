@@ -582,7 +582,6 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
         dataTestId="database-monitor-more-fields"
       >
         <div className="space-y-4">
-
           <div>
             <FieldLabelElement
               title="Connection Timeout (ms)"

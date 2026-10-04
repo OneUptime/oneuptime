@@ -184,7 +184,10 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { getJestSpyOn } from "../../Spy";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 

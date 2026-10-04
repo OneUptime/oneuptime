@@ -833,7 +833,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               }
             />
           )}
-
       </div>
     </ValuePickerProvider>
   );

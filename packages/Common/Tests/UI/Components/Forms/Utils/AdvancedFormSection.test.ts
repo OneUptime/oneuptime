@@ -158,6 +158,43 @@ describe("isFormFieldValueSet", () => {
     expect(isFormFieldValueSet(autoResolve, {})).toBe(false);
   });
 
+  test("with no default of its own, a field compares with its column's (an Edit form's)", () => {
+    // ModelForm hands an Edit form's fields their column defaults this way.
+    const notifyOwners: Field<JSONObject> = field(
+      "notifyOwners",
+      FormFieldSchemaType.Toggle,
+      { columnDefaultValue: true },
+    );
+
+    expect(isFormFieldValueSet(notifyOwners, { notifyOwners: true })).toBe(
+      false,
+    );
+    expect(isFormFieldValueSet(notifyOwners, { notifyOwners: false })).toBe(
+      true,
+    );
+
+    const retries: Field<JSONObject> = field(
+      "retries",
+      FormFieldSchemaType.Number,
+      { columnDefaultValue: 3 },
+    );
+
+    expect(isFormFieldValueSet(retries, { retries: 3 })).toBe(false);
+    expect(isFormFieldValueSet(retries, { retries: 5 })).toBe(true);
+
+    // The field's own default wins over its column's.
+    const offByChoice: Field<JSONObject> = field(
+      "notifyOwners",
+      FormFieldSchemaType.Toggle,
+      { defaultValue: false, columnDefaultValue: true },
+    );
+
+    expect(isFormFieldValueSet(offByChoice, { notifyOwners: false })).toBe(
+      false,
+    );
+    expect(isFormFieldValueSet(offByChoice, { notifyOwners: true })).toBe(true);
+  });
+
   test("text is set when it holds something other than blanks or its default", () => {
     const text: Field<JSONObject> = field("notes", FormFieldSchemaType.Text);
 

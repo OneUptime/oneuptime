@@ -162,7 +162,10 @@ import Label from "../../../Models/DatabaseModels/Label";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const TEMPLATE_ID: ObjectID = new ObjectID(
   "0193c0de-0000-4aaa-8bbb-000000000100",

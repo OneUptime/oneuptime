@@ -2,7 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import { listScanRoots, listSourceFiles } from "../../../ForeignHiddenRuleGuard";
+import {
+  listScanRoots,
+  listSourceFiles,
+} from "../../../ForeignHiddenRuleGuard";
 import {
   MORE_FIELDS_SECTION_TITLE,
   MORE_SETTINGS_SECTION_TITLE,
@@ -129,8 +132,9 @@ function relative(file: string): string {
 }
 
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
-  return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-    .line + 1;
+  return (
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
+  );
 }
 
 // The static text an expression shows, when it is one.
@@ -219,11 +223,11 @@ function scanSource(name: string, source: string): FileFindings {
     oldAdvancedToggles: [],
   };
 
-  const record: (
+  const record: (list: Array<Finding>, node: ts.Node, text: string) => void = (
     list: Array<Finding>,
     node: ts.Node,
     text: string,
-  ) => void = (list: Array<Finding>, node: ts.Node, text: string): void => {
+  ): void => {
     list.push({ file: name, line: lineOf(sourceFile, node), text });
   };
 
@@ -247,20 +251,28 @@ function scanSource(name: string, source: string): FileFindings {
         }
 
         if (FOLD_COMPONENTS.has(tag) && RETIRED_FOLD_TITLE.test(text)) {
-          record(findings.retiredFoldTitles, attribute, `<${tag} title="${text}">`);
+          record(
+            findings.retiredFoldTitles,
+            attribute,
+            `<${tag} title="${text}">`,
+          );
         }
 
-        if (ADVANCED_LINK_TITLE.test(text) || ADVANCED_OPTIONS_TEXT.test(text)) {
-          record(findings.oldAdvancedToggles, attribute, `<${tag} title="${text}">`);
+        if (
+          ADVANCED_LINK_TITLE.test(text) ||
+          ADVANCED_OPTIONS_TEXT.test(text)
+        ) {
+          record(
+            findings.oldAdvancedToggles,
+            attribute,
+            `<${tag} title="${text}">`,
+          );
         }
       }
     }
 
     // 4: the "Advanced Options" heading or toggle text, however it is drawn.
-    if (
-      ts.isStringLiteral(node) ||
-      ts.isNoSubstitutionTemplateLiteral(node)
-    ) {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       const text: string = node.text;
 
       if (
@@ -287,7 +299,9 @@ function scanSource(name: string, source: string): FileFindings {
         names.includes("id") &&
         names.includes("title") &&
         names.some((propertyKey: string | null): boolean => {
-          return Boolean(propertyKey && SECTION_ONLY_PROPERTIES.has(propertyKey));
+          return Boolean(
+            propertyKey && SECTION_ONLY_PROPERTIES.has(propertyKey),
+          );
         });
 
       if (isSection) {
@@ -312,7 +326,8 @@ function scanSource(name: string, source: string): FileFindings {
         }
 
         if (
-          name !== "packages/Common/UI/Components/Forms/Utils/AdvancedFormSection.ts" &&
+          name !==
+            "packages/Common/UI/Components/Forms/Utils/AdvancedFormSection.ts" &&
           (text === MORE_FIELDS_SECTION_TITLE || isMoreFieldsConstant)
         ) {
           record(findings.handBuiltMoreFields, node, "title: More fields");
@@ -362,20 +377,26 @@ describe("folded sections of rarely needed options", () => {
   });
 
   test("are never titled Advanced: a form's is More fields, a page's More settings", () => {
-    expect(all((findings: FileFindings) => findings.retiredFoldTitles)).toEqual(
-      [],
-    );
+    expect(
+      all((findings: FileFindings) => {
+        return findings.retiredFoldTitles;
+      }),
+    ).toEqual([]);
   });
 
   test("take their names from FoldedSectionTitles, never written out", () => {
-    expect(all((findings: FileFindings) => findings.writtenOutNames)).toEqual(
-      [],
-    );
+    expect(
+      all((findings: FileFindings) => {
+        return findings.writtenOutNames;
+      }),
+    ).toEqual([]);
   });
 
   test("in a form's fields, are built by getAdvancedFormSection, which lists what they hold", () => {
     expect(
-      all((findings: FileFindings) => findings.handBuiltMoreFields),
+      all((findings: FileFindings) => {
+        return findings.handBuiltMoreFields;
+      }),
     ).toEqual([]);
   });
 
@@ -388,7 +409,9 @@ describe("folded sections of rarely needed options", () => {
 
     expect(
       scanned
-        .flatMap((findings: FileFindings) => findings.oldAdvancedToggles)
+        .flatMap((findings: FileFindings) => {
+          return findings.oldAdvancedToggles;
+        })
         .filter((finding: Finding): boolean => {
           return !allowed.has(finding.file);
         })

@@ -1,10 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  cleanup,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import { createInstance, i18n } from "i18next";
@@ -12,13 +7,7 @@ import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import FoldedSection, {
   FOLDED_SECTION_TEST_ID,
 } from "../../../../UI/Components/FoldedSection/FoldedSection";
@@ -218,8 +207,9 @@ describe("folded, it says what is inside", () => {
     renderSection({ items: NOTHING_SET });
 
     const contents: HTMLElement = screen.getByTestId("folded-section-contents");
-    const items: Array<HTMLElement> =
-      within(contents).getAllByTestId("folded-section-item");
+    const items: Array<HTMLElement> = within(contents).getAllByTestId(
+      "folded-section-item",
+    );
 
     expect(
       items.map((item: HTMLElement): string | null => {
@@ -554,10 +544,10 @@ describe("in German", () => {
       </FoldedSection>,
     );
 
-    expect(
-      screen.getByRole("button", { name: de["More fields"] }),
-    ).toBeInTheDocument();
     expect(de["More fields"]).toBe("Weitere Felder");
+    expect(
+      screen.getByRole("button", { name: de["More fields"] as string }),
+    ).toBeInTheDocument();
 
     const chips: Array<string | null> = screen
       .getAllByTestId("folded-section-item")

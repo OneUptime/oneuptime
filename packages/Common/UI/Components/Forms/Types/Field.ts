@@ -259,6 +259,15 @@ export default interface Field<TEntity> {
    * review step does not list it (isFormFieldValueSet).
    */
   isAtDefault?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * The default of the column the field writes, as its model declares it -
+   * filled in by ModelForm, on Create and Edit alike, for a field that names
+   * no default of its own (Utils/CreateFormDefaults). Not a value the field
+   * starts with: an Edit form shows the record as it is. It is what a folded
+   * section compares with, so a switch that is on because its column starts
+   * on is not shown as set, and one turned off is (isFormFieldValueSet).
+   */
+  columnDefaultValue?: boolean | string | number | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
   /*

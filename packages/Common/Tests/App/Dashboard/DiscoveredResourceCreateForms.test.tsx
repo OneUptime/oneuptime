@@ -231,7 +231,10 @@ import {
   getAdvancedFormSection,
   isFormFieldValueSet,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
-import { hasSetChip, setChips } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  hasSetChip,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 

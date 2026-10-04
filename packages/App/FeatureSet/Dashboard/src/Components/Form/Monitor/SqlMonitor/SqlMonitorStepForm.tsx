@@ -285,7 +285,6 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         dataTestId="sql-monitor-more-fields"
       >
         <div className="space-y-4">
-
           <div>
             <FieldLabelElement
               title="Connection Timeout (ms)"

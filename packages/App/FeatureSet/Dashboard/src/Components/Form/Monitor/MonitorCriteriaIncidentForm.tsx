@@ -114,7 +114,8 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
    * The More fields section's options, by name, the ones the user chose
    * as chips: a default rule's auto-resolve does not count.
    */
-  const moreFieldsItems: Array<FoldedSectionItem> = getIncidentMoreFieldsItems(criteriaIncident);
+  const moreFieldsItems: Array<FoldedSectionItem> =
+    getIncidentMoreFieldsItems(criteriaIncident);
   const hasIncidentTeam: boolean = Boolean(
     criteriaIncident.incidentMemberRoles?.length,
   );

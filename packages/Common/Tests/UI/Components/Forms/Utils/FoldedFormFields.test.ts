@@ -399,11 +399,7 @@ describe("getFoldedFormFieldItems", () => {
 
   test("only the set fields, for a section whose title says what it holds", () => {
     expect(
-      getFoldedFormFieldItems(
-        DECLARE,
-        { isPrivate: true },
-        { onlySet: true },
-      ),
+      getFoldedFormFieldItems(DECLARE, { isPrivate: true }, { onlySet: true }),
     ).toEqual([
       {
         key: "isPrivate",
