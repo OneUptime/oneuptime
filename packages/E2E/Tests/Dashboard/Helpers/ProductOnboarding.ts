@@ -276,9 +276,10 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
  *
  * The guide names the key and picks its type, so the form is one page - the
  * name, filled in with the guide's ("VMware key"), is replaced here - and
- * on the Free plan it walks on to a Billing step, its footer button reading
- * "Next" until the pricing has been shown. The button is pressed until the
- * modal closes, waiting for the step to move on between presses.
+ * on the Free plan it walks on to a Billing step. Every step but the last
+ * shows a plain Next and Create Ingestion Key is on the last step only, so
+ * Next is pressed until it is gone, waiting for the step to move on between
+ * presses, and then the action.
  */
 type SubmitIngestionKeyModalFunction = (data: {
   page: Page;
