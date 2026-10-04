@@ -33,6 +33,22 @@ export const PALETTE_RECENTS_STORAGE_KEY: string =
 /** Rows fetched per entity type per keystroke — keep the fan-out cheap. */
 export const PALETTE_ENTITY_SEARCH_LIMIT: number = 5;
 
+/*
+ * Between two equally good search matches: a product first, then a page (or
+ * an action done on one, such as Delete Project), then the palette's own
+ * actions and quick links. "pager" opens On-Call Duty, then On-Call
+ * Policies, then My On-Call Policies.
+ */
+export const PALETTE_SEARCH_PRIORITY: {
+  product: number;
+  page: number;
+  action: number;
+} = {
+  product: 2,
+  page: 1,
+  action: 0,
+};
+
 // ---- ":"-guard --------------------------------------------------------------
 
 /*
@@ -126,7 +142,9 @@ export interface PageSearchCommandDescriptor {
   id: string;
   // In the reader's language.
   title: string;
-  // Other words for it, with its English title when that is not the title.
+  // Its English title, when that is not the title: searched as the title.
+  titleAliases: Array<string>;
+  // Other words for it ("pager", "2fa"), never shown.
   keywords: Array<string>;
   // Where it lives, in the reader's language: ["Project Settings", "Advanced"].
   breadcrumb: Array<string>;
@@ -292,10 +310,8 @@ export function buildPageSearchCommandDescriptors(
           descriptors.push({
             id: slugifyPaletteCommandId("page", template + queryString),
             title,
-            keywords: [
-              ...englishUnlessShown(title, page.title),
-              ...(page.keywords || []),
-            ],
+            titleAliases: englishUnlessShown(title, page.title),
+            keywords: page.keywords || [],
             breadcrumb,
             breadcrumbKeywords,
             icon: page.icon || area.icon,
@@ -327,10 +343,8 @@ export function buildPageSearchCommandDescriptors(
           descriptors.push({
             id: slugifyPaletteCommandId("page-action", action.id),
             title: actionTitle,
-            keywords: [
-              ...englishUnlessShown(actionTitle, action.title),
-              ...(action.keywords || []),
-            ],
+            titleAliases: englishUnlessShown(actionTitle, action.title),
+            keywords: action.keywords || [],
             breadcrumb: actionBreadcrumb,
             breadcrumbKeywords: [...breadcrumbKeywords, page.title],
             icon: action.icon || page.icon || area.icon,

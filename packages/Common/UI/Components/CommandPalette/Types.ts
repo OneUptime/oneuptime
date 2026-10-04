@@ -23,6 +23,12 @@ export interface PaletteCommand {
    */
   keywords?: Array<string> | undefined;
   /**
+   * The title itself in other words, matched exactly as the title is: the
+   * English title behind a translated one, so "api keys" still opens
+   * "API-Schlüssel" first in German. Never shown.
+   */
+  titleAliases?: Array<string> | undefined;
+  /**
    * Where the command lives, outermost first: ["Project Settings",
    * "Advanced"] for API Keys. Shown under the title instead of the
    * description, so two pages that are both called "Custom Fields" can be
@@ -41,6 +47,13 @@ export interface PaletteCommand {
    * it (it would be hundreds of rows), but it can still show under Recent.
    */
   isSearchOnly?: boolean | undefined;
+  /**
+   * Breaks a tie between two commands that match a search equally well:
+   * the higher goes first (0 when left out). The Dashboard puts its products
+   * above its pages, and pages above actions and quick links, so "pager"
+   * opens On-Call Duty, then On-Call Policies.
+   */
+  searchPriority?: number | undefined;
   /** Optional shortcut hint rendered as keycaps on the row. */
   shortcut?: Array<KeyboardShortcutKey> | undefined;
   onSelect: () => void;

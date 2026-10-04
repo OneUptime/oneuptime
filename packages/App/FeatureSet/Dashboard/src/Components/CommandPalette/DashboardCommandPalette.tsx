@@ -18,6 +18,7 @@ import {
   PageSearchCommandDescriptor,
   PALETTE_ENTITY_SEARCH_LIMIT,
   PALETTE_RECENTS_STORAGE_KEY,
+  PALETTE_SEARCH_PRIORITY,
   PaletteActionId,
   PaletteEntitySearchSpec,
   PaletteNavigationCatalogEntry,
@@ -150,6 +151,21 @@ function createEntitySearchProvider<
     },
   };
 }
+
+/*
+ * Whether the current project has monitor groups turned on, as its menu
+ * reads it. The palette is mounted outside the pages' error boundary, so a
+ * stored project it cannot read leaves Monitor Groups out rather than take
+ * the dashboard down.
+ */
+const isMonitorGroupsEnabled: () => boolean = (): boolean => {
+  try {
+    const project: Project | null = ProjectUtil.getCurrentProject();
+    return Boolean(project?.isFeatureFlagMonitorGroupsEnabled);
+  } catch {
+    return false;
+  }
+};
 
 const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -297,6 +313,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
             icon: descriptor.icon,
             iconColor: descriptor.iconColor,
             category: descriptor.category,
+            searchPriority: PALETTE_SEARCH_PRIORITY.product,
             onSelect: () => {
               closePalette();
               Navigation.navigate(new Route(descriptor.routePath));
@@ -511,16 +528,12 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       }
     });
 
-    const currentProject: Project | null = ProjectUtil.getCurrentProject();
-
     const pageCommands: Array<PaletteCommand> =
       buildPageSearchCommandDescriptors({
         areas: getPageSearchAreas(),
         availability: {
           isBillingEnabled: BILLING_ENABLED,
-          isMonitorGroupsEnabled: Boolean(
-            currentProject?.isFeatureFlagMonitorGroupsEnabled,
-          ),
+          isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
           canDeleteProject:
             hasProjectSelected &&
             canDeleteProject({ permissions, isMasterAdmin }),
@@ -545,6 +558,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         return {
           id: descriptor.id,
           title: descriptor.title,
+          titleAliases: descriptor.titleAliases,
           keywords: descriptor.keywords,
           breadcrumb: descriptor.breadcrumb,
           breadcrumbKeywords: descriptor.breadcrumbKeywords,
@@ -552,6 +566,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
           iconColor: descriptor.iconColor,
           category: descriptor.isAction ? actionsCategory : pagesCategory,
           isSearchOnly: true,
+          searchPriority: PALETTE_SEARCH_PRIORITY.page,
           onSelect: () => {
             closePalette();
             Navigation.navigate(new Route(descriptor.routePath));

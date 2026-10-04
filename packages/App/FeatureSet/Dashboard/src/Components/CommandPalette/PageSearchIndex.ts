@@ -1921,6 +1921,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.NETWORK_SITE_MAP,
             title: "Network Map",
             icon: IconProp.Map,
+            /*
+             * The top of the map, as the menu opens it: an empty site
+             * resets a map that is drilled into a site
+             * (getNetworkMapRootRoute).
+             */
+            queryString: "?site=",
             keywords: ["site map"],
           },
           {
