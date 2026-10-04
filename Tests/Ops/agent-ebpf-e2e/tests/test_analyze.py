@@ -153,9 +153,13 @@ class Capture:
                 return st.index(x)
 
             rattrs = [{'keyStrindex': s_idx('k8s.node.name'), 'value': {'stringValue': APPS}}]
-            if self.profile_cluster:
-                rattrs.append({'keyStrindex': s_idx('k8s.cluster.name'), 'value': {'stringValue': self.profile_cluster}})
+            # a profile may name its own cluster (None: none at all)
+            cluster = res.get('k8s.cluster.name', self.profile_cluster)
+            if cluster:
+                rattrs.append({'keyStrindex': s_idx('k8s.cluster.name'), 'value': {'stringValue': cluster}})
             for k, v in res.items():
+                if k == 'k8s.cluster.name':
+                    continue
                 if k == 'process.pid':
                     rattrs.append({'keyStrindex': s_idx(k), 'value': {'intValue': v}})
                 else:
@@ -358,6 +362,13 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         c.obi_log[APPS].append('time=t level=INFO msg="instrumenting process" cmd=/bin/busybox pid=310 type=generic')
         self.assertOnlyFails(c, ['OBI-8'])
 
+    def test_no_exclude_globs_rendered(self):
+        # a render (or a parser) that loses the globs must not pass OBI-8 by
+        # having nothing to match
+        c = Capture()
+        c.render = 'discovery:\n  attributes:\n'
+        self.assertOnlyFails(c, ['OBI-8'])
+
     def test_excluded_namespace_instrumented(self):
         c = Capture()
         c.obi_log[CLIENT].append('time=t level=INFO msg="instrumenting process" cmd=/usr/local/bin/node pid=500 type=nodejs')
@@ -407,6 +418,14 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         c.spans.append((Capture.resource('data', 'postgres'),
                         {'traceId': 'a' * 32, 'spanId': 'b' * 16, 'name': 'SELECT', 'kind': 2,
                          'attributes': [kv('db.system.name', 'postgresql')]}))
+        self.assertOnlyFails(c, ['TR-6'])
+
+    def test_untagged_server_span_of_a_database(self):
+        # OBI did not recognize the protocol: no db.system.name, but it is
+        # still a server span of a database
+        c = Capture()
+        c.spans.append((Capture.resource('data', 'postgres'),
+                        {'traceId': 'a' * 32, 'spanId': 'b' * 16, 'name': 'postgres', 'kind': 2, 'attributes': []}))
         self.assertOnlyFails(c, ['TR-6'])
 
     def test_parentless_database_client_span(self):
@@ -473,6 +492,20 @@ class EachFaultFailsItsCheck(unittest.TestCase):
                 seen.add(s['name'])
         self.assertOnlyFails(c, ['TR-11'])
 
+    def test_rare_route_not_harvested(self):
+        # >=95% of the requests are named by their routes, but the rarest
+        # route never is
+        c = Capture()
+        rare = [s['traceId'] for _, s in c.spans if s['name'] == 'GET /status/ready']
+        gone = set(rare[4:])
+        c.spans = [(r, s) for r, s in c.spans if s['traceId'] not in gone]
+        for _, s in c.spans:
+            if s['name'] == 'GET /status/ready':
+                s['name'] = 'GET /status/*'
+        c.loadgen['total'] -= len(gone)
+        c.loadgen['stats']['/status/ready'] = {'n': 4, 'codes': {'200': 4}}
+        self.assertOnlyFails(c, ['TR-11'])
+
     def test_span_from_excluded_workload(self):
         c = Capture()
         c.spans.append((Capture.resource('shop', 'sleeper'),
@@ -508,9 +541,20 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         c.profiles = []
         self.assertOnlyFails(c, ['PR-3'])
 
+    def test_too_few_profile_exports(self):
+        c = Capture()
+        c.profiles = c.profiles[:1]  # written as 2 exports
+        self.assertOnlyFails(c, ['PR-3'])
+
     def test_profiles_without_cluster_name(self):
         c = Capture()
         c.profile_cluster = None
+        self.assertOnlyFails(c, ['PR-3'])
+
+    def test_one_profile_without_cluster_name(self):
+        # every profile has to carry it, not just most
+        c = Capture()
+        c.profiles[1] = (dict(c.profiles[1][0], **{'k8s.cluster.name': None}), c.profiles[1][1])
         self.assertOnlyFails(c, ['PR-3'])
 
     def test_obi_not_populating_the_map(self):
@@ -521,7 +565,13 @@ class EachFaultFailsItsCheck(unittest.TestCase):
 
     def test_map_entries_name_no_exported_span(self):
         c = Capture()
-        c.ctx = [(1, 1, 'e' * 32, 'd' * 16)] * 3 + [(2, 2, 'c' * 32, 'b' * 16)]
+        c.ctx = [(i, i, '%032x' % i, '%016x' % i) for i in range(1, 21)]
+        self.assertOnlyFails(c, ['PR-4'])
+
+    def test_too_few_distinct_map_entries(self):
+        # the same 4 entries, seen again and again, count once each
+        c = Capture()
+        c.ctx = c.ctx[:4] * 5
         self.assertOnlyFails(c, ['PR-4'])
 
     def test_app_samples_unlinked(self):
@@ -532,6 +582,20 @@ class EachFaultFailsItsCheck(unittest.TestCase):
     def test_app_samples_link_to_unknown_spans(self):
         c = Capture()
         c.profiles[0] = (c.profiles[0][0], [(3, ('e' * 32, 'd' * 16))] * 60 + [(40, None)])
+        self.assertOnlyFails(c, ['PR-5'], platform='k3s')
+
+    def test_app_link_rate_collapsed(self):
+        # enough linked samples to count (2 x 15), but 3% of the app's
+        c = Capture()
+        span = next(s for s in c.app_spans if s['name'] == 'processing')
+        c.profiles[0] = (c.profiles[0][0], [(1, (span['traceId'], span['spanId']))] * 15 + [(500, None)])
+        self.assertOnlyFails(c, ['PR-5'], platform='k3s')
+
+    def test_too_few_linked_app_samples(self):
+        # a 36% link rate, but over 2 x 9 linked samples only
+        c = Capture()
+        span = next(s for s in c.app_spans if s['name'] == 'processing')
+        c.profiles[0] = (c.profiles[0][0], [(1, (span['traceId'], span['spanId']))] * 9 + [(16, None)])
         self.assertOnlyFails(c, ['PR-5'], platform='k3s')
 
     def test_too_few_app_samples(self):

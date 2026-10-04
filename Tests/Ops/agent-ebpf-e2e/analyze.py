@@ -17,8 +17,8 @@ with the arguments run.sh logged in analysis.json.
 Thresholds are set well below what a healthy run measures and well above what
 the regressions they guard against measure, so CI noise does not flip them:
 e.g. a Node.js 26 app whose requests are NOT linked to their own calls (OBI
-before v0.14 skipped its Node.js agent on Node 26) put its own SELECT in ~30-40%
-of its traces and its own downstream GET in ~26-36%; a healthy v0.14 run puts
+before v0.14 skipped its Node.js agent on Node 26) put its own SELECT in ~27-30%
+of its traces and its own downstream GET in ~24-26%; a healthy v0.14 run puts
 them in >90% / >99%.
 """
 import argparse
