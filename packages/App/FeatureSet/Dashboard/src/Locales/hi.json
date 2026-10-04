@@ -18223,7 +18223,7 @@
   "Unknown Action": "Unknown Action",
   "Unknown Device": "Unknown Device",
   "Unknown Policy": "Unknown Policy",
-  "Unknown Role": "Unknown Role",
+  "Unknown Role": "अज्ञात भूमिका",
   "Unknown Service": "Unknown Service",
   "Unknown Team": "Unknown Team",
   "Unknown User": "Unknown User",
@@ -21514,7 +21514,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "{{member}} को {{role}} से हटाएं",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24865,5 +24865,8 @@
   "Max {{size}} each.": "हर फ़ाइल अधिकतम {{size}}।",
   "These files exceed the {{size}} limit: {{fileNames}}.": "ये फ़ाइलें {{size}} की सीमा से बड़ी हैं: {{fileNames}}।",
   "Types: {{types}}. Max {{size}} each.": "प्रकार: {{types}}। हर फ़ाइल अधिकतम {{size}}।",
-  "Their names could not be loaded.": "उनके नाम लोड नहीं हो सके।"
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "इस टेम्पलेट से घोषित घटनाएँ इसी स्थिति में शुरू होती हैं। सामान्य प्रारंभिक स्थिति के लिए खाली छोड़ें।",
+  "The usual starting state": "सामान्य प्रारंभिक स्थिति",
+  "Their names could not be loaded.": "उनके नाम लोड नहीं हो सके।",
+  "Who takes each role on this incident.": "इस घटना में हर भूमिका कौन निभाएगा।"
 }

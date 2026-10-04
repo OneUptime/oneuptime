@@ -18223,7 +18223,7 @@
   "Unknown Action": "Unknown Action",
   "Unknown Device": "Unknown Device",
   "Unknown Policy": "Unknown Policy",
-  "Unknown Role": "Unknown Role",
+  "Unknown Role": "Onbekende rol",
   "Unknown Service": "Unknown Service",
   "Unknown Team": "Unknown Team",
   "Unknown User": "Unknown User",
@@ -21514,7 +21514,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "{{member}} verwijderen uit {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24865,5 +24865,8 @@
   "Max {{size}} each.": "Maximaal {{size}} per bestand.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Deze bestanden zijn groter dan de limiet van {{size}}: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "Typen: {{types}}. Maximaal {{size}} per bestand.",
-  "Their names could not be loaded.": "Hun namen konden niet worden geladen."
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidenten die vanuit deze sjabloon worden gemeld, beginnen in deze status. Laat leeg voor de gebruikelijke beginstatus.",
+  "The usual starting state": "De gebruikelijke beginstatus",
+  "Their names could not be loaded.": "Hun namen konden niet worden geladen.",
+  "Who takes each role on this incident.": "Wie welke rol op zich neemt bij dit incident."
 }

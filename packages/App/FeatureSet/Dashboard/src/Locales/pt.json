@@ -18223,7 +18223,7 @@
   "Unknown Action": "Unknown Action",
   "Unknown Device": "Unknown Device",
   "Unknown Policy": "Unknown Policy",
-  "Unknown Role": "Unknown Role",
+  "Unknown Role": "Função desconhecida",
   "Unknown Service": "Unknown Service",
   "Unknown Team": "Unknown Team",
   "Unknown User": "Unknown User",
@@ -21514,7 +21514,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "Remover {{member}} de {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24865,5 +24865,8 @@
   "Max {{size}} each.": "Máx. de {{size}} cada.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Estes arquivos excedem o limite de {{size}}: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "Tipos: {{types}}. Máx. de {{size}} cada.",
-  "Their names could not be loaded.": "Não foi possível carregar os nomes."
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Os incidentes declarados a partir deste modelo começam neste estado. Deixe vazio para o estado inicial habitual.",
+  "The usual starting state": "O estado inicial habitual",
+  "Their names could not be loaded.": "Não foi possível carregar os nomes.",
+  "Who takes each role on this incident.": "Quem assume cada função neste incidente."
 }

@@ -724,7 +724,12 @@ test.describe("Incident template Custom Fields on Create", () => {
       projectId: ctx.projectId,
       path: "/api/incident-templates",
       query: { templateName: wizardTemplateName },
-      select: { _id: true, customFieldSettings: true, customFields: true },
+      select: {
+        _id: true,
+        customFieldSettings: true,
+        customFields: true,
+        initialIncidentStateId: true,
+      },
     });
     expect(templates).toHaveLength(1);
     expect(templates[0]!["customFieldSettings"]).toEqual({
@@ -734,6 +739,12 @@ test.describe("Incident template Custom Fields on Create", () => {
     expect(JSON.stringify(templates[0]!["customFields"] || {})).not.toContain(
       "customFieldSettings",
     );
+    /*
+     * Nobody picked an Initial Incident State (it waits under More fields),
+     * so none was saved: the wizard used to save the first state by order.
+     * Its incidents start in the usual starting state.
+     */
+    expect(templates[0]!["initialIncidentStateId"] ?? null).toBeNull();
 
     // And the template's own page says so.
     await gotoProjectPage({

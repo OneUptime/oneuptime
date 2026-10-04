@@ -1,7 +1,4 @@
-import {
-  CriteriaIncident,
-  IncidentMemberRoleAssignment,
-} from "Common/Types/Monitor/CriteriaIncident";
+import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -36,13 +33,20 @@ import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
 import { getIncidentMoreFieldsItems } from "./MonitorMoreFields";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import IncidentRoleFormField from "../../Incident/IncidentRoleFormField";
+import {
+  assignmentsToCriteriaRoles,
+  criteriaRolesToAssignments,
+  IncidentRoleChoice,
+  keepKnownRoles,
+  RoleAssignment,
+} from "../../IncidentRole/IncidentRoleAssignments";
 
-export interface IncidentRoleOption {
-  id: string;
-  name: string;
-  color?: string | undefined;
-  canAssignMultipleUsers?: boolean | undefined;
-}
+/*
+ * A project's incident role, as the monitor form reads it once for every
+ * rule (MonitorSteps) and hands it to the role picker.
+ */
+export type IncidentRoleOption = IncidentRoleChoice;
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
@@ -116,87 +120,16 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
    */
   const moreFieldsItems: Array<FoldedSectionItem> =
     getIncidentMoreFieldsItems(criteriaIncident);
-  const hasIncidentTeam: boolean = Boolean(
-    criteriaIncident.incidentMemberRoles?.length,
-  );
-
-  // Helper to get user for a single-user role
-  const getUserForRole: (roleId: string) => ObjectID | undefined = (
-    roleId: string,
-  ): ObjectID | undefined => {
-    const assignment: IncidentMemberRoleAssignment | undefined =
-      criteriaIncident.incidentMemberRoles?.find(
-        (a: IncidentMemberRoleAssignment) => {
-          return a.roleId.toString() === roleId;
-        },
-      );
-    return assignment?.userId;
-  };
-
-  // Helper to get all users for a multi-user role
-  const getUsersForRole: (roleId: string) => Array<ObjectID> = (
-    roleId: string,
-  ): Array<ObjectID> => {
-    const assignments: Array<IncidentMemberRoleAssignment> =
-      criteriaIncident.incidentMemberRoles?.filter(
-        (a: IncidentMemberRoleAssignment) => {
-          return a.roleId.toString() === roleId;
-        },
-      ) || [];
-    return assignments.map((a: IncidentMemberRoleAssignment) => {
-      return a.userId;
-    });
-  };
-
-  // Helper to set user for a single-user role
-  const setUserForRole: (
-    roleId: string,
-    userId: ObjectID | undefined,
-  ) => void = (roleId: string, userId: ObjectID | undefined): void => {
-    const existingRoles: Array<IncidentMemberRoleAssignment> =
-      criteriaIncident.incidentMemberRoles || [];
-
-    // Remove existing assignment for this role
-    const filteredRoles: Array<IncidentMemberRoleAssignment> =
-      existingRoles.filter((a: IncidentMemberRoleAssignment) => {
-        return a.roleId.toString() !== roleId;
-      });
-
-    // Add new assignment if userId is provided
-    if (userId) {
-      filteredRoles.push({
-        roleId: new ObjectID(roleId),
-        userId: userId,
-      });
-    }
-
-    updateField("incidentMemberRoles", filteredRoles);
-  };
-
-  // Helper to set multiple users for a multi-user role
-  const setUsersForRole: (roleId: string, userIds: Array<ObjectID>) => void = (
-    roleId: string,
-    userIds: Array<ObjectID>,
-  ): void => {
-    const existingRoles: Array<IncidentMemberRoleAssignment> =
-      criteriaIncident.incidentMemberRoles || [];
-
-    // Remove all existing assignments for this role
-    const filteredRoles: Array<IncidentMemberRoleAssignment> =
-      existingRoles.filter((a: IncidentMemberRoleAssignment) => {
-        return a.roleId.toString() !== roleId;
-      });
-
-    // Add new assignments for each userId
-    for (const userId of userIds) {
-      filteredRoles.push({
-        roleId: new ObjectID(roleId),
-        userId: userId,
-      });
-    }
-
-    updateField("incidentMemberRoles", filteredRoles);
-  };
+  /*
+   * Who the rule names for each role, as the role picker holds it. Set only
+   * for roles the project still has: a row for a deleted role names nobody
+   * who can be assigned, and no card shows it.
+   */
+  const roleAssignments: Array<RoleAssignment> = useMemo(() => {
+    return criteriaRolesToAssignments(criteriaIncident.incidentMemberRoles);
+  }, [criteriaIncident.incidentMemberRoles]);
+  const hasIncidentTeam: boolean =
+    keepKnownRoles(roleAssignments, props.incidentRoleOptions || []).length > 0;
 
   /*
    * The variables this monitor's incident description and remediation notes
@@ -349,13 +282,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         </div>
       </FoldedSection>
 
-      {/* Incident Roles - Collapsible */}
+      {/*
+       * Incident Roles - collapsible. The declare form's role picker, with
+       * the roles and people this form read once for every rule; the rule
+       * keeps one { roleId, userId } row per person, as it always has.
+       */}
       {props.incidentRoleOptions && props.incidentRoleOptions.length > 0 && (
         <FoldedSection
           title="Incident Roles"
           description="Pre-assign team members to incident roles"
           badge={hasIncidentTeam ? "Configured" : undefined}
           defaultCollapsed={!hasIncidentTeam}
+          dataTestId="criteria-incident-roles"
         >
           <div className="space-y-4">
             <p className="text-sm text-gray-500">
@@ -363,100 +301,17 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
               )}
             </p>
-            {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
-              if (role.canAssignMultipleUsers) {
-                // Multi-user role
-                const selectedUserIds: Array<ObjectID> = getUsersForRole(
-                  role.id,
+            <IncidentRoleFormField
+              roles={props.incidentRoleOptions}
+              users={props.userDropdownOptions}
+              initialValue={roleAssignments}
+              onChange={(assignments: Array<RoleAssignment>) => {
+                updateField(
+                  "incidentMemberRoles",
+                  assignmentsToCriteriaRoles(assignments),
                 );
-                return (
-                  <div key={role.id}>
-                    <FieldLabelElement
-                      title={role.name}
-                      description={
-                        <span>
-                          {translator.translateTemplate(
-                            "Assign multiple users to the {{role}} role",
-                            { role: role.name },
-                          )}{" "}
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
-                            {translator.translateText("Multiple")}
-                          </span>
-                        </span>
-                      }
-                    />
-                    <Dropdown
-                      value={props.userDropdownOptions.filter(
-                        (i: DropdownOption) => {
-                          return selectedUserIds.some((id: ObjectID) => {
-                            return id.toString() === i.value;
-                          });
-                        },
-                      )}
-                      options={props.userDropdownOptions}
-                      onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null,
-                      ) => {
-                        if (Array.isArray(value)) {
-                          setUsersForRole(
-                            role.id,
-                            value.map((v: DropdownValue) => {
-                              return new ObjectID(v.toString());
-                            }),
-                          );
-                        } else {
-                          setUsersForRole(role.id, []);
-                        }
-                      }}
-                      isMultiSelect={true}
-                      placeholder={translator.translateTemplate(
-                        "Select {{role}}...",
-                        { role: role.name },
-                      )}
-                    />
-                  </div>
-                );
-              }
-              // Single-user role
-              const selectedUserId: ObjectID | undefined = getUserForRole(
-                role.id,
-              );
-              return (
-                <div key={role.id}>
-                  <FieldLabelElement
-                    title={role.name}
-                    description={translator.translateTemplate(
-                      "Assign a user to the {{role}} role",
-                      { role: role.name },
-                    )}
-                  />
-                  <Dropdown
-                    value={
-                      selectedUserId
-                        ? props.userDropdownOptions.find(
-                            (i: DropdownOption) => {
-                              return i.value === selectedUserId.toString();
-                            },
-                          )
-                        : undefined
-                    }
-                    options={props.userDropdownOptions}
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      setUserForRole(
-                        role.id,
-                        value ? new ObjectID(value.toString()) : undefined,
-                      );
-                    }}
-                    placeholder={translator.translateTemplate(
-                      "Select {{role}}...",
-                      { role: role.name },
-                    )}
-                  />
-                </div>
-              );
-            })}
+              }}
+            />
           </div>
         </FoldedSection>
       )}

@@ -19,6 +19,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the email and the Reassign action in half. The rows now wrap instead of
  * overflowing; the classes that make that happen are pinned here along with
  * the behaviour the actions must keep.
+ *
+ * A role is tagged Primary, and nothing else: the "Multiple" tag went, as it
+ * did from the role picker on every form. A role that takes several people
+ * says so where it matters, by offering Add More once it has someone.
  */
 
 jest.mock("../../../UI/Utils/Translation", () => {
@@ -270,7 +274,7 @@ describe("MemberRoleAssignment in a narrow column", () => {
 });
 
 describe("MemberRoleAssignment behaviour", () => {
-  test("shows each role with its badges and member counts", () => {
+  test("shows each role with its Primary tag and member counts", () => {
     renderAssignment();
 
     expect(
@@ -280,12 +284,42 @@ describe("MemberRoleAssignment behaviour", () => {
       within(headerFor("Incident Commander")).getByText("1 member assigned"),
     ).toBeInTheDocument();
     expect(
-      within(headerFor("Scribe")).getByText("Multiple"),
-    ).toBeInTheDocument();
-    expect(
       within(headerFor("Scribe")).getByText("0 members assigned"),
     ).toBeInTheDocument();
     expect(screen.getByText("Not assigned")).toBeInTheDocument();
+  });
+
+  test("tags no role Multiple, not even one that takes several people", () => {
+    renderAssignment();
+
+    expect(screen.queryByText(/Multiple/)).toBeNull();
+    // Only the primary role is tagged.
+    expect(screen.getAllByText("Primary")).toHaveLength(1);
+    expect(within(headerFor("Scribe")).queryByText("Primary")).toBeNull();
+  });
+
+  test("a role that takes several people says so by Add More once it has someone", () => {
+    const SAM: AssignedMember = {
+      id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+      memberId: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+      userId: USERS[2]!.id,
+      userName: "Sam Rivera",
+      userEmail: "sam.rivera@acme-commerce.example",
+      roleId: SCRIBE.id,
+      roleName: SCRIBE.name,
+      roleColor: SCRIBE.color,
+    };
+
+    renderAssignment({ assignedMembers: [MAYA, JORDAN, SAM] });
+
+    expect(
+      within(headerFor("Scribe")).getByRole("button", { name: "Add More" }),
+    ).toBeInTheDocument();
+    // A role that takes one person, once filled, offers nothing.
+    expect(
+      within(headerFor("Communications Lead")).queryByRole("button"),
+    ).toBeNull();
+    expect(screen.queryByText(/Multiple/)).toBeNull();
   });
 
   test("a single-member role that is filled offers no Assign button", () => {

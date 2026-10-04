@@ -24865,5 +24865,8 @@
   "Max {{size}} each.": "Max {{size}} each.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "These files exceed the {{size}} limit: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "Types: {{types}}. Max {{size}} each.",
-  "Their names could not be loaded.": "Their names could not be loaded."
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",
+  "The usual starting state": "The usual starting state",
+  "Their names could not be loaded.": "Their names could not be loaded.",
+  "Who takes each role on this incident.": "Who takes each role on this incident."
 }

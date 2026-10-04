@@ -18223,7 +18223,7 @@
   "Unknown Action": "Unknown Action",
   "Unknown Device": "Unknown Device",
   "Unknown Policy": "Unknown Policy",
-  "Unknown Role": "Unknown Role",
+  "Unknown Role": "Ukendt rolle",
   "Unknown Service": "Unknown Service",
   "Unknown Team": "Unknown Team",
   "Unknown User": "Unknown User",
@@ -21514,7 +21514,7 @@
   "Remove filter: {{value}}": "Remove filter: {{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
-  "Remove {{member}} from {{role}}": "Remove {{member}} from {{role}}",
+  "Remove {{member}} from {{role}}": "Fjern {{member}} fra {{role}}",
   "Remove {{option}}": "Remove {{option}}",
   "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.": "Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names.",
   "Renew license": "Renew license",
@@ -24865,5 +24865,8 @@
   "Max {{size}} each.": "Højst {{size}} pr. fil.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Disse filer overskrider grænsen på {{size}}: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "Typer: {{types}}. Højst {{size}} pr. fil.",
-  "Their names could not be loaded.": "Deres navne kunne ikke indlæses."
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Hændelser, der erklæres fra denne skabelon, starter i denne tilstand. Lad være tom for den sædvanlige starttilstand.",
+  "The usual starting state": "Den sædvanlige starttilstand",
+  "Their names could not be loaded.": "Deres navne kunne ikke indlæses.",
+  "Who takes each role on this incident.": "Hvem der påtager sig hver rolle i denne hændelse."
 }
