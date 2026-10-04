@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The status page custom domain's own markup: the DNS Setup dialog - the
- * record table with its copy buttons, the root domain note, the verified
- * view - and its copy module (Components/StatusPage/CustomDomain).
+ * The custom domain pages' own markup - a status page's and a dashboard's:
+ * the DNS Setup dialog - the record table with its copy buttons, the root
+ * domain note, the verified view - the Status cell, the shared table, and
+ * the copy module (Components/CustomDomain).
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class. A class it
@@ -23,7 +24,6 @@ const COMPONENT_DIR: string = path.join(
   "Dashboard",
   "src",
   "Components",
-  "StatusPage",
   "CustomDomain",
 );
 
@@ -134,12 +134,15 @@ const COLOR_TOKENS: Array<string> = Array.from(
   ),
 );
 
-describe("the status page custom domain components in the dark theme", () => {
+describe("the custom domain components in the dark theme", () => {
   test("reads every module of the folder", () => {
     expect(MODULES).toEqual(
       expect.arrayContaining([
-        "StatusPageCustomDomainCopy.ts",
-        "StatusPageDomainDnsSetupModal.tsx",
+        "CustomDomainCopy.ts",
+        "CustomDomainDnsSetupModal.tsx",
+        "CustomDomainKinds.ts",
+        "CustomDomainStatus.tsx",
+        "CustomDomainsTable.tsx",
       ]),
     );
   });

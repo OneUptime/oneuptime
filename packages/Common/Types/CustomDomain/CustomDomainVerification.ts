@@ -1,10 +1,11 @@
 import { JSONObject } from "../JSON";
 
 /*
- * What a status page custom domain's verify-cname route answers once it has
- * found the domain's CNAME record: what happens to the domain's certificate
- * next. The record being found is the success; an order that fails is not
- * an error of the route, it is reported here and the sweeps order again.
+ * What a custom domain's verify-cname route - a status page's or a
+ * dashboard's: the domain's Check now - answers once it has found the
+ * domain's CNAME record: what happens to the domain's certificate next. The
+ * record being found is the success; an order that fails is not an error of
+ * the route, it is reported here and the sweeps order again.
  */
 export enum CustomDomainCertificateStatus {
   // The free certificate is being ordered, or was ordered just now.

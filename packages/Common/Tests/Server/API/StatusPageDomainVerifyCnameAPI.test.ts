@@ -26,7 +26,7 @@ import {
  *     look for;
  *   - a record that is found orders through the shared order path, which
  *     keeps Check now and the sweeps from ordering one name twice
- *     (StatusPageCustomDomainCertificateLifecycle.test.ts runs that end to
+ *     (CustomDomainCertificateLifecycle.test.ts runs that end to
  *     end);
  *   - an order that fails does not turn a found record into an error.
  *
@@ -118,7 +118,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { CustomDomainCertificateStatus } from "../../../Types/StatusPage/CustomDomainVerification";
+import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -314,6 +314,26 @@ describe("verify-cname (Check now)", () => {
     expect(mockRouter.match("GET", VERIFY_ROUTE).middlewares).toContain(
       UserMiddleware.getUserMiddleware,
     );
+  });
+
+  /*
+   * Review: a malformed id reached the uuid column and came back as a
+   * database error, a 500. It is the caller's mistake: a 400.
+   */
+  test("a malformed id is refused as bad data, before anything is read", async () => {
+    const spies: Spies = setUp({});
+
+    await callRoute(VERIFY_ROUTE, { id: "not-a-uuid" });
+
+    expect(spies.countBy).not.toHaveBeenCalled();
+    expect(spies.findOneBy).not.toHaveBeenCalled();
+    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe("The domain ID is not valid.");
   });
 
   test("checks access with the caller's own props, and a domain they cannot see orders nothing", async () => {
@@ -803,6 +823,25 @@ describe("certificates (the Status column)", () => {
         },
       ],
     });
+  });
+
+  test("a malformed id is refused as bad data, and nothing is looked up", async () => {
+    const findBy: MockedFn = jest.spyOn(
+      StatusPageDomainService,
+      "findBy",
+    ) as unknown as MockedFn;
+
+    const { next } = await callRoute(CERTIFICATES_ROUTE, {
+      statusPageId: "not-a-uuid",
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(findBy).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
   });
 
   test("a caller who may not read the domains gets the refusal, and nothing is looked up", async () => {

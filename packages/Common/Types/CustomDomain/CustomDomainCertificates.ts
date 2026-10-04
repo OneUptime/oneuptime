@@ -2,7 +2,8 @@ import { JSONArray, JSONObject } from "../JSON";
 
 /*
  * Where one custom domain's free certificate stands: what the domain list's
- * Status column needs beyond the domain's own row.
+ * Status column needs beyond the domain's own row, on a status page's
+ * Custom Domains page and a dashboard's alike.
  *
  * Neither part is on the domain row. The certificate is in the certificate
  * table, shared by every kind of custom domain, and the last failed order is

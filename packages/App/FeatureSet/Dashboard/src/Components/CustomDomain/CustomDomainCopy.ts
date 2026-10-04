@@ -1,23 +1,27 @@
-import { CustomDomainCertificateStatus } from "Common/Types/StatusPage/CustomDomainVerification";
-import { CustomDomainCertificate } from "Common/Types/StatusPage/CustomDomainCertificates";
+import { CustomDomainCertificateStatus } from "Common/Types/CustomDomain/CustomDomainVerification";
+import { CustomDomainCertificate } from "Common/Types/CustomDomain/CustomDomainCertificates";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * A status page's Custom Domains page (Status Pages -> a page -> Branding ->
- * Custom Domains), and the DNS Setup dialog it opens.
+ * The Custom Domains pages - a status page's (Status Pages -> a page ->
+ * Branding -> Custom Domains) and a dashboard's (Dashboards -> a dashboard ->
+ * Branding -> Custom Domains) - and the DNS Setup dialog they open. Both are
+ * one table (CustomDomainsTable), so the same job reads and works the same
+ * on both.
  *
  * Putting a status page on your own domain used to take four actions in two
  * places: verify the domain in Project Settings, add the custom domain in two
  * steps, find "Add CNAME" (which added nothing - it showed the record and
  * had a Verify CNAME button), then find "Order Free SSL" while the Status
  * column said "Action Required: Please order SSL certificate." - for an
- * order the 15-minute worker placed on its own anyway.
+ * order the 15-minute worker placed on its own anyway. Dashboards kept that
+ * flow, and their own wording, after status pages lost it.
  *
  * Now the domain is added in one step, from the domains the project has
  * verified, and the DNS Setup dialog opens on the new domain with the record
  * to add. Check now verifies it, and the free certificate is ordered the
  * moment the record is found; without a click the 15-minute sweeps do both.
- * Nothing on the page asks anyone to order a certificate.
+ * Nothing on either page asks anyone to order a certificate.
  *
  * What the domain row cannot say - the certificate's expiry, and why the
  * last order failed - comes from the certificates route
@@ -25,14 +29,14 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * keeps failing, and why, where it used to say "Issuing" for good; when a
  * certificate has expired; and when a renewal failed.
  *
- * Kept free of React so the page, the dialog and App/Tests read these exact
- * strings. Every sentence is wrapped in translationKey() so
- * npm run i18n:extract finds it, and is translated in all seventeen
- * Dashboard locale files.
+ * Kept free of React - and of Common/UI/Config - so the pages, the dialog
+ * and App/Tests read these exact strings. Every sentence is wrapped in
+ * translationKey() so npm run i18n:extract finds it, and is translated in
+ * the Dashboard locale files.
  */
 
 // Where a custom domain is on its way to being served over HTTPS.
-export enum StatusPageCustomDomainState {
+export enum CustomDomainState {
   // The CNAME record is not found yet: the one step only its owner can take.
   WaitingForDns = "WaitingForDns",
   // Verified, and served with the certificate its owner uploaded.
@@ -49,7 +53,7 @@ export enum StatusPageCustomDomainState {
   RenewalFailed = "RenewalFailed",
 }
 
-export interface StatusPageCustomDomainStateInput {
+export interface CustomDomainStateInput {
   isCnameVerified?: boolean | undefined;
   isCustomCertificate?: boolean | undefined;
   isSslOrdered?: boolean | undefined;
@@ -61,21 +65,21 @@ export interface StatusPageCustomDomainStateInput {
  * certificate. Without the certificate (not loaded yet, or the request
  * failed) the row alone decides, as it always did.
  */
-export const getStatusPageCustomDomainState: (
-  domain: StatusPageCustomDomainStateInput,
+export const getCustomDomainState: (
+  domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
-) => StatusPageCustomDomainState = (
-  domain: StatusPageCustomDomainStateInput,
+) => CustomDomainState = (
+  domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
-): StatusPageCustomDomainState => {
+): CustomDomainState => {
   if (!domain.isCnameVerified) {
-    return StatusPageCustomDomainState.WaitingForDns;
+    return CustomDomainState.WaitingForDns;
   }
 
   if (domain.isCustomCertificate) {
-    return StatusPageCustomDomainState.UsesUploadedCertificate;
+    return CustomDomainState.UsesUploadedCertificate;
   }
 
   if (certificate) {
@@ -88,16 +92,16 @@ export const getStatusPageCustomDomainState: (
      */
     if (!expiresAt) {
       return certificate.lastOrderError
-        ? StatusPageCustomDomainState.CertificateFailed
-        : StatusPageCustomDomainState.IssuingCertificate;
+        ? CustomDomainState.CertificateFailed
+        : CustomDomainState.IssuingCertificate;
     }
 
     if (expiresAt.getTime() <= (now || new Date()).getTime()) {
-      return StatusPageCustomDomainState.CertificateExpired;
+      return CustomDomainState.CertificateExpired;
     }
 
     if (certificate.lastOrderError && domain.isSslProvisioned) {
-      return StatusPageCustomDomainState.RenewalFailed;
+      return CustomDomainState.RenewalFailed;
     }
   }
 
@@ -108,27 +112,27 @@ export const getStatusPageCustomDomainState: (
    * capped order sweeps can take a run or two longer.
    */
   if (!domain.isSslProvisioned) {
-    return StatusPageCustomDomainState.IssuingCertificate;
+    return CustomDomainState.IssuingCertificate;
   }
 
-  return StatusPageCustomDomainState.CertificateIssued;
+  return CustomDomainState.CertificateIssued;
 };
 
 /*
  * The reason the last order failed, to show under the state, for the states
  * that are about a failure.
  */
-export const getStatusPageCustomDomainCertificateError: (
-  state: StatusPageCustomDomainState,
+export const getCustomDomainCertificateError: (
+  state: CustomDomainState,
   certificate?: CustomDomainCertificate | undefined,
 ) => string | undefined = (
-  state: StatusPageCustomDomainState,
+  state: CustomDomainState,
   certificate?: CustomDomainCertificate | undefined,
 ): string | undefined => {
   if (
-    state !== StatusPageCustomDomainState.CertificateFailed &&
-    state !== StatusPageCustomDomainState.CertificateExpired &&
-    state !== StatusPageCustomDomainState.RenewalFailed
+    state !== CustomDomainState.CertificateFailed &&
+    state !== CustomDomainState.CertificateExpired &&
+    state !== CustomDomainState.RenewalFailed
   ) {
     return undefined;
   }
@@ -142,12 +146,12 @@ export const getStatusPageCustomDomainCertificateError: (
  * verified, and on a domain whose free certificate is not in place - not
  * ordered yet, an order that keeps failing, or one that has expired.
  */
-export const isStatusPageCustomDomainDnsSetupAvailable: (
-  domain: StatusPageCustomDomainStateInput,
+export const isCustomDomainDnsSetupAvailable: (
+  domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
 ) => boolean = (
-  domain: StatusPageCustomDomainStateInput,
+  domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
 ): boolean => {
@@ -163,42 +167,39 @@ export const isStatusPageCustomDomainDnsSetupAvailable: (
     return true;
   }
 
-  const state: StatusPageCustomDomainState = getStatusPageCustomDomainState(
+  const state: CustomDomainState = getCustomDomainState(
     domain,
     certificate,
     now,
   );
 
   return (
-    state === StatusPageCustomDomainState.CertificateFailed ||
-    state === StatusPageCustomDomainState.CertificateExpired
+    state === CustomDomainState.CertificateFailed ||
+    state === CustomDomainState.CertificateExpired
   );
 };
 
 // The Status column, one whole sentence per state.
-export const STATUS_PAGE_CUSTOM_DOMAIN_STATUS: Record<
-  StatusPageCustomDomainState,
-  string
-> = {
-  [StatusPageCustomDomainState.WaitingForDns]: translationKey(
+export const CUSTOM_DOMAIN_STATUS: Record<CustomDomainState, string> = {
+  [CustomDomainState.WaitingForDns]: translationKey(
     "Waiting for DNS: add the CNAME record.",
   ),
-  [StatusPageCustomDomainState.UsesUploadedCertificate]: translationKey(
+  [CustomDomainState.UsesUploadedCertificate]: translationKey(
     "Uses your uploaded certificate.",
   ),
-  [StatusPageCustomDomainState.IssuingCertificate]: translationKey(
+  [CustomDomainState.IssuingCertificate]: translationKey(
     "Issuing a free certificate, usually within 15 minutes.",
   ),
-  [StatusPageCustomDomainState.CertificateFailed]: translationKey(
+  [CustomDomainState.CertificateFailed]: translationKey(
     "Could not issue a free certificate yet. We keep trying.",
   ),
-  [StatusPageCustomDomainState.CertificateExpired]: translationKey(
+  [CustomDomainState.CertificateExpired]: translationKey(
     "Certificate expired. We keep trying to renew it.",
   ),
-  [StatusPageCustomDomainState.CertificateIssued]: translationKey(
+  [CustomDomainState.CertificateIssued]: translationKey(
     "Certificate issued, renews automatically.",
   ),
-  [StatusPageCustomDomainState.RenewalFailed]: translationKey(
+  [CustomDomainState.RenewalFailed]: translationKey(
     "Certificate issued, but renewing it failed. We keep trying.",
   ),
 };
@@ -207,7 +208,7 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_STATUS: Record<
  * What the DNS Setup dialog says once Check now has found the record, by
  * what happens to the domain's certificate next.
  */
-export const STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT: Record<
+export const CUSTOM_DOMAIN_VERIFIED_NEXT: Record<
   CustomDomainCertificateStatus,
   string
 > = {
@@ -231,9 +232,9 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT: Record<
   ),
 };
 
-export const StatusPageCustomDomainCopy: {
-  cardDescription: string;
-  // Card description where the installation has no status page CNAME record.
+// What every kind of custom domain says alike.
+export const CustomDomainCopy: {
+  // Where the installation has no CNAME record for this kind of domain.
   cardDescriptionNotEnabled: string;
   domainFieldDescription: string;
   domainFieldSideLink: string;
@@ -241,7 +242,6 @@ export const StatusPageCustomDomainCopy: {
   advancedSummaryFreeCertificate: string;
   advancedSummaryUploadedCertificate: string;
   dnsSetupTitle: string;
-  dnsSetupIntro: string;
   dnsSetupRecordType: string;
   dnsSetupRecordName: string;
   dnsSetupRecordValue: string;
@@ -259,11 +259,9 @@ export const StatusPageCustomDomainCopy: {
   dnsSetupClose: string;
   dnsSetupDone: string;
   dnsSetupVerified: string;
-  dnsSetupNotEnabled: string;
+  // The Reissue SSL dialog's second paragraph.
+  reissueRateLimit: string;
 } = {
-  cardDescription: translationKey(
-    "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
-  ),
   cardDescriptionNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
   ),
@@ -278,9 +276,6 @@ export const StatusPageCustomDomainCopy: {
     "Uses the certificate you upload.",
   ),
   dnsSetupTitle: translationKey("DNS Setup"),
-  dnsSetupIntro: translationKey(
-    "Add this record at your DNS provider to point {{domain}} to your status page.",
-  ),
   dnsSetupRecordType: translationKey("Type"),
   dnsSetupRecordName: translationKey("Name"),
   dnsSetupRecordValue: translationKey("Value"),
@@ -306,13 +301,71 @@ export const StatusPageCustomDomainCopy: {
   dnsSetupClose: translationKey("Close"),
   dnsSetupDone: translationKey("Done"),
   dnsSetupVerified: translationKey("Your CNAME record is verified."),
+  reissueRateLimit: translationKey(
+    "Certificates renew automatically well before they expire, so you do not need to do this to stay online. Because Let's Encrypt rate limits how often the same domain can be issued, a reissue can only be requested once every {{hours}} hours.",
+  ),
+};
+
+/*
+ * What one kind of custom domain says in words of its own: what its domains
+ * point to, what its subdomain usually is, and where its CNAME record is
+ * set on a self-hosted installation.
+ */
+export interface CustomDomainKindCopy {
+  // The card's description, with {{cnameRecord}}.
+  cardDescription: string;
+  // DNS Setup's first sentence, with {{domain}}.
+  dnsSetupIntro: string;
+  // DNS Setup where the installation has no CNAME record, with {{variable}}.
+  dnsSetupNotEnabled: string;
+  subdomainPlaceholder: string;
+  subdomainDescription: string;
+  reissueTitle: string;
+  reissueDescription: string;
+}
+
+export const STATUS_PAGE_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
+  cardDescription: translationKey(
+    "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
+  ),
+  dnsSetupIntro: translationKey(
+    "Add this record at your DNS provider to point {{domain}} to your status page.",
+  ),
   dnsSetupNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set statusPage.cnameRecord in the values.yaml file.",
+  ),
+  subdomainPlaceholder: translationKey("status (leave blank for root)"),
+  subdomainDescription: translationKey(
+    "Enter the subdomain label only (for example, status). Leave blank or enter @ to use the root/apex domain.",
+  ),
+  reissueTitle: translationKey("Reissue SSL Certificate for this Status Page"),
+  reissueDescription: translationKey(
+    "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your status page stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.",
+  ),
+};
+
+export const DASHBOARD_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
+  cardDescription: translationKey(
+    "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
+  ),
+  dnsSetupIntro: translationKey(
+    "Add this record at your DNS provider to point {{domain}} to your dashboard.",
+  ),
+  dnsSetupNotEnabled: translationKey(
+    "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set dashboard.cnameRecord in the values.yaml file.",
+  ),
+  subdomainPlaceholder: translationKey("dashboard (leave blank for root)"),
+  subdomainDescription: translationKey(
+    "Enter the subdomain label only (for example, dashboard). Leave blank or enter @ to use the root/apex domain.",
+  ),
+  reissueTitle: translationKey("Reissue SSL Certificate for this Dashboard"),
+  reissueDescription: translationKey(
+    "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your dashboard stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.",
   ),
 };
 
 // The DNS record type a custom domain needs. Not translated: it is DNS.
-export const STATUS_PAGE_CUSTOM_DOMAIN_RECORD_TYPE: string = "CNAME";
+export const CUSTOM_DOMAIN_RECORD_TYPE: string = "CNAME";
 
 // data-testids of the DNS Setup dialog.
 export const DNS_SETUP_TEST_IDS: {

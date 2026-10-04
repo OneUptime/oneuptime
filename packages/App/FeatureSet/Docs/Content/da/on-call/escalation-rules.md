@@ -10,7 +10,7 @@ Når du opretter en vagtpolitik på siden **Vagtpolitikker**, beder formularen o
 
 ## Tilføj en eskaleringsregel
 
-Åbn vagtpolitikken, vælg **Eskaleringsregler** i sidemenuen, og klik på **Add Escalation Rule**. Dialogen er én kort side med to spørgsmål:
+Åbn vagtpolitikken, vælg **Eskaleringsregler** i sidemenuen, og klik på **Tilføj eskaleringsregel**. Dialogen er én kort side med to spørgsmål:
 
 - **Underret** — hvem der tilkaldes på dette niveau. Én vælger dækker vagtplaner, teams og personer: klik på **Tilføj modtager**, søg, og vælg så mange, du har brug for. Der skal være mindst én.
   - En **vagtplan** tilkalder den, der har vagt, når niveauet kører, ikke en fast person.

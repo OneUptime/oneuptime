@@ -18,24 +18,34 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import { ComponentProps as ConfirmModalProps } from "../../../UI/Components/Modal/ConfirmModal";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import Filter from "../../../UI/Components/ModelFilter/Filter";
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
+import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
+  CUSTOM_DOMAIN_STATUS,
+  CustomDomainCopy,
+  CustomDomainKindCopy,
+  CustomDomainState,
+  DASHBOARD_CUSTOM_DOMAIN_COPY,
   DNS_SETUP_TEST_IDS,
-  STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
+  STATUS_PAGE_CUSTOM_DOMAIN_COPY,
   STATUS_TEST_IDS,
-  StatusPageCustomDomainCopy,
-  StatusPageCustomDomainState,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
+import { CustomDomainModel } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
 import API from "../../../UI/Utils/API/API";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
+import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
 import Domain from "../../../Models/DatabaseModels/Domain";
+import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -45,15 +55,18 @@ import { getJestSpyOn } from "../../Spy";
 import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 
 /*
- * Status Pages > <page> > Custom Domains: add a domain, the DNS record opens
- * right away, and the free certificate is issued without a button.
+ * Custom Domains, on a status page (Status Pages > <page> > Custom Domains)
+ * and on a dashboard (Dashboards > <dashboard> > Custom Domains): add a
+ * domain, the DNS record opens right away, and the free certificate is
+ * issued without a button.
  *
  * Putting a status page on your own domain used to take four actions in two
  * places - verify the domain in Project Settings, add the custom domain in
  * two steps, find "Add CNAME" (which added nothing), then find "Order Free
  * SSL" while the Status column said "Action Required: Please order SSL
- * certificate." for an order the worker placed on its own anyway. This
- * pins the page as it is now:
+ * certificate." for an order the worker placed on its own anyway. The
+ * dashboard page kept all of that after the status page lost it. Both pages
+ * are one table now, and every test here runs on both:
  *
  *   - adding a domain is one page: Subdomain and Domain - verified domains
  *     only, with a link to add one - and the certificate options folded
@@ -61,11 +74,12 @@ import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/
  *   - the new domain's DNS Setup dialog opens as soon as it is added;
  *   - DNS Setup (the old Add CNAME) shows until the record is verified;
  *     there is no Order Free SSL; Reissue SSL stays;
- *   - the Status column is four plain states, with one timing.
+ *   - the Status column is the same plain states, with one timing.
  *
  * The ModelTable is replaced by a stand-in that renders the page's own
  * Status column and row actions for the rows given, and hands the test the
- * props the page gave it; the DNS Setup dialog is the real one.
+ * props the page gave it; the DNS Setup dialog is the real one, and so is
+ * the Reissue SSL dialog's text.
  */
 
 jest.mock("react-i18next", () => {
@@ -80,27 +94,37 @@ jest.mock("react-i18next", () => {
   };
 });
 
+/*
+ * Getters defined on the copy, not in an object literal: the compiled
+ * spread copies a literal's getter once, as a value. Both kinds read the
+ * same record here; one page is rendered at a time.
+ */
 jest.mock("../../../UI/Config", () => {
   const mocked: Record<string, unknown> = {
     ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
   };
 
-  Object.defineProperty(mocked, "StatusPageCNameRecord", {
+  const cnameRecord: PropertyDescriptor = {
     get: (): string => {
       return (globalThis as unknown as { __cnameRecord: string }).__cnameRecord;
     },
-  });
+  };
+
+  Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
 
   return mocked;
 });
 
-let mockRows: Array<StatusPageDomain> = [];
-let mockTableProps: ModelTableProps<StatusPageDomain> | null = null;
+let mockRows: Array<CustomDomainModel> = [];
+let mockTableProps: ModelTableProps<CustomDomainModel> | null = null;
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
-    default: (props: ModelTableProps<StatusPageDomain>): React.ReactElement => {
+    default: (
+      props: ModelTableProps<CustomDomainModel>,
+    ): React.ReactElement => {
       mockTableProps = props;
 
       const statusColumn: { getElement?: unknown } | undefined =
@@ -108,22 +132,24 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           return column.title === "Status";
         });
 
-      const getStatus: (item: StatusPageDomain) => React.ReactElement = (
+      const getStatus: (item: CustomDomainModel) => React.ReactElement = (
         statusColumn as {
-          getElement: (item: StatusPageDomain) => React.ReactElement;
+          getElement: (item: CustomDomainModel) => React.ReactElement;
         }
       ).getElement;
 
       return (
         <section data-testid={props.id}>
           <p data-testid="card-description">{props.cardProps?.description}</p>
-          {mockRows.map((row: StatusPageDomain): React.ReactElement => {
+          {mockRows.map((row: CustomDomainModel): React.ReactElement => {
             return (
               <div key={row.fullDomain} data-testid={`row-${row.fullDomain}`}>
                 <p data-testid="status">{getStatus(row)}</p>
                 {(props.actionButtons || [])
                   .filter(
-                    (action: ActionButtonSchema<StatusPageDomain>): boolean => {
+                    (
+                      action: ActionButtonSchema<CustomDomainModel>,
+                    ): boolean => {
                       return (
                         !action.isVisible || Boolean(action.isVisible(row))
                       );
@@ -131,7 +157,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
                   )
                   .map(
                     (
-                      action: ActionButtonSchema<StatusPageDomain>,
+                      action: ActionButtonSchema<CustomDomainModel>,
                     ): React.ReactElement => {
                       return (
                         <button
@@ -158,25 +184,78 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-function domain(
-  fullDomain: string,
-  state: {
-    isCnameVerified?: boolean;
-    isCustomCertificate?: boolean;
-    isSslOrdered?: boolean;
-    isSslProvisioned?: boolean;
-  },
-): StatusPageDomain {
-  const row: StatusPageDomain = new StatusPageDomain();
-  row._id = ObjectID.generate().toString();
-  row.fullDomain = fullDomain;
-  row.subdomain = fullDomain.split(".")[0] || "";
-  row.isCnameVerified = state.isCnameVerified ?? false;
-  row.isCustomCertificate = state.isCustomCertificate ?? false;
-  row.isSslOrdered = state.isSslOrdered ?? false;
-  row.isSslProvisioned = state.isSslProvisioned ?? false;
-  return row;
+// The Reissue SSL dialog, reduced to its title, text and submit button.
+jest.mock("../../../UI/Components/Modal/ConfirmModal", () => {
+  return {
+    __esModule: true,
+    default: (props: ConfirmModalProps): React.ReactElement => {
+      return (
+        <div role="dialog" aria-label={props.title}>
+          <h2>{props.title}</h2>
+          <div>{props.description}</div>
+          <button>{props.submitButtonText}</button>
+        </div>
+      );
+    },
+  };
+});
+
+interface PageCase {
+  name: string;
+  Page: React.FunctionComponent<PageComponentProps>;
+  modelType: { new (): CustomDomainModel };
+  parentColumn: "statusPageId" | "dashboardId";
+  cnameRecord: string;
+  route: string;
+  crudApiPath: string;
+  copy: CustomDomainKindCopy;
+  cardDescription: string;
+  table: {
+    id: string;
+    name: string;
+    userPreferencesKey: string;
+    saveFilterTableId: string;
+  };
 }
+
+const PAGES: Array<PageCase> = [
+  {
+    name: "a status page",
+    Page: StatusPageDomains,
+    modelType: StatusPageDomain,
+    parentColumn: "statusPageId",
+    cnameRecord: "statuspage.oneuptime.com",
+    route: "/dashboard/status-pages",
+    crudApiPath: "/status-page-domain",
+    copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY,
+    cardDescription:
+      "Serve this status page on your own domain. Point each domain's CNAME record to statuspage.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    table: {
+      id: "domains-table",
+      name: "Status Page > Domains",
+      userPreferencesKey: "status-page-domains-table",
+      saveFilterTableId: "status-page-domains-table",
+    },
+  },
+  {
+    name: "a dashboard",
+    Page: DashboardCustomDomains,
+    modelType: DashboardDomain,
+    parentColumn: "dashboardId",
+    cnameRecord: "dashboards.oneuptime.com",
+    route: "/dashboard/dashboards",
+    crudApiPath: "/dashboard-domain",
+    copy: DASHBOARD_CUSTOM_DOMAIN_COPY,
+    cardDescription:
+      "Serve this dashboard on your own domain. Point each domain's CNAME record to dashboards.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    table: {
+      id: "dashboard-domains-table",
+      name: "Dashboard > Domains",
+      userPreferencesKey: "dashboard-domains-table",
+      saveFilterTableId: "dashboard-domains-table",
+    },
+  },
+];
 
 const UNVERIFIED: string = "unverified.acme.com";
 const VERIFIED: string = "verified.acme.com";
@@ -184,123 +263,206 @@ const ORDERED: string = "ordered.acme.com";
 const PROVISIONED: string = "provisioned.acme.com";
 const UPLOADED: string = "uploaded.acme.com";
 const PROJECT_ID: ObjectID = ObjectID.generate();
+const PARENT_ID: ObjectID = ObjectID.generate();
+
+const ORDER_ERROR: string =
+  "Unable to order certificate for failing.acme.com. Please contact support at support@oneuptime.com for more information.";
 
 function setCnameRecord(value: string): void {
   (globalThis as unknown as { __cnameRecord: string }).__cnameRecord = value;
 }
 
-function renderPage(moreRows: Array<StatusPageDomain> = []): void {
-  mockRows = [
-    domain(UNVERIFIED, {}),
-    domain(VERIFIED, { isCnameVerified: true }),
-    domain(ORDERED, { isCnameVerified: true, isSslOrdered: true }),
-    domain(PROVISIONED, {
-      isCnameVerified: true,
-      isSslOrdered: true,
-      isSslProvisioned: true,
-    }),
-    domain(UPLOADED, { isCnameVerified: true, isCustomCertificate: true }),
-    ...moreRows,
-  ];
-
-  render(
-    <MemoryRouter>
-      <StatusPageDomains
-        pageRoute={new Route("/dashboard/status-pages")}
-        currentProject={null}
-        hasPaymentMethod={false}
-      />
-    </MemoryRouter>,
-  );
-}
-
-function rowOf(fullDomain: string): HTMLElement {
-  return screen.getByTestId(`row-${fullDomain}`);
-}
-
-function statusOf(fullDomain: string): string {
-  return within(rowOf(fullDomain)).getByTestId("status").textContent || "";
-}
-
-function tableProps(): ModelTableProps<StatusPageDomain> {
-  expect(mockTableProps).not.toBeNull();
-  return mockTableProps!;
-}
-
-function fieldOf(key: string): ModelField<StatusPageDomain> {
-  const field: ModelField<StatusPageDomain> | undefined = (
-    tableProps().formFields || []
-  ).find((candidate: ModelField<StatusPageDomain>) => {
-    return Object.keys(candidate.field || {})[0] === key;
-  });
-
-  expect(field).toBeDefined();
-  return field!;
-}
-
-const STATUS_PAGE_ID: ObjectID = ObjectID.generate();
-
-const ORDER_ERROR: string =
-  "Unable to order certificate for failing.acme.com. Please contact support at support@oneuptime.com for more information.";
-
-/*
- * The certificates route answers; the table has loaded its rows, which is
- * when the page reads them.
- */
-async function loadCertificates(
-  certificates: Array<JSONObject>,
-): Promise<jest.SpyInstance<any, any>> {
-  const get: jest.SpyInstance<any, any> = getJestSpyOn(
-    API,
-    "get",
-  ).mockResolvedValue(
-    new HTTPResponse(200, { domains: certificates }, {}) as never,
-  );
-
-  await act(async (): Promise<void> => {
-    tableProps().onFetchSuccess!(mockRows, mockRows.length);
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, 0);
-    });
-  });
-
-  return get;
-}
-
-function rowNamed(fullDomain: string): StatusPageDomain {
-  const row: StatusPageDomain | undefined = mockRows.find(
-    (candidate: StatusPageDomain) => {
-      return candidate.fullDomain === fullDomain;
+describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
+  function domain(
+    fullDomain: string,
+    state: {
+      isCnameVerified?: boolean;
+      isCustomCertificate?: boolean;
+      isSslOrdered?: boolean;
+      isSslProvisioned?: boolean;
     },
-  );
+  ): CustomDomainModel {
+    const row: CustomDomainModel = new page.modelType();
+    row._id = ObjectID.generate().toString();
+    row.fullDomain = fullDomain;
+    row.subdomain = fullDomain.split(".")[0] || "";
+    row.isCnameVerified = state.isCnameVerified ?? false;
+    row.isCustomCertificate = state.isCustomCertificate ?? false;
+    row.isSslOrdered = state.isSslOrdered ?? false;
+    row.isSslProvisioned = state.isSslProvisioned ?? false;
+    return row;
+  }
 
-  expect(row).toBeDefined();
-  return row!;
-}
+  function renderPage(
+    moreRows: Array<CustomDomainModel> = [],
+    currentProject: Project | null = null,
+  ): void {
+    mockRows = [
+      domain(UNVERIFIED, {}),
+      domain(VERIFIED, { isCnameVerified: true }),
+      domain(ORDERED, { isCnameVerified: true, isSslOrdered: true }),
+      domain(PROVISIONED, {
+        isCnameVerified: true,
+        isSslOrdered: true,
+        isSslProvisioned: true,
+      }),
+      domain(UPLOADED, { isCnameVerified: true, isCustomCertificate: true }),
+      ...moreRows,
+    ];
 
-function errorOf(fullDomain: string): string | null {
-  return (
-    within(rowOf(fullDomain)).queryByTestId(STATUS_TEST_IDS.certificateError)
-      ?.textContent || null
-  );
-}
+    render(
+      <MemoryRouter>
+        <page.Page
+          pageRoute={new Route(page.route)}
+          currentProject={currentProject}
+          hasPaymentMethod={false}
+        />
+      </MemoryRouter>,
+    );
+  }
 
-describe("Status page Custom Domains page", () => {
+  function rowOf(fullDomain: string): HTMLElement {
+    return screen.getByTestId(`row-${fullDomain}`);
+  }
+
+  function statusOf(fullDomain: string): string {
+    return within(rowOf(fullDomain)).getByTestId("status").textContent || "";
+  }
+
+  function tableProps(): ModelTableProps<CustomDomainModel> {
+    expect(mockTableProps).not.toBeNull();
+    return mockTableProps!;
+  }
+
+  function fieldOf(key: string): ModelField<CustomDomainModel> {
+    const field: ModelField<CustomDomainModel> | undefined = (
+      tableProps().formFields || []
+    ).find((candidate: ModelField<CustomDomainModel>) => {
+      return Object.keys(candidate.field || {})[0] === key;
+    });
+
+    expect(field).toBeDefined();
+    return field!;
+  }
+
+  /*
+   * The certificates route answers; the table has loaded its rows, which is
+   * when the page reads them.
+   */
+  async function loadCertificates(
+    certificates: Array<JSONObject>,
+  ): Promise<jest.SpyInstance<any, any>> {
+    const get: jest.SpyInstance<any, any> = getJestSpyOn(
+      API,
+      "get",
+    ).mockResolvedValue(
+      new HTTPResponse(200, { domains: certificates }, {}) as never,
+    );
+
+    await act(async (): Promise<void> => {
+      tableProps().onFetchSuccess!(mockRows, mockRows.length);
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    return get;
+  }
+
+  function rowNamed(fullDomain: string): CustomDomainModel {
+    const row: CustomDomainModel | undefined = mockRows.find(
+      (candidate: CustomDomainModel) => {
+        return candidate.fullDomain === fullDomain;
+      },
+    );
+
+    expect(row).toBeDefined();
+    return row!;
+  }
+
+  function errorOf(fullDomain: string): string | null {
+    return (
+      within(rowOf(fullDomain)).queryByTestId(STATUS_TEST_IDS.certificateError)
+        ?.textContent || null
+    );
+  }
+
   beforeEach(() => {
-    setCnameRecord("statuspage.oneuptime.com");
+    setCnameRecord(page.cnameRecord);
     mockTableProps = null;
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
-    jest
-      .spyOn(Navigation, "getLastParamAsObjectID")
-      .mockReturnValue(STATUS_PAGE_ID);
+    jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(PARENT_ID);
     jest
       .spyOn(Navigation, "getCurrentRoute")
-      .mockReturnValue(new Route("/dashboard/status-pages"));
+      .mockReturnValue(new Route(page.route));
   });
 
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+  });
+
+  describe("the table", () => {
+    test("lists this page's own domains, under the names it always had", () => {
+      renderPage();
+
+      const props: ModelTableProps<CustomDomainModel> = tableProps();
+
+      expect(props.modelType).toBe(page.modelType);
+      expect(props.id).toBe(page.table.id);
+      expect(props.name).toBe(page.table.name);
+      expect(props.userPreferencesKey).toBe(page.table.userPreferencesKey);
+      expect(props.saveFilterProps?.tableId).toBe(page.table.saveFilterTableId);
+
+      const query: Record<string, unknown> = props.query as Record<
+        string,
+        unknown
+      >;
+
+      expect(Object.keys(query).sort()).toEqual(
+        [page.parentColumn, "projectId"].sort(),
+      );
+      expect(String(query[page.parentColumn])).toBe(PARENT_ID.toString());
+      expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+    });
+
+    test("a new domain belongs to this page and to the project", async () => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+
+      renderPage([], project);
+
+      const created: CustomDomainModel = await tableProps().onBeforeCreate!(
+        new page.modelType(),
+        {},
+        {},
+      );
+
+      expect(
+        String(
+          (created as unknown as Record<string, unknown>)[page.parentColumn],
+        ),
+      ).toBe(PARENT_ID.toString());
+      expect(created.projectId?.toString()).toBe(PROJECT_ID.toString());
+    });
+
+    /*
+     * Regression: "CNAME Valid" and "SSL Provisioned" had an empty field,
+     * so picking Yes or No filtered nothing.
+     */
+    test("every filter filters a column", () => {
+      renderPage();
+
+      expect(
+        tableProps().filters.map((filter: Filter<CustomDomainModel>) => {
+          return [filter.title, Object.keys(filter.field || {})];
+        }),
+      ).toEqual([
+        ["Domain", ["fullDomain"]],
+        ["CNAME Valid", ["isCnameVerified"]],
+        ["SSL Provisioned", ["isSslProvisioned"]],
+      ]);
+    });
   });
 
   describe("the Status column", () => {
@@ -330,13 +492,13 @@ describe("Status page Custom Domains page", () => {
     test("never asks anyone to order a certificate, and gives one timing", () => {
       renderPage();
 
-      const page: string = document.body.textContent || "";
+      const text: string = document.body.textContent || "";
 
-      expect(page).not.toContain("Action Required");
-      expect(page).not.toContain("order SSL");
-      expect(page).not.toContain("1 hour");
-      expect(page).not.toContain("30 minutes");
-      expect(page).not.toContain("3 hours");
+      expect(text).not.toContain("Action Required");
+      expect(text).not.toContain("order SSL");
+      expect(text).not.toContain("1 hour");
+      expect(text).not.toContain("30 minutes");
+      expect(text).not.toContain("3 hours");
     });
   });
 
@@ -392,14 +554,14 @@ describe("Status page Custom Domains page", () => {
       ];
     }
 
-    test("reads this status page's certificates whenever the table loads its rows", async () => {
+    test("reads this page's certificates whenever the table loads its rows", async () => {
       renderPage();
 
       const get: jest.SpyInstance<any, any> = await loadCertificates([]);
 
       expect(get).toHaveBeenCalledTimes(1);
       expect(String(get.mock.calls[0]![0].url)).toContain(
-        `/status-page-domain/certificates/${STATUS_PAGE_ID.toString()}`,
+        `${page.crudApiPath}/certificates/${PARENT_ID.toString()}`,
       );
     });
 
@@ -478,7 +640,7 @@ describe("Status page Custom Domains page", () => {
         within(screen.getByTestId("modal")).getByTestId(
           DNS_SETUP_TEST_IDS.whatHappensNext,
         ),
-      ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupVerifiedExpired);
+      ).toHaveTextContent(CustomDomainCopy.dnsSetupVerifiedExpired);
     });
 
     test("when the certificates cannot be read, each row shows what its own flags say", async () => {
@@ -500,6 +662,50 @@ describe("Status page Custom Domains page", () => {
         "Certificate issued, renews automatically.",
       );
       expect(errorOf(FAILING)).toBeNull();
+    });
+
+    /*
+     * The table reads the certificates again on every load; an answer that
+     * comes back after a newer one must not overwrite it.
+     */
+    test("an older answer that arrives late does not overwrite a newer one", async () => {
+      renderWithCertificateTrouble();
+
+      let answerFirst: (value: unknown) => void = (): void => {};
+
+      getJestSpyOn(API, "get")
+        .mockImplementationOnce((() => {
+          return new Promise((resolve: (value: unknown) => void) => {
+            answerFirst = resolve;
+          });
+        }) as never)
+        .mockResolvedValueOnce(
+          new HTTPResponse(
+            200,
+            { domains: certificatesOfTheTroubledRows() },
+            {},
+          ) as never,
+        );
+
+      await act(async (): Promise<void> => {
+        tableProps().onFetchSuccess!(mockRows, mockRows.length);
+        tableProps().onFetchSuccess!(mockRows, mockRows.length);
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(errorOf(FAILING)).toBe(ORDER_ERROR);
+
+      // The first request's answer, now: nothing failing in it.
+      await act(async (): Promise<void> => {
+        answerFirst(new HTTPResponse(200, { domains: [] }, {}));
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(errorOf(FAILING)).toBe(ORDER_ERROR);
     });
   });
 
@@ -535,7 +741,7 @@ describe("Status page Custom Domains page", () => {
       expect(screen.queryByRole("button", { name: "Add CNAME" })).toBeNull();
       expect(
         (tableProps().actionButtons || []).map(
-          (action: ActionButtonSchema<StatusPageDomain>) => {
+          (action: ActionButtonSchema<CustomDomainModel>) => {
             return action.title;
           },
         ),
@@ -562,6 +768,30 @@ describe("Status page Custom Domains page", () => {
       }
     });
 
+    test("Reissue SSL's dialog names this page's kind, says it stays online, and how often", () => {
+      renderPage();
+
+      fireEvent.click(
+        within(rowOf(PROVISIONED)).getByRole("button", {
+          name: "Reissue SSL",
+        }),
+      );
+
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: page.copy.reissueTitle,
+      });
+
+      expect(dialog).toHaveTextContent(page.copy.reissueDescription);
+      expect(dialog).toHaveTextContent(
+        "a reissue can only be requested once every 24 hours.",
+      );
+      expect(
+        within(dialog).getByRole("button", {
+          name: "Reissue SSL Certificate",
+        }),
+      ).toBeInTheDocument();
+    });
+
     test("DNS Setup opens the dialog with that domain's record", () => {
       renderPage();
 
@@ -576,7 +806,34 @@ describe("Status page Custom Domains page", () => {
       ).toHaveTextContent(UNVERIFIED);
       expect(
         within(dialog).getByTestId(DNS_SETUP_TEST_IDS.recordValue),
-      ).toHaveTextContent("statuspage.oneuptime.com");
+      ).toHaveTextContent(page.cnameRecord);
+    });
+
+    test("Check now in that dialog asks this page's kind of domain", async () => {
+      renderPage();
+
+      const get: jest.SpyInstance<any, any> = getJestSpyOn(
+        API,
+        "get",
+      ).mockResolvedValue(
+        new HTTPResponse(200, { certificateStatus: "Issuing" }, {}) as never,
+      );
+
+      fireEvent.click(
+        within(rowOf(UNVERIFIED)).getByRole("button", { name: "DNS Setup" }),
+      );
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(screen.getByTestId("modal")).getByRole("button", {
+            name: "Check now",
+          }),
+        );
+      });
+
+      expect(String(get.mock.calls[0]![0].url)).toContain(
+        `${page.crudApiPath}/verify-cname/${rowNamed(UNVERIFIED)._id}`,
+      );
     });
   });
 
@@ -596,7 +853,7 @@ describe("Status page Custom Domains page", () => {
 
       expect(
         (tableProps().formFields || []).map(
-          (field: ModelField<StatusPageDomain>) => {
+          (field: ModelField<CustomDomainModel>) => {
             return Object.keys(field.field || {})[0];
           },
         ),
@@ -609,6 +866,17 @@ describe("Status page Custom Domains page", () => {
       ]);
     });
 
+    test("the subdomain's example is this page's own", () => {
+      renderPage();
+
+      expect(fieldOf("subdomain").placeholder).toBe(
+        page.copy.subdomainPlaceholder,
+      );
+      expect(fieldOf("subdomain").description).toBe(
+        page.copy.subdomainDescription,
+      );
+    });
+
     /*
      * The server refuses a domain that is not verified, so listing one only
      * led to "This domain is not verified" after the form was filled in.
@@ -616,7 +884,7 @@ describe("Status page Custom Domains page", () => {
     test("Domain lists verified domains only, and links to where a domain is added", () => {
       renderPage();
 
-      const domainField: ModelField<StatusPageDomain> = fieldOf("domain");
+      const domainField: ModelField<CustomDomainModel> = fieldOf("domain");
 
       expect(domainField.dropdownModal?.type).toBe(Domain);
       expect(domainField.dropdownModal?.query).toEqual({ isVerified: true });
@@ -635,7 +903,7 @@ describe("Status page Custom Domains page", () => {
     test("the certificate options are one folded Advanced section", () => {
       renderPage();
 
-      const sections: Array<FormFieldCollapsibleSection<StatusPageDomain>> = [
+      const sections: Array<FormFieldCollapsibleSection<CustomDomainModel>> = [
         "isCustomCertificate",
         "customCertificate",
         "customCertificateKey",
@@ -657,20 +925,18 @@ describe("Status page Custom Domains page", () => {
     test("folded, Advanced says which certificate the domain will use", () => {
       renderPage();
 
-      const section: FormFieldCollapsibleSection<StatusPageDomain> = fieldOf(
+      const section: FormFieldCollapsibleSection<CustomDomainModel> = fieldOf(
         "isCustomCertificate",
       ).collapsibleSection!;
 
-      expect(section.getSummary!({} as FormValues<StatusPageDomain>)).toEqual([
-        StatusPageCustomDomainCopy.advancedSummaryFreeCertificate,
+      expect(section.getSummary!({} as FormValues<CustomDomainModel>)).toEqual([
+        CustomDomainCopy.advancedSummaryFreeCertificate,
       ]);
       expect(
         section.getSummary!({
           isCustomCertificate: true,
-        } as FormValues<StatusPageDomain>),
-      ).toEqual([
-        StatusPageCustomDomainCopy.advancedSummaryUploadedCertificate,
-      ]);
+        } as FormValues<CustomDomainModel>),
+      ).toEqual([CustomDomainCopy.advancedSummaryUploadedCertificate]);
     });
 
     test("the switch starts off, as the column does, and the certificate and key are needed only when it is on", () => {
@@ -679,24 +945,24 @@ describe("Status page Custom Domains page", () => {
       expect(fieldOf("isCustomCertificate").defaultValue).toBe(false);
 
       for (const key of ["customCertificate", "customCertificateKey"]) {
-        const field: ModelField<StatusPageDomain> = fieldOf(key);
-        const required: (values: FormValues<StatusPageDomain>) => boolean =
-          field.required as (values: FormValues<StatusPageDomain>) => boolean;
+        const field: ModelField<CustomDomainModel> = fieldOf(key);
+        const required: (values: FormValues<CustomDomainModel>) => boolean =
+          field.required as (values: FormValues<CustomDomainModel>) => boolean;
 
         expect(
           required({
             isCustomCertificate: true,
-          } as FormValues<StatusPageDomain>),
+          } as FormValues<CustomDomainModel>),
         ).toBe(true);
         expect(
           required({
             isCustomCertificate: false,
-          } as FormValues<StatusPageDomain>),
+          } as FormValues<CustomDomainModel>),
         ).toBe(false);
         expect(
           field.showIf!({
             isCustomCertificate: false,
-          } as FormValues<StatusPageDomain>),
+          } as FormValues<CustomDomainModel>),
         ).toBe(false);
       }
     });
@@ -714,7 +980,7 @@ describe("Status page Custom Domains page", () => {
     test("the new domain's DNS Setup opens as soon as it is added", async () => {
       renderPage();
 
-      const created: StatusPageDomain = domain("new.acme.com", {});
+      const created: CustomDomainModel = domain("new.acme.com", {});
 
       expect(screen.queryByTestId("modal")).toBeNull();
 
@@ -751,10 +1017,10 @@ describe("Status page Custom Domains page", () => {
     test("a created domain that came back without its name is read again before DNS Setup opens", async () => {
       renderPage();
 
-      const created: StatusPageDomain = new StatusPageDomain();
+      const created: CustomDomainModel = new page.modelType();
       created._id = ObjectID.generate().toString();
 
-      const fetched: StatusPageDomain = domain("read-again.acme.com", {});
+      const fetched: CustomDomainModel = domain("read-again.acme.com", {});
       fetched._id = created._id;
 
       const getItem: jest.SpyInstance<any, any> = getJestSpyOn(
@@ -767,9 +1033,12 @@ describe("Status page Custom Domains page", () => {
       });
 
       expect(getItem).toHaveBeenCalledTimes(1);
-      expect(
-        (getItem.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
-      ).toBe(created._id);
+
+      const request: { id: ObjectID; modelType: unknown } = getItem.mock
+        .calls[0]![0] as { id: ObjectID; modelType: unknown };
+
+      expect(request.id.toString()).toBe(created._id);
+      expect(request.modelType).toBe(page.modelType);
       expect(
         within(screen.getByTestId("modal")).getByTestId(
           DNS_SETUP_TEST_IDS.recordName,
@@ -783,14 +1052,14 @@ describe("Status page Custom Domains page", () => {
       renderPage();
 
       expect(screen.getByTestId("card-description")).toHaveTextContent(
-        "Serve this status page on your own domain. Point each domain's CNAME record to statuspage.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+        page.cardDescription,
       );
       expect(screen.getByTestId("card-description")).not.toHaveTextContent(
         "Important",
       );
     });
 
-    test("without a status page CNAME record it says custom domains are not enabled", () => {
+    test("without this kind's CNAME record it says custom domains are not enabled", () => {
       setCnameRecord("");
       renderPage();
 
@@ -801,8 +1070,8 @@ describe("Status page Custom Domains page", () => {
   });
 
   test("every Status sentence is in the copy, so it is translated", () => {
-    expect(Object.keys(STATUS_PAGE_CUSTOM_DOMAIN_STATUS).sort()).toEqual(
-      Object.values(StatusPageCustomDomainState).sort(),
+    expect(Object.keys(CUSTOM_DOMAIN_STATUS).sort()).toEqual(
+      Object.values(CustomDomainState).sort(),
     );
   });
 });
