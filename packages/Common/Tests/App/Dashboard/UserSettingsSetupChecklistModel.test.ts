@@ -457,21 +457,46 @@ describe("setup checklist - reaching you at all", () => {
 });
 
 describe("setup checklist - paging rules", () => {
-  test("one step per rule type, each pointing at its own page", () => {
+  /*
+   * The four rule types are four tabs of one On-Call Rules page, so each step
+   * points at that page AND at its own tab: a step about alert episodes that
+   * opened on the incidents tab would land on a screen with nothing wrong on
+   * it.
+   */
+  test("one step per rule type, each opening On-Call Rules on its own tab", () => {
     const checklist: SetupChecklist = buildSetupChecklist(makeInput());
 
-    expect(findStep(checklist, "incident-rules")!.pageMap).toBe(
-      PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES,
+    const expected: Array<[string, string]> = [
+      ["incident-rules", "incidents"],
+      ["incident-episode-rules", "incident-episodes"],
+      ["alert-rules", "alerts"],
+      ["alert-episode-rules", "alert-episodes"],
+    ];
+
+    for (const [key, tab] of expected) {
+      const step: SetupStep | undefined = findStep(checklist, key);
+
+      expect(step!.pageMap).toBe(PageMap.USER_SETTINGS_ON_CALL_RULES);
+      expect(step!.pageQuery).toEqual({ type: tab });
+    }
+  });
+
+  test("steps that are not about a rule carry no tab", () => {
+    const checklist: SetupChecklist = buildSetupChecklist(
+      makeInput({
+        readiness: makeReadiness({ status: "NotReachable", methods: [] }),
+      }),
     );
-    expect(findStep(checklist, "incident-episode-rules")!.pageMap).toBe(
-      PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES,
+
+    const methodStep: SetupStep | undefined = findStep(
+      checklist,
+      "add-method",
     );
-    expect(findStep(checklist, "alert-rules")!.pageMap).toBe(
-      PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES,
+
+    expect(methodStep!.pageMap).toBe(
+      PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
     );
-    expect(findStep(checklist, "alert-episode-rules")!.pageMap).toBe(
-      PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES,
-    );
+    expect(methodStep!.pageQuery).toBeUndefined();
   });
 
   test("a rule type with full coverage is complete and says nothing more", () => {
