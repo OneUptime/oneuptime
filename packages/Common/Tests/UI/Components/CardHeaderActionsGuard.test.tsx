@@ -458,7 +458,14 @@ describe("hand-built card headers", () => {
       }
     }
 
+    /*
+     * Only the files in this checkout: CI's Common job deletes ee/ before
+     * it runs, and the Enterprise job puts it back.
+     */
     const stale: Array<string> = Object.entries(NOT_A_CARD_HEADER)
+      .filter(([file]: [string, { count: number }]): boolean => {
+        return fs.existsSync(path.join(REPOSITORY_ROOT, file));
+      })
       .filter(([file, entry]: [string, { count: number }]): boolean => {
         return (counts.get(file) || 0) !== entry.count;
       })
