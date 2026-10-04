@@ -301,8 +301,8 @@ describe("a people picker field's onChange", () => {
           getOwnersFormField<JSONObject>({
             onChange: (
               value: unknown,
-              currentValues: FormValues<JSONObject>,
-              setNewFormValues: (values: FormValues<JSONObject>) => void,
+              _currentValues: FormValues<JSONObject>,
+              _setNewFormValues: (values: FormValues<JSONObject>) => void,
               change?: DropdownChange,
             ): void => {
               onChange(value, change);
