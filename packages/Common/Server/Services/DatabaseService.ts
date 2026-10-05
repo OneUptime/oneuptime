@@ -108,6 +108,11 @@ import ListOrderMaintainer, {
 } from "../Utils/Database/ListOrderMaintainer";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import { toListOrderNumber } from "../../Utils/ListOrder";
+import FileOwnership, {
+  FileReferenceCheck,
+  FileReferenceColumn,
+  FileReferenceOwner,
+} from "../Utils/File/FileOwnership";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -477,6 +482,148 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return true;
+  }
+
+  /*
+   * A record may point only at its own files: a project's record at files
+   * uploaded in its project, a person at a picture they uploaded (see
+   * FileOwnership). Asked of every create and update that points one of the
+   * model's File columns at a file - root and hook-free writes too, since a
+   * workflow or an API call can carry any id - once the caller is known to
+   * be allowed the write, so a refusal tells nobody else anything. The
+   * refusal is the same for a file of another owner, of none, or one that
+   * does not exist.
+   */
+  private async assertFileReferencesOwnedOnCreate(
+    data: TBaseModel,
+  ): Promise<void> {
+    const columns: Array<FileReferenceColumn> =
+      FileOwnership.getFileReferenceColumns(this.model);
+
+    if (columns.length === 0) {
+      return;
+    }
+
+    const checks: Array<FileReferenceCheck> = [];
+    let owner: FileReferenceOwner | null | undefined = undefined;
+
+    for (const column of columns) {
+      const fileIds: Array<ObjectID> | null =
+        FileOwnership.readWrittenFileIds(data, column);
+
+      if (!fileIds || fileIds.length === 0) {
+        continue;
+      }
+
+      if (owner === undefined) {
+        // The record's project as it will be saved: the tenant is stamped.
+        owner = FileOwnership.getOwner(this.model, data);
+      }
+
+      if (owner === null) {
+        // A record outside any project (a global probe or AI agent).
+        return;
+      }
+
+      checks.push({ owner, column, fileIds });
+    }
+
+    await FileOwnership.assertOwned(checks);
+  }
+
+  /*
+   * The update's half of assertFileReferencesOwnedOnCreate. Every record the
+   * update writes is read - its project, and the files it points at now -
+   * and only the files it does not point at already are checked: nothing
+   * about a file can change once it is uploaded, and a record saved before
+   * files had owners keeps saving the file it has.
+   */
+  private async assertFileReferencesOwnedOnUpdate(data: {
+    updateBy: UpdateBy<TBaseModel>;
+    skip: PositiveNumber | number;
+    limit: PositiveNumber | number;
+  }): Promise<void> {
+    const columns: Array<FileReferenceColumn> =
+      FileOwnership.getFileReferenceColumns(this.model);
+
+    if (columns.length === 0) {
+      return;
+    }
+
+    const written: Array<{
+      column: FileReferenceColumn;
+      fileIds: Array<ObjectID>;
+    }> = [];
+
+    for (const column of columns) {
+      const fileIds: Array<ObjectID> | null =
+        FileOwnership.readWrittenFileIds(data.updateBy.data, column);
+
+      if (fileIds && fileIds.length > 0) {
+        written.push({ column, fileIds });
+      }
+    }
+
+    if (written.length === 0) {
+      return;
+    }
+
+    const select: Dictionary<unknown> = { _id: true };
+    const tenantColumn: string | null = this.model.getTenantColumn();
+
+    if (tenantColumn) {
+      select[tenantColumn] = true;
+    }
+
+    for (const { column } of written) {
+      if (column.isList) {
+        select[column.relationColumn] = { _id: true };
+      } else if (column.idColumn) {
+        select[column.idColumn] = true;
+      } else {
+        select[column.relationColumn] = { _id: true };
+      }
+    }
+
+    const rows: Array<TBaseModel> = await this._findBy({
+      query: data.updateBy.query,
+      select: select as Select<TBaseModel>,
+      skip: this.normalizePositiveNumber(data.skip) ?? 0,
+      limit: this.normalizePositiveNumber(data.limit) ?? LIMIT_MAX,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    const checks: Array<FileReferenceCheck> = [];
+
+    for (const row of rows) {
+      const owner: FileReferenceOwner | null = FileOwnership.getOwner(
+        this.model,
+        row,
+      );
+
+      if (!owner) {
+        continue;
+      }
+
+      for (const { column, fileIds } of written) {
+        const held: Set<string> = FileOwnership.readStoredFileIds(
+          row,
+          column,
+        );
+
+        const added: Array<ObjectID> = fileIds.filter(
+          (fileId: ObjectID): boolean => {
+            return !held.has(fileId.toString().trim().toLowerCase());
+          },
+        );
+
+        if (added.length > 0) {
+          checks.push({ owner, column, fileIds: added });
+        }
+      }
+    }
+
+    await FileOwnership.assertOwned(checks);
   }
 
   /*
@@ -2014,6 +2161,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data,
       _createdBy.props,
     );
+
+    // Only the record's own files. See the helper.
+    await this.assertFileReferencesOwnedOnCreate(data);
 
     /*
      * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
@@ -3928,6 +4078,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.data,
         beforeUpdateBy.props,
       );
+
+      // Only each record's own files. See the helper.
+      await this.assertFileReferencesOwnedOnUpdate({
+        updateBy: beforeUpdateBy,
+        skip: updateBy.skip,
+        limit: updateBy.limit,
+      });
 
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {

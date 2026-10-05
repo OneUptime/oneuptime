@@ -34,6 +34,7 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -439,16 +440,59 @@ export class Service extends DatabaseService<Model> {
   /*
    * A probe icon is rendered by the id-based image route, which serves
    * only public files. The file picker uploads it private, so attaching
-   * it to a probe is the point at which it becomes public.
+   * it to a probe is the point at which it becomes public - when it is a
+   * file of the probe's own project (FileService.makeRecordFilePublic).
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    await FileService.makeRecordFilePublic({
+      fileId: RelationIdUtil.read(
+        createdItem as unknown as Record<string, unknown>,
+        ["iconFileId", "iconFile"],
+      ),
+      projectId: createdItem.projectId || null,
+    });
 
     return createdItem;
+  }
+
+  /*
+   * The icon each updated probe holds now - read back, not taken from what
+   * the update said - made public when it is a file of the probe's own
+   * project.
+   */
+  private async makeStoredIconsPublic(
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    if (updatedItemIds.length === 0) {
+      return;
+    }
+
+    const probes: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(updatedItemIds),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        iconFileId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const probe of probes) {
+      await FileService.makeRecordFilePublic({
+        fileId: probe.iconFileId,
+        projectId: probe.projectId || null,
+      });
+    }
   }
 
   /*
@@ -642,9 +686,14 @@ export class Service extends DatabaseService<Model> {
       await this.invalidateProbeAuthCache(updatedItemIds);
     }
 
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await this.makeStoredIconsPublic(updatedItemIds);
+    }
 
     if (
       onUpdate.carryForward &&

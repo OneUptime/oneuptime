@@ -12,10 +12,20 @@ import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import FileOwnership, { FileOwners } from "../Utils/File/FileOwnership";
 import crypto from "crypto";
 
 const generateImageAccessToken: () => string = (): string => {
   return crypto.randomBytes(32).toString("hex");
+};
+
+// An id column as Postgres hands it back raw: a uuid string, or null.
+const readStoredId: (value: unknown) => ObjectID | null = (
+  value: unknown,
+): ObjectID | null => {
+  return typeof value === "string" && ObjectID.isValidUUID(value)
+    ? new ObjectID(value)
+    : null;
 };
 
 /*
@@ -75,13 +85,76 @@ export class Service extends DatabaseService<File> {
      * The project the file is uploaded in is the request's - the
      * dashboard's tenant, an API key's project - never whatever the body
      * says, so a file can only ever claim the project it was uploaded from.
-     * A record shown outside the project (a form's logo) uses only a file
-     * of its own project.
+     * A project's records use only files of their own project
+     * (FileOwnership).
      */
     (createBy.data as unknown as Dictionary<unknown>)["projectId"] =
       createBy.props.tenantId || null;
 
+    /*
+     * Who uploads it is the signed-in user making the request, never the
+     * body's say either: a profile picture may only be a file its user
+     * uploaded. None for an API key or the system.
+     */
+    (createBy.data as unknown as Dictionary<unknown>)["createdByUserId"] =
+      createBy.props.userId || null;
+
     return { createBy, carryForward: null };
+  }
+
+  /**
+   * Who each file belongs to - the project it was uploaded in and the user
+   * who uploaded it - keyed by its id in lower case, read in one query and
+   * never with the bytes. A file that does not exist, or an id that is not
+   * one, is simply absent from the answer.
+   */
+  @CaptureSpan()
+  public async getFileOwners(
+    fileIds: Array<ObjectID>,
+  ): Promise<Map<string, FileOwners>> {
+    const owners: Map<string, FileOwners> = new Map();
+
+    const ids: Array<string> = Array.from(
+      new Set(
+        fileIds
+          .map((fileId: ObjectID): string => {
+            return fileId.toString().trim().toLowerCase();
+          })
+          .filter((fileId: string): boolean => {
+            return ObjectID.isValidUUID(fileId);
+          }),
+      ),
+    );
+
+    if (ids.length === 0) {
+      return owners;
+    }
+
+    const rows: Array<{
+      _id?: unknown;
+      projectId?: unknown;
+      createdByUserId?: unknown;
+    }> = await this.getRepository()
+      .createQueryBuilder("file")
+      .select('"file"."_id"', "_id")
+      .addSelect('"file"."projectId"', "projectId")
+      .addSelect('"file"."createdByUserId"', "createdByUserId")
+      .where('"file"."_id" IN (:...ids)', { ids: ids })
+      .andWhere('"file"."deletedAt" IS NULL')
+      .getRawMany();
+
+    for (const row of rows) {
+      if (typeof row._id !== "string") {
+        continue;
+      }
+
+      owners.set(row._id.toLowerCase(), {
+        projectId: readStoredId(row.projectId),
+        createdByUserId: readStoredId(row.createdByUserId),
+      });
+    }
+
+    return owners;
   }
 
   /**
@@ -114,10 +187,7 @@ export class Service extends DatabaseService<File> {
     return {
       fileType: typeof row.fileType === "string" ? row.fileType : "",
       size: Number(row.size) || 0,
-      projectId:
-        typeof row.projectId === "string" && ObjectID.isValidUUID(row.projectId)
-          ? new ObjectID(row.projectId)
-          : null,
+      projectId: readStoredId(row.projectId),
     };
   }
 
@@ -144,22 +214,44 @@ export class Service extends DatabaseService<File> {
   }
 
   /*
-   * Marks a file as anonymously readable. Uploads from the file picker
-   * arrive private, so attaching one as an intentionally public asset
-   * (probe icon, AI agent icon) is the point at which it becomes public
-   * — those are served by the id-based image route, which serves only
-   * public files. Best-effort: a visibility sync failure must never fail
-   * the write the user actually asked for.
+   * Marks a record's file as anonymously readable: a probe's or an AI
+   * agent's icon, which the id-based image route serves only once it is
+   * public. Uploads from the file picker arrive private, so attaching one is
+   * the point at which it becomes public - but only a file of the record's
+   * own project: a record never makes a file of another project, or one
+   * uploaded with none, readable by everyone. A record outside any project
+   * (a global probe or AI agent, which only server admins manage) has no
+   * project to hold the file to. Best-effort: a visibility sync failure must
+   * never fail the write the user actually asked for.
    */
   @CaptureSpan()
-  public async makeFilePublic(
-    fileId: ObjectID | undefined | null,
-  ): Promise<void> {
+  public async makeRecordFilePublic(data: {
+    fileId: ObjectID | undefined | null;
+    // The stored project of the record the file is attached to; null for none.
+    projectId: ObjectID | null;
+  }): Promise<void> {
+    const fileId: ObjectID | undefined | null = data.fileId;
+
     if (!fileId) {
       return;
     }
 
     try {
+      if (data.projectId) {
+        const owners: Map<string, FileOwners> = await this.getFileOwners([
+          fileId,
+        ]);
+
+        if (
+          !FileOwnership.isFileOfProject(
+            owners.get(fileId.toString().trim().toLowerCase()),
+            data.projectId,
+          )
+        ) {
+          return;
+        }
+      }
+
       await this.updateOneById({
         id: fileId,
         data: {

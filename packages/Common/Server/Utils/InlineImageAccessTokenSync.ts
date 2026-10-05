@@ -1,5 +1,7 @@
 import FileService from "../Services/FileService";
+import File from "../../Models/DatabaseModels/File";
 import ObjectID from "../../Types/ObjectID";
+import FileOwnership from "./File/FileOwnership";
 import logger from "./Logger";
 
 /*
@@ -12,6 +14,13 @@ import logger from "./Logger";
  * Whenever a markdown field is published or unpublished we need to
  * flip the `isPublic` flag on the underlying File rows so the token
  * route serves anonymous traffic only when the parent allows it.
+ *
+ * Only the images of the record's own project are flipped: a token is
+ * copied along with the markdown it sits in, and a record of one project
+ * must never make another project's image readable by everyone - nor
+ * private again under the status page that shows it. Images uploaded
+ * before files recorded their project have none; they are flipped as they
+ * always were, since nothing says whose they are.
  */
 const ACCESS_TOKEN_REGEX: RegExp =
   /\/file\/image\/access-token\/([a-fA-F0-9]+)/g;
@@ -33,12 +42,26 @@ export const extractImageAccessTokens: (
   return Array.from(tokens);
 };
 
+// Whether a record of this project may change the image's visibility.
+export const mayChangeImageVisibility: (
+  file: Pick<File, "projectId">,
+  projectId: ObjectID | null | undefined,
+) => boolean = (
+  file: Pick<File, "projectId">,
+  projectId: ObjectID | null | undefined,
+): boolean => {
+  return !file.projectId || FileOwnership.isFileOfProject(file, projectId);
+};
+
 export const setIsPublicForMarkdownImages: (
   markdown: string | null | undefined,
   isPublic: boolean,
+  // The project of the record the markdown belongs to.
+  projectId: ObjectID | null | undefined,
 ) => Promise<void> = async (
   markdown: string | null | undefined,
   isPublic: boolean,
+  projectId: ObjectID | null | undefined,
 ): Promise<void> => {
   const tokens: Array<string> = extractImageAccessTokens(markdown);
   if (tokens.length === 0) {
@@ -47,12 +70,13 @@ export const setIsPublicForMarkdownImages: (
 
   for (const token of tokens) {
     try {
-      const file: { _id?: string } | null = await FileService.findOneBy({
+      const file: File | null = await FileService.findOneBy({
         query: {
           imageAccessToken: token,
         },
         select: {
           _id: true,
+          projectId: true,
         },
         props: {
           isRoot: true,
@@ -60,7 +84,7 @@ export const setIsPublicForMarkdownImages: (
         },
       });
 
-      if (!file || !file._id) {
+      if (!file || !file._id || !mayChangeImageVisibility(file, projectId)) {
         continue;
       }
 
@@ -91,13 +115,16 @@ export const syncIsPublicForMarkdownImages: (
   markdown: string | null | undefined,
   isPublic: boolean,
   context: string,
+  // The project of the record the markdown belongs to.
+  projectId: ObjectID | null | undefined,
 ) => Promise<void> = async (
   markdown: string | null | undefined,
   isPublic: boolean,
   context: string,
+  projectId: ObjectID | null | undefined,
 ): Promise<void> => {
   try {
-    await setIsPublicForMarkdownImages(markdown, isPublic);
+    await setIsPublicForMarkdownImages(markdown, isPublic, projectId);
   } catch (err) {
     logger.error(
       `Failed to sync inline image visibility for ${context}: ${String(err)}`,

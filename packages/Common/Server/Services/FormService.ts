@@ -78,6 +78,7 @@ import FormSubmission from "../../Models/DatabaseModels/FormSubmission";
 import FormRateLimit from "../Middleware/FormRateLimit";
 import CaptchaUtil from "../Utils/Captcha";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import FileOwnership from "../Utils/File/FileOwnership";
 import FormRecordOptions from "../Utils/Form/FormRecordOptions";
 import { getFormSubmissionNote } from "../Utils/Form/FormSubmissionNote";
 import {
@@ -787,16 +788,7 @@ export class Service extends DatabaseService<Model> {
     form: Model,
     file: File | undefined,
   ): File | undefined {
-    if (
-      !file ||
-      !file.projectId ||
-      !form.projectId ||
-      file.projectId.toString() !== form.projectId.toString()
-    ) {
-      return undefined;
-    }
-
-    return file;
+    return FileOwnership.keepProjectFile(file, form.projectId);
   }
 
   private async loadRecordOptions(data: {

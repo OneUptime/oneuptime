@@ -37,6 +37,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -161,7 +162,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * An AI agent icon is rendered by the id-based image route, which
    * serves only public files. The file picker uploads it private, so
-   * attaching it to an agent is the point at which it becomes public.
+   * attaching it to an agent is the point at which it becomes public - when
+   * it is a file of the agent's own project (FileService.makeRecordFilePublic).
    *
    * An agent saved as its project's default takes the default from the
    * project's other agents - only now that it exists, so a create that is
@@ -172,7 +174,13 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    await FileService.makeRecordFilePublic({
+      fileId: RelationIdUtil.read(
+        createdItem as unknown as Record<string, unknown>,
+        ["iconFileId", "iconFile"],
+      ),
+      projectId: createdItem.projectId || null,
+    });
 
     await ProjectDefaultRow.afterCreate({
       service: this,
@@ -181,6 +189,42 @@ export class Service extends DatabaseService<Model> {
     });
 
     return createdItem;
+  }
+
+  /*
+   * The icon each updated agent holds now - read back, not taken from what
+   * the update said - made public when it is a file of the agent's own
+   * project.
+   */
+  private async makeStoredIconsPublic(
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    if (updatedItemIds.length === 0) {
+      return;
+    }
+
+    const agents: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(updatedItemIds),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        iconFileId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const agent of agents) {
+      await FileService.makeRecordFilePublic({
+        fileId: agent.iconFileId,
+        projectId: agent.projectId || null,
+      });
+    }
   }
 
   @CaptureSpan()
@@ -299,9 +343,14 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await this.makeStoredIconsPublic(updatedItemIds);
+    }
 
     // An agent this update made the default takes it from the others.
     await ProjectDefaultRow.afterUpdate({
