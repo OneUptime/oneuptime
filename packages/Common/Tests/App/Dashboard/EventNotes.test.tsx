@@ -1311,10 +1311,59 @@ describe("event notes: the composer", () => {
   });
 
   /*
-   * 'Preview notification' for the incident pages that pass one: rendered
-   * from the note as it is being written, under the notify box, and only
-   * while it is ticked.
+   * 'Preview' for the incident pages that pass one: rendered from the note
+   * as it is being written, beside the notify box's label on its line, and
+   * only while it is ticked.
    */
+  test("the preview sits beside the notify box's label, and who it reaches under them", async () => {
+    await renderPublic({
+      subscriberNotifications: {
+        isNotifyingByDefault: true,
+        quietDescription: QUIET_DESCRIPTION,
+        audienceSummary: <div data-testid="stub-audience">Will notify</div>,
+        renderPreview: (): ReactElement => {
+          return (
+            <button type="button" data-testid="stub-preview">
+              Preview
+            </button>
+          );
+        },
+      },
+    });
+    await openComposer();
+
+    const line: HTMLElement = screen.getByTestId("note-notify-line");
+    const label: HTMLElement = within(line).getByText(
+      "Notify status page subscribers",
+    );
+
+    expect(label.tagName).toBe("LABEL");
+    expect(
+      within(screen.getByTestId("note-notify-preview")).getByTestId(
+        "stub-preview",
+      ),
+    ).toBeInTheDocument();
+    expect(line).toContainElement(screen.getByTestId("note-notify-preview"));
+    // Beside the label, never inside it: pressing it must not tick the box.
+    expect(label).not.toContainElement(screen.getByTestId("stub-preview"));
+
+    const description: HTMLElement = screen.getByTestId(
+      "note-notify-description",
+    );
+    const audience: HTMLElement = screen.getByTestId("note-notify-audience");
+
+    expect(line).not.toContainElement(description);
+    expect(line).not.toContainElement(audience);
+    expect(
+      line.compareDocumentPosition(description) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      description.compareDocumentPosition(audience) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("offers a preview of the notification, from the note being written, while notifying is ticked", async () => {
     const drafts: Array<{ note: string; postedAt: Date | null }> = [];
 

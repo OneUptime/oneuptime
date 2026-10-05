@@ -2,10 +2,11 @@
 
 OneUptime AI can look at more than your telemetry while it investigates an incident or alert. A small agent installed next to one of your resources — a Docker or Podman host, a Docker Swarm cluster, a Proxmox cluster, a VMware vCenter, a Ceph cluster, a database server or a Linux host — runs the read-only commands OneUptime AI asks for, such as `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30` or `journalctl -u nginx -n 200 --no-pager`, and sends the output back, so the root cause analysis cites what the resource itself says. If you allow it, the same agent also applies fixes — restarting a container, starting a VM, marking an OSD back in — each one tiered by a command policy and, unless you choose otherwise, approved by a person first.
 
-These agents are the **resource AI agents**. Each resource's dashboard page has an **AI** section with two pages:
+These agents are the **resource AI agents**. Each resource's dashboard page has an **AI** section with three pages:
 
+- **Insights** — what OneUptime AI has learned about the resource from its own work there in the last 30 days, and what deserves your attention: fixes that did not help, problems AI keeps investigating, fixes waiting for approval, investigations that failed, commands the agent never picked up, the problems AI investigated grouped by what raised them with what it found, the parts of the resource that keep showing up, how fixes turned out, and open preventive insights about the resource. It works like a cluster's — see [What AI learned on a cluster](/docs/ai/ai-sre#what-ai-learned-on-a-cluster).
+- **Logs** — everything OneUptime AI did on the resource, newest first: each investigation with its incident or alert and its summary, each fix it proposed or ran, and every command it sent through the agent. (This page used to be called Insights.)
 - **AI agent** — whether the agent is connected, what AI may do on the resource (investigate, and how fixes run), anything that needs attention with the step that fixes it, and, in the **⋯** menu next to the agent's status, **Test connection** and **Reset agent**.
-- **Insights** — what OneUptime AI investigated and changed on the resource: each investigation with its incident or alert, each fix it proposed or ran, and every command it sent through the agent.
 
 The resource's **Overview** ends with an **AI agent** card that sums the AI agent page up: whether the agent is connected, whether investigation is on, how fixes run (**Off**, **Ask for approval**, **Automatic** or **Bypass approval**) and what needs attention, with a link to the AI agent page, where they are changed.
 

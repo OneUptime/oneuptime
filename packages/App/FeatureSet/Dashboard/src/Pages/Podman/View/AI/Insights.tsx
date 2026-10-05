@@ -6,8 +6,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The Podman host's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this Podman host, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * has learned about this Podman host from its own work there, and what
+ * deserves attention. The page itself is the generic ResourceAiInsightsPage;
+ * everything AI did, newest first, is AI → Logs.
  */
 const PodmanHostAiInsights: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

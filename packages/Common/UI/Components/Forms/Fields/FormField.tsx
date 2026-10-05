@@ -731,7 +731,7 @@ const FormField: <T extends GenericObject>(
               singleColumn={props.field.cardSelectSingleColumn}
               searchable={props.field.cardSelectSearchable}
               searchPlaceholder={props.field.cardSelectSearchPlaceholder}
-              collapsibleGroups={props.field.cardSelectCollapsibleGroups}
+              catalog={props.field.cardSelectCatalog}
               onChange={(value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

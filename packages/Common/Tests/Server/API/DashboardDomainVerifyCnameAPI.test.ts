@@ -21,8 +21,10 @@ import {
  * away (DashboardDomainService.orderCertOnceCnameIsVerified) and answers
  * with what happens to the certificate next. What this pins:
  *
- *   - the access check still uses the caller's own props, and a refused
- *     caller never reaches the CA;
+ *   - Check now changes the domain, so it takes what editing the domain
+ *     takes (CustomDomainRoutes.getChangeRefusal; the permission matrix is
+ *     CustomDomainChangePermission.test.ts), and a refused caller never
+ *     reaches the CA;
  *   - a record that is not found orders nothing, and says which record to
  *     look for;
  *   - a record that is found orders through the shared order path - the
@@ -127,8 +129,10 @@ import {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
+import Permission from "../../../Types/Permission";
+import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
+import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -153,10 +157,10 @@ type DomainRow = {
   isCnameVerified?: boolean;
 };
 
-const callerProps: DatabaseCommonInteractionProps = {
-  userId: ObjectID.generate(),
-  tenantId: ObjectID.generate(),
-} as DatabaseCommonInteractionProps;
+// Somebody who may read and edit the project's dashboard domains.
+const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
+  permissions: [Permission.ReadDashboardDomain, Permission.EditDashboardDomain],
+});
 
 let domainId: ObjectID;
 
@@ -172,7 +176,6 @@ function makeDomain(extra: Partial<DomainRow> = {}): DomainRow {
 }
 
 type Spies = {
-  countBy: MockedFn;
   findOneBy: MockedFn;
   isCnameValid: MockedFn;
   orderCertIfMissing: MockedFn;
@@ -226,15 +229,19 @@ function setUp(data: {
     updateBy: jest
       .spyOn(DashboardDomainService, "updateBy")
       .mockResolvedValue(1 as never) as unknown as MockedFn,
-    countBy: jest
-      .spyOn(DashboardDomainService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(data.canSee === false ? 0 : 1),
-      ) as unknown as MockedFn,
+    /*
+     * The one lookup the routes make: the domain, read on the query the
+     * update check narrowed to the caller's scope - nothing when the domain
+     * is outside it.
+     */
     findOneBy: jest
       .spyOn(DashboardDomainService, "findOneBy")
       .mockResolvedValue(
-        (data.domain === undefined ? makeDomain() : data.domain) as never,
+        (data.canSee === false
+          ? null
+          : data.domain === undefined
+            ? makeDomain()
+            : data.domain) as never,
       ) as unknown as MockedFn,
     isCnameValid: jest
       .spyOn(DashboardDomainService, "isCnameValid")
@@ -342,7 +349,6 @@ describe("dashboard verify-cname (Check now)", () => {
 
     await callRoute(VERIFY_ROUTE, { id: "not-a-uuid" });
 
-    expect(spies.countBy).not.toHaveBeenCalled();
     expect(spies.findOneBy).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
 
@@ -353,19 +359,41 @@ describe("dashboard verify-cname (Check now)", () => {
     expect(error.message).toBe("The domain ID is not valid.");
   });
 
-  test("checks access with the caller's own props, and a domain they cannot see orders nothing", async () => {
+  /*
+   * Check now verifies the domain and orders its certificate: a change, so
+   * the domain is looked for inside the caller's update scope - their
+   * project, as an update of the domain narrows it - and a domain outside it
+   * orders nothing.
+   */
+  test("looks for the domain inside the caller's update scope, and a domain outside it orders nothing", async () => {
     const spies: Spies = setUp({ canSee: false });
 
     await callRoute(VERIFY_ROUTE);
 
-    const countArgs: { query: { _id: string }; props: unknown } = spies.countBy
-      .mock.calls[0]![0] as { query: { _id: string }; props: unknown };
+    // One lookup: the domain, as root, on the query the update check narrowed.
+    expect(spies.findOneBy).toHaveBeenCalledTimes(1);
 
-    expect(countArgs.query._id).toBe(domainId.toString());
-    expect(countArgs.props).toBe(callerProps);
+    const lookup: {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = spies.findOneBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    };
+
+    expect(lookup.query["_id"]).toBe(domainId.toString());
+    expect(JSON.stringify(lookup.query["projectId"])).toContain(
+      callerProps.tenantId!.toString(),
+    );
+    expect(lookup.props).toEqual({ isRoot: true });
     expect(spies.isCnameValid).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
-    expect(sendErrorResponseMock).toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
   });
 
   test("without DASHBOARD_CNAME_RECORD it is refused, before anything is read or ordered", async () => {
@@ -374,7 +402,7 @@ describe("dashboard verify-cname (Check now)", () => {
 
     await callRoute(VERIFY_ROUTE);
 
-    expect(spies.countBy).not.toHaveBeenCalled();
+    expect(spies.findOneBy).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
     expect(refusal().message).toContain("Custom Domains not enabled");
   });

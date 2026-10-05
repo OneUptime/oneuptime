@@ -21,6 +21,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -37,6 +38,11 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * minutes anyway), and the server orders the domain's free certificate the
  * moment the record is found; the dialog then says what happens to the
  * certificate next instead of closing on a guess.
+ *
+ * Check now changes the domain - it verifies it and orders its
+ * certificate - so it is for whoever may edit the domain, as the server
+ * holds it. Anyone else who opens the dialog still gets the record to add,
+ * with Check now locked and the reason under it.
  */
 
 // What the dialog reads of the domain's row.
@@ -54,6 +60,12 @@ export interface ComponentProps {
   domain: CustomDomainDnsSetupDomain;
   // The domain's free certificate has expired: its renewals keep failing.
   hasExpiredCertificate?: boolean | undefined;
+  /*
+   * Whether the viewer may press Check now - may edit the domain - and if
+   * not, why. With no reason to give (the permission snapshot has not
+   * arrived) there is no Check now at all rather than a locked one.
+   */
+  checkNowGate: PermissionGateResult;
   onClose: () => void;
   // Check now found the record: what shows the domain's status is stale.
   onVerified: () => void;
@@ -104,7 +116,19 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     typeof props.domain.subdomain === "string" &&
     props.domain.subdomain.trim() === "";
 
+  const canCheckNow: boolean = props.checkNowGate.isAllowed;
+
+  const checkNowLockedReason: string | undefined = canCheckNow
+    ? undefined
+    : props.checkNowGate.disabledReason;
+
+  const showsCheckNow: boolean = canCheckNow || Boolean(checkNowLockedReason);
+
   const checkNow: () => Promise<void> = async (): Promise<void> => {
+    if (!canCheckNow) {
+      return;
+    }
+
     setIsChecking(true);
     setError("");
 
@@ -214,8 +238,11 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
       title={CustomDomainCopy.dnsSetupTitle}
       onClose={props.onClose}
       closeButtonText={CustomDomainCopy.dnsSetupClose}
-      onSubmit={checkNow}
-      submitButtonText={CustomDomainCopy.dnsSetupCheckNow}
+      onSubmit={showsCheckNow ? checkNow : undefined}
+      submitButtonText={
+        showsCheckNow ? CustomDomainCopy.dnsSetupCheckNow : undefined
+      }
+      disableSubmitButton={!canCheckNow}
       isLoading={isChecking}
       error={error}
     >
@@ -278,6 +305,17 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
         >
           {translator.translateText(whatHappensNext)}
         </p>
+
+        {checkNowLockedReason ? (
+          <p
+            className="text-sm leading-6 text-gray-500"
+            data-testid={DNS_SETUP_TEST_IDS.checkNowLocked}
+          >
+            {checkNowLockedReason}
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
     </Modal>
   );

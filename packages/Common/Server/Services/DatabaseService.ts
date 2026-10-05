@@ -4569,24 +4569,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await ModelPermission.checkUpdatePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
-        const selectModel: Select<TBaseModel> = {};
-        const accessControlColumn: string | null =
-          this.getModel().getAccessControlColumn();
-
-        if (accessControlColumn) {
-          (selectModel as any)[accessControlColumn] = {
-            _id: true,
-            name: true,
-          };
-        }
-
-        return await this.findOneById({
-          id: updateById.id,
-          select: selectModel,
-          props: {
-            isRoot: true,
-          },
-        });
+        return await this.findWithAccessControlIds(updateById.id);
       },
       props: updateById.props,
     });
@@ -4598,6 +4581,98 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: updateById.data as any,
       miscDataProps: updateById.miscDataProps,
       props: updateById.props,
+    });
+  }
+
+  /*
+   * A row with every one of its access-control labels, read as root: the
+   * team block list is checked against all of them, not only the ones the
+   * caller may see.
+   */
+  private async findWithAccessControlIds(
+    id: ObjectID,
+  ): Promise<TBaseModel | null> {
+    const selectModel: Select<TBaseModel> = {};
+    const accessControlColumn: string | null =
+      this.getModel().getAccessControlColumn();
+
+    if (accessControlColumn) {
+      (selectModel as any)[accessControlColumn] = {
+        _id: true,
+        name: true,
+      };
+    }
+
+    return await this.findOneById({
+      id: id,
+      select: selectModel,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * The row `id`, read as root with `select`, when `props` may update it -
+   * or null when it does not exist, or is outside what the caller may
+   * update. For a custom route whose side effect only somebody who could
+   * edit the row may cause (an action that changes it as root).
+   *
+   * Asked the way an update asks it: updateOneById's checks on the row (the
+   * team block list against all of its labels, the table's update
+   * permissions), then the query an update is narrowed to
+   * (ModelPermission.getUpdatableQuery: the caller's project, labels and
+   * Owned scope, and the labels of the record a table is read through). A
+   * credential that may only read is refused. Throws what the update would
+   * throw when the caller may not update this table at all.
+   */
+  @CaptureSpan()
+  public async findOneUpdatableById(data: {
+    id: ObjectID;
+    select: Select<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TBaseModel | null> {
+    // Set when the block list asked for the row and it was not there.
+    const lookup: { isMissing: boolean } = { isMissing: false };
+
+    try {
+      await ModelPermission.checkUpdatePermissionByModel({
+        modelType: this.modelType,
+        fetchModelWithAccessControlIds:
+          async (): Promise<TBaseModel | null> => {
+            const row: TBaseModel | null = await this.findWithAccessControlIds(
+              data.id,
+            );
+
+            lookup.isMissing = !row;
+
+            return row;
+          },
+        props: data.props,
+      });
+    } catch (error) {
+      if (lookup.isMissing && error instanceof BadDataException) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const updatableQuery: Query<TBaseModel> =
+      await ModelPermission.getUpdatableQuery(
+        this.modelType,
+        {
+          _id: data.id.toString(),
+        } as Query<TBaseModel>,
+        data.props,
+      );
+
+    return await this.findOneBy({
+      query: updatableQuery,
+      select: data.select,
+      props: {
+        isRoot: true,
+      },
     });
   }
 

@@ -72,6 +72,13 @@ export function getCephBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Insights",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_AI_LOGS, [
+      "Project",
+      "Ceph",
+      "View Cluster",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_AI_AGENT, [
       "Project",
       "Ceph",

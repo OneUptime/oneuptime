@@ -4,6 +4,7 @@ import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
 import AIRunService from "../../../Server/Services/AIRunService";
+import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertService from "../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
@@ -11,6 +12,7 @@ import DatabaseServerService from "../../../Server/Services/DatabaseServerServic
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import HostService from "../../../Server/Services/HostService";
+import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
@@ -39,13 +41,19 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Label from "../../../Models/DatabaseModels/Label";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
+import { AiActivityInsights } from "../../../Types/AI/AiActivityInsights";
+import AiActivityInsightsReader, {
+  AiActivityInsightsScope,
+} from "../../../Server/Utils/AI/ActivityInsights/AiActivityInsightsReader";
+import AIInsightService from "../../../Server/Services/AIInsightService";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
-  RESOURCE_AI_INSIGHTS_LIMIT,
-  ResourceAiInsights,
+  RESOURCE_AI_LOGS_LIMIT,
+  ResourceAiLogs,
 } from "../../../Types/AI/ResourceAiAccessApi";
 import { getResourceAiAgentResetRefusal } from "../../../Types/AI/ResourceAiAccessPermissions";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -108,7 +116,7 @@ import {
  * - /test has its own limits (one at a time per resource, a few per minute
  *   and a ceiling per hour per resource, a few per minute per user) on
  *   step ids of its own, so it never counts against a cluster's tests;
- * - /insights returns summaries only, read as root after the read gate.
+ * - /logs returns summaries only, read as root after the read gate.
  * ---------------------------------------------------------------------------
  */
 
@@ -706,11 +714,12 @@ describe("ResourceAiAccessAPI", () => {
     jest.restoreAllMocks();
   });
 
-  test("registers the four routes, each behind the user middleware", () => {
+  test("registers the five routes, each behind the user middleware", () => {
     for (const path of [
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+      RESOURCE_AI_ACCESS_LOGS_PATH,
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
     ]) {
       const route: MockRoute = matchRoute(path);
@@ -721,13 +730,20 @@ describe("ResourceAiAccessAPI", () => {
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
+      RESOURCE_AI_ACCESS_LOGS_PATH,
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
     ]).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
+      "/resource-ai-access/logs",
       "/resource-ai-access/insights",
     ]);
+    expect(
+      mockRoutes.filter((route: MockRoute): boolean => {
+        return route.uri === RESOURCE_AI_ACCESS_INSIGHTS_PATH;
+      }),
+    ).toHaveLength(1);
   });
 
   describe.each(KINDS)(
@@ -825,7 +841,7 @@ describe("ResourceAiAccessAPI", () => {
         ).toEqual([...AI_RESOURCE_TYPE_INFO[kind.resourceType].testCommands]);
       });
 
-      test("links incidents and alerts through the type's own relation for insights", async () => {
+      test("links incidents and alerts through the type's own relation for logs", async () => {
         const incidentFind: jest.SpyInstance = jest
           .spyOn(IncidentService, "findBy")
           .mockResolvedValue([]);
@@ -837,10 +853,7 @@ describe("ResourceAiAccessAPI", () => {
           .spyOn(AutoRemediationSuggestionService, "findBy")
           .mockResolvedValue([]);
 
-        await callRoute(
-          RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-          body(kind.resourceType),
-        );
+        await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
         for (const spy of [incidentFind, alertFind]) {
           const query: Record<string, unknown> = (
@@ -885,7 +898,7 @@ describe("ResourceAiAccessAPI", () => {
       [RESOURCE_AI_ACCESS_STATUS_PATH],
       [RESOURCE_AI_ACCESS_TEST_PATH],
       [RESOURCE_AI_ACCESS_RESET_AGENT_PATH],
-      [RESOURCE_AI_ACCESS_INSIGHTS_PATH],
+      [RESOURCE_AI_ACCESS_LOGS_PATH],
     ])(
       "%s rejects a missing or unknown type, and a missing or malformed id, before any lookup",
       async (uri: string) => {
@@ -927,7 +940,7 @@ describe("ResourceAiAccessAPI", () => {
         [RESOURCE_AI_ACCESS_STATUS_PATH],
         [RESOURCE_AI_ACCESS_TEST_PATH],
         [RESOURCE_AI_ACCESS_RESET_AGENT_PATH],
-        [RESOURCE_AI_ACCESS_INSIGHTS_PATH],
+        [RESOURCE_AI_ACCESS_LOGS_PATH],
       ])(
         "%s: another project's id reads exactly like a missing one, and nothing else runs",
         async (uri: string) => {
@@ -978,7 +991,7 @@ describe("ResourceAiAccessAPI", () => {
         [RESOURCE_AI_ACCESS_STATUS_PATH],
         [RESOURCE_AI_ACCESS_TEST_PATH],
         [RESOURCE_AI_ACCESS_RESET_AGENT_PATH],
-        [RESOURCE_AI_ACCESS_INSIGHTS_PATH],
+        [RESOURCE_AI_ACCESS_LOGS_PATH],
       ])("%s: requires a logged-in user", async (uri: string) => {
         propsSpy.mockResolvedValue(
           userProps({ permissions: [Permission.ProjectOwner], userId: null }),
@@ -1909,7 +1922,7 @@ describe("ResourceAiAccessAPI", () => {
     });
   });
 
-  describe.each(COVERED)("$resourceType: POST /insights", (kind: Kind) => {
+  describe.each(COVERED)("$resourceType: POST /logs", (kind: Kind) => {
     const INCIDENT_ID: ObjectID = ObjectID.generate();
     const ALERT_ID: ObjectID = ObjectID.generate();
 
@@ -1918,6 +1931,8 @@ describe("ResourceAiAccessAPI", () => {
     let alertFind: jest.SpyInstance;
     let runFind: jest.SpyInstance;
     let suggestionFind: jest.SpyInstance;
+    let incidentFeedFind: jest.SpyInstance;
+    let alertFeedFind: jest.SpyInstance;
 
     function run(
       id: ObjectID,
@@ -1961,6 +1976,12 @@ describe("ResourceAiAccessAPI", () => {
       suggestionFind = jest
         .spyOn(AutoRemediationSuggestionService, "findBy")
         .mockResolvedValue([]);
+      incidentFeedFind = jest
+        .spyOn(IncidentFeedService, "findBy")
+        .mockResolvedValue([]);
+      alertFeedFind = jest
+        .spyOn(AlertFeedService, "findBy")
+        .mockResolvedValue([]);
       countSpy.mockResolvedValue(new PositiveNumber(0));
       // Someone who may read everything summarised here.
       propsSpy.mockResolvedValue(
@@ -1989,17 +2010,14 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       const ok: RouteCallResult = await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
       expect(ok.thrownToNext).toBeUndefined();
     });
 
     test("reads the resource, incidents and alerts under the USER's props, and the jobs, runs, suggestions and counts as root", async () => {
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
       expect(
         isCallerProps(findSpies.get(kind.resourceType)!.mock.calls[0]!),
@@ -2017,10 +2035,7 @@ describe("ResourceAiAccessAPI", () => {
     });
 
     test("an empty resource: empty lists and zero counts, and no AI run read", async () => {
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
       expect(lastResponse()).toEqual({
         resourceType: kind.resourceType,
@@ -2080,16 +2095,12 @@ describe("ResourceAiAccessAPI", () => {
         return [run(fromJobs, 60), run(fromBoth, 30)];
       });
 
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
-      const insights: ResourceAiInsights =
-        lastResponse() as unknown as ResourceAiInsights;
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
 
       expect(
-        insights.investigations.map((row: { aiRunId: string }) => {
+        logs.investigations.map((row: { aiRunId: string }) => {
           return row.aiRunId;
         }),
       ).toEqual([
@@ -2098,11 +2109,11 @@ describe("ResourceAiAccessAPI", () => {
         fromBoth.toString(),
         fromJobs.toString(),
       ]);
-      expect(insights.investigations[0]!.alert).toEqual({
+      expect(logs.investigations[0]!.alert).toEqual({
         id: ALERT_ID.toString(),
         title: "High memory",
       });
-      expect(insights.investigations[1]!.incident).toEqual({
+      expect(logs.investigations[1]!.incident).toEqual({
         id: INCIDENT_ID.toString(),
         title: "Web down",
         number: 42,
@@ -2126,7 +2137,114 @@ describe("ResourceAiAccessAPI", () => {
       expect(String(jobQuery["projectId"])).toBe(PROJECT_ID.toString());
     });
 
-    test(`returns at most ${RESOURCE_AI_INSIGHTS_LIMIT} investigations and fixes`, async () => {
+    /*
+     * Regression: every investigation read "No summary was recorded." when
+     * its best-effort TL;DR call had failed, though the run had published a
+     * report with a Summary of its own. That Summary now stands in — and,
+     * like the TL;DR, only next to an incident or alert the caller may read.
+     */
+    test("a completed investigation without a TL;DR carries its report's summary, only where its subject is readable", async () => {
+      const HIDDEN_INCIDENT_ID: ObjectID = ObjectID.generate();
+      const readable: ObjectID = ObjectID.generate();
+      const alertRun: ObjectID = ObjectID.generate();
+      const hidden: ObjectID = ObjectID.generate();
+      const subjectless: ObjectID = ObjectID.generate();
+
+      jobFind.mockResolvedValue(
+        [readable, alertRun, hidden, subjectless].map((id: ObjectID) => {
+          return { aiRunId: id };
+        }) as unknown as Array<RunnerJob>,
+      );
+      runFind.mockResolvedValue([
+        run(readable, 1, {
+          analysisTldr: undefined,
+          triggeredByIncidentId: INCIDENT_ID,
+        }),
+        run(alertRun, 2, {
+          analysisTldr: "",
+          triggeredByAlertId: ALERT_ID,
+        }),
+        run(hidden, 3, {
+          analysisTldr: undefined,
+          triggeredByIncidentId: HIDDEN_INCIDENT_ID,
+        }),
+        run(subjectless, 4, { analysisTldr: undefined }),
+      ]);
+      // The caller may read INCIDENT_ID and ALERT_ID, not the hidden incident.
+      incidentFind.mockImplementation(async (args: unknown) => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+        return query[kind.subjectRelation]
+          ? []
+          : [{ id: INCIDENT_ID, title: "Web down", incidentNumber: 42 }];
+      });
+      alertFind.mockImplementation(async (args: unknown) => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+        return query[kind.subjectRelation]
+          ? []
+          : [{ id: ALERT_ID, title: "High memory" }];
+      });
+      incidentFeedFind.mockResolvedValue([
+        {
+          aiRunId: readable,
+          incidentId: INCIDENT_ID,
+          feedInfoInMarkdown:
+            "## 🧠 AI — Automated Root Cause Analysis\n\n**Summary** — The web container is OOMKilled because its 256Mi limit is below the heap size [C1].",
+        },
+      ]);
+      alertFeedFind.mockResolvedValue([
+        {
+          aiRunId: alertRun,
+          alertId: ALERT_ID,
+          feedInfoInMarkdown:
+            "**Summary** — Memory climbs after every deploy: a cache that is never evicted.",
+        },
+      ]);
+
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
+
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
+      const byId: Map<string, ResourceAiLogs["investigations"][number]> =
+        new Map(
+          logs.investigations.map(
+            (row: ResourceAiLogs["investigations"][number]) => {
+              return [row.aiRunId, row];
+            },
+          ),
+        );
+
+      expect(byId.get(readable.toString())!.reportSummary).toBe(
+        "The web container is OOMKilled because its 256Mi limit is below the heap size.",
+      );
+      expect(byId.get(alertRun.toString())!.reportSummary).toBe(
+        "Memory climbs after every deploy: a cache that is never evicted.",
+      );
+      // The unreadable incident's run is left out altogether, as before.
+      expect(byId.has(hidden.toString())).toBe(false);
+      // A run with no subject posted no report.
+      expect(byId.get(subjectless.toString())!.reportSummary).toBeUndefined();
+
+      // Neither the hidden run nor the subjectless one is ever looked up.
+      const asked: Array<string> = [
+        ...incidentFeedFind.mock.calls,
+        ...alertFeedFind.mock.calls,
+      ].flatMap((call: Array<unknown>) => {
+        return idsIn(
+          (call[0] as { query: Record<string, unknown> }).query["aiRunId"],
+        );
+      });
+      expect(asked.sort()).toEqual(
+        [readable.toString(), alertRun.toString()].sort(),
+      );
+      for (const spy of [incidentFeedFind, alertFeedFind]) {
+        expect(spy.mock.calls.every(isRootProps)).toBe(true);
+      }
+    });
+
+    test(`returns at most ${RESOURCE_AI_LOGS_LIMIT} investigations and fixes`, async () => {
       const ids: Array<ObjectID> = Array.from({ length: 40 }, () => {
         return ObjectID.generate();
       });
@@ -2146,16 +2264,12 @@ describe("ResourceAiAccessAPI", () => {
         }),
       );
 
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
-      const insights: ResourceAiInsights =
-        lastResponse() as unknown as ResourceAiInsights;
-      expect(insights.investigations).toHaveLength(RESOURCE_AI_INSIGHTS_LIMIT);
-      expect(insights.fixes).toHaveLength(RESOURCE_AI_INSIGHTS_LIMIT);
-      expect(insights.investigations[0]!.aiRunId).toBe(ids[0]!.toString());
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
+      expect(logs.investigations).toHaveLength(RESOURCE_AI_LOGS_LIMIT);
+      expect(logs.fixes).toHaveLength(RESOURCE_AI_LOGS_LIMIT);
+      expect(logs.investigations[0]!.aiRunId).toBe(ids[0]!.toString());
     });
 
     test("fixes: the resource's own rounds UNION suggestions whose commands ran here, summarised", async () => {
@@ -2192,32 +2306,28 @@ describe("ResourceAiAccessAPI", () => {
         });
       });
 
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
-      const insights: ResourceAiInsights =
-        lastResponse() as unknown as ResourceAiInsights;
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
 
       expect(
-        insights.fixes.map((fix: { id: string }) => {
+        logs.fixes.map((fix: { id: string }) => {
           return fix.id;
         }),
       ).toEqual([ruleRound.toString(), round.toString()]);
-      expect(insights.fixes[0]).toMatchObject({
+      expect(logs.fixes[0]).toMatchObject({
         status: "Suggested",
         executionMode: "Suggest",
         suggestionType: "Commands",
         rationale: "Restart the web container.",
         alertId: ALERT_ID.toString(),
       });
-      expect(insights.fixes[1]!.rationale).toHaveLength(300);
-      expect(insights.fixes[1]!.incidentId).toBe(INCIDENT_ID.toString());
-      expect(insights.fixes[1]!.approvedAt).toBe("2026-09-01T00:00:00.000Z");
+      expect(logs.fixes[1]!.rationale).toHaveLength(300);
+      expect(logs.fixes[1]!.incidentId).toBe(INCIDENT_ID.toString());
+      expect(logs.fixes[1]!.approvedAt).toBe("2026-09-01T00:00:00.000Z");
 
       // Summaries only: no plan, no output.
-      const serialized: string = JSON.stringify(insights);
+      const serialized: string = JSON.stringify(logs);
       expect(serialized).not.toContain("commandPlan");
       expect(serialized).not.toContain("output");
 
@@ -2239,10 +2349,7 @@ describe("ResourceAiAccessAPI", () => {
         );
       });
 
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
       expect(lastResponse()["commandCounts"]).toEqual({
         investigation: 17,
@@ -2279,10 +2386,7 @@ describe("ResourceAiAccessAPI", () => {
     });
 
     test("links incidents and alerts through the resource's relation, in this project", async () => {
-      await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
-        body(kind.resourceType),
-      );
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
 
       for (const spy of [incidentFind, alertFind]) {
         const query: Record<string, unknown> = (
@@ -2301,7 +2405,7 @@ describe("ResourceAiAccessAPI", () => {
 
     /*
      * ---------------------------------------------------------------------
-     * What the insights say about incidents, alerts, AI runs and suggestions
+     * What the logs say about incidents, alerts, AI runs and suggestions
      * follows the caller's own read access to them. The world below is one
      * resource's AI history, served the way the permission layer would serve
      * it: as root everything; under the caller's props a table the caller
@@ -2486,31 +2590,31 @@ describe("ResourceAiAccessAPI", () => {
         });
       }
 
-      async function insightsFor(
+      async function logsFor(
         props: DatabaseCommonInteractionProps,
-      ): Promise<ResourceAiInsights> {
+      ): Promise<ResourceAiLogs> {
         propsSpy.mockResolvedValue(props);
 
         const result: RouteCallResult = await callRoute(
-          RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+          RESOURCE_AI_ACCESS_LOGS_PATH,
           body(kind.resourceType),
         );
 
         expect(result.nextCallCount).toBe(0);
-        return lastResponse() as unknown as ResourceAiInsights;
+        return lastResponse() as unknown as ResourceAiLogs;
       }
 
-      function investigationIds(insights: ResourceAiInsights): Array<string> {
-        return insights.investigations.map((row: { aiRunId: string }) => {
+      function investigationIds(logs: ResourceAiLogs): Array<string> {
+        return logs.investigations.map((row: { aiRunId: string }) => {
           return row.aiRunId;
         });
       }
 
       function fixFor(
-        insights: ResourceAiInsights,
+        logs: ResourceAiLogs,
         id: ObjectID,
-      ): ResourceAiInsights["fixes"][number] {
-        return insights.fixes.find((fix: { id: string }) => {
+      ): ResourceAiLogs["fixes"][number] {
+        return logs.fixes.find((fix: { id: string }) => {
           return fix.id === id.toString();
         })!;
       }
@@ -2518,26 +2622,26 @@ describe("ResourceAiAccessAPI", () => {
       test("a role that may read only the resource gets no incident or alert, no TL;DR and no rationale", async () => {
         serveHistory();
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({ permissions: [kind.readPermission] }),
         );
 
         // Only the run with no subject is left, and without its TL;DR.
-        expect(investigationIds(insights)).toEqual([TRIAGE_RUN.toString()]);
-        expect(insights.investigations[0]!.analysisTldr).toBeUndefined();
-        expect(insights.investigations[0]!.incident).toBeUndefined();
-        expect(insights.investigations[0]!.alert).toBeUndefined();
+        expect(investigationIds(logs)).toEqual([TRIAGE_RUN.toString()]);
+        expect(logs.investigations[0]!.analysisTldr).toBeUndefined();
+        expect(logs.investigations[0]!.incident).toBeUndefined();
+        expect(logs.investigations[0]!.alert).toBeUndefined();
 
         // The fixes on the resource are listed, their rationale is not.
         expect(
-          insights.fixes.map((fix: { id: string }) => {
+          logs.fixes.map((fix: { id: string }) => {
             return fix.id;
           }),
         ).toEqual([OWN_FIX.toString(), RULE_FIX.toString()]);
-        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
 
-        const serialized: string = JSON.stringify(insights);
+        const serialized: string = JSON.stringify(logs);
         for (const secret of [
           "Web down",
           "High memory",
@@ -2555,7 +2659,7 @@ describe("ResourceAiAccessAPI", () => {
       test("a caller whose incident read is label-scoped sees only the incidents their labels reach", async () => {
         serveHistory({ incidentIds: [INCIDENT_ID] });
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({
             permissions: [kind.readPermission, Permission.AlertViewer],
             scoped: [
@@ -2567,15 +2671,13 @@ describe("ResourceAiAccessAPI", () => {
           }),
         );
 
-        expect(investigationIds(insights)).toEqual([
+        expect(investigationIds(logs)).toEqual([
           TRIAGE_RUN.toString(),
           INCIDENT_RUN.toString(),
           ALERT_RUN.toString(),
         ]);
-        expect(JSON.stringify(insights)).not.toContain(
-          "Payroll database breach",
-        );
-        expect(JSON.stringify(insights)).not.toContain(
+        expect(JSON.stringify(logs)).not.toContain("Payroll database breach");
+        expect(JSON.stringify(logs)).not.toContain(
           OTHER_INCIDENT_RUN.toString(),
         );
 
@@ -2583,56 +2685,56 @@ describe("ResourceAiAccessAPI", () => {
          * With a subject the caller may read, the TL;DR is shown — the
          * incident's own AI panel shows them the whole analysis.
          */
-        expect(insights.investigations[1]!.incident).toEqual({
+        expect(logs.investigations[1]!.incident).toEqual({
           id: INCIDENT_ID.toString(),
           title: "Web down",
           number: 42,
         });
-        expect(insights.investigations[1]!.analysisTldr).toBe(
+        expect(logs.investigations[1]!.analysisTldr).toBe(
           `tldr ${INCIDENT_RUN.toString()}`,
         );
-        expect(insights.investigations[2]!.alert).toEqual({
+        expect(logs.investigations[2]!.alert).toEqual({
           id: ALERT_ID.toString(),
           title: "High memory",
         });
-        expect(insights.investigations[2]!.analysisTldr).toBe(
+        expect(logs.investigations[2]!.analysisTldr).toBe(
           `tldr ${ALERT_RUN.toString()}`,
         );
 
         // A run with no subject: only for those who may read AIRun.
-        expect(insights.investigations[0]!.analysisTldr).toBeUndefined();
+        expect(logs.investigations[0]!.analysisTldr).toBeUndefined();
 
         // Suggestions are not theirs to read.
-        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
       });
 
       test("a viewer (incidents, alerts and AI runs, not suggestions) gets every TL;DR but no rationale", async () => {
         serveHistory();
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({ permissions: [Permission.Viewer] }),
         );
 
-        expect(investigationIds(insights)).toEqual([
+        expect(investigationIds(logs)).toEqual([
           TRIAGE_RUN.toString(),
           INCIDENT_RUN.toString(),
           OTHER_INCIDENT_RUN.toString(),
           ALERT_RUN.toString(),
         ]);
-        for (const investigation of insights.investigations) {
+        for (const investigation of logs.investigations) {
           expect(investigation.analysisTldr).toBe(
             `tldr ${investigation.aiRunId}`,
           );
         }
-        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
       });
 
       test("a project member gets everything; a suggestion hidden by its incident's privacy loses only its rationale", async () => {
         serveHistory();
 
-        const all: ResourceAiInsights = await insightsFor(
+        const all: ResourceAiLogs = await logsFor(
           userProps({ permissions: [Permission.ProjectMember] }),
         );
 
@@ -2655,7 +2757,7 @@ describe("ResourceAiAccessAPI", () => {
         jest.clearAllMocks();
         serveHistory({ suggestionIds: [RULE_FIX] });
 
-        const partly: ResourceAiInsights = await insightsFor(
+        const partly: ResourceAiLogs = await logsFor(
           userProps({ permissions: [Permission.ProjectMember] }),
         );
 
@@ -2668,15 +2770,15 @@ describe("ResourceAiAccessAPI", () => {
       test("a master admin gets everything", async () => {
         serveHistory();
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({ permissions: [], isMasterAdmin: true }),
         );
 
-        expect(investigationIds(insights)).toHaveLength(4);
-        expect(insights.investigations[0]!.analysisTldr).toBe(
+        expect(investigationIds(logs)).toHaveLength(4);
+        expect(logs.investigations[0]!.analysisTldr).toBe(
           `tldr ${TRIAGE_RUN.toString()}`,
         );
-        expect(fixFor(insights, OWN_FIX).rationale).toBe(
+        expect(fixFor(logs, OWN_FIX).rationale).toBe(
           "Restart the web container.",
         );
       });
@@ -2684,9 +2786,7 @@ describe("ResourceAiAccessAPI", () => {
       test("titles, numbers and rationales are only ever read under the caller's props", async () => {
         serveHistory();
 
-        await insightsFor(
-          userProps({ permissions: [Permission.ProjectMember] }),
-        );
+        await logsFor(userProps({ permissions: [Permission.ProjectMember] }));
 
         for (const [spy, columns] of [
           [incidentFind, ["title", "incidentNumber"]],
@@ -2722,5 +2822,273 @@ describe("ResourceAiAccessAPI", () => {
         "KubernetesCluster",
       ),
     ).toBe(false);
+  });
+
+  /*
+   * A resource's AI Insights page: the resource's read gate, then
+   * AiActivityInsightsReader with the resource's own scope. What the reader
+   * does with it is pinned in AiActivityInsightsReader.test.ts; here, that
+   * every type asks it the right question about the right resource, only
+   * after the gate — and, end to end, that the type's own relation is what
+   * links its incidents and alerts.
+   */
+  describe.each(KINDS)("$resourceType: POST /insights", (kind: Kind) => {
+    // A label each type's alerts name the resource itself with.
+    const OWN_LABEL: Record<AiResourceType, string> = {
+      [AiResourceType.DockerHost]: "oneuptime.docker.host.name",
+      [AiResourceType.PodmanHost]: "oneuptime.podman.host.name",
+      [AiResourceType.DockerSwarmCluster]: "docker.swarm.cluster.name",
+      [AiResourceType.ProxmoxCluster]: "proxmox.cluster.name",
+      [AiResourceType.VMwareVCenter]: "vmware.vcenter.name",
+      [AiResourceType.CephCluster]: "ceph.cluster.name",
+      [AiResourceType.DatabaseServer]: "oneuptime.database.server.id",
+      [AiResourceType.Host]: "host.name",
+    };
+
+    const INSIGHTS: AiActivityInsights = {
+      windowInDays: 30,
+      windowStart: "2026-08-24T00:00:00.000Z",
+      generatedAt: "2026-09-22T10:00:00.000Z",
+      totals: {
+        investigations: 0,
+        completedInvestigations: 0,
+        failedInvestigations: 0,
+        activeInvestigations: 0,
+        problems: 0,
+        recurringProblems: 0,
+        fixes: 0,
+        commands: 0,
+        failedCommands: 0,
+        timedOutCommands: 0,
+      },
+      attention: [],
+      problems: [],
+      hotspots: [],
+      fixOutcomes: {
+        total: 0,
+        planning: 0,
+        awaitingApproval: 0,
+        appliedAutomatically: 0,
+        appliedAfterApproval: 0,
+        dismissed: 0,
+        noFixFound: 0,
+        verified: 0,
+        failed: 0,
+        verifying: 0,
+      },
+      trend: [],
+      preventiveInsights: [],
+      isPartial: false,
+    };
+
+    let readSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      readSpy = jest
+        .spyOn(AiActivityInsightsReader, "read")
+        .mockResolvedValue(INSIGHTS);
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [kind.readPermission] }),
+      );
+    });
+
+    test("needs only read access to the resource, and sends what the reader found", async () => {
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.nextCallCount).toBe(0);
+      expect(lastResponse()).toEqual(INSIGHTS);
+    });
+
+    test("asks the reader about this resource of this type, as the user, in the user's project", async () => {
+      await callRoute(
+        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        body(kind.resourceType),
+      );
+
+      const asked: AiActivityInsightsScope = readSpy.mock
+        .calls[0]![0] as AiActivityInsightsScope;
+
+      expect(String(asked.projectId)).toBe(PROJECT_ID.toString());
+      expect(String(asked.scopeId)).toBe(RESOURCE_ID.toString());
+      expect(asked.props.isRoot).toBeFalsy();
+      expect(String(asked.props.userId)).toBe(USER_ID.toString());
+      expect(asked.subjectRelation).toBe(kind.subjectRelation);
+      expect(asked.commandJobQuery["resourceType"]).toBe(kind.resourceType);
+      expect(String(asked.commandJobQuery["resourceId"])).toBe(
+        RESOURCE_ID.toString(),
+      );
+      expect(asked.commandJobQuery["stepType"]).toBe(
+        RunbookStepType.ResourceCommand,
+      );
+      // Never a Kubernetes cluster's kubectl jobs.
+      expect(asked.commandJobQuery["kubernetesClusterId"]).toBeUndefined();
+      expect(asked.ownFixQuery["resourceType"]).toBe(kind.resourceType);
+      expect(String(asked.ownFixQuery["resourceId"])).toBe(
+        RESOURCE_ID.toString(),
+      );
+      expect(asked.scopeNames).toEqual(["prod-1"]);
+      expect(asked.scopeLabelKeys).toEqual(
+        expect.arrayContaining([
+          OWN_LABEL[kind.resourceType],
+          `resource.${OWN_LABEL[kind.resourceType]}`,
+        ]),
+      );
+    });
+
+    test("reads the resource through its own service, under the user's props, before anything else", async () => {
+      await callRoute(
+        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        body(kind.resourceType),
+      );
+
+      const lookup: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      } = findSpies.get(kind.resourceType)!.mock.calls[0]![0] as never;
+
+      expect(lookup.query["_id"]).toBe(RESOURCE_ID.toString());
+      expect(String(lookup.query["projectId"])).toBe(PROJECT_ID.toString());
+      expect(lookup.props.isRoot).toBeFalsy();
+      for (const other of KINDS) {
+        if (other.resourceType !== kind.resourceType) {
+          expect(findSpies.get(other.resourceType)).not.toHaveBeenCalled();
+        }
+      }
+    });
+
+    test("a resource the user cannot read is refused in the type's own words, and nothing is read", async () => {
+      findSpies.get(kind.resourceType)!.mockResolvedValue(null);
+
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect((result.thrownToNext as Error).message).toBe(
+        `${AI_RESOURCE_TYPE_INFO[kind.resourceType].displayName} not found (or you do not have access to it).`,
+      );
+      expect(readSpy).not.toHaveBeenCalled();
+    });
+
+    test("another project's resource reads like a missing one", async () => {
+      findSpies
+        .get(kind.resourceType)!
+        .mockResolvedValue(resourceRow(OTHER_PROJECT_ID));
+
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(readSpy).not.toHaveBeenCalled();
+    });
+
+    test("refuses a missing or malformed resource id before any lookup", async () => {
+      for (const resourceId of ["", "not-an-id"]) {
+        const result: RouteCallResult = await callRoute(
+          RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+          body(kind.resourceType, resourceId),
+        );
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      }
+
+      expect(findSpies.get(kind.resourceType)).not.toHaveBeenCalled();
+      expect(readSpy).not.toHaveBeenCalled();
+    });
+
+    test("end to end: an alert investigated here, linked through the type's own relation, is a problem", async () => {
+      readSpy.mockRestore();
+      const RUN_ID: ObjectID = ObjectID.generate();
+      const ALERT_ID: ObjectID = ObjectID.generate();
+
+      jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+      const alertFind: jest.SpyInstance = jest
+        .spyOn(AlertService, "findBy")
+        .mockImplementation(async (args: unknown) => {
+          const query: Record<string, unknown> = (
+            args as { query: Record<string, unknown> }
+          ).query;
+          return (
+            query[kind.subjectRelation]
+              ? [{ id: ALERT_ID }]
+              : [
+                  {
+                    id: ALERT_ID,
+                    title: "Disk almost full",
+                    seriesLabels: {
+                      [OWN_LABEL[kind.resourceType]]: "prod-1",
+                      mountpoint: "/var",
+                    },
+                  },
+                ]
+          ) as never;
+        });
+      jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+        {
+          id: RUN_ID,
+          status: AIRunStatus.Completed,
+          analysisTldr: "/var is full of old logs.",
+          createdAt: new Date(),
+          triggeredByAlertId: ALERT_ID,
+        },
+      ] as unknown as Array<AIRun>);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findBy")
+        .mockResolvedValue([]);
+      jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+
+      await callRoute(
+        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        body(kind.resourceType),
+      );
+
+      const insights: AiActivityInsights =
+        lastResponse() as unknown as AiActivityInsights;
+
+      expect(insights.problems).toHaveLength(1);
+      expect(insights.problems[0]!.title).toBe("Disk almost full");
+      expect(insights.problems[0]!.latestFinding!.text).toBe(
+        "/var is full of old logs.",
+      );
+      // The resource's own label is never a part of it.
+      expect(insights.problems[0]!.objects).toEqual([
+        { name: "Mount", value: "/var", count: 1 },
+      ]);
+
+      const linked: Record<string, unknown> = (
+        alertFind.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(
+        (linked[kind.subjectRelation] as Array<ObjectID>).map(
+          (id: ObjectID) => {
+            return id.toString();
+          },
+        ),
+      ).toEqual([RESOURCE_ID.toString()]);
+    });
+  });
+
+  test("the scope of a resource without a name names nothing", async () => {
+    const { getResourceAiActivityInsightsScope } = await import(
+      "../../../Server/API/ResourceAiAccessAPI"
+    );
+
+    expect(
+      getResourceAiActivityInsightsScope({
+        projectId: PROJECT_ID,
+        props: userProps({ permissions: [] }),
+        resource: {
+          resourceType: AiResourceType.Host,
+          id: RESOURCE_ID,
+          name: "",
+        },
+      }).scopeNames,
+    ).toEqual([]);
   });
 });

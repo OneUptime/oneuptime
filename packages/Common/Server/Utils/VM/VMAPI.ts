@@ -4,6 +4,41 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import VMRunner from "./VMRunner";
 
+/*
+ * What the body of an {{#each}} block is rendered against, for one element.
+ */
+interface EachLoopScope {
+  /*
+   * Where a {{name}} in the body is looked up, first hit wins: the current
+   * element, each enclosing element outwards, then the storage map. Only
+   * object elements are listed — a string or a number has no keys.
+   */
+  lookupChain: Array<JSONObject>;
+  /*
+   * What a nested {{#each path}} resolves against: the storage map with the
+   * keys of each enclosing object element spread over it.
+   */
+  eachPathScope: JSONObject;
+  /*
+   * The plain value {{this}} stands for. The outermost loop over plain values
+   * sets it and the loops nested inside it keep it, as they did when the value
+   * was written into the body's text.
+   */
+  thisElement?: { value: JSONValue } | undefined;
+}
+
+/*
+ * How many more {{#each}} blocks an expansion may expand. The template and
+ * each object element's body start with MAX_EACH_BLOCKS_PER_EXPANSION, and a
+ * loop over plain values draws on its parent's — the reach the limit always
+ * had. Blocks past it are left as written.
+ */
+interface EachBlockBudget {
+  remaining: number;
+}
+
+const MAX_EACH_BLOCKS_PER_EXPANSION: number = 100;
+
 export default class VMUtil {
   @CaptureSpan()
   public static async runCodeInSandbox(data: {
@@ -60,13 +95,6 @@ export default class VMUtil {
     ) {
       let valueToReplaceInPlaceCopy: string = valueToReplaceInPlace.toString();
 
-      // First, expand {{#each path}}...{{/each}} loops before variable substitution
-      valueToReplaceInPlaceCopy = VMUtil.expandEachLoops(
-        storageMap,
-        valueToReplaceInPlaceCopy,
-        shouldEscapeForJSON,
-      );
-
       type ResolveVariableFunction = (variable: string) => string | undefined;
 
       const resolveVariable: ResolveVariableFunction = (
@@ -95,17 +123,24 @@ export default class VMUtil {
       const firstMatch: RegExpMatchArray | null =
         valueToReplaceInPlaceCopy.match(/{{(.*?)}}/);
 
-      if (firstMatch && firstMatch[0] === valueToReplaceInPlaceCopy.trim()) {
-        /*
-         * The whole string is a single placeholder, so it becomes the raw
-         * value: a number stays a number, and an object arrives as JSON rather
-         * than escaped into a string literal.
-         */
-        const value: string | undefined = resolveVariable(firstMatch[1]!);
+      /*
+       * The whole template is a single placeholder, so it becomes the raw
+       * value: a number stays a number, and an object arrives as JSON rather
+       * than escaped into a string literal.
+       *
+       * Asked of the template as written. It used to be asked of the text the
+       * {{#each}} loops had expanded to, so a loop that rendered nothing but
+       * an element's own "{{...}}" text lost the whitespace around it and came
+       * out as whatever that text named. A single placeholder that does not
+       * resolve is rendered like any other template, and so left as written.
+       */
+      const rawValue: string | undefined =
+        firstMatch && firstMatch[0] === valueToReplaceInPlaceCopy.trim()
+          ? resolveVariable(firstMatch[1]!)
+          : undefined;
 
-        if (value !== undefined) {
-          valueToReplaceInPlaceCopy = value;
-        }
+      if (rawValue !== undefined) {
+        valueToReplaceInPlaceCopy = rawValue;
       } else {
         /*
          * One pass over the template, never a rescan. Substituting one
@@ -116,23 +151,34 @@ export default class VMUtil {
          * placeholder the template author wrote was left unrendered. A global
          * replace only matches placeholders in the template it started with.
          *
+         * The {{#each}} loops are expanded in the same walk, and only the
+         * template's own text around them comes through here, so nothing a
+         * loop wrote is scanned again either.
+         *
          * Function form, not the string form. String.replace treats $&, $1,
          * $` and $' in the REPLACEMENT as substitution patterns, so a
          * resolved value of "50$" or "a$&b" rewrote itself using the matched
          * text. A function replacement is taken literally.
          */
-        valueToReplaceInPlaceCopy = valueToReplaceInPlaceCopy.replace(
-          regex,
-          (placeholder: string, variable: string): string => {
-            const value: string | undefined = resolveVariable(variable);
+        valueToReplaceInPlaceCopy = VMUtil.expandEachLoops(
+          storageMap,
+          valueToReplaceInPlaceCopy,
+          shouldEscapeForJSON,
+          (text: string): string => {
+            return text.replace(
+              regex,
+              (placeholder: string, variable: string): string => {
+                const value: string | undefined = resolveVariable(variable);
 
-            if (value === undefined) {
-              return placeholder;
-            }
+                if (value === undefined) {
+                  return placeholder;
+                }
 
-            return shouldEscapeForJSON
-              ? VMUtil.serializeValueForJSON(value)
-              : `${value}`;
+                return shouldEscapeForJSON
+                  ? VMUtil.serializeValueForJSON(value)
+                  : `${value}`;
+              },
+            );
           },
         );
       }
@@ -162,6 +208,10 @@ export default class VMUtil {
    *  - Nested {{#each}} blocks for multi-level array traversal
    *  - If the resolved path is not an array, the block is removed (replaced with empty string)
    *
+   * Template text outside every block is returned as written, or passed
+   * through renderTextOutsideLoops when one is given — replaceValueInPlace
+   * hands in its own substitution, so a template is rendered in one walk.
+   *
    * Example:
    *   {{#each requestBody.alerts}}
    *     Alert {{@index}}: {{labels.label}} - {{status}}
@@ -172,25 +222,72 @@ export default class VMUtil {
     storageMap: JSONObject,
     template: string,
     isJSON: boolean | undefined,
+    renderTextOutsideLoops?: ((text: string) => string) | undefined,
   ): string {
-    let result: string = template;
-    const maxIterations: number = 100; // safety limit to prevent infinite loops
-    let iterations: number = 0;
+    return VMUtil.renderEachLoops({
+      template: template,
+      scope: {
+        lookupChain: [storageMap],
+        eachPathScope: storageMap,
+      },
+      isJSON: isJSON,
+      budget: { remaining: MAX_EACH_BLOCKS_PER_EXPANSION },
+      renderText:
+        renderTextOutsideLoops ||
+        ((text: string): string => {
+          return text;
+        }),
+    });
+  }
 
-    while (iterations < maxIterations) {
-      iterations++;
+  /*
+   * Walk the template once, front to back, expanding its {{#each}} blocks.
+   * Every block that is expanded and every {{...}} that is resolved is found
+   * in the template's own text; what an element or a variable resolves to is
+   * appended to the output and never read again.
+   *
+   * It used to be read again. Each expansion was spliced back into the text
+   * and the search for the next {{#each}} started over from the top, the
+   * enclosing loop substituted its names across the expanded body, and
+   * replaceValueInPlace substituted across all of it. A value that carried
+   * {{...}} or {{#each}} text of its own — a request body, an API response —
+   * was then rendered as though the template author had written it, rather
+   * than as written.
+   *
+   * Template text around the blocks goes to renderText. Text either side of a
+   * block that rendered nothing is still one run of text, as it was.
+   */
+  @CaptureSpan()
+  private static renderEachLoops(data: {
+    template: string;
+    scope: EachLoopScope;
+    isJSON: boolean | undefined;
+    budget: EachBlockBudget;
+    renderText: (text: string) => string;
+  }): string {
+    const template: string = data.template;
+    const openTag: RegExp = /\{\{#each\s+(.*?)\}\}/g;
 
-      // Find the first (outermost) {{#each ...}} tag
-      const openTag: RegExp = /\{\{#each\s+(.*?)\}\}/;
-      const openMatch: RegExpExecArray | null = openTag.exec(result);
+    let output: string = "";
+    let pendingText: string = "";
+    let position: number = 0;
+
+    while (data.budget.remaining > 0) {
+      // Find the next (outermost) {{#each ...}} tag
+      openTag.lastIndex = position;
+      const openMatch: RegExpExecArray | null = openTag.exec(template);
 
       if (!openMatch) {
         break; // no more {{#each}} blocks
       }
 
-      const blockStart: number = openMatch.index!;
+      data.budget.remaining--;
+
+      const blockStart: number = openMatch.index;
       const arrayPath: string = openMatch[1]!.trim();
       const bodyStart: number = blockStart + openMatch[0]!.length;
+
+      pendingText += template.slice(position, blockStart);
 
       // Find the matching {{/each}} by counting nesting depth
       let depth: number = 1;
@@ -198,9 +295,9 @@ export default class VMUtil {
       let matchEnd: number = -1;
       let bodyEnd: number = -1;
 
-      while (depth > 0 && searchPos < result.length) {
-        const nextOpen: number = result.indexOf("{{#each ", searchPos);
-        const nextClose: number = result.indexOf("{{/each}}", searchPos);
+      while (depth > 0 && searchPos < template.length) {
+        const nextOpen: number = template.indexOf("{{#each ", searchPos);
+        const nextClose: number = template.indexOf("{{/each}}", searchPos);
 
         if (nextClose === -1) {
           // Unmatched {{#each}} — break out to avoid infinite loop
@@ -223,133 +320,157 @@ export default class VMUtil {
       }
 
       if (matchEnd === -1 || bodyEnd === -1) {
-        // Unmatched {{#each}} — remove it to prevent infinite loop
-        result =
-          result.slice(0, blockStart) +
-          result.slice(blockStart + openMatch[0]!.length);
+        // Unmatched {{#each}} — drop the tag and carry on after it
+        position = bodyStart;
         continue;
       }
 
-      const loopBody: string = result.slice(bodyStart, bodyEnd);
+      position = matchEnd;
 
-      // Resolve the array from the storage map
-      const arrayValue: JSONValue = VMUtil.deepFind(storageMap, arrayPath);
+      // Resolve the array from the enclosing scope
+      const arrayValue: JSONValue = VMUtil.deepFind(
+        data.scope.eachPathScope,
+        arrayPath,
+      );
 
       if (!Array.isArray(arrayValue)) {
-        // Not an array — remove the block entirely
-        result = result.slice(0, blockStart) + result.slice(matchEnd);
+        // Not an array — the block renders as nothing
         continue;
       }
+
+      const loopBody: string = template.slice(bodyStart, bodyEnd);
 
       // Expand the loop body for each element in the array
       const expandedParts: Array<string> = [];
 
       for (let i: number = 0; i < arrayValue.length; i++) {
         const element: JSONValue = arrayValue[i]!;
-        let iterationBody: string = loopBody;
 
-        // Replace {{@index}} with the current index
-        iterationBody = iterationBody.replace(/\{\{@index\}\}/g, i.toString());
+        /*
+         * Replace {{@index}} with the current index throughout the body's
+         * text, nested blocks included, so a nested loop's {{@index}} is this
+         * loop's. Only digits go in, so the body is still the template's text.
+         */
+        const iterationBody: string = loopBody.replace(
+          /\{\{@index\}\}/g,
+          i.toString(),
+        );
 
-        if (typeof element === "object" && element !== null) {
-          /*
-           * Merge element properties into a scoped storageMap so that:
-           * 1. Element properties can be accessed directly (e.g., {{status}})
-           * 2. Parent storageMap properties are still accessible (e.g., {{requestBody.receiver}})
-           */
-          const scopedStorageMap: JSONObject = {
-            ...storageMap,
-            ...(element as JSONObject),
-          };
+        const isObjectElement: boolean =
+          typeof element === "object" && element !== null;
 
-          // Recursively expand any nested {{#each}} blocks within the iteration body
-          iterationBody = VMUtil.expandEachLoops(
-            scopedStorageMap,
-            iterationBody,
-            isJSON,
-          );
+        /*
+         * An object element's properties can be accessed directly (e.g.,
+         * {{status}}) and the enclosing ones are still reachable (e.g.,
+         * {{requestBody.receiver}}). A plain value is what {{this}} stands
+         * for, unless a loop over plain values around this one already set it.
+         */
+        const iterationScope: EachLoopScope = isObjectElement
+          ? {
+              lookupChain: [element as JSONObject, ...data.scope.lookupChain],
+              eachPathScope: {
+                ...data.scope.eachPathScope,
+                ...(element as JSONObject),
+              },
+              thisElement: data.scope.thisElement,
+            }
+          : {
+              lookupChain: data.scope.lookupChain,
+              eachPathScope: data.scope.eachPathScope,
+              thisElement: data.scope.thisElement || { value: element },
+            };
 
-          // Replace remaining {{variable}} placeholders
-          iterationBody = VMUtil.replaceLoopVariables(
-            element as JSONObject,
-            storageMap,
-            iterationBody,
-            isJSON,
-          );
-        } else {
-          // For primitive array elements, replace {{this}} with the value
-          iterationBody = iterationBody.replace(
-            /\{\{this\}\}/g,
-            isJSON ? VMUtil.serializeValueForJSON(`${element}`) : `${element}`,
-          );
-        }
-
-        expandedParts.push(iterationBody);
+        expandedParts.push(
+          VMUtil.renderEachLoops({
+            template: iterationBody,
+            scope: iterationScope,
+            isJSON: data.isJSON,
+            budget: isObjectElement
+              ? { remaining: MAX_EACH_BLOCKS_PER_EXPANSION }
+              : data.budget,
+            renderText: (text: string): string => {
+              return VMUtil.replaceLoopVariables(
+                iterationScope,
+                text,
+                data.isJSON,
+              );
+            },
+          }),
+        );
       }
 
-      result =
-        result.slice(0, blockStart) +
-        expandedParts.join("") +
-        result.slice(matchEnd);
+      const expanded: string = expandedParts.join("");
+
+      if (expanded !== "") {
+        output += data.renderText(pendingText) + expanded;
+        pendingText = "";
+      }
     }
 
-    return result;
+    return output + data.renderText(pendingText + template.slice(position));
   }
 
   /**
-   * Replace {{variable}} placeholders inside a loop body.
+   * Replace {{variable}} placeholders in a run of a loop body's own text.
    * Variables are resolved first against the current element (scoped),
-   * then fall back to the parent storageMap.
+   * then against each enclosing element, then the storage map.
    */
   @CaptureSpan()
   private static replaceLoopVariables(
-    element: JSONObject,
-    parentStorageMap: JSONObject,
+    scope: EachLoopScope,
     body: string,
     isJSON: boolean | undefined,
   ): string {
-    const variableRegex: RegExp = /\{\{((?!#each\b|\/each\b|@index\b).*?)\}\}/g;
-    let match: RegExpExecArray | null = null;
-    const variables: Array<string> = [];
+    type FormatValueFunction = (value: JSONValue) => string;
 
-    while ((match = variableRegex.exec(body)) !== null) {
-      if (match[1]) {
-        variables.push(match[1]);
-      }
-    }
+    const formatValue: FormatValueFunction = (value: JSONValue): string => {
+      const replacement: string =
+        typeof value === "object" && value !== null
+          ? JSON.stringify(value, null, 2)
+          : `${value}`;
 
-    for (const variable of variables) {
-      // First try resolving relative to the current element
-      let foundValue: JSONValue = VMUtil.deepFind(element, variable.trim());
+      return isJSON ? VMUtil.serializeValueForJSON(replacement) : replacement;
+    };
 
-      // Fall back to the parent storage map (for absolute paths)
-      if (foundValue === undefined) {
-        foundValue = VMUtil.deepFind(parentStorageMap, variable.trim());
-      }
+    type ReplaceVariablesFunction = (text: string) => string;
 
-      if (foundValue === undefined) {
-        continue; // leave unresolved
-      }
-
-      let replacement: string;
-
-      if (typeof foundValue === "object" && foundValue !== null) {
-        replacement = JSON.stringify(foundValue, null, 2);
-      } else {
-        replacement = `${foundValue}`;
-      }
-
-      const substitution: string = isJSON
-        ? VMUtil.serializeValueForJSON(replacement)
-        : replacement;
-
+    const replaceVariables: ReplaceVariablesFunction = (
+      text: string,
+    ): string => {
       // Function form — see the note on the same call in replaceValueInPlace.
-      body = body.replace("{{" + variable + "}}", () => {
-        return substitution;
-      });
+      return text.replace(
+        /\{\{((?!#each\b|\/each\b|@index\b).*?)\}\}/g,
+        (placeholder: string, variable: string): string => {
+          for (const candidate of scope.lookupChain) {
+            const foundValue: JSONValue = VMUtil.deepFind(
+              candidate,
+              variable.trim(),
+            );
+
+            if (foundValue !== undefined) {
+              return formatValue(foundValue);
+            }
+          }
+
+          return placeholder; // leave unresolved
+        },
+      );
+    };
+
+    if (!scope.thisElement) {
+      return replaceVariables(body);
     }
 
-    return body;
+    /*
+     * {{this}} is taken out before the names around it are looked for, which
+     * is the precedence it always had: "{{{this}}}" is still the value in
+     * braces. Joining the pieces back on the value, rather than replacing,
+     * keeps the value out of that search and reads no $ patterns in it.
+     */
+    return body
+      .split("{{this}}")
+      .map(replaceVariables)
+      .join(formatValue(scope.thisElement.value));
   }
 
   @CaptureSpan()

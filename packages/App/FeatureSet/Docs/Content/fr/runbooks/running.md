@@ -14,9 +14,16 @@ Ouvrez n'importe quelle exécution pour voir sa liste de contrôle. Chaque étap
 - **Titre et description** — copiés depuis le runbook au moment de l'exécution.
 - **Sortie** (repliable) — stdout, valeurs de retour, réponses HTTP.
 - **Message d'erreur** si l'étape a échoué.
-- Pour les étapes manuelles en `WaitingForUser` : boutons **Marquer comme terminé** et **Ignorer**.
+- Sur l'étape où l'exécution attend : **Marquer comme terminé** (une étape manuelle) ou **Approuver et continuer** (une étape avec **Exiger une approbation**), et **Ignorer**.
+- Tant que l'exécution est en pause, **Ignorer** sur les étapes automatisées suivantes qui n'exigent pas d'approbation.
 
 Tant que l'exécution n'est pas terminale, la page rafraîchit toutes les 3 secondes ; vous voyez donc les étapes automatisées s'achever quasiment en temps réel.
+
+## Terminer, approuver et ignorer des étapes
+
+Seule l'étape où l'exécution attend peut être marquée comme terminée, approuvée ou ignorée pour poursuivre l'exécution. Une étape manuelle ou une étape avec **Exiger une approbation** ne peut être ni validée ni ignorée avant que l'exécution ne l'atteigne — son rôle est d'arrêter l'exécution, elle n'accepte donc une décision qu'une fois l'exécution arrivée jusqu'à elle (pour une approbation, une fois que l'étape s'est exécutée et que vous pouvez voir sa sortie).
+
+Tant que l'exécution est en pause, vous pouvez aussi ignorer une étape automatisée suivante qui n'exige pas d'approbation, pour qu'elle ne s'exécute pas quand l'exécution reprendra. L'exécution reste en pause sur l'étape qui vous attend. Il n'est pas possible d'ignorer une étape pendant que des étapes s'exécutent — attendez que l'exécution se mette en pause, ou annulez-la. Chaque étape enregistre qui l'a terminée ou ignorée.
 
 ## Alterner étapes manuelles et automatisées
 

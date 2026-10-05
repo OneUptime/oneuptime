@@ -245,10 +245,11 @@ test.describe("Monitor pay-as-you-go pricing", () => {
   test("keeps Manual monitor setup usable without a payment method", async () => {
     const form: Locator = ctx.page.locator("#create-monitor-form");
     await expect(form).toBeVisible();
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page: ctx.page, cardValue: "Manual" });
     await form
       .getByPlaceholder("Monitor Name", { exact: true })
       .fill("Manual pricing check");
-    await selectMonitorTypeCard({ page: ctx.page, cardValue: "Manual" });
     await expect(
       form.getByRole("checkbox", { name: "I agree to these usage charges" }),
     ).toHaveCount(0);

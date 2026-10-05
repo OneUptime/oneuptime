@@ -2080,38 +2080,45 @@ const IncidentCreate: FunctionComponent<
                   },
                   /*
                    * On the last step: whether the box is ticked, as every
-                   * other box there says it; who that reaches; and what they
-                   * will be sent - each status page's email, from the
-                   * incident as declared here. There is nothing to preview
-                   * when nothing will be sent: notifying is off, the
-                   * incident will be private, or it is on no monitor.
+                   * other box there says it, with what they will be sent
+                   * beside it - 'Preview', each status page's email from
+                   * the incident as declared here, on the same line as the
+                   * Yes it belongs to ("Yes · Preview") - and who that
+                   * reaches under them. There is nothing to preview when
+                   * nothing will be sent: notifying is off, the incident
+                   * will be private, or it is on no monitor.
                    */
                   getSummaryElement: (item: FormValues<Incident>) => {
                     return (
                       <>
-                        <BooleanValue
-                          value={isNotifyTicked(item)}
-                          dataTestId="incident-create-notify-subscribers-value"
-                        />
-                        {getAudienceSummary(item)}
-                        {isNotifyingSubscribers(item) && hasMonitors(item) ? (
-                          <SubscriberNotificationPreviewButton
-                            dataTestId="incident-create-preview-notification"
-                            getRequest={() => {
-                              return getIncidentCreatedPreviewRequest({
-                                values: item as Record<string, unknown>,
-                                customFields: packCustomFieldFormValues({
-                                  definitions: detailsStepDefinitions,
-                                  formValues: item as JSONObject,
-                                  startingCustomFields: startingCustomFields,
-                                  isShown: isAskedOnIncidentForm,
-                                }),
-                              });
-                            }}
+                        <div
+                          className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                          data-testid="incident-create-notify-subscribers-line"
+                        >
+                          <BooleanValue
+                            value={isNotifyTicked(item)}
+                            dataTestId="incident-create-notify-subscribers-value"
                           />
-                        ) : (
-                          <></>
-                        )}
+                          {isNotifyingSubscribers(item) && hasMonitors(item) ? (
+                            <SubscriberNotificationPreviewButton
+                              dataTestId="incident-create-preview-notification"
+                              getRequest={() => {
+                                return getIncidentCreatedPreviewRequest({
+                                  values: item as Record<string, unknown>,
+                                  customFields: packCustomFieldFormValues({
+                                    definitions: detailsStepDefinitions,
+                                    formValues: item as JSONObject,
+                                    startingCustomFields: startingCustomFields,
+                                    isShown: isAskedOnIncidentForm,
+                                  }),
+                                });
+                              }}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                        </div>
+                        {getAudienceSummary(item)}
                       </>
                     );
                   },

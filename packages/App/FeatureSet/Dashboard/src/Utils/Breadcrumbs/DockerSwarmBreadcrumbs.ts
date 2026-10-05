@@ -85,6 +85,13 @@ export function getDockerSwarmBreadcrumbs(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
       ["Project", "DockerSwarm", "View Cluster", "AI", "Insights"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS, [
+      "Project",
+      "DockerSwarm",
+      "View Cluster",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
       ["Project", "DockerSwarm", "View Cluster", "AI", "AI agent"],

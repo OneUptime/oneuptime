@@ -6,6 +6,7 @@ OneUptime supporta l'integrazione con vari provider di Large Language Model (LLM
 
 I Provider LLM in OneUptime ti aiutano ad automatizzare e migliorare il flusso di lavoro di gestione degli incidenti:
 
+- **Indagini autonome**: Indagine automatica su nuovi incidenti e avvisi, con pubblicazione nella cronologia di un'analisi della causa principale corredata di fonti — vedi [AI SRE](/docs/ai/ai-sre)
 - **Note sugli Incidenti**: Generazione automatica di note e aggiornamenti dettagliati sugli incidenti
 - **Note sugli Avvisi**: Creazione di descrizioni e contesti significativi per gli avvisi
 - **Note sulle Manutenzioni Programmate**: Generazione automatica di note per gli eventi di manutenzione
@@ -20,18 +21,51 @@ Se preferisci usare le tue chiavi API o un provider specifico, puoi comunque con
 
 OneUptime SaaS può raggiungere solo endpoint LLM sull'internet pubblico. Non può connettersi a un modello nella tua rete privata, come un server Ollama o vLLM self-hosted. Per usare un modello che esegui tu, installa OneUptime in self-hosting su una rete che possa raggiungerlo, oppure esponi il modello su un endpoint pubblico — vedi [Scegliere l'URL di base per un modello self-hosted](#scegliere-lurl-di-base-per-un-modello-self-hosted).
 
+## Self-hosted: zero configurazione con le variabili d'ambiente
+
+Su un'istanza self-hosted, il modo più rapido per attivare le funzionalità AI per **tutti i progetti in una volta** è impostare le variabili d'ambiente `GLOBAL_LLM_PROVIDER_*` sul tuo server OneUptime — in `config.env` per Docker Compose, oppure tramite i valori Helm. All'avvio, OneUptime registra da queste variabili un Provider LLM Globale (e lo mantiene sincronizzato); non serve alcuna configurazione nella dashboard per ogni progetto, e anche le attività di correzione AI lo usano quando un progetto non ha un provider proprio.
+
+| Variabile | Descrizione |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | Obbligatoria per attivarlo. Uno tra: `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | Chiave API — obbligatoria per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; non necessaria per Ollama o per i server compatibili con OpenAI senza chiave |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | Endpoint dell'API — obbligatorio per Azure OpenAI, Ollama e i server compatibili con OpenAI |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modello da usare (obbligatorio per i server compatibili con OpenAI, consigliato negli altri casi) |
+| `GLOBAL_LLM_PROVIDER_NAME` | Nome descrittivo facoltativo mostrato nella dashboard |
+
+**Esempio: Ollama self-hosted**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# Un indirizzo che il server OneUptime può raggiungere. Mai localhost: vedi
+# "Scegliere l'URL di base per un modello self-hosted" più sotto.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# Nessuna chiave API necessaria — Ollama funziona senza chiave.
+```
+
+**Esempio: OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+La sincronizzazione è dichiarativa: se modifichi le variabili, il provider viene aggiornato al riavvio successivo, e se rimuovi `GLOBAL_LLM_PROVIDER_TYPE` viene eliminato. I provider globali creati manualmente nella dashboard di amministrazione non vengono mai toccati. I progetti possono comunque aggiungere un proprio provider in **Impostazioni del progetto** > **IA** > **Provider LLM** — un provider di proprietà del progetto ha sempre la precedenza su quello globale.
+
 ## Provider Supportati
 
 OneUptime supporta attualmente i seguenti provider LLM:
 
 | Provider              | Descrizione                                                              | Chiave API Richiesta | URL Base Richiesto      |
 | --------------------- | ------------------------------------------------------------------------ | -------------------- | ----------------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo e altri modelli OpenAI                      | Sì                   | No (usa il predefinito) |
+| **OpenAI**            | GPT-5.1 e altri modelli OpenAI                                           | Sì                   | No (usa il predefinito) |
 | **Azure OpenAI**      | Modelli OpenAI ospitati sul tuo deployment Azure                         | Sì                   | Sì                      |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e altri modelli Claude    | Sì                   | No (usa il predefinito) |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 e altri modelli Claude  | Sì                   | No (usa il predefinito) |
 | **Groq**              | Inferenza veloce per Llama, Mixtral e altri modelli open                 | Sì                   | No (usa il predefinito) |
 | **Mistral**           | Modelli ospitati da Mistral                                              | Sì                   | No (usa il predefinito) |
-| **Ollama**            | Modelli open-source self-hosted come Llama 2, Mistral, CodeLlama, ecc.   | No                   | Sì                      |
+| **Ollama**            | Modelli open-source self-hosted come Llama 3.1, Mistral, Qwen, ecc.      | No                   | Sì                      |
 | **OpenAI Compatible** | Qualsiasi server compatibile con OpenAI (vLLM, LocalAI, LM Studio, ecc.) | No (opzionale)       | Sì                      |
 
 ## Configurazione di un Provider LLM
@@ -39,8 +73,8 @@ OneUptime supporta attualmente i seguenti provider LLM:
 ### Passo 1: Naviga alle Impostazioni dei Provider LLM
 
 1. Accedi alla dashboard di OneUptime
-2. Vai su **Agenti IA** > **Provider LLM**
-3. Clicca su **Crea Provider LLM** per aggiungere un nuovo provider
+2. Vai su **Impostazioni del progetto** > **IA** > **Provider LLM**
+3. Clicca su **Crea: Provider LLM** per aggiungere un nuovo provider
 
 ### Passo 2: Configura il tuo Provider
 
@@ -48,51 +82,49 @@ Compila i seguenti campi:
 
 - **Nome**: Un nome descrittivo per questa configurazione LLM (es. "OpenAI Produzione", "Ollama Locale")
 - **Descrizione** (opzionale): Una descrizione per identificare lo scopo di questo provider
-- **Tipo LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
+- **Provider LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
 - **Chiave API**: La tua chiave API (richiesta per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opzionale per Ollama e per i server compatibili con OpenAI)
-- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
+- **Altri campi**, chiuso sotto i campi qui sopra: **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità AI usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
 
 ## Configurazione Specifica per Provider
 
 ### OpenAI
 
 1. Ottieni la tua chiave API da [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Seleziona **OpenAI** come Tipo LLM
+2. Seleziona **OpenAI** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
-   - `gpt-4o` - Modello più capace, ideale per compiti complessi
-   - `gpt-4o-mini` - Più veloce e conveniente
-   - `gpt-4-turbo` - Buon equilibrio tra capacità e velocità
-   - `gpt-3.5-turbo` - Veloce ed economico
+   - `gpt-5.1` - Predefinito consigliato, forte nel tool calling e nelle indagini complesse
+   - `gpt-5.1-mini` - Più veloce e conveniente
 
 **Esempio di Configurazione:**
 
 ```
 Nome: OpenAI Produzione
-Tipo LLM: OpenAI
+Provider LLM: OpenAI
 Chiave API: sk-xxxxxxxxxxxxxxxxxxxx
-Nome del Modello: gpt-4o
+Nome del Modello: gpt-5.1
 ```
 
 ### Anthropic
 
 1. Ottieni la tua chiave API da [Anthropic Console](https://console.anthropic.com/)
-2. Seleziona **Anthropic** come Tipo LLM
+2. Seleziona **Anthropic** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
-   - `claude-3-opus-20240229` - Modello più capace
-   - `claude-3-sonnet-20240229` - Buon equilibrio tra intelligenza e velocità
-   - `claude-3-haiku-20240307` - Il più veloce e compatto
-   - `claude-3-5-sonnet-20241022` - Ultimo modello Sonnet
+   - `claude-sonnet-5` - Predefinito consigliato, il miglior equilibrio tra intelligenza, velocità e costo
+   - `claude-opus-5` - Modello più capace, per le indagini più difficili
+   - `claude-haiku-4-5` - Il più veloce e conveniente
 
 **Esempio di Configurazione:**
 
 ```
 Nome: Anthropic Produzione
-Tipo LLM: Anthropic
+Provider LLM: Anthropic
 Chiave API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nome del Modello: claude-3-5-sonnet-20241022
+Nome del Modello: claude-sonnet-5
 ```
 
 ### Ollama (Self-Hosted)
@@ -102,7 +134,7 @@ Ollama ti consente di eseguire LLM open-source localmente o sulla tua infrastrut
 1. Installa Ollama da [ollama.ai](https://ollama.ai)
 2. Scarica il modello desiderato: `ollama pull llama3.1`
 3. Assicurati che Ollama sia in esecuzione e raggiungibile dal server OneUptime. Un'installazione nativa ascolta solo su `127.0.0.1`, quindi avviala con `OLLAMA_HOST=0.0.0.0:11434` perché accetti connessioni da altre macchine e container (l'immagine Docker ufficiale `ollama/ollama` lo fa già)
-4. Seleziona **Ollama** come Tipo LLM
+4. Seleziona **Ollama** come Provider LLM
 5. Inserisci l'URL Base: l'indirizzo del server Ollama così come lo raggiunge il server OneUptime, ad es. `http://ollama:11434` (OneUptime aggiunge da solo `/api/chat`). `localhost` non funziona — vedi [Scegliere l'URL di base per un modello self-hosted](#scegliere-lurl-di-base-per-un-modello-self-hosted)
 6. Inserisci il nome del modello scaricato
 
@@ -110,7 +142,7 @@ Ollama ti consente di eseguire LLM open-source localmente o sulla tua infrastrut
 
 ```
 Nome: Ollama Self-Hosted
-Tipo LLM: Ollama
+Provider LLM: Ollama
 URL Base: http://ollama:11434
 Nome del Modello: llama3.1
 ```
@@ -158,7 +190,7 @@ I server compatibili con OpenAI seguono le stesse regole con la propria porta e 
 Usa il provider **OpenAI Compatible** per qualsiasi server che implementa l'API OpenAI `/chat/completions` ma non è OpenAI stesso — ad esempio [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) o text-generation-webui. Questi server sono tipicamente self-hosted su un URL personale e spesso funzionano senza autenticazione.
 
 1. Avvia il tuo server compatibile con OpenAI e annota il suo URL base (di solito termina con `/v1`)
-2. Seleziona **OpenAI Compatible** come Tipo LLM
+2. Seleziona **OpenAI Compatible** come Provider LLM
 3. Inserisci l'**URL di base** (obbligatorio), es. `http://your-server:8000/v1`. Deve essere raggiungibile dal server OneUptime, quindi non `localhost` — vedi [Scegliere l'URL di base per un modello self-hosted](#scegliere-lurl-di-base-per-un-modello-self-hosted)
 4. Inserisci il **Nome modello** (obbligatorio) — deve corrispondere a un modello esposto dal tuo server
 5. Inserisci la **Chiave API** solo se il tuo server la richiede; lasciala vuota per i server senza autenticazione
@@ -188,11 +220,11 @@ Se ospiti OneUptime autonomamente con il chart Helm, puoi eseguire [vLLM](https:
    ```
 
 2. Esegui `helm upgrade` e attendi che il pod vLLM diventi Ready (il primo avvio scarica il modello)
-3. Fatto — vLLM viene registrato automaticamente come Provider LLM Globale all'avvio (`vllm.globalProvider.enabled`, predefinito `true`), quindi le funzionalità AI funzionano per tutti i progetti. Nota: gli Agenti AI a livello di progetto non possono usare i provider globali e necessitano comunque di un Provider LLM specifico per il progetto.
+3. Fatto — vLLM viene registrato automaticamente come Provider LLM Globale all'avvio (`vllm.globalProvider.enabled`, predefinito `true`), quindi le funzionalità AI funzionano per tutti i progetti, comprese le attività di correzione AI. (Ovunque — nel cloud come in self-hosted — le attività di correzione dell'agente usano il provider globale quando il progetto non ha un provider proprio; nel cloud quell'uso viene fatturato come token AI a consumo. Un provider di proprietà del progetto ha sempre la precedenza.)
 
 Se hai disabilitato la registrazione automatica (`vllm.globalProvider.enabled: false`), crea il provider manualmente:
 
-1. Seleziona **OpenAI Compatible** come Tipo LLM (vLLM parla l'API OpenAI)
+1. Seleziona **OpenAI Compatible** come Provider LLM (vLLM parla l'API OpenAI)
 2. Inserisci l'URL Base in-cluster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (sostituisci `cluster.local` se hai cambiato `global.clusterDomain`)
 3. Inserisci il Nome del Modello: l'id completo del modello HuggingFace (oppure `vllm.servedModelName` se ne hai impostato uno)
 4. Inserisci la Chiave API solo se hai impostato `vllm.apiKey`; lasciala vuota per un vLLM senza autenticazione
@@ -219,7 +251,7 @@ Per distribuzioni enterprise o quando si utilizzano servizi proxy, puoi specific
 
 ## Best Practice
 
-1. **Usa nomi descrittivi**: Assegna nomi chiari ai tuoi provider (es. "GPT-4 Produzione", "Ollama Sviluppo")
+1. **Usa nomi descrittivi**: Assegna nomi chiari ai tuoi provider (es. "OpenAI Produzione", "Ollama Sviluppo")
 2. **Proteggi le tue chiavi API**: Le chiavi API sono crittografate a riposo, ma evita di condividerle
 3. **Testa la tua configurazione**: Dopo la configurazione, verifica che il provider funzioni con le funzionalità AI
 4. **Monitora l'utilizzo**: Tieni traccia dell'utilizzo delle API per gestire i costi

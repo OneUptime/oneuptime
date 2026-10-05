@@ -403,7 +403,7 @@ describe("Incoming Email trigger: its address is managed here", () => {
     ).toBeEnabled();
   });
 
-  test("Delete Workflow alone may update a workflow but not its key, so the reset stays locked", () => {
+  test("Delete Workflow alone may not update a workflow, so the reset stays locked", () => {
     mockPermissions = [Permission.DeleteWorkflow];
 
     render(<ComponentSettingsModal {...modalProps()} />);

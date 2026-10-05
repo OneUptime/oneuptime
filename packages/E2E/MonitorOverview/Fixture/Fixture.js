@@ -47,9 +47,14 @@
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
- * apiRequests (with headers), updates, and unhandled: anything the fixture
- * does not model (a model table, an analytics query or an API URL). The
- * spec asserts `unhandled` is empty.
+ * apiRequests (with headers), updates, creates, and unhandled: anything the
+ * fixture does not model (a model table, an analytics query or an API URL).
+ * The spec asserts `unhandled` is empty.
+ *
+ * Create Monitor (Pages/Monitor/Create) is mounted too, at its real
+ * /dashboard/:projectId/monitors/create, for CreateMonitor.spec.ts. Its
+ * create is answered with CREATED_MONITOR_ID, whose page is a stub: the
+ * monitor it made is recorded on `creates`, and nothing else reads it.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -67,6 +72,7 @@ import { initReactI18next } from "react-i18next";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
+import MonitorCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -76,6 +82,7 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -90,11 +97,14 @@ import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -274,6 +284,7 @@ const fixture = {
   aggregateRequests: [],
   apiRequests: [],
   updates: [],
+  creates: [],
   unhandled: [],
 };
 window.__monitorOverviewFixture = fixture;
@@ -686,6 +697,24 @@ insert(MetricType, {
 for (const modelType of [MonitorCustomField]) {
   table(modelType);
 }
+
+/*
+ * Create Monitor reads the project (whether global probes join new monitors)
+ * and, on its criteria step, the project's on-call policies, incident roles,
+ * people and telemetry services: none in this workspace.
+ */
+table(Project).push({
+  _id: PROJECT_ID,
+  name: "Acme Commerce",
+  doNotAddGlobalProbesByDefaultOnNewMonitors: false,
+});
+
+for (const modelType of [OnCallDutyPolicy, IncidentRole, TeamMember, Service]) {
+  table(modelType);
+}
+
+// The id the fixture answers Create Monitor's create with (a stub page).
+const CREATED_MONITOR_ID = ID.monitor(100);
 
 /*
  * ---------------------------------------------------------------------------
@@ -2006,6 +2035,18 @@ ModelAPI.getList = async (options) => {
     limit,
   });
   assertCanRead(options.modelType, options.select);
+  /*
+   * GET /probe/global-probes (ProbeUtil.getAllProbes' second read): this
+   * workspace runs its own three probes and no global ones.
+   */
+  if (
+    modelName === tableName(Probe) &&
+    String(options.requestOptions?.overrideRequestUrl || "").includes(
+      "/probe/global-probes",
+    )
+  ) {
+    return { data: [], count: 0, skip, limit };
+  }
   if (failures.has("probes") && modelName === "MonitorProbe") {
     throw fail(500, "Probe results could not be read.");
   }
@@ -2041,6 +2082,30 @@ ModelAPI.count = async (options) => {
   return (known?.records || []).filter((record) => {
     return matches(record, options.query);
   }).length;
+};
+
+/*
+ * Create Monitor's create: recorded, and answered the way the API answers it
+ * - the new row, with its id. Only monitors are made here.
+ */
+ModelAPI.createOrUpdate = async (options) => {
+  const modelName = tableName(options.modelType);
+  const data = serialize(
+    options.model && options.model.toJSON
+      ? options.model.toJSON()
+      : options.model,
+  );
+  fixture.creates.push({
+    modelName,
+    formType: String(options.formType),
+    data,
+    miscDataProps: serialize(options.miscDataProps),
+  });
+  if (modelName !== tableName(Monitor)) {
+    fixture.unhandled.push({ kind: "createOrUpdate", modelName });
+    throw fail(400, `Creating a ${modelName} is not modelled.`);
+  }
+  return new HTTPResponse(200, { ...data, _id: CREATED_MONITOR_ID }, {});
 };
 
 ModelAPI.updateById = async (options) => {
@@ -2275,6 +2340,22 @@ const STUB_PAGES = [
   return Boolean(pageKey && RouteMap[pageKey]);
 });
 
+// Create Monitor, under the dashboard's own navigation hooks.
+function CreateMonitorPage() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return (
+    <main className="py-6">
+      <MonitorCreate {...pageProps(PageMap.MONITOR_CREATE)} />
+    </main>
+  );
+}
+
+const CREATED_MONITOR_PATH = RouteMap[PageMap.MONITOR_VIEW]
+  .toString()
+  .replace(":id", CREATED_MONITOR_ID);
+
 function monitorPath(typeKey) {
   return `/dashboard/${PROJECT_ID}/monitors/${monitors[typeKey]._id}`;
 }
@@ -2325,6 +2406,16 @@ function FixtureApp() {
       </header>
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
         <Routes>
+          <Route
+            path={RouteMap[PageMap.MONITOR_CREATE].toString()}
+            element={<CreateMonitorPage />}
+          />
+          <Route
+            path={CREATED_MONITOR_PATH}
+            element={
+              <StubPage pageKey="created-monitor" title="Created monitor" />
+            }
+          />
           <Route
             path={RouteMap[PageMap.MONITOR_VIEW].toString()}
             element={<FixtureLayout />}
