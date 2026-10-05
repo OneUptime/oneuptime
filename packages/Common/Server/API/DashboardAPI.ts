@@ -106,6 +106,22 @@ import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import FileOwnership from "../Utils/File/FileOwnership";
+
+/*
+ * How a public dashboard's logo and favicon are read: their bytes and type,
+ * and the project each was uploaded in - a dashboard shows only files of its
+ * own project (FileOwnership.keepProjectFile).
+ */
+const SERVED_IMAGE_SELECT: {
+  file: true;
+  fileType: true;
+  projectId: true;
+} = {
+  file: true,
+  fileType: true,
+  projectId: true,
+};
 
 /*
  * Registry of the non-metric widgets a public dashboard may render.
@@ -728,27 +744,21 @@ export default class DashboardAPI extends BaseAPI<
               select: isUnlocked
                 ? {
                     _id: true,
+                    // Only to hold its images to its project; never sent.
+                    projectId: true,
                     name: true,
                     pageTitle: true,
-                    faviconFile: {
-                      file: true,
-                      fileType: true,
-                    },
+                    faviconFile: SERVED_IMAGE_SELECT,
                     description: true,
                     pageDescription: true,
-                    logoFile: {
-                      file: true,
-                      fileType: true,
-                    },
+                    logoFile: SERVED_IMAGE_SELECT,
                   }
                 : {
                     _id: true,
+                    projectId: true,
                     name: true,
                     pageTitle: true,
-                    faviconFile: {
-                      file: true,
-                      fileType: true,
-                    },
+                    faviconFile: SERVED_IMAGE_SELECT,
                   },
               props: {
                 isRoot: true,
@@ -771,8 +781,12 @@ export default class DashboardAPI extends BaseAPI<
              */
             enableMasterPassword: access.isMasterPasswordRequired,
             pageTitle: dashboard.pageTitle || "",
+            // Its images only when they are files of its own project.
             faviconFile: DashboardAPI.getFileAsBase64JSONObject(
-              dashboard.faviconFile,
+              FileOwnership.keepProjectFile(
+                dashboard.faviconFile,
+                dashboard.projectId,
+              ),
             ),
             /*
              * The rest stays behind the password: the keys are always
@@ -781,7 +795,12 @@ export default class DashboardAPI extends BaseAPI<
             description: isUnlocked ? dashboard.description || "" : "",
             pageDescription: isUnlocked ? dashboard.pageDescription || "" : "",
             logoFile: isUnlocked
-              ? DashboardAPI.getFileAsBase64JSONObject(dashboard.logoFile)
+              ? DashboardAPI.getFileAsBase64JSONObject(
+                  FileOwnership.keepProjectFile(
+                    dashboard.logoFile,
+                    dashboard.projectId,
+                  ),
+                )
               : null,
           });
         } catch (err) {
@@ -824,15 +843,14 @@ export default class DashboardAPI extends BaseAPI<
               id: dashboardId,
               select: {
                 _id: true,
+                // Only to hold its logo to its project; never sent.
+                projectId: true,
                 name: true,
                 description: true,
                 dashboardViewConfig: true,
                 pageTitle: true,
                 pageDescription: true,
-                logoFile: {
-                  file: true,
-                  fileType: true,
-                },
+                logoFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
@@ -852,8 +870,12 @@ export default class DashboardAPI extends BaseAPI<
             description: dashboard.description || "",
             pageTitle: dashboard.pageTitle || "",
             pageDescription: dashboard.pageDescription || "",
+            // Its logo only when it is a file of its own project.
             logoFile: DashboardAPI.getFileAsBase64JSONObject(
-              dashboard.logoFile,
+              FileOwnership.keepProjectFile(
+                dashboard.logoFile,
+                dashboard.projectId,
+              ),
             ),
             /*
              * External Data Source widgets are stripped: they cannot render

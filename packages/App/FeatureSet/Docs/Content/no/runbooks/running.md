@@ -14,9 +14,16 @@ Det er tre måter en runbook-kjøring kan oppstå på:
 - **Tittel og beskrivelse** — kopiert fra runbook'et ved utførelse.
 - **Output** (kan brettes ut) — stdout, returverdier, HTTP-svar.
 - **Feilmelding**, hvis trinnet feilet.
-- For manuelle trinn i `WaitingForUser`: knappene **Marker som ferdig** og **Hopp over**.
+- På trinnet kjøringen venter på: **Mark complete** (et manuelt trinn) eller **Approve & continue** (et trinn med **Krev godkjenning**), og **Hopp over**.
+- Mens kjøringen er satt på pause, **Hopp over** på senere automatiserte trinn som ikke krever godkjenning.
 
 Mens kjøringen ikke er avsluttende, oppdateres siden hvert 3. sekund, slik at du ser automatiserte trinn fullføre nær sanntid.
+
+## Fullføre, godkjenne og hoppe over trinn
+
+Bare trinnet kjøringen venter på, kan markeres som ferdig, godkjennes eller hoppes over for å fortsette kjøringen. Et manuelt trinn eller et trinn med **Krev godkjenning** kan ikke hukes av eller hoppes over før kjøringen når det — oppgaven til trinnet er å stoppe kjøringen, så det tar først imot en beslutning når kjøringen har kommet dit (ved en godkjenning først når trinnet har kjørt og du kan se outputen).
+
+Mens kjøringen er satt på pause, kan du også hoppe over et senere automatisert trinn som ikke krever godkjenning, slik at det ikke kjører når kjøringen fortsetter. Kjøringen blir stående på pause på trinnet som venter på deg. Du kan ikke hoppe over trinn mens trinn kjører — vent til kjøringen settes på pause, eller avbryt den. Hvert trinn registrerer hvem som fullførte det eller hoppet over det.
 
 ## Veksle mellom manuelle og automatiserte trinn
 

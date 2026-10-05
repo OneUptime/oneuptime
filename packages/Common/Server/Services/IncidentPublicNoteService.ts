@@ -241,6 +241,7 @@ export class Service extends DatabaseService<Model> {
       createdItem.note,
       true,
       `incident public note ${createdItem.id?.toString()}`,
+      createdItem.projectId,
     );
 
     const incidentId: ObjectID = createdItem.incidentId!;
@@ -318,6 +319,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           updatedItem.note,
           true,
           `incident public note ${updatedItem.id?.toString()}`,
+          updatedItem.projectId,
         );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(

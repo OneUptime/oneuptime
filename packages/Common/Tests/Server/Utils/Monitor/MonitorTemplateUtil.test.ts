@@ -26,9 +26,10 @@ import {
 /*
  * buildTemplateStorageMap defines the variable surface that incident and
  * alert title/description templates can reference for each monitor type;
- * processTemplateString renders against it. The NetworkDevice branch, the
- * series-label fold and the series-context variables have their own suites
- * (MonitorTemplateUtilNetworkDevice / MonitorTemplatePrototypePollution /
+ * processTemplateString renders against it. The NetworkDevice and
+ * IncomingEmail branches, the series-label fold and the series-context
+ * variables have their own suites (MonitorTemplateUtilNetworkDevice /
+ * MonitorTemplateUtilIncomingEmail / MonitorTemplatePrototypePollution /
  * MonitorTemplateUtilSeriesContext); this suite pins every other branch.
  */
 
@@ -193,6 +194,65 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — IncomingRequest", () =
       requestMethod: HTTPMethod.POST,
       incomingRequestReceivedAt: receivedAt,
     });
+  });
+
+  /*
+   * The body is whatever the sender posted, so placeholder-looking text in it
+   * is theirs and renders as written. It used to capture the substitution
+   * meant for the template's own {{monitorName}}, leaving that unrendered.
+   */
+  test("placeholder text in the body renders as written", () => {
+    const monitor: Monitor = new Monitor();
+    monitor.name = "Prod API";
+
+    const receivedAt: Date = new Date("2026-09-13T10:00:00.000Z");
+    const request: IncomingMonitorRequest = {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      requestHeaders: {},
+      requestBody: { title: "{{monitorName}}" },
+      requestMethod: HTTPMethod.POST,
+      incomingRequestReceivedAt: receivedAt,
+      checkedAt: receivedAt,
+    };
+
+    expect(
+      MonitorTemplateUtil.processTemplateString({
+        value: "{{requestBody.title}} on {{monitorName}}",
+        storageMap: build(MonitorType.IncomingRequest, request, { monitor }),
+      }),
+    ).toBe("{{monitorName}} on Prod API");
+  });
+
+  /*
+   * The same holds for a list in the body that the template loops over: the
+   * loop's output used to be substituted into again, so an element's
+   * placeholder text came out as the monitor's name.
+   */
+  test("placeholder text in a body list the template loops over renders as written", () => {
+    const monitor: Monitor = new Monitor();
+    monitor.name = "Prod API";
+
+    const receivedAt: Date = new Date("2026-09-13T10:00:00.000Z");
+    const request: IncomingMonitorRequest = {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      requestHeaders: {},
+      requestBody: {
+        alerts: [{ summary: "{{monitorName}}" }, { summary: "disk full" }],
+      },
+      requestMethod: HTTPMethod.POST,
+      incomingRequestReceivedAt: receivedAt,
+      checkedAt: receivedAt,
+    };
+
+    expect(
+      MonitorTemplateUtil.processTemplateString({
+        value:
+          "{{#each requestBody.alerts}}{{summary}}; {{/each}}on {{monitorName}}",
+        storageMap: build(MonitorType.IncomingRequest, request, { monitor }),
+      }),
+    ).toBe("{{monitorName}}; disk full; on Prod API");
   });
 });
 
@@ -1088,6 +1148,18 @@ describe("MonitorTemplateUtil.processTemplateString", () => {
         storageMap: {},
       }),
     ).toBe("value: {{missing}}");
+  });
+
+  test("a value carrying placeholder text renders as written", () => {
+    expect(
+      MonitorTemplateUtil.processTemplateString({
+        value: "{{emailSubject}} - {{monitorName}}",
+        storageMap: {
+          emailSubject: "{{monitorName}}",
+          monitorName: "Nightly backups",
+        },
+      }),
+    ).toBe("{{monitorName}} - Nightly backups");
   });
 
   test("a failure inside the renderer returns the original template", () => {

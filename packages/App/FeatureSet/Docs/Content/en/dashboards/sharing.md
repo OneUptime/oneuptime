@@ -112,6 +112,14 @@ Once a free certificate has been ordered for a domain, the row shows **Reissue S
 
 On a self-hosted installation, dashboard custom domains are switched on by the `DASHBOARD_CNAME_RECORD` environment variable (`dashboard.cnameRecord` in the Helm chart), which is the target your CNAME records point to. Without it, the card and the **DNS Setup** dialog say "Custom Domains not enabled for this OneUptime installation" instead of showing a record, and OneUptime does not verify domains or order certificates for dashboards.
 
+### Who can check and reissue
+
+**Check now**, ordering a domain's certificate and **Reissue SSL** change the domain, so they need permission to edit it: **Edit Dashboard Domain**, or a role that includes it (Project Owner, Project Admin, Project Member, Settings Admin or Settings Member).
+
+Someone who can only read the domain, such as a Viewer or a Settings Viewer, still sees the **Status** column and the record to add in **DNS Setup**. For them **Check now** and **Reissue SSL** are locked, and say which permission they need. OneUptime keeps checking every domain and ordering its certificate on its own either way.
+
+The same goes for API keys. A key that can only read dashboard domains can't call `verify-cname`, `order-ssl` or `reissue-ssl` on `/dashboard-domain`. Give it **Read Dashboard Domain** and **Edit Dashboard Domain** if it needs to.
+
 Custom domains are useful for:
 
 - Customer-facing dashboards on your own brand.
@@ -128,6 +136,8 @@ On the dashboard's **Branding** page, you can configure:
 - **Page description** — the description used by search engines and social previews.
 - **Logo** — upload a PNG or SVG to show in the header.
 - **Favicon** — the small icon in the browser tab.
+
+The logo and the favicon are files uploaded in the dashboard's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again." or "The favicon's file could not be found. Upload the favicon again." The public dashboard shows only images of its own project.
 
 Branding applies only when the dashboard is viewed publicly. Internal viewers always see OneUptime's branding.
 

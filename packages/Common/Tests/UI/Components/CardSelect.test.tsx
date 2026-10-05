@@ -1,14 +1,16 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import React, { ReactElement, useState } from "react";
 import { describe, expect, test } from "@jest/globals";
 import IconProp from "../../../Types/Icon/IconProp";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import CardSelect, {
+  CardSelectCatalog,
   CardSelectOption,
   CardSelectOptionGroup,
   ComponentProps,
   cardSelectOptionMatchesSearch,
+  getCardSelectCatalogSections,
   getCardSelectOptionSearchScore,
   getCardSelectSearchTokens,
   isCardSelectOptionGroup,
@@ -16,11 +18,16 @@ import CardSelect, {
 } from "../../../UI/Components/CardSelect/CardSelect";
 
 /*
- * CardSelect grew a search box and collapsible groups for the monitor type
+ * CardSelect grew a search box and a catalog layout for the monitor type
  * picker, where 29 cards under nine headings made picking one a scrolling
- * exercise. Both are opt in, so the two callers that do not ask for them -
- * the team role picker and the metrics pipeline rule picker - must keep
- * exactly the plain grid they had. That is what the first block pins.
+ * exercise. Both are opt in, so the callers that do not ask for them - the
+ * team role picker and the metrics pipeline rule picker - must keep exactly
+ * the plain grid they had. That is what the first block pins.
+ *
+ * The catalog layout (the "catalog layout" block) is the maintainer's "this
+ * UI is extremely confusing": the common choices first as compact rows, the
+ * rest one More press away under plain headings, and a picked choice shrunk
+ * to one line with a Change button.
  */
 
 const website: CardSelectOption = {
@@ -101,6 +108,114 @@ const renderComponent: RenderComponentFunction = (
   return { onChange: onChange };
 };
 
+/*
+ * A catalog: the same groups, Basic Monitoring holding two more options so a
+ * group still has something to show once its common choices are taken out.
+ */
+const ping: CardSelectOption = {
+  value: "Ping",
+  title: "Ping",
+  description: "ICMP reachability.",
+  icon: IconProp.Signal,
+  keywords: ["icmp"],
+};
+
+const ip: CardSelectOption = {
+  value: "IP",
+  title: "IP",
+  description: "Reachability of an address.",
+  icon: IconProp.AltGlobe,
+};
+
+const catalogOptions: Array<CardSelectOptionGroup> = [
+  { label: "Basic Monitoring", options: [website, ping, ip] },
+  infrastructureGroup,
+  databaseGroup,
+  otherGroup,
+];
+
+// Ping before Website: the common rows follow the catalog, not the groups.
+const CATALOG: CardSelectCatalog = {
+  commonOptionValues: ["Ping", "Website"],
+  moreOptionsText: "More monitor types",
+};
+
+interface CatalogHarnessProps {
+  onChange: MockFunction;
+  onParentKeyDown: MockFunction;
+  initialValue?: string | undefined;
+  searchable?: boolean | undefined;
+  error?: string | undefined;
+  catalog?: CardSelectCatalog | undefined;
+  options?: Array<CardSelectOption | CardSelectOptionGroup> | undefined;
+}
+
+/*
+ * The picker inside a form that keeps what was picked, as FormField does, so
+ * a pick comes back as the value and the summary follows it. The wrapper
+ * stands for a dialog: it hears every key the picker lets through.
+ */
+const CatalogHarness: (props: CatalogHarnessProps) => ReactElement = (
+  props: CatalogHarnessProps,
+): ReactElement => {
+  const [value, setValue] = useState<string | undefined>(props.initialValue);
+
+  return (
+    <div
+      onKeyDown={(event: React.KeyboardEvent) => {
+        props.onParentKeyDown(event.key);
+      }}
+    >
+      <label id="monitor-type-label">Monitor Type</label>
+      <CardSelect
+        options={props.options || catalogOptions}
+        value={value}
+        onChange={(next: string) => {
+          props.onChange(next);
+          setValue(next);
+        }}
+        catalog={props.catalog || CATALOG}
+        searchable={props.searchable}
+        searchPlaceholder="Search monitor types"
+        ariaLabelledby="monitor-type-label"
+        error={props.error}
+      />
+    </div>
+  );
+};
+
+type RenderCatalogFunction = (
+  props?: Partial<Omit<CatalogHarnessProps, "onChange" | "onParentKeyDown">>,
+) => { onChange: MockFunction; onParentKeyDown: MockFunction };
+
+const renderCatalog: RenderCatalogFunction = (
+  props: Partial<
+    Omit<CatalogHarnessProps, "onChange" | "onParentKeyDown">
+  > = {},
+): { onChange: MockFunction; onParentKeyDown: MockFunction } => {
+  const onChange: MockFunction = getJestMockFunction();
+  const onParentKeyDown: MockFunction = getJestMockFunction();
+
+  render(
+    <CatalogHarness
+      onChange={onChange}
+      onParentKeyDown={onParentKeyDown}
+      {...props}
+    />,
+  );
+
+  return { onChange: onChange, onParentKeyDown: onParentKeyDown };
+};
+
+// The options on screen, in the order they are drawn.
+type ShownValuesFunction = () => Array<string>;
+
+const shownValues: ShownValuesFunction = (): Array<string> => {
+  return screen.queryAllByRole("radio").map((radio: HTMLElement) => {
+    return radio.getAttribute("data-card-select-value") || "";
+  });
+};
+
 type TypeSearchFunction = (value: string) => void;
 
 const typeSearch: TypeSearchFunction = (value: string): void => {
@@ -149,13 +264,32 @@ describe("CardSelect", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("shows no collapse control, so every group stays open", () => {
+    test("shows no More button, so every group stays open", () => {
       renderComponent({});
 
-      expect(
-        screen.queryByTestId("card-select-group-Infrastructure"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("card-select-more")).not.toBeInTheDocument();
       expect(screen.getByTestId("card-select-option-Kubernetes")).toBeVisible();
+    });
+
+    /*
+     * Only a catalog shrinks to its choice: a team's role picker with a role
+     * picked still shows every role, the picked one checked.
+     */
+    test("keeps every card on screen when a value is picked", () => {
+      renderComponent({ value: "Kubernetes" });
+
+      expect(
+        screen.queryByTestId("card-select-summary"),
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole("radio")).toHaveLength(4);
+    });
+
+    test("draws the large cards, not the catalog's compact rows", () => {
+      renderComponent({});
+
+      expect(screen.getByTestId("card-select-option-Website")).toHaveClass(
+        "p-4",
+      );
     });
   });
 
@@ -579,8 +713,10 @@ describe("CardSelect", () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
-    test("arrows skip the cards folded away in closed groups", () => {
-      renderComponent({ collapsibleGroups: true });
+    test("arrows skip the options a catalog holds back behind More", () => {
+      renderComponent({
+        catalog: { ...CATALOG, commonOptionValues: ["Website"] },
+      });
 
       const first: HTMLElement = screen.getByTestId(
         "card-select-option-Website",
@@ -589,7 +725,7 @@ describe("CardSelect", () => {
       first.focus();
       fireEvent.keyDown(first, { key: "ArrowRight" });
 
-      // Website is the only card on screen, so there is nowhere to go.
+      // Website is the only option on screen, so there is nowhere to go.
       expect(first).toHaveFocus();
     });
 
@@ -769,121 +905,611 @@ describe("CardSelect", () => {
     });
   });
 
-  describe("collapsible groups", () => {
-    test("opens the first group and closes the rest behind a count", () => {
-      renderComponent({ collapsibleGroups: true });
+  describe("catalog layout", () => {
+    describe("on opening", () => {
+      test("lists only the common choices, in the catalog's order", () => {
+        renderCatalog();
 
-      expect(screen.getByTestId("card-select-option-Website")).toBeVisible();
-      expect(
-        screen.queryByTestId("card-select-option-Kubernetes"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("card-select-option-Manual"),
-      ).not.toBeInTheDocument();
-    });
-
-    test("every group header stays on screen so nothing is hidden outright", () => {
-      renderComponent({ collapsibleGroups: true });
-
-      for (const group of groupedOptions) {
-        expect(
-          screen.getByTestId(`card-select-group-${group.label}`),
-        ).toBeVisible();
-      }
-    });
-
-    test("says how many cards a closed group holds", () => {
-      renderComponent({ collapsibleGroups: true });
-
-      expect(
-        screen.getByTestId("card-select-group-Infrastructure"),
-      ).toHaveTextContent("1");
-    });
-
-    test("reports its state to assistive technology", () => {
-      renderComponent({ collapsibleGroups: true });
-
-      expect(
-        screen.getByTestId("card-select-group-Basic Monitoring"),
-      ).toHaveAttribute("aria-expanded", "true");
-      expect(
-        screen.getByTestId("card-select-group-Infrastructure"),
-      ).toHaveAttribute("aria-expanded", "false");
-    });
-
-    test("clicking a closed header opens it", () => {
-      renderComponent({ collapsibleGroups: true });
-
-      fireEvent.click(screen.getByTestId("card-select-group-Infrastructure"));
-
-      expect(screen.getByTestId("card-select-option-Kubernetes")).toBeVisible();
-      expect(
-        screen.getByTestId("card-select-group-Infrastructure"),
-      ).toHaveAttribute("aria-expanded", "true");
-    });
-
-    test("clicking an open header closes it", () => {
-      renderComponent({ collapsibleGroups: true });
-
-      fireEvent.click(screen.getByTestId("card-select-group-Basic Monitoring"));
-
-      expect(
-        screen.queryByTestId("card-select-option-Website"),
-      ).not.toBeInTheDocument();
-    });
-
-    /*
-     * Re-entering a half-filled form must show the choice already made, not
-     * hide it behind a closed heading and look like nothing was picked.
-     */
-    test("opens the group holding the current selection", () => {
-      renderComponent({ collapsibleGroups: true, value: "Manual" });
-
-      expect(screen.getByTestId("card-select-option-Manual")).toBeVisible();
-      expect(screen.getByTestId("card-select-group-Other")).toHaveAttribute(
-        "aria-expanded",
-        "true",
-      );
-    });
-
-    test("a group the user closed by hand stays closed", () => {
-      renderComponent({ collapsibleGroups: true, value: "Website" });
-
-      fireEvent.click(screen.getByTestId("card-select-group-Basic Monitoring"));
-
-      expect(
-        screen.queryByTestId("card-select-option-Website"),
-      ).not.toBeInTheDocument();
-    });
-
-    test("leaves a run of flat options alone, having no header to collapse", () => {
-      renderComponent({
-        options: [website, kubernetes],
-        collapsibleGroups: true,
+        expect(shownValues()).toEqual(["Ping", "Website"]);
       });
 
-      expect(screen.getByTestId("card-select-option-Website")).toBeVisible();
-      expect(screen.getByTestId("card-select-option-Kubernetes")).toBeVisible();
+      test("draws them as compact rows, at most two to a line", () => {
+        renderCatalog();
+
+        const row: HTMLElement = screen.getByTestId(
+          "card-select-option-Website",
+        );
+
+        expect(row).toHaveClass("px-3", "py-2.5");
+        expect(row).not.toHaveClass("p-4");
+        expect(screen.getByTestId("card-select-common")).toHaveClass(
+          "grid-cols-1",
+          "sm:grid-cols-2",
+        );
+        expect(screen.getByTestId("card-select-common")).not.toHaveClass(
+          "lg:grid-cols-3",
+        );
+      });
+
+      test("holds every other option back behind the More button", () => {
+        renderCatalog();
+
+        expect(
+          screen.queryByTestId("card-select-option-Kubernetes"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("card-select-option-IP"),
+        ).not.toBeInTheDocument();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        expect(more).toHaveTextContent("More monitor types");
+        expect(more).toHaveAttribute("aria-expanded", "false");
+      });
+
+      /*
+       * The wall the maintainer pointed at: a heading for every category,
+       * each with a count beside it, before anything could be picked.
+       */
+      test("shows no group heading and no count", () => {
+        renderCatalog();
+
+        for (const label of [
+          "Basic Monitoring",
+          "Infrastructure",
+          "Database Monitoring",
+          "Other",
+        ]) {
+          expect(screen.queryByText(label)).not.toBeInTheDocument();
+        }
+
+        expect(
+          screen.queryByTestId("card-select-more-options"),
+        ).not.toBeInTheDocument();
+        expect(screen.getByTestId("card-select-more")).not.toHaveTextContent(
+          /\d/,
+        );
+      });
+
+      test("says nothing about how many there are to choose from", () => {
+        renderCatalog({ searchable: true });
+
+        const summary: HTMLElement = screen.getByTestId(
+          "card-select-search-summary",
+        );
+
+        expect(summary).toBeEmptyDOMElement();
+        // Still the live region a search's result count is read out from.
+        expect(summary).toHaveAttribute("role", "status");
+        expect(screen.queryByText(/to choose from/)).not.toBeInTheDocument();
+      });
+
+      test("is a radiogroup labelled by its field, nothing checked", () => {
+        renderCatalog();
+
+        expect(screen.getByRole("radiogroup")).toHaveAttribute(
+          "aria-labelledby",
+          "monitor-type-label",
+        );
+
+        for (const radio of screen.getAllByRole("radio")) {
+          expect(radio).toHaveAttribute("aria-checked", "false");
+        }
+      });
+
+      test("shows no summary while nothing is picked", () => {
+        renderCatalog();
+
+        expect(
+          screen.queryByTestId("card-select-summary"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("card-select-change"),
+        ).not.toBeInTheDocument();
+      });
     });
 
-    test("a search reaches into closed groups", () => {
-      renderComponent({ collapsibleGroups: true, searchable: true });
+    describe("More", () => {
+      test("shows every other option under its own group's heading", () => {
+        renderCatalog();
 
-      typeSearch("k8s");
+        fireEvent.click(screen.getByTestId("card-select-more"));
 
-      expect(screen.getByTestId("card-select-option-Kubernetes")).toBeVisible();
+        const moreOptions: HTMLElement = screen.getByTestId(
+          "card-select-more-options",
+        );
+
+        for (const label of [
+          "Basic Monitoring",
+          "Infrastructure",
+          "Database Monitoring",
+          "Other",
+        ]) {
+          expect(within(moreOptions).getByText(label)).toBeVisible();
+        }
+
+        expect(
+          within(
+            screen.getByTestId("card-select-group-Infrastructure"),
+          ).getByTestId("card-select-option-Kubernetes"),
+        ).toBeVisible();
+        expect(
+          within(
+            screen.getByTestId("card-select-group-Basic Monitoring"),
+          ).getByTestId("card-select-option-IP"),
+        ).toBeVisible();
+      });
+
+      test("lists no common choice twice", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        expect(shownValues()).toEqual([
+          "Ping",
+          "Website",
+          "IP",
+          "Kubernetes",
+          "SQL Query",
+          "Manual",
+        ]);
+      });
+
+      test("its headings are the group names alone, with no count", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        const heading: HTMLElement = within(
+          screen.getByTestId("card-select-group-Infrastructure"),
+        ).getByText("Infrastructure");
+
+        expect(heading.textContent).toBe("Infrastructure");
+      });
+
+      test("drops a group whose every option is a common one", () => {
+        renderCatalog({
+          catalog: { ...CATALOG, commonOptionValues: ["Kubernetes", "Ping"] },
+        });
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        expect(
+          screen.queryByTestId("card-select-group-Infrastructure"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getAllByTestId("card-select-option-Kubernetes"),
+        ).toHaveLength(1);
+      });
+
+      test("is pressed once: the button goes, and focus lands on the first option it brought", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        expect(
+          screen.queryByTestId("card-select-more"),
+        ).not.toBeInTheDocument();
+        expect(screen.getByTestId("card-select-option-IP")).toHaveFocus();
+      });
+
+      test("names the part of the page it shows", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+        const controls: string | null = more.getAttribute("aria-controls");
+
+        expect(controls).toBeTruthy();
+
+        fireEvent.click(more);
+
+        expect(screen.getByTestId("card-select-more-options")).toHaveAttribute(
+          "id",
+          controls!,
+        );
+      });
+
+      test("a catalog with nothing beyond its common choices has no More button", () => {
+        renderCatalog({
+          catalog: {
+            ...CATALOG,
+            commonOptionValues: [
+              "Website",
+              "Ping",
+              "IP",
+              "Kubernetes",
+              "SQL Query",
+              "Manual",
+            ],
+          },
+        });
+
+        expect(
+          screen.queryByTestId("card-select-more"),
+        ).not.toBeInTheDocument();
+        expect(shownValues()).toHaveLength(6);
+      });
+
+      test("arrows walk on from the common rows into what More brought", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        const lastCommon: HTMLElement = screen.getByTestId(
+          "card-select-option-Website",
+        );
+
+        lastCommon.focus();
+        fireEvent.keyDown(lastCommon, { key: "ArrowDown" });
+
+        expect(screen.getByTestId("card-select-option-IP")).toHaveFocus();
+      });
+
+      test("an option More brought can be picked", () => {
+        const { onChange } = renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-option-Kubernetes"));
+
+        expect(onChange).toHaveBeenCalledWith("Kubernetes");
+      });
     });
 
-    test("clearing the search puts the groups back as they were", () => {
-      renderComponent({ collapsibleGroups: true, searchable: true });
+    describe("search", () => {
+      test("runs over the whole catalog, not only the common choices", () => {
+        renderCatalog({ searchable: true });
 
-      typeSearch("k8s");
-      fireEvent.click(screen.getByTestId("card-select-search-clear"));
+        typeSearch("k8s");
 
-      expect(screen.getByTestId("card-select-option-Website")).toBeVisible();
-      expect(
-        screen.queryByTestId("card-select-option-Kubernetes"),
-      ).not.toBeInTheDocument();
+        expect(shownValues()).toEqual(["Kubernetes"]);
+      });
+
+      test("hides the More button while it runs, and clearing it brings the button back", () => {
+        renderCatalog({ searchable: true });
+
+        typeSearch("k8s");
+
+        expect(
+          screen.queryByTestId("card-select-more"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("card-select-common"),
+        ).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByTestId("card-select-search-clear"));
+
+        expect(screen.getByTestId("card-select-more")).toBeVisible();
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+      });
+
+      test("shows its results as compact rows", () => {
+        renderCatalog({ searchable: true });
+
+        typeSearch("k8s");
+
+        expect(screen.getByTestId("card-select-option-Kubernetes")).toHaveClass(
+          "px-3",
+          "py-2.5",
+        );
+      });
+
+      test("says how many it shows out of the whole catalog", () => {
+        renderCatalog({ searchable: true });
+
+        typeSearch("k8s");
+
+        expect(
+          screen.getByTestId("card-select-search-summary"),
+        ).toHaveTextContent("Showing 1 of 6");
+      });
+
+      test("Enter picks the top result and shrinks the picker to it", () => {
+        const { onChange } = renderCatalog({ searchable: true });
+
+        typeSearch("k8s");
+        fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+          key: "Enter",
+        });
+
+        expect(onChange).toHaveBeenCalledWith("Kubernetes");
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Kubernetes",
+        );
+      });
+    });
+
+    describe("a pick", () => {
+      test("reports the value", () => {
+        const { onChange } = renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange).toHaveBeenCalledWith("Website");
+      });
+
+      test("shrinks the picker to the choice: its title, its description and Change", () => {
+        renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+        const summary: HTMLElement = screen.getByTestId("card-select-summary");
+
+        expect(summary).toHaveAttribute("data-card-select-value", "Website");
+        expect(
+          within(summary).getByTestId("card-select-summary-title"),
+        ).toHaveTextContent("Website");
+        expect(summary).toHaveTextContent("Check a page loads and responds.");
+        expect(
+          within(summary).getByTestId("card-select-change"),
+        ).toHaveTextContent("Change");
+
+        // Nothing else of the picker is left on screen.
+        expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+        expect(screen.queryAllByRole("radio")).toEqual([]);
+        expect(
+          screen.queryByTestId("card-select-search"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("card-select-more"),
+        ).not.toBeInTheDocument();
+      });
+
+      test("the summary is a group labelled by the field", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+        const summary: HTMLElement = screen.getByTestId("card-select-summary");
+
+        expect(summary).toHaveAttribute("role", "group");
+        expect(summary).toHaveAttribute(
+          "aria-labelledby",
+          "monitor-type-label",
+        );
+      });
+
+      test("Change says which choice it would change", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+        const change: HTMLElement = screen.getByTestId("card-select-change");
+        const describedBy: string | null =
+          change.getAttribute("aria-describedby");
+
+        expect(describedBy).toBeTruthy();
+        expect(document.getElementById(describedBy!)).toHaveTextContent(
+          "Website",
+        );
+      });
+
+      /*
+       * The card that had focus is gone once the picker shrinks; focus goes
+       * to Change, where the picker was, instead of falling back to the page.
+       */
+      test("moves focus to Change", () => {
+        renderCatalog();
+
+        const row: HTMLElement = screen.getByTestId(
+          "card-select-option-Website",
+        );
+
+        row.focus();
+        fireEvent.click(row);
+
+        expect(screen.getByTestId("card-select-change")).toHaveFocus();
+      });
+
+      test("made from the keyboard moves focus to Change too", () => {
+        const { onChange } = renderCatalog();
+
+        const row: HTMLElement = screen.getByTestId("card-select-option-Ping");
+
+        row.focus();
+        fireEvent.keyDown(row, { key: "Enter" });
+
+        expect(onChange).toHaveBeenCalledWith("Ping");
+        expect(screen.getByTestId("card-select-change")).toHaveFocus();
+      });
+    });
+
+    describe("Change", () => {
+      test("opens the picker again, the choice still checked, focus in the search box", () => {
+        renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(
+          screen.queryByTestId("card-select-summary"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByTestId("card-select-option-Website"),
+        ).toHaveAttribute("aria-checked", "true");
+        expect(screen.getByTestId("card-select-search")).toHaveFocus();
+      });
+
+      test("without a search box, focus goes to the checked option", () => {
+        renderCatalog({ searchable: false });
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(screen.getByTestId("card-select-option-Website")).toHaveFocus();
+      });
+
+      /*
+       * onChange resets what the form built on the choice (the criteria a
+       * monitor type seeded), so picking the same choice again must not
+       * fire it.
+       */
+      test("picking the choice already made only closes the picker again", () => {
+        const { onChange } = renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Website",
+        );
+        expect(screen.getByTestId("card-select-change")).toHaveFocus();
+      });
+
+      test("picking another choice reports it and shows it", () => {
+        const { onChange } = renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+
+        expect(onChange).toHaveBeenLastCalledWith("Ping");
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Ping",
+        );
+      });
+
+      test("Escape keeps the choice made and goes back to it, focus on Change", () => {
+        const { onChange } = renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+          key: "Escape",
+        });
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Website",
+        );
+        expect(screen.getByTestId("card-select-change")).toHaveFocus();
+      });
+
+      test("that Escape does not reach a dialog the picker sits in", () => {
+        const { onParentKeyDown } = renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+          key: "Escape",
+        });
+
+        expect(onParentKeyDown).not.toHaveBeenCalledWith("Escape");
+      });
+
+      // Nothing to go back to: a dialog's own Escape still closes it.
+      test("Escape before anything is picked is left to the dialog", () => {
+        const { onParentKeyDown } = renderCatalog({ searchable: true });
+
+        fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+          key: "Escape",
+        });
+
+        expect(onParentKeyDown).toHaveBeenCalledWith("Escape");
+      });
+
+      test("Escape with words in the search clears them first, keeping the picker open", () => {
+        renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        typeSearch("k8s");
+        fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+          key: "Escape",
+        });
+
+        expect(screen.getByTestId("card-select-search")).toHaveValue("");
+        expect(
+          screen.queryByTestId("card-select-summary"),
+        ).not.toBeInTheDocument();
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+      });
+
+      test("a choice More holds back is on screen without pressing More", () => {
+        renderCatalog({ initialValue: "Kubernetes" });
+
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Kubernetes",
+        );
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(
+          screen.getByTestId("card-select-option-Kubernetes"),
+        ).toHaveAttribute("aria-checked", "true");
+        expect(
+          screen.queryByTestId("card-select-more"),
+        ).not.toBeInTheDocument();
+      });
+
+      test("a pick clears what was typed, so the next Change starts on the common choices", () => {
+        renderCatalog({ searchable: true });
+
+        typeSearch("k8s");
+        fireEvent.click(screen.getByTestId("card-select-option-Kubernetes"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(screen.getByTestId("card-select-search")).toHaveValue("");
+        expect(screen.getByTestId("card-select-common")).toBeVisible();
+      });
+    });
+
+    describe("coming back to a form that already holds a choice", () => {
+      test("shows the choice, not the catalog", () => {
+        renderCatalog({ initialValue: "Ping" });
+
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Ping",
+        );
+        expect(screen.queryAllByRole("radio")).toEqual([]);
+      });
+
+      /*
+       * A monitor type the picker no longer offers (Server, Profiles) has
+       * nothing to summarise; the picker stays open with nothing checked.
+       */
+      test("a value no option carries leaves the picker open, nothing checked", () => {
+        renderCatalog({ initialValue: "Server" });
+
+        expect(
+          screen.queryByTestId("card-select-summary"),
+        ).not.toBeInTheDocument();
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+
+        for (const radio of screen.getAllByRole("radio")) {
+          expect(radio).toHaveAttribute("aria-checked", "false");
+        }
+      });
+    });
+
+    describe("errors", () => {
+      test("show under the picker", () => {
+        renderCatalog({ error: "Monitor Type is required" });
+
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Monitor Type is required",
+        );
+      });
+
+      test("and under the summary", () => {
+        renderCatalog({
+          initialValue: "Website",
+          error: "Monitor Type is required",
+        });
+
+        expect(screen.getByTestId("card-select-summary")).toBeVisible();
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Monitor Type is required",
+        );
+      });
     });
   });
 
@@ -1009,6 +1635,83 @@ describe("CardSelect", () => {
 
     test("returns nothing for nothing", () => {
       expect(normalizeCardSelectGroups([])).toEqual([]);
+    });
+  });
+
+  describe("getCardSelectCatalogSections", () => {
+    test("takes the common choices out, in the order the catalog names them", () => {
+      const sections: ReturnType<typeof getCardSelectCatalogSections> =
+        getCardSelectCatalogSections({
+          options: catalogOptions,
+          commonOptionValues: ["Manual", "Website"],
+        });
+
+      expect(sections.commonOptions).toEqual([manual, website]);
+    });
+
+    test("keeps every other option under its own group, in the groups' order", () => {
+      const sections: ReturnType<typeof getCardSelectCatalogSections> =
+        getCardSelectCatalogSections({
+          options: catalogOptions,
+          commonOptionValues: ["Website"],
+        });
+
+      expect(sections.moreGroups).toEqual([
+        { label: "Basic Monitoring", options: [ping, ip] },
+        { label: "Infrastructure", options: [kubernetes] },
+        { label: "Database Monitoring", options: [sqlQuery] },
+        { label: "Other", options: [manual] },
+      ]);
+    });
+
+    test("drops a group left with nothing in it", () => {
+      const sections: ReturnType<typeof getCardSelectCatalogSections> =
+        getCardSelectCatalogSections({
+          options: catalogOptions,
+          commonOptionValues: ["Kubernetes", "Manual"],
+        });
+
+      expect(
+        sections.moreGroups.map(
+          (group: { label: string | null }): string | null => {
+            return group.label;
+          },
+        ),
+      ).toEqual(["Basic Monitoring", "Database Monitoring"]);
+    });
+
+    test("skips a common value no option carries, and a repeat", () => {
+      const sections: ReturnType<typeof getCardSelectCatalogSections> =
+        getCardSelectCatalogSections({
+          options: catalogOptions,
+          commonOptionValues: ["Server", "Ping", "Ping"],
+        });
+
+      expect(sections.commonOptions).toEqual([ping]);
+    });
+
+    test("reads flat options the way the plain layout does", () => {
+      const sections: ReturnType<typeof getCardSelectCatalogSections> =
+        getCardSelectCatalogSections({
+          options: [website, kubernetes],
+          commonOptionValues: ["Kubernetes"],
+        });
+
+      expect(sections.commonOptions).toEqual([kubernetes]);
+      expect(sections.moreGroups).toEqual([
+        { label: null, options: [website] },
+      ]);
+    });
+
+    test("with no common values, everything waits behind More", () => {
+      const sections: ReturnType<typeof getCardSelectCatalogSections> =
+        getCardSelectCatalogSections({
+          options: catalogOptions,
+          commonOptionValues: [],
+        });
+
+      expect(sections.commonOptions).toEqual([]);
+      expect(sections.moreGroups).toHaveLength(4);
     });
   });
 

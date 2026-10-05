@@ -14,9 +14,16 @@ Es gibt drei Wege, wie eine Runbook-Ausführung erstellt wird:
 - **Titel und Beschreibung** — zur Ausführungszeit aus dem Runbook kopiert.
 - **Ausgabe** (einklappbar) — stdout, Rückgabewerte, HTTP-Antworten.
 - **Fehlermeldung**, falls der Schritt fehlgeschlagen ist.
-- Für manuelle Schritte in `WaitingForUser`: **Als erledigt markieren**- und **Überspringen**-Buttons.
+- Am Schritt, auf den der Lauf wartet: **Als abgeschlossen markieren** (ein manueller Schritt) oder **Genehmigen & fortfahren** (ein Schritt mit **Freigabe erforderlich**) sowie **Überspringen**.
+- Solange der Lauf pausiert ist, **Überspringen** an späteren automatisierten Schritten, die keine Freigabe erfordern.
 
 Die Seite pollt alle 3 Sekunden, solange die Ausführung nicht terminal ist, sodass Sie automatisierte Schritte nahezu in Echtzeit abschließen sehen.
+
+## Schritte abschließen, genehmigen und überspringen
+
+Nur der Schritt, auf den der Lauf wartet, kann als abgeschlossen markiert, genehmigt oder übersprungen werden, um den Lauf fortzusetzen. Ein manueller Schritt oder ein Schritt mit **Freigabe erforderlich** kann nicht abgehakt oder übersprungen werden, bevor der Lauf ihn erreicht — seine Aufgabe ist es, den Lauf anzuhalten, daher nimmt er eine Entscheidung erst an, wenn der Lauf dort angekommen ist (bei einer Genehmigung erst, wenn der Schritt gelaufen ist und Sie seine Ausgabe sehen können).
+
+Solange der Lauf pausiert ist, können Sie außerdem einen späteren automatisierten Schritt überspringen, der keine Freigabe erfordert, damit er nicht läuft, wenn der Lauf weitergeht. Der Lauf bleibt an dem Schritt pausiert, der auf Sie wartet. Überspringen ist nicht möglich, während Schritte laufen — warten Sie, bis der Lauf pausiert, oder brechen Sie ihn ab. Jeder Schritt hält fest, wer ihn abgeschlossen oder übersprungen hat.
 
 ## Manuelle und automatisierte Schritte verschränken
 

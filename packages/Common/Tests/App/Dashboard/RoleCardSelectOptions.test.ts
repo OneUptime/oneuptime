@@ -188,7 +188,7 @@ describe("every Add Role uses this one list", () => {
 
     expect(source).toContain("FormFieldSchemaType.CardSelect");
     expect(source).not.toContain("cardSelectSearchable");
-    expect(source).not.toContain("cardSelectCollapsibleGroups");
+    expect(source).not.toContain("cardSelectCatalog");
   });
 
   test("the Access question of a new API key or team", () => {

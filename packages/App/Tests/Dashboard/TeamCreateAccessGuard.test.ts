@@ -290,7 +290,7 @@ describe("a team's block permissions fold under Advanced on its Permissions page
 
     expect(table).toContain("getRoleCardSelectOptions()");
     expect(table).not.toContain("cardSelectSearchable");
-    expect(table).not.toContain("cardSelectCollapsibleGroups");
+    expect(table).not.toContain("cardSelectCatalog");
   });
 });
 

@@ -35,7 +35,10 @@ import * as React from "react";
  *   - a record that is not found keeps the dialog open with the reason;
  *   - a record that is found says what happens to the certificate next:
  *     issued within 15 minutes, already there, the uploaded one, or - when
- *     the order failed - why, and that it is tried again on its own.
+ *     the order failed - why, and that it is tried again on its own;
+ *   - Check now changes the domain, so somebody who may not edit it gets
+ *     the record with Check now locked and the reason under it, and before
+ *     the permissions have arrived there is no Check now at all.
  *
  * Only the network and the clipboard are replaced; the dialog is the real
  * Modal.
@@ -102,6 +105,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 import Clipboard from "../../../UI/Utils/Clipboard";
+import { PermissionGateResult } from "../../../UI/Utils/PermissionGate";
 
 const DOMAIN_ID: string = "0193c0de-0000-4aaa-8bbb-00000000d0d0";
 
@@ -199,7 +203,10 @@ describe.each(KINDS)(
 
     function renderDialog(
       row: CustomDomainModel = domain(),
-      options?: { hasExpiredCertificate?: boolean },
+      options?: {
+        hasExpiredCertificate?: boolean;
+        checkNowGate?: PermissionGateResult;
+      },
     ): Rendered {
       const onClose: Mock<() => void> = jest.fn();
       const onVerified: Mock<() => void> = jest.fn();
@@ -209,6 +216,7 @@ describe.each(KINDS)(
           kind={kindCase.kind}
           domain={row}
           hasExpiredCertificate={options?.hasExpiredCertificate}
+          checkNowGate={options?.checkNowGate || { isAllowed: true }}
           onClose={onClose as never}
           onVerified={onVerified as never}
         />,
@@ -369,6 +377,67 @@ describe.each(KINDS)(
       expect(
         screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
       ).toHaveTextContent(CustomDomainCopy.dnsSetupWhatHappensNext);
+    });
+
+    /*
+     * Check now verifies the domain and orders its certificate: a change,
+     * which the server allows only to whoever may edit the domain.
+     */
+    test("somebody who may not edit the domain gets the record, with Check now locked and the reason under it", async () => {
+      const reason: string =
+        "You do not have permission to update this Domain. You need one of these permissions: Project Owner.";
+
+      renderDialog(domain(), {
+        checkNowGate: { isAllowed: false, disabledReason: reason },
+      });
+
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.recordName),
+      ).toHaveTextContent("status.acme.com");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.recordValue),
+      ).toHaveTextContent(kindCase.cnameRecord);
+
+      const checkNow: HTMLElement = within(dialog()).getByRole("button", {
+        name: "Check now",
+      });
+
+      expect(checkNow).toBeDisabled();
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.checkNowLocked),
+      ).toHaveTextContent(reason);
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(checkNow);
+      });
+
+      expect(mockApiGetCalls).toHaveLength(0);
+    });
+
+    test("before the permissions have arrived there is no Check now, rather than a locked one with nothing to say", () => {
+      renderDialog(domain(), { checkNowGate: { isAllowed: false } });
+
+      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.record)).toBeInTheDocument();
+      expect(
+        within(dialog()).queryByRole("button", { name: "Check now" }),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId(DNS_SETUP_TEST_IDS.checkNowLocked),
+      ).toBeNull();
+      expect(
+        within(dialog()).getByTestId("modal-footer-close-button"),
+      ).toBeEnabled();
+    });
+
+    test("somebody who may edit the domain gets Check now, with no lock", () => {
+      renderDialog(domain(), { checkNowGate: { isAllowed: true } });
+
+      expect(
+        within(dialog()).getByRole("button", { name: "Check now" }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByTestId(DNS_SETUP_TEST_IDS.checkNowLocked),
+      ).toBeNull();
     });
 
     test("Check now asks this kind's verify-cname about this domain", async () => {

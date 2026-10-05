@@ -322,6 +322,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
   let executionFindSpy: jest.SpyInstance;
   let executionCreateSpy: jest.SpyInstance;
   let executionUpdateSpy: jest.SpyInstance;
+  let executionCompareAndSetSpy: jest.SpyInstance;
   let cancelJobsSpy: jest.SpyInstance;
 
   beforeAll(() => {
@@ -363,6 +364,10 @@ describe("Runbook execution routes require an authorized member of the runbook's
     executionUpdateSpy = jest
       .spyOn(RunbookExecutionService, "updateOneById")
       .mockResolvedValue(undefined as never);
+    // How complete and skip write: a compare-and-set on the paused state.
+    executionCompareAndSetSpy = jest
+      .spyOn(RunbookExecutionService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(true);
     cancelJobsSpy = jest
       .spyOn(RunnerJobService, "cancelJobsForExecution")
       .mockResolvedValue(undefined as never);
@@ -405,16 +410,24 @@ describe("Runbook execution routes require an authorized member of the runbook's
     } as unknown as Runbook);
   }
 
+  /*
+   * By default, paused the way the execution loop leaves a run: step-1 (the
+   * Manual step) waiting for a person, the steps after it still Pending, and
+   * the execution parked in WaitingForManualStep.
+   */
   function mockExecutionInProject(data: {
     projectId: ObjectID;
     status?: RunbookExecutionStatus | undefined;
     stepStatus?: RunbookStepExecutionStatus | undefined;
   }): void {
     const stepExecutions: Array<RunbookStepExecutionState> = makeSteps().map(
-      (step: RunbookStep): RunbookStepExecutionState => {
+      (step: RunbookStep, index: number): RunbookStepExecutionState => {
         return {
           step,
-          status: data.stepStatus || RunbookStepExecutionStatus.WaitingForUser,
+          status:
+            index === 0
+              ? data.stepStatus || RunbookStepExecutionStatus.WaitingForUser
+              : RunbookStepExecutionStatus.Pending,
         };
       },
     );
@@ -422,8 +435,9 @@ describe("Runbook execution routes require an authorized member of the runbook's
     executionFindSpy.mockResolvedValue({
       _id: executionId.toString(),
       projectId: data.projectId,
-      status: data.status || RunbookExecutionStatus.Running,
+      status: data.status || RunbookExecutionStatus.WaitingForManualStep,
       stepExecutions,
+      version: 3,
     } as unknown as RunbookExecution);
   }
 
@@ -463,6 +477,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
     expect(startExecutionMock).not.toHaveBeenCalled();
     expect(executionCreateSpy).not.toHaveBeenCalled();
     expect(executionUpdateSpy).not.toHaveBeenCalled();
+    expect(executionCompareAndSetSpy).not.toHaveBeenCalled();
     expect(cancelJobsSpy).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   }
@@ -894,7 +909,9 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
         expect(result.thrownToNext).toBeUndefined();
         expect(executionFindSpy).toHaveBeenCalled();
-        expect(executionUpdateSpy).toHaveBeenCalled();
+        expect(
+          uri === CANCEL_ROUTE ? executionUpdateSpy : executionCompareAndSetSpy,
+        ).toHaveBeenCalled();
       },
     );
 
@@ -1017,6 +1034,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
         expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
         expect(executionUpdateSpy).not.toHaveBeenCalled();
+        expect(executionCompareAndSetSpy).not.toHaveBeenCalled();
         expect(startExecutionMock).not.toHaveBeenCalled();
       },
     );
@@ -1060,7 +1078,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
       memberProps([Permission.ProjectMember]);
       mockExecutionInProject({
         projectId: callerProjectId,
-        status: RunbookExecutionStatus.Running,
+        status: RunbookExecutionStatus.WaitingForManualStep,
         stepStatus: RunbookStepExecutionStatus.WaitingForUser,
       });
 
@@ -1071,10 +1089,11 @@ describe("Runbook execution routes require an authorized member of the runbook's
       });
 
       expect(result.nextCallCount).toBe(0);
-      expect(executionUpdateSpy).toHaveBeenCalledTimes(1);
+      expect(executionCompareAndSetSpy).toHaveBeenCalledTimes(1);
+      expect(executionUpdateSpy).not.toHaveBeenCalled();
 
       const updatedSteps: Array<RunbookStepExecutionState> = (
-        executionUpdateSpy.mock.calls[0]![0] as {
+        executionCompareAndSetSpy.mock.calls[0]![0] as {
           data: { stepExecutions: Array<RunbookStepExecutionState> };
         }
       ).data.stepExecutions;

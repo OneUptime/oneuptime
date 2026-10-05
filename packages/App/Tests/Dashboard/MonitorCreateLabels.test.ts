@@ -74,8 +74,20 @@ const source: string = readCode(MONITOR_CREATE_SOURCE_PATH);
 // The shared Labels field the form asks with.
 const labelsFieldSource: string = readCode(LABELS_FORM_FIELD_SOURCE_PATH);
 
+/*
+ * Since create-monitor-simpler the labels share Monitor Info's More fields
+ * section with the description: one folded header at the end of the step.
+ */
 const LABELS_FIELD_CALL: string = squash(`
   getLabelsFormField<Monitor>({
+    stepId: "monitor-info",
+    collapsibleSection: MONITOR_INFO_MORE_FIELDS,
+  }),
+`);
+
+// The monitor type picker the step opens on (Utils/Form/Monitor/MonitorTypeFormField).
+const MONITOR_TYPE_FIELD_CALL: string = squash(`
+  getMonitorTypeFormField<Monitor>({
     stepId: "monitor-info",
   }),
 `);
@@ -235,8 +247,18 @@ describe("Monitor create labels", () => {
         "collapsibleSection: collapsibleSection || getAdvancedFormSection<TEntity>(),",
       ),
     );
-    // The page hands it no section of its own: the field's own Advanced.
-    expect(LABELS_FIELD_CALL).not.toContain("collapsibleSection");
+    /*
+     * The page hands it the one More fields section it builds once, shared
+     * with the description, so both fold under a single header.
+     */
+    expect(source).toContain(
+      squash(
+        "const MONITOR_INFO_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> = getAdvancedFormSection<Monitor>();",
+      ),
+    );
+    expect(
+      source.split("collapsibleSection: MONITOR_INFO_MORE_FIELDS").length - 1,
+    ).toBe(2);
   });
 
   test("keeps Labels on the step every monitor type walks, with no step of their own", () => {
@@ -273,9 +295,7 @@ describe("Monitor create labels", () => {
      * Last on Monitor Info, after the monitor type: the folded section ends
      * the step, below everything the step asks in the open.
      */
-    const monitorTypeField: number = source.indexOf(
-      squash("field: { monitorType: true, },"),
-    );
+    const monitorTypeField: number = source.indexOf(MONITOR_TYPE_FIELD_CALL);
     const labelsField: number = source.indexOf(LABELS_FIELD_CALL);
     const monitorStepsField: number = source.indexOf(
       squash("field: { monitorSteps: true, },"),

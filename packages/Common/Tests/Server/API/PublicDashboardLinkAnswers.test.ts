@@ -180,10 +180,17 @@ const CONTENT_COLUMNS: Array<string> = [
   "dashboardViewConfig",
 ];
 
+// Every dashboard here is of one project, and so is every image it shows.
+const DASHBOARD_PROJECT_ID: ObjectID = new ObjectID(
+  "ab000000-0000-4000-8000-0000000000ee",
+);
+
 const imageFile: (bytes: string) => File = (bytes: string): File => {
   const file: File = new File();
   file.file = Buffer.from(bytes);
   file.fileType = MimeType.png;
+  // A dashboard shows only files of its own project (FileOwnership).
+  file.projectId = DASHBOARD_PROJECT_ID;
   return file;
 };
 
@@ -208,7 +215,7 @@ const storedDashboard: (options: StoredOptions) => Dashboard = (
   const dashboard: Dashboard = new Dashboard();
   dashboard.id = options.id;
   dashboard._id = options.id.toString();
-  dashboard.projectId = new ObjectID("ab000000-0000-4000-8000-0000000000ee");
+  dashboard.projectId = DASHBOARD_PROJECT_ID;
   dashboard.name = `${options.label} name`;
   dashboard.description = `${options.label} description`;
 

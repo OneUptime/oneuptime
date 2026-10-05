@@ -53,6 +53,9 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { getJestSpyOn } from "../../Spy";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import Permission from "../../../Types/Permission";
 
 /*
  * Custom Domains, on a status page (Status Pages > <page> > Custom Domains)
@@ -74,7 +77,9 @@ import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/Ad
  *   - the new domain's DNS Setup dialog opens as soon as it is added;
  *   - DNS Setup (the old Add CNAME) shows until the record is verified;
  *     there is no Order Free SSL; Reissue SSL stays;
- *   - the Status column is the same plain states, with one timing.
+ *   - the Status column is the same plain states, with one timing;
+ *   - Check now and Reissue SSL change the domain, so somebody who may only
+ *     read it sees them locked, with the permission they need.
  *
  * The ModelTable is replaced by a stand-in that renders the page's own
  * Status column and row actions for the rows given, and hands the test the
@@ -162,6 +167,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
                       return (
                         <button
                           key={action.title}
+                          disabled={Boolean(action.disabled)}
+                          data-tooltip={action.tooltip || ""}
                           onClick={() => {
                             action.onClick(
                               row,
@@ -271,6 +278,9 @@ const ORDER_ERROR: string =
 function setCnameRecord(value: string): void {
   (globalThis as unknown as { __cnameRecord: string }).__cnameRecord = value;
 }
+
+// What the signed-in member holds in the project; an admin unless a test says.
+let mockPermissions: Array<Permission> = [Permission.ProjectAdmin];
 
 describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
   function domain(
@@ -390,6 +400,13 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
   beforeEach(() => {
     setCnameRecord(page.cnameRecord);
     mockTableProps = null;
+    mockPermissions = [Permission.ProjectAdmin];
+    PermissionGate.clearPermissionPropsCache();
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockImplementation((): Array<Permission> => {
+        return mockPermissions;
+      });
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(PARENT_ID);
     jest
@@ -834,6 +851,164 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       expect(String(get.mock.calls[0]![0].url)).toContain(
         `${page.crudApiPath}/verify-cname/${rowNamed(UNVERIFIED)._id}`,
       );
+    });
+  });
+
+  /*
+   * Check now and Reissue SSL verify the domain and order or replace its
+   * certificate, which the server allows only to whoever may edit the
+   * domain. The page says so before the click: both are locked for somebody
+   * who may only read the domain, with the permission they need, while the
+   * record to add and the Status column stay theirs to read.
+   */
+  describe("who may check and reissue", () => {
+    const LOCKED_REASON_START: string = `You do not have permission to update this ${new page.modelType().singularName}.`;
+
+    test("somebody who may only read the domains sees Reissue SSL locked, with the permission they need", () => {
+      mockPermissions = [Permission.Viewer];
+
+      renderPage();
+
+      const reissue: HTMLElement = within(rowOf(PROVISIONED)).getByRole(
+        "button",
+        { name: "Reissue SSL" },
+      );
+
+      expect(reissue).toBeDisabled();
+      expect(reissue.getAttribute("data-tooltip")).toContain(
+        LOCKED_REASON_START,
+      );
+      expect(reissue.getAttribute("data-tooltip")).toContain(
+        "You need one of these permissions:",
+      );
+
+      // The table's own permission gate decides Edit; the row keeps DNS Setup.
+      expect(
+        within(rowOf(UNVERIFIED)).getByRole("button", { name: "DNS Setup" }),
+      ).toBeEnabled();
+    });
+
+    test("their DNS Setup shows the record, with Check now locked and the reason under it", async () => {
+      mockPermissions = [Permission.Viewer];
+
+      const get: jest.SpyInstance<any, any> = getJestSpyOn(
+        API,
+        "get",
+      ).mockResolvedValue(
+        new HTTPResponse(200, { certificateStatus: "Issuing" }, {}) as never,
+      );
+
+      renderPage();
+
+      fireEvent.click(
+        within(rowOf(UNVERIFIED)).getByRole("button", { name: "DNS Setup" }),
+      );
+
+      const dialog: HTMLElement = screen.getByTestId("modal");
+
+      expect(
+        within(dialog).getByTestId(DNS_SETUP_TEST_IDS.recordValue),
+      ).toHaveTextContent(page.cnameRecord);
+
+      const checkNow: HTMLElement = within(dialog).getByRole("button", {
+        name: "Check now",
+      });
+
+      expect(checkNow).toBeDisabled();
+      expect(
+        within(dialog).getByTestId(DNS_SETUP_TEST_IDS.checkNowLocked),
+      ).toHaveTextContent(LOCKED_REASON_START);
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(checkNow);
+      });
+
+      expect(get).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["an editor role", [Permission.ProjectMember]],
+      ["read and edit on the domain", "own"],
+    ])(
+      "%s gets Reissue SSL and Check now unlocked",
+      (_label: string, held: Array<Permission> | string) => {
+        const model: CustomDomainModel = new page.modelType();
+
+        mockPermissions =
+          held === "own"
+            ? [
+                ...model
+                  .getReadPermissions()
+                  .filter((permission: Permission) => {
+                    return permission.startsWith("Read");
+                  }),
+                ...model
+                  .getUpdatePermissions()
+                  .filter((permission: Permission) => {
+                    return permission.startsWith("Edit");
+                  }),
+              ]
+            : (held as Array<Permission>);
+
+        expect(mockPermissions.length).toBeGreaterThan(0);
+
+        renderPage();
+
+        expect(
+          within(rowOf(PROVISIONED)).getByRole("button", {
+            name: "Reissue SSL",
+          }),
+        ).toBeEnabled();
+
+        fireEvent.click(
+          within(rowOf(UNVERIFIED)).getByRole("button", { name: "DNS Setup" }),
+        );
+
+        const dialog: HTMLElement = screen.getByTestId("modal");
+
+        expect(
+          within(dialog).getByRole("button", { name: "Check now" }),
+        ).toBeEnabled();
+        expect(
+          within(dialog).queryByTestId(DNS_SETUP_TEST_IDS.checkNowLocked),
+        ).toBeNull();
+      },
+    );
+
+    test("before the permissions have arrived, Reissue SSL is not offered rather than locked with nothing to say", () => {
+      mockPermissions = [];
+
+      renderPage();
+
+      for (const fullDomain of [ORDERED, PROVISIONED]) {
+        expect(
+          within(rowOf(fullDomain)).queryByRole("button", {
+            name: "Reissue SSL",
+          }),
+        ).toBeNull();
+      }
+    });
+
+    test("before the permissions have arrived, DNS Setup offers no Check now rather than a locked one", () => {
+      mockPermissions = [];
+
+      renderPage();
+
+      fireEvent.click(
+        within(rowOf(UNVERIFIED)).getByRole("button", { name: "DNS Setup" }),
+      );
+
+      const dialog: HTMLElement = screen.getByTestId("modal");
+
+      expect(
+        within(dialog).getByTestId(DNS_SETUP_TEST_IDS.recordName),
+      ).toHaveTextContent(UNVERIFIED);
+      expect(
+        within(dialog).queryByRole("button", { name: "Check now" }),
+      ).toBeNull();
+      expect(
+        within(dialog).queryByTestId(DNS_SETUP_TEST_IDS.checkNowLocked),
+      ).toBeNull();
     });
   });
 

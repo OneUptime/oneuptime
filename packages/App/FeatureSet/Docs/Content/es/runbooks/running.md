@@ -14,9 +14,16 @@ Abre cualquier ejecución para ver su UI de checklist. Cada paso muestra:
 - **Título y descripción** — copiados del runbook en el momento de la ejecución.
 - **Salida** (replegable) — stdout, valores de retorno, respuestas HTTP.
 - **Mensaje de error** si el paso falló.
-- En pasos manuales en `WaitingForUser`: botones **Marcar como completado** y **Omitir**.
+- En el paso en el que espera la ejecución: **Marcar como completado** (un paso manual) o **Aprobar y continuar** (un paso con **Requiere aprobación**), y **Omitir**.
+- Mientras la ejecución está en pausa, **Omitir** en los pasos automatizados posteriores que no requieren aprobación.
 
 La página sondea cada 3 segundos mientras la ejecución no es terminal, así que verás los pasos automatizados completarse casi en tiempo real.
+
+## Completar, aprobar y omitir pasos
+
+Solo el paso en el que espera la ejecución puede marcarse como completado, aprobarse u omitirse para que la ejecución continúe. Un paso manual o un paso con **Requiere aprobación** no se puede marcar ni omitir antes de que la ejecución llegue a él — su función es detener la ejecución, así que solo acepta una decisión cuando la ejecución ya está ahí (en una aprobación, cuando el paso ya se ejecutó y puedes ver su salida).
+
+Mientras la ejecución está en pausa, también puedes omitir un paso automatizado posterior que no requiere aprobación, para que no se ejecute cuando la ejecución continúe. La ejecución sigue en pausa en el paso que te está esperando. No se pueden omitir pasos mientras hay pasos en ejecución — espera a que la ejecución se pause o cancélala. Cada paso registra quién lo completó u omitió.
 
 ## Intercalar pasos manuales y automatizados
 

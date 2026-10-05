@@ -185,6 +185,7 @@ export class Service extends DatabaseService<Model> {
       createdItem.note,
       true,
       `scheduled maintenance public note ${createdItem.id?.toString()}`,
+      createdItem.projectId,
     );
 
     const scheduledMaintenanceId: ObjectID =
@@ -263,6 +264,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           updatedItem.note,
           true,
           `scheduled maintenance public note ${updatedItem.id?.toString()}`,
+          updatedItem.projectId,
         );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(

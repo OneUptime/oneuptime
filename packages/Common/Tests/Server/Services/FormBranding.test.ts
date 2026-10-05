@@ -349,7 +349,7 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never) as unknown as MockedFn;
 
   makeFilePublic = jest
-    .spyOn(FileService, "makeFilePublic")
+    .spyOn(FileService, "makeRecordFilePublic")
     .mockResolvedValue(undefined as never) as unknown as MockedFn;
 
   formFindOneBy = jest
