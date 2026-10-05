@@ -12,7 +12,7 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import ObjectID from "../../../Types/ObjectID";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
-import type { SpyInstance } from "jest-mock";
+import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
   beforeEach,
@@ -21,6 +21,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
  * An incident or alert episode update names a state and a severity, which
@@ -232,7 +234,7 @@ describe.each(CASES)(
     );
 
     test("the severity is checked against the project the episode is in", async () => {
-      const validate: SpyInstance = jest.spyOn(
+      const validate: SpyInstance = getJestSpyOn(
         ProjectScopedReferenceValidator,
         "validateReferencesBelongToProject",
       );
@@ -293,7 +295,7 @@ describe.each(CASES)(
 
 describe.each(CASES)("$name updated in a project", (testCase: EpisodeCase) => {
   test("is checked against the request's project, without reading the episodes' projects", async () => {
-    const readProjects: SpyInstance = jest.spyOn(
+    const readProjects: SpyInstance = getJestSpyOn(
       ProjectScopedReferenceValidator,
       "getProjectIdsOfRecords",
     );
@@ -335,7 +337,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
   };
 
   test("reads nothing for an update that names no reference", async () => {
-    const findBy: SpyInstance = jest.spyOn(IncidentEpisodeService, "findBy");
+    const findBy: SpyInstance = getJestSpyOn(IncidentEpisodeService, "findBy");
 
     await ProjectScopedReferenceValidator.validateUpdateReferences({
       service: IncidentEpisodeService,
@@ -377,9 +379,10 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
   });
 
   test("a record's project is read as root, so the read is not narrowed to the caller", async () => {
-    const findBy: SpyInstance = jest
-      .spyOn(IncidentEpisodeService, "findBy")
-      .mockResolvedValue([]);
+    const findBy: SpyInstance = getJestSpyOn(
+      IncidentEpisodeService,
+      "findBy",
+    ).mockResolvedValue([]);
 
     await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
       service:
@@ -395,7 +398,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
   });
 
   test("a model with no project has no projects to read", async () => {
-    const findBy: SpyInstance = jest.spyOn(UserService, "findBy");
+    const findBy: SpyInstance = getJestSpyOn(UserService, "findBy");
 
     expect(
       await ProjectScopedReferenceValidator.getProjectIdsOfRecords({

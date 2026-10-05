@@ -12,8 +12,10 @@ import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import type { SpyInstance } from "jest-mock";
+import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
  * DatabaseService's own checks of a create - a status page holds at most
@@ -86,9 +88,10 @@ describe.each([
     }
 
     test("a page named by the relation counts toward its limit", async () => {
-      const countBy: SpyInstance = jest
-        .spyOn(service as never, "countBy")
-        .mockResolvedValue(new PositiveNumber(3) as never);
+      const countBy: SpyInstance = getJestSpyOn(
+        service,
+        "countBy",
+      ).mockResolvedValue(new PositiveNumber(3) as never);
 
       await expect(
         checksOf(service).checkTotalItemsBy({
@@ -127,7 +130,7 @@ describe.each([
     });
 
     test("a page named differently under its two names is refused before counting", async () => {
-      const countBy: SpyInstance = jest.spyOn(service as never, "countBy");
+      const countBy: SpyInstance = getJestSpyOn(service, "countBy");
 
       await expect(
         checksOf(service).checkTotalItemsBy({
@@ -147,7 +150,7 @@ describe.each([
     });
 
     test("a link naming no page is not counted", async () => {
-      const countBy: SpyInstance = jest.spyOn(service as never, "countBy");
+      const countBy: SpyInstance = getJestSpyOn(service, "countBy");
 
       await checksOf(service).checkTotalItemsBy({
         data: link({}),
@@ -169,9 +172,10 @@ describe("a group's name is unique on the status page named either way", () => {
   }
 
   test("the name is looked for among the groups of a page named by the relation", async () => {
-    const countBy: SpyInstance = jest
-      .spyOn(StatusPageGroupService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1) as never);
+    const countBy: SpyInstance = getJestSpyOn(
+      StatusPageGroupService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(1) as never);
 
     await expect(
       checksOf(StatusPageGroupService).checkUniqueColumnBy({
@@ -213,9 +217,10 @@ describe("a group's name is unique on the status page named either way", () => {
   });
 
   test("a workflow named by the relation scopes the name, and the project is read as it is", async () => {
-    const countBy: SpyInstance = jest
-      .spyOn(WorkflowVariableService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0) as never);
+    const countBy: SpyInstance = getJestSpyOn(
+      WorkflowVariableService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(0) as never);
 
     const variable: WorkflowVariable = Object.assign(new WorkflowVariable(), {
       name: "API_TOKEN",
@@ -251,9 +256,10 @@ describe("an owner row is unique for its record, its team named either way", () 
   }
 
   test("a team named by the relation is the team looked for", async () => {
-    const countBy: SpyInstance = jest
-      .spyOn(IncidentOwnerTeamService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1) as never);
+    const countBy: SpyInstance = getJestSpyOn(
+      IncidentOwnerTeamService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(1) as never);
 
     await expect(
       checksOf(IncidentOwnerTeamService).checkUniqueColumnsTogether(
