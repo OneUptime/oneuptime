@@ -44,10 +44,10 @@ export const extractImageAccessTokens: (
 
 // Whether a record of this project may change the image's visibility.
 export const mayChangeImageVisibility: (
-  file: Pick<File, "projectId">,
+  file: { projectId?: ObjectID | null | undefined },
   projectId: ObjectID | null | undefined,
 ) => boolean = (
-  file: Pick<File, "projectId">,
+  file: { projectId?: ObjectID | null | undefined },
   projectId: ObjectID | null | undefined,
 ): boolean => {
   return !file.projectId || FileOwnership.isFileOfProject(file, projectId);

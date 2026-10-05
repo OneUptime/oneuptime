@@ -8,6 +8,7 @@ import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -149,7 +150,7 @@ describe("File.createdByUserId: who uploaded the file", () => {
  */
 interface Recording {
   calls: Array<[string, Array<unknown>]>;
-  createQueryBuilder: jest.Mock<(alias: unknown) => unknown>;
+  createQueryBuilder: Mock<(alias: unknown) => unknown>;
 }
 
 function withRows(rows: Array<Record<string, unknown>>): Recording {
@@ -172,7 +173,7 @@ function withRows(rows: Array<Record<string, unknown>>): Recording {
     throw new Error("getFileOwners must never load whole Files");
   };
 
-  const createQueryBuilder: jest.Mock<(alias: unknown) => unknown> = jest.fn(
+  const createQueryBuilder: Mock<(alias: unknown) => unknown> = jest.fn(
     (alias: unknown): unknown => {
       calls.push(["createQueryBuilder", [alias]]);
       return builder;
@@ -287,19 +288,20 @@ describe("FileService.getFileOwners: who each file belongs to", () => {
 });
 
 describe("FileService.makeRecordFilePublic: only a record's own file becomes public", () => {
-  type UpdateOneByIdMock = jest.Mock<(...args: Array<unknown>) => unknown>;
+  type UpdateOneByIdMock = Mock<(...args: Array<unknown>) => unknown>;
 
   function stub(owners: Map<string, FileOwners>): {
     updateOneById: UpdateOneByIdMock;
-    getFileOwners: jest.Mock<(...args: Array<unknown>) => unknown>;
+    getFileOwners: Mock<(...args: Array<unknown>) => unknown>;
   } {
     const updateOneById: UpdateOneByIdMock = jest.fn(async () => {
       return undefined;
     });
-    const getFileOwners: jest.Mock<(...args: Array<unknown>) => unknown> =
-      jest.fn(async () => {
+    const getFileOwners: Mock<(...args: Array<unknown>) => unknown> = jest.fn(
+      async () => {
         return owners;
-      });
+      },
+    );
 
     jest
       .spyOn(FileService, "updateOneById")

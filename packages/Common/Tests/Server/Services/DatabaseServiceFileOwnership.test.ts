@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { FindOperator } from "typeorm";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
@@ -111,7 +112,7 @@ class ProbeWrites extends DatabaseService<Probe> {
   }
 }
 
-type GetFileOwnersMock = jest.Mock<
+type GetFileOwnersMock = Mock<
   (fileIds: Array<ObjectID>) => Promise<Map<string, FileOwners>>
 >;
 
@@ -169,9 +170,9 @@ function acceptedValues(condition: unknown): Array<string> {
 
 interface FakeRepository {
   rows: Array<BaseModel>;
-  find: jest.Mock<(options: { where?: unknown }) => Promise<Array<BaseModel>>>;
-  save: jest.Mock<(entity: unknown) => Promise<unknown>>;
-  update: jest.Mock<
+  find: Mock<(options: { where?: unknown }) => Promise<Array<BaseModel>>>;
+  save: Mock<(entity: unknown) => Promise<unknown>>;
+  update: Mock<
     (criteria: unknown, data: unknown) => Promise<{ affected: number }>
   >;
 }

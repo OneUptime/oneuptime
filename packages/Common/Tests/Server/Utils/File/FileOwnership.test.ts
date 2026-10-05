@@ -29,6 +29,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * Which files a record may point at, and which a page may serve
@@ -73,7 +74,7 @@ const FILES: Record<string, FileOwners> = {
   [NO_PROJECT_FILE_ID]: { projectId: null, createdByUserId: null },
 };
 
-type GetFileOwnersMock = jest.Mock<
+type GetFileOwnersMock = Mock<
   (fileIds: Array<ObjectID>) => Promise<Map<string, FileOwners>>
 >;
 
