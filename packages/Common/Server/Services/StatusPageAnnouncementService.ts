@@ -83,6 +83,7 @@ export class Service extends DatabaseService<Model> {
       createdItem.description,
       true,
       `status page announcement ${createdItem.id?.toString()}`,
+      createdItem.projectId,
     );
 
     return createdItem;
@@ -103,6 +104,7 @@ export class Service extends DatabaseService<Model> {
         },
         select: {
           description: true,
+          projectId: true,
         },
       });
 
@@ -111,6 +113,7 @@ export class Service extends DatabaseService<Model> {
           updatedItem.description,
           true,
           `status page announcement ${updatedItem.id?.toString()}`,
+          updatedItem.projectId,
         );
       }
     }
