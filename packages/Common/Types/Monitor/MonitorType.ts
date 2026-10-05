@@ -95,6 +95,29 @@ export interface MonitorTypeCategory {
 }
 
 export class MonitorTypeHelper {
+  /*
+   * The monitor types most people create, in the order Create Monitor lists
+   * them before anything else. Every other type the picker offers is one
+   * search, or one "More monitor types" press, away (the picker leaves its
+   * categories folded behind that button). Kept short on purpose: six
+   * compact rows a new user can read at a glance, where the whole catalog
+   * used to be a wall of headings and counts.
+   *
+   * Website and API are the uptime checks nearly every project starts with;
+   * Ping, Port and SSL Certificate are the next things people watch on a
+   * host; Incoming Request covers heartbeats from cron jobs and webhooks.
+   */
+  public static getCommonMonitorTypes(): Array<MonitorType> {
+    return [
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.Ping,
+      MonitorType.Port,
+      MonitorType.SSLCertificate,
+      MonitorType.IncomingRequest,
+    ];
+  }
+
   public static getMonitorTypeCategories(): Array<MonitorTypeCategory> {
     return [
       {

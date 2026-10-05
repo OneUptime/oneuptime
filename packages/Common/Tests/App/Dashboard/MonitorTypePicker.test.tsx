@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import React, { ReactElement, useState } from "react";
 import { describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import MonitorType, {
@@ -8,37 +8,79 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "../../../Types/Monitor/MonitorType";
 import CardSelect, {
+  CardSelectCatalog,
   CardSelectOption,
   CardSelectOptionGroup,
 } from "../../../UI/Components/CardSelect/CardSelect";
+import Field from "../../../UI/Components/Forms/Types/Field";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTypeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/MonitorType";
+import getMonitorTypeFormField from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitorTypeFormField";
 
 /*
- * The real catalog, driven through the real picker. The unit tests either side
- * of this one prove the search ranks correctly and the component renders
- * correctly; what is pinned here is that the dashboard hands the component the
- * data it needs to do either - the adapter drops keywords silently, and every
- * search below still "works" while finding nothing.
+ * The real catalog, driven through the real picker, configured exactly as
+ * Create Monitor and the monitor template forms configure it
+ * (getMonitorTypeFormField). The unit tests either side of this one prove the
+ * search ranks correctly and the component renders correctly; what is pinned
+ * here is that the dashboard hands the component the data it needs to do
+ * either - the adapter drops keywords silently, and every search below still
+ * "works" while finding nothing - and that what a user meets first is short.
+ *
+ * The maintainer, on Create Monitor: "this UI is extremely confusing to use".
+ * It opened on eight large cards under "32 to choose from", over eight more
+ * category headings with counts. It now opens on the six common types as
+ * compact rows, everything else one search or one "More monitor types" away,
+ * and a picked type shrinks to one line with a Change button.
  */
 
+const field: Field<Monitor> = getMonitorTypeFormField<Monitor>();
+
 const categorizedOptions: Array<CardSelectOptionGroup> =
-  MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions();
+  field.cardSelectOptions as Array<CardSelectOptionGroup>;
+
+const catalog: CardSelectCatalog = field.cardSelectCatalog!;
+
+const COMMON_TYPES: Array<MonitorType> = [
+  MonitorType.Website,
+  MonitorType.API,
+  MonitorType.Ping,
+  MonitorType.Port,
+  MonitorType.SSLCertificate,
+  MonitorType.IncomingRequest,
+];
+
+interface PickerProps {
+  onChange: MockFunction;
+  value?: string | undefined;
+}
+
+// The picker in a form that keeps the value picked, as FormField does.
+const Picker: (props: PickerProps) => ReactElement = (
+  props: PickerProps,
+): ReactElement => {
+  const [value, setValue] = useState<string | undefined>(props.value);
+
+  return (
+    <CardSelect
+      options={categorizedOptions}
+      value={value}
+      onChange={(next: string) => {
+        props.onChange(next);
+        setValue(next);
+      }}
+      searchable={field.cardSelectSearchable}
+      searchPlaceholder={field.cardSelectSearchPlaceholder}
+      catalog={field.cardSelectCatalog}
+    />
+  );
+};
 
 type RenderPickerFunction = (value?: string) => MockFunction;
 
 const renderPicker: RenderPickerFunction = (value?: string): MockFunction => {
   const onChange: MockFunction = getJestMockFunction();
 
-  render(
-    <CardSelect
-      options={categorizedOptions}
-      value={value}
-      onChange={onChange}
-      searchable={true}
-      searchPlaceholder="Search monitor types - try ping, ssl, k8s, postgres"
-      collapsibleGroups={true}
-    />,
-  );
+  render(<Picker onChange={onChange} value={value} />);
 
   return onChange;
 };
@@ -51,12 +93,24 @@ const search: SearchFunction = (value: string): void => {
   });
 };
 
-// Every type the catalog actually offers, in the order the picker lists them.
+type PressMoreFunction = () => void;
+
+const pressMore: PressMoreFunction = (): void => {
+  fireEvent.click(screen.getByTestId("card-select-more"));
+};
+
+// Every type the catalog actually offers, in the order the categories list them.
 const catalogTypeValues: Array<string> = categorizedOptions.flatMap(
   (group: CardSelectOptionGroup) => {
     return group.options.map((option: CardSelectOption) => {
       return option.value;
     });
+  },
+);
+
+const longTailTypeValues: Array<string> = catalogTypeValues.filter(
+  (value: string) => {
+    return !(COMMON_TYPES as Array<string>).includes(value);
   },
 );
 
@@ -110,65 +164,166 @@ describe("Monitor type picker", () => {
     });
   });
 
-  describe("what a user sees on opening the form", () => {
-    test("the everyday types are on screen without scrolling past anything", () => {
-      renderPicker();
-
-      expect(screen.getByTestId("card-select-option-Website")).toBeVisible();
-      expect(screen.getByTestId("card-select-option-API")).toBeVisible();
-      expect(screen.getByTestId("card-select-option-Ping")).toBeVisible();
+  describe("the common types", () => {
+    test("are the six types most people create, in this order", () => {
+      expect(MonitorTypeHelper.getCommonMonitorTypes()).toEqual(COMMON_TYPES);
+      expect(catalog.commonOptionValues).toEqual(COMMON_TYPES);
     });
 
     /*
-     * The whole point of the change. Every type used to render at once - nine
-     * headings and 31 cards, about six thousand pixels of them.
+     * A common type the categories stopped offering would vanish from the
+     * picker without a sound: the catalog layout skips a value no option
+     * carries.
      */
-    test("the long tail starts folded away behind its headings", () => {
-      renderPicker();
-
-      expect(
-        screen.queryByTestId("card-select-option-Kubernetes"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("card-select-option-Ceph"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("card-select-option-Traces"),
-      ).not.toBeInTheDocument();
-    });
-
-    test("shows far fewer cards than the catalog holds", () => {
-      renderPicker();
-
-      const total: number = categorizedOptions.reduce(
-        (count: number, group: CardSelectOptionGroup) => {
-          return count + group.options.length;
-        },
-        0,
-      );
-
-      expect(shownTypes().length).toBeLessThan(total / 2);
-    });
-
-    test("every category is still reachable, with a count of what is inside", () => {
-      renderPicker();
-
-      for (const group of categorizedOptions) {
-        const header: HTMLElement = screen.getByTestId(
-          `card-select-group-${group.label}`,
-        );
-
-        expect(header).toBeVisible();
-        expect(header).toHaveTextContent(String(group.options.length));
+    test("are every one a type the catalog offers", () => {
+      for (const monitorType of COMMON_TYPES) {
+        expect(catalogTypeValues).toContain(monitorType);
       }
     });
 
-    test("says how many types there are to choose from", () => {
+    test("are not repeated", () => {
+      expect(new Set(COMMON_TYPES).size).toBe(COMMON_TYPES.length);
+    });
+
+    test("leave the long tail its own: everything else in the catalog", () => {
+      expect(longTailTypeValues.length).toBe(
+        catalogTypeValues.length - COMMON_TYPES.length,
+      );
+      expect(longTailTypeValues).toContain(MonitorType.Kubernetes);
+      expect(longTailTypeValues).toContain(MonitorType.Manual);
+    });
+  });
+
+  describe("what a user sees on opening the form", () => {
+    test("the six common types, in order, and nothing else", () => {
       renderPicker();
 
-      expect(
-        screen.getByTestId("card-select-search-summary"),
-      ).toHaveTextContent("to choose from");
+      expect(shownTypes()).toEqual(COMMON_TYPES);
+    });
+
+    test("the long tail is not on screen at all", () => {
+      renderPicker();
+
+      for (const value of longTailTypeValues) {
+        expect(
+          screen.queryByTestId(`card-select-option-${value}`),
+        ).not.toBeInTheDocument();
+      }
+    });
+
+    /*
+     * The whole point of the change: no wall of headings and counts before
+     * a type can be picked.
+     */
+    test("no category heading and no count", () => {
+      renderPicker();
+
+      for (const group of categorizedOptions) {
+        expect(screen.queryByText(group.label)).not.toBeInTheDocument();
+      }
+
+      expect(screen.queryByText(/to choose from/)).not.toBeInTheDocument();
+    });
+
+    test("one plain way to the rest: More monitor types", () => {
+      renderPicker();
+
+      expect(screen.getByTestId("card-select-more")).toHaveTextContent(
+        "More monitor types",
+      );
+    });
+
+    // The only thing that says the search knows words no card prints.
+    test("a search box that says it understands the user's own words", () => {
+      renderPicker();
+
+      expect(screen.getByTestId("card-select-search")).toHaveAttribute(
+        "placeholder",
+        "Search monitor types - try ping, ssl, k8s, postgres",
+      );
+    });
+
+    test("nothing is picked for the user", () => {
+      renderPicker();
+
+      for (const radio of screen.getAllByRole("radio")) {
+        expect(radio).toHaveAttribute("aria-checked", "false");
+      }
+    });
+  });
+
+  describe("More monitor types", () => {
+    test("shows every type in the catalog, each exactly once", () => {
+      renderPicker();
+
+      pressMore();
+
+      expect([...shownTypes()].sort()).toEqual([...catalogTypeValues].sort());
+    });
+
+    test("puts each type under its category's heading", () => {
+      renderPicker();
+
+      pressMore();
+
+      for (const group of categorizedOptions) {
+        const rest: Array<CardSelectOption> = group.options.filter(
+          (option: CardSelectOption) => {
+            return !(COMMON_TYPES as Array<string>).includes(option.value);
+          },
+        );
+
+        if (rest.length === 0) {
+          expect(
+            screen.queryByTestId(`card-select-group-${group.label}`),
+          ).not.toBeInTheDocument();
+          continue;
+        }
+
+        const section: HTMLElement = screen.getByTestId(
+          `card-select-group-${group.label}`,
+        );
+
+        expect(within(section).getByText(group.label)).toBeVisible();
+
+        for (const option of rest) {
+          expect(
+            within(section).getByTestId(`card-select-option-${option.value}`),
+          ).toBeVisible();
+        }
+      }
+    });
+
+    test("the infrastructure types sit together", () => {
+      renderPicker();
+
+      pressMore();
+
+      const infrastructure: HTMLElement = screen.getByTestId(
+        "card-select-group-Infrastructure",
+      );
+
+      for (const monitorType of [
+        MonitorType.Host,
+        MonitorType.Kubernetes,
+        MonitorType.Docker,
+        MonitorType.Ceph,
+      ]) {
+        expect(
+          within(infrastructure).getByTestId(
+            `card-select-option-${monitorType}`,
+          ),
+        ).toBeVisible();
+      }
+    });
+
+    test("a type can be picked by browsing, with no typing at all", () => {
+      const onChange: MockFunction = renderPicker();
+
+      pressMore();
+      fireEvent.click(screen.getByTestId("card-select-option-Kubernetes"));
+
+      expect(onChange).toHaveBeenCalledWith(MonitorType.Kubernetes);
     });
   });
 
@@ -192,7 +347,7 @@ describe("Monitor type picker", () => {
       expect(shownTypes()[0]).toBe(expected);
     });
 
-    test("a search reaches types that are folded away", () => {
+    test("a search reaches types that More holds back", () => {
       renderPicker();
 
       expect(
@@ -244,7 +399,7 @@ describe("Monitor type picker", () => {
     });
 
     /*
-     * The e2e suite reaches a folded-away type by typing its MonitorType value
+     * The e2e suite reaches a held-back type by typing its MonitorType value
      * into this box and then clicking card-select-option-<value>
      * (selectMonitorTypeCard in E2E/Tests/Dashboard/Helpers/Monitors.ts). That
      * only holds while every type's own value is a search term that finds it,
@@ -263,68 +418,91 @@ describe("Monitor type picker", () => {
     );
   });
 
+  describe("picking and changing a type", () => {
+    test("a picked type shrinks the picker to that type, with Change", () => {
+      renderPicker();
+
+      fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+      const summary: HTMLElement = screen.getByTestId("card-select-summary");
+
+      expect(summary).toHaveAttribute("data-card-select-value", "Website");
+      expect(summary).toHaveTextContent("Website");
+      expect(summary).toHaveTextContent(
+        MonitorTypeHelper.getDescription(MonitorType.Website),
+      );
+      expect(screen.queryAllByRole("radio")).toEqual([]);
+    });
+
+    test("Change, then another type: both picks reported, the last one shown", () => {
+      const onChange: MockFunction = renderPicker();
+
+      fireEvent.click(screen.getByTestId("card-select-option-Website"));
+      fireEvent.click(screen.getByTestId("card-select-change"));
+      fireEvent.click(screen.getByTestId("card-select-option-API"));
+
+      expect(onChange.mock.calls).toEqual([
+        [MonitorType.Website],
+        [MonitorType.API],
+      ]);
+      expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+        "data-card-select-value",
+        "API",
+      );
+    });
+
+    test("Change, then a type from the long tail by search", () => {
+      const onChange: MockFunction = renderPicker();
+
+      fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+      fireEvent.click(screen.getByTestId("card-select-change"));
+      search("postgres");
+      fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+        key: "Enter",
+      });
+
+      expect(onChange).toHaveBeenLastCalledWith(MonitorType.Database);
+      expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+        "data-card-select-value",
+        MonitorType.Database,
+      );
+    });
+  });
+
   describe("coming back to a form that already has a type", () => {
-    test("shows the selection rather than hiding it behind a closed heading", () => {
+    test("shows the type chosen, not the catalog", () => {
       renderPicker(MonitorType.Ceph);
 
-      expect(screen.getByTestId("card-select-option-Ceph")).toBeVisible();
+      expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+        "data-card-select-value",
+        "Ceph",
+      );
+      expect(shownTypes()).toEqual([]);
+    });
+
+    test("Change shows it checked, without pressing More", () => {
+      renderPicker(MonitorType.Ceph);
+
+      fireEvent.click(screen.getByTestId("card-select-change"));
+
       expect(screen.getByTestId("card-select-option-Ceph")).toHaveAttribute(
         "aria-checked",
         "true",
       );
+      expect(screen.queryByTestId("card-select-more")).not.toBeInTheDocument();
     });
 
-    test("leaves the rest folded away", () => {
-      renderPicker(MonitorType.Ceph);
+    /*
+     * Server and Profiles are monitor types the picker no longer offers. A
+     * template that still names one opens on the catalog, as before.
+     */
+    test("a type the picker no longer offers opens the catalog", () => {
+      renderPicker(MonitorType.Server);
 
       expect(
-        screen.queryByTestId("card-select-option-Traces"),
+        screen.queryByTestId("card-select-summary"),
       ).not.toBeInTheDocument();
-    });
-  });
-
-  describe("browsing without searching", () => {
-    test("opening a category shows every type in it", () => {
-      renderPicker();
-
-      fireEvent.click(screen.getByTestId("card-select-group-Telemetry"));
-
-      expect(screen.getByTestId("card-select-option-Logs")).toBeVisible();
-      expect(screen.getByTestId("card-select-option-Metrics")).toBeVisible();
-      expect(screen.getByTestId("card-select-option-Traces")).toBeVisible();
-      expect(screen.getByTestId("card-select-option-Exceptions")).toBeVisible();
-    });
-
-    test("a type can be picked by browsing, with no typing at all", () => {
-      const onChange: MockFunction = renderPicker();
-
-      fireEvent.click(screen.getByTestId("card-select-group-Infrastructure"));
-      fireEvent.click(screen.getByTestId("card-select-option-Kubernetes"));
-
-      expect(onChange).toHaveBeenCalledWith(MonitorType.Kubernetes);
-    });
-
-    test("every type in the catalog can be reached by opening its category", () => {
-      renderPicker();
-
-      // Only the closed ones - clicking an open heading would fold it away.
-      for (const group of categorizedOptions) {
-        const header: HTMLElement = screen.getByTestId(
-          `card-select-group-${group.label}`,
-        );
-
-        if (header.getAttribute("aria-expanded") === "false") {
-          fireEvent.click(header);
-        }
-      }
-
-      for (const group of categorizedOptions) {
-        for (const option of group.options) {
-          expect(
-            screen.getByTestId(`card-select-option-${option.value}`),
-          ).toBeVisible();
-        }
-      }
+      expect(shownTypes()).toEqual(COMMON_TYPES);
     });
   });
 });

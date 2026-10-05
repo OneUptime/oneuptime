@@ -54,12 +54,16 @@ import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
   onChange?: ((value: MonitorSteps) => void) | undefined;
-  onBlur?: () => void;
   initialValue?: MonitorSteps;
   monitorType: MonitorType;
   isMonitorTemplate?: boolean | undefined;
   monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
   monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
+  /*
+   * Fold each criteria to its one-line header (MonitorCriteria:
+   * foldDefaultCriteria). Create Monitor turns it on.
+   */
+  foldDefaultCriteria?: boolean | undefined;
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -447,13 +451,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     MonitorSteps | undefined
   >(props.initialValue ? MonitorSteps.fromJSON(props.initialValue) : undefined);
 
+  /*
+   * Hands every change to the form. It no longer marks the field touched as
+   * well: this runs when the steps are first drawn and when the defaults are
+   * filled in, so a new monitor's criteria step opened on a red "Monitor
+   * Destination is required." before anyone had typed a thing. The form
+   * shows the step's problem when Next or the form's action is pressed
+   * (BasicForm touches every field of the step then), and the destination
+   * field still says what is wrong with an address as soon as it is left.
+   */
   useEffect(() => {
     if (monitorSteps && props.onChange) {
       props.onChange(monitorSteps);
-    }
-
-    if (props.onBlur) {
-      props.onBlur();
     }
   }, [monitorSteps]);
 
@@ -612,6 +621,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               defaultIncidentSeverityId={defaultIncidentSeverityId}
               defaultAlertSeverityId={defaultAlertSeverityId}
               monitorName={props.monitorName}
+              foldDefaultCriteria={props.foldDefaultCriteria}
               /*
                * onDelete={() => {
                *     // remove the criteria filter

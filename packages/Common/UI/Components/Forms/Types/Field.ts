@@ -4,6 +4,7 @@ import {
   CheckboxCategory,
 } from "../../CategoryCheckbox/CategoryCheckboxTypes";
 import {
+  CardSelectCatalog,
   CardSelectOption,
   CardSelectOptionGroup,
 } from "../../CardSelect/CardSelect";
@@ -146,13 +147,15 @@ export default interface Field<TEntity> {
     | undefined;
   cardSelectSingleColumn?: boolean | undefined;
   /*
-   * Give the card picker a search box and collapse its groups behind their
-   * headers. Both are opt in: a picker with a handful of cards reads fine as
-   * a plain grid, and turning them on there would only add chrome.
+   * Give the card picker a search box, and lay a big catalog out as compact
+   * rows with its common choices first and the rest behind a More button,
+   * shrinking to the choice made with a Change button (CardSelectCatalog).
+   * Both are opt in: a picker with a handful of cards reads fine as a plain
+   * grid, and turning them on there would only add chrome.
    */
   cardSelectSearchable?: boolean | undefined;
   cardSelectSearchPlaceholder?: string | undefined;
-  cardSelectCollapsibleGroups?: boolean | undefined;
+  cardSelectCatalog?: CardSelectCatalog | undefined;
   fetchDropdownOptions?:
     | ((
         item: FormValues<TEntity>,

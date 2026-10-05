@@ -214,11 +214,11 @@ test.describe("Monitor summary probe picker", () => {
       .locator(monitorCreateFormSelector)
       .waitFor({ state: "visible", timeout: 60000 });
 
-    // Step 1: name + type.
+    // Step 1: what to monitor, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "Website" });
     await page
       .locator(`${monitorCreateFormSelector} input[placeholder='Monitor Name']`)
       .fill(monitorName);
-    await selectMonitorTypeCard({ page, cardValue: "Website" });
     await clickNext({ page });
 
     // Step 2: criteria.
