@@ -83,6 +83,8 @@ interface Product {
     currentProject: null;
     hasPaymentMethod: boolean;
   }>;
+  numberWithPrefix: string;
+  // How every AI page names the subject (AiActivityInsightsData.describeSubject).
   subjectLabel: string;
   subtitle: string;
 }
@@ -95,7 +97,8 @@ const PRODUCTS: Array<Product> = [
     viewPage: PageMap.INCIDENT_VIEW,
     route: "/ai-activity/incident/logs",
     page: IncidentAILogs,
-    subjectLabel: "INC-42 Database down",
+    numberWithPrefix: "INC-42",
+    subjectLabel: "Incident INC-42: Database down",
     subtitle:
       "Everything OneUptime AI did for your incidents, newest first: every investigation, fix and command, each linked to its incident.",
   },
@@ -106,7 +109,8 @@ const PRODUCTS: Array<Product> = [
     viewPage: PageMap.ALERT_VIEW,
     route: "/ai-activity/alert/logs",
     page: AlertAILogs,
-    subjectLabel: "INC-42 Database down",
+    numberWithPrefix: "ALT-42",
+    subjectLabel: "Alert ALT-42: Database down",
     subtitle:
       "Everything OneUptime AI did for your alerts, newest first: every investigation, fix and command, each linked to its alert.",
   },
@@ -118,7 +122,7 @@ function subject(product: Product): JSONObject {
     id: SUBJECT_ID,
     title: "Database down",
     number: 42,
-    numberWithPrefix: "INC-42",
+    numberWithPrefix: product.numberWithPrefix,
   };
 }
 
@@ -409,6 +413,57 @@ describe.each(
     expect(entry).toHaveTextContent("Completed");
     expect(entry).toHaveTextContent("Confirmed by your team");
     expect(entry).toHaveTextContent("Matched the recorded root cause");
+  });
+
+  test("an investigation without a TL;DR shows the Summary its report opens with", async () => {
+    serve(
+      ok(
+        logs(product, [
+          investigation(product, {
+            summary: null,
+            reportSummary: "The certificate expired at midnight.",
+          }),
+        ]),
+      ),
+    );
+    openPage(product);
+
+    const detail: HTMLElement = await findTestId("ai-log-entry-detail");
+
+    expect(detail).toHaveTextContent("The certificate expired at midnight.");
+  });
+
+  test("an investigation still running, or that recorded nothing, says so as a resource's AI Logs do", async () => {
+    serve(
+      ok(
+        logs(product, [
+          investigation(product, {
+            id: "run-running",
+            status: AIRunStatus.Running,
+            summary: null,
+          }),
+          investigation(product, {
+            id: "run-failed",
+            status: AIRunStatus.Error,
+            summary: null,
+          }),
+        ]),
+      ),
+    );
+    openPage(product);
+
+    await findTestId("ai-logs-entries");
+
+    const details: Array<string> = screen
+      .getAllByTestId("ai-log-entry-detail")
+      .map((element: HTMLElement): string => {
+        return element.textContent || "";
+      });
+
+    expect(details).toEqual([
+      "Still investigating.",
+      "No summary was recorded.",
+    ]);
   });
 
   test("a fix shows its reason, where it came from, how it ran and whether it worked", async () => {

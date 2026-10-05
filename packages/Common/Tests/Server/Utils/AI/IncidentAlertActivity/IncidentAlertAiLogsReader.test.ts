@@ -3,6 +3,8 @@ import IncidentAlertAiLogsReader, {
   clipText,
   getJobCommand,
 } from "../../../../../Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiLogsReader";
+import { AlertFeedEventType } from "../../../../../Models/DatabaseModels/AlertFeed";
+import { IncidentFeedEventType } from "../../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
@@ -372,6 +374,168 @@ describe("investigations", () => {
       summary: undefined,
       completedAt: undefined,
     });
+    // Nothing to read a report for while it runs.
+    expect(logs.entries[0]!.reportSummary).toBeUndefined();
+    expect(store.callsTo("incidentFeeds")).toEqual([]);
+  });
+});
+
+// The report an investigation posts on its incident or alert.
+function report(
+  subjectKind: IncidentAlertAiSubjectKind,
+  index: number,
+  runRow: FakeRow,
+  subjectRow: FakeRow,
+  summary: string,
+): FakeRow {
+  return {
+    _id: uuid(80, index),
+    projectId: PROJECT_ID,
+    createdAt: ago(1),
+    aiRunId: idOf(runRow),
+    ...(subjectKind === "incident"
+      ? {
+          incidentId: idOf(subjectRow),
+          incidentFeedEventType: IncidentFeedEventType.RootCause,
+        }
+      : {
+          alertId: idOf(subjectRow),
+          alertFeedEventType: AlertFeedEventType.RootCause,
+        }),
+    feedInfoInMarkdown: `**Summary** — ${summary}\n\n**Most likely root cause** — A full disk [C1].`,
+  };
+}
+
+describe("an investigation without a TL;DR", () => {
+  test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
+    "on the %s page has the Summary its report opens with, read as root for that run only",
+    async (subjectKind: IncidentAlertAiSubjectKind) => {
+      const subjectRow: FakeRow =
+        subjectKind === "incident" ? incident(1) : alert(1);
+      const triggeredBy: Partial<FakeRow> =
+        subjectKind === "incident"
+          ? { triggeredByIncidentId: idOf(subjectRow) }
+          : { triggeredByAlertId: idOf(subjectRow) };
+      const withoutTldr: FakeRow = run(1, 10, {
+        ...triggeredBy,
+        analysisTldr: undefined,
+      });
+      const withTldr: FakeRow = run(2, 20, triggeredBy);
+
+      (subjectKind === "incident" ? tables.incidents : tables.alerts).push(
+        subjectRow,
+      );
+      tables.runs.push(withoutTldr, withTldr);
+      (subjectKind === "incident"
+        ? tables.incidentFeeds
+        : tables.alertFeeds
+      ).push(
+        report(
+          subjectKind,
+          1,
+          withoutTldr,
+          subjectRow,
+          "The data volume on db-1 filled up with application logs.",
+        ),
+        report(subjectKind, 2, withTldr, subjectRow, "Not needed."),
+      );
+
+      const logs: IncidentAlertAiLogs = await readLogs(subjectKind);
+
+      expect(
+        logs.entries.map((entry: IncidentAlertAiLogEntry) => {
+          return [entry.id, entry.summary, entry.reportSummary];
+        }),
+      ).toEqual([
+        [
+          withoutTldr._id,
+          undefined,
+          "The data volume on db-1 filled up with application logs.",
+        ],
+        [withTldr._id, "Finding 2", undefined],
+      ]);
+
+      const reads: Array<FakeCall> = store.callsTo(
+        subjectKind === "incident" ? "incidentFeeds" : "alertFeeds",
+      );
+
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.props).toEqual({ isRoot: true });
+      expect(reads[0]!.query["projectId"]).toEqual(PROJECT_ID);
+      expect(matchesFilter(withoutTldr._id, reads[0]!.query["aiRunId"])).toBe(
+        true,
+      );
+      expect(matchesFilter(withTldr._id, reads[0]!.query["aiRunId"])).toBe(
+        false,
+      );
+    },
+  );
+
+  test("that failed has no report to read", async () => {
+    tables.incidents.push(incident(1));
+    tables.runs.push(
+      run(1, 10, {
+        triggeredByIncidentId: idOf(tables.incidents[0]!),
+        status: AIRunStatus.Error,
+        analysisTldr: undefined,
+      }),
+    );
+
+    const logs: IncidentAlertAiLogs = await readLogs("incident");
+
+    expect(logs.entries[0]!.reportSummary).toBeUndefined();
+    expect(store.callsTo("incidentFeeds")).toEqual([]);
+  });
+
+  test("of an incident the caller may not read never has its report read", async () => {
+    const mine: FakeRow = incident(1);
+    const hidden: FakeRow = incident(2);
+    const hiddenRun: FakeRow = run(2, 10, {
+      triggeredByIncidentId: idOf(hidden),
+      analysisTldr: undefined,
+    });
+    tables.incidents.push(mine, hidden);
+    tables.runs.push(
+      run(1, 5, { triggeredByIncidentId: idOf(mine) }),
+      hiddenRun,
+    );
+    tables.incidentFeeds.push(
+      report(
+        "incident",
+        2,
+        hiddenRun,
+        hidden,
+        "A summary of an incident the caller may not read.",
+      ),
+    );
+    store.access.readableIncidentIds = new Set<string>([mine._id]);
+
+    const logs: IncidentAlertAiLogs = await readLogs("incident");
+
+    expect(store.callsTo("incidentFeeds")).toEqual([]);
+    expect(JSON.stringify(logs)).not.toContain(
+      "A summary of an incident the caller may not read.",
+    );
+  });
+
+  test("a long report Summary is cut to the page's length", async () => {
+    const one: FakeRow = incident(1);
+    const withoutTldr: FakeRow = run(1, 10, {
+      triggeredByIncidentId: idOf(one),
+      analysisTldr: undefined,
+    });
+    tables.incidents.push(one);
+    tables.runs.push(withoutTldr);
+    tables.incidentFeeds.push(
+      report("incident", 1, withoutTldr, one, `${"Disk ".repeat(50)}full.`),
+    );
+
+    const logs: IncidentAlertAiLogs = await readLogs("incident");
+
+    expect((logs.entries[0]!.reportSummary || "").length).toBeLessThanOrEqual(
+      INCIDENT_ALERT_AI_LOGS_TEXT_MAX_LENGTH,
+    );
+    expect(logs.entries[0]!.reportSummary).toMatch(/^Disk Disk/);
   });
 });
 

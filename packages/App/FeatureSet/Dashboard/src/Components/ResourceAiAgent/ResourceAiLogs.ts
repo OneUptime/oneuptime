@@ -415,9 +415,15 @@ export function describeResourceInvestigationSubject(
   };
 }
 
-// What an investigation found, or why there is nothing to show yet.
+/*
+ * What an investigation found, or why there is nothing to show yet. The
+ * incidents' and alerts' AI Logs say it the same way.
+ */
 export function getResourceInvestigationSummary(
-  investigation: ResourceAiLogsInvestigation,
+  investigation: Pick<
+    ResourceAiLogsInvestigation,
+    "analysisTldr" | "reportSummary" | "status"
+  >,
 ): string {
   if (investigation.analysisTldr) {
     return investigation.analysisTldr;

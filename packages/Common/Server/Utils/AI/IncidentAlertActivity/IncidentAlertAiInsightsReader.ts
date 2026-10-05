@@ -6,10 +6,16 @@ import MonitorService from "../../../Services/MonitorService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import ServiceService from "../../../Services/ServiceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AiActivityInsightsBuilder, {
+  AiActivityCommandStats,
+} from "../ActivityInsights/AiActivityInsightsBuilder";
+import InvestigationReportSummary, {
+  InvestigationReportSummaryRun,
+} from "../SRE/InvestigationReportSummary";
 import IncidentAlertAiInsightsBuilder, {
-  IncidentAlertAiCommandStats,
   IncidentAlertAiFixInput,
   IncidentAlertAiFixTaskInput,
+  IncidentAlertAiInsightsInput,
   IncidentAlertAiInvestigationInput,
   IncidentAlertAiSubjectInput,
 } from "./IncidentAlertAiInsightsBuilder";
@@ -22,11 +28,11 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import Service from "../../../../Models/DatabaseModels/Service";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import { AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS } from "../../../../Types/AI/AiActivityInsights";
 import {
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIXES,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIX_TASKS,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_INVESTIGATIONS,
-  INCIDENT_ALERT_AI_INSIGHTS_WINDOW_IN_DAYS,
   IncidentAlertAiInsights,
 } from "../../../../Types/AI/IncidentAlertAiInsights";
 import { IncidentAlertAiSubjectKind } from "../../../../Types/AI/IncidentAlertAiLogs";
@@ -55,6 +61,8 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *   - AI runs are read as root (an investigation run is private to its
  *     author in the AI run table), and only statuses, dates, verdicts and
  *     the one-line finding leave, next to an incident the caller may read;
+ *     a finding whose TL;DR call failed is the Summary its report opens
+ *     with (InvestigationReportSummary), read as root for those runs only;
  *   - fixes are read under the caller's props: a role that may not read
  *     auto-remediation suggestions gets no fix numbers (null), not zeros;
  *   - which monitors and services the incidents were raised for or affected
@@ -119,8 +127,8 @@ export default class IncidentAlertAiInsightsReader {
     options: IncidentAlertAiInsightsReadOptions,
   ): Promise<IncidentAlertAiInsights> {
     const now: Date = options.now || new Date();
-    const windowInDays: number = INCIDENT_ALERT_AI_INSIGHTS_WINDOW_IN_DAYS;
-    const windowStart: Date = IncidentAlertAiInsightsBuilder.getWindowStart(
+    const windowInDays: number = AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS;
+    const windowStart: Date = AiActivityInsightsBuilder.getWindowStart(
       now,
       windowInDays,
     );
@@ -275,7 +283,7 @@ export default class IncidentAlertAiInsightsReader {
         })
       : null;
 
-    const commands: { stats: IncidentAlertAiCommandStats; isPartial: boolean } =
+    const commands: { stats: AiActivityCommandStats; isPartial: boolean } =
       await this.countCommands({
         projectId,
         runIds: getUniqueIds(
@@ -310,7 +318,7 @@ export default class IncidentAlertAiInsightsReader {
       commands.isPartial ||
       notInvestigated.isPartial;
 
-    return IncidentAlertAiInsightsBuilder.build({
+    const input: IncidentAlertAiInsightsInput = {
       subjectKind,
       now,
       windowInDays,
@@ -367,7 +375,65 @@ export default class IncidentAlertAiInsightsReader {
       subjectsInWindow,
       notInvestigatedReasons: notInvestigated.reasons,
       isPartial,
-    });
+    };
+
+    // 7. A finding whose TL;DR call failed comes from its report.
+    await this.readReportSummaries({ projectId, input });
+
+    return IncidentAlertAiInsightsBuilder.build(input);
+  }
+
+  /*
+   * The report Summary of each problem's newest completed investigation
+   * that has no TL;DR - the runs the shared builder would otherwise show no
+   * finding for (AiActivityInsightsBuilder.getRunsNeedingReportSummary). Every
+   * run here is about an incident (or alert) the caller may read.
+   */
+  public static async readReportSummaries(data: {
+    projectId: ObjectID;
+    input: IncidentAlertAiInsightsInput;
+  }): Promise<void> {
+    const { input } = data;
+    const needingSummary: Set<string> = new Set<string>(
+      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
+        IncidentAlertAiInsightsBuilder.toActivityInput(input),
+      ),
+    );
+
+    if (needingSummary.size === 0) {
+      return;
+    }
+
+    const runs: Array<InvestigationReportSummaryRun> = input.investigations
+      .filter((run: IncidentAlertAiInvestigationInput): boolean => {
+        return needingSummary.has(run.aiRunId);
+      })
+      .map(
+        (
+          run: IncidentAlertAiInvestigationInput,
+        ): InvestigationReportSummaryRun => {
+          return {
+            aiRunId: new ObjectID(run.aiRunId),
+            ...(input.subjectKind === "incident"
+              ? { incidentId: new ObjectID(run.subjectId) }
+              : { alertId: new ObjectID(run.subjectId) }),
+          };
+        },
+      );
+
+    const summaries: Map<string, string> =
+      await InvestigationReportSummary.getForRuns({
+        projectId: data.projectId,
+        runs,
+      });
+
+    for (const run of input.investigations) {
+      const summary: string | undefined = summaries.get(run.aiRunId);
+
+      if (summary) {
+        run.reportSummary = summary;
+      }
+    }
   }
 
   /*
@@ -638,7 +704,7 @@ export default class IncidentAlertAiInsightsReader {
     projectId: ObjectID;
     runIds: Array<ObjectID>;
     fixIds: Array<ObjectID>;
-  }): Promise<{ stats: IncidentAlertAiCommandStats; isPartial: boolean }> {
+  }): Promise<{ stats: AiActivityCommandStats; isPartial: boolean }> {
     const reads: Array<Promise<Array<RunnerJob>>> = [];
 
     const readJobs: (
@@ -677,7 +743,7 @@ export default class IncidentAlertAiInsightsReader {
       }
     }
 
-    const stats: IncidentAlertAiCommandStats = {
+    const stats: AiActivityCommandStats = {
       total: 0,
       failed: 0,
       timedOut: 0,

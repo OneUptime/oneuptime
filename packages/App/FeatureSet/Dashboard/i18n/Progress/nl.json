@@ -5,6 +5,7 @@
   },
   "sameAsEnglish": [
     "1 week",
+    "Incident {{number}}: {{title}}",
     "Label: {{name}}",
     "Runbook: {{name}}",
     "{{count}} product",

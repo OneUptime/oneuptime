@@ -1,67 +1,61 @@
-import AIRunAutoGrade from "../../../../Types/AI/AIRunAutoGrade";
-import AIRunHumanVerdict from "../../../../Types/AI/AIRunHumanVerdict";
+import AiActivityInsightsBuilder, {
+  AiActivityCommandStats,
+  AiActivityFixInput,
+  AiActivityInsightsInput,
+  AiActivityInvestigationInput,
+  AiActivitySubjectInput,
+} from "../ActivityInsights/AiActivityInsightsBuilder";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import {
+  AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS,
+  AiActivityAttentionItem,
+  AiActivityAttentionKind,
+  AiActivityAttentionSeverity,
+  AiActivityCoverage,
+  AiActivityFixTaskOutcomes,
+  AiActivityInsights,
+  AiActivityNamedResource,
+  AiActivityProblem,
+  AiActivityResourceHotspot,
+} from "../../../../Types/AI/AiActivityInsights";
+import {
   INCIDENT_ALERT_AI_INSIGHTS_HOTSPOT_MIN,
-  INCIDENT_ALERT_AI_INSIGHTS_MAX_ATTENTION_ITEMS,
-  INCIDENT_ALERT_AI_INSIGHTS_MAX_HOTSPOTS,
-  INCIDENT_ALERT_AI_INSIGHTS_MAX_PROBLEMS,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_PROBLEM_MONITORS,
-  INCIDENT_ALERT_AI_INSIGHTS_RECENT_WINDOW_IN_DAYS,
-  INCIDENT_ALERT_AI_INSIGHTS_RECURRING_ATTENTION_MIN,
-  INCIDENT_ALERT_AI_INSIGHTS_RECURRING_MIN,
-  IncidentAlertAiAttentionItem,
-  IncidentAlertAiAttentionKind,
-  IncidentAlertAiAttentionSeverity,
-  IncidentAlertAiCoverage,
-  IncidentAlertAiFinding,
-  IncidentAlertAiFixOutcomes,
-  IncidentAlertAiFixTaskOutcomes,
-  IncidentAlertAiHotspot,
   IncidentAlertAiInsights,
-  IncidentAlertAiInsightsSubject,
-  IncidentAlertAiInsightsTotals,
-  IncidentAlertAiNamedResource,
-  IncidentAlertAiProblem,
-  IncidentAlertAiTrendDay,
-  IncidentAlertAiVerdictTotals,
 } from "../../../../Types/AI/IncidentAlertAiInsights";
 import { IncidentAlertAiSubjectKind } from "../../../../Types/AI/IncidentAlertAiLogs";
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
-import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
-import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { JSONObject } from "../../../../Types/JSON";
-import SeriesLabelDisplay, {
-  DisplaySeriesLabel,
-} from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 
 /*
  * The pure half of the AI Insights page of the Incidents and Alerts menus:
  * from the rows IncidentAlertAiInsightsReader gathered, what OneUptime AI
  * learned across the product's incidents (or alerts) and what deserves
  * attention (IncidentAlertAiInsights). No I/O, no clock of its own, no
- * model: the same input always gives the same insights, which is what the
- * suites pin.
+ * model: the same input always gives the same insights.
  *
- * How it reads the rows:
+ * Most of it is a cluster's and a resource's AI Insights
+ * (AiActivityInsightsBuilder), over the product's own rows: the problems
+ * (the incidents AI investigated, grouped by the monitors that raised them,
+ * else by their title), their findings (TL;DR, else the report's Summary),
+ * the verdicts, the fix outcomes, the trend and the attention items. Every
+ * row handed in is about an incident the caller may read - the reader leaves
+ * the others out - and so is everything it says.
  *
- *   - A problem is what raised the incidents AI investigated: their
- *     monitors (one problem however many hosts or pods a monitor fired for),
- *     else - for one no monitor raised - its title without the series
- *     identity alerts append. Investigated at least
- *     INCIDENT_ALERT_AI_INSIGHTS_RECURRING_MIN times in the window, a problem
- *     is recurring.
- *   - A finding is the newest completed investigation's TL;DR, else the
- *     next older one that has one.
- *   - The monitors and services that keep failing are the ones the
+ * What only a whole product has is worked out here, on top of it:
+ *
+ *   - the monitors and services that keep failing: the ones the
  *     investigated incidents were raised for or affected, counted once per
- *     incident; only those the caller may read are named.
- *   - Every row handed in is about an incident the caller may read: the
- *     reader leaves the others out.
- *
- * The grouping, findings, fix outcomes, trend and attention follow a
- * cluster's and a resource's AI Insights (their builder lives with them):
- * the same rules over the product's own rows.
+ *     incident; only those the caller may read are named, and they stand in
+ *     for a cluster's part hotspots, which a project does not have;
+ *   - each problem's monitors, by name;
+ *   - coverage: of the window's incidents, how many AI investigated, and why
+ *     the others were not;
+ *   - the fix pull requests AI was asked to open, by where they ended up;
+ *   - two attention items only these rows can say - the incidents AI could
+ *     not investigate, and one monitor behind most investigations - ranked
+ *     with the shared ones;
+ *   - no fix numbers at all for a caller who may not read fixes.
  */
 
 // The incident or alert a row is about, as the reader read it.
@@ -86,6 +80,8 @@ export interface IncidentAlertAiInvestigationInput {
   createdAt: Date;
   completedAt?: Date | undefined;
   tldr?: string | undefined;
+  // No TL;DR: the Summary its posted report opens with.
+  reportSummary?: string | undefined;
   // AIRunHumanVerdict and AIRunAutoGrade.
   humanVerdict?: string | undefined;
   autoGrade?: string | undefined;
@@ -109,12 +105,6 @@ export interface IncidentAlertAiFixTaskInput {
   subjectId: string;
 }
 
-export interface IncidentAlertAiCommandStats {
-  total: number;
-  failed: number;
-  timedOut: number;
-}
-
 export interface IncidentAlertAiInsightsInput {
   subjectKind: IncidentAlertAiSubjectKind;
   now: Date;
@@ -123,12 +113,12 @@ export interface IncidentAlertAiInsightsInput {
   // Null when the caller may not read fixes.
   fixes: Array<IncidentAlertAiFixInput> | null;
   fixTasks: Array<IncidentAlertAiFixTaskInput>;
-  // The incidents (or alerts) the rows are about, by id.
+  // The incidents (or alerts) the rows are about that the caller may read, by id.
   subjects: Map<string, IncidentAlertAiSubjectInput>;
   // The monitors and services the caller may read, by id.
   monitorNames: Map<string, string>;
   serviceNames: Map<string, string>;
-  commands: IncidentAlertAiCommandStats;
+  commands: AiActivityCommandStats;
   // The window's incidents (or alerts) the caller may read.
   subjectsInWindow: number;
   // Why each skipped one was not investigated, by its id.
@@ -137,22 +127,15 @@ export interface IncidentAlertAiInsightsInput {
   isPartial: boolean;
 }
 
-const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
-
-const FAILED_RUN_STATUSES: ReadonlyArray<string> = [
-  AIRunStatus.Error,
-  AIRunStatus.Stale,
-];
-
 const ACTIVE_RUN_STATUSES: ReadonlyArray<string> = [
   AIRunStatus.Queued,
   AIRunStatus.Running,
   AIRunStatus.WaitingForApproval,
 ];
 
-const APPLIED_FIX_STATUSES: ReadonlyArray<string> = [
-  AutoRemediationSuggestionStatus.Approved,
-  AutoRemediationSuggestionStatus.AutoExecuted,
+const FAILED_RUN_STATUSES: ReadonlyArray<string> = [
+  AIRunStatus.Error,
+  AIRunStatus.Stale,
 ];
 
 /*
@@ -163,40 +146,22 @@ const APPLIED_FIX_STATUSES: ReadonlyArray<string> = [
  * cooldown) is not.
  */
 const NOT_STARTED_SEVERITY: Partial<
-  Record<InvestigationNotStartedCode, IncidentAlertAiAttentionSeverity>
+  Record<InvestigationNotStartedCode, AiActivityAttentionSeverity>
 > = {
-  provider_missing: IncidentAlertAiAttentionSeverity.High,
-  insufficient_ai_balance: IncidentAlertAiAttentionSeverity.High,
-  daily_budget_exhausted: IncidentAlertAiAttentionSeverity.High,
-  budget_check_failed: IncidentAlertAiAttentionSeverity.Medium,
-  enqueue_failed: IncidentAlertAiAttentionSeverity.Medium,
-  eligibility_check_failed: IncidentAlertAiAttentionSeverity.Medium,
-  ai_disabled: IncidentAlertAiAttentionSeverity.Medium,
-  automatic_investigation_disabled: IncidentAlertAiAttentionSeverity.Low,
+  provider_missing: AiActivityAttentionSeverity.High,
+  insufficient_ai_balance: AiActivityAttentionSeverity.High,
+  daily_budget_exhausted: AiActivityAttentionSeverity.High,
+  budget_check_failed: AiActivityAttentionSeverity.Medium,
+  enqueue_failed: AiActivityAttentionSeverity.Medium,
+  eligibility_check_failed: AiActivityAttentionSeverity.Medium,
+  ai_disabled: AiActivityAttentionSeverity.Medium,
+  automatic_investigation_disabled: AiActivityAttentionSeverity.Low,
 };
 
-const SEVERITY_RANK: Record<IncidentAlertAiAttentionSeverity, number> = {
-  [IncidentAlertAiAttentionSeverity.High]: 0,
-  [IncidentAlertAiAttentionSeverity.Medium]: 1,
-  [IncidentAlertAiAttentionSeverity.Low]: 2,
-};
-
-const KIND_RANK: Record<IncidentAlertAiAttentionKind, number> = {
-  [IncidentAlertAiAttentionKind.FixesFailed]: 0,
-  [IncidentAlertAiAttentionKind.InvestigationsNotStarted]: 1,
-  [IncidentAlertAiAttentionKind.RecurringProblem]: 2,
-  [IncidentAlertAiAttentionKind.FixesAwaitingApproval]: 3,
-  [IncidentAlertAiAttentionKind.InvestigationsFailed]: 4,
-  [IncidentAlertAiAttentionKind.CommandsTimedOut]: 5,
-  [IncidentAlertAiAttentionKind.FindingsRejected]: 6,
-  [IncidentAlertAiAttentionKind.MonitorHotspot]: 7,
-};
-
-// The investigations of one problem, as the builder collects them.
-interface ProblemGroup {
+// The investigations of one problem, as the shared builder groups them.
+interface ProblemRuns {
   key: string;
-  // Newest first.
-  runs: Array<IncidentAlertAiInvestigationInput>;
+  runs: Array<AiActivityInvestigationInput>;
 }
 
 interface HotspotCount {
@@ -211,436 +176,197 @@ function toIso(date: Date | undefined): string | undefined {
   return date ? date.toISOString() : undefined;
 }
 
-function toUtcDay(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function newestFirst<T extends { createdAt: Date }>(rows: Array<T>): Array<T> {
-  return [...rows].sort((a: T, b: T): number => {
-    return b.createdAt.getTime() - a.createdAt.getTime();
-  });
-}
-
-/*
- * A problem's key as it leaves the server: stable for the same grouping,
- * but opaque - the monitor ids it groups by are not the caller's to read.
- * (FNV-1a, 32 bits: plenty for the few hundred problems of one window.)
- */
-export function toPublicProblemKey(groupKey: string): string {
-  let hash: number = 0x811c9dc5;
-
-  for (let index: number = 0; index < groupKey.length; index++) {
-    hash ^= groupKey.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-
-  return `problem-${hash.toString(16).padStart(8, "0")}`;
-}
-
 export default class IncidentAlertAiInsightsBuilder {
   /*
-   * The first day of a window of `windowInDays` UTC days that ends today:
-   * the reader reads rows from here on, and the trend starts here.
+   * The shared builder's input for these rows. Every row is about an
+   * incident (or alert) the caller may read - a row about any other is left
+   * out - and carries it as its subject; the fixes only when the caller may
+   * read them. A project has no parts of its own, so no hotspots.
    */
-  public static getWindowStart(now: Date, windowInDays: number): Date {
-    const today: Date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
+  public static toActivityInput(
+    input: IncidentAlertAiInsightsInput,
+  ): AiActivityInsightsInput {
+    const subjects: Map<string, AiActivitySubjectInput> = new Map<
+      string,
+      AiActivitySubjectInput
+    >();
 
-    return new Date(
-      today.getTime() - (Math.max(windowInDays, 1) - 1) * DAY_IN_MS,
-    );
-  }
-
-  /*
-   * A title without the series identity a monitor appended to it
-   * (" - Pod: web-1 | Namespace: shop"), so the same problem reads the same
-   * for every pod it fired for. Only a suffix made entirely of this
-   * subject's own "Name: value" labels is taken off; anything else - a
-   * user's own template, a title that merely contains " - " - is left as
-   * written.
-   */
-  public static stripSeriesIdentity(
-    title: string,
-    seriesLabels: JSONObject | undefined,
-  ): string {
-    const text: string = (title || "").trim();
-    const labels: Array<DisplaySeriesLabel> =
-      SeriesLabelDisplay.getDisplayLabels(seriesLabels);
-
-    if (!text || labels.length === 0) {
-      return text;
-    }
-
-    const separatorAt: number = text.lastIndexOf(" - ");
-
-    if (separatorAt <= 0) {
-      return text;
-    }
-
-    const parts: Array<string> = text
-      .slice(separatorAt + " - ".length)
-      .split(" | ");
-
-    const isIdentity: boolean = parts.every((part: string): boolean => {
-      const colonAt: number = part.indexOf(": ");
-
-      if (colonAt <= 0) {
-        return false;
-      }
-
-      const name: string = part.slice(0, colonAt);
-      const value: string = part.slice(colonAt + ": ".length);
-
-      return labels.some((label: DisplaySeriesLabel): boolean => {
-        if (label.name !== name) {
-          return false;
-        }
-
-        // Long values are shown by their end: "...7d9f-2xk".
-        return (
-          label.value === value ||
-          (value.startsWith("...") &&
-            value.length > "...".length &&
-            label.value.endsWith(value.slice("...".length)))
-        );
+    for (const [id, subject] of input.subjects) {
+      subjects.set(id, {
+        kind: input.subjectKind,
+        id: subject.id,
+        title: subject.title,
+        number: subject.number,
+        numberWithPrefix: subject.numberWithPrefix,
+        monitorIds: subject.monitorIds,
+        seriesLabels: subject.seriesLabels,
       });
-    });
-
-    return isIdentity ? text.slice(0, separatorAt).trim() : text;
-  }
-
-  /*
-   * What groups a subject with the others: the monitor that raised it, or
-   * (several monitors) all of them, or - nothing raised it - its title.
-   */
-  public static getProblemKey(subject: IncidentAlertAiSubjectInput): string {
-    const monitorIds: Array<string> = Array.from(
-      new Set<string>(
-        subject.monitorIds.filter((id: string): boolean => {
-          return Boolean(id);
-        }),
-      ),
-    ).sort();
-
-    if (monitorIds.length > 0) {
-      return `monitor:${monitorIds.join(",")}`;
     }
 
-    const title: string = this.stripSeriesIdentity(
-      subject.title || "",
-      subject.seriesLabels,
-    )
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
-
-    // Nothing to group an untitled subject with: it is a problem of its own.
-    return title ? `title:${title}` : `subject:${subject.id}`;
-  }
-
-  public static toSubject(
-    subjectKind: IncidentAlertAiSubjectKind,
-    input: IncidentAlertAiSubjectInput,
-  ): IncidentAlertAiInsightsSubject {
     return {
-      kind: subjectKind,
-      id: input.id,
-      ...(input.title ? { title: input.title } : {}),
-      ...(input.number !== undefined ? { number: input.number } : {}),
-      ...(input.numberWithPrefix
-        ? { numberWithPrefix: input.numberWithPrefix }
-        : {}),
+      now: input.now,
+      windowInDays: input.windowInDays,
+      investigations: input.investigations
+        .filter((run: IncidentAlertAiInvestigationInput): boolean => {
+          return subjects.has(run.subjectId);
+        })
+        .map(
+          (
+            run: IncidentAlertAiInvestigationInput,
+          ): AiActivityInvestigationInput => {
+            return {
+              aiRunId: run.aiRunId,
+              status: run.status,
+              createdAt: run.createdAt,
+              completedAt: run.completedAt,
+              tldr: run.tldr,
+              reportSummary: run.reportSummary,
+              humanVerdict: run.humanVerdict,
+              autoGrade: run.autoGrade,
+              subject: subjects.get(run.subjectId),
+            };
+          },
+        ),
+      fixes: (input.fixes || [])
+        .filter((fix: IncidentAlertAiFixInput): boolean => {
+          return subjects.has(fix.subjectId);
+        })
+        .map((fix: IncidentAlertAiFixInput): AiActivityFixInput => {
+          return {
+            id: fix.id,
+            status: fix.status,
+            verificationStatus: fix.verificationStatus,
+            createdAt: fix.createdAt,
+            ...(input.subjectKind === "incident"
+              ? { incidentId: fix.subjectId }
+              : { alertId: fix.subjectId }),
+          };
+        }),
+      commands: input.commands,
+      preventiveInsights: [],
+      scopeLabelKeys: [],
+      scopeNames: [],
+      isPartial: input.isPartial,
+      subjects,
+      includeHotspots: false,
     };
   }
 
   public static build(
     input: IncidentAlertAiInsightsInput,
   ): IncidentAlertAiInsights {
-    const windowStart: Date = this.getWindowStart(
+    const activityInput: AiActivityInsightsInput = this.toActivityInput(input);
+    const windowStart: Date = AiActivityInsightsBuilder.getWindowStart(
       input.now,
       input.windowInDays,
     );
-    const isInWindow: (row: {
+    const isInWindow: (row: { createdAt: Date }) => boolean = (row: {
       createdAt: Date;
-      subjectId: string;
-    }) => boolean = (row: { createdAt: Date; subjectId: string }): boolean => {
-      return (
-        row.createdAt.getTime() >= windowStart.getTime() &&
-        input.subjects.has(row.subjectId)
-      );
+    }): boolean => {
+      return row.createdAt.getTime() >= windowStart.getTime();
     };
 
-    const runs: Array<IncidentAlertAiInvestigationInput> = newestFirst(
-      input.investigations.filter(isInWindow),
-    );
-    const fixes: Array<IncidentAlertAiFixInput> | null = input.fixes
-      ? newestFirst(input.fixes.filter(isInWindow))
-      : null;
-    const fixTasks: Array<IncidentAlertAiFixTaskInput> = newestFirst(
-      input.fixTasks.filter(isInWindow),
-    );
+    // The window's investigations, as the shared builder counts them.
+    const runs: Array<AiActivityInvestigationInput> =
+      activityInput.investigations.filter(isInWindow);
+    const groups: Array<ProblemRuns> =
+      AiActivityInsightsBuilder.groupProblems(activityInput);
 
-    const groups: Array<ProblemGroup> = this.groupProblems(input, runs);
-    const problems: Array<IncidentAlertAiProblem> = groups.map(
-      (group: ProblemGroup): IncidentAlertAiProblem => {
-        return this.buildProblem(group, fixes || [], input);
-      },
-    );
+    const monitors: Array<AiActivityResourceHotspot> =
+      this.buildResourceHotspots({
+        runs,
+        groups,
+        input,
+        idsOf: (subject: IncidentAlertAiSubjectInput): Array<string> => {
+          return subject.monitorIds;
+        },
+        names: input.monitorNames,
+      });
+    const services: Array<AiActivityResourceHotspot> =
+      this.buildResourceHotspots({
+        runs,
+        groups,
+        input,
+        idsOf: (subject: IncidentAlertAiSubjectInput): Array<string> => {
+          return subject.serviceIds;
+        },
+        names: input.serviceNames,
+      });
 
-    const monitors: Array<IncidentAlertAiHotspot> = this.buildHotspots({
-      runs,
-      groups,
-      input,
-      idsOf: (subject: IncidentAlertAiSubjectInput): Array<string> => {
-        return subject.monitorIds;
-      },
-      names: input.monitorNames,
-    });
-    const services: Array<IncidentAlertAiHotspot> = this.buildHotspots({
-      runs,
-      groups,
-      input,
-      idsOf: (subject: IncidentAlertAiSubjectInput): Array<string> => {
-        return subject.serviceIds;
-      },
-      names: input.serviceNames,
-    });
+    const investigatedSubjects: Set<string> = new Set<string>();
 
-    const investigatedSubjects: Set<string> = new Set<string>(
-      runs.map((run: IncidentAlertAiInvestigationInput): string => {
-        return run.subjectId;
-      }),
-    );
+    for (const run of runs) {
+      if (run.subject) {
+        investigatedSubjects.add(run.subject.id);
+      }
+    }
 
-    const coverage: IncidentAlertAiCoverage = this.buildCoverage({
+    const coverage: AiActivityCoverage = this.buildCoverage({
       input,
       windowStart,
       investigatedSubjects,
     });
 
-    const totals: IncidentAlertAiInsightsTotals = {
-      investigations: runs.length,
-      completedInvestigations: runs.filter(
-        (run: IncidentAlertAiInvestigationInput): boolean => {
-          return run.status === AIRunStatus.Completed;
-        },
-      ).length,
-      failedInvestigations: runs.filter(
-        (run: IncidentAlertAiInvestigationInput): boolean => {
-          return FAILED_RUN_STATUSES.includes(run.status || "");
-        },
-      ).length,
-      activeInvestigations: runs.filter(
-        (run: IncidentAlertAiInvestigationInput): boolean => {
-          return ACTIVE_RUN_STATUSES.includes(run.status || "");
-        },
-      ).length,
-      problems: problems.length,
-      recurringProblems: problems.filter(
-        (problem: IncidentAlertAiProblem): boolean => {
-          return problem.isRecurring;
-        },
-      ).length,
-      fixes: fixes ? fixes.length : null,
-      fixTasks: fixTasks.length,
-      commands: Math.max(input.commands.total, 0),
-      failedCommands: Math.max(input.commands.failed, 0),
-      timedOutCommands: Math.max(input.commands.timedOut, 0),
-    };
+    const fixTasks: Array<IncidentAlertAiFixTaskInput> = input.fixTasks.filter(
+      (task: IncidentAlertAiFixTaskInput): boolean => {
+        return isInWindow(task) && input.subjects.has(task.subjectId);
+      },
+    );
+
+    const insights: AiActivityInsights = AiActivityInsightsBuilder.build({
+      ...activityInput,
+      extraAttention: this.buildAttention({
+        coverage,
+        monitors,
+        investigations: runs.length,
+      }),
+    });
 
     return {
+      ...insights,
       subjectKind: input.subjectKind,
-      windowInDays: input.windowInDays,
-      windowStart: windowStart.toISOString(),
-      generatedAt: input.now.toISOString(),
-      totals,
+      totals: { ...insights.totals, fixTasks: fixTasks.length },
+      problems: insights.problems.map(
+        (problem: AiActivityProblem): AiActivityProblem => {
+          return {
+            ...problem,
+            monitors: this.getProblemMonitors(problem, input),
+          };
+        },
+      ),
       coverage,
-      attention: this.buildAttention({
-        input,
-        runs,
-        fixes,
-        groups,
-        problems,
-        monitors,
-        totals,
-        coverage,
-      }),
-      problems: problems.slice(0, INCIDENT_ALERT_AI_INSIGHTS_MAX_PROBLEMS),
-      monitors: monitors.slice(0, INCIDENT_ALERT_AI_INSIGHTS_MAX_HOTSPOTS),
-      services: services.slice(0, INCIDENT_ALERT_AI_INSIGHTS_MAX_HOTSPOTS),
-      fixOutcomes: fixes ? this.buildFixOutcomes(fixes) : null,
+      monitors: monitors.slice(0, AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS),
+      services: services.slice(0, AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS),
       fixTaskOutcomes: this.buildFixTaskOutcomes(fixTasks),
-      verdicts: this.buildVerdicts(runs),
-      trend: this.buildTrend({ windowStart, input, runs, fixes: fixes || [] }),
-      isPartial: input.isPartial,
+      fixesHidden: input.fixes === null,
     };
   }
 
-  // Every problem of the window, most investigated first, then newest.
-  public static groupProblems(
+  /*
+   * The monitors that raised a problem's latest incident, the ones the
+   * caller may read, by name.
+   */
+  public static getProblemMonitors(
+    problem: AiActivityProblem,
     input: IncidentAlertAiInsightsInput,
-    runs: Array<IncidentAlertAiInvestigationInput>,
-  ): Array<ProblemGroup> {
-    const groups: Map<string, ProblemGroup> = new Map<string, ProblemGroup>();
-
-    for (const run of newestFirst(runs)) {
-      const subject: IncidentAlertAiSubjectInput | undefined =
-        input.subjects.get(run.subjectId);
-
-      if (!subject) {
-        continue;
-      }
-
-      const key: string = this.getProblemKey(subject);
-      const group: ProblemGroup = groups.get(key) || { key, runs: [] };
-
-      group.runs.push(run);
-      groups.set(key, group);
-    }
-
-    return Array.from(groups.values()).sort(
-      (a: ProblemGroup, b: ProblemGroup): number => {
-        return (
-          b.runs.length - a.runs.length ||
-          b.runs[0]!.createdAt.getTime() - a.runs[0]!.createdAt.getTime() ||
-          (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
-        );
-      },
-    );
-  }
-
-  private static buildProblem(
-    group: ProblemGroup,
-    fixes: Array<IncidentAlertAiFixInput>,
-    input: IncidentAlertAiInsightsInput,
-  ): IncidentAlertAiProblem {
-    const latest: IncidentAlertAiInvestigationInput = group.runs[0]!;
-    const oldest: IncidentAlertAiInvestigationInput =
-      group.runs[group.runs.length - 1]!;
-    const latestSubject: IncidentAlertAiSubjectInput = input.subjects.get(
-      latest.subjectId,
-    )!;
-    const subjectIds: Set<string> = new Set<string>(
-      group.runs.map((run: IncidentAlertAiInvestigationInput): string => {
-        return run.subjectId;
-      }),
+  ): Array<AiActivityNamedResource> {
+    const subject: IncidentAlertAiSubjectInput | undefined = input.subjects.get(
+      problem.latestSubject.id,
     );
 
-    const verdicts: IncidentAlertAiProblem["verdicts"] = {
-      confirmed: 0,
-      rejected: 0,
-      matched: 0,
-      partlyMatched: 0,
-      mismatched: 0,
-    };
-
-    for (const run of group.runs) {
-      this.countVerdict(verdicts, run);
-    }
-
-    const problemFixes: Array<IncidentAlertAiFixInput> = fixes.filter(
-      (fix: IncidentAlertAiFixInput): boolean => {
-        return subjectIds.has(fix.subjectId);
-      },
-    );
-
-    // The monitors of the latest subject that raised it, by name.
-    const monitors: Array<IncidentAlertAiNamedResource> = Array.from(
-      new Set<string>(latestSubject.monitorIds),
-    )
+    return Array.from(new Set<string>(subject?.monitorIds || []))
       .filter((id: string): boolean => {
         return input.monitorNames.has(id);
       })
-      .map((id: string): IncidentAlertAiNamedResource => {
+      .map((id: string): AiActivityNamedResource => {
         return { id, name: input.monitorNames.get(id)! };
       })
       .sort(
-        (a: IncidentAlertAiNamedResource, b: IncidentAlertAiNamedResource) => {
+        (a: AiActivityNamedResource, b: AiActivityNamedResource): number => {
           return a.name.localeCompare(b.name);
         },
       )
       .slice(0, INCIDENT_ALERT_AI_INSIGHTS_MAX_PROBLEM_MONITORS);
-
-    const finding: IncidentAlertAiFinding | undefined = this.getFinding(group);
-
-    return {
-      key: toPublicProblemKey(group.key),
-      title: this.stripSeriesIdentity(
-        latestSubject.title || "",
-        latestSubject.seriesLabels,
-      ),
-      investigationCount: group.runs.length,
-      subjectCount: subjectIds.size,
-      isRecurring:
-        group.runs.length >= INCIDENT_ALERT_AI_INSIGHTS_RECURRING_MIN,
-      firstSeenAt: toIso(oldest.createdAt),
-      lastSeenAt: toIso(latest.createdAt),
-      latestSubject: this.toSubject(input.subjectKind, latestSubject),
-      monitors,
-      ...(finding ? { latestFinding: finding } : {}),
-      verdicts,
-      fixes: {
-        proposed: problemFixes.length,
-        applied: problemFixes.filter((fix: IncidentAlertAiFixInput) => {
-          return APPLIED_FIX_STATUSES.includes(fix.status || "");
-        }).length,
-        verified: problemFixes.filter((fix: IncidentAlertAiFixInput) => {
-          return (
-            fix.verificationStatus ===
-            AutoRemediationVerificationStatus.Verified
-          );
-        }).length,
-        failed: problemFixes.filter((fix: IncidentAlertAiFixInput) => {
-          return (
-            fix.verificationStatus === AutoRemediationVerificationStatus.Failed
-          );
-        }).length,
-        awaitingApproval: problemFixes.filter(
-          (fix: IncidentAlertAiFixInput) => {
-            return fix.status === AutoRemediationSuggestionStatus.Suggested;
-          },
-        ).length,
-      },
-    };
-  }
-
-  private static countVerdict(
-    verdicts: IncidentAlertAiVerdictTotals,
-    run: IncidentAlertAiInvestigationInput,
-  ): void {
-    if (run.humanVerdict === AIRunHumanVerdict.Confirmed) {
-      verdicts.confirmed++;
-    } else if (run.humanVerdict === AIRunHumanVerdict.Rejected) {
-      verdicts.rejected++;
-    }
-
-    if (run.autoGrade === AIRunAutoGrade.Match) {
-      verdicts.matched++;
-    } else if (run.autoGrade === AIRunAutoGrade.Partial) {
-      verdicts.partlyMatched++;
-    } else if (run.autoGrade === AIRunAutoGrade.Mismatch) {
-      verdicts.mismatched++;
-    }
-  }
-
-  // The newest completed investigation that says what it found.
-  private static getFinding(
-    group: ProblemGroup,
-  ): IncidentAlertAiFinding | undefined {
-    for (const run of group.runs) {
-      const text: string = (run.tldr || "").trim();
-
-      if (run.status === AIRunStatus.Completed && text) {
-        return {
-          aiRunId: run.aiRunId,
-          text,
-          at: toIso(run.completedAt || run.createdAt),
-        };
-      }
-    }
-
-    return undefined;
   }
 
   /*
@@ -649,25 +375,28 @@ export default class IncidentAlertAiInsightsBuilder {
    * investigations, across how many problems. Only the ones the caller may
    * read are named, and once is not a pattern.
    */
-  private static buildHotspots(data: {
-    runs: Array<IncidentAlertAiInvestigationInput>;
-    groups: Array<ProblemGroup>;
+  private static buildResourceHotspots(data: {
+    runs: Array<AiActivityInvestigationInput>;
+    groups: Array<ProblemRuns>;
     input: IncidentAlertAiInsightsInput;
     idsOf: (subject: IncidentAlertAiSubjectInput) => Array<string>;
     names: Map<string, string>;
-  }): Array<IncidentAlertAiHotspot> {
+  }): Array<AiActivityResourceHotspot> {
     const counts: Map<string, HotspotCount> = new Map<string, HotspotCount>();
     const problemKeyOfSubject: Map<string, string> = new Map<string, string>();
 
     for (const group of data.groups) {
       for (const run of group.runs) {
-        problemKeyOfSubject.set(run.subjectId, group.key);
+        if (run.subject) {
+          problemKeyOfSubject.set(run.subject.id, group.key);
+        }
       }
     }
 
     for (const run of data.runs) {
-      const subject: IncidentAlertAiSubjectInput | undefined =
-        data.input.subjects.get(run.subjectId);
+      const subject: IncidentAlertAiSubjectInput | undefined = run.subject
+        ? data.input.subjects.get(run.subject.id)
+        : undefined;
 
       if (!subject) {
         continue;
@@ -686,9 +415,9 @@ export default class IncidentAlertAiInsightsBuilder {
           lastSeen: run.createdAt,
         };
 
-        count.subjectIds.add(run.subjectId);
+        count.subjectIds.add(subject.id);
         count.investigationCount++;
-        count.problemKeys.add(problemKeyOfSubject.get(run.subjectId) || "");
+        count.problemKeys.add(problemKeyOfSubject.get(subject.id) || "");
 
         if (run.createdAt.getTime() > count.lastSeen.getTime()) {
           count.lastSeen = run.createdAt;
@@ -712,7 +441,7 @@ export default class IncidentAlertAiInsightsBuilder {
           data.names.get(a.id)!.localeCompare(data.names.get(b.id)!)
         );
       })
-      .map((count: HotspotCount): IncidentAlertAiHotspot => {
+      .map((count: HotspotCount): AiActivityResourceHotspot => {
         return {
           id: count.id,
           name: data.names.get(count.id)!,
@@ -733,7 +462,7 @@ export default class IncidentAlertAiInsightsBuilder {
     input: IncidentAlertAiInsightsInput;
     windowStart: Date;
     investigatedSubjects: Set<string>;
-  }): IncidentAlertAiCoverage {
+  }): AiActivityCoverage {
     const investigatedInWindow: number = Array.from(
       data.investigatedSubjects,
     ).filter((subjectId: string): boolean => {
@@ -760,9 +489,14 @@ export default class IncidentAlertAiInsightsBuilder {
       subjects: Math.max(data.input.subjectsInWindow, investigatedInWindow),
       investigatedSubjects: investigatedInWindow,
       notInvestigated: Array.from(reasons.entries())
-        .map(([code, count]: [InvestigationNotStartedCode, number]) => {
-          return { code, count };
-        })
+        .map(
+          ([code, count]: [InvestigationNotStartedCode, number]): {
+            code: InvestigationNotStartedCode;
+            count: number;
+          } => {
+            return { code, count };
+          },
+        )
         .sort(
           (
             a: { code: InvestigationNotStartedCode; count: number },
@@ -774,68 +508,10 @@ export default class IncidentAlertAiInsightsBuilder {
     };
   }
 
-  private static buildFixOutcomes(
-    fixes: Array<IncidentAlertAiFixInput>,
-  ): IncidentAlertAiFixOutcomes {
-    const outcomes: IncidentAlertAiFixOutcomes = {
-      total: fixes.length,
-      planning: 0,
-      awaitingApproval: 0,
-      appliedAutomatically: 0,
-      appliedAfterApproval: 0,
-      dismissed: 0,
-      noFixFound: 0,
-      verified: 0,
-      failed: 0,
-      verifying: 0,
-    };
-
-    for (const fix of fixes) {
-      switch (fix.status) {
-        case AutoRemediationSuggestionStatus.Planning:
-          outcomes.planning++;
-          break;
-        case AutoRemediationSuggestionStatus.Suggested:
-          outcomes.awaitingApproval++;
-          break;
-        case AutoRemediationSuggestionStatus.AutoExecuted:
-          outcomes.appliedAutomatically++;
-          break;
-        case AutoRemediationSuggestionStatus.Approved:
-          outcomes.appliedAfterApproval++;
-          break;
-        case AutoRemediationSuggestionStatus.Dismissed:
-          outcomes.dismissed++;
-          break;
-        case AutoRemediationSuggestionStatus.NoneApplicable:
-          outcomes.noFixFound++;
-          break;
-        default:
-          break;
-      }
-
-      switch (fix.verificationStatus) {
-        case AutoRemediationVerificationStatus.Verified:
-          outcomes.verified++;
-          break;
-        case AutoRemediationVerificationStatus.Failed:
-          outcomes.failed++;
-          break;
-        case AutoRemediationVerificationStatus.Pending:
-          outcomes.verifying++;
-          break;
-        default:
-          break;
-      }
-    }
-
-    return outcomes;
-  }
-
   private static buildFixTaskOutcomes(
     fixTasks: Array<IncidentAlertAiFixTaskInput>,
-  ): IncidentAlertAiFixTaskOutcomes {
-    const outcomes: IncidentAlertAiFixTaskOutcomes = {
+  ): AiActivityFixTaskOutcomes {
+    const outcomes: AiActivityFixTaskOutcomes = {
       total: fixTasks.length,
       pullRequestsOpened: 0,
       noFixFound: 0,
@@ -861,138 +537,32 @@ export default class IncidentAlertAiInsightsBuilder {
     return outcomes;
   }
 
-  private static buildVerdicts(
-    runs: Array<IncidentAlertAiInvestigationInput>,
-  ): IncidentAlertAiVerdictTotals {
-    const verdicts: IncidentAlertAiVerdictTotals = {
-      confirmed: 0,
-      rejected: 0,
-      matched: 0,
-      partlyMatched: 0,
-      mismatched: 0,
-    };
-
-    for (const run of runs) {
-      this.countVerdict(verdicts, run);
-    }
-
-    return verdicts;
-  }
-
-  private static buildTrend(data: {
-    windowStart: Date;
-    input: IncidentAlertAiInsightsInput;
-    runs: Array<IncidentAlertAiInvestigationInput>;
-    fixes: Array<IncidentAlertAiFixInput>;
-  }): Array<IncidentAlertAiTrendDay> {
-    const days: Map<string, IncidentAlertAiTrendDay> = new Map<
-      string,
-      IncidentAlertAiTrendDay
-    >();
-
-    for (
-      let index: number = 0;
-      index < Math.max(data.input.windowInDays, 1);
-      index++
-    ) {
-      const date: string = toUtcDay(
-        new Date(data.windowStart.getTime() + index * DAY_IN_MS),
-      );
-      days.set(date, {
-        date,
-        investigations: 0,
-        failedInvestigations: 0,
-        fixes: 0,
-      });
-    }
-
-    for (const run of data.runs) {
-      const day: IncidentAlertAiTrendDay | undefined = days.get(
-        toUtcDay(run.createdAt),
-      );
-
-      if (day) {
-        day.investigations++;
-
-        if (FAILED_RUN_STATUSES.includes(run.status || "")) {
-          day.failedInvestigations++;
-        }
-      }
-    }
-
-    for (const fix of data.fixes) {
-      const day: IncidentAlertAiTrendDay | undefined = days.get(
-        toUtcDay(fix.createdAt),
-      );
-
-      if (day) {
-        day.fixes++;
-      }
-    }
-
-    return Array.from(days.values());
-  }
-
+  /*
+   * The attention items only these rows can say, for the shared builder to
+   * rank with its own: the incidents AI could not investigate, for the most
+   * common reason worth acting on, and one monitor behind most of what AI
+   * investigated.
+   */
   private static buildAttention(data: {
-    input: IncidentAlertAiInsightsInput;
-    runs: Array<IncidentAlertAiInvestigationInput>;
-    fixes: Array<IncidentAlertAiFixInput> | null;
-    // Most investigated first, as groupProblems sorts them.
-    groups: Array<ProblemGroup>;
-    problems: Array<IncidentAlertAiProblem>;
-    monitors: Array<IncidentAlertAiHotspot>;
-    totals: IncidentAlertAiInsightsTotals;
-    coverage: IncidentAlertAiCoverage;
-  }): Array<IncidentAlertAiAttentionItem> {
-    const { input } = data;
-    const items: Array<IncidentAlertAiAttentionItem> = [];
+    coverage: AiActivityCoverage;
+    // Most incidents first.
+    monitors: Array<AiActivityResourceHotspot>;
+    // The window's investigations.
+    investigations: number;
+  }): Array<AiActivityAttentionItem> {
+    const items: Array<AiActivityAttentionItem> = [];
 
-    const subjectOf: (
-      subjectId: string | undefined,
-    ) => IncidentAlertAiInsightsSubject | undefined = (
-      subjectId: string | undefined,
-    ): IncidentAlertAiInsightsSubject | undefined => {
-      const subject: IncidentAlertAiSubjectInput | undefined = subjectId
-        ? input.subjects.get(subjectId)
-        : undefined;
-      return subject ? this.toSubject(input.subjectKind, subject) : undefined;
-    };
-
-    const fixes: Array<IncidentAlertAiFixInput> = data.fixes || [];
-
-    // 1. Fixes that were applied and did not fix it.
-    const failedFixes: Array<IncidentAlertAiFixInput> = fixes.filter(
-      (fix: IncidentAlertAiFixInput): boolean => {
-        return (
-          fix.verificationStatus === AutoRemediationVerificationStatus.Failed
-        );
+    const notStarted:
+      | { code: InvestigationNotStartedCode; count: number }
+      | undefined = data.coverage.notInvestigated.find(
+      (reason: { code: InvestigationNotStartedCode; count: number }) => {
+        return Boolean(NOT_STARTED_SEVERITY[reason.code]);
       },
     );
 
-    if (failedFixes.length > 0) {
+    if (notStarted && notStarted.count > 0) {
       items.push({
-        kind: IncidentAlertAiAttentionKind.FixesFailed,
-        severity: IncidentAlertAiAttentionSeverity.High,
-        count: failedFixes.length,
-        total:
-          fixes.filter((fix: IncidentAlertAiFixInput): boolean => {
-            return APPLIED_FIX_STATUSES.includes(fix.status || "");
-          }).length || undefined,
-        subject: subjectOf(failedFixes[0]!.subjectId),
-      });
-    }
-
-    // 2. Incidents AI could not investigate, for the most common reason.
-    const notStarted: { code: InvestigationNotStartedCode; count: number } =
-      data.coverage.notInvestigated.find(
-        (reason: { code: InvestigationNotStartedCode; count: number }) => {
-          return Boolean(NOT_STARTED_SEVERITY[reason.code]);
-        },
-      ) || { code: "no_run_recorded", count: 0 };
-
-    if (notStarted.count > 0) {
-      items.push({
-        kind: IncidentAlertAiAttentionKind.InvestigationsNotStarted,
+        kind: AiActivityAttentionKind.InvestigationsNotStarted,
         severity: NOT_STARTED_SEVERITY[notStarted.code]!,
         count: notStarted.count,
         total: data.coverage.subjects || undefined,
@@ -1000,147 +570,22 @@ export default class IncidentAlertAiInsightsBuilder {
       });
     }
 
-    // 3. The same problem, again and again: the two most investigated.
-    const recentSince: number =
-      input.now.getTime() -
-      INCIDENT_ALERT_AI_INSIGHTS_RECENT_WINDOW_IN_DAYS * DAY_IN_MS;
-    let recurringItems: number = 0;
-
-    for (const group of data.groups) {
-      if (
-        recurringItems >= 2 ||
-        group.runs.length < INCIDENT_ALERT_AI_INSIGHTS_RECURRING_ATTENTION_MIN
-      ) {
-        break;
-      }
-
-      const problem: IncidentAlertAiProblem | undefined = data.problems.find(
-        (candidate: IncidentAlertAiProblem): boolean => {
-          return candidate.key === toPublicProblemKey(group.key);
-        },
-      );
-
-      if (!problem) {
-        continue;
-      }
-
-      const recentCount: number = group.runs.filter(
-        (run: IncidentAlertAiInvestigationInput): boolean => {
-          return run.createdAt.getTime() >= recentSince;
-        },
-      ).length;
-
-      items.push({
-        kind: IncidentAlertAiAttentionKind.RecurringProblem,
-        severity:
-          group.runs.length >= 5 ||
-          recentCount >= INCIDENT_ALERT_AI_INSIGHTS_RECURRING_ATTENTION_MIN
-            ? IncidentAlertAiAttentionSeverity.High
-            : IncidentAlertAiAttentionSeverity.Medium,
-        count: group.runs.length,
-        recentCount,
-        problemKey: problem.key,
-        title: problem.title,
-        subject: problem.latestSubject,
-      });
-      recurringItems++;
-    }
-
-    // 4. Fixes nobody has looked at yet.
-    const awaiting: Array<IncidentAlertAiFixInput> = fixes.filter(
-      (fix: IncidentAlertAiFixInput): boolean => {
-        return fix.status === AutoRemediationSuggestionStatus.Suggested;
-      },
-    );
-
-    if (awaiting.length > 0) {
-      items.push({
-        kind: IncidentAlertAiAttentionKind.FixesAwaitingApproval,
-        severity: IncidentAlertAiAttentionSeverity.Medium,
-        count: awaiting.length,
-        subject: subjectOf(awaiting[0]!.subjectId),
-      });
-    }
-
-    // 5. Investigations that never finished.
-    const failedRuns: Array<IncidentAlertAiInvestigationInput> =
-      data.runs.filter((run: IncidentAlertAiInvestigationInput): boolean => {
-        return FAILED_RUN_STATUSES.includes(run.status || "");
-      });
-
-    if (failedRuns.length > 0) {
-      items.push({
-        kind: IncidentAlertAiAttentionKind.InvestigationsFailed,
-        severity:
-          failedRuns.length >= 3 &&
-          failedRuns.length * 2 >= data.totals.investigations
-            ? IncidentAlertAiAttentionSeverity.High
-            : IncidentAlertAiAttentionSeverity.Medium,
-        count: failedRuns.length,
-        total: data.totals.investigations,
-        subject: subjectOf(failedRuns[0]!.subjectId),
-      });
-    }
-
-    // 6. Commands an agent never ran.
-    if (data.totals.timedOutCommands > 0) {
-      items.push({
-        kind: IncidentAlertAiAttentionKind.CommandsTimedOut,
-        severity: IncidentAlertAiAttentionSeverity.Medium,
-        count: data.totals.timedOutCommands,
-        total: data.totals.commands || undefined,
-      });
-    }
-
-    // 7. Findings people rejected, or the grader found wrong.
-    const rejectedRuns: Array<IncidentAlertAiInvestigationInput> =
-      data.runs.filter((run: IncidentAlertAiInvestigationInput): boolean => {
-        return (
-          run.humanVerdict === AIRunHumanVerdict.Rejected ||
-          run.autoGrade === AIRunAutoGrade.Mismatch
-        );
-      });
-
-    if (rejectedRuns.length > 0) {
-      items.push({
-        kind: IncidentAlertAiAttentionKind.FindingsRejected,
-        severity: IncidentAlertAiAttentionSeverity.Low,
-        count: rejectedRuns.length,
-        total: data.totals.completedInvestigations || undefined,
-        subject: subjectOf(rejectedRuns[0]!.subjectId),
-      });
-    }
-
-    // 8. One monitor in most of what AI investigated.
-    const topMonitor: IncidentAlertAiHotspot | undefined = data.monitors[0];
+    const topMonitor: AiActivityResourceHotspot | undefined = data.monitors[0];
 
     if (
       topMonitor &&
       topMonitor.investigationCount >= 3 &&
-      topMonitor.investigationCount * 2 >= data.totals.investigations
+      topMonitor.investigationCount * 2 >= data.investigations
     ) {
       items.push({
-        kind: IncidentAlertAiAttentionKind.MonitorHotspot,
-        severity: IncidentAlertAiAttentionSeverity.Low,
+        kind: AiActivityAttentionKind.MonitorHotspot,
+        severity: AiActivityAttentionSeverity.Low,
         count: topMonitor.investigationCount,
-        total: data.totals.investigations,
+        total: data.investigations,
         monitor: { id: topMonitor.id, name: topMonitor.name },
       });
     }
 
-    return items
-      .sort(
-        (
-          a: IncidentAlertAiAttentionItem,
-          b: IncidentAlertAiAttentionItem,
-        ): number => {
-          return (
-            SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
-            KIND_RANK[a.kind] - KIND_RANK[b.kind] ||
-            b.count - a.count
-          );
-        },
-      )
-      .slice(0, INCIDENT_ALERT_AI_INSIGHTS_MAX_ATTENTION_ITEMS);
+    return items;
   }
 }

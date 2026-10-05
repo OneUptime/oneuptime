@@ -27,6 +27,12 @@ import {
   INCIDENT_ALERT_AI_DESCRIPTORS,
   getIncidentAlertAiDescriptor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentAlertAi/IncidentAlertAiDescriptors";
+import { describeSubject } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsData";
+import {
+  getResourceFixStatusLook,
+  getResourceInvestigationStatusLook,
+  getResourceInvestigationSummary,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiLogs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import AIRunAutoGrade from "../../../Types/AI/AIRunAutoGrade";
@@ -117,6 +123,7 @@ function entry(overrides: Partial<AiLogsEntry> = {}): AiLogsEntry {
     status: null,
     completedAt: null,
     summary: null,
+    reportSummary: null,
     humanVerdict: null,
     autoGrade: null,
     suggestionType: null,
@@ -210,6 +217,32 @@ describe("parseAiLogs", () => {
       nextBefore: "2026-10-05T09:00:00.000Z",
       hiddenKinds: [IncidentAlertAiLogKind.Command],
     });
+  });
+
+  test("reads the report's Summary an investigation without a TL;DR has", () => {
+    const parsed: AiLogs | null = parseAiLogs(
+      {
+        entries: [
+          rawEntry({
+            summary: null,
+            reportSummary: "The certificate expired at midnight.",
+          }),
+          rawEntry({ id: "run-2", reportSummary: "   " }),
+        ],
+        nextBefore: null,
+        hiddenKinds: [],
+      },
+      "incident",
+    );
+
+    expect(
+      parsed?.entries.map((parsedEntry: AiLogsEntry) => {
+        return [parsedEntry.summary, parsedEntry.reportSummary];
+      }),
+    ).toEqual([
+      [null, "The certificate expired at midnight."],
+      ["The disk filled up.", null],
+    ]);
   });
 
   test("reads every field of every kind", () => {
@@ -713,24 +746,74 @@ describe("getAiLogDetail", () => {
     });
   });
 
+  test("without a TL;DR, the Summary its report opens with", () => {
+    expect(
+      getAiLogDetail(
+        entry({
+          status: AIRunStatus.Completed,
+          summary: null,
+          reportSummary: "The certificate expired at midnight.",
+        }),
+      ),
+    ).toEqual({
+      text: "The certificate expired at midnight.",
+      isOwnWords: false,
+      isCommand: false,
+    });
+  });
+
+  test("the TL;DR wins over the report's Summary", () => {
+    expect(
+      getAiLogDetail(
+        entry({
+          summary: "The disk filled up.",
+          reportSummary: "A longer story about the disk.",
+        }),
+      )?.text,
+    ).toBe("The disk filled up.");
+  });
+
   test("an investigation still running says so", () => {
     for (const status of [AIRunStatus.Queued, AIRunStatus.Running]) {
       expect(getAiLogDetail(entry({ status }))).toEqual({
         text: "Still investigating.",
-        isOwnWords: true,
+        isOwnWords: false,
         isCommand: false,
       });
     }
   });
 
-  test("a finished investigation without a summary points at its report", () => {
-    expect(
-      getAiLogDetail(entry({ status: AIRunStatus.Completed }))?.text,
-    ).toContain("The full report is on the investigation.");
+  test("an investigation that recorded no finding says so, as a resource's AI Logs do", () => {
+    for (const status of [
+      AIRunStatus.Completed,
+      AIRunStatus.Error,
+      AIRunStatus.Stale,
+      AIRunStatus.Cancelled,
+    ]) {
+      expect(getAiLogDetail(entry({ status }))?.text).toBe(
+        "No summary was recorded.",
+      );
+    }
   });
 
-  test("a failed investigation without a finding says nothing more", () => {
-    expect(getAiLogDetail(entry({ status: AIRunStatus.Error }))).toBeNull();
+  test("says it the resource AI Logs' way, whatever the entry", () => {
+    for (const status of Object.values(AIRunStatus)) {
+      for (const [summary, reportSummary] of [
+        [null, null],
+        ["A finding.", null],
+        [null, "A report summary."],
+      ] as Array<[string | null, string | null]>) {
+        expect(
+          getAiLogDetail(entry({ status, summary, reportSummary }))?.text,
+        ).toBe(
+          getResourceInvestigationSummary({
+            analysisTldr: summary,
+            reportSummary,
+            status,
+          }),
+        );
+      }
+    }
   });
 
   test("a fix shows its reason; a fix pull request what it was for; a command the command", () => {
@@ -763,11 +846,13 @@ describe("getAiLogDetail", () => {
 });
 
 describe("getAiLogSubjectLabel", () => {
-  test("names an incident by its prefixed number and title", () => {
-    expect(getAiLogSubjectLabel(entry().subject)).toBe("INC-42 Database down");
+  test("names an incident by its prefixed number and title, as every AI page does", () => {
+    expect(getAiLogSubjectLabel(entry().subject)).toBe(
+      "Incident INC-42: Database down",
+    );
   });
 
-  test("falls back to the bare number, the number alone, or the title alone", () => {
+  test("falls back to the bare number, the number alone, the title alone, or the kind", () => {
     expect(
       getAiLogSubjectLabel({
         kind: "incident",
@@ -776,7 +861,7 @@ describe("getAiLogSubjectLabel", () => {
         number: 42,
         numberWithPrefix: null,
       }),
-    ).toBe("#42 Database down");
+    ).toBe("Incident #42: Database down");
     expect(
       getAiLogSubjectLabel({
         kind: "alert",
@@ -785,7 +870,7 @@ describe("getAiLogSubjectLabel", () => {
         number: 7,
         numberWithPrefix: "ALT-7",
       }),
-    ).toBe("ALT-7");
+    ).toBe("Alert ALT-7");
     expect(
       getAiLogSubjectLabel({
         kind: "alert",
@@ -794,7 +879,7 @@ describe("getAiLogSubjectLabel", () => {
         number: null,
         numberWithPrefix: null,
       }),
-    ).toBe("CPU high");
+    ).toBe("Alert: CPU high");
     expect(
       getAiLogSubjectLabel({
         kind: "alert",
@@ -803,7 +888,46 @@ describe("getAiLogSubjectLabel", () => {
         number: null,
         numberWithPrefix: null,
       }),
-    ).toBe("");
+    ).toBe("Alert");
+  });
+
+  test("is the shared AI pages' name for the same subject", () => {
+    expect(
+      getAiLogSubjectLabel({
+        kind: "alert",
+        id: ALERT_ID,
+        title: "CPU high",
+        number: 7,
+        numberWithPrefix: "ALT-7",
+      }),
+    ).toBe(
+      describeSubject({
+        kind: "alert",
+        id: ALERT_ID,
+        title: "CPU high",
+        number: 7,
+        numberWithPrefix: "ALT-7",
+      }),
+    );
+  });
+});
+
+describe("the statuses are the resource AI Logs' own", () => {
+  test("an investigation's and a fix's pill say what a resource's AI Logs say", () => {
+    for (const status of Object.values(AIRunStatus)) {
+      expect(
+        getAiLogStatusLook({
+          kind: IncidentAlertAiLogKind.Investigation,
+          status,
+        }),
+      ).toEqual(getResourceInvestigationStatusLook(status));
+    }
+
+    for (const status of Object.values(AutoRemediationSuggestionStatus)) {
+      expect(
+        getAiLogStatusLook({ kind: IncidentAlertAiLogKind.Fix, status }),
+      ).toEqual(getResourceFixStatusLook(status));
+    }
   });
 });
 

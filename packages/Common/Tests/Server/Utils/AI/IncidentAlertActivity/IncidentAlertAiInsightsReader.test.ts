@@ -1,11 +1,11 @@
 import IncidentAlertAiInsightsReader from "../../../../../Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsReader";
 import { IncidentAlertAiSubjectInput } from "../../../../../Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsBuilder";
+import { AlertFeedEventType } from "../../../../../Models/DatabaseModels/AlertFeed";
+import { IncidentFeedEventType } from "../../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
-import {
-  IncidentAlertAiAttentionKind,
-  IncidentAlertAiInsights,
-} from "../../../../../Types/AI/IncidentAlertAiInsights";
+import { AiActivityAttentionKind } from "../../../../../Types/AI/AiActivityInsights";
+import { IncidentAlertAiInsights } from "../../../../../Types/AI/IncidentAlertAiInsights";
 import {
   INCIDENT_ALERT_AI_SUBJECT_KINDS,
   IncidentAlertAiSubjectKind,
@@ -178,6 +178,172 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The report an investigation posts on its incident or alert.
+function report(
+  subjectKind: IncidentAlertAiSubjectKind,
+  runRow: FakeRow,
+  subjectRow: FakeRow,
+  summary: string,
+): FakeRow {
+  return {
+    _id: uuid(80, Number(String(runRow._id).slice(-4))),
+    projectId: PROJECT_ID,
+    createdAt: daysAgo(1),
+    aiRunId: new ObjectID(runRow._id),
+    ...(subjectKind === "incident"
+      ? {
+          incidentId: new ObjectID(subjectRow._id),
+          incidentFeedEventType: IncidentFeedEventType.RootCause,
+        }
+      : {
+          alertId: new ObjectID(subjectRow._id),
+          alertFeedEventType: AlertFeedEventType.RootCause,
+        }),
+    feedInfoInMarkdown: [
+      "## 🧠 AI — Automated Root Cause Analysis",
+      "",
+      `**Summary** — ${summary}`,
+      "",
+      "**Most likely root cause** — The data volume filled up [C1].",
+    ].join("\n"),
+  };
+}
+
+describe("a finding without a TL;DR", () => {
+  test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
+    "is the Summary the %s's report opens with, read as root for that run only",
+    async (subjectKind: IncidentAlertAiSubjectKind) => {
+      const subjectRow: FakeRow =
+        subjectKind === "incident" ? incident(1) : alert(1);
+      const on: Partial<FakeRow> =
+        subjectKind === "incident"
+          ? onIncident(subjectRow)
+          : onAlert(subjectRow);
+      const withoutTldr: FakeRow = run(on, { analysisTldr: undefined });
+      const older: FakeRow = run(on, {
+        createdAt: daysAgo(3),
+        analysisTldr: undefined,
+      });
+
+      (subjectKind === "incident" ? tables.incidents : tables.alerts).push(
+        subjectRow,
+      );
+      tables.runs.push(withoutTldr, older);
+      (subjectKind === "incident"
+        ? tables.incidentFeeds
+        : tables.alertFeeds
+      ).push(
+        report(
+          subjectKind,
+          withoutTldr,
+          subjectRow,
+          "The data volume on db-1 filled up with application logs.",
+        ),
+        report(subjectKind, older, subjectRow, "An older summary."),
+      );
+
+      const insights: IncidentAlertAiInsights = await readInsights(subjectKind);
+
+      expect(insights.problems[0]!.latestFinding).toEqual({
+        aiRunId: withoutTldr._id,
+        text: "The data volume on db-1 filled up with application logs.",
+        source: "report",
+        at: expect.any(String),
+      });
+
+      const reads: Array<FakeCall> = store.callsTo(
+        subjectKind === "incident" ? "incidentFeeds" : "alertFeeds",
+      );
+
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.props).toEqual({ isRoot: true });
+      // Only the problem's newest completed run: the older one is not read.
+      expect(matchesFilter(withoutTldr._id, reads[0]!.query["aiRunId"])).toBe(
+        true,
+      );
+      expect(matchesFilter(older._id, reads[0]!.query["aiRunId"])).toBe(false);
+    },
+  );
+
+  test("a TL;DR needs no report: none is read", async () => {
+    const one: FakeRow = incident(1);
+    tables.incidents.push(one);
+    tables.runs.push(run(onIncident(one)));
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.problems[0]!.latestFinding?.source).toBe("tldr");
+    expect(store.callsTo("incidentFeeds")).toEqual([]);
+    expect(store.callsTo("alertFeeds")).toEqual([]);
+  });
+
+  test("an incident the caller may not read never has its report read", async () => {
+    const mine: FakeRow = incident(1);
+    const hidden: FakeRow = incident(2);
+    const hiddenRun: FakeRow = run(onIncident(hidden), {
+      analysisTldr: undefined,
+    });
+    tables.incidents.push(mine, hidden);
+    tables.runs.push(run(onIncident(mine)), hiddenRun);
+    tables.incidentFeeds.push(
+      report(
+        "incident",
+        hiddenRun,
+        hidden,
+        "A summary of an incident the caller may not read.",
+      ),
+    );
+    store.access.readableIncidentIds = new Set<string>([mine._id]);
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(store.callsTo("incidentFeeds")).toEqual([]);
+    expect(JSON.stringify(insights)).not.toContain(
+      "A summary of an incident the caller may not read.",
+    );
+  });
+
+  test("a report from another run, or on another incident, is not this run's", async () => {
+    const one: FakeRow = incident(1);
+    const other: FakeRow = incident(2);
+    const withoutTldr: FakeRow = run(onIncident(one), {
+      analysisTldr: undefined,
+    });
+    const otherRun: FakeRow = run(onIncident(other), {
+      createdAt: daysAgo(4),
+    });
+    tables.incidents.push(one, other);
+    tables.runs.push(withoutTldr, otherRun);
+    tables.incidentFeeds.push(
+      // The right run, posted on the wrong incident.
+      report(
+        "incident",
+        withoutTldr,
+        other,
+        "This report was posted on another incident entirely.",
+      ),
+      // Another run's report on this incident.
+      report(
+        "incident",
+        otherRun,
+        one,
+        "This summary belongs to another investigation run.",
+      ),
+    );
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    const problem: { latestFinding?: unknown } | undefined =
+      insights.problems.find(
+        (candidate: { latestSubject: { id: string } }): boolean => {
+          return candidate.latestSubject.id === one._id;
+        },
+      );
+
+    expect(problem?.latestFinding).toBeUndefined();
+  });
+});
+
 describe("who may read the insights", () => {
   test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
     "a caller who may not read %ss at all is refused before anything else is read",
@@ -220,18 +386,41 @@ describe("who may read the insights", () => {
     expect(JSON.stringify(insights)).not.toContain("A hidden finding");
   });
 
-  test("a caller who may not read fixes gets no fix numbers, not zeros", async () => {
+  test("a caller who may not read fixes gets none, and the insights say they are hidden", async () => {
     const one: FakeRow = incident(1);
     tables.incidents.push(one);
     tables.runs.push(run(onIncident(one)));
-    tables.suggestions.push(suggestion({ incidentId: new ObjectID(one._id) }));
+    tables.suggestions.push(
+      suggestion({
+        incidentId: new ObjectID(one._id),
+        status: AutoRemediationSuggestionStatus.AutoExecuted,
+        verificationStatus: AutoRemediationVerificationStatus.Failed,
+      }),
+    );
     store.access.canReadSuggestions = false;
 
     const insights: IncidentAlertAiInsights = await readInsights("incident");
 
-    expect(insights.totals.fixes).toBeNull();
-    expect(insights.fixOutcomes).toBeNull();
+    expect(insights.fixesHidden).toBe(true);
+    expect(insights.totals.fixes).toBe(0);
+    expect(insights.fixOutcomes.total).toBe(0);
     expect(insights.totals.investigations).toBe(1);
+    // Not even the failed fix's attention item.
+    expect(
+      insights.attention.map((item: { kind: string }): string => {
+        return item.kind;
+      }),
+    ).not.toContain(AiActivityAttentionKind.FixesFailed);
+  });
+
+  test("a caller who may read fixes is not told they are hidden", async () => {
+    const one: FakeRow = incident(1);
+    tables.incidents.push(one);
+    tables.runs.push(run(onIncident(one)));
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.fixesHidden).toBe(false);
   });
 
   test("never names a monitor or service the caller may not read", async () => {
@@ -398,7 +587,7 @@ describe("what it reads", () => {
     ]);
     expect(insights.attention).toEqual([
       expect.objectContaining({
-        kind: IncidentAlertAiAttentionKind.InvestigationsNotStarted,
+        kind: AiActivityAttentionKind.InvestigationsNotStarted,
         reason: "provider_missing",
         count: 2,
       }),

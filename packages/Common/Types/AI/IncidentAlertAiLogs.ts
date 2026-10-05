@@ -10,7 +10,8 @@
  * incident or alert it was for:
  *
  *   - Investigation: an AI investigation (AIRun, runType Investigation) and
- *     the one-line finding it published (its TL;DR).
+ *     the one-line finding it published (its TL;DR, else its report's own
+ *     Summary).
  *   - Fix: a fix AI proposed or applied, the auto-remediation suggestion a
  *     rule or a cluster's or resource's Fixes setting produced: a runbook or
  *     a command plan, how it ran and how its verification turned out.
@@ -90,6 +91,12 @@ export interface IncidentAlertAiLogEntry {
 
   // Investigation: its TL;DR, what people and the grader made of it.
   summary?: string | undefined;
+  /*
+   * A completed investigation without a TL;DR: the Summary its posted
+   * report opens with (InvestigationReportSummary), as a resource's AI Logs
+   * show it.
+   */
+  reportSummary?: string | undefined;
   // AIRunHumanVerdict and AIRunAutoGrade.
   humanVerdict?: string | undefined;
   autoGrade?: string | undefined;

@@ -4,6 +4,7 @@
     "untranslated": 16466
   },
   "sameAsEnglish": [
+    "Incident {{number}}: {{title}}",
     "Precision",
     "Runbook: {{name}}"
   ]

@@ -1,24 +1,29 @@
+import AiActivityInsightsBuilder, {
+  AiActivityInsightsInput,
+  AiActivityInvestigationInput,
+  toPublicProblemKey,
+} from "../../../../../Server/Utils/AI/ActivityInsights/AiActivityInsightsBuilder";
 import IncidentAlertAiInsightsBuilder, {
   IncidentAlertAiFixInput,
   IncidentAlertAiFixTaskInput,
   IncidentAlertAiInsightsInput,
   IncidentAlertAiInvestigationInput,
   IncidentAlertAiSubjectInput,
-  toPublicProblemKey,
 } from "../../../../../Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsBuilder";
 import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import {
-  INCIDENT_ALERT_AI_INSIGHTS_MAX_ATTENTION_ITEMS,
-  INCIDENT_ALERT_AI_INSIGHTS_MAX_HOTSPOTS,
-  INCIDENT_ALERT_AI_INSIGHTS_MAX_PROBLEMS,
-  IncidentAlertAiAttentionItem,
-  IncidentAlertAiAttentionKind,
-  IncidentAlertAiAttentionSeverity,
-  IncidentAlertAiInsights,
-  IncidentAlertAiProblem,
-} from "../../../../../Types/AI/IncidentAlertAiInsights";
+  AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
+  AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS,
+  AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS,
+  AiActivityAttentionItem,
+  AiActivityAttentionKind,
+  AiActivityAttentionSeverity,
+  AiActivityProblem,
+} from "../../../../../Types/AI/AiActivityInsights";
+import { IncidentAlertAiInsights } from "../../../../../Types/AI/IncidentAlertAiInsights";
+import { IncidentAlertAiSubjectKind } from "../../../../../Types/AI/IncidentAlertAiLogs";
 import { InvestigationNotStartedCode } from "../../../../../Types/AI/InvestigationNotStartedReason";
 import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
@@ -29,6 +34,13 @@ import { describe, expect, test } from "@jest/globals";
  * learned across the window's incidents (or alerts) and what deserves
  * attention, from rows the reader already filtered to what the caller may
  * read. The same input always gives the same insights.
+ *
+ * Most of it is the shared AI Insights builder's (AiActivityInsightsBuilder,
+ * pinned by its own suites): these pin what this builder hands it - every
+ * row with its incident or alert, the fixes only for a caller who may read
+ * them, no part hotspots - and what it adds: the monitors and services that
+ * keep failing, each problem's monitors, coverage, the fix pull requests and
+ * the two attention items only these rows can say.
  */
 
 // 2026-10-05 15:00 UTC: the window runs from 2026-09-06 00:00 UTC.
@@ -134,125 +146,223 @@ function subjects(
 
 function attentionKinds(
   insights: IncidentAlertAiInsights,
-): Array<IncidentAlertAiAttentionKind> {
-  return insights.attention.map((item: IncidentAlertAiAttentionItem) => {
+): Array<AiActivityAttentionKind> {
+  return insights.attention.map((item: AiActivityAttentionItem) => {
     return item.kind;
   });
 }
 
 function attentionOf(
   insights: IncidentAlertAiInsights,
-  kind: IncidentAlertAiAttentionKind,
-): IncidentAlertAiAttentionItem | undefined {
-  return insights.attention.find((item: IncidentAlertAiAttentionItem) => {
+  kind: AiActivityAttentionKind,
+): AiActivityAttentionItem | undefined {
+  return insights.attention.find((item: AiActivityAttentionItem) => {
     return item.kind === kind;
   });
 }
 
-describe("getWindowStart", () => {
-  test("is the first UTC day of a window that ends today", () => {
+describe("toActivityInput: the rows as the shared builder takes them", () => {
+  test.each(["incident", "alert"] as Array<IncidentAlertAiSubjectKind>)(
+    "every %s run carries its subject, as the reader read it",
+    (subjectKind: IncidentAlertAiSubjectKind) => {
+      const activity: AiActivityInsightsInput =
+        IncidentAlertAiInsightsBuilder.toActivityInput(
+          input({
+            subjectKind,
+            subjects: subjects(
+              subject("i1", {
+                monitorIds: ["m1"],
+                serviceIds: ["s1"],
+                seriesLabels: { "host.name": "db-1" },
+              }),
+            ),
+            investigations: [
+              run("i1", daysAgo(1), {
+                tldr: "It ran out of disk.",
+                reportSummary: "The disk filled up.",
+                humanVerdict: AIRunHumanVerdict.Confirmed,
+                autoGrade: AIRunAutoGrade.Match,
+              }),
+            ],
+          }),
+        );
+
+      const investigation: AiActivityInvestigationInput =
+        activity.investigations[0]!;
+
+      expect(activity.investigations).toHaveLength(1);
+      expect(investigation).toEqual({
+        aiRunId: expect.any(String),
+        status: AIRunStatus.Completed,
+        createdAt: daysAgo(1),
+        completedAt: new Date(daysAgo(1).getTime() + 60 * 1000),
+        tldr: "It ran out of disk.",
+        reportSummary: "The disk filled up.",
+        humanVerdict: AIRunHumanVerdict.Confirmed,
+        autoGrade: AIRunAutoGrade.Match,
+        subject: {
+          kind: subjectKind,
+          id: "i1",
+          title: "Incident i1",
+          number: 1,
+          numberWithPrefix: "INC-i1",
+          monitorIds: ["m1"],
+          seriesLabels: { "host.name": "db-1" },
+        },
+      });
+      // The same subject is the builder's to link attention items to.
+      expect(activity.subjects?.get("i1")).toEqual(investigation.subject);
+    },
+  );
+
+  test("a row about an incident the caller may not read is left out", () => {
+    const activity: AiActivityInsightsInput =
+      IncidentAlertAiInsightsBuilder.toActivityInput(
+        input({
+          subjects: subjects(subject("i1")),
+          investigations: [run("i1", daysAgo(1)), run("hidden", daysAgo(1))],
+          fixes: [fix("i1", daysAgo(1)), fix("hidden", daysAgo(1))],
+        }),
+      );
+
+    expect(activity.investigations).toHaveLength(1);
+    expect(activity.fixes).toHaveLength(1);
+    expect(Array.from(activity.subjects!.keys())).toEqual(["i1"]);
+  });
+
+  test.each([
+    ["incident", { incidentId: "i1" }],
+    ["alert", { alertId: "i1" }],
+  ] as Array<[IncidentAlertAiSubjectKind, Record<string, string>]>)(
+    "the %s fix names its subject in its own column",
+    (
+      subjectKind: IncidentAlertAiSubjectKind,
+      column: Record<string, string>,
+    ) => {
+      const activity: AiActivityInsightsInput =
+        IncidentAlertAiInsightsBuilder.toActivityInput(
+          input({
+            subjectKind,
+            subjects: subjects(subject("i1")),
+            fixes: [
+              fix("i1", daysAgo(1), {
+                status: AutoRemediationSuggestionStatus.AutoExecuted,
+                verificationStatus: AutoRemediationVerificationStatus.Failed,
+              }),
+            ],
+          }),
+        );
+
+      expect(activity.fixes).toEqual([
+        {
+          id: expect.any(String),
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          verificationStatus: AutoRemediationVerificationStatus.Failed,
+          createdAt: daysAgo(1),
+          ...column,
+        },
+      ]);
+    },
+  );
+
+  test("a caller who may not read fixes hands over none", () => {
     expect(
-      IncidentAlertAiInsightsBuilder.getWindowStart(NOW, 30).toISOString(),
+      IncidentAlertAiInsightsBuilder.toActivityInput(
+        input({ fixes: null, subjects: subjects(subject("i1")) }),
+      ).fixes,
+    ).toEqual([]);
+  });
+
+  test("a project has no parts, preventive findings or scope labels of its own", () => {
+    const activity: AiActivityInsightsInput =
+      IncidentAlertAiInsightsBuilder.toActivityInput(
+        input({
+          commands: { total: 4, failed: 1, timedOut: 1 },
+          isPartial: true,
+        }),
+      );
+
+    expect(activity).toMatchObject({
+      now: NOW,
+      windowInDays: 30,
+      commands: { total: 4, failed: 1, timedOut: 1 },
+      preventiveInsights: [],
+      scopeLabelKeys: [],
+      scopeNames: [],
+      isPartial: true,
+      includeHotspots: false,
+    });
+  });
+
+  test("the window is the shared builder's: 30 UTC days ending today", () => {
+    expect(
+      AiActivityInsightsBuilder.getWindowStart(NOW, 30).toISOString(),
     ).toBe(WINDOW_START);
-  });
-
-  test("a one-day window starts today; less than a day is a day", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.getWindowStart(NOW, 1).toISOString(),
-    ).toBe("2026-10-05T00:00:00.000Z");
-    expect(
-      IncidentAlertAiInsightsBuilder.getWindowStart(NOW, 0).toISOString(),
-    ).toBe("2026-10-05T00:00:00.000Z");
-  });
-});
-
-describe("stripSeriesIdentity", () => {
-  const labels: Record<string, string> = {
-    "k8s.pod.name": "web-7d9f-2xk",
-    "k8s.namespace.name": "shop",
-  };
-
-  test("takes off the identity a monitor appended", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.stripSeriesIdentity(
-        "Pod CPU high - Pod: web-7d9f-2xk | Namespace: shop",
-        labels,
-      ),
-    ).toBe("Pod CPU high");
-  });
-
-  test("takes it off when values were shown by their end", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.stripSeriesIdentity(
-        "Pod CPU high - Pod: ...7d9f-2xk",
-        labels,
-      ),
-    ).toBe("Pod CPU high");
-  });
-
-  test("leaves a title whose dash is the user's own", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.stripSeriesIdentity(
-        "Checkout - payments are slow",
-        labels,
-      ),
-    ).toBe("Checkout - payments are slow");
-    expect(
-      IncidentAlertAiInsightsBuilder.stripSeriesIdentity(
-        "Pod CPU high - Pod: some-other-pod",
-        labels,
-      ),
-    ).toBe("Pod CPU high - Pod: some-other-pod");
-  });
-
-  test("leaves a title without series labels, and trims", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.stripSeriesIdentity(
-        "  Pod CPU high - Pod: web  ",
-        undefined,
-      ),
-    ).toBe("Pod CPU high - Pod: web");
-    expect(IncidentAlertAiInsightsBuilder.stripSeriesIdentity("", labels)).toBe(
-      "",
+    expect(IncidentAlertAiInsightsBuilder.build(input()).windowStart).toBe(
+      WINDOW_START,
     );
   });
 });
 
-describe("getProblemKey", () => {
-  test("groups by the monitors that raised it, in any order", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.getProblemKey(
-        subject("i1", { monitorIds: ["m2", "m1", "m2", ""] }),
-      ),
-    ).toBe("monitor:m1,m2");
-  });
-
-  test("without a monitor, by the title without its series identity", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.getProblemKey(
-        subject("i1", {
-          title: "Pod  CPU High - Pod: web-1",
-          seriesLabels: { "k8s.pod.name": "web-1" },
+describe("build: problems are grouped the shared builder's way", () => {
+  test("by the monitors that raised them, under a key that hides their ids", () => {
+    const insights: IncidentAlertAiInsights =
+      IncidentAlertAiInsightsBuilder.build(
+        input({
+          subjects: subjects(
+            subject("i1", { monitorIds: ["m2", "m1"] }),
+            subject("i2", { monitorIds: ["m1", "m2"] }),
+          ),
+          investigations: [run("i1", daysAgo(2)), run("i2", daysAgo(1))],
         }),
-      ),
-    ).toBe("title:pod cpu high");
+      );
+
+    expect(insights.problems).toHaveLength(1);
+    expect(insights.problems[0]!.key).toBe(toPublicProblemKey("monitor:m1,m2"));
+    expect(insights.problems[0]!.key).not.toContain("m1");
   });
 
-  test("without a monitor or a title, the subject is its own problem", () => {
-    expect(
-      IncidentAlertAiInsightsBuilder.getProblemKey(
-        subject("i1", { title: undefined }),
-      ),
-    ).toBe("subject:i1");
+  test("without a monitor, by the title without the series identity alerts append", () => {
+    const insights: IncidentAlertAiInsights =
+      IncidentAlertAiInsightsBuilder.build(
+        input({
+          subjectKind: "alert",
+          subjects: subjects(
+            subject("a1", {
+              title: "Pod CPU high - Pod: web-1",
+              seriesLabels: { "k8s.pod.name": "web-1" },
+            }),
+            subject("a2", {
+              title: "Pod CPU high - Pod: web-2",
+              seriesLabels: { "k8s.pod.name": "web-2" },
+            }),
+          ),
+          investigations: [run("a1", daysAgo(2)), run("a2", daysAgo(1))],
+        }),
+      );
+
+    expect(insights.problems).toHaveLength(1);
+    expect(insights.problems[0]!.title).toBe("Pod CPU high");
+    expect(insights.problems[0]!.subjectCount).toBe(2);
+    expect(insights.problems[0]!.latestSubject).toMatchObject({
+      kind: "alert",
+      id: "a2",
+    });
   });
 
-  test("a public key is opaque and stable", () => {
-    const key: string = toPublicProblemKey("monitor:secret-monitor-id");
+  test("without a monitor or a title, an incident is a problem of its own", () => {
+    const insights: IncidentAlertAiInsights =
+      IncidentAlertAiInsightsBuilder.build(
+        input({
+          subjects: subjects(
+            subject("i1", { title: undefined }),
+            subject("i2", { title: undefined }),
+          ),
+          investigations: [run("i1", daysAgo(2)), run("i2", daysAgo(1))],
+        }),
+      );
 
-    expect(key).toMatch(/^problem-[0-9a-f]{8}$/);
-    expect(key).not.toContain("secret");
-    expect(toPublicProblemKey("monitor:secret-monitor-id")).toBe(key);
-    expect(toPublicProblemKey("monitor:other")).not.toBe(key);
+    expect(insights.problems).toHaveLength(2);
   });
 });
 
@@ -287,6 +397,30 @@ describe("build: an empty window", () => {
     expect(insights.problems).toEqual([]);
     expect(insights.monitors).toEqual([]);
     expect(insights.services).toEqual([]);
+    // A project has no parts, and no preventive findings of its own.
+    expect(insights.hotspots).toEqual([]);
+    expect(insights.preventiveInsights).toEqual([]);
+    expect(insights.fixesHidden).toBe(false);
+    expect(insights.fixOutcomes).toEqual({
+      total: 0,
+      planning: 0,
+      awaitingApproval: 0,
+      appliedAutomatically: 0,
+      appliedAfterApproval: 0,
+      dismissed: 0,
+      noFixFound: 0,
+      verified: 0,
+      failed: 0,
+      verifying: 0,
+    });
+    expect(insights.fixTaskOutcomes).toEqual({
+      total: 0,
+      pullRequestsOpened: 0,
+      noFixFound: 0,
+      inProgress: 0,
+      failed: 0,
+      cancelled: 0,
+    });
     expect(insights.trend).toHaveLength(30);
     expect(insights.trend[0]).toEqual({
       date: "2026-09-06",
@@ -372,7 +506,7 @@ describe("build: what is counted", () => {
     ).toMatchObject({ commands: 0, failedCommands: 0, timedOutCommands: 0 });
   });
 
-  test("a caller who may not read fixes gets no fix numbers, not zeros", () => {
+  test("a caller who may not read fixes gets none, and the insights say they are hidden", () => {
     const insights: IncidentAlertAiInsights =
       IncidentAlertAiInsightsBuilder.build(
         input({
@@ -382,9 +516,23 @@ describe("build: what is counted", () => {
         }),
       );
 
-    expect(insights.totals.fixes).toBeNull();
-    expect(insights.fixOutcomes).toBeNull();
+    expect(insights.fixesHidden).toBe(true);
+    expect(insights.totals.fixes).toBe(0);
+    expect(insights.fixOutcomes.total).toBe(0);
     expect(insights.problems[0]!.fixes.proposed).toBe(0);
+    expect(
+      insights.trend.every((day: { fixes: number }): boolean => {
+        return day.fixes === 0;
+      }),
+    ).toBe(true);
+  });
+
+  test("a caller who may read fixes, with none in the window, sees zeros", () => {
+    expect(
+      IncidentAlertAiInsightsBuilder.build(
+        input({ fixes: [], subjects: subjects(subject("i1")) }),
+      ).fixesHidden,
+    ).toBe(false);
   });
 
   test("says when the reader could not read the whole window", () => {
@@ -446,11 +594,11 @@ describe("build: problems", () => {
   }
 
   test("groups incidents by the monitor that raised them, the most investigated first", () => {
-    const problems: Array<IncidentAlertAiProblem> =
+    const problems: Array<AiActivityProblem> =
       IncidentAlertAiInsightsBuilder.build(recurringInput()).problems;
 
     expect(
-      problems.map((problem: IncidentAlertAiProblem) => {
+      problems.map((problem: AiActivityProblem) => {
         return [
           problem.title,
           problem.investigationCount,
@@ -464,7 +612,7 @@ describe("build: problems", () => {
   });
 
   test("a problem says when it was seen, whether it recurs, and the latest incident", () => {
-    const problem: IncidentAlertAiProblem =
+    const problem: AiActivityProblem =
       IncidentAlertAiInsightsBuilder.build(recurringInput()).problems[0]!;
 
     expect(problem.isRecurring).toBe(true);
@@ -481,36 +629,91 @@ describe("build: problems", () => {
   });
 
   test("its finding is the newest completed investigation's TL;DR", () => {
-    const problem: IncidentAlertAiProblem =
+    const problem: AiActivityProblem =
       IncidentAlertAiInsightsBuilder.build(recurringInput()).problems[0]!;
 
     expect(problem.latestFinding).toEqual({
       aiRunId: expect.any(String),
       text: "The disk on db-2 filled with logs.",
+      source: "tldr",
       at: new Date(daysAgo(2).getTime() + 60 * 1000).toISOString(),
     });
   });
 
+  test("without a TL;DR, its finding is the Summary its report opens with", () => {
+    const newest: IncidentAlertAiInvestigationInput = run("i1", daysAgo(1), {
+      tldr: undefined,
+      reportSummary: "The certificate expired at midnight.",
+    });
+
+    const problem: AiActivityProblem = IncidentAlertAiInsightsBuilder.build(
+      input({
+        subjects: subjects(subject("i1")),
+        investigations: [
+          run("i1", daysAgo(3), { tldr: "An older finding." }),
+          newest,
+        ],
+      }),
+    ).problems[0]!;
+
+    expect(problem.latestFinding).toEqual({
+      aiRunId: newest.aiRunId,
+      text: "The certificate expired at midnight.",
+      source: "report",
+      at: new Date(daysAgo(1).getTime() + 60 * 1000).toISOString(),
+    });
+  });
+
+  test("names the report runs a reader should read: a problem's newest completed run without a TL;DR", () => {
+    const withoutTldr: IncidentAlertAiInvestigationInput = run(
+      "i1",
+      daysAgo(1),
+      { tldr: undefined },
+    );
+
+    const builderInput: IncidentAlertAiInsightsInput = input({
+      subjects: subjects(subject("i1"), subject("i2")),
+      investigations: [
+        withoutTldr,
+        run("i1", daysAgo(2)),
+        // The other problem's newest has a TL;DR: nothing to read.
+        run("i2", daysAgo(1)),
+        // Not readable: never named.
+        run("hidden", daysAgo(1), { tldr: undefined }),
+      ],
+    });
+
+    expect(
+      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
+        IncidentAlertAiInsightsBuilder.toActivityInput(builderInput),
+      ),
+    ).toEqual([withoutTldr.aiRunId]);
+  });
+
   test("a problem no investigation concluded anything about has no finding", () => {
-    const problem: IncidentAlertAiProblem =
-      IncidentAlertAiInsightsBuilder.build(
-        input({
-          subjects: subjects(subject("i1")),
-          investigations: [
-            run("i1", daysAgo(1), { status: AIRunStatus.Error }),
-            run("i1", daysAgo(2), { tldr: "   " }),
-          ],
-        }),
-      ).problems[0]!;
+    const problem: AiActivityProblem = IncidentAlertAiInsightsBuilder.build(
+      input({
+        subjects: subjects(subject("i1")),
+        investigations: [
+          run("i1", daysAgo(1), { status: AIRunStatus.Error }),
+          run("i1", daysAgo(2), { tldr: "   " }),
+        ],
+      }),
+    ).problems[0]!;
 
     expect(problem.latestFinding).toBeUndefined();
   });
 
   test("names the monitors the caller may read, and what people, the grader and the fixes said", () => {
-    const problem: IncidentAlertAiProblem =
+    const problem: AiActivityProblem =
       IncidentAlertAiInsightsBuilder.build(recurringInput()).problems[0]!;
 
     expect(problem.monitors).toEqual([{ id: "m-db", name: "Database disk" }]);
+    // The hosts it fired for, as alerts name them, the latest first.
+    expect(problem.objects).toEqual([
+      { name: "Host", value: "db-2", count: 1 },
+      { name: "Host", value: "db-1", count: 1 },
+    ]);
     expect(problem.verdicts).toEqual({
       confirmed: 1,
       rejected: 0,
@@ -528,21 +731,20 @@ describe("build: problems", () => {
   });
 
   test("never names a monitor the caller may not read, nor more than three", () => {
-    const problem: IncidentAlertAiProblem =
-      IncidentAlertAiInsightsBuilder.build(
-        input({
-          subjects: subjects(
-            subject("i1", { monitorIds: ["a", "b", "c", "d", "hidden"] }),
-          ),
-          monitorNames: new Map<string, string>([
-            ["a", "Delta"],
-            ["b", "Alpha"],
-            ["c", "Charlie"],
-            ["d", "Bravo"],
-          ]),
-          investigations: [run("i1", daysAgo(1))],
-        }),
-      ).problems[0]!;
+    const problem: AiActivityProblem = IncidentAlertAiInsightsBuilder.build(
+      input({
+        subjects: subjects(
+          subject("i1", { monitorIds: ["a", "b", "c", "d", "hidden"] }),
+        ),
+        monitorNames: new Map<string, string>([
+          ["a", "Delta"],
+          ["b", "Alpha"],
+          ["c", "Charlie"],
+          ["d", "Bravo"],
+        ]),
+        investigations: [run("i1", daysAgo(1))],
+      }),
+    ).problems[0]!;
 
     expect(problem.monitors).toEqual([
       { id: "b", name: "Alpha" },
@@ -565,9 +767,7 @@ describe("build: problems", () => {
         input({ subjects: subjects(...many), investigations: runs }),
       );
 
-    expect(insights.problems).toHaveLength(
-      INCIDENT_ALERT_AI_INSIGHTS_MAX_PROBLEMS,
-    );
+    expect(insights.problems).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS);
     expect(insights.totals.problems).toBe(15);
   });
 });
@@ -629,6 +829,42 @@ describe("build: monitors and services that keep failing", () => {
     ]);
   });
 
+  test("stand in for a cluster's part hotspots, which a project does not have", () => {
+    const labels: Record<string, string> = {
+      "resource.k8s.namespace.name": "shop",
+      "resource.k8s.deployment.name": "checkout",
+    };
+    const insights: IncidentAlertAiInsights =
+      IncidentAlertAiInsightsBuilder.build(
+        input({
+          subjects: subjects(
+            subject("i1", { seriesLabels: labels, monitorIds: ["m1"] }),
+            subject("i2", { seriesLabels: labels, monitorIds: ["m1"] }),
+            subject("i3", { seriesLabels: labels, monitorIds: ["m1"] }),
+          ),
+          monitorNames: new Map<string, string>([["m1", "Checkout pods"]]),
+          investigations: [
+            run("i1", daysAgo(1)),
+            run("i2", daysAgo(2)),
+            run("i3", daysAgo(3)),
+          ],
+        }),
+      );
+
+    expect(insights.hotspots).toEqual([]);
+    expect(attentionKinds(insights)).not.toContain(
+      AiActivityAttentionKind.Hotspot,
+    );
+    expect(
+      insights.monitors.map((monitor: { name: string }) => {
+        return monitor.name;
+      }),
+    ).toEqual(["Checkout pods"]);
+    expect(attentionKinds(insights)).toContain(
+      AiActivityAttentionKind.MonitorHotspot,
+    );
+  });
+
   test("never list a monitor or service the caller may not read", () => {
     const insights: IncidentAlertAiInsights =
       IncidentAlertAiInsightsBuilder.build(
@@ -663,7 +899,7 @@ describe("build: monitors and services that keep failing", () => {
           monitorNames: names,
         }),
       ).monitors,
-    ).toHaveLength(INCIDENT_ALERT_AI_INSIGHTS_MAX_HOTSPOTS);
+    ).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS);
   });
 });
 
@@ -795,32 +1031,85 @@ describe("build: fixes, fix pull requests and verdicts", () => {
     });
   });
 
-  test("verdicts across the window", () => {
-    expect(
+  test("verdicts are each problem's own investigations'", () => {
+    const problems: Array<AiActivityProblem> =
       IncidentAlertAiInsightsBuilder.build(
         input({
-          subjects: subjects(subject("i1")),
+          subjects: subjects(
+            subject("i1", { monitorIds: ["m1"] }),
+            subject("i2", { monitorIds: ["m2"] }),
+          ),
           investigations: [
             run("i1", daysAgo(1), {
               humanVerdict: AIRunHumanVerdict.Confirmed,
               autoGrade: AIRunAutoGrade.Match,
             }),
-            run("i1", daysAgo(1), {
+            run("i1", daysAgo(2), { autoGrade: AIRunAutoGrade.Partial }),
+            run("i2", daysAgo(1), {
               humanVerdict: AIRunHumanVerdict.Rejected,
               autoGrade: AIRunAutoGrade.Mismatch,
             }),
-            run("i1", daysAgo(1), { autoGrade: AIRunAutoGrade.Partial }),
-            run("i1", daysAgo(1)),
+            run("i2", daysAgo(3)),
+            run("i2", daysAgo(4)),
           ],
         }),
-      ).verdicts,
-    ).toEqual({
-      confirmed: 1,
-      rejected: 1,
-      matched: 1,
-      partlyMatched: 1,
-      mismatched: 1,
+      ).problems;
+
+    expect(
+      problems.map(
+        (
+          problem: AiActivityProblem,
+        ): [number, AiActivityProblem["verdicts"]] => {
+          return [problem.investigationCount, problem.verdicts];
+        },
+      ),
+    ).toEqual([
+      [
+        3,
+        {
+          confirmed: 0,
+          rejected: 1,
+          matched: 0,
+          partlyMatched: 0,
+          mismatched: 1,
+        },
+      ],
+      [
+        2,
+        {
+          confirmed: 1,
+          rejected: 0,
+          matched: 1,
+          partlyMatched: 1,
+          mismatched: 0,
+        },
+      ],
+    ]);
+  });
+
+  test("an alert's fixes are counted on the alert's problem", () => {
+    const problem: AiActivityProblem = IncidentAlertAiInsightsBuilder.build(
+      input({
+        subjectKind: "alert",
+        subjects: subjects(subject("a1", { monitorIds: ["m1"] })),
+        investigations: [run("a1", daysAgo(1))],
+        fixes: [
+          fix("a1", daysAgo(1), {
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            verificationStatus: AutoRemediationVerificationStatus.Verified,
+          }),
+        ],
+      }),
+    ).problems[0]!;
+
+    expect(problem.fixes).toEqual({
+      proposed: 1,
+      applied: 1,
+      verified: 1,
+      failed: 0,
+      awaitingApproval: 0,
     });
+    expect(problem.latestSubject.kind).toBe("alert");
   });
 });
 
@@ -890,7 +1179,7 @@ describe("build: what needs attention", () => {
   });
 
   test("fixes that did not work, out of the ones applied, with the incident", () => {
-    const item: IncidentAlertAiAttentionItem | undefined = attentionOf(
+    const item: AiActivityAttentionItem | undefined = attentionOf(
       IncidentAlertAiInsightsBuilder.build(
         input({
           subjects: subjects(subject("i1"), subject("i2")),
@@ -906,29 +1195,55 @@ describe("build: what needs attention", () => {
           ],
         }),
       ),
-      IncidentAlertAiAttentionKind.FixesFailed,
+      AiActivityAttentionKind.FixesFailed,
     );
 
     expect(item).toEqual({
-      kind: IncidentAlertAiAttentionKind.FixesFailed,
-      severity: IncidentAlertAiAttentionSeverity.High,
+      kind: AiActivityAttentionKind.FixesFailed,
+      severity: AiActivityAttentionSeverity.High,
       count: 1,
       total: 2,
       subject: expect.objectContaining({ id: "i2" }),
     });
   });
 
+  test("a failed fix links its incident even when AI did not investigate it in the window", () => {
+    const item: AiActivityAttentionItem | undefined = attentionOf(
+      IncidentAlertAiInsightsBuilder.build(
+        input({
+          subjects: subjects(subject("fixed-only")),
+          fixes: [
+            fix("fixed-only", daysAgo(1), {
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+              verificationStatus: AutoRemediationVerificationStatus.Failed,
+            }),
+          ],
+        }),
+      ),
+      AiActivityAttentionKind.FixesFailed,
+    );
+
+    expect(item?.subject).toEqual({
+      kind: "incident",
+      id: "fixed-only",
+      title: "Incident fixed-only",
+      numberWithPrefix: "INC-fixed-only",
+    });
+  });
+
   test.each([
-    ["provider_missing", IncidentAlertAiAttentionSeverity.High],
-    ["insufficient_ai_balance", IncidentAlertAiAttentionSeverity.High],
-    ["daily_budget_exhausted", IncidentAlertAiAttentionSeverity.High],
-    ["ai_disabled", IncidentAlertAiAttentionSeverity.Medium],
-    ["enqueue_failed", IncidentAlertAiAttentionSeverity.Medium],
-    ["automatic_investigation_disabled", IncidentAlertAiAttentionSeverity.Low],
+    ["provider_missing", AiActivityAttentionSeverity.High],
+    ["insufficient_ai_balance", AiActivityAttentionSeverity.High],
+    ["daily_budget_exhausted", AiActivityAttentionSeverity.High],
+    ["ai_disabled", AiActivityAttentionSeverity.Medium],
+    ["enqueue_failed", AiActivityAttentionSeverity.Medium],
+    ["budget_check_failed", AiActivityAttentionSeverity.Medium],
+    ["eligibility_check_failed", AiActivityAttentionSeverity.Medium],
+    ["automatic_investigation_disabled", AiActivityAttentionSeverity.Low],
   ])(
     "incidents skipped because %s, at %s",
-    (code: string, severity: IncidentAlertAiAttentionSeverity) => {
-      const item: IncidentAlertAiAttentionItem | undefined = attentionOf(
+    (code: string, severity: AiActivityAttentionSeverity) => {
+      const item: AiActivityAttentionItem | undefined = attentionOf(
         IncidentAlertAiInsightsBuilder.build(
           input({
             subjectsInWindow: 9,
@@ -941,11 +1256,11 @@ describe("build: what needs attention", () => {
             ]),
           }),
         ),
-        IncidentAlertAiAttentionKind.InvestigationsNotStarted,
+        AiActivityAttentionKind.InvestigationsNotStarted,
       );
 
       expect(item).toEqual({
-        kind: IncidentAlertAiAttentionKind.InvestigationsNotStarted,
+        kind: AiActivityAttentionKind.InvestigationsNotStarted,
         severity,
         count: 2,
         total: 9,
@@ -970,13 +1285,13 @@ describe("build: what needs attention", () => {
             ]),
           }),
         ),
-        IncidentAlertAiAttentionKind.InvestigationsNotStarted,
+        AiActivityAttentionKind.InvestigationsNotStarted,
       ),
     ).toBeUndefined();
   });
 
   test("the most common reason worth acting on is the one named", () => {
-    const item: IncidentAlertAiAttentionItem | undefined = attentionOf(
+    const item: AiActivityAttentionItem | undefined = attentionOf(
       IncidentAlertAiInsightsBuilder.build(
         input({
           notInvestigatedReasons: new Map<string, InvestigationNotStartedCode>([
@@ -987,7 +1302,7 @@ describe("build: what needs attention", () => {
           ]),
         }),
       ),
-      IncidentAlertAiAttentionKind.InvestigationsNotStarted,
+      AiActivityAttentionKind.InvestigationsNotStarted,
     );
 
     expect(item).toMatchObject({ reason: "provider_missing", count: 1 });
@@ -1019,25 +1334,26 @@ describe("build: what needs attention", () => {
         input({ subjects: subjects(...list), investigations: runs }),
       );
 
-    const recurring: Array<IncidentAlertAiAttentionItem> =
-      insights.attention.filter((item: IncidentAlertAiAttentionItem) => {
-        return item.kind === IncidentAlertAiAttentionKind.RecurringProblem;
-      });
+    const recurring: Array<AiActivityAttentionItem> = insights.attention.filter(
+      (item: AiActivityAttentionItem) => {
+        return item.kind === AiActivityAttentionKind.RecurringProblem;
+      },
+    );
 
     expect(
-      recurring.map((item: IncidentAlertAiAttentionItem) => {
+      recurring.map((item: AiActivityAttentionItem) => {
         return [item.title, item.count, item.recentCount, item.severity];
       }),
     ).toEqual([
-      ["A", 5, 0, IncidentAlertAiAttentionSeverity.High],
-      ["B", 4, 0, IncidentAlertAiAttentionSeverity.Medium],
+      ["A", 5, 0, AiActivityAttentionSeverity.High],
+      ["B", 4, 0, AiActivityAttentionSeverity.Medium],
     ]);
     expect(recurring[0]!.problemKey).toBe(toPublicProblemKey("monitor:ma"));
     expect(recurring[0]!.subject).toMatchObject({ id: "a" });
   });
 
   test("three times in the last week is High however few in all", () => {
-    const item: IncidentAlertAiAttentionItem | undefined = attentionOf(
+    const item: AiActivityAttentionItem | undefined = attentionOf(
       IncidentAlertAiInsightsBuilder.build(
         input({
           subjects: subjects(subject("c", { monitorIds: ["mc"] })),
@@ -1046,13 +1362,13 @@ describe("build: what needs attention", () => {
           }),
         }),
       ),
-      IncidentAlertAiAttentionKind.RecurringProblem,
+      AiActivityAttentionKind.RecurringProblem,
     );
 
     expect(item).toMatchObject({
       count: 3,
       recentCount: 3,
-      severity: IncidentAlertAiAttentionSeverity.High,
+      severity: AiActivityAttentionSeverity.High,
     });
   });
 
@@ -1068,24 +1384,24 @@ describe("build: what needs attention", () => {
     expect(insights.problems[0]!.isRecurring).toBe(true);
     expect(insights.totals.recurringProblems).toBe(1);
     expect(
-      attentionOf(insights, IncidentAlertAiAttentionKind.RecurringProblem),
+      attentionOf(insights, AiActivityAttentionKind.RecurringProblem),
     ).toBeUndefined();
   });
 
   test("fixes waiting for approval, with the newest one's incident", () => {
-    const item: IncidentAlertAiAttentionItem | undefined = attentionOf(
+    const item: AiActivityAttentionItem | undefined = attentionOf(
       IncidentAlertAiInsightsBuilder.build(
         input({
           subjects: subjects(subject("i1"), subject("i2")),
           fixes: [fix("i1", daysAgo(3)), fix("i2", daysAgo(1))],
         }),
       ),
-      IncidentAlertAiAttentionKind.FixesAwaitingApproval,
+      AiActivityAttentionKind.FixesAwaitingApproval,
     );
 
     expect(item).toEqual({
-      kind: IncidentAlertAiAttentionKind.FixesAwaitingApproval,
-      severity: IncidentAlertAiAttentionSeverity.Medium,
+      kind: AiActivityAttentionKind.FixesAwaitingApproval,
+      severity: AiActivityAttentionSeverity.Medium,
       count: 2,
       subject: expect.objectContaining({ id: "i2" }),
     });
@@ -1095,7 +1411,7 @@ describe("build: what needs attention", () => {
     const failing: (
       failed: number,
       completed: number,
-    ) => IncidentAlertAiAttentionItem | undefined = (
+    ) => AiActivityAttentionItem | undefined = (
       failed: number,
       completed: number,
     ) => {
@@ -1113,21 +1429,17 @@ describe("build: what needs attention", () => {
         IncidentAlertAiInsightsBuilder.build(
           input({ subjects: subjects(subject("i1")), investigations: runs }),
         ),
-        IncidentAlertAiAttentionKind.InvestigationsFailed,
+        AiActivityAttentionKind.InvestigationsFailed,
       );
     };
 
     expect(failing(3, 3)).toMatchObject({
-      severity: IncidentAlertAiAttentionSeverity.High,
+      severity: AiActivityAttentionSeverity.High,
       count: 3,
       total: 6,
     });
-    expect(failing(3, 4)!.severity).toBe(
-      IncidentAlertAiAttentionSeverity.Medium,
-    );
-    expect(failing(2, 0)!.severity).toBe(
-      IncidentAlertAiAttentionSeverity.Medium,
-    );
+    expect(failing(3, 4)!.severity).toBe(AiActivityAttentionSeverity.Medium);
+    expect(failing(2, 0)!.severity).toBe(AiActivityAttentionSeverity.Medium);
     expect(failing(0, 4)).toBeUndefined();
   });
 
@@ -1137,11 +1449,11 @@ describe("build: what needs attention", () => {
         IncidentAlertAiInsightsBuilder.build(
           input({ commands: { total: 20, failed: 1, timedOut: 4 } }),
         ),
-        IncidentAlertAiAttentionKind.CommandsTimedOut,
+        AiActivityAttentionKind.CommandsTimedOut,
       ),
     ).toEqual({
-      kind: IncidentAlertAiAttentionKind.CommandsTimedOut,
-      severity: IncidentAlertAiAttentionSeverity.Medium,
+      kind: AiActivityAttentionKind.CommandsTimedOut,
+      severity: AiActivityAttentionSeverity.Medium,
       count: 4,
       total: 20,
     });
@@ -1162,11 +1474,11 @@ describe("build: what needs attention", () => {
             ],
           }),
         ),
-        IncidentAlertAiAttentionKind.FindingsRejected,
+        AiActivityAttentionKind.FindingsRejected,
       ),
     ).toEqual({
-      kind: IncidentAlertAiAttentionKind.FindingsRejected,
-      severity: IncidentAlertAiAttentionSeverity.Low,
+      kind: AiActivityAttentionKind.FindingsRejected,
+      severity: AiActivityAttentionSeverity.Low,
       count: 2,
       total: 3,
       subject: expect.objectContaining({ id: "i1" }),
@@ -1177,7 +1489,7 @@ describe("build: what needs attention", () => {
     const make: (
       onMonitor: number,
       elsewhere: number,
-    ) => IncidentAlertAiAttentionItem | undefined = (
+    ) => AiActivityAttentionItem | undefined = (
       onMonitor: number,
       elsewhere: number,
     ) => {
@@ -1202,13 +1514,13 @@ describe("build: what needs attention", () => {
             investigations: runs,
           }),
         ),
-        IncidentAlertAiAttentionKind.MonitorHotspot,
+        AiActivityAttentionKind.MonitorHotspot,
       );
     };
 
     expect(make(3, 3)).toEqual({
-      kind: IncidentAlertAiAttentionKind.MonitorHotspot,
-      severity: IncidentAlertAiAttentionSeverity.Low,
+      kind: AiActivityAttentionKind.MonitorHotspot,
+      severity: AiActivityAttentionSeverity.Low,
       count: 3,
       total: 6,
       monitor: { id: "m1", name: "API latency" },
@@ -1249,15 +1561,15 @@ describe("build: what needs attention", () => {
       );
 
     expect(attentionKinds(insights)).toHaveLength(
-      INCIDENT_ALERT_AI_INSIGHTS_MAX_ATTENTION_ITEMS,
+      AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
     );
     expect(attentionKinds(insights)).toEqual([
-      IncidentAlertAiAttentionKind.FixesFailed,
-      IncidentAlertAiAttentionKind.InvestigationsNotStarted,
-      IncidentAlertAiAttentionKind.RecurringProblem,
-      IncidentAlertAiAttentionKind.FixesAwaitingApproval,
-      IncidentAlertAiAttentionKind.InvestigationsFailed,
-      IncidentAlertAiAttentionKind.CommandsTimedOut,
+      AiActivityAttentionKind.FixesFailed,
+      AiActivityAttentionKind.InvestigationsNotStarted,
+      AiActivityAttentionKind.RecurringProblem,
+      AiActivityAttentionKind.FixesAwaitingApproval,
+      AiActivityAttentionKind.InvestigationsFailed,
+      AiActivityAttentionKind.CommandsTimedOut,
     ]);
   });
 
@@ -1268,10 +1580,10 @@ describe("build: what needs attention", () => {
       );
 
     expect(attentionKinds(insights)).not.toContain(
-      IncidentAlertAiAttentionKind.FixesFailed,
+      AiActivityAttentionKind.FixesFailed,
     );
     expect(attentionKinds(insights)).not.toContain(
-      IncidentAlertAiAttentionKind.FixesAwaitingApproval,
+      AiActivityAttentionKind.FixesAwaitingApproval,
     );
   });
 });

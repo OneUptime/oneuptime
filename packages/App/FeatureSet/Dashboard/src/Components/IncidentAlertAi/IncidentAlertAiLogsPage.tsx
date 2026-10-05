@@ -173,12 +173,7 @@ function EntryRow(props: {
             to={getSubjectRoute(props.descriptor, entry.subject.id)}
             className="min-w-0 truncate text-sm font-medium text-gray-900 hover:text-indigo-700 hover:underline"
           >
-            {subjectLabel ||
-              translator.translateText(
-                entry.subject.kind === "incident"
-                  ? "Open incident"
-                  : "Open alert",
-              )}
+            {subjectLabel}
           </Link>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">

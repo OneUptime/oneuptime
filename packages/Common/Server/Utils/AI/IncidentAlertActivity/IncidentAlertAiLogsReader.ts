@@ -4,6 +4,9 @@ import AutoRemediationSuggestionService from "../../../Services/AutoRemediationS
 import IncidentService from "../../../Services/IncidentService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import InvestigationReportSummary, {
+  InvestigationReportSummaryRun,
+} from "../SRE/InvestigationReportSummary";
 import IncidentAlertAiLogsPage, {
   IncidentAlertAiLogsKindScan,
   IncidentAlertAiLogsPageResult,
@@ -13,6 +16,7 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
   INCIDENT_ALERT_AI_LOGS_COMMAND_MAX_LENGTH,
@@ -49,7 +53,9 @@ import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
  *     is private to its author in the AI run table, which would empty the
  *     page for exactly the people it is for. Only statuses, dates and the
  *     one-line finding leave, and only next to an incident or alert the
- *     caller may read - the same finding its AI panel shows them.
+ *     caller may read - the same finding its AI panel shows them. A
+ *     completed run without a TL;DR has its report's own Summary instead
+ *     (InvestigationReportSummary), as a resource's AI Logs show it.
  *   - Fixes and commands are read under the caller's props: the suggestion
  *     and Runner job tables have read access of their own, and a caller
  *     without it gets that kind in hiddenKinds instead of rows. Which
@@ -234,6 +240,8 @@ export default class IncidentAlertAiLogsReader {
       before = new Date(nextBefore);
     }
 
+    await this.readReportSummaries({ options, entries });
+
     return {
       subjectKind: options.subjectKind,
       entries,
@@ -244,6 +252,57 @@ export default class IncidentAlertAiLogsReader {
         },
       ),
     };
+  }
+
+  /*
+   * A completed investigation whose TL;DR call failed still published a
+   * report on its incident (or alert), and that report's own Summary stands
+   * in for the finding. Only the page's own entries are read, and every one
+   * is about an incident (or alert) the caller may read.
+   */
+  public static async readReportSummaries(data: {
+    options: Pick<IncidentAlertAiLogsReadOptions, "subjectKind" | "projectId">;
+    entries: Array<IncidentAlertAiLogEntry>;
+  }): Promise<void> {
+    const missing: Array<IncidentAlertAiLogEntry> = data.entries.filter(
+      (entry: IncidentAlertAiLogEntry): boolean => {
+        return (
+          entry.kind === IncidentAlertAiLogKind.Investigation &&
+          entry.status === AIRunStatus.Completed &&
+          !entry.summary
+        );
+      },
+    );
+
+    if (missing.length === 0) {
+      return;
+    }
+
+    const summaries: Map<string, string> =
+      await InvestigationReportSummary.getForRuns({
+        projectId: data.options.projectId,
+        runs: missing.map(
+          (entry: IncidentAlertAiLogEntry): InvestigationReportSummaryRun => {
+            return {
+              aiRunId: new ObjectID(entry.id),
+              ...(data.options.subjectKind === "incident"
+                ? { incidentId: new ObjectID(entry.subject.id) }
+                : { alertId: new ObjectID(entry.subject.id) }),
+            };
+          },
+        ),
+      });
+
+    for (const entry of missing) {
+      const summary: string | undefined = clipText(
+        summaries.get(entry.id),
+        INCIDENT_ALERT_AI_LOGS_TEXT_MAX_LENGTH,
+      );
+
+      if (summary) {
+        entry.reportSummary = summary;
+      }
+    }
   }
 
   // The kinds asked for, in the record's own order; every kind by default.

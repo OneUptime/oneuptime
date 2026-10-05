@@ -1,6 +1,8 @@
 import AIRunService from "../../../../../Server/Services/AIRunService";
+import AlertFeedService from "../../../../../Server/Services/AlertFeedService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import IncidentFeedService from "../../../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import RunnerJobService from "../../../../../Server/Services/RunnerJobService";
@@ -14,7 +16,8 @@ import { jest } from "@jest/globals";
 /*
  * An in-memory stand-in for the tables the incident and alert AI activity
  * readers read - incidents, alerts, AI runs, auto-remediation suggestions,
- * Runner jobs, monitors and services - behind the services' own findBy (and
+ * Runner jobs, monitors and services, and the incident and alert feeds an
+ * investigation posts its report on - behind the services' own findBy (and
  * the incidents' and alerts' countBy), so the readers run unchanged.
  *
  * It answers the query shapes the readers build: plain equality, and the
@@ -42,6 +45,9 @@ export interface FakeTables {
   jobs: Array<FakeRow>;
   monitors: Array<FakeRow>;
   services: Array<FakeRow>;
+  // Read as root only (InvestigationReportSummary).
+  incidentFeeds: Array<FakeRow>;
+  alertFeeds: Array<FakeRow>;
 }
 
 export interface FakeAccess {
@@ -189,6 +195,8 @@ export function emptyTables(): FakeTables {
     jobs: [],
     monitors: [],
     services: [],
+    incidentFeeds: [],
+    alertFeeds: [],
   };
 }
 
@@ -240,6 +248,8 @@ export function installFakeStore(
       jobs: store.access.canReadJobs,
       monitors: store.access.canReadMonitors,
       services: store.access.canReadServices,
+      incidentFeeds: false,
+      alertFeeds: false,
     };
 
     if (!allowed[table]) {
@@ -353,6 +363,12 @@ export function installFakeStore(
   jest
     .spyOn(ServiceService, "findBy")
     .mockImplementation(find("services") as never);
+  jest
+    .spyOn(IncidentFeedService, "findBy")
+    .mockImplementation(find("incidentFeeds") as never);
+  jest
+    .spyOn(AlertFeedService, "findBy")
+    .mockImplementation(find("alertFeeds") as never);
 
   return store;
 }

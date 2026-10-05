@@ -1,3 +1,10 @@
+import { describeSubject } from "../AI/ActivityInsights/AiActivityInsightsData";
+import {
+  ResourceAiStatusLook,
+  getResourceFixStatusLook,
+  getResourceInvestigationStatusLook,
+  getResourceInvestigationSummary,
+} from "../ResourceAiAgent/ResourceAiLogs";
 import AIRunAutoGrade from "Common/Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -8,10 +15,8 @@ import {
   IncidentAlertAiSubjectKind,
 } from "Common/Types/AI/IncidentAlertAiLogs";
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
-import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
-import Color from "Common/Types/Color";
 import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
@@ -22,9 +27,17 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * The pure half of the AI Logs page of the Incidents and Alerts menus
  * (IncidentAlertAiLogsPage): how the page reads the logs route's body
  * (Common/Types/AI/IncidentAlertAiLogs.ts) and the words for each entry.
- * Import-clean (Common types only), so the suites read it without a
- * browser. Every label is English, wrapped in translationKey() so the
- * extractor finds it, and translated where it is drawn.
+ * Import-clean (Common types and the shared AI pages' word helpers only),
+ * so the suites read it without a browser. Every label is English, wrapped
+ * in translationKey() so the extractor finds it, and translated where it is
+ * drawn.
+ *
+ * What a cluster's and a resource's AI Logs say too is theirs, said the same
+ * way here: an investigation's and a fix's status (ResourceAiLogs), what an
+ * investigation found - its TL;DR, else its report's own Summary - and how
+ * an incident or alert is named (AiActivityInsightsData). What only this
+ * record has (fix pull requests, commands with their incident, the filter
+ * and the pages) is its own.
  */
 
 export const AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
@@ -124,6 +137,7 @@ export interface AiLogsEntry {
   status: string | null;
   completedAt: string | null;
   summary: string | null;
+  reportSummary: string | null;
   humanVerdict: string | null;
   autoGrade: string | null;
   suggestionType: string | null;
@@ -234,6 +248,7 @@ function parseEntry(
     status: readString(value["status"]),
     completedAt: readDate(value["completedAt"]),
     summary: readString(value["summary"]),
+    reportSummary: readString(value["reportSummary"]),
     humanVerdict: readString(value["humanVerdict"]),
     autoGrade: readString(value["autoGrade"]),
     suggestionType: readString(value["suggestionType"]),
@@ -325,40 +340,14 @@ export const AI_LOG_KIND_LABELS: Record<IncidentAlertAiLogKind, string> = {
   [IncidentAlertAiLogKind.Command]: translationKey("Command"),
 };
 
-export interface AiLogsStatusLook {
-  label: string;
-  color: Color;
-}
+// An entry's status pill: what it says (translated where drawn) and its color.
+export type AiLogsStatusLook = ResourceAiStatusLook;
 
-const INVESTIGATION_STATUS_LOOKS: Record<AIRunStatus, AiLogsStatusLook> = {
-  [AIRunStatus.Queued]: { label: translationKey("Queued"), color: Yellow500 },
-  [AIRunStatus.Running]: {
-    label: translationKey("Investigating"),
-    color: Yellow500,
-  },
-  [AIRunStatus.WaitingForApproval]: {
-    label: translationKey("Waiting for approval"),
-    color: Yellow500,
-  },
-  [AIRunStatus.Completed]: {
-    label: translationKey("Completed"),
-    color: Green500,
-  },
-  [AIRunStatus.NoFixFound]: {
-    label: translationKey("No fix found"),
-    color: Gray500,
-  },
-  [AIRunStatus.Error]: { label: translationKey("Failed"), color: Red500 },
-  [AIRunStatus.Cancelled]: {
-    label: translationKey("Cancelled"),
-    color: Gray500,
-  },
-  [AIRunStatus.Stale]: { label: translationKey("Timed out"), color: Gray500 },
-};
-
-// A fix pull request task finishes by opening the pull request.
-const FIX_TASK_STATUS_LOOKS: Record<AIRunStatus, AiLogsStatusLook> = {
-  ...INVESTIGATION_STATUS_LOOKS,
+/*
+ * A fix pull request task finishes by opening the pull request; every other
+ * status reads as an investigation's.
+ */
+const FIX_TASK_STATUS_LOOKS: Partial<Record<AIRunStatus, AiLogsStatusLook>> = {
   [AIRunStatus.Running]: {
     label: translationKey("In progress"),
     color: Yellow500,
@@ -366,36 +355,6 @@ const FIX_TASK_STATUS_LOOKS: Record<AIRunStatus, AiLogsStatusLook> = {
   [AIRunStatus.Completed]: {
     label: translationKey("Pull request opened"),
     color: Green500,
-  },
-};
-
-const FIX_STATUS_LOOKS: Record<
-  AutoRemediationSuggestionStatus,
-  AiLogsStatusLook
-> = {
-  [AutoRemediationSuggestionStatus.Planning]: {
-    label: translationKey("Planning"),
-    color: Yellow500,
-  },
-  [AutoRemediationSuggestionStatus.Suggested]: {
-    label: translationKey("Waiting for approval"),
-    color: Yellow500,
-  },
-  [AutoRemediationSuggestionStatus.Approved]: {
-    label: translationKey("Applied after approval"),
-    color: Green500,
-  },
-  [AutoRemediationSuggestionStatus.AutoExecuted]: {
-    label: translationKey("Applied automatically"),
-    color: Green500,
-  },
-  [AutoRemediationSuggestionStatus.Dismissed]: {
-    label: translationKey("Dismissed"),
-    color: Gray500,
-  },
-  [AutoRemediationSuggestionStatus.NoneApplicable]: {
-    label: translationKey("No fix found"),
-    color: Gray500,
   },
 };
 
@@ -428,8 +387,9 @@ const COMMAND_STATUS_LOOKS: Record<RunnerJobStatus, AiLogsStatusLook> = {
 };
 
 /*
- * An entry's status pill. A status a newer server added shows as it is, in
- * a neutral pill; an entry without one has none.
+ * An entry's status pill: an investigation's and a fix's as a resource's AI
+ * Logs show them. A status a newer server added shows as it is, in a
+ * neutral pill; an entry without one has none.
  */
 export function getAiLogStatusLook(
   entry: Pick<AiLogsEntry, "kind" | "status">,
@@ -438,16 +398,24 @@ export function getAiLogStatusLook(
     return null;
   }
 
-  const looks: Record<string, AiLogsStatusLook> =
-    entry.kind === IncidentAlertAiLogKind.Investigation
-      ? INVESTIGATION_STATUS_LOOKS
-      : entry.kind === IncidentAlertAiLogKind.FixTask
-        ? FIX_TASK_STATUS_LOOKS
-        : entry.kind === IncidentAlertAiLogKind.Fix
-          ? FIX_STATUS_LOOKS
-          : COMMAND_STATUS_LOOKS;
-
-  return looks[entry.status] || { label: entry.status, color: Gray500 };
+  switch (entry.kind) {
+    case IncidentAlertAiLogKind.Investigation:
+      return getResourceInvestigationStatusLook(entry.status);
+    case IncidentAlertAiLogKind.FixTask:
+      return (
+        FIX_TASK_STATUS_LOOKS[entry.status as AIRunStatus] ||
+        getResourceInvestigationStatusLook(entry.status)
+      );
+    case IncidentAlertAiLogKind.Fix:
+      return getResourceFixStatusLook(entry.status);
+    default:
+      return (
+        COMMAND_STATUS_LOOKS[entry.status as RunnerJobStatus] || {
+          label: entry.status,
+          color: Gray500,
+        }
+      );
+  }
 }
 
 const VERIFICATION_LABELS: Record<AutoRemediationVerificationStatus, string> = {
@@ -551,7 +519,9 @@ export function describeVerdicts(entry: {
  * What an entry says under its headline: an investigation's finding, a
  * fix's reason, a command, or why there is nothing to show yet. Text the
  * server wrote (a finding, a reason, a command) is shown as it is; the
- * page's own words are translated where they are drawn.
+ * page's own words are translated where they are drawn, except an
+ * investigation's, which come translated from the resource AI Logs' own
+ * helper.
  */
 export interface AiLogDetail {
   text: string;
@@ -579,24 +549,14 @@ export function getAiLogDetail(entry: AiLogsEntry): AiLogDetail | null {
 
   switch (entry.kind) {
     case IncidentAlertAiLogKind.Investigation:
-      if (entry.summary) {
-        return serverText(entry.summary);
-      }
-
-      if (
-        entry.status === AIRunStatus.Queued ||
-        entry.status === AIRunStatus.Running
-      ) {
-        return ownWords(translationKey("Still investigating."));
-      }
-
-      return entry.status === AIRunStatus.Completed
-        ? ownWords(
-            translationKey(
-              "No one-line summary was recorded. The full report is on the investigation.",
-            ),
-          )
-        : null;
+      // Its TL;DR, its report's Summary, or why there is none.
+      return serverText(
+        getResourceInvestigationSummary({
+          analysisTldr: entry.summary,
+          reportSummary: entry.reportSummary,
+          status: entry.status,
+        }),
+      );
     case IncidentAlertAiLogKind.Fix:
       return serverText(entry.rationale);
     case IncidentAlertAiLogKind.FixTask:
@@ -609,17 +569,18 @@ export function getAiLogDetail(entry: AiLogsEntry): AiLogDetail | null {
 }
 
 /*
- * The incident or alert an entry was for, the way its page names it: its
- * number with the project's prefix, then its title.
+ * The incident or alert an entry was for, named the way every AI page names
+ * one (AiActivityInsightsData.describeSubject): "Incident INC-42: Checkout
+ * is down", with the project's prefix when it has one.
  */
 export function getAiLogSubjectLabel(subject: AiLogsSubject): string {
-  const number: string | null =
-    subject.numberWithPrefix ||
-    (subject.number !== null ? `#${subject.number}` : null);
-
-  if (number && subject.title) {
-    return `${number} ${subject.title}`;
-  }
-
-  return number || subject.title || "";
+  return describeSubject({
+    kind: subject.kind,
+    id: subject.id,
+    ...(subject.title ? { title: subject.title } : {}),
+    ...(subject.number !== null ? { number: subject.number } : {}),
+    ...(subject.numberWithPrefix
+      ? { numberWithPrefix: subject.numberWithPrefix }
+      : {}),
+  });
 }
