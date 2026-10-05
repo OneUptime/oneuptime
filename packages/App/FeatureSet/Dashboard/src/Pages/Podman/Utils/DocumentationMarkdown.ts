@@ -185,7 +185,8 @@ export function getPodmanAgentUpgradeCommand(
 ): string {
   if (method === "podman-cli") {
     return `podman pull ${PODMAN_AGENT_IMAGE}
-podman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`;
+podman pull ${PODMAN_AI_AGENT_IMAGE}
+podman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`;
   }
   return "podman compose pull\npodman compose up -d";
 }
@@ -453,14 +454,6 @@ ${
         ? `**Upgrade** — pull the latest image and remove the running agent:
 
 ${codeBlock("bash", getPodmanAgentUpgradeCommand("podman-cli"))}
-
-Then the OneUptime AI agent, the same way:
-
-${codeBlock(
-  "bash",
-  `podman pull ${PODMAN_AI_AGENT_IMAGE}
-podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
-)}
 
 Then run both \`podman run\` commands from step 2 again.
 
