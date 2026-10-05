@@ -10,12 +10,13 @@ import { afterAll, describe, expect, test } from "@jest/globals";
  * packages/Common/Types/ResourceAiAgent and
  * packages/Common/Utils/AiRemediation/Resource are copied byte-identically
  * into the standalone resource AI agent (agents/ResourceAIAgent), together
- * with Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts. The agent
- * has no Common dependency and no Node-specific code may run inside the
- * policy (it runs in the server, the dashboard and the agent alike), so a
- * file in those directories may import ONLY:
+ * with Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts and
+ * Types/AI/AgentAiSettings.ts (what OneUptime AI may do, as the agent
+ * reports it). The agent has no Common dependency and no Node-specific code
+ * may run inside the policy (it runs in the server, the dashboard and the
+ * agent alike), so a file in those directories may import ONLY:
  *   - another file in those two directories, or
- *   - the verdict leaf,
+ *   - one of those two leaves (each imports nothing itself),
  * by a RELATIVE path — never a package, a Node built-in or the "Common/..."
  * alias — and may not reach for Node globals (process, Buffer, require,
  * __dirname, ...).
@@ -32,6 +33,13 @@ const CLOSED_DIRECTORIES: Array<string> = [
   path.join(COMMON_ROOT, "Utils", "AiRemediation", "Resource"),
 ];
 
+const AGENT_AI_SETTINGS_FILE: string = path.join(
+  COMMON_ROOT,
+  "Types",
+  "AI",
+  "AgentAiSettings.ts",
+);
+
 const ALLOWED_OUTSIDE_FILES: Array<string> = [
   path.join(
     COMMON_ROOT,
@@ -39,6 +47,7 @@ const ALLOWED_OUTSIDE_FILES: Array<string> = [
     "AutoRemediation",
     "AiRemediationCommandPolicyVerdict.ts",
   ),
+  AGENT_AI_SETTINGS_FILE,
 ];
 
 const NODE_GLOBALS: Array<string> = [
@@ -274,11 +283,20 @@ describe("the resource policy closure", () => {
     ).toEqual([]);
   });
 
-  test("ResourceAiAccess imports only ./AiResourceType", () => {
+  test("ResourceAiAccess imports only ./AiResourceType and the AI settings contract", () => {
     expect(
-      scanFile(path.join(CLOSED_DIRECTORIES[0]!, "ResourceAiAccess.ts"))
-        .specifiers,
-    ).toEqual(["./AiResourceType"]);
+      scanFile(
+        path.join(CLOSED_DIRECTORIES[0]!, "ResourceAiAccess.ts"),
+      ).specifiers.sort(),
+    ).toEqual(["../AI/AgentAiSettings", "./AiResourceType"]);
+  });
+
+  // A leaf the closure may reach must not lead out of it.
+  test("the AI settings contract imports nothing at all, and uses no Node globals", () => {
+    expect(scanFile(AGENT_AI_SETTINGS_FILE)).toEqual({
+      specifiers: [],
+      nodeGlobals: [],
+    });
   });
 });
 

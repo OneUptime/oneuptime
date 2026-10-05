@@ -264,18 +264,21 @@ describe("the three rows", () => {
     expect(badge("connection").className).toContain("bg-red-50");
   });
 
-  test.each<[string, "off" | "on" | "automatic" | "bypass"]>([
-    ["Off", "off"],
-    ["Ask for approval", "on"],
-    ["Automatic", "automatic"],
-    ["Bypass approval", "bypass"],
+  // Every on mode reads on, in green: what a mode does is in its name.
+  test.each<[string, "off" | "on", string]>([
+    ["Off", "off", "bg-gray-50"],
+    ["Ask for approval", "on", "bg-emerald-50"],
+    ["Automatic", "on", "bg-emerald-50"],
+    ["Bypass approval", "on", "bg-emerald-50"],
   ])(
     "fixes %s in the %s tone",
-    (text: string, tone: "off" | "on" | "automatic" | "bypass") => {
+    (text: string, tone: "off" | "on", background: string) => {
       renderCard({ summary: makeSummary({ fixes: { text, tone } }) });
 
       expect(badge("fixes")).toHaveTextContent(text);
       expect(badge("fixes")).toHaveAttribute("data-tone", tone);
+      expect(badge("fixes").className).toContain(background);
+      expect(badge("fixes").className).not.toMatch(/amber|indigo|red-/);
     },
   );
 
