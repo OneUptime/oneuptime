@@ -19,6 +19,15 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import logger, { LogAttributes } from "../../../Server/Utils/Logger";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A scheduled maintenance event puts its monitors into maintenance when it
@@ -1806,6 +1815,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a failure after the write
     loggerError = jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
+    stubProjectDirectory({});
   });
 
   // Every error was logged against the event and its project.

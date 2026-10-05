@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DockerHostLabelRuleEngineService from "./DockerHostLabelRuleEngineService";
 import DockerHostOwnerRuleEngineService from "./DockerHostOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerHost";
@@ -61,7 +61,7 @@ const DOCKER_HOST_NAMING: DiscoveredResourceNaming<Model> =
 const DOCKER_HOST_MATCH_COLUMN: MatchColumn =
   matchedOnIdentifier(DOCKER_HOST_IDENTITY);
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -551,6 +551,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     ResourceAiAccessSettings.checkCreate({
       resourceType: AiResourceType.DockerHost,
       createBy,
@@ -603,6 +605,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

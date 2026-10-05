@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertStateService from "./AlertStateService";
 import UserService from "./UserService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -24,7 +24,7 @@ import AlertEpisodeInternalNote from "../../Models/DatabaseModels/AlertEpisodeIn
 import AlertEpisodeInternalNoteService from "./AlertEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
 
-export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
+export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline> {
   public constructor() {
     super(AlertEpisodeStateTimeline);
     if (IsBillingEnabled) {
@@ -36,6 +36,8 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<AlertEpisodeStateTimeline>,
   ): Promise<OnCreate<AlertEpisodeStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.alertEpisodeId) {
       throw new BadDataException("alertEpisodeId is null");
     }

@@ -4,7 +4,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
 import UserService from "./UserService";
@@ -28,7 +28,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
-export class Service extends DatabaseService<AlertStateTimeline> {
+export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
     super(AlertStateTimeline);
     if (IsBillingEnabled) {
@@ -64,6 +64,8 @@ export class Service extends DatabaseService<AlertStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<AlertStateTimeline>,
   ): Promise<OnCreate<AlertStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.alertId) {
       throw new BadDataException("alertId is null");
     }
@@ -546,6 +548,8 @@ ${createdItem.rootCause}`,
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<AlertStateTimeline>,
   ): Promise<OnUpdate<AlertStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     const alertIds: Array<ObjectID> =
       await this.getAlertIdsForTimelineQuery(updateBy);
 

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -22,7 +22,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * everything the template holds. Root and master admin writes are not
  * checked.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -31,6 +31,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
       const templateId: ObjectID | undefined =
         createBy.data.statusPageSubscriberNotificationTemplateId ||
@@ -50,6 +52,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (updateBy.props.isRoot || updateBy.props.isMasterAdmin) {
       return { updateBy, carryForward: null };
     }

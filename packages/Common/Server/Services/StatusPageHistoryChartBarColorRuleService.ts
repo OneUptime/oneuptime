@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -13,7 +13,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * new rule goes to the end, a moved one takes the place of the rule it was
  * dropped on, and the others keep their order when one is deleted.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -22,6 +22,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.statusPageId) {
       throw new BadDataException(
         "Status Page Resource statusPageId is required",

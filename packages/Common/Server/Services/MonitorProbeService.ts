@@ -2,7 +2,10 @@ import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService, { EntityManager } from "./DatabaseService";
+import { EntityManager } from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
@@ -17,7 +20,7 @@ import logger, { EXTERNAL_FAULT, LogAttributes } from "../Utils/Logger";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 
-export class Service extends DatabaseService<MonitorProbe> {
+export class Service extends ProjectReferencesService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
   }
@@ -362,9 +365,25 @@ export class Service extends DatabaseService<MonitorProbe> {
     return claimedIds;
   }
 
+  /*
+   * On a create the probe is checked below with
+   * ProbeService.isProbeAttachableToProject: the project's own probes and the
+   * global ones, in one answer for an id from another project and one that
+   * matches nothing. Nobody can change a monitor probe's probe (the column
+   * takes no update); an update naming one gets the generic check, which
+   * counts the global probes as the project's too.
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return write?.kind === "update" ? [] : ["probe"];
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<MonitorProbe>,
   ): Promise<OnCreate<MonitorProbe>> {
+    await super.onBeforeCreate(createBy);
+
     if (
       (createBy.data.monitorId || createBy.data.monitor) &&
       (createBy.data.probeId || createBy.data.probe)

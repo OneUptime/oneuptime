@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceLabelRule from "../../Models/DatabaseModels/NetworkDeviceLabelRule";
@@ -197,11 +198,23 @@ class NetworkDeviceLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: networkDevice.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of network device label rules",
+      logAttributes: {
+        projectId: networkDevice.projectId.toString(),
+        networkDeviceId: networkDevice.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -284,7 +297,7 @@ class NetworkDeviceLabelRuleEngineServiceClass
       );
     }
 
-    const labelIdsToAdd: Array<string> = (rule.labelsToAdd || [])
+    const namedLabelIds: Array<string> = (rule.labelsToAdd || [])
       .map((label: Label) => {
         return label.id?.toString() || "";
       })
@@ -292,9 +305,33 @@ class NetworkDeviceLabelRuleEngineServiceClass
         return id !== "";
       });
 
-    if (labelIdsToAdd.length === 0) {
+    if (namedLabelIds.length === 0) {
       throw new BadDataException(
         "This label rule has no labels to add, so running it would do nothing.",
+      );
+    }
+
+    /*
+     * Only the project's own labels: a rule saved before its lists were
+     * checked can still name another project's label, and the run attaches
+     * as root. A rule left with none says so; a read that fails is reported
+     * as the failure it is.
+     */
+    const labelIdsToAdd: Array<string> = await RuleRecordScope.keepIdsInProject(
+      {
+        projectId: data.projectId,
+        ids: namedLabelIds,
+        modelType: Label,
+        description: `labels of network device label rule ${data.ruleId.toString()}`,
+        logAttributes: {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      },
+    );
+
+    if (labelIdsToAdd.length === 0) {
+      throw new BadDataException(
+        "None of this label rule's labels are in this project, so running it would do nothing. Edit the rule and pick its labels again.",
       );
     }
 

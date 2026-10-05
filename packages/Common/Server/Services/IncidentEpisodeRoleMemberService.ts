@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentMemberService from "./IncidentMemberService";
@@ -14,7 +14,7 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -23,6 +23,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
 

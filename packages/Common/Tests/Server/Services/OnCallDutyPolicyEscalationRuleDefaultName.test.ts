@@ -5,6 +5,15 @@ import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A RULE NOBODY NAMED IS CALLED AFTER ITS LEVEL.
@@ -105,6 +114,7 @@ beforeEach(() => {
   jest
     .spyOn(EscalationRuleService, "updateOneBy")
     .mockResolvedValue(0 as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

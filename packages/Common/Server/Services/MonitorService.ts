@@ -10,7 +10,7 @@ import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMet
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
@@ -100,7 +100,10 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
@@ -139,9 +142,28 @@ export interface MonitorProbeFlagChanges {
   isAllProbesDisconnectedFromThisMonitor?: boolean | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The monitor template, the monitors this one depends on, the statuses
+   * that hold back its alerts and the affected-resource lists are checked by
+   * this service's own hooks below, with their own words. Everything else a
+   * monitor names - its labels, its alert policy - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["monitorTemplate"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "dependsOnMonitors",
+      "suppressAlertsWhenParentMonitorStatuses",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   private async validateMonitorTemplateReference(data: {
@@ -156,9 +178,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Pinned to the monitor's project, so another project's template reads
+     * exactly like one that does not exist - for a root caller too, whose
+     * read is not tenant-scoped.
+     */
     const monitorTemplate: MonitorTemplate | null =
-      await MonitorTemplateService.findOneById({
-        id: data.monitorTemplateId,
+      await MonitorTemplateService.findOneBy({
+        query: {
+          _id: data.monitorTemplateId,
+          projectId: data.projectId,
+        },
         select: {
           _id: true,
           projectId: true,
@@ -175,15 +205,6 @@ export class Service extends DatabaseService<Model> {
 
     if (!monitorTemplate) {
       throw new BadDataException("Monitor template not found.");
-    }
-
-    if (
-      !monitorTemplate.projectId ||
-      monitorTemplate.projectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        "Monitor template must belong to the same project as the monitor.",
-      );
     }
 
     if (!data.monitorType || monitorTemplate.monitorType !== data.monitorType) {
@@ -656,6 +677,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * currentMonitorStatusId is writable by any project member and its FK is
      * ON DELETE NO ACTION, so an id from another project here leaves that
@@ -1607,6 +1630,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
     }

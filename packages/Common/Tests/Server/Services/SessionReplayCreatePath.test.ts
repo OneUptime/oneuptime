@@ -21,7 +21,16 @@ import OneUptimeDate from "../../../Types/Date";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import { describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The create path for the session replay Postgres models.

@@ -14,7 +14,16 @@ import {
 } from "../../../Server/Utils/GlobalSsoAuthorization";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * AN OIDC PROVIDER CREATED WITH ONLY WHAT THE IDENTITY PROVIDER GIVES IS

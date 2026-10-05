@@ -36,6 +36,15 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test for ServiceLevelObjectiveService:
@@ -227,6 +236,7 @@ async function expectBadData(
 describe("ServiceLevelObjectiveService.onBeforeCreate - target percentage guard", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -380,6 +390,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - target percentage guard"
 describe("ServiceLevelObjectiveService - window days validation", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -530,6 +541,7 @@ describe("ServiceLevelObjectiveService - window days validation", () => {
 describe("ServiceLevelObjectiveService - numeric columns supplied as strings", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -898,6 +910,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1206,6 +1219,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1300,6 +1314,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1522,6 +1537,7 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     ruleFindBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1689,6 +1705,7 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForS
         "clearOpenOutputStateForRule",
       )
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -2464,6 +2481,7 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -2644,6 +2662,7 @@ describe("ServiceLevelObjectiveService - applying the label and owner rules", ()
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

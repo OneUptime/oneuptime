@@ -1,6 +1,6 @@
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -12,7 +12,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

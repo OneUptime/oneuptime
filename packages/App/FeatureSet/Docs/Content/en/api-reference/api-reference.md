@@ -20,6 +20,16 @@ The examples are written for the resource. On the **Incidents** list, for exampl
 
 Requests that read, change or delete one resource name it by its ID, a UUID. On the resource's own page, its details card ends with a small **ID** line that shows the start of the ID: click the ID, or the copy button beside it, to copy the whole ID. Lists that offer it have **Show ID** in a row's **⋯** menu, and the ID is also the last part of the page's address. Your project's ID is the first thing on the **Project Details** card of **Project Settings → Project**.
 
+### Records a request names
+
+Many resources name other records: a monitor its labels and probes, a status page subscriber its status page, a network device its site, an incident's member the incident and the role. Every ID you send for one must be a record of your project — the dashboard's pickers offer nothing else — and requests from Terraform and workflows are held to the same. An ID of another project's record and an ID that does not exist are refused alike, with a `400` that names the field and the ID:
+
+```text
+This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
+```
+
+People are checked by membership: someone who is not a member of the project is refused the same way. A global probe, which every project can use, counts as your project's. Changing a resource checks only the IDs the change adds, so a resource that names something that has since gone can still be saved.
+
 ### API Reference
 
 Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference). The API reference is available in multiple languages — your preferred language is auto-detected from your browser, and you can switch languages at any time using the selector in the top navigation.

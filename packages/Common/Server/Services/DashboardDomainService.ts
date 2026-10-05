@@ -12,7 +12,7 @@ import { CertificateOrderReason } from "../Utils/Greenlock/CertificateOrderBudge
 import CertificateOrderFailures from "../Utils/Greenlock/CertificateOrderFailures";
 import CertificateReissueOrder from "../Utils/Greenlock/CertificateReissueOrder";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DomainService from "./DomainService";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
@@ -36,7 +36,7 @@ import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCe
 
 const DASHBOARD_DOMAIN_EGRESS_LABEL: string = "Dashboard domain";
 
-export class Service extends DatabaseService<DashboardDomain> {
+export class Service extends ProjectReferencesService<DashboardDomain> {
   /*
    * How many certificates the dashboard sweeps may order: the first orders
    * and the re-orders of a certificate that has gone missing together, in
@@ -102,6 +102,8 @@ export class Service extends DatabaseService<DashboardDomain> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<DashboardDomain>,
   ): Promise<OnUpdate<DashboardDomain>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Create-time validation alone leaves the value editable afterwards —
      * subdomain is ProjectMember-updatable.
@@ -119,6 +121,8 @@ export class Service extends DatabaseService<DashboardDomain> {
   protected override async onBeforeCreate(
     createBy: CreateBy<DashboardDomain>,
   ): Promise<OnCreate<DashboardDomain>> {
+    await super.onBeforeCreate(createBy);
+
     const domain: DomainModel | null = await DomainService.findOneBy({
       query: {
         _id:

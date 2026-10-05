@@ -31,6 +31,7 @@ import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
@@ -275,7 +276,7 @@ export const widensAuditLogging: (
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
 
-export class ProjectService extends DatabaseService<Model> {
+export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
    * staleness on "last seen" is acceptable; an UPDATE per request is not.
@@ -376,6 +377,8 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
     if (!data.data.name) {
       throw new BadDataException("Project name is required");
     }
@@ -736,6 +739,8 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Any project field could have changed; invalidate the in-process cache
      * of the SSO flag. Cheap to refetch on the next request.

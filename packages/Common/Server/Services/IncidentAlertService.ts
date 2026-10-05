@@ -7,7 +7,9 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
@@ -387,12 +389,27 @@ function withNumber(label: string, number: string): string {
 const NOT_VISIBLE_ALERTS_MESSAGE: string =
   "One or more of the selected alerts do not exist in this project, or you do not have access to them.";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * On a create, the incident and the alert are checked by this service's
+   * own hook: read as the caller, so a private one they cannot open, one of
+   * another project and one that does not exist all get the same answer,
+   * and pinned to the project for every write. A generic check first would
+   * answer the last two in other words than the first. Nobody can change a
+   * link's ends (their columns take no update), but a workflow writes as
+   * root: an update naming them gets the generic check.
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return write?.kind === "update" ? [] : ["incident", "alert"];
   }
 
   /*
@@ -481,6 +498,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
     return { updateBy, carryForward: null };
   }
@@ -501,6 +520,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown

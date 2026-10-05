@@ -4,7 +4,7 @@ import CountBy from "../Types/Database/CountBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertInternalNote";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import AlertFeedService from "./AlertFeedService";
@@ -18,7 +18,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -49,6 +49,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyAlertRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,

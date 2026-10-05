@@ -1,5 +1,5 @@
 import { BackfillFileOwners1797900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797900000000-BackfillFileOwners";
-import { StartFileUploadsPrivate1798000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798000000000-StartFileUploadsPrivate";
+import { StartFileUploadsPrivate1798100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798100000000-StartFileUploadsPrivate";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import FileModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
 import { describe, expect, test } from "@jest/globals";
@@ -8,7 +8,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
  * Every upload starts private (FileService), and the column default
- * follows: StartFileUploadsPrivate1798000000000 changes "File"."isPublic"'s
+ * follows: StartFileUploadsPrivate1798100000000 changes "File"."isPublic"'s
  * default to false, and nothing else. Existing files keep the visibility
  * they have - a public one may be an image a published note or a status
  * page shows, and nothing in a migration can tell which - so it must never
@@ -32,10 +32,10 @@ function run(
   });
 }
 
-describe("StartFileUploadsPrivate1798000000000", () => {
+describe("StartFileUploadsPrivate1798100000000", () => {
   test("up: a row written without isPublic starts private - one catalog change", async () => {
-    const migration: StartFileUploadsPrivate1798000000000 =
-      new StartFileUploadsPrivate1798000000000();
+    const migration: StartFileUploadsPrivate1798100000000 =
+      new StartFileUploadsPrivate1798100000000();
 
     expect(
       await run((runner: QueryRunner) => {
@@ -45,8 +45,8 @@ describe("StartFileUploadsPrivate1798000000000", () => {
   });
 
   test("down: the default goes back to public", async () => {
-    const migration: StartFileUploadsPrivate1798000000000 =
-      new StartFileUploadsPrivate1798000000000();
+    const migration: StartFileUploadsPrivate1798100000000 =
+      new StartFileUploadsPrivate1798100000000();
 
     expect(
       await run((runner: QueryRunner) => {
@@ -56,8 +56,8 @@ describe("StartFileUploadsPrivate1798000000000", () => {
   });
 
   test("never writes a row: existing files keep their visibility", async () => {
-    const migration: StartFileUploadsPrivate1798000000000 =
-      new StartFileUploadsPrivate1798000000000();
+    const migration: StartFileUploadsPrivate1798100000000 =
+      new StartFileUploadsPrivate1798100000000();
 
     const statements: Array<string> = [
       ...(await run((runner: QueryRunner) => {
@@ -92,20 +92,20 @@ describe("StartFileUploadsPrivate1798000000000", () => {
   test("is registered once, after BackfillFileOwners, under its own name", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
     const index: number = registered.indexOf(
-      StartFileUploadsPrivate1798000000000,
+      StartFileUploadsPrivate1798100000000,
     );
 
     expect(index).toBeGreaterThan(-1);
     expect(
       registered.filter((migration: unknown): boolean => {
-        return migration === StartFileUploadsPrivate1798000000000;
+        return migration === StartFileUploadsPrivate1798100000000;
       }),
     ).toHaveLength(1);
     expect(index).toBeGreaterThan(
       registered.indexOf(BackfillFileOwners1797900000000),
     );
-    expect(new StartFileUploadsPrivate1798000000000().name).toBe(
-      "StartFileUploadsPrivate1798000000000",
+    expect(new StartFileUploadsPrivate1798100000000().name).toBe(
+      "StartFileUploadsPrivate1798100000000",
     );
   });
 });

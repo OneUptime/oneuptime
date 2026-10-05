@@ -1,6 +1,5 @@
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import { Service as NetworkSiteServiceType } from "../../../Server/Services/NetworkSiteService";
-import NetworkSnmpCredentialProfileService from "../../../Server/Services/NetworkSnmpCredentialProfileService";
 import ProbeService from "../../../Server/Services/ProbeService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -8,9 +7,20 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSnmpCredentialProfile from "../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import Probe from "../../../Models/DatabaseModels/Probe";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -103,14 +113,6 @@ function matchedSite(data?: {
   return site;
 }
 
-function profileInProject(projectId: ObjectID): NetworkSnmpCredentialProfile {
-  const profile: NetworkSnmpCredentialProfile =
-    new NetworkSnmpCredentialProfile(PROFILE_ID);
-  profile.projectId = projectId;
-  profile.name = "Branch v2c";
-  return profile;
-}
-
 function stubProbeAttachability(probeProjectId: ObjectID | undefined): void {
   jest
     .spyOn(ProbeService, "getProbesAttachableToProject")
@@ -158,6 +160,7 @@ function siteCreate(data: Record<string, unknown>): CreateBy<NetworkSite> {
 describe("a site's default probe is tenant-checked", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   /*
@@ -242,18 +245,36 @@ describe("a site's default probe is tenant-checked", () => {
 });
 
 describe("a site's default SNMP credential profile is tenant-checked", () => {
-  let profileFindSpy: {
-    mockResolvedValue: (value: never) => unknown;
-    mock: { calls: Array<Array<unknown>> };
-  };
+  // A profile of another project, and one that exists nowhere.
+  const FOREIGN_PROFILE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-0000000000ff",
+  );
+  const MISSING_PROFILE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-0000000000dd",
+  );
+
+  let directory: ProjectDirectoryStub;
 
   beforeEach(() => {
     jest.restoreAllMocks();
-    profileFindSpy = jest.spyOn(
-      NetworkSnmpCredentialProfileService,
-      "findOneById",
-    ) as unknown as typeof profileFindSpy;
+    // The project's only profile is PROFILE_ID.
+    directory = stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { NetworkSnmpCredentialProfile: [PROFILE_ID.toString()] },
+    });
   });
+
+  function refusalFor(profileId: ObjectID): string {
+    return `This network site references records that are not in this project: Default SNMP Credential Profile "${profileId.toString()}". Please pick values from this project and try again.`;
+  }
+
+  function profileLookups(): Array<unknown> {
+    return directory.recordLookups.filter(
+      (lookup: { model: string }): boolean => {
+        return lookup.model === "NetworkSnmpCredentialProfile";
+      },
+    );
+  }
 
   test.each(["snmpCredentialProfileId", "snmpCredentialProfile"] as const)(
     "refuses a profile from another project written as %s",
@@ -261,20 +282,17 @@ describe("a site's default SNMP credential profile is tenant-checked", () => {
       const { service, internals } = buildSiteService();
 
       jest.spyOn(service, "findBy").mockResolvedValue([matchedSite()] as never);
-      profileFindSpy.mockResolvedValue(
-        profileInProject(OTHER_PROJECT_ID) as never,
-      );
 
       await expect(
         internals.onBeforeUpdate(
           defaultOnlyUpdate({
             [key]:
               key === "snmpCredentialProfileId"
-                ? PROFILE_ID
-                : profileInProject(PROJECT_ID),
+                ? FOREIGN_PROFILE_ID
+                : new NetworkSnmpCredentialProfile(FOREIGN_PROFILE_ID),
           }),
         ),
-      ).rejects.toThrow(/must belong to the same project/);
+      ).rejects.toThrow(refusalFor(FOREIGN_PROFILE_ID));
     },
   );
 
@@ -282,40 +300,35 @@ describe("a site's default SNMP credential profile is tenant-checked", () => {
     const { service, internals } = buildSiteService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedSite()] as never);
-    profileFindSpy.mockResolvedValue(profileInProject(PROJECT_ID) as never);
 
     await expect(
       internals.onBeforeUpdate(
         defaultOnlyUpdate({ snmpCredentialProfileId: PROFILE_ID }),
       ),
     ).resolves.toBeDefined();
+    expect(profileLookups().length).toBeGreaterThan(0);
   });
 
-  test("refuses a profile that does not exist at all", async () => {
+  test("refuses a profile that does not exist at all, exactly as one of another project", async () => {
     const { service, internals } = buildSiteService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedSite()] as never);
-    profileFindSpy.mockResolvedValue(null as never);
 
     await expect(
       internals.onBeforeUpdate(
-        defaultOnlyUpdate({ snmpCredentialProfileId: PROFILE_ID }),
+        defaultOnlyUpdate({ snmpCredentialProfileId: MISSING_PROFILE_ID }),
       ),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(refusalFor(MISSING_PROFILE_ID));
   });
 
   test("checks the profile on create too", async () => {
     const { internals } = buildSiteService();
 
-    profileFindSpy.mockResolvedValue(
-      profileInProject(OTHER_PROJECT_ID) as never,
-    );
-
     await expect(
       internals.onBeforeCreate(
-        siteCreate({ snmpCredentialProfileId: PROFILE_ID }),
+        siteCreate({ snmpCredentialProfileId: FOREIGN_PROFILE_ID }),
       ),
-    ).rejects.toThrow(/must belong to the same project/);
+    ).rejects.toThrow(refusalFor(FOREIGN_PROFILE_ID));
   });
 
   test("does no profile lookup for a site update that sets no default", async () => {
@@ -325,7 +338,7 @@ describe("a site's default SNMP credential profile is tenant-checked", () => {
       defaultOnlyUpdate({ description: "Ground floor comms room" }),
     );
 
-    expect(profileFindSpy.mock.calls).toHaveLength(0);
+    expect(profileLookups()).toHaveLength(0);
   });
 });
 
@@ -338,6 +351,7 @@ describe("a site's default SNMP credential profile is tenant-checked", () => {
 describe("resolveDefaultProbeIdForSite walks up the hierarchy", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   test("the site's own probe short-circuits the walk", async () => {
@@ -466,6 +480,7 @@ describe("resolveDefaultProbeIdForSite walks up the hierarchy", () => {
 describe("editing a site's default probe re-points no existing device", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   test("neither site hook writes to NetworkDevice", async () => {

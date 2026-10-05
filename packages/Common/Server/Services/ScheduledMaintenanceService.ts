@@ -7,6 +7,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import MonitorService from "./MonitorService";
@@ -42,7 +43,10 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -169,12 +173,32 @@ type AttachmentChange = {
   eventAfterUpdate: Model | null;
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The monitor status to switch to, the monitors, the labels, the status
+   * pages and the affected-resource lists are checked by this service's own
+   * hooks below, with ProjectScopedReferenceValidator and its own words.
+   * Everything else an event names - its state, say - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "statusPages",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   @CaptureSpan()
@@ -645,6 +669,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (
       updateBy.query._id &&
       (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
@@ -1221,6 +1247,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenance.",

@@ -129,6 +129,25 @@ export function getResourceAiAgentNotInstalledText(
 }
 
 /*
+ * What installing the agent turns on, said with the install instructions:
+ * AI investigations are on by default for every resource (its
+ * isAiInvestigationEnabled column defaults to true), so the agent is the
+ * only step — and fixes stay off until someone allows them.
+ */
+export function getResourceAiAgentInstallInvestigationText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return translateTemplate(
+    "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.",
+    {
+      agent: translatableTerm(descriptor.agentName),
+      commands: translatableTerm(descriptor.readOnlyCommandsPhrase),
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+    },
+  );
+}
+
+/*
  * The three ways the agent can be offline (see
  * getResourceAiAgentOfflineReason), each ending where the logs command
  * below it takes over.

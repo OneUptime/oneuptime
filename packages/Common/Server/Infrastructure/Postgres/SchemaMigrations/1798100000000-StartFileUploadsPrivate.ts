@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * would break a page that shows it. SET DEFAULT is a catalog change; it
  * rewrites no rows.
  */
-export class StartFileUploadsPrivate1798000000000
+export class StartFileUploadsPrivate1798100000000
   implements MigrationInterface
 {
-  public name: string = "StartFileUploadsPrivate1798000000000";
+  public name: string = "StartFileUploadsPrivate1798100000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

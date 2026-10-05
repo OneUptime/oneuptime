@@ -6,7 +6,7 @@ import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ProjectService from "./ProjectService";
 import ServiceLabelRuleEngineService from "./ServiceLabelRuleEngineService";
 import ServiceOwnerRuleEngineService from "./ServiceOwnerRuleEngineService";
@@ -61,7 +61,7 @@ const SERVICE_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "service",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -81,6 +81,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Select a random color when the caller did not provide one. API
      * clients (e.g. Terraform) may set an explicit color; overwriting it

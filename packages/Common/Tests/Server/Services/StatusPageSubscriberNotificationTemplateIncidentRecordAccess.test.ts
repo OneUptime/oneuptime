@@ -26,6 +26,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A custom subscriber notification template can place {{incidentLabels}}
@@ -147,6 +156,7 @@ beforeEach(() => {
     .mockImplementation((async () => {
       return stored;
     }) as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -677,6 +687,7 @@ describe("linking a template to a status page", () => {
         "findBy",
       )
       .mockResolvedValue([link] as never);
+    stubProjectDirectory({});
   });
 
   test("a Status Page Member cannot link a template that places incident records", async () => {

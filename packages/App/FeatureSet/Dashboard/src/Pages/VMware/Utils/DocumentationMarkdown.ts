@@ -570,7 +570,9 @@ function getVerifyStep(context: GuideContext): SetupGuideStep {
 
 Look for \`Everything is ready. Begin running and processing data.\` in the logs — then give it one collection interval (2 minutes by default): nothing is sent until the first full inventory walk completes. The vCenter then appears automatically in the **VMware** section, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools inventoried.
 
-\`docker compose ps\` also lists **\`${VMWARE_AI_AGENT_CONTAINER}\`**, the OneUptime AI agent — see **OneUptime AI agent** under Advanced.`,
+\`docker compose ps\` also lists **\`${VMWARE_AI_AGENT_CONTAINER}\`**, the OneUptime AI agent — see **OneUptime AI agent** under Advanced.
+
+**OneUptime AI agent (on by default, read-only).** AI investigations are on: it lets OneUptime AI investigate incidents and alerts on this vCenter with read-only \`govc\` commands, and changes nothing unless you allow fixes.`,
   };
 }
 

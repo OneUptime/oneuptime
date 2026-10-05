@@ -4,7 +4,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentPublicNoteService from "./IncidentPublicNoteService";
 import IncidentService from "./IncidentService";
 import IncidentSlaService from "./IncidentSlaService";
@@ -40,7 +40,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentAlertService from "./IncidentAlertService";
 
-export class Service extends DatabaseService<IncidentStateTimeline> {
+export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
     if (IsBillingEnabled) {
@@ -77,6 +77,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     let mutex: SemaphoreMutex | null = null;
 
     try {
@@ -749,6 +751,8 @@ ${createdItem.rootCause}`,
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<OnUpdate<IncidentStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Retry - a user's Pending - over a state change notification that is
      * being sent would let a second run send it alongside, or be overwritten

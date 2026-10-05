@@ -305,7 +305,119 @@ describe("the card's (i)", () => {
   });
 });
 
+/*
+ * The Overview reads the cluster's status once for this card and the AI
+ * agent card at its bottom, and hands this card that read: it shows it and
+ * reads nothing itself, so the two never disagree.
+ */
+describe("handed the Overview's read", () => {
+  function renderWithRead(read: {
+    status: KubernetesClusterAiAccessStatus | null;
+    isLoading: boolean;
+  }): ReturnType<typeof render> {
+    return render(
+      <KubernetesAiAgentOverviewCard clusterId={CLUSTER_ID} read={read} />,
+    );
+  }
+
+  test("shows that status and reads nothing itself", async () => {
+    renderWithRead({ status: makeStatus(), isLoading: false });
+
+    expect(await findStatusText()).toBe("Connected");
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("an ellipsis while the Overview's read is out", () => {
+    renderWithRead({ status: null, isLoading: true });
+
+    expect(screen.getByText("…")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("kubernetes-ai-agent-overview-status"),
+    ).not.toBeInTheDocument();
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("a dash when the Overview's read found no status", () => {
+    renderWithRead({ status: null, isLoading: false });
+
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("follows the read when the Overview reads again", async () => {
+    const view: ReturnType<typeof render> = renderWithRead({
+      status: makeStatus(),
+      isLoading: false,
+    });
+    expect(await findStatusText()).toBe("Connected");
+
+    view.rerender(
+      <KubernetesAiAgentOverviewCard
+        clusterId={CLUSTER_ID}
+        read={{
+          status: makeStatus({
+            runner: { ...makeStatus().runner!, isOnline: false },
+            aiAgent: {
+              id: "99999999-0000-4000-8000-000000000009",
+              isOnline: false,
+              connectionStatus: "disconnected",
+            },
+          }),
+          isLoading: false,
+        }}
+      />,
+    );
+
+    expect(await findStatusText()).toBe("Offline");
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("still opens AI → Agent when clicked", async () => {
+    renderWithRead({ status: makeStatus(), isLoading: false });
+    await findStatusText();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "AI agent — open AI → Agent" }),
+    );
+
+    expect((navigateSpy.mock.calls[0]![0] as Route).toString()).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID.toString()}/ai/agent`,
+    );
+  });
+});
+
 describe("the Overview page", () => {
+  /*
+   * One read for both of the Overview's AI agent cards, made where the
+   * page's other hooks are — before it returns early while loading — and
+   * handed to each.
+   */
+  test("reads the cluster's AI status once and hands it to both cards", () => {
+    const source: string = fs
+      .readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    expect(source.match(/useAiAgentAccessStatus</g) || []).toHaveLength(1);
+    expect(source).toMatch(
+      /route: KUBERNETES_AI_ACCESS_STATUS_ROUTE, body: \{ clusterId: modelId\.toString\(\) \}, parse: parseAiAccessStatus, refreshToken: lastRefreshedAt \? lastRefreshedAt\.getTime\(\) : undefined,/,
+    );
+    expect(source.indexOf("useAiAgentAccessStatus<")).toBeLessThan(
+      source.indexOf("if (isLoading) { return <PageLoader"),
+    );
+    expect(source).toMatch(
+      /<KubernetesAiAgentOverviewCard clusterId=\{modelId\} tooltip=\{KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS\.aiAgent\} read=\{aiAccessStatus\} \/>/,
+    );
+    expect(source).toMatch(
+      /<KubernetesAiAgentStatusSummaryCard clusterId=\{modelId\} read=\{aiAccessStatus\} \/>/,
+    );
+  });
+
   // Beside the collector's status, in the same row of summary cards.
   test("shows the AI agent card right after Agent Status", () => {
     const source: string = fs.readFileSync(

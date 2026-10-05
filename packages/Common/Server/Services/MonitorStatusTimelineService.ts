@@ -5,7 +5,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import NetworkSiteService from "./NetworkSiteService";
 import UserService from "./UserService";
@@ -92,7 +92,7 @@ export interface MergedDowntimeRow {
   downtimeSeconds: string | number | null;
 }
 
-export class Service extends DatabaseService<MonitorStatusTimeline> {
+export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
   }
@@ -1058,6 +1058,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<OnCreate<MonitorStatusTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.monitorId) {
       throw new BadDataException("monitorId is null");
     }

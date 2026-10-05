@@ -1,4 +1,5 @@
-import DatabaseService, { EntityManager } from "./DatabaseService";
+import { EntityManager } from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceService from "./NetworkDeviceService";
@@ -75,7 +76,7 @@ function readAffectedRowCount(result: unknown): number {
   return result.length;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     /*
@@ -104,6 +105,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown

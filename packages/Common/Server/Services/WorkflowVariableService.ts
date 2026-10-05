@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -153,7 +153,7 @@ function normalizeSettingForComparison(
   return String(value).trim();
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -176,6 +176,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Model = createBy.data;
     const record: Record<string, unknown> = data as unknown as Record<
       string,
@@ -601,6 +603,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Read through a plain JSON view: the typed partial of a model with a JSON
      * column (oauthAdditionalParameters) is recursive enough that TypeScript

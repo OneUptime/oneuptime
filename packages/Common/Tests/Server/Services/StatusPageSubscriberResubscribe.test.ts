@@ -18,6 +18,15 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -127,6 +136,7 @@ beforeEach(() => {
     StatusPageSubscriberService,
     "deleteBy",
   ).mockResolvedValue(1);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -167,6 +177,8 @@ describe("onBeforeCreate", () => {
     expect(String(request.query["statusPageId"])).toBe(
       STATUS_PAGE_ID.toString(),
     );
+    // Only the subscriber's own project's rows: the page id alone pins nothing.
+    expect(String(request.query["projectId"])).toBe(PROJECT_ID.toString());
     expect(String(request.query["subscriberEmail"])).toBe("ops@acme.test");
     expect(request.limit).toBeGreaterThan(1);
     expect(request.skip).toBe(0);

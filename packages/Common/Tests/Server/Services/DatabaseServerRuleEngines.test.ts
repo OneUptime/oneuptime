@@ -181,6 +181,8 @@ beforeEach(() => {
     DatabaseServerFeedService,
     "createDatabaseServerFeedItem",
   ).mockResolvedValue(undefined);
+  // The labels and teams the rules name are the project's.
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

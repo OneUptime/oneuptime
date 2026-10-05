@@ -1,13 +1,12 @@
 import AlertService from "./AlertService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
-import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkSite";
 import Alert from "../../Models/DatabaseModels/Alert";
@@ -18,7 +17,6 @@ import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
-import NetworkSnmpCredentialProfile from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { DisableAutomaticAlertCreation } from "../EnvironmentConfig";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -228,7 +226,7 @@ interface DeleteCarryForward {
   sitesToDelete: Array<Model>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -1088,46 +1086,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Same hole as the probe above, and the consequence is worse: a site's
-   * credential profile is read LIVE at poll time for every device in the
-   * site that has no credentials of its own
-   * (NetworkDeviceHydrationUtil.resolveSnmpCredentials), so a cross-project
-   * reference here would put another project's community string on this
-   * project's probe's wire. The resolver drops such a reference as a
-   * backstop; this is the half that stops it being written at all.
-   */
-  private async assertSnmpCredentialProfileBelongsToProject(data: {
-    snmpCredentialProfileId: ObjectID;
-    projectId: ObjectID | undefined;
-  }): Promise<void> {
-    if (!data.projectId) {
-      return;
-    }
-
-    const profile: NetworkSnmpCredentialProfile | null =
-      await NetworkSnmpCredentialProfileService.findOneById({
-        id: data.snmpCredentialProfileId,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!profile) {
-      throw new BadDataException("SNMP Credential Profile not found.");
-    }
-
-    if (profile.projectId && !sameId(profile.projectId, data.projectId)) {
-      throw new BadDataException(
-        "SNMP Credential Profile must belong to the same project.",
-      );
-    }
-  }
-
-  /*
    * The site's default probe, inherited: this site's own `probeId`, or the
    * nearest ancestor that has one.
    *
@@ -1224,10 +1182,26 @@ export class Service extends DatabaseService<Model> {
     return null;
   }
 
+  /*
+   * The default probe is checked by this service's own hooks with
+   * ProbeService.isProbeAttachableToProject: the project's own probes and
+   * the global ones, in one answer for an id from another project and one
+   * that matches nothing. Everything else a site names - its parent site,
+   * its type, its SNMP Credential Profile (read live at poll time for every
+   * device in the site without credentials of its own), its severity - is
+   * checked by ProjectReferencesService, before the hierarchy below reads
+   * any of them.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["probe"];
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     let parentPath: string | null = null;
     let parentSite: Model | null = null;
     const rawData: Record<string, unknown> = createBy.data as unknown as Record<
@@ -1311,18 +1285,12 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    const snmpCredentialProfileId: ObjectID | null = readStrictRelationId({
+    // Conflicting spellings are refused; the project check ran above.
+    readStrictRelationId({
       payload: rawData,
       keys: SNMP_CREDENTIAL_PROFILE_KEYS,
       relationTitle: "SNMP Credential Profile",
     });
-
-    if (snmpCredentialProfileId) {
-      await this.assertSnmpCredentialProfileBelongsToProject({
-        snmpCredentialProfileId: snmpCredentialProfileId,
-        projectId: projectId,
-      });
-    }
 
     if (parentSiteId) {
       parentPath = await this.getMaterializedPathForSite(parentSiteId);
@@ -1449,6 +1417,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const rawData: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
@@ -1580,9 +1550,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * One check per DISTINCT project in the matched set, because a single
-     * updateBy can span more than one project when a root caller issues it,
-     * and the payload names one probe / one profile for all of them. Reading
+     * The probe: one check per DISTINCT project in the matched set, because
+     * a single updateBy can span more than one project when a root caller
+     * issues it, and the payload names one probe for all of them. (The SNMP
+     * Credential Profile was checked by the generic check above.) Reading
      * the ids here (rather than above the previousItems read) keeps a
      * conflicting-spelling payload refused on every write shape.
      */
@@ -1594,17 +1565,17 @@ export class Service extends DatabaseService<Model> {
             relationTitle: "Probe",
           })
         : null;
-      const newSnmpCredentialProfileId: ObjectID | null =
-        touchesSnmpCredentialProfile
-          ? readStrictRelationId({
-              payload: rawData,
-              keys: SNMP_CREDENTIAL_PROFILE_KEYS,
-              relationTitle: "SNMP Credential Profile",
-            })
-          : null;
+
+      if (touchesSnmpCredentialProfile) {
+        readStrictRelationId({
+          payload: rawData,
+          keys: SNMP_CREDENTIAL_PROFILE_KEYS,
+          relationTitle: "SNMP Credential Profile",
+        });
+      }
 
       // A clear (null) points at nothing and has nothing to check.
-      if (newProbeId || newSnmpCredentialProfileId) {
+      if (newProbeId) {
         const checkedProjectIds: Set<string> = new Set();
 
         for (const item of previousItems) {
@@ -1616,19 +1587,10 @@ export class Service extends DatabaseService<Model> {
           }
           checkedProjectIds.add(normalizeId(item.projectId));
 
-          if (newProbeId) {
-            await this.assertProbeIsAttachableToProject({
-              probeId: newProbeId,
-              projectId: item.projectId,
-            });
-          }
-
-          if (newSnmpCredentialProfileId) {
-            await this.assertSnmpCredentialProfileBelongsToProject({
-              snmpCredentialProfileId: newSnmpCredentialProfileId,
-              projectId: item.projectId,
-            });
-          }
+          await this.assertProbeIsAttachableToProject({
+            probeId: newProbeId,
+            projectId: item.projectId,
+          });
         }
       }
     }

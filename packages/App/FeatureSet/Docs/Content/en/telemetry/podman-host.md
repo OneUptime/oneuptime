@@ -2,7 +2,7 @@
 
 ## Overview
 
-The OneUptime Podman Agent is a pre-built container image that ships with a tuned OpenTelemetry Collector configuration. Run it next to your existing containers and it auto-discovers every container on the host, collects CPU / memory / network / block I/O metrics plus container logs, and forwards everything to OneUptime over OTLP. Single image, single command — plus, if you want OneUptime AI to look into this host, the [AI agent](#ai-agent) as a second container beside it.
+The OneUptime Podman Agent is a pre-built container image that ships with a tuned OpenTelemetry Collector configuration. Run it next to your existing containers and it auto-discovers every container on the host, collects CPU / memory / network / block I/O metrics plus container logs, and forwards everything to OneUptime over OTLP. Single image, single command — plus the [AI agent](#ai-agent), a second container beside it that lets OneUptime AI investigate this host. AI investigations are on by default.
 
 This page is the **installation guide**. For configuring Podman monitors and alerts on top of the data the agent collects, see [Podman Monitor](/docs/monitor/podman-monitor).
 
@@ -12,7 +12,7 @@ This page is the **installation guide**. For configuring Podman monitors and ale
 - Access to `/run/podman/podman.sock` on the host
 - A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_ and copy the value
 
-## Quick Start (One Command)
+## Quick Start
 
 Replace `YOUR_ONEUPTIME_URL`, `YOUR_TELEMETRY_INGESTION_TOKEN`, and the host name with values for your environment. The host name is how this Podman host will appear in OneUptime — pick something like `prod-podman-01`.
 
@@ -29,11 +29,27 @@ podman run -d \
   oneuptime/podman-agent:release
 ```
 
-That is it. Once the agent connects, your Podman host will appear automatically in the **Podman** section of the OneUptime dashboard.
+Then start the [AI agent](#ai-agent) beside it, with the same values (it needs the same socket: `sudo systemctl enable --now podman.socket`). **AI investigations are on by default**: while OneUptime AI investigates an incident or alert on this host, it runs read-only `docker` commands through the AI agent, against Podman's Docker-compatible API, and it changes nothing unless you allow fixes. To install without AI investigations, skip this command.
+
+```bash
+podman run -d \
+  --name oneuptime-podman-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /run/podman/podman.sock:/run/podman/podman.sock:ro \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  oneuptime/resource-ai-agent:release
+```
+
+That is it. Once the agent connects, your Podman host will appear automatically in the **Podman** section of the OneUptime dashboard, and the AI agent on the host's **AI → AI agent** page.
 
 ## Alternative — Podman Compose
 
-If you prefer Podman Compose, drop the following into a `docker-compose.yml`:
+If you prefer Podman Compose, drop the following into a `docker-compose.yml`. The second service is the [AI agent](#ai-agent): leave it out to run the collector without AI investigations.
 
 ```yaml
 services:
@@ -54,6 +70,21 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  oneuptime-podman-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-podman-ai-agent
+    user: "0:0"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - /run/podman/podman.sock:/run/podman/podman.sock:ro
+    environment:
+      - ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+      - ONEUPTIME_SERVICE_TOKEN=YOUR_TELEMETRY_INGESTION_TOKEN
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman
+      - PODMAN_HOST_NAME=my-podman-host
 ```
 
 Start it:
@@ -95,8 +126,9 @@ When the agent is older than your OneUptime, a warning sign appears beside **Age
 
 ```bash
 podman pull oneuptime/podman-agent:release
-podman rm -f oneuptime-podman-agent
-# Re-run the `podman run` command above
+podman pull oneuptime/resource-ai-agent:release
+podman rm -f oneuptime-podman-agent oneuptime-podman-ai-agent
+# Re-run the two `podman run` commands above
 ```
 
 Or with Podman Compose:
@@ -110,7 +142,7 @@ podman compose up -d
 
 ```bash
 podman rm -f oneuptime-podman-agent
-# and the AI agent, if you started it
+# and the AI agent
 podman rm -f oneuptime-podman-ai-agent
 ```
 
@@ -198,24 +230,9 @@ Set the `PODMAN_HOST_NAME` environment variable to a friendly name and recreate 
 
 ## AI agent
 
-The Podman agent's `install.sh` and the `docker-compose.yml` in its [PodmanAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) also run the **Podman AI agent**: a second container, `oneuptime-podman-ai-agent` (image `oneuptime/resource-ai-agent:release`), that runs the read-only commands OneUptime AI asks for while it investigates an incident or alert on this host — through Podman's Docker-compatible API, with the `docker` CLI: `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web` — and, only if you allow it, applies fixes such as restarting a named container. It reads the same `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` and `PODMAN_HOST_NAME` as the collector, so it serves exactly this host, and it shows up on the host's **AI → AI agent** page in OneUptime.
+The [Quick Start](#quick-start) and the Podman Compose file above, the Podman agent's `install.sh` and the `docker-compose.yml` in its [PodmanAgent directory](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) all run the **Podman AI agent**: a second container, `oneuptime-podman-ai-agent` (image `oneuptime/resource-ai-agent:release`), that runs the read-only commands OneUptime AI asks for while it investigates an incident or alert on this host — through Podman's Docker-compatible API, with the `docker` CLI: `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web` — and, only if you allow it, applies fixes such as restarting a named container. It reads the same `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` and `PODMAN_HOST_NAME` as the collector, so it serves exactly this host, and it shows up on the host's **AI → AI agent** page in OneUptime.
 
-The `podman run` command and the Podman Compose file above start the collector only. To add the AI agent, start it beside the collector with the same values (it needs the same socket: `sudo systemctl enable --now podman.socket`) — with Podman Compose, add the `oneuptime-podman-ai-agent` service from that `docker-compose.yml` to yours instead:
-
-```bash
-podman run -d \
-  --name oneuptime-podman-ai-agent \
-  --user 0:0 \
-  --restart unless-stopped \
-  --read-only --tmpfs /tmp \
-  -v /run/podman/podman.sock:/run/podman/podman.sock:ro \
-  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
-  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
-  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman \
-  -e PODMAN_HOST_NAME="my-podman-host" \
-  oneuptime/resource-ai-agent:release
-```
-
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this host with it, and the host's **Overview** shows the agent's status. To stop, turn investigation off under **What AI may do** on the AI agent page, or leave the agent out.
 - It is **read-only** unless you start it with `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (for example `web-*,api-*`) limits which containers a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
 - It runs as root with the Podman socket mounted, because the socket is root-owned — and for rootful Podman whoever can use the socket is root on this host, `:ro` or not. The agent's command policy is the limit: it never runs `exec`, `run`, `rm` or `prune`, and it never changes itself, the collector or anything in `ONEUPTIME_AI_PROTECTED_TARGETS` (container name globs).
 - `install.sh --no-ai-agent` leaves it out; `podman rm -f oneuptime-podman-ai-agent` removes it. Upgrade it like the collector: `podman pull oneuptime/resource-ai-agent:release`, remove it, and start it again.

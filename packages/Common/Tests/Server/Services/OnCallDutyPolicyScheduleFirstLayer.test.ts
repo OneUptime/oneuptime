@@ -26,6 +26,15 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Timezone from "../../../Types/Timezone";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A NEW ON-CALL SCHEDULE PUTS SOMEONE ON CALL FROM THE START.

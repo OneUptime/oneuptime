@@ -36,6 +36,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The undeletable project came from writes, not from deletes: a record was
@@ -143,6 +152,7 @@ describe("cross-project reference guard on write", () => {
   beforeEach(() => {
     captured = [];
     validatorCalls = [];
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

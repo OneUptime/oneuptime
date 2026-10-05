@@ -541,10 +541,17 @@ export class StatusPageMonitorRuleEngineServiceClass {
       return emptyResult();
     }
 
+    /*
+     * The page's resources in the rule's own project: a rule saved before
+     * its page was checked can still name another project's page, whose
+     * resources this must never read or remove. (Adding to it is refused by
+     * StatusPageResourceService.)
+     */
     const existingResources: Array<StatusPageResource> =
       await StatusPageResourceService.findBy({
         query: {
           statusPageId: rule.statusPageId,
+          projectId: rule.projectId,
         },
         select: {
           _id: true,
