@@ -7,6 +7,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -523,6 +524,8 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
                 "Post a private note about this state change.",
               ),
               noteTemplates: noteTemplates,
+              // Offered only to someone who may post a private note.
+              noteModel: new AlertEpisodeInternalNote(),
             }),
             formType: FormType.Create,
           }}

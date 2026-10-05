@@ -14,6 +14,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -570,6 +571,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           noteTitle="Private Note"
           noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected."
           noteTemplates={noteTemplates}
+          noteModel={new AlertEpisodeInternalNote()}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);

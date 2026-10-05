@@ -65,8 +65,10 @@ import {
 import SubscriberIncidentEmailBuilder, {
   SubscriberIncidentEmail,
   SubscriberIncidentEmailEvent,
+  SubscriberIncidentNoteStateChange,
   SubscriberIncidentStatusPageEmail,
 } from "../../../../Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
+import Color from "../../../../Types/Color";
 import Hostname from "../../../../Types/API/Hostname";
 import Protocol from "../../../../Types/API/Protocol";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
@@ -214,6 +216,8 @@ async function build(data: {
   incident?: Incident | undefined;
   page?: StatusPage | undefined;
   note?: { text: string; postedAt: Date | null } | undefined;
+  // The state change the note was posted with, as the job hands it on.
+  stateChange?: SubscriberIncidentNoteStateChange | undefined;
 }): Promise<Built> {
   const row: Incident = data.incident || incident();
   const page: StatusPage = data.page || statusPage();
@@ -223,7 +227,9 @@ async function build(data: {
       event: data.event,
       incident: row,
       statusPages: [page],
-      note: data.note,
+      note: data.note
+        ? { ...data.note, stateChange: data.stateChange }
+        : undefined,
     });
 
   const pageTemplateVariables: IncidentStatusPageTemplateVariables =
@@ -245,6 +251,7 @@ async function build(data: {
       pageTemplateVariables: pageTemplateVariables,
       host: HOST,
       httpProtocol: PROTOCOL,
+      stateChange: data.stateChange,
     });
 
   return { variables: variables, pageEmail: pageEmail };
@@ -728,6 +735,201 @@ describe("buildTemplateVariables", () => {
     expect(body).toBe(
       `<p>Identified at ${OneUptimeDate.getDateAsUserFriendlyFormattedString(postedAt)}</p>`,
     );
+  });
+});
+
+/*
+ * A public note posted with a state change is the one message subscribers
+ * get about the change, so its 'posted' email names the state the incident
+ * moved to: the subject the state change email had, a Status row in the
+ * state's colour, and {{incidentState}} in a custom template. Every other
+ * email - a note posted on its own, an edit's update, the incident created
+ * one - reads as before.
+ */
+describe("a note posted with a state change", () => {
+  const RESOLVED: SubscriberIncidentNoteStateChange = {
+    name: "Resolved",
+    color: new Color("#16a34a"),
+  };
+
+  function varsOf(pageEmail: SubscriberIncidentStatusPageEmail): JSONObject {
+    return pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).envelope
+      .vars as JSONObject;
+  }
+
+  test("the default email: the state change email's subject and a Status row in the state's colour", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      note: { text: "Rolled back.", postedAt: null },
+      stateChange: RESOLVED,
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+    });
+
+    expect(email.subject).toBe("[Resolved Incident] Checkout requests failing");
+    expect(email.envelope.subject).toBe(email.subject);
+    expect(email.envelope.templateType).toBe(
+      EmailTemplateType.SubscriberIncidentNoteCreated,
+    );
+
+    const vars: JSONObject = email.envelope.vars as JSONObject;
+    expect(vars["incidentState"]).toBe("Resolved");
+    expect(vars["incidentStateColor"]).toBe("#16a34a");
+    expect(typeof vars["incidentStateTextColor"]).toBe("string");
+    expect(vars["note"]).toContain("Rolled back.");
+  });
+
+  test("a state without a usable colour is named in plain text", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      note: { text: "Rolled back.", postedAt: null },
+      stateChange: { name: "Monitoring" },
+    });
+
+    const vars: JSONObject = varsOf(pageEmail);
+    expect(vars["incidentState"]).toBe("Monitoring");
+    expect(vars["incidentStateColor"]).toBeUndefined();
+  });
+
+  test("a custom template with no subject of its own: the state change's custom subject", async () => {
+    emailTemplate = template({ body: "<p>{{note}}</p>" });
+
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      page: statusPage({ smtp: true }),
+      note: { text: "Rolled back.", postedAt: null },
+      stateChange: RESOLVED,
+    });
+
+    expect(
+      pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).subject,
+    ).toBe("[Incident Resolved] Checkout requests failing");
+  });
+
+  test("{{incidentState}} is the state the change moved to, not the incident's state when it is sent", async () => {
+    // The incident reads as Identified (its current state).
+    emailTemplate = template({
+      body: "<p>{{incidentState}}</p>",
+      subject: "{{incidentState}}: {{incidentTitle}}",
+    });
+
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      page: statusPage({ smtp: true }),
+      note: { text: "Rolled back.", postedAt: null },
+      stateChange: RESOLVED,
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+    });
+
+    expect(String((email.envelope.vars as JSONObject)["body"])).toBe(
+      "<p>Resolved</p>",
+    );
+    expect(email.subject).toBe("Resolved: Checkout requests failing");
+  });
+
+  test("a note posted on its own: the note's own subject, no Status row, and {{incidentState}} the incident's state", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      note: { text: "Still watching.", postedAt: null },
+    });
+
+    expect(
+      pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).subject,
+    ).toBe("[Update Incident] Checkout requests failing");
+    expect(varsOf(pageEmail)["incidentState"]).toBeUndefined();
+
+    emailTemplate = template({ body: "<p>{{incidentState}}</p>" });
+
+    const custom: Built = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      page: statusPage({ smtp: true }),
+      note: { text: "Still watching.", postedAt: null },
+    });
+
+    expect(String(varsOf(custom.pageEmail)["body"])).toBe("<p>Identified</p>");
+  });
+
+  test("an edit's update email keeps its own words, even for a note posted with a state change", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated,
+      note: { text: "Rolled back, and fixed.", postedAt: null },
+      stateChange: RESOLVED,
+    });
+
+    expect(
+      pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).subject,
+    ).toBe("[Incident Note Updated] Checkout requests failing");
+    expect(varsOf(pageEmail)["incidentState"]).toBeUndefined();
+  });
+
+  test("the 'incident created' email has no state change to name", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentCreated,
+      stateChange: RESOLVED,
+    });
+
+    expect(
+      pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).subject,
+    ).toBe("[Incident] Checkout requests failing");
+    expect(varsOf(pageEmail)["incidentState"]).toBeUndefined();
+  });
+
+  test("each subscriber's email still differs only by their unsubscribe link", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      note: { text: "Rolled back.", postedAt: null },
+      stateChange: RESOLVED,
+    });
+
+    const first: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+    });
+    const second: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: OTHER_UNSUBSCRIBE_URL,
+    });
+
+    expect(second.subject).toBe(first.subject);
+    expect({
+      ...(second.envelope.vars as JSONObject),
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+    }).toEqual(first.envelope.vars);
+  });
+
+  test("getNoteStateChange: only the 'posted' email, only a state with a name", () => {
+    expect(
+      SubscriberIncidentEmailBuilder.getNoteStateChange(
+        SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+        RESOLVED,
+      ),
+    ).toBe(RESOLVED);
+
+    for (const event of [
+      SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated,
+      SubscriberIncidentEmailEvent.IncidentCreated,
+    ]) {
+      expect(
+        SubscriberIncidentEmailBuilder.getNoteStateChange(event, RESOLVED),
+      ).toBeUndefined();
+    }
+
+    for (const stateChange of [
+      undefined,
+      null,
+      { name: "" },
+      { name: "   " },
+    ]) {
+      expect(
+        SubscriberIncidentEmailBuilder.getNoteStateChange(
+          SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+          stateChange,
+        ),
+      ).toBeUndefined();
+    }
   });
 });
 

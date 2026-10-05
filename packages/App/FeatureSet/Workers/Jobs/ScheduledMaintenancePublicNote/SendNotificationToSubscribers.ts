@@ -177,9 +177,14 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           description: true,
           projectId: true,
           startsAt: true,
-          // Templates offer {{scheduledMaintenanceState}}: the event's state right now.
+          /*
+           * Templates offer {{scheduledMaintenanceState}}: the event's state
+           * right now, unless the note names the state it was posted with.
+           * Read with its colour, as every state an email names is.
+           */
           currentScheduledMaintenanceState: {
             name: true,
+            color: true,
           },
           monitors: {
             _id: true,

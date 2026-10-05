@@ -5,6 +5,7 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
+import { PermissionCheckableModel } from "Common/UI/Utils/PermissionGate";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   BulkStateChangeNoteTemplate,
@@ -34,6 +35,12 @@ export interface ComponentProps {
   noteDescription: string;
   noteTemplates: Array<BulkStateChangeNoteTemplate>;
   showNotifyStatusPageSubscribers?: boolean | undefined;
+  /*
+   * The note the change posts, as an empty model of its kind: someone who
+   * may not create it is not offered it (StateChangeFormFields). Left out,
+   * it is offered.
+   */
+  noteModel?: PermissionCheckableModel | undefined;
   onClose: () => void;
   onSubmit: (data: BulkChangeStateSubmitData) => Promise<void>;
 }
@@ -57,6 +64,7 @@ export const getBulkChangeStateFormFields: (data: {
   noteDescription: string;
   noteTemplates: Array<BulkStateChangeNoteTemplate>;
   showNotifyStatusPageSubscribers?: boolean | undefined;
+  noteModel?: PermissionCheckableModel | undefined;
 }) => Fields<JSONObject> = (data: {
   stateFieldKey: string;
   stateOptions: Array<DropdownOption>;
@@ -65,6 +73,7 @@ export const getBulkChangeStateFormFields: (data: {
   noteDescription: string;
   noteTemplates: Array<BulkStateChangeNoteTemplate>;
   showNotifyStatusPageSubscribers?: boolean | undefined;
+  noteModel?: PermissionCheckableModel | undefined;
 }): Fields<JSONObject> => {
   return [
     {
@@ -88,6 +97,7 @@ export const getBulkChangeStateFormFields: (data: {
       notifySubscribers: data.showNotifyStatusPageSubscribers
         ? { byDefault: true }
         : undefined,
+      noteModel: data.noteModel,
     }),
   ];
 };
@@ -142,6 +152,7 @@ const BulkChangeStateModal: FunctionComponent<ComponentProps> = (
           noteTemplates: props.noteTemplates,
           showNotifyStatusPageSubscribers:
             props.showNotifyStatusPageSubscribers,
+          noteModel: props.noteModel,
         }),
       }}
     />

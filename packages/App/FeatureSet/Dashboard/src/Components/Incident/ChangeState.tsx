@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -603,6 +604,8 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                 quietDescription:
                   PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
               },
+              // Offered only to someone who may post a public note.
+              noteModel: new IncidentPublicNote(),
             }),
             formType: FormType.Create,
           }}

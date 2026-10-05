@@ -1421,7 +1421,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
         queryArgs(ScheduledMaintenanceService.findOneById).select[
           "currentScheduledMaintenanceState"
         ],
-      ).toEqual({ name: true });
+      ).toEqual({ name: true, color: true });
     },
   );
 

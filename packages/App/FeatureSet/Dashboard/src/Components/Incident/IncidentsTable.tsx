@@ -29,6 +29,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
@@ -1121,6 +1122,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           noteTitle="Public Note"
           noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected."
           noteTemplates={noteTemplates}
+          noteModel={new IncidentPublicNote()}
           showNotifyStatusPageSubscribers={true}
           onClose={() => {
             setShowBulkStateChangeModal(false);

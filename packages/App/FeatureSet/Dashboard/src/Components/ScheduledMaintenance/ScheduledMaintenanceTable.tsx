@@ -16,6 +16,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
@@ -1054,6 +1055,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           noteTitle="Public Note"
           noteDescription="Post a public note about this state change to the status page. The same note is added to every event you selected."
           noteTemplates={noteTemplates}
+          noteModel={new ScheduledMaintenancePublicNote()}
           showNotifyStatusPageSubscribers={true}
           onClose={() => {
             setShowBulkStateChangeModal(false);

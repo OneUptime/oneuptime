@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import React, {
   Fragment,
   FunctionComponent,
@@ -590,6 +591,8 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
               noteTemplates: alertNoteTemplates.map(
                 toBulkStateChangeNoteTemplate,
               ),
+              // Offered only to someone who may post a private note.
+              noteModel: new AlertInternalNote(),
             }),
             formType: FormType.Create,
           }}
