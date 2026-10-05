@@ -263,6 +263,25 @@ Tailwind. Desktop and mobile checks cover the pencil's proportions, label
 alignment, button sizes, and keyboard activation. Screenshots and failure traces
 are written to `output/playwright/pencil-button/test-results/` at the repository root.
 
+## Color picker UI regression tests
+
+Run the color field checks without starting the app or database:
+
+```bash
+cd packages/E2E
+CI=1 npm run test-color-picker-ui
+```
+
+The fixture (`ColorPicker/Fixture`, port 4262) renders the production color field
+inside the real Modal and BasicForm (the Create Label dialog), a custom field's
+options, and a page, with the app's Tailwind, theme and font. Chromium and Firefox
+at a desktop size, and Chromium at a small phone's width, check that Custom color
+opens inside the dialog body above its buttons, that a row's popover stays inside
+the dialog and the window, a real drag on the saturation square, typed codes, the
+keyboard path, the dark theme, and the swatches wrapping on a phone. See
+`ColorPicker/README.md`. Failure traces are written to
+`output/playwright/color-picker-ui/test-results/` at the repository root.
+
 ## Workflow builder UI regression tests
 
 Run the workflow builder canvas checks without starting the app or database:
