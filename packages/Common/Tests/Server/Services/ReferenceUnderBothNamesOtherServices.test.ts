@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -358,12 +359,10 @@ describe.each(CONFLICT_CASES)("$name", (testCase: ConflictCase) => {
 
 describe("a reference named under the relation alone is the one the service acts on", () => {
   test("a timeline's state is the one the service checks", async () => {
-    const validate: jest.SpyInstance = jest
-      .spyOn(
-        ProjectScopedReferenceValidator,
-        "validateReferencesBelongToProject",
-      )
-      .mockResolvedValue(undefined as never);
+    const validate: jest.SpyInstance = getJestSpyOn(
+      ProjectScopedReferenceValidator,
+      "validateReferencesBelongToProject",
+    ).mockResolvedValue(undefined as never);
     jest
       .spyOn(IncidentStateTimelineService, "findOneBy")
       .mockResolvedValue(null as never);
@@ -401,9 +400,10 @@ describe("a reference named under the relation alone is the one the service acts
   });
 
   test("a monitor probe's probe is the one checked as attachable to the project", async () => {
-    const attachable: jest.SpyInstance = jest
-      .spyOn(ProbeService, "isProbeAttachableToProject")
-      .mockResolvedValue(false as never);
+    const attachable: jest.SpyInstance = getJestSpyOn(
+      ProbeService,
+      "isProbeAttachableToProject",
+    ).mockResolvedValue(false as never);
     jest
       .spyOn(MonitorProbeService, "findOneBy")
       .mockResolvedValue(null as never);
@@ -425,12 +425,10 @@ describe("a reference named under the relation alone is the one the service acts
   });
 
   test("a status page monitor rule's page satisfies the page it requires", async () => {
-    const validate: jest.SpyInstance = jest
-      .spyOn(
-        ProjectScopedReferenceValidator,
-        "validateReferencesBelongToProject",
-      )
-      .mockRejectedValue(new Error("past the check") as never);
+    const validate: jest.SpyInstance = getJestSpyOn(
+      ProjectScopedReferenceValidator,
+      "validateReferencesBelongToProject",
+    ).mockRejectedValue(new Error("past the check") as never);
 
     const outcome: unknown = await onBeforeCreate(
       StatusPageMonitorRuleService,
