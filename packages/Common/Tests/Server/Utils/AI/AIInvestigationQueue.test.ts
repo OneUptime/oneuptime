@@ -866,7 +866,10 @@ describe("AIInvestigationQueue and the project's own daily AI limits", () => {
   test.each([
     ["an incident run", { triggeredByIncidentId: ObjectID.generate() }],
     ["an alert run", { triggeredByAlertId: ObjectID.generate() }],
-    ["subjectless insight work", { triggeredByAiInsightId: ObjectID.generate() }],
+    [
+      "subjectless insight work",
+      { triggeredByAiInsightId: ObjectID.generate() },
+    ],
   ])(
     "%s queued before the limit was reached stays queued, unclaimed",
     async (_name: string, subject: Record<string, ObjectID>) => {

@@ -281,8 +281,10 @@ export default class AIInvestigationEngine {
       return "automatic_investigation_disabled";
     }
 
-    const providerOrBalance: "provider_missing" | "insufficient_ai_balance" | null =
-      await this.getProviderOrBalanceReason(projectId);
+    const providerOrBalance:
+      | "provider_missing"
+      | "insufficient_ai_balance"
+      | null = await this.getProviderOrBalanceReason(projectId);
 
     if (providerOrBalance) {
       return providerOrBalance;

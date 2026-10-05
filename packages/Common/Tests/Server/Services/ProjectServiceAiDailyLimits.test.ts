@@ -275,9 +275,9 @@ describe.each([
     });
 
     it("passes a valid limit through", async () => {
-      expect(
-        await runOnBeforeUpdate({ aiDailyTokenLimit: 200000 }),
-      ).toEqual({ aiDailyTokenLimit: 200000 });
+      expect(await runOnBeforeUpdate({ aiDailyTokenLimit: 200000 })).toEqual({
+        aiDailyTokenLimit: 200000,
+      });
     });
 
     it("leaves an update of something else alone", async () => {

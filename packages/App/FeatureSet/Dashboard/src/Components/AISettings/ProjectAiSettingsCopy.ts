@@ -989,8 +989,9 @@ export const getProjectAiAdvancedSummary: (data: {
 
     if (reached) {
       sentences.push(
-        data.translator.translateText(ProjectAiDailyLimitsCopy.reachedSummary) ||
+        data.translator.translateText(
           ProjectAiDailyLimitsCopy.reachedSummary,
+        ) || ProjectAiDailyLimitsCopy.reachedSummary,
       );
     } else if (data.isBillingEnabled) {
       sentences.push(
@@ -1016,6 +1017,9 @@ export const getProjectAiAdvancedSummary: (data: {
 
   return sentences.join(" ");
 };
+
+// Digits only: what a whole number typed into a limit field looks like.
+const WHOLE_NUMBER_TEXT: RegExp = /^\d+$/;
 
 /*
  * Why a value typed into a limit field cannot be saved, translated, or null
@@ -1044,12 +1048,12 @@ export const getProjectAiDailyLimitFieldError: (data: {
   const parsed: number =
     typeof data.value === "number"
       ? data.value
-      : typeof data.value === "string" && /^\d+$/.test(data.value.trim())
+      : typeof data.value === "string" &&
+          WHOLE_NUMBER_TEXT.test(data.value.trim())
         ? Number(data.value.trim())
         : Number.NaN;
 
-  const isTokens: boolean =
-    data.column === PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN;
+  const isTokens: boolean = data.column === PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN;
 
   if (
     ProjectAiDailyLimits.getWriteError(

@@ -334,16 +334,19 @@ describe("ProjectAiDailyLimits.getWriteError", () => {
     ["abc"],
     [Number.NaN],
     [true],
-  ])("a token limit of %p is refused, pointing at Enable AI", (value: unknown) => {
-    const error: string | null = ProjectAiDailyLimits.getWriteError(
-      PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
-      value,
-    );
+  ])(
+    "a token limit of %p is refused, pointing at Enable AI",
+    (value: unknown) => {
+      const error: string | null = ProjectAiDailyLimits.getWriteError(
+        PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+        value,
+      );
 
-    expect(error).toBe(
-      "The daily AI token limit must be a whole number from 1 to 2,000,000,000. Leave it empty for no limit. To turn OneUptime AI off, use Enable AI.",
-    );
-  });
+      expect(error).toBe(
+        "The daily AI token limit must be a whole number from 1 to 2,000,000,000. Leave it empty for no limit. To turn OneUptime AI off, use Enable AI.",
+      );
+    },
+  );
 
   test.each([[0], [-25], [2.5], [MAX_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD + 1]])(
     "a spend limit of %p is refused",

@@ -359,16 +359,20 @@ describe("More settings on Project Settings → AI Features", () => {
   test("is folded under Enable AI, and names its one card, Daily limits", async () => {
     openAiFeaturesPage();
 
-    await screen.findByTestId(ENABLE_AI_SWITCH_TEST_ID, {}, { timeout: WAIT_TIMEOUT });
+    await screen.findByTestId(
+      ENABLE_AI_SWITCH_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
 
     expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "false");
     expect(listedNames(moreSettingsHeader())).toEqual(["Daily limits"]);
 
     // Enable AI stays first, the fold after it.
     expect(
-      screen.getByTestId(ENABLE_AI_SWITCH_TEST_ID).compareDocumentPosition(
-        section(),
-      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen
+        .getByTestId(ENABLE_AI_SWITCH_TEST_ID)
+        .compareDocumentPosition(section()) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // Enable AI is never inside the fold.
     expect(
@@ -479,7 +483,9 @@ describe("More settings on Project Settings → AI Features", () => {
 
   test("when today's usage cannot be read, it says only what applies", async () => {
     stored = { ...stored, aiDailyTokenLimit: 200000 };
-    usageAnswer = new Error("You do not have permission to read this project's AI usage.");
+    usageAnswer = new Error(
+      "You do not have permission to read this project's AI usage.",
+    );
 
     openAiFeaturesPage();
 

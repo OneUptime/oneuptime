@@ -148,7 +148,11 @@ async function call(): Promise<{ thrown: unknown; sent: JSONObject | null }> {
 
   await mockRouter
     .match("post", ROUTE)
-    .handlerFunction(req, {} as ExpressResponse, next as unknown as NextFunction);
+    .handlerFunction(
+      req,
+      {} as ExpressResponse,
+      next as unknown as NextFunction,
+    );
 
   const sendJson: jest.Mock = Response.sendJsonObjectResponse as jest.Mock;
 

@@ -31,15 +31,18 @@
  */
 
 // The Project columns that hold the limits.
-export const PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN: "aiDailyTokenLimit" =
-  "aiDailyTokenLimit";
-
-export const PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN: "aiDailySpendLimitInUSD" =
-  "aiDailySpendLimitInUSD";
+export type ProjectAiDailyTokenLimitColumn = "aiDailyTokenLimit";
+export type ProjectAiDailySpendLimitColumn = "aiDailySpendLimitInUSD";
 
 export type ProjectAiDailyLimitColumn =
-  | typeof PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN
-  | typeof PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN;
+  | ProjectAiDailyTokenLimitColumn
+  | ProjectAiDailySpendLimitColumn;
+
+export const PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN: ProjectAiDailyTokenLimitColumn =
+  "aiDailyTokenLimit";
+
+export const PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN: ProjectAiDailySpendLimitColumn =
+  "aiDailySpendLimitInUSD";
 
 /*
  * The bounds of a limit a project sets. The lower one is 1 (see above). The

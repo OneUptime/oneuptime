@@ -204,7 +204,9 @@ describe("the folded sentence", () => {
         usage: { usedTokensToday: 45210, spentTodayInUSDCents: 0 },
         translator: german,
       }),
-    ).toBe("Höchstens 200.000 Tokens pro Tag. Heute verbraucht: 45.210 Tokens.");
+    ).toBe(
+      "Höchstens 200.000 Tokens pro Tag. Heute verbraucht: 45.210 Tokens.",
+    );
 
     expect(
       summary({

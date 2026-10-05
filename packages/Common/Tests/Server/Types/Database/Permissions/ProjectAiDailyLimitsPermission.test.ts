@@ -161,8 +161,6 @@ describe.each(LIMIT_COLUMNS)("Project.%s", (column: string) => {
   });
 
   test("a project is never created with it", () => {
-    expect(
-      new Project().getColumnAccessControlFor(column)?.create,
-    ).toEqual([]);
+    expect(new Project().getColumnAccessControlFor(column)?.create).toEqual([]);
   });
 });

@@ -56,7 +56,8 @@ router.post(
       CommonAPI.assertCanReadTable({
         modelType: LlmLog,
         props,
-        errorMessage: "You do not have permission to read this project's AI usage.",
+        errorMessage:
+          "You do not have permission to read this project's AI usage.",
       });
 
       const today: {

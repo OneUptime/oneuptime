@@ -53,12 +53,12 @@ describe("the post lane: Slack and Microsoft Teams say the limit sentence", () =
     const slack: string = source("API/SlackAPI.ts");
 
     // The thread mention and the slash command.
-    expect(count(slack, "AIService.isProjectAIEnabled(context.projectId)")).toBe(
-      2,
-    );
-    expect(count(slack, "SlackAPI.getDailyLimitRefusal(context.projectId)")).toBe(
-      2,
-    );
+    expect(
+      count(slack, "AIService.isProjectAIEnabled(context.projectId)"),
+    ).toBe(2);
+    expect(
+      count(slack, "SlackAPI.getDailyLimitRefusal(context.projectId)"),
+    ).toBe(2);
   });
 
   test("Microsoft Teams checks the daily limits before it acknowledges, and sends the sentence", () => {

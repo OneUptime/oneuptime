@@ -1044,7 +1044,11 @@ describe("investigation diagnostic boundaries", () => {
 describe("the project's own daily AI limits (project_daily_limit_reached)", () => {
   function projectWithLimit(limit: number | undefined): Project {
     const project: Project = enabledProject();
-    project.aiDailyTokenLimit = limit;
+
+    if (limit !== undefined) {
+      project.aiDailyTokenLimit = limit;
+    }
+
     return project;
   }
 

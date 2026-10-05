@@ -29,9 +29,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const SINCE: Date = new Date("2026-10-05T00:00:00.000Z");
 
-function mockQuery(
-  rows: Array<Record<string, unknown>>,
-): Array<CapturedQuery> {
+function mockQuery(rows: Array<Record<string, unknown>>): Array<CapturedQuery> {
   const captured: Array<CapturedQuery> = [];
 
   jest.spyOn(LlmLogService, "getRepository").mockReturnValue({

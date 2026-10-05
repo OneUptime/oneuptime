@@ -170,12 +170,9 @@ beforeEach(() => {
           totalTokens: rows.reduce((sum: number, row: FakeLogRow) => {
             return sum + row.totalTokens;
           }, 0),
-          billedCostInUSDCents: rows.reduce(
-            (sum: number, row: FakeLogRow) => {
-              return sum + (row.wasBilled ? row.costInUSDCents : 0);
-            },
-            0,
-          ),
+          billedCostInUSDCents: rows.reduce((sum: number, row: FakeLogRow) => {
+            return sum + (row.wasBilled ? row.costInUSDCents : 0);
+          }, 0),
         };
       },
     );
@@ -193,7 +190,9 @@ beforeEach(() => {
     content: "the model answered",
     usage: { totalTokens: 1200 },
   } as Awaited<ReturnType<typeof LLMService.getCompletion>>);
-  createLog = jest.spyOn(LlmLogService, "create").mockResolvedValue(new LlmLog());
+  createLog = jest
+    .spyOn(LlmLogService, "create")
+    .mockResolvedValue(new LlmLog());
   jest
     .spyOn(ProjectService, "deductAiBalanceInUSDCents")
     .mockResolvedValue(undefined);
@@ -846,7 +845,9 @@ describe.each([
     ])(
       "at the limit, %s is refused in one sentence, logged, and the model is never called",
       async (_lane: string, feature: string) => {
-        projectLookup.mockResolvedValue(projectRow({ aiDailyTokenLimit: 5000 }));
+        projectLookup.mockResolvedValue(
+          projectRow({ aiDailyTokenLimit: 5000 }),
+        );
         logRows = [
           {
             createdAt: "2026-10-05T08:00:00.000Z",
@@ -966,7 +967,9 @@ describe("AIService.executeWithLogging and the project's daily spend limit", () 
  */
 describe("the incident and alert limits still apply under the ceiling", () => {
   test("room in the project, but the incident lane's budget is used up: the lane refuses", async () => {
-    projectLookup.mockResolvedValue(projectRow({ aiDailyTokenLimit: 1_000_000 }));
+    projectLookup.mockResolvedValue(
+      projectRow({ aiDailyTokenLimit: 1_000_000 }),
+    );
     const laneBudget: jest.SpyInstance = jest
       .spyOn(AIService, "getAutonomousDailyBudgetStatus")
       .mockResolvedValue({

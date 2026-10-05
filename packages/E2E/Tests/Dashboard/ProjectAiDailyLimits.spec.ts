@@ -92,18 +92,17 @@ test.describe("Project Settings → AI Features: daily AI limits", () => {
   };
 
   // Opens the fold, the card's Edit dialog, and hands back the dialog.
-  const openEditDialog: () => Promise<Locator> =
-    async (): Promise<Locator> => {
-      await foldHeader().click();
-      await expect(foldHeader()).toHaveAttribute("aria-expanded", "true");
-      await section().getByRole("button", { name: "Edit" }).click();
+  const openEditDialog: () => Promise<Locator> = async (): Promise<Locator> => {
+    await foldHeader().click();
+    await expect(foldHeader()).toHaveAttribute("aria-expanded", "true");
+    await section().getByRole("button", { name: "Edit" }).click();
 
-      const modal: Locator = page.getByTestId("modal");
-      await expect(modal).toBeVisible();
-      await expect(modal.getByLabel(/Daily AI Token Limit/)).toBeVisible();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.getByLabel(/Daily AI Token Limit/)).toBeVisible();
 
-      return modal;
-    };
+    return modal;
+  };
 
   const save: (modal: Locator) => Promise<void> = async (
     modal: Locator,
@@ -114,21 +113,22 @@ test.describe("Project Settings → AI Features: daily AI limits", () => {
     await expect(modal).toBeHidden();
   };
 
-  const storedLimits: () => Promise<Record<string, unknown>> =
-    async (): Promise<Record<string, unknown>> => {
-      const response: APIResponse = await page.request.post(
-        urlFor(`/api/project/${projectId}/get-item`),
-        {
-          headers: { tenantid: projectId },
-          data: {
-            select: { aiDailyTokenLimit: true, aiDailySpendLimitInUSD: true },
-          },
+  const storedLimits: () => Promise<
+    Record<string, unknown>
+  > = async (): Promise<Record<string, unknown>> => {
+    const response: APIResponse = await page.request.post(
+      urlFor(`/api/project/${projectId}/get-item`),
+      {
+        headers: { tenantid: projectId },
+        data: {
+          select: { aiDailyTokenLimit: true, aiDailySpendLimitInUSD: true },
         },
-      );
-      expect(response.ok(), await response.text()).toBe(true);
+      },
+    );
+    expect(response.ok(), await response.text()).toBe(true);
 
-      return (await response.json()) as Record<string, unknown>;
-    };
+    return (await response.json()) as Record<string, unknown>;
+  };
 
   const updateProject: (
     data: Record<string, unknown>,
