@@ -40,7 +40,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * All/Any appears only with two filters."
  *
  *   - A pipeline rule walks Match (the name and the filters), then Action.
- *     Filter Condition shows only once there are two filters to combine,
+ *     Match Condition shows only once there are two filters to combine,
  *     and the description, the one service the rule is for and Enabled wait
  *     folded under More fields, at defaults that make the rule work.
  *   - A recording rule is one page: the name with the output metric line
@@ -309,7 +309,7 @@ function moreFieldsSummary(): string | null {
 
 function filterConditionGroup(): HTMLElement | null {
   return within(dialog()).queryByRole("radiogroup", {
-    name: "Filter Condition",
+    name: "Match Condition",
   });
 }
 
@@ -472,7 +472,7 @@ describe("Metrics > Settings > Pipeline Rules", () => {
 
     // None: nothing to combine.
     expect(filterConditionGroup()).toBeNull();
-    expect(within(dialog()).queryByText("Filter Condition")).toBeNull();
+    expect(within(dialog()).queryByText("Match Condition")).toBeNull();
 
     // One: All and Any would match the same data points.
     await addFilter("http.server.duration");
@@ -785,7 +785,7 @@ describe("Metrics > Settings > Pipeline Rules", () => {
       await settle();
     }
 
-    test("opens on Match with the stored filters, and no Filter Condition for one of them", async () => {
+    test("opens on Match with the stored filters, and no Match Condition for one of them", async () => {
       await openEditForm(storedRule({}));
 
       await waitFor(() => {

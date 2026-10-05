@@ -69,8 +69,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 <span className="font-medium text-gray-900">
                   {translator.translateTemplate("Filters ({{condition}})", {
                     condition: translatableTerm(
-                      props.monitorCriteriaInstance.data?.filterCondition ||
-                        "",
+                      props.monitorCriteriaInstance.data?.filterCondition || "",
                     ),
                   })}
                 </span>{" "}
@@ -78,8 +77,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   "{{condition}} of these can match for this criteria to be met:",
                   {
                     condition: translatableTerm(
-                      props.monitorCriteriaInstance.data?.filterCondition ||
-                        "",
+                      props.monitorCriteriaInstance.data?.filterCondition || "",
                     ),
                   },
                 )}

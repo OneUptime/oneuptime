@@ -1,9 +1,6 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import NotificationRuleConditionElement from "./NotificationRuleViewCondition";
 import React, { FunctionComponent, ReactElement } from "react";

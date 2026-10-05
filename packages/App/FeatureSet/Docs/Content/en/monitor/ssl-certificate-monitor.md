@@ -71,7 +71,7 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 
 To be warned earlier, change the value of the **Expires In Days** filter in the "expires soon" criteria, for example to `30`. To open an incident instead, turn on **Create incident** in that criteria.
 
-Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it, create a criteria with **Is Valid Certificate** / **True** and **Expires In Days** / **Less Than or Equal To** / `14`, filter condition **All**, that creates an alert and does not change the monitor status, and move it above the criteria that marks the monitor as online.
+Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it, create a criteria with **Is Valid Certificate** / **True** and **Expires In Days** / **Less Than or Equal To** / `14`, with **Match Condition** set to **All** (it appears under the filters once there are two), that creates an alert and does not change the monitor status, and move it above the criteria that marks the monitor as online.
 
 ### Example Criteria
 

@@ -157,9 +157,7 @@ describe("a new rule's Conditions step", () => {
   test("asks no All or Any while there is no condition", async () => {
     await renderConditions(ruleWith([], FilterCondition.All));
 
-    expect(
-      screen.getByRole("button", { name: "Add Condition" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add Condition" })).toBeVisible();
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
     expect(screen.queryByText("Match Condition")).not.toBeInTheDocument();
   });
@@ -199,7 +197,10 @@ describe("a new rule's Conditions step", () => {
 
   test("hands Any up with the conditions when it is picked", async () => {
     const { onChange, user } = await renderConditions(
-      ruleWith([titleContains("database"), titleContains("postgres")], FilterCondition.All),
+      ruleWith(
+        [titleContains("database"), titleContains("postgres")],
+        FilterCondition.All,
+      ),
     );
 
     await user.click(await screen.findByRole("radio", { name: "Any" }));
@@ -217,7 +218,10 @@ describe("a new rule's Conditions step", () => {
 describe("a rule going back to one condition", () => {
   test("stops asking, and keeps the Any it was given", async () => {
     const { onChange, user } = await renderConditions(
-      ruleWith([titleContains("database"), titleContains("postgres")], FilterCondition.All),
+      ruleWith(
+        [titleContains("database"), titleContains("postgres")],
+        FilterCondition.All,
+      ),
     );
 
     await user.click(await screen.findByRole("radio", { name: "Any" }));
@@ -241,7 +245,10 @@ describe("a rule going back to one condition", () => {
 
   test("by deleting the first condition shows - and keeps - the second", async () => {
     const { onChange, user } = await renderConditions(
-      ruleWith([titleContains("first"), titleContains("second")], FilterCondition.Any),
+      ruleWith(
+        [titleContains("first"), titleContains("second")],
+        FilterCondition.Any,
+      ),
     );
 
     expect(
@@ -270,7 +277,10 @@ describe("a rule going back to one condition", () => {
 
   test("edits the condition that is left, not the deleted one", async () => {
     const { onChange, user } = await renderConditions(
-      ruleWith([titleContains("first"), titleContains("second")], FilterCondition.All),
+      ruleWith(
+        [titleContains("first"), titleContains("second")],
+        FilterCondition.All,
+      ),
     );
 
     await user.click(
@@ -289,7 +299,7 @@ describe("a rule going back to one condition", () => {
 
 describe("a saved rule", () => {
   test("with one condition and Any keeps Any while nothing asks for it", async () => {
-    const { onChange, user } = await renderConditions(
+    const { onChange } = await renderConditions(
       ruleWith([titleContains("database")], FilterCondition.Any),
     );
 

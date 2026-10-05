@@ -1,15 +1,22 @@
 /*
  * All or Any - how a rule combines its filters - is only a choice once there
  * are two filters to combine. With none, a rule matches everything; with one,
- * it matches what that one filter matches, whichever is picked. So a form
- * asks for it from the second filter on, and not before: the rules'
- * conditions builder (RuleCriteriaBuilder: "Match all / Match any") and a
- * metric pipeline rule's Filter Condition (Metrics > Settings > Pipeline
- * Rules). A form that hides it keeps its value - the column's default, All -
- * and sends it, so nothing changes in what a rule matches.
+ * it matches what that one filter matches, whichever is picked. So a screen
+ * asks for it from the second filter on, and not before, and says it only
+ * then:
  *
- * FilterConditionOnlyWithTwoFiltersGuard holds every form field that asks
- * for a filter condition to this rule.
+ *   - the rules' conditions builder (RuleCriteriaBuilder: "Match all /
+ *     Match any") and its summary in the rule lists;
+ *   - Match Condition, under the filters: a metric pipeline rule's, a
+ *     workspace notification rule's and summary's, a monitor criteria's;
+ *   - a monitor criteria's folded header, read-only view and evaluation
+ *     log, and a workspace rule's conditions in the rules list.
+ *
+ * A form that hides it keeps the value the record holds - All for a new
+ * one - and saves it, so nothing changes in what a rule matches.
+ *
+ * FilterConditionOnlyWithTwoFiltersGuard holds every form field and every
+ * hand-drawn control that asks for a filter condition to this rule.
  */
 
 // The fewest filters that make All and Any mean something different.

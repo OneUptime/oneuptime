@@ -513,10 +513,9 @@ describe("Add Criteria", () => {
      */
     expect(screen.queryAllByRole("radiogroup")).toHaveLength(0);
 
-    const addFilterButtons: Array<HTMLElement> = screen.getAllByRole(
-      "button",
-      { name: "Add Filter" },
-    );
+    const addFilterButtons: Array<HTMLElement> = screen.getAllByRole("button", {
+      name: "Add Filter",
+    });
     fireEvent.click(addFilterButtons[addFilterButtons.length - 1]!);
 
     const radioGroups: Array<HTMLElement> = screen.getAllByRole("radiogroup");

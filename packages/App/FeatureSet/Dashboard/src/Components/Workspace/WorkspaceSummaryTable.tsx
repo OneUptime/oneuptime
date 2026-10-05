@@ -63,7 +63,6 @@ export interface ComponentProps {
   summaryType: WorkspaceNotificationSummaryType;
 }
 
-
 const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -360,7 +359,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
 
           // A condition row left empty is dropped, not saved.
           if (values.filters && Array.isArray(values.filters)) {
-            values.filters = NotificationRuleConditionUtil.withoutEmptyConditions(values.filters);
+            values.filters =
+              NotificationRuleConditionUtil.withoutEmptyConditions(
+                values.filters,
+              );
           }
 
           if (!values.filterCondition) {
@@ -379,7 +381,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
 
           // As on create: a condition row left empty is dropped, not saved.
           if (values.filters && Array.isArray(values.filters)) {
-            values.filters = NotificationRuleConditionUtil.withoutEmptyConditions(values.filters);
+            values.filters =
+              NotificationRuleConditionUtil.withoutEmptyConditions(
+                values.filters,
+              );
           }
 
           return Promise.resolve(values);
@@ -445,6 +450,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               "When enabled, the summary will be sent automatically on the configured schedule.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            /*
+             * On, as the column defaults to. The switch drew off - its model
+             * column declares the default only to the database - and a
+             * switch left alone is sent as off, so a summary created as the
+             * form opened was saved disabled and never went out.
+             */
+            defaultValue: true,
           },
           {
             field: {
@@ -494,15 +506,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
              */
             getFooterElement: (
               values: FormValues<WorkspaceNotificationSummary>,
-            ): ReactElement | undefined => {
-              if ((values as Record<string, unknown>)["_id"]) {
-                return undefined;
-              }
-
+            ): ReactElement => {
               return (
                 <WorkspaceSummaryFirstSendPreview
                   recurringInterval={values.recurringInterval}
                   sendFirstReportAt={values.sendFirstReportAt}
+                  isSaved={Boolean((values as Record<string, unknown>)["_id"])}
                 />
               );
             },
@@ -518,6 +527,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             required: true,
             stepId: "schedule",
             placeholder: "7",
+            /*
+             * The last 7 days, as the column defaults to and as a weekly
+             * summary covers. It drew empty - its model column declares the
+             * default only to the database - and the step would not go on
+             * until a number was typed.
+             */
+            defaultValue: 7,
           },
           {
             field: {
@@ -632,11 +648,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               return NotificationRuleConditionUtil.getConditionsValidationError(
                 {
                   notificationRule: {
-                    filters: NotificationRuleConditionUtil.withoutEmptyConditions(
-                      (values.filters as
-                        | Array<NotificationRuleCondition>
-                        | undefined) || [],
-                    ),
+                    filters:
+                      NotificationRuleConditionUtil.withoutEmptyConditions(
+                        (values.filters as
+                          | Array<NotificationRuleCondition>
+                          | undefined) || [],
+                      ),
                   } as IncidentNotificationRule,
                 },
               );
@@ -681,7 +698,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               filterCondition: true,
             },
             title: "Match Condition",
-            description: "Should all conditions match, or just any one of them?",
+            description:
+              "Should all conditions match, or just any one of them?",
             fieldType: FormFieldSchemaType.RadioButton,
             required: false,
             stepId: "filters",

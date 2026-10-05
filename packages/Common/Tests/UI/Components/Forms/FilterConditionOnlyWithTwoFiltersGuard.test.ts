@@ -176,8 +176,7 @@ function parse(file: string, text: string): ts.SourceFile {
 
 function lineOf(node: ts.Node, sourceFile: ts.SourceFile): number {
   return (
-    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
-    1
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
   );
 }
 
@@ -221,6 +220,50 @@ export function findFilterConditionFields(
   visit(sourceFile);
 
   return found;
+}
+
+/*
+ * The title of every form field in the source that asks for a filter
+ * condition, as written (a string literal), or "" when it is computed.
+ */
+export function findFilterConditionFieldTitles(
+  file: string,
+  text: string,
+): Array<string> {
+  const titles: Array<string> = [];
+
+  if (!text.includes(FILTER_CONDITION)) {
+    return titles;
+  }
+
+  const sourceFile: ts.SourceFile = parse(file, text);
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isObjectLiteralExpression(node) &&
+      selectsFilterCondition(node) &&
+      isFormField(node, sourceFile)
+    ) {
+      const title: ts.ObjectLiteralElementLike | undefined = propertyNamed(
+        node,
+        "title",
+      );
+
+      titles.push(
+        title &&
+          ts.isPropertyAssignment(title) &&
+          ts.isStringLiteral(title.initializer)
+          ? title.initializer.text
+          : "",
+      );
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return titles;
 }
 
 // Whether the code writes a filter condition: `{ filterCondition: ... }`.
@@ -535,6 +578,26 @@ describe("the project's filter condition fields and controls", () => {
         "packages/Common/UI/Components/RuleCriteria/RuleCriteriaBuilder.tsx <input>",
       ]),
     );
+  });
+
+  /*
+   * One name for the one choice, wherever a form asks it: Match Condition.
+   * Most forms called it "Filter Condition" - the name each filter's own
+   * operator goes by on the same form.
+   */
+  test("are all titled Match Condition", () => {
+    const titles: Array<string> = sources.flatMap(
+      (source: { file: string; text: string }): Array<string> => {
+        return findFilterConditionFieldTitles(source.file, source.text);
+      },
+    );
+
+    expect(titles.length).toBeGreaterThanOrEqual(3);
+    expect(
+      titles.filter((title: string): boolean => {
+        return title !== "Match Condition";
+      }),
+    ).toEqual([]);
   });
 
   test("ask for All or Any only once there are two filters, or are listed with the reason", () => {

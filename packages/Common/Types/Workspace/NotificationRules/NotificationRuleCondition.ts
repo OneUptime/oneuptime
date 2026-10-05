@@ -191,7 +191,9 @@ export class NotificationRuleConditionUtil {
    * rule table used to keep only conditions holding a list, so a rule saved
    * with a text condition lost it and fired for every event.
    */
-  public static isEmptyCondition(condition: NotificationRuleCondition): boolean {
+  public static isEmptyCondition(
+    condition: NotificationRuleCondition,
+  ): boolean {
     const value: string | Array<string> | undefined = condition.value;
 
     if (!value) {
@@ -213,9 +215,11 @@ export class NotificationRuleConditionUtil {
   public static withoutEmptyConditions(
     conditions: Array<NotificationRuleCondition>,
   ): Array<NotificationRuleCondition> {
-    return conditions.filter((condition: NotificationRuleCondition): boolean => {
-      return !NotificationRuleConditionUtil.isEmptyCondition(condition);
-    });
+    return conditions.filter(
+      (condition: NotificationRuleCondition): boolean => {
+        return !NotificationRuleConditionUtil.isEmptyCondition(condition);
+      },
+    );
   }
 
   public static hasValueField(data: {

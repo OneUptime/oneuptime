@@ -51,9 +51,11 @@ const toRows: (
 ) => Array<ConditionRow> = (
   conditions: Array<NotificationRuleCondition>,
 ): Array<ConditionRow> => {
-  return conditions.map((condition: NotificationRuleCondition): ConditionRow => {
-    return { key: ObjectID.generate().toString(), condition: condition };
-  });
+  return conditions.map(
+    (condition: NotificationRuleCondition): ConditionRow => {
+      return { key: ObjectID.generate().toString(), condition: condition };
+    },
+  );
 };
 
 const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
@@ -63,10 +65,11 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
     return toRows(props.value || []);
   });
 
-  const notificationRuleConditions: Array<NotificationRuleCondition> =
-    rows.map((row: ConditionRow): NotificationRuleCondition => {
+  const notificationRuleConditions: Array<NotificationRuleCondition> = rows.map(
+    (row: ConditionRow): NotificationRuleCondition => {
       return row.condition;
-    });
+    },
+  );
 
   useEffect(() => {
     if (props.onChange) {

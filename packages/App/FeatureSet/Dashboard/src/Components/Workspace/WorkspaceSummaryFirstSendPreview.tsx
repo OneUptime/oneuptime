@@ -17,6 +17,11 @@ export interface ComponentProps {
   // As the form holds them: a Recurring or its JSON, a Date or its text.
   recurringInterval?: unknown;
   sendFirstReportAt?: unknown;
+  /*
+   * A summary already saved has a next send of its own, in the list, which
+   * this would not know: it says nothing then.
+   */
+  isSaved?: boolean | undefined;
   // Now, unless given: for tests.
   now?: Date | undefined;
 }
@@ -34,6 +39,10 @@ const WorkspaceSummaryFirstSendPreview: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const timezone: string = OneUptimeDate.getCurrentTimezone();
+
+  if (props.isSaved) {
+    return <></>;
+  }
 
   const firstSendAt: Date | undefined =
     WorkspaceSummaryScheduleUtil.getCreateWrite({

@@ -272,21 +272,22 @@ describe("updating a summary", () => {
       await hooks.onBeforeUpdate(updateBy(data));
 
     expect(findBy).not.toHaveBeenCalled();
-    expect(iso((onUpdate.updateBy.data as Record<string, unknown>)["nextSendAt"])).toBe(
-      "2026-10-19T09:00:00.000Z",
-    );
+    expect(
+      iso((onUpdate.updateBy.data as Record<string, unknown>)["nextSendAt"]),
+    ).toBe("2026-10-19T09:00:00.000Z");
   });
 
   test("that sends the schedule back unchanged keeps the next send it has", async () => {
-    getJestSpyOn(WorkspaceNotificationSummaryService, "findBy").mockResolvedValue(
-      [
-        stored(SUMMARY_ID, {
-          recurringInterval: every(EventInterval.Week, 1),
-          sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
-          nextSendAt: at("2026-10-12T09:00:00.000Z"),
-        }),
-      ],
-    );
+    getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockResolvedValue([
+      stored(SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
+        nextSendAt: at("2026-10-12T09:00:00.000Z"),
+      }),
+    ]);
 
     const data: Record<string, unknown> = {
       name: "Renamed",
@@ -338,15 +339,16 @@ describe("updating a summary", () => {
   });
 
   test("that moves the first summary later sends it then", async () => {
-    getJestSpyOn(WorkspaceNotificationSummaryService, "findBy").mockResolvedValue(
-      [
-        stored(SUMMARY_ID, {
-          recurringInterval: every(EventInterval.Week, 1),
-          sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
-          nextSendAt: at("2026-10-12T09:00:00.000Z"),
-        }),
-      ],
-    );
+    getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockResolvedValue([
+      stored(SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
+        nextSendAt: at("2026-10-12T09:00:00.000Z"),
+      }),
+    ]);
 
     const onUpdate: OnUpdate<WorkspaceNotificationSummary> =
       await hooks.onBeforeUpdate(
@@ -373,18 +375,19 @@ describe("updating a summary", () => {
   });
 
   test("of several summaries needing the same next send writes it in the one update", async () => {
-    getJestSpyOn(WorkspaceNotificationSummaryService, "findBy").mockResolvedValue(
-      [
-        stored(SUMMARY_ID, {
-          recurringInterval: every(EventInterval.Week, 1),
-          sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
-        }),
-        stored(OTHER_SUMMARY_ID, {
-          recurringInterval: every(EventInterval.Week, 1),
-          sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
-        }),
-      ],
-    );
+    getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockResolvedValue([
+      stored(SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
+      }),
+      stored(OTHER_SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
+      }),
+    ]);
 
     const onUpdate: OnUpdate<WorkspaceNotificationSummary> =
       await hooks.onBeforeUpdate(
@@ -401,18 +404,19 @@ describe("updating a summary", () => {
   });
 
   test("of several summaries needing different next sends writes each one's after the update", async () => {
-    getJestSpyOn(WorkspaceNotificationSummaryService, "findBy").mockResolvedValue(
-      [
-        stored(SUMMARY_ID, {
-          recurringInterval: every(EventInterval.Week, 1),
-          sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
-        }),
-        stored(OTHER_SUMMARY_ID, {
-          recurringInterval: every(EventInterval.Week, 1),
-          sendFirstReportAt: at("2026-09-07T15:30:00.000Z"),
-        }),
-      ],
-    );
+    getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockResolvedValue([
+      stored(SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
+      }),
+      stored(OTHER_SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-09-07T15:30:00.000Z"),
+      }),
+    ]);
 
     const onUpdate: OnUpdate<WorkspaceNotificationSummary> =
       await hooks.onBeforeUpdate(
