@@ -446,9 +446,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             proxmoxClusterId,
             vmwareVCenterId,
             cephClusterId,
+            storageArrayId,
             dockerSwarmClusterId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -479,6 +481,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverCephCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            /*
+             * Array syslog forwarded through the Storage Array Agent
+             * attaches to the array purely through the primary-entity
+             * routing below — there is no inventory hook on the logs path.
+             */
+            this.autoDiscoverStorageArray({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -586,6 +597,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               proxmoxClusterId,
               vmwareVCenterId,
               cephClusterId,
+              storageArrayId,
               dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
