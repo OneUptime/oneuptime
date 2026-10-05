@@ -7,7 +7,7 @@
  * Slack or Microsoft Teams questions alike.
  *
  * They are a ceiling above every other AI limit. The incident and alert
- * daily limits (Incidents or Alerts → Settings → AI) still apply under them,
+ * daily limits (Incidents or Alerts → AI → Settings) still apply under them,
  * and AI work stops at whichever is reached first.
  *
  * Unset means no limit, as for every other AI limit. A set limit is a whole

@@ -114,11 +114,12 @@ Aprite **Incidenti** nella navigazione a sinistra. Il suo menu laterale è organ
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Panoramica**  | **Tutti gli incidenti** e **Incidenti attivi** — quest'ultima porta un badge rosso con il numero di incidenti che non sono nello stato risolto.                            |
 | **Episodi**  | Gli episodi di incidente, una funzionalità di raggruppamento a parte con pagine proprie.                                                                                    |
+| **IA** | **Informazioni**, **Registri**, **Impostazioni**, **Regole di rimedio automatico**: ciò che OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, ciò che può fare da solo e le regole che correggono gli incidenti con i runbook. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Area di lavoro** | Connessioni **Slack** e **Microsoft Teams** per gli incidenti.                                                                                                          |
-| **Regole**     | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
-| **Impostazioni**  | **IA**, **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Prefisso del numero**. |
+| **Regole**     | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
+| **Impostazioni**  | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Prefisso del numero**. |
 
-**Regole** e **Impostazioni** sono compresse per impostazione predefinita: espandetele per trovare le pagine a cui il resto di questa documentazione fa riferimento. La configurazione degli incidenti non sta sotto Impostazioni del progetto, sta tutta qui.
+**IA**, **Regole** e **Impostazioni** sono compresse per impostazione predefinita: espandetele per trovare le pagine a cui il resto di questa documentazione fa riferimento. La configurazione degli incidenti non sta sotto Impostazioni del progetto, sta tutta qui.
 
 L'elenco degli incidenti mostra **Numero dell'incidente**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate**, **Dichiarato**, **Durata**, **Etichette** e **Proprietari**, con un'azione di gruppo **Cambia stato** per chiuderne diversi in una volta.
 

@@ -3,18 +3,23 @@ import {
   AiActivityAttentionItem,
   AiActivityAttentionKind,
   AiActivityAttentionSeverity,
+  AiActivityCoverage,
   AiActivityFinding,
   AiActivityFixOutcomes,
+  AiActivityFixTaskOutcomes,
   AiActivityHotspot,
   AiActivityInsights,
   AiActivityInsightsTotals,
+  AiActivityNamedResource,
   AiActivityObject,
   AiActivityPreventiveInsight,
   AiActivityProblem,
+  AiActivityResourceHotspot,
   AiActivitySubject,
   AiActivityTrendDay,
 } from "Common/Types/AI/AiActivityInsights";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
+import { InvestigationNotStartedCode } from "Common/Types/AI/InvestigationNotStartedReason";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import { Gray500, Red500, Yellow500 } from "Common/Types/BrandColors";
@@ -36,8 +41,10 @@ import {
  * never prose; every sentence is built here, in the reader's language.
  *
  * Shared by every scope's Insights page — a cluster, each resource with a
- * resource AI agent, and later incidents and alerts — so nothing here knows
- * which scope it is about beyond the noun it is given.
+ * resource AI agent, and a project's incidents and its alerts — so nothing
+ * here knows which scope it is about beyond the noun it is given, and the
+ * sections only the incidents' and alerts' pages have (coverage, monitors
+ * and services, fix pull requests) are worded only when the body has them.
  *
  * Import-clean on purpose (Common types and the translation helpers only),
  * so the suites read it without a browser. Server text — titles, findings,
@@ -127,12 +134,78 @@ function readSubject(value: unknown): AiActivitySubject | null {
 
   const title: string | null = readString(value["title"]);
   const number: number | undefined = readOptionalCount(value["number"]);
+  const numberWithPrefix: string | null = readString(value["numberWithPrefix"]);
 
   return {
     kind,
     id,
     ...(title ? { title } : {}),
     ...(number !== undefined ? { number } : {}),
+    ...(numberWithPrefix ? { numberWithPrefix } : {}),
+  };
+}
+
+function readNamedResource(value: unknown): AiActivityNamedResource | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const id: string | null = readString(value["id"]);
+  const name: string | null = readString(value["name"]);
+
+  return id && name ? { id, name } : null;
+}
+
+function readResourceHotspot(value: unknown): AiActivityResourceHotspot | null {
+  const resource: AiActivityNamedResource | null = readNamedResource(value);
+
+  if (!resource || !isObject(value)) {
+    return null;
+  }
+
+  const lastSeenAt: string | null = readString(value["lastSeenAt"]);
+
+  return {
+    ...resource,
+    subjectCount: readCount(value["subjectCount"]),
+    investigationCount: readCount(value["investigationCount"]),
+    problemCount: readCount(value["problemCount"]),
+    ...(lastSeenAt ? { lastSeenAt } : {}),
+  };
+}
+
+function readCoverage(value: JSONObject): AiActivityCoverage {
+  return {
+    subjects: readCount(value["subjects"]),
+    investigatedSubjects: readCount(value["investigatedSubjects"]),
+    notInvestigated: readList(
+      value["notInvestigated"],
+      (
+        row: unknown,
+      ): { code: InvestigationNotStartedCode; count: number } | null => {
+        if (!isObject(row)) {
+          return null;
+        }
+
+        const code: string | null = readString(row["code"]);
+        const count: number = readCount(row["count"]);
+
+        return code && count > 0
+          ? { code: code as InvestigationNotStartedCode, count }
+          : null;
+      },
+    ),
+  };
+}
+
+function readFixTaskOutcomes(value: JSONObject): AiActivityFixTaskOutcomes {
+  return {
+    total: readCount(value["total"]),
+    pullRequestsOpened: readCount(value["pullRequestsOpened"]),
+    noFixFound: readCount(value["noFixFound"]),
+    inProgress: readCount(value["inProgress"]),
+    failed: readCount(value["failed"]),
+    cancelled: readCount(value["cancelled"]),
   };
 }
 
@@ -210,6 +283,9 @@ function readProblem(value: unknown): AiActivityProblem | null {
           : null;
       },
     ),
+    ...(Array.isArray(value["monitors"])
+      ? { monitors: readList(value["monitors"], readNamedResource) }
+      : {}),
     ...(finding ? { latestFinding: finding } : {}),
     verdicts: {
       confirmed: readCount(verdicts["confirmed"]),
@@ -322,6 +398,10 @@ function readAttentionItem(value: unknown): AiActivityAttentionItem | null {
   const subject: AiActivitySubject | null = readSubject(value["subject"]);
   const insightId: string | null = readString(value["insightId"]);
   const insightSeverity: string | null = readString(value["insightSeverity"]);
+  const reason: string | null = readString(value["reason"]);
+  const monitor: AiActivityNamedResource | null = readNamedResource(
+    value["monitor"],
+  );
 
   return {
     kind: value["kind"] as AiActivityAttentionKind,
@@ -335,6 +415,8 @@ function readAttentionItem(value: unknown): AiActivityAttentionItem | null {
     ...(subject ? { subject } : {}),
     ...(insightId ? { insightId } : {}),
     ...(insightSeverity ? { insightSeverity } : {}),
+    ...(reason ? { reason: reason as InvestigationNotStartedCode } : {}),
+    ...(monitor ? { monitor } : {}),
   };
 }
 
@@ -355,6 +437,8 @@ export function parseAiActivityInsights(
   const fixOutcomes: JSONObject = isObject(value["fixOutcomes"])
     ? value["fixOutcomes"]
     : {};
+  const subjectKind: unknown = value["subjectKind"];
+  const fixesHidden: unknown = value["fixesHidden"];
 
   const readTotals: AiActivityInsightsTotals = {
     investigations: readCount(totals["investigations"]),
@@ -367,6 +451,9 @@ export function parseAiActivityInsights(
     commands: readCount(totals["commands"]),
     failedCommands: readCount(totals["failedCommands"]),
     timedOutCommands: readCount(totals["timedOutCommands"]),
+    ...(totals["fixTasks"] !== undefined
+      ? { fixTasks: readCount(totals["fixTasks"]) }
+      : {}),
   };
 
   const readFixOutcomes: AiActivityFixOutcomes = {
@@ -397,6 +484,23 @@ export function parseAiActivityInsights(
       readPreventiveInsight,
     ),
     isPartial: value["isPartial"] === true,
+    // The incidents' and alerts' own sections, only when the body has them.
+    ...(subjectKind === "incident" || subjectKind === "alert"
+      ? { subjectKind }
+      : {}),
+    ...(isObject(value["coverage"])
+      ? { coverage: readCoverage(value["coverage"]) }
+      : {}),
+    ...(Array.isArray(value["monitors"])
+      ? { monitors: readList(value["monitors"], readResourceHotspot) }
+      : {}),
+    ...(Array.isArray(value["services"])
+      ? { services: readList(value["services"], readResourceHotspot) }
+      : {}),
+    ...(isObject(value["fixTaskOutcomes"])
+      ? { fixTaskOutcomes: readFixTaskOutcomes(value["fixTaskOutcomes"]) }
+      : {}),
+    ...(typeof fixesHidden === "boolean" ? { fixesHidden } : {}),
   };
 }
 
@@ -409,6 +513,7 @@ export function hasAiActivity(insights: AiActivityInsights): boolean {
     insights.totals.investigations > 0 ||
     insights.totals.fixes > 0 ||
     insights.totals.commands > 0 ||
+    (insights.totals.fixTasks || 0) > 0 ||
     insights.preventiveInsights.length > 0
   );
 }
@@ -466,8 +571,23 @@ export function getPreventiveSeverityColor(severity: string): Color {
 export function describeSubject(subject: AiActivitySubject): string {
   const title: string | undefined = subject.title;
   const number: number | undefined = subject.number;
+  // The number as the project writes it ("INC-42"), when the page read it.
+  const numberWithPrefix: string | undefined = subject.numberWithPrefix;
 
   if (subject.kind === "incident") {
+    if (numberWithPrefix && title) {
+      return translateTemplate("Incident {{number}}: {{title}}", {
+        number: numberWithPrefix,
+        title,
+      });
+    }
+
+    if (numberWithPrefix) {
+      return translateTemplate("Incident {{number}}", {
+        number: numberWithPrefix,
+      });
+    }
+
     if (number !== undefined && title) {
       return translateTemplate("Incident #{{number}}: {{title}}", {
         number,
@@ -482,6 +602,17 @@ export function describeSubject(subject: AiActivitySubject): string {
     return title
       ? translateTemplate("Incident: {{title}}", { title })
       : translateTerm("Incident");
+  }
+
+  if (numberWithPrefix && title) {
+    return translateTemplate("Alert {{number}}: {{title}}", {
+      number: numberWithPrefix,
+      title,
+    });
+  }
+
+  if (numberWithPrefix) {
+    return translateTemplate("Alert {{number}}", { number: numberWithPrefix });
   }
 
   if (number !== undefined && title) {
@@ -512,9 +643,13 @@ export function describeObject(object: AiActivityObject): string {
 
 /*
  * A problem's line under its title: how often it was investigated, across
- * how many incidents and alerts, and when last.
+ * how many incidents and alerts (or, on the incidents' or alerts' own page,
+ * how many incidents, or alerts), and when last.
  */
-export function describeProblemCount(problem: AiActivityProblem): string {
+export function describeProblemCount(
+  problem: AiActivityProblem,
+  subjectKind?: "incident" | "alert" | undefined,
+): string {
   const parts: Array<string> = [
     translatePlural(
       {
@@ -527,9 +662,19 @@ export function describeProblemCount(problem: AiActivityProblem): string {
 
   if (problem.subjectCount > 1) {
     parts.push(
-      translateTemplate("{{count}} incidents and alerts", {
-        count: problem.subjectCount,
-      }),
+      subjectKind === "incident"
+        ? translatePlural(
+            { one: "{{count}} incident", other: "{{count}} incidents" },
+            problem.subjectCount,
+          )
+        : subjectKind === "alert"
+          ? translatePlural(
+              { one: "{{count}} alert", other: "{{count}} alerts" },
+              problem.subjectCount,
+            )
+          : translateTemplate("{{count}} incidents and alerts", {
+              count: problem.subjectCount,
+            }),
     );
   }
 
@@ -719,12 +864,107 @@ export function describeLastSeen(at: string | undefined): string | null {
 }
 
 /*
+ * Why an incident (or alert) was not investigated, as its creation recorded
+ * it: one sentence each, standing on its own, about the skipped ones.
+ */
+export const NOT_INVESTIGATED_REASONS: Record<
+  "incident" | "alert",
+  Record<InvestigationNotStartedCode, string>
+> = {
+  incident: {
+    ai_disabled: translationKey("AI is turned off for this project."),
+    automatic_investigation_disabled: translationKey(
+      "Automatic investigation of new incidents is turned off.",
+    ),
+    provider_missing: translationKey(
+      "There is no LLM provider OneUptime AI can use.",
+    ),
+    insufficient_ai_balance: translationKey(
+      "The project ran out of AI credits.",
+    ),
+    project_daily_limit_reached: translationKey(
+      "The project had reached its own daily AI limit.",
+    ),
+    severity_below_threshold: translationKey(
+      "They were below the minimum severity to investigate.",
+    ),
+    monitor_cooldown: translationKey(
+      "Their monitor had just been investigated, inside the re-investigation cooldown.",
+    ),
+    daily_budget_exhausted: translationKey(
+      "The daily AI token limit was reached.",
+    ),
+    budget_check_failed: translationKey(
+      "The daily AI token limit could not be checked.",
+    ),
+    enqueue_failed: translationKey("The investigation could not be queued."),
+    eligibility_check_failed: translationKey(
+      "The AI settings could not be checked.",
+    ),
+    no_run_recorded: translationKey("No investigation was recorded."),
+  },
+  alert: {
+    ai_disabled: translationKey("AI is turned off for this project."),
+    automatic_investigation_disabled: translationKey(
+      "Automatic investigation of new alerts is turned off.",
+    ),
+    provider_missing: translationKey(
+      "There is no LLM provider OneUptime AI can use.",
+    ),
+    insufficient_ai_balance: translationKey(
+      "The project ran out of AI credits.",
+    ),
+    project_daily_limit_reached: translationKey(
+      "The project had reached its own daily AI limit.",
+    ),
+    severity_below_threshold: translationKey(
+      "They were below the minimum severity to investigate.",
+    ),
+    monitor_cooldown: translationKey(
+      "Their monitor had just been investigated, inside the re-investigation cooldown.",
+    ),
+    daily_budget_exhausted: translationKey(
+      "The daily AI token limit was reached.",
+    ),
+    budget_check_failed: translationKey(
+      "The daily AI token limit could not be checked.",
+    ),
+    enqueue_failed: translationKey("The investigation could not be queued."),
+    eligibility_check_failed: translationKey(
+      "The AI settings could not be checked.",
+    ),
+    no_run_recorded: translationKey("No investigation was recorded."),
+  },
+};
+
+export function describeNotInvestigatedReason(
+  subjectKind: "incident" | "alert",
+  code: string | undefined,
+): string {
+  const reasons: Record<InvestigationNotStartedCode, string> =
+    NOT_INVESTIGATED_REASONS[subjectKind];
+  // Only a code of the table: never one of an object's own properties.
+  const reason: string | undefined =
+    code && Object.prototype.hasOwnProperty.call(reasons, code)
+      ? reasons[code as InvestigationNotStartedCode]
+      : undefined;
+
+  return translateTemplate(
+    reason || translationKey("For a reason this page does not know yet."),
+  );
+}
+
+/*
  * The sentence an attention item says, in the reader's language. The link
  * next to it (the incident or alert, the insight, the logs) is the page's.
+ * subjectKind is the incidents' or alerts' own page's product.
  */
 export function describeAttentionItem(
   item: AiActivityAttentionItem,
-  context: { windowInDays: number },
+  context: {
+    windowInDays: number;
+    subjectKind?: "incident" | "alert" | undefined;
+  },
 ): string {
   switch (item.kind) {
     case AiActivityAttentionKind.FixesFailed:
@@ -825,9 +1065,59 @@ export function describeAttentionItem(
         },
       );
 
+    case AiActivityAttentionKind.InvestigationsNotStarted:
+      return context.subjectKind === "alert"
+        ? translatePlural(
+            {
+              one: "{{count}} alert created in the last {{days}} days was not investigated.",
+              other:
+                "{{count}} alerts created in the last {{days}} days were not investigated.",
+            },
+            item.count,
+            { days: context.windowInDays },
+          )
+        : translatePlural(
+            {
+              one: "{{count}} incident created in the last {{days}} days was not investigated.",
+              other:
+                "{{count}} incidents created in the last {{days}} days were not investigated.",
+            },
+            item.count,
+            { days: context.windowInDays },
+          );
+
+    case AiActivityAttentionKind.MonitorHotspot:
+      return translatePlural(
+        {
+          one: "{{name}} was behind {{shown}} of the {{count}} investigation here.",
+          other:
+            "{{name}} was behind {{shown}} of the {{count}} investigations here.",
+        },
+        item.total || item.count,
+        { name: item.monitor?.name || "", shown: item.count },
+      );
+
     default:
       return "";
   }
+}
+
+/*
+ * The line under an attention item's sentence, when it has one: why the
+ * incidents (or alerts) were not investigated.
+ */
+export function describeAttentionDetail(
+  item: AiActivityAttentionItem,
+  context: { subjectKind?: "incident" | "alert" | undefined },
+): string | null {
+  if (item.kind === AiActivityAttentionKind.InvestigationsNotStarted) {
+    return describeNotInvestigatedReason(
+      context.subjectKind === "alert" ? "alert" : "incident",
+      item.reason,
+    );
+  }
+
+  return null;
 }
 
 /*
@@ -866,7 +1156,25 @@ export function describeTrendWeeks(trend: Array<AiActivityTrendDay>): string {
   );
 }
 
-export function describeTrendDay(day: AiActivityTrendDay): string {
+/*
+ * A day's bar, on hover. Without the fixes for a reader who may not see
+ * them: their 0 would read as "no fixes".
+ */
+export function describeTrendDay(
+  day: AiActivityTrendDay,
+  options: { fixesHidden?: boolean | undefined } = {},
+): string {
+  if (options.fixesHidden) {
+    return translateTemplate(
+      "{{date}}: {{investigations}} investigations, {{failed}} failed",
+      {
+        date: day.date,
+        investigations: day.investigations,
+        failed: day.failedInvestigations,
+      },
+    );
+  }
+
   return translateTemplate(
     "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes",
     {
@@ -945,4 +1253,120 @@ export function describeFixVerification(
       verifying: outcomes.verifying,
     },
   );
+}
+
+/*
+ * ------------------------------------------------------------------------
+ * The incidents' and alerts' own sections.
+ * ------------------------------------------------------------------------
+ */
+
+export const AI_INSIGHTS_FIXES_HIDDEN_NOTE: string = translationKey(
+  "Fix numbers are not shown: seeing them needs permission to read auto-remediation suggestions.",
+);
+
+/*
+ * The fix pull requests of the window by where they ended up, for the fixes
+ * card's second bar: opened first, then the ones still running, then the
+ * ones that went nowhere.
+ */
+export function getFixTaskSegments(
+  outcomes: AiActivityFixTaskOutcomes,
+): Array<AiInsightsFixSegment> {
+  return [
+    {
+      label: translationKey("Pull request opened"),
+      value: outcomes.pullRequestsOpened,
+      color: "bg-green-500",
+    },
+    {
+      label: translationKey("In progress"),
+      value: outcomes.inProgress,
+      color: "bg-sky-300",
+    },
+    {
+      label: translationKey("No fix found"),
+      value: outcomes.noFixFound,
+      color: "bg-gray-200",
+    },
+    {
+      label: translationKey("Failed"),
+      value: outcomes.failed,
+      color: "bg-red-400",
+    },
+    {
+      label: translationKey("Cancelled"),
+      value: outcomes.cancelled,
+      color: "bg-gray-300",
+    },
+  ].filter((segment: AiInsightsFixSegment): boolean => {
+    return segment.value > 0;
+  });
+}
+
+/*
+ * A monitor's or service's line: in how many of the incidents (or alerts)
+ * AI investigated, across how many problems, and when last.
+ */
+export function describeResourceHotspot(
+  hotspot: AiActivityResourceHotspot,
+  subjectKind: "incident" | "alert",
+): string {
+  const parts: Array<string> = [
+    subjectKind === "alert"
+      ? translatePlural(
+          {
+            one: "{{count}} alert investigated",
+            other: "{{count}} alerts investigated",
+          },
+          hotspot.subjectCount,
+        )
+      : translatePlural(
+          {
+            one: "{{count}} incident investigated",
+            other: "{{count}} incidents investigated",
+          },
+          hotspot.subjectCount,
+        ),
+    translatePlural(
+      { one: "{{count}} problem", other: "{{count}} problems" },
+      hotspot.problemCount,
+    ),
+  ];
+  const lastSeen: string | null = describeLastSeen(hotspot.lastSeenAt);
+
+  if (lastSeen) {
+    parts.push(lastSeen);
+  }
+
+  return parts.join(" · ");
+}
+
+/*
+ * How much of the window AI looked at: "OneUptime AI investigated 12 of the
+ * 40 incidents created in the last 30 days."
+ */
+export function describeCoverage(
+  coverage: AiActivityCoverage,
+  subjectKind: "incident" | "alert",
+): string {
+  return subjectKind === "alert"
+    ? translatePlural(
+        {
+          one: "OneUptime AI investigated {{investigated}} of the {{count}} alert created in the last 30 days.",
+          other:
+            "OneUptime AI investigated {{investigated}} of the {{count}} alerts created in the last 30 days.",
+        },
+        coverage.subjects,
+        { investigated: coverage.investigatedSubjects },
+      )
+    : translatePlural(
+        {
+          one: "OneUptime AI investigated {{investigated}} of the {{count}} incident created in the last 30 days.",
+          other:
+            "OneUptime AI investigated {{investigated}} of the {{count}} incidents created in the last 30 days.",
+        },
+        coverage.subjects,
+        { investigated: coverage.investigatedSubjects },
+      );
 }

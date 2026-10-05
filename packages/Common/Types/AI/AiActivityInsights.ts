@@ -1,16 +1,19 @@
+import { InvestigationNotStartedCode } from "./InvestigationNotStartedReason";
+
 /*
  * What OneUptime AI has learned about one scope from its own work there —
- * today a Kubernetes cluster or a resource served by a resource AI agent —
- * and what of it deserves attention: the response of the scope's AI
- * Insights page (POST /kubernetes-cluster/ai-access/insights,
- * POST /resource-ai-access/insights).
+ * a Kubernetes cluster, a resource served by a resource AI agent, or a
+ * project's incidents or its alerts — and what of it deserves attention:
+ * the response of the scope's AI Insights page
+ * (POST /kubernetes-cluster/ai-access/insights,
+ * POST /resource-ai-access/insights, POST /ai-activity/incident/insights,
+ * POST /ai-activity/alert/insights).
  *
- * The AI pages share one vocabulary, so the pages that follow (incidents
- * and alerts) can reuse this contract and its builder:
+ * The AI pages share one vocabulary:
  *
  *   - Logs: the chronological record of everything AI did — each
  *     investigation, fix and command (KubernetesClusterAiLogs,
- *     ResourceAiLogs).
+ *     ResourceAiLogs, IncidentAlertAiLogs).
  *   - Insights (this): aggregated, derived findings and patterns that say
  *     what to pay attention to.
  *
@@ -23,6 +26,13 @@
  * against the scope's own telemetry. Nothing is invented and no model is
  * called to build it. Summaries only: no command output, prompt or command
  * plan, and nothing about an incident or alert the caller may not read.
+ *
+ * The incidents' and alerts' pages (IncidentAlertAiInsights) are this
+ * contract, built by the same builder, plus what only a whole product has:
+ * how many of the window's incidents AI looked at and why it skipped the
+ * rest, the monitors and services that keep failing, and the fix pull
+ * requests. Those are the optional sections at the end of
+ * AiActivityInsights, left out for a cluster or a resource.
  */
 
 // The window everything here covers, ending now.
@@ -60,6 +70,14 @@ export interface AiActivitySubject {
   title?: string | undefined;
   // The incident's or alert's number, when it has one.
   number?: number | undefined;
+  // The number with the project's prefix ("INC-42"), when the page reads it.
+  numberWithPrefix?: string | undefined;
+}
+
+// A monitor or a service, by the name the caller may read.
+export interface AiActivityNamedResource {
+  id: string;
+  name: string;
 }
 
 /*
@@ -105,6 +123,11 @@ export interface AiActivityProblem {
   latestSubject: AiActivitySubject;
   // The parts of the scope it fired for, most frequent first.
   objects: Array<AiActivityObject & { count: number }>;
+  /*
+   * The monitors that raised it, the ones the caller may read, by name: on
+   * the incidents' and alerts' pages, which read monitor names.
+   */
+  monitors?: Array<AiActivityNamedResource> | undefined;
   latestFinding?: AiActivityFinding | undefined;
   // What people (verdicts) and the grader (grades) said of its findings.
   verdicts: {
@@ -133,6 +156,20 @@ export interface AiActivityHotspot extends AiActivityObject {
   lastSeenAt?: string | undefined;
 }
 
+/*
+ * A monitor or service that keeps failing: one the incidents (or alerts) AI
+ * investigated were raised for or affected, counted once per incident.
+ */
+export interface AiActivityResourceHotspot extends AiActivityNamedResource {
+  // Distinct incidents (or alerts) AI investigated that it was part of.
+  subjectCount: number;
+  investigationCount: number;
+  // How many different problems it showed up in.
+  problemCount: number;
+  // ISO.
+  lastSeenAt?: string | undefined;
+}
+
 // The fixes of the window by where they ended up.
 export interface AiActivityFixOutcomes {
   total: number;
@@ -146,6 +183,33 @@ export interface AiActivityFixOutcomes {
   verified: number;
   failed: number;
   verifying: number;
+}
+
+/*
+ * The fix pull requests of the window (AIRun, runType CodeFix) by where they
+ * ended up.
+ */
+export interface AiActivityFixTaskOutcomes {
+  total: number;
+  pullRequestsOpened: number;
+  noFixFound: number;
+  inProgress: number;
+  failed: number;
+  cancelled: number;
+}
+
+/*
+ * How much of the window AI looked at: the incidents (or alerts) created in
+ * it that the caller may read, how many AI investigated, and why the others
+ * were not, as each one's creation recorded it (most common first).
+ */
+export interface AiActivityCoverage {
+  subjects: number;
+  investigatedSubjects: number;
+  notInvestigated: Array<{
+    code: InvestigationNotStartedCode;
+    count: number;
+  }>;
 }
 
 // One UTC day of the window.
@@ -193,6 +257,13 @@ export enum AiActivityAttentionKind {
   PreventiveInsight = "PreventiveInsight",
   // One part of the scope in most of the investigations.
   Hotspot = "Hotspot",
+  /*
+   * Incidents (or alerts) AI could not investigate: a limit, a missing
+   * provider, no credits (the incidents' and alerts' pages).
+   */
+  InvestigationsNotStarted = "InvestigationsNotStarted",
+  // One monitor behind most of the investigations (the same pages).
+  MonitorHotspot = "MonitorHotspot",
 }
 
 export enum AiActivityAttentionSeverity {
@@ -224,6 +295,10 @@ export interface AiActivityAttentionItem {
   // PreventiveInsight.
   insightId?: string | undefined;
   insightSeverity?: string | undefined;
+  // InvestigationsNotStarted: why, the most common reason worth acting on.
+  reason?: InvestigationNotStartedCode | undefined;
+  // MonitorHotspot.
+  monitor?: AiActivityNamedResource | undefined;
 }
 
 export interface AiActivityInsightsTotals {
@@ -242,6 +317,8 @@ export interface AiActivityInsightsTotals {
   failedCommands: number;
   // Commands the agent never picked up in time.
   timedOutCommands: number;
+  // The fix pull requests AI was asked to open (the incidents' and alerts' pages).
+  fixTasks?: number | undefined;
 }
 
 export interface AiActivityInsights {
@@ -262,4 +339,21 @@ export interface AiActivityInsights {
    * were read, so the numbers cover the newest of them only.
    */
   isPartial: boolean;
+
+  /*
+   * The sections only a project's incidents' or alerts' page has; a
+   * cluster's and a resource's leave them out.
+   */
+  // The product the page is about: every subject is of this kind.
+  subjectKind?: "incident" | "alert" | undefined;
+  coverage?: AiActivityCoverage | undefined;
+  // The monitors and services that keep failing, the most incidents first.
+  monitors?: Array<AiActivityResourceHotspot> | undefined;
+  services?: Array<AiActivityResourceHotspot> | undefined;
+  fixTaskOutcomes?: AiActivityFixTaskOutcomes | undefined;
+  /*
+   * True when the caller may not read fixes (auto-remediation suggestions):
+   * every fix number is then 0 and the page says why instead of showing them.
+   */
+  fixesHidden?: boolean | undefined;
 }

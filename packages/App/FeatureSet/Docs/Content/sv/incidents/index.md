@@ -114,11 +114,12 @@ Därefter kan du skriva en efteranalys och, om du vill, publicera den på status
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Översikt**       | **Alla incidenter** och **Aktiva incidenter** — den senare bär ett rött märke med antalet incidenter som inte är i det lösta tillståndet.                              |
 | **Episoder**       | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                        |
+| **AI** | **Insikter**, **Loggar**, **Inställningar**, **Regler för automatisk åtgärd**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, vad den får göra på egen hand, och reglerna som åtgärdar incidenter med runbooks. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta**      | Kopplingarna till **Slack** och **Microsoft Teams** för incidenter.                                                                                                     |
-| **Regler**         | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Inställningar**  | **AI**, **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Nummerprefix**. |
+| **Regler**         | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
+| **Inställningar**  | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Nummerprefix**. |
 
-**Regler** och **Inställningar** är ihopfällda som standard — fäll ut dem för att hitta sidorna som resten av den här dokumentationen hänvisar till. Incidentkonfigurationen ligger inte under Projektinställningar; allt bor här.
+**AI**, **Regler** och **Inställningar** är ihopfällda som standard — fäll ut dem för att hitta sidorna som resten av den här dokumentationen hänvisar till. Incidentkonfigurationen ligger inte under Projektinställningar; allt bor här.
 
 Själva incidentlistan visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**, med massåtgärden **Ändra tillstånd** för att stänga flera på en gång.
 

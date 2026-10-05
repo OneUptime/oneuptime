@@ -426,7 +426,7 @@ upgrade moves those fixes to asking first:
 Nothing is turned off. Rules, clusters and resources that one of the switches
 kept quiet start proposing fixes, and each fix still waits for a human. To keep
 auto-remediation out of a project, turn off **Enable AI**, or disable its rules
-(Incidents or Alerts → Rules → Auto Remediation Rules) and set **Fixes** to
+(Incidents or Alerts → AI → Auto Remediation Rules) and set **Fixes** to
 **Off** on each cluster's and resource's AI agent page. API clients and
 Terraform configurations that set `enableAutoRemediation` or
 `enableAiCommandExecution` (`enable_auto_remediation` or
@@ -437,7 +437,7 @@ Terraform configurations that set `enableAutoRemediation` or
 A project created after the upgrade starts with every AI feature switched on,
 not only automatic incident and alert investigation: postmortem drafts,
 automatic code fixes and instrumentation fixes (Incidents or Alerts →
-Settings → AI), and AI Insights with its fix pull requests and auto-archiving
+AI → Settings), and AI Insights with its fix pull requests and auto-archiving
 of expected-denial exceptions (AI → Insights → Settings).
 
 Projects that already exist keep the settings they have; the upgrade switches
@@ -477,19 +477,21 @@ repository. A cooldown is still held to at most 1440 minutes (a day).
 
 To keep the old limits, set them yourself: **Minimum Severity To
 Investigate**, the cooldown, the concurrency caps and the daily fix task limits
-on **Incidents → Settings → AI** and **Alerts → Settings → AI**, and **Max Open
+on **Incidents → AI → Settings** and **Alerts → AI → Settings**, and **Max Open
 Fix Pull Requests** on each repository's **Settings** page. AI work outside
 incidents and alerts has no setting, so it runs without these limits. Nothing
 changes for the **Daily Incident AI Token Limit** and **Daily Alert AI Token
 Limit** (0 still pauses that lane) or for the investigation time limit: they
 were already unset by default, which means no limit.
 
-The AI settings also moved in the Incidents and Alerts side menus, and the
-**AI** section there is gone. Its **Investigation** page is now **Settings →
-AI**, the first item under **Settings**, and its **Remediation** page is now
-**Rules → Auto Remediation Rules**, right after **Runbook Rules**. The URLs
-(`…/settings/ai` and `…/settings/auto-remediation-rules`) have not changed, so
-bookmarks keep working.
+The AI pages also changed in the Incidents and Alerts side menus. Each menu's
+**AI** section, right after **Episodes** and folded until you open it, holds
+everything OneUptime AI does for that signal type: **Insights** and **Logs**,
+which are new, then **Settings**, the page that was called **Investigation**,
+and **Auto Remediation Rules**, the page that was called **Remediation**. Their
+addresses moved from `…/settings/ai` and `…/settings/auto-remediation-rules` to
+`…/ai/settings` and `…/ai/auto-remediation-rules`. The old addresses open the
+new pages, so bookmarks keep working.
 
 ### The AI Logs get an index for the daily AI limits
 

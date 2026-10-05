@@ -77,6 +77,8 @@ import AlertSettingsNumberPrefix from "../Pages/Alerts/Settings/AlertNumberPrefi
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import AlertSettingsAI from "../Pages/Alerts/Settings/AlertAISettings";
+import AlertAIInsights from "../Pages/Alerts/AI/Insights";
+import AlertAILogs from "../Pages/Alerts/AI/Logs";
 
 // Episode Pages
 import Episodes from "../Pages/Alerts/Episodes";
@@ -119,6 +121,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import { MOVED_AI_SECTION_PATHS } from "./MovedPagePaths";
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -141,6 +145,25 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         element={
           <MovedNumberPrefixPageRedirect
             pageMap={PageMap.ALERTS_SETTINGS_NUMBER_PREFIX}
+          />
+        }
+      />
+
+      {/*
+       * The AI settings and the Auto Remediation Rules moved into the AI
+       * section (…/ai/settings and …/ai/auto-remediation-rules). Their old
+       * URLs, in bookmarks, emails and older docs, forward there - outside
+       * the layout, so the side menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiSettings}
+        element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.autoRemediationRules}
+        element={
+          <MovedPageRedirect
+            pageMap={PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES}
           />
         }
       />
@@ -488,6 +511,26 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_AI_INSIGHTS] || ""}
+          element={
+            <AlertAIInsights
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_AI_INSIGHTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_AI_LOGS] || ""}
+          element={
+            <AlertAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_AI_LOGS] as Route}
             />
           }
         />

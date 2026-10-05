@@ -12,7 +12,6 @@ Denne siden er oppslagsverket for den konfigurasjonen — hva hver side innehold
 
 | Side                     | Hva du gjør der                                                                                        |
 | ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| **KI**                   | Slå automatisk undersøkelse, automatiske koderettelser og postmortem-utkast av eller på, og sett de valgfrie grensene KI arbeider innenfor — ingen av dem gjelder før du setter dem. Se [AI SRE](/docs/ai/ai-sre). |
 | **Hendelsesstatus**      | Legg til, gi nytt navn, endre farge på og omorganiser tilstandene en hendelse beveger seg gjennom.      |
 | **Hendelsesalvor**       | Legg til, gi nytt navn, endre farge på og omorganiser alvorlighetsgradene.                             |
 | **Hendelsesmaler**       | Fyll ut en hel hendelse på forhånd — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter.    |
@@ -22,9 +21,11 @@ Denne siden er oppslagsverket for den konfigurasjonen — hva hver side innehold
 | **Hendelsesroller**      | Definer rollene du tildeler respondenter, som Incident Commander.                                      |
 | **Nummerprefiks**  | Nummerprefiksene for hendelser og hendelsesepisoder.                                                   |
 
+Hva OneUptime AI gjør på egen hånd, stilles ikke inn her: det har sin egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår automatisk undersøkelse, automatiske koderettelser og postmortem-utkast av eller på og rommer de valgfrie grensene KI arbeider innenfor — ingen av dem gjelder før du setter dem. Ved siden av ligger **Regler for automatisk utbedring**, med **Innsikt** og **Logger**: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+
 **Hendelsesstatus** og **Hendelsesalvor** er dekket i dybden i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden tar over fra **Hendelsesmaler**.
 
-Utvider du **Regler**, får du ni sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Reminder Rules**. Dem tar vi lenger ned.
+Utvider du **Regler**, får du åtte sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Reminder Rules**. Dem tar vi lenger ned.
 
 ## Hendelsesmaler
 
@@ -116,13 +117,13 @@ Et nytt prefiks gjelder bare hendelser og episoder som opprettes etterpå. Eksis
 
 ## Regler som kjører når en hendelse opprettes
 
-**Hendelser → Regler** rommer ni regelmotorer. De gjør alle den samme jobben — se på en hendelse i det øyeblikket den opprettes, og handle hvis den treffer — men de skiller seg i hva de gjør og i hvordan flere treffende regler løses opp.
+**Hendelser → Regler** rommer åtte regelmotorer, og **Hendelser → KI** en niende, **Regler for automatisk utbedring**. De gjør alle den samme jobben — se på en hendelse i det øyeblikket den opprettes, og handle hvis den treffer — men de skiller seg i hva de gjør og i hvordan flere treffende regler løses opp.
 
 - **Grupperingsregler** — grupper beslektede hendelser i episoder. Reglene evalueres i prioritert rekkefølge; lavere prioritetstall går først.
 - **Vaktregler** — kjør vaktpolicyer for hendelser som treffer. Dekket i detalj nedenfor.
 - **Eierregler** — tildel eiere automatisk.
 - **Runbook-regler** — start en [runbook](/docs/runbooks/index) når en hendelse treffer.
-- **Regler for automatisk utbedring** — foreslå eller start utbedrings-runbooks når en hendelse treffer. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen dens i hånden. Se [AI SRE](/docs/ai/ai-sre).
+- **Regler for automatisk utbedring**, under **KI** — foreslå eller start utbedrings-runbooks når en hendelse treffer. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen dens i hånden. Se [AI SRE](/docs/ai/ai-sre).
 - **Personvernregler** — avgjør om en hendelse som treffer, er privat.
 - **Etikettregler** — sett på etiketter automatisk.
 - **SLA-regler** — spor tid til respons og tid til løsning. Reglene evalueres i rekkefølge; lavere rekkefølgetall går først.

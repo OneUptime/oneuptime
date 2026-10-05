@@ -6,7 +6,7 @@ import {
   hasAiActivity,
   parseAiActivityInsights,
 } from "./AiActivityInsightsData";
-import AiActivityInsightsView from "./AiActivityInsightsView";
+import AiActivityInsightsView, { CoverageCard } from "./AiActivityInsightsView";
 import { AiActivityInsights } from "Common/Types/AI/AiActivityInsights";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -52,7 +52,9 @@ import React, {
  *
  * Scope-agnostic, so every Insights page is this one: a cluster's
  * (Pages/Kubernetes/View/AI/Insights), a resource's (ResourceAiInsightsPage),
- * and later the incidents' and alerts'.
+ * and the incidents' and alerts' (IncidentAlertAiInsightsPage), which say
+ * what they cover in sentences of their own and, with nothing to show yet,
+ * why AI skipped the window's incidents.
  */
 
 export interface ComponentProps {
@@ -65,7 +67,17 @@ export interface ComponentProps {
   requestKey: string;
   // The scope's AI Logs and AI agent pages, populated.
   logsRoute: Route;
-  agentRoute: Route;
+  // A project's incidents and alerts have no AI agent page of their own.
+  agentRoute?: Route | undefined;
+  // Where what AI does on its own here is set (the incidents' AI → Settings).
+  settingsRoute?: Route | undefined;
+  /*
+   * The heading's line and the empty state's text in place of the noun's,
+   * for a scope that is not one thing ("your incidents"). English keys,
+   * translated where they are drawn.
+   */
+  subtitle?: string | undefined;
+  emptyDescription?: string | undefined;
   /*
    * Why AI cannot work on the scope right now, or null. Optional, and
    * never blocks the page: a failure only leaves the pointer out.
@@ -75,18 +87,25 @@ export interface ComponentProps {
   emptyStateId: string;
 }
 
-function AgentHint(props: { hint: string; agentRoute: Route }): ReactElement {
+function AgentHint(props: {
+  hint: string;
+  agentRoute?: Route | undefined;
+}): ReactElement {
   const translator: Translator = useTranslator();
 
   return (
     <p className="text-sm text-gray-600" data-testid="ai-insights-agent-hint">
       {props.hint}{" "}
-      <Link
-        to={props.agentRoute}
-        className="font-medium text-indigo-600 hover:text-indigo-800 underline"
-      >
-        {translator.translateText("Open the AI agent page")}
-      </Link>
+      {props.agentRoute ? (
+        <Link
+          to={props.agentRoute}
+          className="font-medium text-indigo-600 hover:text-indigo-800 underline"
+        >
+          {translator.translateText("Open the AI agent page")}
+        </Link>
+      ) : (
+        <></>
+      )}
     </p>
   );
 }
@@ -217,36 +236,54 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
     );
   } else if (!hasAiActivity(insights)) {
     body = (
-      <div className="mb-5" data-testid="ai-insights-empty">
-        <EmptyState
-          id={props.emptyStateId}
-          icon={IconProp.LightBulb}
-          title={AI_INSIGHTS_EMPTY_TITLE}
-          description={getAiInsightsEmptyDescription(props.noun)}
-          showSolidBackground={true}
-          paddingClassName="py-12"
-          footer={
-            <div className="space-y-2">
-              {hint ? (
-                <AgentHint hint={hint} agentRoute={props.agentRoute} />
-              ) : (
-                <></>
-              )}
-              <p className="text-sm text-gray-600">
-                {translator.translateText(
-                  "Anything older is on the AI Logs page.",
-                )}{" "}
-                <Link
-                  to={props.logsRoute}
-                  className="font-medium text-indigo-600 hover:text-indigo-800 underline"
-                >
-                  {translator.translateText("Open AI Logs")}
-                </Link>
-              </p>
-            </div>
-          }
-        />
-      </div>
+      <Fragment>
+        <div className="mb-5" data-testid="ai-insights-empty">
+          <EmptyState
+            id={props.emptyStateId}
+            icon={IconProp.LightBulb}
+            title={AI_INSIGHTS_EMPTY_TITLE}
+            description={
+              props.emptyDescription ||
+              getAiInsightsEmptyDescription(props.noun)
+            }
+            showSolidBackground={true}
+            paddingClassName="py-12"
+            footer={
+              <div className="space-y-2">
+                {hint ? (
+                  <AgentHint hint={hint} agentRoute={props.agentRoute} />
+                ) : (
+                  <></>
+                )}
+                <p className="text-sm text-gray-600">
+                  {translator.translateText(
+                    "Anything older is on the AI Logs page.",
+                  )}{" "}
+                  <Link
+                    to={props.logsRoute}
+                    className="font-medium text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    {translator.translateText("Open AI Logs")}
+                  </Link>
+                </p>
+              </div>
+            }
+          />
+        </div>
+        {/*
+         * Nothing investigated is when the reasons matter most: AI off, no
+         * provider, no credits.
+         */}
+        {insights.coverage && insights.subjectKind ? (
+          <CoverageCard
+            coverage={insights.coverage}
+            subjectKind={insights.subjectKind}
+            settingsRoute={props.settingsRoute}
+          />
+        ) : (
+          <></>
+        )}
+      </Fragment>
     );
   } else {
     body = (
@@ -267,6 +304,7 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
           noun={props.noun}
           logsRoute={props.logsRoute}
           agentRoute={props.agentRoute}
+          settingsRoute={props.settingsRoute}
         />
       </Fragment>
     );
@@ -283,7 +321,9 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
             {translator.translateText(AI_INSIGHTS_PAGE_TITLE)}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            {getAiInsightsPageSubtitle(props.noun)}
+            {props.subtitle
+              ? translator.translateText(props.subtitle)
+              : getAiInsightsPageSubtitle(props.noun)}
           </p>
         </div>
         <Link
