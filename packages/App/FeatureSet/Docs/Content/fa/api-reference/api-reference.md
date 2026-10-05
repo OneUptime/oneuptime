@@ -26,6 +26,8 @@ This network device references records that are not in this project: Network Sit
 Conflicting Monitor references were provided. monitorId and monitor are names for the same field and must hold the same value: send only one of them, or the same id in each.
 ```
 
+هر دو نام به یک شکل سنجیده می‌شوند. قاعده‌های مربوط به رکوردی که نام می‌برید، به هر کدام از این دو نام که آن را بفرستید، برقرار می‌مانند: گروه والدِ یک گروه صفحه وضعیت باید در همان صفحه وضعیت باشد، یک صفحه وضعیت حداکثر سه پیوند سرصفحه می‌پذیرد، و نام یک گروه در صفحه وضعیتش باید یکتا باشد.
+
 ### مرجع API
 
 برای دیدن مرجع API OneUptime اینجا کلیک کنید ➡️ [مرجع API OneUptime](/reference). مرجع API به چند زبان در دسترس است — زبان مورد نظر شما به‌صورت خودکار از مرورگرتان تشخیص داده می‌شود و هر زمان می‌توانید با انتخابگر بالای صفحه زبان را عوض کنید.
