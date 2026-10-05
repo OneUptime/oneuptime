@@ -454,7 +454,11 @@ describe("editing as JSON", () => {
 
     expect(getByText("Color")).toBeInTheDocument();
     await waitFor(() => {
-      expect(getByTestId("model-column-value-color")).toHaveValue("#ffffff");
+      // The color field holds its color as data-value, not in a text box.
+      expect(getByTestId("model-column-value-color")).toHaveAttribute(
+        "data-value",
+        "#ffffff",
+      );
     });
   });
 
