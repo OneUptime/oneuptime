@@ -10,6 +10,7 @@ import IncidentService from "./IncidentService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentStateService from "./IncidentStateService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import IncidentMemberService from "./IncidentMemberService";
 import IncidentRoleService from "./IncidentRoleService";
 import TeamMemberService from "./TeamMemberService";
@@ -28,6 +29,7 @@ import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import AIIncidentPostmortemRunner from "../Utils/AI/SRE/IncidentPostmortemRunner";
@@ -102,34 +104,27 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      if (
-        (createBy.data.createdByUserId ||
-          createBy.data.createdByUser ||
-          createBy.props.userId) &&
-        !createBy.data.rootCause
-      ) {
-        let userId: ObjectID | undefined = createBy.data.createdByUserId;
+      // Who made the change, under either name of it: see CreatedByUser.
+      const changedByUserId: ObjectID | null = CreatedByUser.getId(
+        createBy.data,
+        createBy.props,
+      );
 
-        if (createBy.props.userId) {
-          userId = createBy.props.userId;
-        }
-
-        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-          userId = createBy.data.createdByUser.id;
-        }
-
-        if (userId) {
-          createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
-            {
-              userId: userId!,
-              projectId: createBy.data.projectId || createBy.props.tenantId!,
-            },
-          )}`;
-        }
+      if (changedByUserId && !createBy.data.rootCause) {
+        createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
+          {
+            userId: changedByUserId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`;
       }
 
-      const incidentStateId: ObjectID | undefined | null =
-        createBy.data.incidentStateId || createBy.data.incidentState?.id;
+      // Under either of its names; the two must agree.
+      const incidentStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["incidentStateId", "incidentState"],
+        "Incident State",
+      );
 
       if (!incidentStateId) {
         throw new BadDataException("incidentStateId is null");

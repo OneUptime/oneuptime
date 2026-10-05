@@ -31,6 +31,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -142,9 +143,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      const scheduledMaintenanceStateId: ObjectID | undefined | null =
-        createBy.data.scheduledMaintenanceStateId ||
-        createBy.data.scheduledMaintenanceState?.id;
+      // Under either of its names; the two must agree.
+      const scheduledMaintenanceStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
+        "Scheduled Maintenance State",
+      );
 
       if (!scheduledMaintenanceStateId) {
         throw new BadDataException("scheduledMaintenanceStateId is null");

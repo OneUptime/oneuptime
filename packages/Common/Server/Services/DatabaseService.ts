@@ -102,6 +102,7 @@ import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
   ListOrderCreatePlan,
   ListOrderScope,
@@ -1659,6 +1660,66 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * A reference has two names a write can use: the relation (`monitor`,
+   * which the dashboard's forms post) and its ID column (`monitorId`, which
+   * the API reference, Terraform and server-side callers use). They are one
+   * database column, and when a write carries both TypeORM stores the
+   * relation's id, while a hook that checks or decides on the reference may
+   * read the ID column. So a write made in a project - through the API, a
+   * workflow or the admin dashboard - whose two names of one reference hold
+   * different values (two records, or a record and a clear) is refused here,
+   * before any hook reads it; a reference sent under one name, or the same
+   * id under both, is written as it was. See RelationNames.
+   *
+   * OneUptime's own writes - root, with no project on the request - name
+   * their references in code and are left alone; the services that check a
+   * reference themselves read both names with RelationIdUtil.readConsistent,
+   * which refuses the same for every write.
+   */
+  private assertRelationNamesAgree(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot && !props.tenantId) {
+      return;
+    }
+
+    RelationNames.assertNamesAgree(this.model, data);
+  }
+
+  /*
+   * Who created a record is the person making the request:
+   * sanitizeCreateOrUpdate stamps `createdByUserId` with props.userId. The
+   * `createdByUser` relation is that same column, and TypeORM stores a
+   * relation over its ID column, so a request that also sent the relation
+   * would have it stored in place of the stamp. When there is a person to
+   * stamp, the relation is dropped here, before the hooks, so they read no
+   * one else either. Writes with no person on the request (OneUptime's own,
+   * a workflow) keep what they name.
+   */
+  private dropCreatedByUserRelationWhenStamped(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!props.userId || !this.model.isTableColumn("createdByUser")) {
+      return;
+    }
+
+    const metadata: TableColumnMetadata | undefined =
+      this.model.getTableColumnMetadata("createdByUser");
+
+    if (
+      !metadata ||
+      metadata.type !== TableColumnType.Entity ||
+      metadata.manyToOneRelationColumn !== "createdByUserId"
+    ) {
+      return;
+    }
+
+    delete (data as Record<string, unknown>)["createdByUser"];
+  }
+
+  /*
    * Property name of the ManyToOne relation that shares the tenant scalar
    * column as its join column (`project` for the `projectId` tenant column),
    * or null when the model has no such relation.
@@ -2092,6 +2153,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     this.rejectQueryOperatorsInData(createBy.data);
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
+
+    // Created by the person making the request. See the helper.
+    this.dropCreatedByUserRelationWhenStamped(createBy.data, createBy.props);
+
+    // One reference, one value, whichever name it is sent under. See the helper.
+    this.assertRelationNamesAgree(createBy.data, createBy.props);
 
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
@@ -4030,6 +4097,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.enforceTenantRelationMatchesScalar(updateBy.data, updateBy.props);
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
+
+      // One reference, one value, whichever name it is sent under. See the helper.
+      this.assertRelationNamesAgree(updateBy.data, updateBy.props);
 
       // Only the rows the caller may update reach the hook. See the helper.
       if (

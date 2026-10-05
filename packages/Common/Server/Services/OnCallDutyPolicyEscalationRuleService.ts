@@ -21,6 +21,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { getDefaultEscalationRuleName } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -869,9 +870,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       const count: PositiveNumber = await this.countBy({
         query: {
           projectId: createBy.data.projectId!,
-          onCallDutyPolicyId:
-            createBy.data.onCallDutyPolicyId! ||
-            createBy.data.onCallDutyPolicy?._id,
+          // The policy, under either of its names (the two must agree).
+          onCallDutyPolicyId: RelationIdUtil.readConsistent(
+            createBy.data as unknown as Record<string, unknown>,
+            ["onCallDutyPolicyId", "onCallDutyPolicy"],
+            "On-Call Policy",
+          )!,
         },
         props: {
           isRoot: true,

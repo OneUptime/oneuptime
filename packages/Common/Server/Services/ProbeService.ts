@@ -451,9 +451,11 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     await FileService.makeRecordFilePublic({
-      fileId: RelationIdUtil.read(
+      // The icon the create stored, under either of its names.
+      fileId: RelationIdUtil.readConsistent(
         createdItem as unknown as Record<string, unknown>,
         ["iconFileId", "iconFile"],
+        "Icon",
       ),
       projectId: createdItem.projectId || null,
     });

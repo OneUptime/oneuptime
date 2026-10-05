@@ -447,12 +447,6 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
       "The monitor's status when the alert was raised, which the server writes. No form changes it; whether its ID should stay writable over the API is a question about alerts.",
   },
   {
-    tableName: "ApiKeyPermission",
-    relations: ["apiKey"],
-    reason:
-      "The API key a permission row belongs to. Here the relation is the writable name and the ID is not; whether a row may move to another key at all is a question about API keys.",
-  },
-  {
     tableName: "Monitor",
     relations: ["monitorTemplate"],
     reason:

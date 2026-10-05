@@ -40,10 +40,10 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import {
@@ -51,6 +51,7 @@ import {
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -107,6 +108,18 @@ import ProjectService from "./ProjectService";
  * dashboard's forms (see RelationIdUtil).
  */
 const ALERT_MONITOR_KEYS: Array<string> = ["monitorId", "monitor"];
+
+/*
+ * The two names of the other references this service reads off a write
+ * itself, ID column first. A write may name a reference under either, and
+ * the two must agree (RelationIdUtil.readConsistent), so what the service
+ * checks and acts on is what is stored.
+ */
+const ALERT_STATE_KEYS: Array<string> = [
+  "currentAlertStateId",
+  "currentAlertState",
+];
+const ALERT_SEVERITY_KEYS: Array<string> = ["alertSeverityId", "alertSeverity"];
 
 /*
  * What an update does to one alert's monitor: sets it, moves it or clears
@@ -532,23 +545,14 @@ export class Service extends ProjectReferencesService<Model> {
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const alertStateId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentAlertStateId) ||
-      resolveReferenceId(updateBy.data.currentAlertState);
-
-    const alertSeverityId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.alertSeverityId) ||
-      resolveReferenceId(updateBy.data.alertSeverity);
-
-    const monitorStatusId: ObjectID | string | undefined =
-      resolveReferenceId(
-        updateBy.data.monitorStatusWhenThisAlertWasCreatedId,
-      ) ||
-      resolveReferenceId(updateBy.data.monitorStatusWhenThisAlertWasCreated);
-
-    const monitorId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.monitorId) ||
-      resolveReferenceId(updateBy.data.monitor);
+    /*
+     * The state, the severity, the monitor status and the monitor, each by
+     * both of its names: the API takes the ID column and the relation alike,
+     * and every name that holds an id is checked. Two names that disagree
+     * are refused before anything is read.
+     */
+    const references: Array<ProjectScopedReference> =
+      this.getWrittenReferences(updateBy.data);
 
     /*
      * The SLOs this alert affects: a relation list the API accepts on update.
@@ -577,10 +581,7 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
     if (
-      !alertStateId &&
-      !alertSeverityId &&
-      !monitorStatusId &&
-      !monitorId &&
+      references.length === 0 &&
       !hasServiceLevelObjectiveIds &&
       relations.length === 0
     ) {
@@ -617,27 +618,8 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      const references: Array<ProjectScopedReference> = [
-        {
-          modelName: "Alert State",
-          id: alertStateId,
-          service: AlertStateService,
-        },
-        {
-          modelName: "Alert Severity",
-          id: alertSeverityId,
-          service: AlertSeverityService,
-        },
-        {
-          modelName: "Monitor Status",
-          id: monitorStatusId,
-          service: MonitorStatusService,
-        },
-        {
-          modelName: "Monitor",
-          id: monitorId,
-          service: MonitorService,
-        },
+      const referencesInProject: Array<ProjectScopedReference> = [
+        ...references,
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: updateBy.data,
           relations: relations,
@@ -646,20 +628,60 @@ export class Service extends ProjectReferencesService<Model> {
         }),
       ];
 
-      if (
-        references.every((reference: ProjectScopedReference) => {
-          return !reference.id;
-        })
-      ) {
+      if (referencesInProject.length === 0) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "alert",
-        references: references,
+        references: referencesInProject,
       });
     }
+  }
+
+  /*
+   * The severity, the monitor status, the monitor and - on an update - the
+   * state an alert write names, each by both of its names
+   * (getWrittenRelationReferences): every name that holds an id is a
+   * reference to check, and two names that disagree are refused.
+   */
+  private getWrittenReferences(
+    data: unknown,
+    options?: { withState: boolean },
+  ): Array<ProjectScopedReference> {
+    return [
+      ...((options?.withState ?? true)
+        ? getWrittenRelationReferences({
+            payload: data,
+            idColumn: "currentAlertStateId",
+            relation: "currentAlertState",
+            modelName: "Alert State",
+            service: AlertStateService,
+          })
+        : []),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "alertSeverityId",
+        relation: "alertSeverity",
+        modelName: "Alert Severity",
+        service: AlertSeverityService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "monitorStatusWhenThisAlertWasCreatedId",
+        relation: "monitorStatusWhenThisAlertWasCreated",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "monitorId",
+        relation: "monitor",
+        modelName: "Monitor",
+        service: MonitorService,
+      }),
+    ];
   }
 
   /*
@@ -742,7 +764,16 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    createBy.data.currentAlertStateId = alertState.id;
+    /*
+     * Every alert starts in the project's created state, whatever state the
+     * write named under either name: stamp leaves no other name of it to be
+     * stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ALERT_STATE_KEYS,
+      alertState.id,
+    );
 
     /*
      * The severity and the monitor status stamped on the alert come from the
@@ -764,31 +795,8 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       subject: "alert",
       references: [
-        {
-          modelName: "Alert Severity",
-          id:
-            resolveReferenceId(createBy.data.alertSeverityId) ||
-            resolveReferenceId(createBy.data.alertSeverity),
-          service: AlertSeverityService,
-        },
-        {
-          modelName: "Monitor Status",
-          id:
-            resolveReferenceId(
-              createBy.data.monitorStatusWhenThisAlertWasCreatedId,
-            ) ||
-            resolveReferenceId(
-              createBy.data.monitorStatusWhenThisAlertWasCreated,
-            ),
-          service: MonitorStatusService,
-        },
-        {
-          modelName: "Monitor",
-          id:
-            resolveReferenceId(createBy.data.monitorId) ||
-            resolveReferenceId(createBy.data.monitor),
-          service: MonitorService,
-        },
+        // The state is the stamp above, the project's own.
+        ...this.getWrittenReferences(createBy.data, { withState: false }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -837,30 +845,19 @@ export class Service extends ProjectReferencesService<Model> {
       alertCounterResult.counter,
     );
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+    // Who raised it, under either name of it: see CreatedByUser.
+    const raisedByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
 
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
-      }
-
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
-      }
-
-      if (userId) {
-        createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: projectId,
-          },
-        )}`;
-      }
+    if (raisedByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString(
+        {
+          userId: raisedByUserId,
+          projectId: projectId,
+        },
+      )}`;
     }
 
     return { createBy, carryForward: null };
@@ -1672,15 +1669,30 @@ ${alert.remediationNotes || "No remediation notes provided."}
       });
     }
 
-    if (
-      onUpdate.updateBy.data.currentAlertStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The state and the severity the update wrote, each under either of its
+     * names: onBeforeUpdate refused two that disagree, so each reads one
+     * value.
+     */
+    const updatedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      ALERT_STATE_KEYS,
+      "Alert State",
+    );
+
+    const updatedAlertSeverityId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        ALERT_SEVERITY_KEYS,
+        "Alert Severity",
+      );
+
+    if (updatedAlertStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeAlertState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           alertId: itemId,
-          alertStateId: onUpdate.updateBy.data.currentAlertStateId as ObjectID,
+          alertStateId: updatedAlertStateId,
           notifyOwners: true,
           rootCause: "This status was changed when the alert was updated.",
           stateChangeLog: undefined,
@@ -1805,16 +1817,11 @@ ${labels
           }
         }
 
-        if (
-          onUpdate.updateBy.data.alertSeverity &&
-          (onUpdate.updateBy.data.alertSeverity as any)._id
-        ) {
+        if (updatedAlertSeverityId) {
           const alertSeverity: AlertSeverity | null =
             await AlertSeverityService.findOneBy({
               query: {
-                _id: new ObjectID(
-                  (onUpdate.updateBy.data.alertSeverity as any)?._id.toString(),
-                ),
+                _id: updatedAlertSeverityId,
               },
               select: {
                 name: true,
@@ -1848,8 +1855,7 @@ ${alertSeverity.name}
 
         // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
         if (
-          (onUpdate.updateBy.data.alertSeverity &&
-            (onUpdate.updateBy.data.alertSeverity as any)._id) ||
+          updatedAlertSeverityId ||
           (onUpdate.updateBy.data.labels &&
             Array.isArray(onUpdate.updateBy.data.labels)) ||
           Object.prototype.hasOwnProperty.call(

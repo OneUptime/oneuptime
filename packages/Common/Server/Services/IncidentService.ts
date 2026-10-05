@@ -46,12 +46,14 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
@@ -220,6 +222,26 @@ type IncidentCreateCarryForward = {
   acknowledgedAlertStateId: ObjectID | null;
   alertIdsToAcknowledge: Array<ObjectID>;
 } | null;
+
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. A write may name a reference under either, and the two must
+ * agree (RelationIdUtil.readConsistent), so what the service checks and acts
+ * on is what is stored.
+ */
+const CURRENT_STATE_KEYS: Array<string> = [
+  "currentIncidentStateId",
+  "currentIncidentState",
+];
+const SEVERITY_KEYS: Array<string> = ["incidentSeverityId", "incidentSeverity"];
+const CHANGE_MONITOR_STATUS_KEYS: Array<string> = [
+  "changeMonitorStatusToId",
+  "changeMonitorStatusTo",
+];
+const TEMPLATE_KEYS: Array<string> = [
+  "createdIncidentTemplateId",
+  "createdIncidentTemplate",
+];
 
 type IncidentUpdatePayload = {
   postmortemNote?: string | null;
@@ -639,21 +661,20 @@ export class Service extends ProjectReferencesService<Model> {
       /*
        * The monitor status the update writes, in any shape the API accepts
        * (an id, a bare uuid string or a relation object), so the status an
-       * update writes is never mistaken for one it leaves alone.
+       * update writes is never mistaken for one it leaves alone. Read under
+       * both of its names, which must agree, so the status put on the
+       * monitors is the one stored on the incident.
        */
-      const monitorStatusIdInUpdate: ObjectID | string | undefined =
-        resolveReferenceId(data["changeMonitorStatusToId"]) ||
-        resolveReferenceId(data["changeMonitorStatusTo"]);
-
       const newMonitorChangeStatusIdTo: ObjectID | undefined =
-        monitorStatusIdInUpdate
-          ? new ObjectID(monitorStatusIdInUpdate.toString())
-          : undefined;
+        RelationIdUtil.readConsistent(
+          data,
+          CHANGE_MONITOR_STATUS_KEYS,
+          "Monitor Status",
+        ) || undefined;
 
       const isChangeMonitorStatusToCleared: boolean =
         !newMonitorChangeStatusIdTo &&
-        (data["changeMonitorStatusToId"] === null ||
-          data["changeMonitorStatusTo"] === null);
+        RelationIdUtil.isPresent(data, CHANGE_MONITOR_STATUS_KEYS);
 
       const monitorIdsAfterUpdate: Array<string> = isMonitorListUpdated
         ? this.getMonitorIdsInUpdate(data["monitors"])
@@ -1949,17 +1970,35 @@ export class Service extends ProjectReferencesService<Model> {
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const incidentStateId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentIncidentStateId) ||
-      resolveReferenceId(updateBy.data.currentIncidentState);
-
-    const incidentSeverityId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.incidentSeverityId) ||
-      resolveReferenceId(updateBy.data.incidentSeverity);
-
-    const changeMonitorStatusToId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
-      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+    /*
+     * The state, the severity and the monitor status, each by both of its
+     * names: the API takes the ID column and the relation alike, and every
+     * name that holds an id is checked. Two names that disagree are refused
+     * before anything is read.
+     */
+    const references: Array<ProjectScopedReference> = [
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentIncidentStateId",
+        relation: "currentIncidentState",
+        modelName: "Incident State",
+        service: IncidentStateService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
+        modelName: "Incident Severity",
+        service: IncidentSeverityService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      }),
+    ];
 
     /*
      * The SLOs this incident affects: a relation list the API accepts on
@@ -1988,9 +2027,7 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
     if (
-      !incidentStateId &&
-      !incidentSeverityId &&
-      !changeMonitorStatusToId &&
+      references.length === 0 &&
       !hasServiceLevelObjectiveIds &&
       relations.length === 0
     ) {
@@ -2027,22 +2064,8 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      const references: Array<ProjectScopedReference> = [
-        {
-          modelName: "Incident State",
-          id: incidentStateId,
-          service: IncidentStateService,
-        },
-        {
-          modelName: "Incident Severity",
-          id: incidentSeverityId,
-          service: IncidentSeverityService,
-        },
-        {
-          modelName: "Monitor Status",
-          id: changeMonitorStatusToId,
-          service: MonitorStatusService,
-        },
+      const referencesInProject: Array<ProjectScopedReference> = [
+        ...references,
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: updateBy.data,
           relations: relations,
@@ -2051,18 +2074,14 @@ export class Service extends ProjectReferencesService<Model> {
         }),
       ];
 
-      if (
-        references.every((reference: ProjectScopedReference) => {
-          return !reference.id;
-        })
-      ) {
+      if (referencesInProject.length === 0) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident",
-        references: references,
+        references: referencesInProject,
       });
     }
   }
@@ -2261,9 +2280,30 @@ export class Service extends ProjectReferencesService<Model> {
     // Declared from a template whose status pages were all deleted.
     let isScopedToNothingByTemplate: boolean = false;
 
-    // If currentIncidentStateId is already provided (manual selection), use it
-    if (createBy.data.currentIncidentStateId) {
-      initialIncidentStateId = createBy.data.currentIncidentStateId;
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * A state the caller picked, and the template they declare from, each
+     * under either of its names (the two must agree), so a pick sent as the
+     * relation counts the same as one sent as the ID.
+     */
+    const pickedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createData,
+        CURRENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    const incidentTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      TEMPLATE_KEYS,
+      "Incident Template",
+    );
+
+    // A state the caller picked (manual selection) is where the incident starts.
+    if (pickedIncidentStateId) {
+      initialIncidentStateId = pickedIncidentStateId;
 
       // Validate that the provided state exists and belongs to the project
       const providedState: IncidentState | null =
@@ -2285,7 +2325,7 @@ export class Service extends ProjectReferencesService<Model> {
           "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
-    } else if (createBy.data.createdIncidentTemplateId) {
+    } else if (incidentTemplateId) {
       /*
        * Created from a template — pull every field we may want to
        * inherit and apply each one only if the caller didn't already
@@ -2299,7 +2339,7 @@ export class Service extends ProjectReferencesService<Model> {
       const incidentTemplate: IncidentTemplate | null =
         await IncidentTemplateService.findOneBy({
           query: {
-            _id: createBy.data.createdIncidentTemplateId.toString(),
+            _id: incidentTemplateId.toString(),
             projectId: projectId,
           },
           select: {
@@ -2350,19 +2390,35 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       if (incidentTemplate) {
+        /*
+         * A severity or a monitor status the caller sent, under either of
+         * its names, wins over the template's. The template's is written
+         * with stamp, so no other name is left beside it to be stored
+         * instead.
+         */
         if (
-          !createBy.data.incidentSeverityId?.toString() &&
+          !RelationIdUtil.readConsistent(
+            createData,
+            SEVERITY_KEYS,
+            "Incident Severity",
+          ) &&
           incidentTemplate.incidentSeverityId
         ) {
-          createBy.data.incidentSeverityId =
-            incidentTemplate.incidentSeverityId;
+          RelationIdUtil.stamp(
+            createData,
+            SEVERITY_KEYS,
+            incidentTemplate.incidentSeverityId,
+          );
         }
         if (
-          createBy.data.changeMonitorStatusToId === undefined &&
+          !RelationIdUtil.isPresent(createData, CHANGE_MONITOR_STATUS_KEYS) &&
           incidentTemplate.changeMonitorStatusToId
         ) {
-          createBy.data.changeMonitorStatusToId =
-            incidentTemplate.changeMonitorStatusToId;
+          RelationIdUtil.stamp(
+            createData,
+            CHANGE_MONITOR_STATUS_KEYS,
+            incidentTemplate.changeMonitorStatusToId,
+          );
         }
         if (
           createBy.data.title === undefined &&
@@ -2565,20 +2621,20 @@ export class Service extends ProjectReferencesService<Model> {
           id: initialIncidentStateId,
           service: IncidentStateService,
         },
-        {
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
           modelName: "Incident Severity",
-          id:
-            resolveReferenceId(createBy.data.incidentSeverityId) ||
-            resolveReferenceId(createBy.data.incidentSeverity),
           service: IncidentSeverityService,
-        },
-        {
+        }),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "changeMonitorStatusToId",
+          relation: "changeMonitorStatusTo",
           modelName: "Monitor Status",
-          id:
-            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
-            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
-        },
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -2613,37 +2669,27 @@ export class Service extends ProjectReferencesService<Model> {
       prefix: string | undefined;
     } = await ProjectService.incrementAndGetIncidentCounter(projectId);
 
-    createBy.data.currentIncidentStateId = initialIncidentStateId;
+    // The state it starts in, and no other name of it to be stored instead.
+    RelationIdUtil.stamp(createData, CURRENT_STATE_KEYS, initialIncidentStateId);
     createBy.data.incidentNumber = incidentCounterResult.counter;
     createBy.data.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
       incidentCounterResult.prefix,
       incidentCounterResult.counter,
     );
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+    // Who declared it, under either name of it: see CreatedByUser.
+    const declaredByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
 
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
-      }
-
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
-      }
-
-      if (userId) {
-        createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: projectId,
-          },
-        )}`;
-      }
+    if (declaredByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
+        {
+          userId: declaredByUserId,
+          projectId: projectId,
+        },
+      )}`;
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
@@ -4002,16 +4048,23 @@ ${incident.remediationNotes || "No remediation notes provided."}
       }
     }
 
-    if (
-      onUpdate.updateBy.data.currentIncidentStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        CURRENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeIncidentState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           incidentId: itemId,
-          incidentStateId: onUpdate.updateBy.data
-            .currentIncidentStateId as ObjectID,
+          incidentStateId: updatedIncidentStateId,
           notifyOwners: true,
           shouldNotifyStatusPageSubscribers: true,
           isSubscribersNotified: false,
