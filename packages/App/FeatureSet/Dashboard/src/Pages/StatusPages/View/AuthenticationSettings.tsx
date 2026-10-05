@@ -1,9 +1,28 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getIpAllowlistFoldedItem } from "../../../Components/IpAllowlist/IpAllowlistCopy";
+import StatusPageAccessCard from "../../../Components/StatusPage/StatusPageAccessCard";
+import StatusPageAccessCopy, {
+  getIpAllowlistEntries,
+  getIpAllowlistProblem,
+  isIpAllowlistInForce,
+  STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID,
+  STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID,
+} from "../../../Components/StatusPage/StatusPageAccessCopy";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import { Yellow } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { getChoiceRowPlanPillText } from "Common/UI/Components/ChoiceRows/ChoiceRows";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { getPlanNeededToChangeColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
+import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
+import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, {
   Fragment,
@@ -11,210 +30,148 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
 
-const StatusPageDelete: FunctionComponent<
+/*
+ * Status Pages -> a page -> Security -> Access (the old "Authentication
+ * Settings", at the same address): who can see the page, as one choice -
+ * anyone with the link, only people who sign in, or anyone with the
+ * password (StatusPageAccessCard). The IP allowlist, which applies whoever
+ * the page is open to and which few pages need, is folded under Advanced,
+ * which says "Configured" while the server enforces it.
+ */
+const StatusPageAccess: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const [showPasswordModal, setShowPasswordModal] = useState<boolean>(false);
-  const [refreshMasterPassword, setRefreshMasterPassword] =
-    useState<boolean>(false);
-  const [isMasterPasswordSet, setIsMasterPasswordSet] =
-    useState<boolean>(false);
+
+  // What the allowlist holds, once read: null until then.
+  const [ipAllowlist, setIpAllowlist] = useState<string | null>(null);
+
+  const isIpAllowlistSet: boolean = isIpAllowlistInForce(ipAllowlist);
+
+  const ipAllowlistPlan: PlanType | null = getPlanNeededToChangeColumn(
+    new StatusPage(),
+    "ipWhitelist",
+  );
 
   return (
     <Fragment>
-      <CardModelDetail<StatusPage>
-        name="Status Page > Authentication Settings"
-        cardProps={{
-          title: "Authentication Settings",
-          description: "Authentication settings for this status page.",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              isPublicStatusPage: true,
-            },
-            title: "Is Visible to Public",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            placeholder: "Is this status page visible to public",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page",
-          fields: [
-            {
-              field: {
-                isPublicStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Is Visible to Public",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      <StatusPageAccessCard statusPageId={modelId} />
 
-      <CardModelDetail<StatusPage>
-        name="Status Page > Master Password"
-        cardProps={{
-          title: "Master Password",
-          description:
-            "When enabled, visitors must enter the master password before viewing a private status page. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled. This value is stored as a secure hash and cannot be retrieved.",
-          buttons: [
-            {
-              title: isMasterPasswordSet
-                ? "Update Master Password"
-                : "Set Master Password",
-              buttonStyle: ButtonStyleType.NORMAL,
-              onClick: () => {
-                setShowPasswordModal(true);
-              },
-              icon: IconProp.Lock,
-            },
-          ],
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        refresher={refreshMasterPassword}
-        formFields={[
-          {
-            field: {
-              enableMasterPassword: true,
-            },
-            title: "Require Master Password",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "When enabled, visitors must enter the master password before viewing a private status page.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-enable-master-password",
-          fields: [
-            {
-              field: {
-                enableMasterPassword: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Require Master Password",
-              placeholder: "No",
-            },
-            {
-              field: {
-                masterPassword: true,
-              },
-              title: "Master Password",
-              fieldType: FieldType.Element,
-              getElement: (item: StatusPage): ReactElement => {
-                return (
-                  <p>{item.masterPassword ? "Password is set." : "Not set."}</p>
-                );
-              },
-            },
-          ],
-          modelId: modelId,
-          onItemLoaded: (item: StatusPage) => {
-            setIsMasterPasswordSet(Boolean(item.masterPassword));
-          },
-        }}
-      />
-
-      {showPasswordModal && (
-        <ModelFormModal<StatusPage>
-          title={
-            isMasterPasswordSet
-              ? "Update Master Password"
-              : "Set Master Password"
-          }
-          onClose={() => {
-            setShowPasswordModal(false);
+      <AdvancedPageSection
+        description={StatusPageAccessCopy.advancedDescription}
+        summary={
+          ipAllowlist === null
+            ? undefined
+            : translator.translateText(
+                isIpAllowlistSet
+                  ? StatusPageAccessCopy.advancedSummaryConfigured
+                  : StatusPageAccessCopy.advancedSummaryOpen,
+              )
+        }
+        items={[getIpAllowlistFoldedItem(ipAllowlist)]}
+        dataTestId={STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID}
+      >
+        <CardModelDetail<StatusPage>
+          name="Status Page > IP Allowlist"
+          cardProps={{
+            title: StatusPageAccessCopy.ipAllowlistTitle,
+            description: StatusPageAccessCopy.ipAllowlistDescription,
+            rightElement: ipAllowlistPlan ? (
+              <Pill
+                text={getChoiceRowPlanPillText(translator, ipAllowlistPlan)}
+                color={Yellow}
+              />
+            ) : undefined,
           }}
-          submitButtonText="Save"
-          onSuccess={() => {
-            setShowPasswordModal(false);
-            setRefreshMasterPassword(!refreshMasterPassword);
-            setIsMasterPasswordSet(true);
-          }}
-          name="Status Page > Master Password"
-          modelType={StatusPage}
-          formProps={{
-            id: "edit-status-page-master-password-from",
-            fields: [
-              {
-                field: {
-                  masterPassword: true,
-                },
-                title: "Master Password",
-                fieldType: FormFieldSchemaType.Password,
-                required: true,
-                placeholder: "Enter a new master password",
-                description:
-                  "Updating this value immediately replaces the existing master password.",
-              },
-            ],
-            name: "Status Page > Master Password",
-            formType: FormType.Update,
-            modelType: StatusPage,
-            steps: [],
-            doNotFetchExistingModel: true,
-          }}
-          modelIdToEdit={modelId}
-        />
-      )}
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > IP Whitelist"
-        cardProps={{
-          title: "IP Whitelist",
-          description:
-            "IP Whitelist for this status page. If the status page is public then only IP addresses in this whitelist will be able to access the status page. If the status page is not public then only users who are registered as Private Users and who have access from the IP addresses in this whitelist will be able to access the status page.",
-        }}
-        editButtonText="Edit IP Whitelist"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              ipWhitelist: true,
-            },
-            title: "IP Whitelist",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Please enter the IP addresses or CIDR ranges to whitelist. One per line. This can be IPv4 or IPv6 addresses.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-ip-whitelist",
-          fields: [
+          editButtonText={StatusPageAccessCopy.ipAllowlistEditButton}
+          isEditable={true}
+          formFields={[
             {
               field: {
                 ipWhitelist: true,
               },
-              fieldType: FieldType.LongText,
-              title: "IP Whitelist",
-              placeholder:
-                "No IP addresses or CIDR ranges whitelisted. This will allow all IP addresses to access the status page.",
+              title: StatusPageAccessCopy.ipAllowlistTitle,
+              description: StatusPageAccessCopy.ipAllowlistFieldDescription,
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              disableSpellCheck: true,
+              /*
+               * The server skips a line it cannot read, and a list of blank
+               * lines lets nobody in: say so before saving.
+               */
+              customValidation: (
+                values: FormValues<StatusPage>,
+              ): string | null => {
+                return getIpAllowlistProblem(
+                  values.ipWhitelist as string | null | undefined,
+                );
+              },
             },
-          ],
-          modelId: modelId,
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: StatusPage,
+            id: "model-detail-status-page-ip-allowlist",
+            fields: [
+              {
+                field: {
+                  ipWhitelist: true,
+                },
+                fieldType: FieldType.LongText,
+                title: StatusPageAccessCopy.ipAllowlistTitle,
+                placeholder: StatusPageAccessCopy.ipAllowlistEmpty,
+                /*
+                 * One address or range a line, as it is typed: running them
+                 * together on one line made two entries read as one.
+                 */
+                getElement: (item: StatusPage): ReactElement => {
+                  if (!isIpAllowlistInForce(item.ipWhitelist)) {
+                    return (
+                      <PlaceholderText
+                        text={StatusPageAccessCopy.ipAllowlistEmpty}
+                      />
+                    );
+                  }
+
+                  const entries: Array<string> = getIpAllowlistEntries(
+                    item.ipWhitelist,
+                  );
+
+                  if (entries.length === 0) {
+                    return (
+                      <p className="text-sm text-gray-900">
+                        {translator.translateText(
+                          StatusPageAccessCopy.ipAllowlistNoAddress,
+                        )}
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <ul
+                      className="space-y-1 font-mono text-sm text-gray-900"
+                      data-testid={STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID}
+                    >
+                      {entries.map((entry: string, index: number) => {
+                        return <li key={`${entry}-${index}`}>{entry}</li>;
+                      })}
+                    </ul>
+                  );
+                },
+              },
+            ],
+            modelId: modelId,
+            // Read again after every save, so the header follows the list.
+            onItemLoaded: (item: StatusPage) => {
+              setIpAllowlist(item.ipWhitelist || "");
+            },
+          }}
+        />
+      </AdvancedPageSection>
     </Fragment>
   );
 };
 
-export default StatusPageDelete;
+export default StatusPageAccess;

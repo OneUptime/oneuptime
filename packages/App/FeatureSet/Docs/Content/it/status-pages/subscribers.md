@@ -8,19 +8,22 @@ Questa pagina copre entrambi: i cinque canali di iscrizione e come i visitatori 
 
 ## Canali di iscrizione
 
-Una pagina di stato supporta cinque canali, ognuno con il proprio interruttore sulla pagina di stato. Vai su **Pagine di stato → la tua pagina → Iscritti → Impostazioni iscritti**:
+Una pagina di stato supporta cinque canali. Loro e la pagina su cui i visitatori si iscrivono si attivano in un solo punto: la scheda **Canali** in **Pagine di stato → la tua pagina → Iscritti → Impostazioni iscritti**. Ogni interruttore viene salvato appena lo cambi:
 
-- **Abilita abbonati via email** (`enableEmailSubscribers`) — attivo per impostazione predefinita. Tutto il resto resta spento finché non lo accendi tu.
-- **Abilita abbonati SMS** (`enableSmsSubscribers`) — spento per impostazione predefinita.
-- **Abilita abbonati Slack** (`enableSlackSubscribers`) — spento per impostazione predefinita.
-- **Abilita abbonati Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — spento per impostazione predefinita.
-- **Abilita abbonati webhook** (`enableWebhookSubscribers`) — spento per impostazione predefinita.
+- **Mostra pagina iscritti** (`showSubscriberPageOnStatusPage`) — attivo per impostazione predefinita. Mette la voce **Iscriviti** nella barra di navigazione della pagina di stato, dove i visitatori si iscrivono tramite i canali qui sotto.
+- **E-mail** (`enableEmailSubscribers`) — attivo per impostazione predefinita. Tutto il resto resta spento finché non lo accendi tu.
+- **SMS** (`enableSmsSubscribers`) — spento per impostazione predefinita. Su OneUptime Cloud ogni SMS viene pagato con il credito SMS e chiamate del progetto, a meno che la pagina non abbia una propria **Configurazione Twilio**. Per accenderlo, il progetto deve avere attivo anche **SMS** nella scheda **Canali di notifica**, in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+- **Slack** (`enableSlackSubscribers`) — spento per impostazione predefinita.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — spento per impostazione predefinita.
+- **Webhook** (`enableWebhookSubscribers`) — spento per impostazione predefinita.
 
-Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti MS Teams** e **Iscritti webhook**. È lì che guardi chi si è registrato, aggiungi qualcuno a mano o lasci a te stesso una **Note** (`internalNote`) su un singolo iscritto.
+Gli interruttori decidono come i visitatori possono iscriversi da soli: la pagina di stato rifiuta un'iscrizione tramite un canale spento. Non fermano le notifiche: gli iscritti che il tuo team aggiunge dalla dashboard, con l'API o tramite un workflow ricevono gli aggiornamenti qualunque canale sia acceso.
 
-**Un solo interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** (`showSubscriberPageOnStatusPage`) è attivo *e* almeno un canale è abilitato. Se accendi **Abilita abbonati via email** ma lasci spento **Mostra pagina iscritti**, i visitatori non hanno alcun modo di raggiungere il modulo.
+Su OneUptime Cloud, accanto a un interruttore che il tuo piano non include compare il nome del piano: **Growth** per **SMS** e **Mostra pagina iscritti**, **Scale** per **Slack**, **Microsoft Teams** e **Webhook**.
 
-Gli stessi cinque interruttori compaiono una seconda volta nella scheda **Impostazioni iscritti** dentro **Impostazioni avanzate**, insieme a **Mostra pagina iscritti**. Sotto ci sono le stesse colonne — scegli una schermata e resta lì, preferibilmente la pagina dedicata **Impostazioni iscritti**, perché è dove vive tutto il resto della configurazione degli iscritti.
+Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti MS Teams** e **Iscritti webhook**. È lì che guardi chi si è registrato, aggiungi qualcuno a mano o lasci a te stesso una **Note** (`internalNote`) su un singolo iscritto. Finché un canale è spento, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così lo accendi senza lasciare l'elenco.
+
+**Un solo interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è acceso. Se accendi **E-mail** ma lasci spento **Mostra pagina iscritti**, i visitatori non hanno alcun modo di raggiungere il modulo.
 
 ## Che cosa vede un visitatore nella pagina di iscrizione
 
@@ -40,6 +43,8 @@ Per impostazione predefinita un iscritto riceve tutto quello che c'è sulla pagi
 
 - **Consenti agli iscritti di scegliere le risorse** (`allowSubscribersToChooseResources`) — spento per impostazione predefinita. Accendilo e il modulo di iscrizione guadagna un interruttore **Iscriviti a tutte le risorse**; togli la spunta e compare **Seleziona le risorse a cui iscriverti**, così il visitatore sceglie le singole risorse.
 - **Consenti agli iscritti di scegliere i tipi di evento** (`allowSubscribersToChooseEventTypes`) — spento per impostazione predefinita. Stessa forma: un interruttore **Iscriviti a tutti i tipi di eventi** e, quando lo togli, **Seleziona i tipi di eventi a cui iscriverti** sotto.
+
+Con uno dei due attivo, il modulo resta una sola pagina: queste scelte stanno in **Preferenze**, chiuso sotto il campo dove inviare gli aggiornamenti. Chiuso, dice in una riga cosa riceverà il visitatore (tutti gli aggiornamenti della pagina di stato, finché non restringe la scelta), quindi chi vuole tutto preme semplicemente **Iscriviti**. La pagina **Aggiorna iscrizione** mostra le stesse scelte aperte.
 
 I tipi di evento sono `Incident`, `Announcement` e `Scheduled Event`.
 
@@ -79,7 +84,7 @@ Gli iscritti ricevono notizie sui tre tipi di evento visti sopra, ma ogni sorgen
 
 ### Notifiche degli annunci
 
-L'annuncio stesso porta il campo **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), esposto nel modulo di creazione come casella **Notifica gli iscritti alla pagina di stato** e attivo per impostazione predefinita. Se l'annuncio indica dei monitor sotto **Monitor interessati (facoltativo)**, la notifica è limitata a quei monitor; lascialo vuoto e vengono avvisati tutti gli iscritti.
+L'annuncio stesso porta il campo **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), esposto nel modulo di creazione come casella **Notifica gli iscritti alla pagina di stato** dentro **Pianificazione e notifiche** e attivo per impostazione predefinita. Gli iscritti vengono avvisati una sola volta, quando l'annuncio inizia a essere mostrato: la scelta si fa quindi alla creazione e una modifica non la cambia. Se l'annuncio indica dei monitor sotto **Monitor interessati**, la notifica è limitata a quei monitor; lascialo vuoto e vengono avvisati tutti gli iscritti.
 
 ### Eventi di manutenzione programmata
 
@@ -111,12 +116,14 @@ Se hai iscritti via email, vale la pena configurare presto l'SMTP personalizzato
 
 Un annuncio è un record a livello di progetto (il modello `StatusPageAnnouncement`) che distribuisci a una o più pagine di stato, eventualmente limitato a monitor specifici, con una finestra temporale durante la quale viene mostrato.
 
-Ne crei uno da **Pagine di stato → Altro → Annunci**, oppure da **Annunci** nel menu laterale di una singola pagina di stato. Il modulo di creazione è una procedura guidata in quattro passaggi:
+Ne crei uno da **Pagine di stato → Altro → Annunci**, oppure da **Annunci** nel menu laterale di una singola pagina di stato. Creato da una pagina di stato, quella pagina è già selezionata, quindi bastano un titolo e una descrizione, e **Crea annuncio** ti riporta all'elenco **Annunci** di quella pagina (o all'elenco del progetto, se nel frattempo l'hai deselezionata). Il modulo di creazione ha due passaggi, poi un riepilogo:
 
-1. **Informazioni di base** — **Titolo dell'annuncio** (obbligatorio, almeno due caratteri), **Descrizione** (Markdown, facoltativa) e **Allegati** per i file che devono essere disponibili insieme all'annuncio sulla pagina di stato.
-2. **Pagine di stato** — **Mostra annuncio su queste pagine di stato**, una selezione multipla obbligatoria. Un solo annuncio può raggiungere più pagine in una volta.
-3. **Risorse interessate** — **Monitor interessati (facoltativo)**. Se non ne selezioni nessuno, vengono avvisati tutti gli iscritti.
-4. **Pianificazione e impostazioni** — **Inizia a mostrare l'annuncio alle** (obbligatorio, per impostazione predefinita adesso), **Termina la visualizzazione dell'annuncio il** (facoltativo) e **Notifica gli iscritti alla pagina di stato** (attivo per impostazione predefinita).
+1. **Annuncio** — **Titolo** (obbligatorio, almeno due caratteri) e **Descrizione** (Markdown, obbligatoria: è il testo che si legge sulla pagina di stato). Gli **Allegati**, per i file che devono essere disponibili insieme all'annuncio sulla pagina di stato, si trovano sotto **Altri campi**.
+2. **Pagine di stato** — **Mostra annuncio su queste pagine di stato**, una selezione multipla obbligatoria (un solo annuncio può raggiungere più pagine in una volta), e **Monitor interessati**: se non ne selezioni nessuno, vengono avvisati tutti gli iscritti. Appena scegli dei monitor, il modulo suggerisce sotto la selezione delle pagine le pagine di stato che li mostrano: «Pagine di stato che mostrano i monitor interessati:» seguito dal nome di ogni pagina. Fai clic su un nome per aggiungere quella pagina, oppure su **Aggiungi tutte**; nulla viene scelto al posto tuo. Sotto, **Pianificazione e notifiche** è richiuso in una riga che dice cosa succederà: «Viene mostrato subito e resta visibile finché non lo termini. Gli iscritti vengono notificati quando inizia a essere mostrato.» Aprilo per cambiare **Inizia a mostrare l'annuncio alle** (per impostazione predefinita adesso), **Termina la visualizzazione dell'annuncio il** (vuoto: l'annuncio resta visibile finché non imposti una fine) o **Notifica gli iscritti alla pagina di stato** (attivo per impostazione predefinita). La riga segue le tue risposte. La fine deve venire dopo l'inizio e, per un nuovo annuncio, essere ancora da venire: un annuncio già terminato non verrebbe mai mostrato.
+
+Il riepilogo mostra la stessa riga. **Crea da modello** compila il modulo a partire da un modello; creato da una pagina di stato, le pagine di stato del modello restano accanto a quella pagina.
+
+La pagina dell'annuncio lo modifica con gli stessi due passaggi. **Notifica gli iscritti di questo aggiornamento** si trova sotto la descrizione, e **Pianificazione** contiene l'inizio e la fine. Impostare una fine già passata è il modo per ritirare un annuncio.
 
 I visitatori leggono gli annunci su `/announcements`, divisi tra **Annunci attivi** e **Annunci passati**, ciascuno con la data di **Annunciato il**. Gli annunci attivi in questo momento vengono anche fissati in cima alla pagina panoramica. Quando non c'è nulla da mostrare, la pagina dice *Nessun annuncio* con la nota che finora non ne è stato pubblicato nessuno.
 
@@ -127,18 +134,18 @@ Gli allegati sono serviti da `GET {statusPageCrudPath}/status-page-announcement/
 **Show At** (`showAnnouncementAt`) e **End At** (`endAnnouncementAt`) governano tutto, ma la pagina panoramica e l'elenco degli annunci si pongono domande diverse, e la differenza fa inciampare parecchia gente.
 
 - **La pagina panoramica** mostra un annuncio quando `showAnnouncementAt` è nel passato e `endAnnouncementAt` è nel futuro oppure è vuoto.
-- **L'elenco `/announcements`** mostra gli annunci il cui `showAnnouncementAt` ricade entro **Mostra cronologia annunci (in giorni)** (`showAnnouncementHistoryInDays`, predefinito 14), e poi li divide lato client tra attivi e passati.
+- **L'elenco `/announcements`** mostra gli annunci il cui `showAnnouncementAt` ricade nella finestra di cronologia degli annunci (`showAnnouncementHistoryInDays`, predefinito 14), e poi li divide lato client tra attivi e passati.
 
 Due conseguenze da tenere in conto:
 
 - **Un annuncio senza data di fine non scade mai.** Lascia vuoto **Termina la visualizzazione dell'annuncio il** e resterà fissato sulla pagina panoramica all'infinito. Metti una data di fine su tutto ciò che ha una durata definita.
 - **Un annuncio vecchio ma ancora attivo può sparire dall'elenco.** Se è iniziato più di `showAnnouncementHistoryInDays` fa, esce da `/announcements` pur restando sulla panoramica. Allarga la finestra della cronologia se tieni avvisi di lunga durata.
 
-Se gli annunci compaiano o meno è deciso dalla scheda **Impostazioni annuncio** in **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, predefinito true) e **Mostra cronologia annunci (in giorni)** (predefinito 14). Con **Mostra annunci** spento, l'endpoint degli annunci rifiuta la richiesta in blocco.
+Se gli annunci compaiano o meno si imposta nella scheda **Cosa mostra la tua pagina di stato** in **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, predefinito true) e, sotto, **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, predefinito 14). Con **Mostra annunci** spento, l'endpoint degli annunci rifiuta la richiesta in blocco.
 
 ## Modelli di annunci
 
-Se pubblichi ripetutamente lo stesso tipo di avviso — il preavviso mensile di manutenzione, il degrado ricorrente di un servizio esterno — preparalo in anticipo. **Pagine di stato → Impostazioni → Modelli di annunci** contiene il modello `StatusPageAnnouncementTemplate`, e il suo modulo chiede **Nome del modello**, **Descrizione del modello**, **Titolo dell'annuncio**, **Descrizione**, **Mostra annuncio su queste pagine di stato**, **Monitor interessati (facoltativo)** e **Notifica agli iscritti**: così la distribuzione e la decisione sulla notifica si prendono una volta sola invece che ogni volta.
+Se pubblichi ripetutamente lo stesso tipo di avviso — il preavviso mensile di manutenzione, il degrado ricorrente di un servizio esterno — preparalo in anticipo. **Pagine di stato → Impostazioni → Modelli di annunci** contiene il modello `StatusPageAnnouncementTemplate`. Il suo modulo passa per **Informazioni del modello** (**Nome del modello**, **Descrizione del modello**) e poi per i passaggi dell'annuncio stesso: **Annuncio** (**Titolo**, **Descrizione**) e **Pagine di stato** (**Mostra annuncio su queste pagine di stato**, **Monitor interessati** e **Notifica gli iscritti alla pagina di stato**, attivo per impostazione predefinita): così la distribuzione e la decisione sulla notifica si prendono una volta sola invece che ogni volta. Un modello non ha pianificazione: un annuncio creato da esso viene mostrato appena creato, a meno che tu non lo cambi sotto **Pianificazione e notifiche**.
 
 ## Iscritti webhook e protezione SSRF
 

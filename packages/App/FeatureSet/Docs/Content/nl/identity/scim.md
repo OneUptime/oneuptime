@@ -19,6 +19,8 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 
 ### Project-SCIM instellen
 
+Alleen een projecteigenaar kan de SCIM-verbinding van een project toevoegen of wijzigen, of het bearer-token ervan bekijken of opnieuw instellen: via SCIM kan uw identiteitsprovider mensen toevoegen aan elk team in het project.
+
 1. **Navigeer naar Projectinstellingen**
 
    - Ga naar uw OneUptime-project
@@ -26,10 +28,9 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 
 2. **SCIM-instellingen configureren**
 
-   - Schakel **Gebruikers automatisch provisioneren** in om gebruikers automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
-   - Schakel **Gebruikers automatisch deprovisioneren** in om gebruikers automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
-   - Selecteer de **Standaardteams** waartoe nieuwe gebruikers worden toegevoegd
-   - Kopieer de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie
+   - Voer een **Naam** in. **Standaardteams** begint bij het ledenteam van uw project: nieuwe gebruikers worden aan deze teams toegevoegd
+   - Onder **Meer velden** staan **Gebruikers automatisch provisioneren** (gebruikers toevoegen wanneer ze in uw IdP worden toegewezen) en **Gebruikers automatisch deprovisioneren** (gebruikers verwijderen wanneer ze in uw IdP worden verwijderd) aan, en **Push-groepen inschakelen** uit. Wijzig ze daar als dat nodig is
+   - Sla op. Het venster met de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie opent meteen
 
 3. **Uw identiteitsprovider configureren**
    - Gebruik de SCIM Basis-URL: `https://oneuptime.com/scim/v2/{scimId}`
@@ -75,9 +76,8 @@ Statuspagina-SCIM stelt identiteitsproviders in staat abonnees van privé-status
 
 2. **SCIM-instellingen configureren**
 
-   - Schakel **Gebruikers automatisch provisioneren** in om abonnees automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
-   - Schakel **Gebruikers automatisch deprovisioneren** in om abonnees automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
-   - Kopieer de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie
+   - Voer een **Naam** in. Onder **Meer velden** staan **Gebruikers automatisch provisioneren** (abonnees toevoegen wanneer ze in uw IdP worden toegewezen) en **Gebruikers automatisch deprovisioneren** (abonnees verwijderen wanneer ze in uw IdP worden verwijderd) aan. Wijzig ze daar als dat nodig is
+   - Sla op. Het venster met de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie opent meteen
 
 3. **Uw identiteitsprovider configureren**
    - Gebruik de SCIM Basis-URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -122,13 +122,12 @@ Microsoft Entra ID biedt enterprise-grade identiteitsbeheer met robuuste SCIM-in
 2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SCIM**
 3. Klik op **SCIM-configuratie aanmaken**
 4. Voer een beschrijvende naam in (bijv. "Microsoft Entra ID-inrichting")
-5. Configureer de volgende opties:
-   - **Gebruikers automatisch provisioneren**: Inschakelen om gebruikers automatisch aan te maken
-   - **Gebruikers automatisch deprovisioneren**: Inschakelen om gebruikers automatisch te verwijderen
-   - **Standaardteams**: Selecteer teams waaraan nieuwe gebruikers worden toegevoegd
-   - **Push-groepen inschakelen**: Inschakelen als u teamlidmaatschap wilt beheren via Entra ID-groepen
+5. Controleer de opties:
+   - **Standaardteams**: begint bij het ledenteam van uw project; nieuwe gebruikers worden aan deze teams toegevoegd
+   - **Gebruikers automatisch provisioneren** en **Gebruikers automatisch deprovisioneren**: aan, onder **Meer velden**
+   - **Push-groepen inschakelen**: onder **Meer velden**; schakel het in als u teamlidmaatschap wilt beheren via Entra ID-groepen
 6. Sla de configuratie op
-7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** - u heeft deze nodig voor Entra ID
+7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** uit het venster dat opent - u heeft deze nodig voor Entra ID
 
 #### Stap 2: Enterprise-toepassing aanmaken in Microsoft Entra ID
 
@@ -224,13 +223,12 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SCIM**
 3. Klik op **SCIM-configuratie aanmaken**
 4. Voer een beschrijvende naam in (bijv. "Okta-inrichting")
-5. Configureer de volgende opties:
-   - **Gebruikers automatisch provisioneren**: Inschakelen om gebruikers automatisch aan te maken
-   - **Gebruikers automatisch deprovisioneren**: Inschakelen om gebruikers automatisch te verwijderen
-   - **Standaardteams**: Selecteer teams waaraan nieuwe gebruikers worden toegevoegd
-   - **Push-groepen inschakelen**: Inschakelen als u teamlidmaatschap wilt beheren via Okta-groepen
+5. Controleer de opties:
+   - **Standaardteams**: begint bij het ledenteam van uw project; nieuwe gebruikers worden aan deze teams toegevoegd
+   - **Gebruikers automatisch provisioneren** en **Gebruikers automatisch deprovisioneren**: aan, onder **Meer velden**
+   - **Push-groepen inschakelen**: onder **Meer velden**; schakel het in als u teamlidmaatschap wilt beheren via Okta-groepen
 6. Sla de configuratie op
-7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** - u heeft deze nodig voor Okta
+7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** uit het venster dat opent - u heeft deze nodig voor Okta
 
 #### Stap 2: Okta-applicatie aanmaken of configureren
 

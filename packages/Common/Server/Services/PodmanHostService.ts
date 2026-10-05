@@ -20,6 +20,15 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  NamedAfterIdentityOptions,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnIdentifier,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -34,6 +43,23 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "podman-host-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
+
+/*
+ * A Podman host is matched to its telemetry by host.name, and named after it
+ * unless somebody gives it a display name of their own
+ * (DiscoveredResourceCreate).
+ */
+const PODMAN_HOST_IDENTITY: NamedAfterIdentityOptions = {
+  identityColumn: "hostIdentifier",
+  resourceName: "Podman host",
+  identityName: "host name",
+};
+
+const PODMAN_HOST_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>(PODMAN_HOST_IDENTITY);
+
+const PODMAN_HOST_MATCH_COLUMN: MatchColumn =
+  matchedOnIdentifier(PODMAN_HOST_IDENTITY);
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -530,7 +556,41 @@ export class Service extends DatabaseService<Model> {
       createBy,
     });
 
+    // Named after its host name when nobody gave it a name.
+    DiscoveredResourceCreate.fillName({ createBy, naming: PODMAN_HOST_NAMING });
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * A Podman host that is already there - discovered from its telemetry or
+   * added before - is refused by its host name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: PODMAN_HOST_NAMING,
+    });
+  }
+
+  /*
+   * A Podman host's host name - edited from the details card on its Settings page - is stored
+   * without the spaces around it, and refused when another one of the
+   * project already has it (DiscoveredResourceUpdate).
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: PODMAN_HOST_MATCH_COLUMN,
+    });
   }
 
   /*

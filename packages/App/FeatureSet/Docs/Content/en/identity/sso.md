@@ -27,13 +27,14 @@ SSO integration provides the following benefits:
    - Enter the **Sign On URL** from your identity provider
    - Enter the **Issuer** (Entity ID) from your identity provider
    - Paste the **Public Certificate** from your identity provider
-   - Select the **Signature Algorithm** (e.g., `RSA-SHA-256`)
-   - Select the **Digest Algorithm** (e.g., `SHA256`)
+   - On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams. Only teams you could invite someone to are accepted: a team that gives more access than you have is named under **Teams**
+   - Everything else is filled in under **More fields**: the **Signature Method** (`RSA-SHA256`), the **Digest Method** (`SHA256`) and a description ("Sign in with" and the name). Change them only if your identity provider needs it
 
 3. **Get OneUptime SSO Metadata**
-   - After saving, click the **View SSO Config** button
+   - Saving opens the **SSO Configuration** dialog. You can open it again with the **View SSO Config** button
    - Copy the **Identifier (Entity ID)** — this is needed in your IdP configuration
    - Copy the **Reply URL (Assertion Consumer Service URL)** — this is needed in your IdP configuration
+   - A new provider starts switched off. Once your IdP has these two values, edit the provider and turn **Enabled** on
 
 ## Keycloak SAML Configuration
 
@@ -54,8 +55,7 @@ Keycloak is a popular open-source identity and access management solution. Follo
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Issuer**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificate**: See [Step 2](#step-2-get-the-keycloak-certificate) below
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** and **Digest Method**: already set under **More fields** (`RSA-SHA256` and `SHA256`)
 4. Save the configuration
 
 ### Step 2: Get the Keycloak Certificate
@@ -121,8 +121,7 @@ Microsoft Entra ID is Microsoft's cloud-based identity and access management ser
    - **Sign On URL**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
    - **Issuer**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
    - **Certificate**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** and **Digest Method**: already set under **More fields** (`RSA-SHA256` and `SHA256`)
 4. Click **View SSO Config** and copy the **Identifier (Entity ID)** and **Reply URL (Assertion Consumer Service URL)** — you will need these for Entra ID
 
 ### Step 2: Create Enterprise Application in Microsoft Entra ID
@@ -206,8 +205,7 @@ Okta is a widely-used identity platform that provides robust SAML SSO capabiliti
    - **Sign On URL**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
    - **Issuer**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
    - **Certificate**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** and **Digest Method**: already set under **More fields** (`RSA-SHA256` and `SHA256`)
 4. Click **View SSO Config** and copy the **Identifier (Entity ID)** and **Reply URL (Assertion Consumer Service URL)** — you will need these for Okta
 
 ### Step 2: Create SAML Application in Okta
@@ -287,8 +285,31 @@ OneUptime's SSO implementation uses the SAML 2.0 protocol and should work with a
    - **Sign On URL** (SSO endpoint)
    - **Issuer** (Entity ID of the IdP)
    - **Public Certificate** (X.509 signing certificate)
-4. Set the **Signature Algorithm** to `RSA-SHA-256` and **Digest Algorithm** to `SHA256`
+4. The **Signature Method** (`RSA-SHA256`) and **Digest Method** (`SHA256`) are already set under **More fields**; change them only if your identity provider signs differently
+
+## OpenID Connect (OIDC)
+
+A project can also sign in through an OpenID Connect provider, such as Google Workspace, Okta, Microsoft Entra ID, Auth0 or Keycloak.
+
+1. Register an app (an OIDC client) with your identity provider and copy its **Issuer URL**, **Client ID** and **Client Secret**.
+2. In OneUptime, go to **Project Settings** > **Security** > **OIDC** and click **Create OIDC**.
+3. Enter a **Name** (what people see on the sign-in page), the **Issuer URL**, the **Client ID** and the **Client Secret**. You can paste the provider's discovery URL into **Issuer URL** instead.
+4. On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams. Everything else is filled in under **More fields**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description ("Sign in with" and the name). Change them only if your provider needs it. Only teams you could invite someone to are accepted: a team that gives more access than you have is named under **Teams**.
+5. Save. The **OIDC Configuration** dialog opens with the **Redirect URI**: add it to your app's allowed redirect URIs. A new provider starts switched off, so then edit it and turn **Enabled** on.
+6. Use the link on the **Test OpenID Connect (OIDC)** card to sign in through the provider before you require SSO for the project.
+
+## Requiring SSO for Your Project
+
+Setting up a provider does not stop anyone signing in with a password. To make SSO the only way into the project, use the **Require SSO for Login** switch on **Project Settings** > **Security** > **SSO**, under your providers:
+
+1. Test your provider first, with the link in the **Test Single Sign On (SSO)** card.
+2. Turn on **Require SSO for Login**. OneUptime asks before it saves anything: from then on everyone in the project, you included, has to sign in with SSO to open it, and anyone signed in with a password is locked out of the project until they sign in with SSO.
+3. Click **Require SSO** to confirm. The switch saves straight away; there is no separate Save button.
+
+Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password. Project owners, project admins and members with the **Edit Project** permission can change it; anyone else sees the switch locked, with the permission they would need.
 
 ## Notes on SSO and Roles
 
 OneUptime does not currently support mapping SAML roles from your identity provider. Role-based access must be configured separately within OneUptime's **Project Settings** > **Security** > **SSO** settings, where you can assign default roles for SSO users.
+
+A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.

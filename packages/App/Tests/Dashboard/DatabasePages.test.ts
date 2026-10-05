@@ -417,7 +417,7 @@ describe("the Overview", () => {
     // A counter's chart says "(per second)" (getDatabaseEngineMetricChartTitle).
     expect(section).toContain('definition.kind === "counter"');
     expect(section).toContain(
-      "title={getDatabaseEngineMetricChartTitle(result.definition)}",
+      "title={getDatabaseEngineMetricChartTitle( result.definition, translator, )}",
     );
   });
 
@@ -426,7 +426,7 @@ describe("the Overview", () => {
       "Components/DatabaseServer/DatabaseEngineMetricsSection.tsx",
     );
     expect(section).toContain("getDatabaseEngineMetricsSource(");
-    expect(section).toContain("getDatabaseAgentEngine(data.dbSystem)");
+    expect(section).toContain("getDatabaseAgentEngine( data.dbSystem, )");
     expect(section).not.toContain("hasCollectorReceiver");
     expect(code).toContain("dbSystem={r.dbSystem}");
     expect(code).not.toContain("hasCollectorReceiver");
@@ -505,7 +505,11 @@ describe("the Databases list", () => {
     );
     expect(name).toContain("required: false");
 
-    expect(formFields).toContain("field: { labels: true, }");
+    // The labels fold under Advanced at the end of Database Info.
+    expect(formFields).toContain(
+      'getLabelsFormField<DatabaseServer>({ stepId: "database-info", })',
+    );
+    expect(formFields).not.toContain("field: { labels: true, }");
     expect(formFields).not.toContain("databaseIdentifier");
     expect(formFields).not.toContain("discoverySource");
   });
@@ -710,7 +714,7 @@ describe("Settings, Delete and Documentation", () => {
     const card: string = between(
       code,
       "<CardModelDetail<DatabaseServer>",
-      "<Alert",
+      "<TelemetryResourceRetentionSettings",
     );
 
     expect(card).toContain("isEditable={true}");
@@ -724,38 +728,69 @@ describe("Settings, Delete and Documentation", () => {
     expect(formFields).toContain("fieldType: FormFieldSchemaType.Text");
     expect(formFields).toContain("field: { description: true, }");
     expect(formFields).toContain("fieldType: FormFieldSchemaType.LongText");
-    expect(formFields).toContain("field: { labels: true, }");
-    expect(formFields).toContain(
-      "fieldType: FormFieldSchemaType.MultiSelectDropdown",
-    );
+    // The labels fold under Advanced: one page, no steps.
+    expect(formFields).toContain("getLabelsFormField<DatabaseServer>()");
+    expect(card).not.toContain("formSteps");
     // The identity is never editable here.
     expect(formFields).not.toContain("serverAddress");
     expect(formFields).not.toContain("databaseIdentifier");
     expect(card).toContain("modelType: DatabaseServer,");
     expect(card).toContain("modelId: modelId,");
     expect(code.indexOf("<CardModelDetail<DatabaseServer>")).toBeLessThan(
-      code.indexOf("DATABASE_RETENTION_SCOPE_NOTE}"),
+      code.indexOf("<TelemetryResourceRetentionSettings<DatabaseServer>"),
     );
   });
 
-  test("Settings: scoped retention copy, retention, then the archive card", () => {
+  /*
+   * Which telemetry a database's retention covers used to be a blue "Which
+   * telemetry this covers." banner above the retention cards, on every
+   * visit. It is the retention card's own description now: the shell hands
+   * it to the cards as scopeNote (the Enterprise card says it after its
+   * first sentence; ee/Tests/UI/TelemetryRetention pins that).
+   */
+  test("Settings: retention with its scope note, then the archive card, and no banner", () => {
     const code: string = readCode("Pages/Database/View/Settings.tsx");
-    const note: number = code.indexOf("DATABASE_RETENTION_SCOPE_NOTE}");
-    const retention: number = code.indexOf(
+    const retentionStart: number = code.indexOf(
       "<TelemetryResourceRetentionSettings<DatabaseServer>",
+    );
+    const retention: string = between(
+      code,
+      "<TelemetryResourceRetentionSettings<DatabaseServer>",
+      "/>",
     );
     const archive: number = code.indexOf(
       "<ArchiveResourceCard<DatabaseServer>",
     );
 
-    expect(note).toBeGreaterThan(-1);
-    expect(retention).toBeGreaterThan(note);
-    expect(archive).toBeGreaterThan(retention);
-    expect(code).toContain('modelDetailIdPrefix="database-server"');
+    expect(retentionStart).toBeGreaterThan(-1);
+    expect(retention).toContain("scopeNote={DATABASE_RETENTION_SCOPE_NOTE}");
+    expect(retention).toContain('modelDetailIdPrefix="database-server"');
+    expect(archive).toBeGreaterThan(retentionStart);
     expect(code).toContain("RouteMap[PageMap.DATABASE_SERVERS] as Route");
-    expect(readSource("Pages/Database/View/Settings.tsx")).toContain(
-      "The traces of the queries your applications send it belong to the calling services",
+    expect(code).not.toContain("<Alert");
+    expect(code).not.toContain("Which telemetry this covers.");
+
+    // One whole note, wrapped so the extractor gives it a locale key.
+    expect(code).toContain(
+      'DATABASE_RETENTION_SCOPE_NOTE: string = translationKey( "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.", );',
     );
+  });
+
+  test("Settings: the retention shell passes the scope note on to the Enterprise cards", () => {
+    const shell: string = readCode(
+      "Components/TelemetryResource/TelemetryResourceRetentionSettings.tsx",
+    );
+    const contract: string = readCode("Enterprise/EnterprisePlugins.ts");
+
+    expect(shell).toContain("scopeNote?: string | undefined;");
+    expect(shell).toContain("scopeNote: props.scopeNote,");
+    expect(
+      between(
+        contract,
+        "export interface TelemetryResourceRetentionSettingsProps {",
+        "export interface DashboardEnterprisePlugins",
+      ),
+    ).toContain("scopeNote?: string | undefined;");
   });
 
   test("Delete warns that discovered databases come back and points at archiving", () => {

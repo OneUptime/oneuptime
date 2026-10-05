@@ -71,7 +71,7 @@ Ouvrez les **Criteria** du moniteur et modifiez le premier critère.
 
 - Activez _When filters match, change monitor status_ et réglez-le sur **Offline** (ou Degraded).
 - Activez _When filters match, declare an incident_. Renseignez le **Title**, la **Severity** et les **On-Call Policies** à alerter.
-- Sous **Advanced Options** de cet incident, activez **Auto Resolve Incident**. Sans cela, les notifications de rétablissement sont ignorées et les incidents restent ouverts indéfiniment.
+- Sous **More fields** de cet incident, activez **Auto Resolve Incident**. Sans cela, les notifications de rétablissement sont ignorées et les incidents restent ouverts indéfiniment.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Dépannage
 
 - **Rien n'arrive** — vérifiez qu'Alertmanager peut joindre l'URL ; consultez ses journaux pour d'éventuelles erreurs de livraison. OneUptime répond à chaque requête par un `200` vide avant toute validation : un `200` ne confirme donc pas que la charge utile a été acceptée. Consultez plutôt la chronologie du moniteur.
-- **Les incidents s'ouvrent mais ne se ferment jamais** — vérifiez `send_resolved: true` dans Alertmanager, le champ et la valeur de rétablissement sur le critère (la comparaison est sensible à la casse), et **Auto Resolve Incident** sous les **Advanced Options** de l'incident. Deux causes plus subtiles : une charge utile portant plus de clés distinctes que **Max incidents per request** masque aussi au rétablissement celles situées au-delà du plafond ; et si la notification `resolved` est justement celle écartée par la fusion à l'ingestion (voir plus bas), l'incident reste bloqué définitivement, car Alertmanager répète les notifications d'activation mais pas celles de résolution. Fermez celles-là à la main.
+- **Les incidents s'ouvrent mais ne se ferment jamais** — vérifiez `send_resolved: true` dans Alertmanager, le champ et la valeur de rétablissement sur le critère (la comparaison est sensible à la casse), et **Auto Resolve Incident** sous les **More fields** de l'incident. Deux causes plus subtiles : une charge utile portant plus de clés distinctes que **Max incidents per request** masque aussi au rétablissement celles situées au-delà du plafond ; et si la notification `resolved` est justement celle écartée par la fusion à l'ingestion (voir plus bas), l'incident reste bloqué définitivement, car Alertmanager répète les notifications d'activation mais pas celles de résolution. Fermez celles-là à la main.
 - **Aucun incident, et statut du moniteur inchangé** — le chemin de regroupement doit commencer par le littéral `requestBody.`, et seul le premier `[*]` d'un chemin est un joker. Ces deux erreurs échouent en silence.
 - **Le texte de l'incident affiche des espaces réservés `{{...}}` bruts** — le chemin ne s'est pas résolu, et OneUptime laisse les espaces réservés non résolus en place plutôt que de les vider. Des règles différentes définissent des annotations différentes : référencez des champs qui existent réellement pour vos règles (`commonAnnotations` par rapport aux `annotations` de chaque alerte).
 - **Un seul incident pour une charge utile pleine d'alertes** — vous avez regroupé sur un label qui ne varie pas au sein d'une notification, le plus souvent un label figurant aussi dans le `group_by` de votre route. Regroupez plutôt sur `requestBody.alerts[*].fingerprint`.

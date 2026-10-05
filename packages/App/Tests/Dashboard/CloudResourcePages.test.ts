@@ -105,7 +105,7 @@ describe("Cloud Environments create form", () => {
     const regionField: string = between(
       formFields,
       "field: { cloudRegion: true, }",
-      "field: { name: true, }",
+      "getDisplayNameFormField<CloudResource>(",
     );
 
     expect(accountField).toContain("fieldType: FormFieldSchemaType.Text");
@@ -116,15 +116,47 @@ describe("Cloud Environments create form", () => {
     expect(regionField).toContain("us-east-1");
   });
 
-  test("keeps the name required and suggests the auto-discovery form", () => {
-    const nameField: string = between(
+  /*
+   * The name used to be required, on a Details step of its own, while its
+   * help said discovered environments are named "platform · region ·
+   * account" - a name the form could work out itself. It is the optional
+   * Display Name now, folded under Advanced, following the three values.
+   */
+  test("asks for no name: the display name follows the platform, account and region", () => {
+    expect(code).not.toContain("formSteps=");
+    expect(formFields).not.toContain("stepId:");
+    expect(formFields).not.toContain("field: { name: true, }");
+
+    const displayNameField: string = between(
       formFields,
-      "field: { name: true, }",
+      "getDisplayNameFormField<CloudResource>(",
       "field: { description: true, }",
     );
 
-    expect(nameField).toContain("required: true");
-    expect(nameField).toContain("platform · region · account");
+    expect(displayNameField).toContain(
+      "getDefaultName: getCloudEnvironmentNameFromFields",
+    );
+    expect(displayNameField).toContain("platform · region · account");
+    expect(displayNameField).toContain("collapsibleSection: advancedSection");
+
+    for (const key of ["cloudPlatform", "cloudAccountId", "cloudRegion"]) {
+      expect(formFields).toContain(
+        `onChange: followWithDisplayName<CloudResource>({ fieldKey: "${key}", getDefaultName: getCloudEnvironmentNameFromFields, })`,
+      );
+    }
+  });
+
+  test("folds the description and the labels under the same Advanced section", () => {
+    const rest: string = between(
+      formFields,
+      "field: { description: true, }",
+      "filters={[",
+    );
+
+    expect(rest).toContain("collapsibleSection: advancedSection");
+    expect(rest).toContain(
+      "getLabelsFormField<CloudResource>({ collapsibleSection: advancedSection, })",
+    );
   });
 
   test("derives key, provider and default name in onBeforeCreate", () => {
@@ -279,7 +311,7 @@ describe("Cloud Environment overview", () => {
 
     expect(tile).toContain("formatCompact(liveInstances.length)");
     expect(tile).toContain(
-      "sublabel: `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`",
+      'sublabel: translator.translateTemplate( "live in the last {{minutes}} min", { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES }, ),',
     );
   });
 

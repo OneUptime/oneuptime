@@ -25,7 +25,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -36,6 +36,8 @@ import DockerSwarmDocumentationCard from "../../Components/DockerSwarm/Documenta
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WI-18: while the project has no clusters yet, re-count on this
@@ -47,6 +49,7 @@ const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
 const DockerSwarmClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -89,6 +92,7 @@ const DockerSwarmClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -168,6 +172,7 @@ const DockerSwarmClusters: FunctionComponent<
         id="docker-swarm-clusters-table"
         userPreferencesKey="docker-swarm-clusters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -224,22 +229,7 @@ const DockerSwarmClusters: FunctionComponent<
             required: false,
             placeholder: "Production Docker Swarm cluster running in US East",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<DockerSwarmCluster>(),
         ]}
         columns={[
           {
@@ -286,7 +276,9 @@ const DockerSwarmClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -318,7 +310,10 @@ const DockerSwarmClusters: FunctionComponent<
                     allReady ? "text-gray-900" : "text-red-700"
                   }`}
                 >
-                  {ready}/{total} ready
+                  {translator.translateTemplate("{{ready}}/{{total}} ready", {
+                    ready: ready,
+                    total: total,
+                  })}
                 </span>
               );
             },
@@ -356,7 +351,10 @@ const DockerSwarmClusters: FunctionComponent<
               const running: number = item.runningTaskCount || 0;
               return (
                 <span className="text-sm text-gray-700">
-                  {running}/{total} running
+                  {translator.translateTemplate(
+                    "{{running}}/{{total}} running",
+                    { running: running, total: total },
+                  )}
                 </span>
               );
             },

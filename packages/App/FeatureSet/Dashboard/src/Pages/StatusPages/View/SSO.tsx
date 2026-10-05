@@ -1,19 +1,19 @@
 import PageComponentProps from "../../PageComponentProps";
 import PlanGatedPage from "../../../Components/Billing/PlanGatedPage";
+import StatusPageRequireSsoCard from "../../../Components/StatusPage/StatusPageRequireSsoCard";
 import { SSO_REQUIRED_PLAN } from "../../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import DigestMethod from "Common/Types/SSO/DigestMethod";
-import SignatureMethod from "Common/Types/SSO/SignatureMethod";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
+import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import {
   HOST,
@@ -21,9 +21,7 @@ import {
   IDENTITY_URL,
   STATUS_PAGE_URL,
 } from "Common/UI/Config";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, {
   Fragment,
@@ -33,18 +31,41 @@ import React, {
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+
+/*
+ * The provider the configuration dialog is open for: its id, and whether it
+ * is on, so the dialog can say what is left to do.
+ */
+interface SamlConfigDialogTarget {
+  id: string;
+  isEnabled: boolean;
+}
 
 /*
  * Status page > SSO: SAML sign-on for private status page users, the link to
- * test it, and "Force SSO for Login" for the status page.
+ * test it, and "Require SSO for Login" for the status page (a switch that
+ * saves when flipped: StatusPageRequireSsoCard).
+ *
+ * Adding one asks for what the identity provider gives - its sign-on URL,
+ * issuer and certificate; the signature and digest methods and the
+ * description are filled in under Advanced
+ * (Common/UI/Components/Sso/SamlProviderFormFields). Once it is saved, the
+ * dialog with the Entity ID and Reply URL to give the identity provider
+ * opens straight away: that is the next thing to do.
  */
 const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const testUrl: string = `${STATUS_PAGE_URL.toString()}/${modelId}/sso`;
 
-  const [showSingleSignOnUrlId, setShowSingleSignOnUrlId] =
-    useState<string>("");
+  const [samlConfigTarget, setSamlConfigTarget] =
+    useState<SamlConfigDialogTarget | null>(null);
+  const showSingleSignOnUrlId: string = samlConfigTarget?.id || "";
 
   return (
     <Fragment>
@@ -82,139 +103,35 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           videoLink={URL.fromString("https://youtu.be/F_h74p38SU0")}
           noItemsMessage={"No SSO configuration found."}
           viewPageRoute={Navigation.getCurrentRoute()}
-          formSteps={[
-            {
-              title: "Basic Info",
-              id: "basic",
-            },
-            {
-              title: "Sign On",
-              id: "sign-on",
-            },
-            {
-              title: "Certificate",
-              id: "certificate",
-            },
-            {
-              title: "More",
-              id: "more",
-            },
-          ]}
-          formFields={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description: "Friendly name to help you remember.",
-              placeholder: "Okta",
-              stepId: "basic",
-              validation: {
-                minLength: 2,
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              stepId: "basic",
-              description: "Friendly description to help you remember.",
-              placeholder: "Sign in with Okta",
-              validation: {
-                minLength: 2,
-              },
-            },
-            {
-              field: {
-                signOnURL: true,
-              },
-              title: "Sign On URL",
-              fieldType: FormFieldSchemaType.URL,
-              required: true,
-              description:
-                "Members will be forwarded here when signing in to your organization",
-              placeholder: "https://yourapp.example.com/apps/appId",
-              stepId: "sign-on",
-              disableSpellCheck: true,
-            },
-            {
-              field: {
-                issuerURL: true,
-              },
-              title: "Issuer",
-              description:
-                "Typically a unique identifier (often a URL) generated by your SAML identity provider",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "https://example.com",
-              stepId: "sign-on",
-              disableSpellCheck: true,
-            },
-            {
-              field: {
-                publicCertificate: true,
-              },
-              title: "Public Certificate",
-              description: "Paste in your x509 certificate here.",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Paste in your x509 certificate here.",
-              stepId: "certificate",
-            },
-            {
-              field: {
-                signatureMethod: true,
-              },
-              title: "Signature Method",
-              description:
-                "If you do not know what this is, please leave this to RSA-SHA256",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(SignatureMethod),
-              required: true,
-              placeholder: "RSA-SHA256",
-              stepId: "certificate",
-            },
-            {
-              field: {
-                digestMethod: true,
-              },
-              title: "Digest Method",
-              description:
-                "If you do not know what this is, please leave this to SHA256",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(DigestMethod),
-              required: true,
-              placeholder: "SHA256",
-              stepId: "certificate",
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              description:
-                "You can test this first, before enabling it. To test, please save the config.",
-              title: "Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
-              stepId: "more",
-            },
-          ]}
+          formSteps={getSsoProviderFormSteps<StatusPageSSO>()}
+          formFields={getSamlProviderFormFields<StatusPageSSO>()}
+          onCreateSuccess={(
+            item: StatusPageSSO,
+            modalType?: ModalType,
+          ): Promise<StatusPageSSO> => {
+            if (modalType === ModalType.Create && item._id) {
+              setSamlConfigTarget({
+                id: item._id.toString(),
+                isEnabled: Boolean(item.isEnabled),
+              });
+            }
+
+            return Promise.resolve(item);
+          }}
           showRefreshButton={true}
           actionButtons={[
             {
               title: "View SSO Config",
+              icon: IconProp.Settings,
               buttonStyleType: ButtonStyleType.NORMAL,
               onClick: async (
                 item: StatusPageSSO,
                 onCompleteAction: VoidFunction,
               ) => {
-                setShowSingleSignOnUrlId((item["_id"] as string) || "");
+                setSamlConfigTarget({
+                  id: (item["_id"] as string) || "",
+                  isEnabled: Boolean(item.isEnabled),
+                });
                 onCompleteAction();
               },
             },
@@ -274,57 +191,25 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           title={`Test Single Sign On (SSO)`}
           description={
             <span>
-              Here&apos;s a link which will help you test SSO integration before
-              you force it on your organization:{" "}
-              <Link
-                openInNewTab={true}
-                to={URL.fromString(
-                  `${STATUS_PAGE_URL.toString()}/${modelId}/sso`,
-                )}
-              >
-                <span>{`${STATUS_PAGE_URL.toString()}/${modelId}/sso`}</span>
-              </Link>
+              <TranslatedSentence
+                template="Here's a link which will help you test SSO integration before you force it on your organization: {{link}}"
+                slots={{
+                  link: (
+                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
+                      <span>{testUrl}</span>
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           }
         />
 
-        {/* API Key View  */}
-        <CardModelDetail
-          name="SSO Settings"
-          editButtonText={"Edit Settings"}
-          cardProps={{
-            title: "SSO Settings",
-            description: "Configure settings for SSO.",
-          }}
-          isEditable={true}
-          formFields={[
-            {
-              field: {
-                requireSsoForLogin: true,
-              },
-              title: "Force SSO for Login",
-              description:
-                "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: StatusPage,
-            id: "sso-settings",
-            fields: [
-              {
-                field: {
-                  requireSsoForLogin: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Force SSO for Login",
-                description:
-                  "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.",
-              },
-            ],
-            modelId: modelId,
-          }}
-        />
+        {/*
+         * "Require SSO for Login": one switch that saves when flipped, and
+         * asks first before it turns off signing in with a password.
+         */}
+        <StatusPageRequireSsoCard statusPageId={modelId} />
 
         {showSingleSignOnUrlId && (
           <ConfirmModal
@@ -332,14 +217,18 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
             description={
               <div>
                 <div>
-                  <div className="font-semibold">Identifier (Entity ID):</div>
+                  <div className="font-semibold">
+                    {translator.translateText("Identifier (Entity ID):")}
+                  </div>
 
                   <div>{`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}</div>
                   <br />
                 </div>
                 <div>
                   <div className="font-semibold">
-                    Reply URL (Assertion Consumer Service URL):
+                    {translator.translateText(
+                      "Reply URL (Assertion Consumer Service URL):",
+                    )}
                   </div>
                   <div>
                     {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
@@ -348,11 +237,21 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
                   </div>
                   <br />
                 </div>
+                {!samlConfigTarget?.isEnabled && (
+                  <div
+                    className="text-sm text-gray-500"
+                    data-testid="sso-config-turn-on-note"
+                  >
+                    {translator.translateText(
+                      "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.",
+                    )}
+                  </div>
+                )}
               </div>
             }
             submitButtonText={"Close"}
             onSubmit={() => {
-              setShowSingleSignOnUrlId("");
+              setSamlConfigTarget(null);
             }}
             submitButtonType={ButtonStyleType.NORMAL}
           />

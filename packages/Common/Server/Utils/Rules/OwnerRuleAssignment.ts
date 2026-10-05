@@ -7,6 +7,7 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
+import { ProjectScopedReferenceException } from "../Database/ProjectScopedReferenceValidator";
 
 /*
  * An owner row is unique per (resource, user or team, project): every
@@ -24,7 +25,13 @@ import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
  * Those owner sets are saved configuration - rules, templates, criteria -
  * and can name a user who has since left the project. createOwner skips
  * such a user, so a departed member is not made the owner of new work,
- * notified about it, or listed as notified.
+ * notified about it, or listed as notified. It skips a team that is not one
+ * of the project's teams just the same: the lists are checked when they are
+ * saved, but a list saved before that check existed can still name another
+ * project's team, whose members must not be made owners of this project's
+ * work, or be notified about it. The owner row's own service refuses such a
+ * team (every owner service is a ProjectReferencesService, which checks the
+ * row's team, user and resource), and createOwner reports it as not added.
  */
 
 export interface OwnersToAssign {
@@ -126,7 +133,9 @@ export default class OwnerRuleAssignment {
    * when it was not: the owner was already there - whether the owner
    * service's own check found the existing row, or the unique index rejected
    * a concurrent insert that got past it - or the owner is a user who is not
-   * a member of the project. Every other failure is thrown as before.
+   * a member of the project, or the owner service refused the row as naming
+   * a record that is not the project's (a team of another project). Every
+   * other failure is thrown as before.
    */
   public static async createOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
@@ -145,7 +154,10 @@ export default class OwnerRuleAssignment {
 
       return true;
     } catch (error) {
-      if (PostgresErrorTranslator.isUniqueViolation(error)) {
+      if (
+        PostgresErrorTranslator.isUniqueViolation(error) ||
+        error instanceof ProjectScopedReferenceException
+      ) {
         return false;
       }
 
@@ -244,8 +256,9 @@ export default class OwnerRuleAssignment {
   }
 
   /*
-   * Team owners are always in the project. A user owner must be a member:
-   * see TeamMemberService.isUserMemberOfProject.
+   * A user owner must be a member of the project, the invitation accepted:
+   * see TeamMemberService.isUserMemberOfProject. A team owner is checked by
+   * the owner service when the row is written (see createOwner).
    */
   private static async isOwnerInProject<TOwner extends BaseModel>(data: {
     owner: TOwner;
@@ -269,7 +282,14 @@ export default class OwnerRuleAssignment {
     });
   }
 
-  private static buildOwner<TOwner extends BaseModel>(data: {
+  /*
+   * One owner row of the resource, for createOwner: the resource, the
+   * project and the user or team, and the notified flag and creator when
+   * given. Public so a caller that adds owners one at a time, each failure
+   * on its own (the grouping rule engines), builds the same rows addOwners
+   * does.
+   */
+  public static buildOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
     ownerColumn: "userId" | "teamId";
     ownerId: ObjectID;

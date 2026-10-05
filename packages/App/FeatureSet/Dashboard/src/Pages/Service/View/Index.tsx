@@ -3,15 +3,12 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import TechStack from "Common/Types/Service/TechStack";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import Label from "Common/Models/DatabaseModels/Label";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import Service from "Common/Models/DatabaseModels/Service";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -654,94 +651,26 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
       </div>
 
-      {/* Service View  */}
+      {/*
+       * Service Details: read here, edited in one place - the name,
+       * description and labels in the same card at the top of the
+       * service's Settings page (ResourceDetailsCard), the tech stack in
+       * the Service Settings card under it.
+       */}
       <CardModelDetail<Service>
         name="Service > Service Details"
         cardProps={{
           title: "Service Details",
-          description: "Here are more details for this service.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        onSaveSuccess={(): void => {
-          // Refresh the hero (name, tech stack → detected technology).
-          loadModel(false).catch((err: Error) => {
-            setError(API.getFriendlyMessage(err));
-          });
-        }}
-        formSteps={[
-          {
-            title: "Service Info",
-            id: "service-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "service-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Service Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            stepId: "service-info",
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              techStack: true,
-            },
-            stepId: "service-info",
-            title: "Tech Stack",
-            /*
-             * Optional, like the same field on Service > Settings and like
-             * the create form, which does not offer it at all. It used to be
-             * required here, which meant renaming a service that ingest had
-             * auto-created forced the editor to invent a language for it —
-             * and `detectServiceLanguage` then reported that guess as the
-             * service's detected "Technology", indistinguishable in the UI
-             * from a real telemetry.sdk.language reading.
-             */
-            description:
-              "Optional. The language or framework used to build this service. Leave blank to use the language detected from this service's telemetry.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: false,
-            placeholder: "Tech Stack",
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: Service,

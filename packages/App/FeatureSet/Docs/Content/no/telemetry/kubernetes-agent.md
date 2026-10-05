@@ -348,6 +348,8 @@ Etiketter matches uten hensyn til store/små bokstaver, så en eksisterende manu
 
 ## Oppgradering av agenten
 
+Når agenten er eldre enn din OneUptime, vises et varseltegn ved siden av **Agentversjon** i klyngens **Klyngedetaljer**. Velg det for å se denne kommandoen.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -356,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` beholder din eksisterende konfigurasjon (forhåndsinnstilling, klyngenavn, filtre); send eventuelle nye `--set`-overstyringer oppå den.
+
+> **eBPF-span-metrikker har fått nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene under navnene OBI beholder (de gamle har OBI avviklet). Et dashbord, et diagram eller en metrikk-monitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feilmelding — flytt det til det nye navnet, og oppdater også `filters.metrics`-oppføringer som nevner et gammelt navn.
 
 ## Avinstallering av agenten
 
@@ -412,7 +416,7 @@ Alle på som standard. Slå av hvilken som helst med `--set ebpf.features.<name>
 | `ebpf.features.*`         | Standard | Hva den tilfører                                                             |
 | ------------------------- | -------- | ---------------------------------------------------------------------------- |
 | `httpMetrics`             | på       | HTTP/gRPC RED-metrikker (forespørselsrate, latens, feil) per tjeneste        |
-| `spanMetrics`             | på       | Forespørsels-/svarstørrelse og varighet per span                             |
+| `spanMetrics`             | på       | Antall kall og varighet for spans (`traces.span.metrics.*`)                  |
 | `serviceGraph`            | på       | Anroper → anropt kantmetrikker; driver service-kartet                        |
 | `networkMetrics`          | på       | TCP/UDP flyttellere pod-til-pod                                              |
 | `networkInterZoneMetrics` | av       | Inter-sone-variant av nettverksmetrikker (dobler kardinaliteten)             |
@@ -716,7 +720,7 @@ Den vanligste årsaken — spesielt etter en reinstallasjon — er en **feil ell
 ### Ingen metrikker vises
 
 1. Utelukk først en avvist ingest-nøkkel — det er den vanligste årsaken og er lett å overse fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller bare kjør diagnostikkskriptet).
-2. Sjekk at klyngeidentifikatoren matcher verdien du sendte som `clusterName`
+2. Sjekk at klyngens **klyngenavn (clusterName)** matcher verdien du sendte som `clusterName`. Det står på klyngens **Settings**-side under **Cluster Details**; velg **Edit Details** og åpne **More fields** for å rette det
 3. Verifiser RBAC-tillatelsene: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Sjekk OTel-collector-loggene for eksportfeil
 

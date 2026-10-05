@@ -50,7 +50,7 @@ Ve a **Incidentes → Ajustes → Estado del Incidente**. La página es una list
 
 - **Nombre** — obligatorio, al menos dos caracteres. El marcador de posición sugiere algo como «Investigating».
 - **Descripción** — texto libre opcional que explica cuándo un incidente se queda en este estado.
-- **Color** — obligatorio. Se elige en el selector de color; se guarda como un valor hexadecimal como `#fd625e`.
+- **Color** — obligatorio, y ya elegido al abrir el formulario: un color que ningún estado de la lista usa todavía. Puedes elegir otro en el selector de color; se guarda como un valor hexadecimal como `#fd625e`.
 
 Los tres indicadores no se pueden establecer desde este formulario: pertenecen a las filas iniciales. Por tanto, todo estado que añadas es un estado sin indicador, lo cual tiene dos consecuencias que conviene tener en cuenta:
 
@@ -97,7 +97,7 @@ Donde la severidad hace algo más que describir: en **Incidentes → Reglas → 
 
 Hay cuatro maneras de que un incidente cambie de estado:
 
-- **Los botones de la cabecera.** Abre un incidente. Si su estado actual está antes del estado de reconocimiento, obtienes **Acknowledge** y **Resolver**; si está entre los dos, obtienes **Resolver**. Cada uno abre un modal de confirmación —**Acknowledge Incident** o **Resolve Incident**— que ofrece además **Seleccionar plantilla de nota**, **Nota pública** y **Notificar a suscriptores de la página de estado**.
+- **Los botones de la cabecera.** Abre un incidente. Si su estado actual está antes del estado de reconocimiento, obtienes **Reconocer** y **Resolver**; si está entre los dos, obtienes **Resolver**. Cada uno abre una confirmación breve —**Reconocer incidente** o **Resolver incidente**— con **Notificar a suscriptores de la página de estado** y, plegados bajo **Añadir una nota pública**, el campo opcional **Nota pública** y el selector **Seleccionar plantilla de nota** (si el proyecto tiene plantillas de notas). Reconocer también detiene cualquier escalado de guardia del incidente.
 - **La línea de tiempo de estado.** Añade una fila a mano desde la página **Línea de Tiempo de Estado** del incidente, con **Estado del incidente**, **Comienza en** y **Notificar a suscriptores de la página de estado**.
 - **Cambio masivo.** La lista de incidentes tiene una acción masiva **Cambiar estado** para mover varios incidentes a la vez.
 - **Automáticamente.** Un criterio de monitor con **Resolver incidente automáticamente** activado resuelve su incidente cuando el criterio deja de cumplirse, y la API puede actualizar el estado a través de `/api/incident-state-timeline`.

@@ -69,7 +69,7 @@ If another email has arrived since, the card no longer shows the verification em
 
 Two things to keep in mind:
 
-- **Your criteria see it too.** The verification email is evaluated like any other email. Wording such as "if you received this in error" matches the default `error` criteria and marks the monitor offline. To avoid that, turn on **Disable Active Monitoring** (on the monitor's **Settings** page, click **Edit Settings**) while you verify. A disabled monitor still records the email, and the **Monitor Summary** card still shows it. It evaluates nothing, though, so the email gets no row in **Monitoring Logs**: read it before another email arrives. Turn the setting off again when you're done.
+- **Your criteria see it too.** The verification email is evaluated like any other email. Wording such as "if you received this in error" matches the default `error` criteria and marks the monitor offline. To avoid that, turn off **Check this monitor** in the **Monitoring** card on the monitor's **Settings** page while you verify (it asks you to confirm). A monitor with monitoring off still records the email, and the **Monitor Summary** card still shows it. It evaluates nothing, though, so the email gets no row in **Monitoring Logs**: read it before another email arrives. When you're done, press **Turn monitoring on** in the banner at the top of the monitor's pages, or turn the switch back on.
 - **Verification belongs to the address.** If you [reset or customize the address](#resetting-or-customizing-the-email-address), the service sees a new recipient, and you have to verify again.
 
 ### Azure Monitor action groups
@@ -223,15 +223,19 @@ Consolidate alerts from multiple monitoring tools:
 
 ## Template Variables
 
-When configuring incident templates, you can use these variables from incoming emails:
+The titles, descriptions and remediation notes of the alerts and incidents this monitor creates can use these variables. The criteria's alert and incident forms list them under **Template variables**, and [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating) explains the syntax.
 
-| Variable              | Description                       |
-| --------------------- | --------------------------------- |
-| `{{emailSubject}}`    | The subject of the received email |
-| `{{emailFrom}}`       | The sender's email address        |
-| `{{emailTo}}`         | The recipient email address       |
-| `{{emailBody}}`       | The plain text body of the email  |
-| `{{emailReceivedAt}}` | When the email was received       |
+| Variable              | Description                                                       |
+| --------------------- | ----------------------------------------------------------------- |
+| `{{emailSubject}}`    | The subject of the received email                                 |
+| `{{emailFrom}}`       | The sender's email address                                        |
+| `{{emailTo}}`         | Who the email was sent to, with this monitor's own address masked |
+| `{{emailBody}}`       | The plain text body of the email                                  |
+| `{{emailReceivedAt}}` | When the email was received, as an ISO 8601 timestamp in UTC      |
+
+- **A title gets one line of each.** In a title, each variable is cut to one line of at most 150 characters, ending in `...` when it was longer. A title can't be longer than 500 characters, and an alert or incident whose title is too long isn't created at all, so quoting a whole email would stop the monitor from alerting on long emails. Descriptions and remediation notes get the full value.
+- **This monitor's address is masked.** The address works like a password, so it's masked before the email is stored, and `{{emailTo}}` reads `monitor-[REDACTED]@{inbound-domain}` (or `[REDACTED]@{inbound-domain}` for a custom address).
+- **A check for missing email uses the last email.** When an **Email Received** criteria opens an alert because no email arrived in time, the variables describe the last email the monitor received. They're empty if none has arrived yet.
 
 ## Monitor Summary View
 
@@ -249,7 +253,7 @@ Click **Show More Details** to see the rest of it:
 
 ### Earlier Emails
 
-The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A disabled monitor evaluates nothing, so the emails it receives get no rows. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default.
+The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A monitor with monitoring turned off evaluates nothing, so the emails it receives get no rows. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default.
 
 ## Self-Hosted Setup
 
@@ -278,7 +282,7 @@ If you're self-hosting OneUptime, you need to configure an inbound email provide
 ### Alerts Not Being Created
 
 1. Verify your criteria match the email content
-2. Check the monitor is not disabled
+2. Check that monitoring is on: the monitor's **Settings** page, **Monitoring** card
 3. Review the evaluation logs in the monitor details
 4. Test with exact string matches before using pattern matching
 

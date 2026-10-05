@@ -3,6 +3,7 @@ import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
@@ -42,7 +43,6 @@ import {
   LetsEncryptAccountKey,
 } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
-import Recurring from "../../Types/Events/Recurring";
 import Email from "../../Types/Email";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -94,6 +94,7 @@ import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
+import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -111,13 +112,103 @@ import {
 import StatusPageReportPeriodUtil, {
   StatusPageReportPeriod,
 } from "../../Utils/StatusPage/ReportPeriod";
-import Timezone from "../../Types/Timezone";
+import StatusPageReportScheduleUtil, {
+  StatusPageReportScheduleColumns,
+  StatusPageReportScheduleWrite,
+} from "../../Utils/StatusPage/ReportSchedule";
 
 export {
   StatusPageReport,
   StatusPageReportGroup,
   StatusPageReportItem,
   StatusPageReportRow,
+};
+
+/*
+ * The report columns one status page's update has to carry as well
+ * (StatusPageReportScheduleUtil.getScheduleWrite), kept for after an update
+ * that matched several pages needing different ones - one write cannot hold
+ * a different first report date or next send for each.
+ */
+interface ReportScheduleWriteForPage {
+  statusPageId: ObjectID;
+  write: StatusPageReportScheduleWrite;
+}
+
+interface StatusPageUpdateCarryForward {
+  reportScheduleWrites: Array<ReportScheduleWriteForPage>;
+}
+
+// The report columns a write carries, as the schedule rules read them.
+const getReportScheduleColumns: (
+  data: Partial<StatusPage> | Record<string, unknown>,
+) => StatusPageReportScheduleColumns = (
+  data: Partial<StatusPage> | Record<string, unknown>,
+): StatusPageReportScheduleColumns => {
+  const values: Record<string, unknown> = data as Record<string, unknown>;
+
+  return {
+    isReportEnabled: values["isReportEnabled"] as boolean | null | undefined,
+    reportStartDateTime: values["reportStartDateTime"] as
+      | Date
+      | string
+      | null
+      | undefined,
+    reportRecurringInterval: values[
+      "reportRecurringInterval"
+    ] as StatusPageReportScheduleColumns["reportRecurringInterval"],
+    reportTimezone: values["reportTimezone"] as string | null | undefined,
+    reportPeriodType: values["reportPeriodType"] as string | null | undefined,
+    sendNextReportBy: values["sendNextReportBy"] as
+      | Date
+      | string
+      | null
+      | undefined,
+  };
+};
+
+// Whether a computed write carries anything.
+const isEmptyReportScheduleWrite: (
+  write: StatusPageReportScheduleWrite,
+) => boolean = (write: StatusPageReportScheduleWrite): boolean => {
+  return Object.values(write).every((value: unknown): boolean => {
+    return value === undefined;
+  });
+};
+
+// Whether two pages need exactly the same report columns written.
+const isSameReportScheduleWrite: (
+  first: StatusPageReportScheduleWrite,
+  second: StatusPageReportScheduleWrite,
+) => boolean = (
+  first: StatusPageReportScheduleWrite,
+  second: StatusPageReportScheduleWrite,
+): boolean => {
+  return (
+    first.reportStartDateTime?.getTime() ===
+      second.reportStartDateTime?.getTime() &&
+    first.sendNextReportBy?.getTime() === second.sendNextReportBy?.getTime() &&
+    first.reportRecurringInterval?.toString() ===
+      second.reportRecurringInterval?.toString() &&
+    first.reportPeriodType === second.reportPeriodType
+  );
+};
+
+// Copies a computed write onto a create's or an update's data.
+const applyReportScheduleWrite: (
+  data: Partial<StatusPage> | Record<string, unknown>,
+  write: StatusPageReportScheduleWrite,
+) => void = (
+  data: Partial<StatusPage> | Record<string, unknown>,
+  write: StatusPageReportScheduleWrite,
+): void => {
+  const target: Record<string, unknown> = data as Record<string, unknown>;
+
+  for (const [column, value] of Object.entries(write)) {
+    if (value !== undefined) {
+      target[column] = value;
+    }
+  }
 };
 
 /*
@@ -401,6 +492,30 @@ export class Service extends DatabaseService<StatusPage> {
         "This is an automated email sent to you because you are subscribed to " +
         (createBy.data?.pageTitle || createBy.data?.name || "Status Page");
     }
+
+    /*
+     * A status page created with its reports on but no schedule (through the
+     * API or Terraform) gets the default one - every month, on the 1st at
+     * 09:00 in the report timezone - and, with any schedule, the time its
+     * first report goes out, which the report worker waits for. A schedule
+     * the caller sent is kept, once it can be read.
+     */
+    const reportWrite: StatusPageReportScheduleColumns =
+      getReportScheduleColumns(createBy.data);
+
+    const reportWriteProblem: string | null =
+      StatusPageReportScheduleUtil.getWriteProblem(reportWrite);
+
+    if (reportWriteProblem) {
+      throw new BadDataException(reportWriteProblem);
+    }
+
+    applyReportScheduleWrite(
+      createBy.data,
+      StatusPageReportScheduleUtil.getScheduleWrite({
+        write: reportWrite,
+      }),
+    );
 
     return {
       createBy,
@@ -771,11 +886,19 @@ export class Service extends DatabaseService<StatusPage> {
         }
       }
 
+      /*
+       * Who can see the page is one choice (Types/StatusPage/StatusPageAccess):
+       * the password is asked for only on a page that is not public, with the
+       * switch on and a password set. A public page returned above, so a page
+       * here is private, as the check above read it.
+       */
       const shouldEnforceMasterPassword: boolean = Boolean(
         statusPage &&
-          statusPage.enableMasterPassword &&
-          statusPage.masterPassword &&
-          !statusPage.isPublicStatusPage,
+          isStatusPageMasterPasswordRequired({
+            isPublicStatusPage: Boolean(statusPage.isPublicStatusPage),
+            enableMasterPassword: statusPage.enableMasterPassword,
+            hasMasterPassword: Boolean(statusPage.masterPassword),
+          }),
       );
 
       if (shouldEnforceMasterPassword) {
@@ -1163,62 +1286,155 @@ export class Service extends DatabaseService<StatusPage> {
       }
     }
 
-    if (
-      updateBy.data.reportStartDateTime ||
-      updateBy.data.reportRecurringInterval ||
-      updateBy.data.reportTimezone ||
-      updateBy.data.sendNextReportBy
-    ) {
-      const statusPages: Array<StatusPage> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          reportStartDateTime: true,
-          reportRecurringInterval: true,
-          reportTimezone: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
+    const carryForward: StatusPageUpdateCarryForward | null =
+      await this.addReportScheduleToUpdate(updateBy);
 
-      for (const statusPage of statusPages) {
-        const reportStartDate: Date | undefined =
-          (updateBy.data.reportStartDateTime as Date) ||
-          statusPage.reportStartDateTime;
-        const reportRecurringInterval: Recurring | undefined =
-          Recurring.fromJSON(
-            (updateBy.data.reportRecurringInterval as Recurring) ||
-              statusPage.reportRecurringInterval,
-          );
+    return {
+      carryForward: carryForward,
+      updateBy: updateBy,
+    };
+  }
 
-        if (reportStartDate && reportRecurringInterval) {
-          /*
-           * Calendar-correct rather than Recurring.getNextDate's fixed
-           * millisecond approximation, which walks a monthly schedule anchored
-           * on the 1st backwards to the 31st, then the 30th, and eventually
-           * skips a month. Resolved in the report timezone so "the 1st at
-           * 09:00" survives a DST transition.
-           */
-          updateBy.data.sendNextReportBy = Recurring.getNextDateAfter({
-            startDate: reportStartDate,
-            recurring: reportRecurringInterval,
-            afterDate: OneUptimeDate.getCurrentDate(),
-            timezone:
-              (updateBy.data.reportTimezone as Timezone) ||
-              statusPage.reportTimezone ||
-              StatusPageReportPeriodUtil.DEFAULT_TIMEZONE,
-          });
-        }
-      }
+  /*
+   * The report columns an update has to carry as well, worked out per page
+   * from what it holds (StatusPageReportScheduleUtil.getScheduleWrite):
+   *
+   * - switching reports on - or rescheduling them - without a whole schedule
+   *   fills in the missing parts of the default one (every month, on the 1st
+   *   at 09:00 in the report timezone), so the dashboard's switch, an API
+   *   call or Terraform can switch reports on with nothing else. A schedule
+   *   the page holds or the caller sends is kept;
+   * - the next send (sendNextReportBy) is worked out again whenever the
+   *   schedule changes, reports are switched on, or the report worker moves
+   *   it on - calendar-correct and in the report timezone, so "the 1st at
+   *   09:00" stays the 1st at 09:00;
+   * - switching reports off needs, and adds, nothing.
+   *
+   * An update of one page - every update through the API or the dashboard -
+   * carries its columns in the same write. One that matched several pages
+   * needing different values (a workflow updating many) writes each page's
+   * after the update (onUpdateSuccess), as one write cannot hold them all.
+   */
+  private async addReportScheduleToUpdate(
+    updateBy: UpdateBy<StatusPage>,
+  ): Promise<StatusPageUpdateCarryForward | null> {
+    const write: StatusPageReportScheduleColumns = getReportScheduleColumns(
+      updateBy.data as Record<string, unknown>,
+    );
+
+    if (!StatusPageReportScheduleUtil.isReportWrite(write)) {
+      return null;
+    }
+
+    const problem: string | null =
+      StatusPageReportScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    const statusPages: Array<StatusPage> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        isReportEnabled: true,
+        reportStartDateTime: true,
+        reportRecurringInterval: true,
+        reportTimezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const writes: Array<ReportScheduleWriteForPage> = statusPages.map(
+      (statusPage: StatusPage): ReportScheduleWriteForPage => {
+        return {
+          statusPageId: statusPage.id!,
+          write: StatusPageReportScheduleUtil.getScheduleWrite({
+            write: write,
+            stored: getReportScheduleColumns(statusPage),
+            now: now,
+          }),
+        };
+      },
+    );
+
+    const first: ReportScheduleWriteForPage | undefined = writes[0];
+
+    if (!first) {
+      return null;
+    }
+
+    const isSameForEveryPage: boolean = writes.every(
+      (entry: ReportScheduleWriteForPage): boolean => {
+        return isSameReportScheduleWrite(entry.write, first.write);
+      },
+    );
+
+    if (isSameForEveryPage) {
+      applyReportScheduleWrite(
+        updateBy.data as Record<string, unknown>,
+        first.write,
+      );
+      return null;
     }
 
     return {
-      carryForward: null,
-      updateBy: updateBy,
+      reportScheduleWrites: writes.filter(
+        (entry: ReportScheduleWriteForPage): boolean => {
+          return !isEmptyReportScheduleWrite(entry.write);
+        },
+      ),
     };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<StatusPage>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<StatusPage>> {
+    const carryForward: StatusPageUpdateCarryForward | null =
+      onUpdate.carryForward as StatusPageUpdateCarryForward | null;
+
+    if (!carryForward?.reportScheduleWrites?.length) {
+      return onUpdate;
+    }
+
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    /*
+     * Each page's own report columns, for an update that matched several
+     * pages needing different ones. Only for the pages the update wrote, and
+     * without the hooks: the values are worked out already.
+     */
+    for (const entry of carryForward.reportScheduleWrites) {
+      if (!updatedIds.has(entry.statusPageId.toString())) {
+        continue;
+      }
+
+      const data: Record<string, unknown> = {};
+      applyReportScheduleWrite(data, entry.write);
+
+      await this.updateOneById({
+        id: entry.statusPageId,
+        data: data as PartialEntity<StatusPage>,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
+    return onUpdate;
   }
 
   /*

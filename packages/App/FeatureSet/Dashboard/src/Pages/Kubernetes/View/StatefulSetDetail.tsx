@@ -43,10 +43,13 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const statefulSetName: string = Navigation.getLastParamAsString();
 
@@ -138,7 +141,10 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "statefulset_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pods in statefulset ${statefulSetName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for pods in statefulset {{statefulSetName}}",
+        { statefulSetName: statefulSetName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -166,7 +172,10 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "statefulset_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pods in statefulset ${statefulSetName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pods in statefulset {{statefulSetName}}",
+        { statefulSetName: statefulSetName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -283,7 +292,10 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`StatefulSet Metrics: ${statefulSetName}`}
+          title={translator.translateTemplate(
+            "StatefulSet Metrics: {{statefulSetName}}",
+            { statefulSetName: statefulSetName },
+          )}
           description="CPU and memory usage for pods in this statefulset over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />

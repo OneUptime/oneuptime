@@ -31,6 +31,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import SummaryInfo from "../../Monitor/SummaryView/SummaryInfo";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How often the dashboard asks whether the probe has reported back, and how
@@ -64,6 +66,7 @@ export interface ComponentProps {
 const MonitorTestForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -322,9 +325,9 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
                 />
 
                 <div className="text-xs text-gray-500 text-center mt-3">
-                  Running monitor test on a probe. This usually takes a minute
-                  or two to complete because we need to notify the probe to run
-                  the test.
+                  {translator.translateText(
+                    "Running monitor test on a probe. This usually takes a minute or two to complete because we need to notify the probe to run the test.",
+                  )}
                 </div>
               </div>
             )}

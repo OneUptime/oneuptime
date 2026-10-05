@@ -1,17 +1,22 @@
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
 } from "Common/Utils/Slo/SloHealth";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The SLO form's field list and its client-side validators, kept in a plain
@@ -35,11 +40,25 @@ const SLO_TARGET_HELP_TEXT: string =
   "The share of time this SLO's monitors must be up, e.g. 99.9. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% allows about 4. Must be greater than 0 and at most 99.999 — a 100% target leaves no error budget to track.";
 
 /*
- * The create form asks only what an SLO is: its name, the objective it
- * holds, the period it is measured over, and how it is filed.
+ * The create form is one page of three rows: the SLO's name, its target,
+ * and one folded Advanced section. Only the target has no default, so it is
+ * the one question asked beside the name, and it comes prefilled with the
+ * usual "three nines": a suggestion people see and change, not a default
+ * the server would store on its own (the column has none). Everything else
+ * starts from the column's own default and waits, folded, under Advanced -
+ * the description, the at-risk threshold (20), the window (a rolling 30
+ * days, or a calendar month and its timezone) and the labels - and the
+ * folded section says what those defaults do (getSloAdvancedSummary), so
+ * nobody has to open it to know what 99.9 is measured over. The new SLO
+ * then opens on its own page, whose getting-started card asks for its
+ * monitors.
+ *
+ * It used to walk three steps for this - Basic Info, Objective, Period -
+ * when a target was all it needed. A form of three rows has no stepper
+ * (LongFormStepsGuard: findShortFormsWithSteps).
  *
  * How it measures has pages of its own, and every one of those settings
- * starts from a server default, so the wizard no longer asks for them:
+ * starts from a server default, so the form does not ask for them:
  *   - monitors: attached on the Monitors page, or by a Monitor Rule;
  *   - multiMonitorMode: the column's DB default, Any Monitor Down;
  *   - downtimeMonitorStatuses: every non-operational status of the project
@@ -47,33 +66,8 @@ const SLO_TARGET_HELP_TEXT: string =
  *   - isEnabled: the column's DB default, true.
  * ModelForm sends only the keys of the fields on the form, which is what
  * lets those defaults apply. The last three are edited on Settings.
- *
- * Objective and Period are separate steps because they answer separate
- * questions — "how reliable" and "over what time". The at-risk threshold
- * stays with the target, since it only means something next to it.
- *
- * Window Type stays on the same step as both conditional window fields:
- * validation only runs for the current step, and switching the type must
- * immediately reveal the field that belongs to that choice.
  */
-export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
-  {
-    id: "basic-info",
-    title: "Basic Info",
-  },
-  {
-    id: "objective",
-    title: "Objective",
-  },
-  {
-    id: "period",
-    title: "Period",
-  },
-  {
-    id: "labels",
-    title: "Labels",
-  },
-];
+export const SLO_SUGGESTED_TARGET_PERCENTAGE: number = 99.9;
 
 /*
  * Numbers are seeded here rather than through `defaultValue`, which
@@ -82,9 +76,130 @@ export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
  * and a stray key here would only suggest the form still decides them.
  */
 export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
+  targetPercentage: SLO_SUGGESTED_TARGET_PERCENTAGE,
   windowType: SloWindowType.Rolling,
   windowDays: DEFAULT_ROLLING_WINDOW_DAYS,
   atRiskThresholdPercentage: DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+};
+
+/*
+ * What the folded Advanced section says while everything in it is at its
+ * default: what the SLO is measured over, and when it warns.
+ */
+export const SLO_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
+  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left.",
+);
+
+type ValueOfFunction = (value: unknown) => unknown;
+
+/*
+ * A dropdown can hold the option it was picked as ({ label, value }) rather
+ * than its value; the value is what is compared.
+ */
+const valueOf: ValueOfFunction = (value: unknown): unknown => {
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.prototype.hasOwnProperty.call(value, "value") &&
+    Object.prototype.hasOwnProperty.call(value, "label")
+  ) {
+    return (value as { value: unknown }).value;
+  }
+
+  return value;
+};
+
+type IsLeftAtFunction = (value: unknown, defaultValue: unknown) => boolean;
+
+// Never touched, or still the default it was seeded with.
+const isLeftAt: IsLeftAtFunction = (
+  value: unknown,
+  defaultValue: unknown,
+): boolean => {
+  const current: unknown = valueOf(value);
+
+  if (current === undefined || current === null) {
+    return true;
+  }
+
+  if (typeof defaultValue === "number") {
+    return current !== "" && Number(current) === defaultValue;
+  }
+
+  return current === defaultValue;
+};
+
+type IsLeftEmptyFunction = (value: unknown) => boolean;
+
+const isLeftEmpty: IsLeftEmptyFunction = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return true;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length === 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+
+  return false;
+};
+
+export type IsSloAdvancedAtDefaultsFunction = (
+  values: FormValues<ServiceLevelObjective>,
+) => boolean;
+
+/*
+ * Whether everything folded under Advanced is what a new SLO starts with:
+ * no description, no labels, the at-risk threshold, window type and window
+ * length at their column defaults, and no timezone.
+ */
+export const isSloAdvancedAtDefaults: IsSloAdvancedAtDefaultsFunction = (
+  values: FormValues<ServiceLevelObjective>,
+): boolean => {
+  const formValues: Record<string, unknown> = (values || {}) as Record<
+    string,
+    unknown
+  >;
+
+  return (
+    isLeftEmpty(formValues["description"]) &&
+    isLeftEmpty(formValues["labels"]) &&
+    isLeftEmpty(formValues["timezone"]) &&
+    isLeftAt(formValues["windowType"], SloWindowType.Rolling) &&
+    isLeftAt(formValues["windowDays"], DEFAULT_ROLLING_WINDOW_DAYS) &&
+    isLeftAt(
+      formValues["atRiskThresholdPercentage"],
+      DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+    )
+  );
+};
+
+export type GetSloAdvancedSummaryFunction = (
+  values: FormValues<ServiceLevelObjective>,
+) => Array<string> | undefined;
+
+/*
+ * The folded section's line while nothing in it is changed: what the
+ * defaults do. Nothing once something is changed; the header then says
+ * "Configured", as for any other folded setting.
+ */
+export const getSloAdvancedSummary: GetSloAdvancedSummaryFunction = (
+  values: FormValues<ServiceLevelObjective>,
+): Array<string> | undefined => {
+  if (!isSloAdvancedAtDefaults(values)) {
+    return undefined;
+  }
+
+  return [
+    translateTemplate(SLO_ADVANCED_DEFAULTS_SUMMARY, {
+      days: DEFAULT_ROLLING_WINDOW_DAYS,
+      threshold: DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+    }),
+  ];
 };
 
 /*
@@ -93,10 +208,12 @@ export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
  * describe the same choice differently.
  */
 export const SLO_WINDOW_TYPE_DESCRIPTIONS: Record<SloWindowType, string> = {
-  [SloWindowType.Rolling]:
+  [SloWindowType.Rolling]: translationKey(
     "The last N days, recovering continuously as old downtime ages out of the window.",
-  [SloWindowType.CalendarMonth]:
+  ),
+  [SloWindowType.CalendarMonth]: translationKey(
     "Each calendar month on its own. The whole error budget resets on the 1st.",
+  ),
 };
 
 export type GetSloWindowTypeDropdownOptionsFunction =
@@ -186,10 +303,15 @@ export const validateWindowDays: ValidateWindowDaysFunction = (
 };
 
 /*
- * The create wizard's fields. Settings and the Overview's details card take
+ * The create form's fields. Settings and the Overview's details card take
  * their fields from this list (see pickSloFormFields) rather than declaring
  * them a second time, so a help text or validator changed here changes
  * everywhere the same column is edited.
+ *
+ * The folded fields stay next to each other, after the two open ones, all
+ * with the one section built here: BasicForm draws fields next to each
+ * other with one section as one header, and FormStepsScan counts them as
+ * one row by that same section.
  */
 export type GetSloFormFieldsFunction = () => Array<
   ModelField<ServiceLevelObjective>
@@ -198,33 +320,26 @@ export type GetSloFormFieldsFunction = () => Array<
 export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
   ModelField<ServiceLevelObjective>
 > => {
+  const advancedSection: FormFieldCollapsibleSection<ServiceLevelObjective> =
+    getAdvancedFormSection<ServiceLevelObjective>({
+      getSummary: getSloAdvancedSummary,
+    });
+
   return [
     {
       field: {
         name: true,
       },
       title: "Name",
-      stepId: "basic-info",
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "API Availability",
     },
     {
       field: {
-        description: true,
-      },
-      title: "Description",
-      stepId: "basic-info",
-      fieldType: FormFieldSchemaType.LongText,
-      required: false,
-      placeholder: "99.9% availability for the public API",
-    },
-    {
-      field: {
         targetPercentage: true,
       },
       title: "Target (%)",
-      stepId: "objective",
       description: SLO_TARGET_HELP_TEXT,
       fieldType: FormFieldSchemaType.Number,
       required: true,
@@ -233,10 +348,19 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
     },
     {
       field: {
+        description: true,
+      },
+      title: "Description",
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      placeholder: "99.9% availability for the public API",
+      collapsibleSection: advancedSection,
+    },
+    {
+      field: {
         atRiskThresholdPercentage: true,
       },
       title: "At-Risk Threshold (%)",
-      stepId: "objective",
       description:
         "The SLO turns At Risk when less than this percentage of its error budget remains, so you hear about a burn before the budget is gone. A whole number from 0 to 100; the default is 20.",
       fieldType: FormFieldSchemaType.Number,
@@ -244,24 +368,26 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
        * Required because the column is NOT NULL with a DB default, so the
        * box is always prefilled: clearing a field the UI called optional
        * would otherwise submit "" into an integer column and fail the whole
-       * save with an opaque server error.
+       * save with an opaque server error. A cleared box opens the folded
+       * section by itself, on the error.
        */
       required: true,
       placeholder: "20",
       customValidation: validateAtRiskThreshold,
+      collapsibleSection: advancedSection,
     },
     {
       field: {
         windowType: true,
       },
       title: "Window Type",
-      stepId: "period",
       description:
         "Rolling suits services that should be reliable at every moment. Calendar Month suits objectives reported, or promised to customers, per month.",
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: getSloWindowTypeDropdownOptions(),
       required: true,
       placeholder: "Rolling",
+      collapsibleSection: advancedSection,
       /*
        * Switching to Calendar Month hides Window (Days), and hidden fields
        * are skipped by validation — so a box the user had cleared would
@@ -301,7 +427,6 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
         windowDays: true,
       },
       title: "Window (Days)",
-      stepId: "period",
       /*
        * A free number rather than the old 7/28/30/90 dropdown: the column
        * accepts 1-366 (ServiceLevelObjectiveService.validateWindowDays), so
@@ -315,6 +440,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       required: true,
       placeholder: "30",
       customValidation: validateWindowDays,
+      collapsibleSection: advancedSection,
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType !== SloWindowType.CalendarMonth;
       },
@@ -324,45 +450,35 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
         timezone: true,
       },
       title: "Timezone",
-      stepId: "period",
       description:
         "Decides when each calendar month starts and ends. Defaults to UTC.",
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
       required: false,
       placeholder: "UTC",
+      collapsibleSection: advancedSection,
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType === SloWindowType.CalendarMonth;
       },
     },
-    {
-      field: {
-        labels: true,
-      },
-      title: "Labels",
-      stepId: "labels",
-      description: "Organize and filter SLOs with labels.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
-    },
+    // Last in the section, as on every form (LabelsFormFieldGuard).
+    getLabelsFormField<ServiceLevelObjective>({
+      collapsibleSection: advancedSection,
+    }),
   ];
 };
 
 /*
  * The create form's fields for the given columns, in the order asked for,
- * with their wizard step id dropped: the forms that reuse them (the
- * Overview's details card and the Settings cards) are single flat forms,
- * and a step id there would mean nothing.
+ * with the create form's Advanced section dropped: the forms that reuse
+ * them - the Overview's details card and the Settings cards - are flat
+ * forms of two or three fields, each card's own question, with nothing to
+ * fold. Labels are the one exception: they fold under an Advanced section
+ * of their own, as on every form (getLabelsFormField).
  *
  * Everything else is kept as it is, including onChange and showIf, so the
  * Calendar Month backfill and the conditional window fields behave on
- * Settings exactly as they do in the wizard.
+ * Settings exactly as they do on the create form.
  */
 export type PickSloFormFieldsFunction = (
   columns: Array<string>,
@@ -385,9 +501,15 @@ export const pickSloFormFields: PickSloFormFieldsFunction = (
       continue;
     }
 
+    if (column === "labels") {
+      pickedFields.push(getLabelsFormField<ServiceLevelObjective>());
+      continue;
+    }
+
     const pickedField: ModelField<ServiceLevelObjective> = {
       ...createField,
     };
+    delete pickedField.collapsibleSection;
     delete pickedField.stepId;
     pickedFields.push(pickedField);
   }

@@ -349,6 +349,8 @@ clusterName: prod
 
 ## 升級 Agent
 
+當代理程式比你的 OneUptime 舊時，叢集的 **叢集詳細資料** 中 **代理程式版本** 旁會出現警告標誌。選取它即可查看這個命令。
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -357,6 +359,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` 會保留您既有的設定（preset、叢集名稱、篩選條件）；在其之上傳入任何新的 `--set` 覆寫值。
+
+> **eBPF span 指標已更名。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 與 `traces.span.metrics.duration`（秒），不再傳送 `traces_spanmetrics_calls_total` 與 `traces_spanmetrics_latency`：資料序列相同，只是改用 OBI 保留的名稱（舊名稱已被 OBI 棄用）。以舊名稱建立的儀表板、圖表或指標監測器在升級後將收不到新資料，也不會出現錯誤——請改用新名稱，並一併更新 `filters.metrics` 中引用舊名稱的項目。
 
 ## 解除安裝 Agent
 
@@ -413,7 +417,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.*`         | 預設 | 它新增了什麼                                         |
 | ------------------------- | ---- | ---------------------------------------------------- |
 | `httpMetrics`             | 啟用 | 每個服務的 HTTP/gRPC RED 指標（請求率、延遲、錯誤）  |
-| `spanMetrics`             | 啟用 | 每個 span 的請求/回應大小與持續時間                  |
+| `spanMetrics`             | 啟用 | span 的呼叫次數與持續時間（`traces.span.metrics.*`） |
 | `serviceGraph`            | 啟用 | 呼叫端 → 被呼叫端的連線指標；驅動 service map        |
 | `networkMetrics`          | 啟用 | Pod 對 Pod TCP/UDP 流量計數器                        |
 | `networkInterZoneMetrics` | 停用 | 網路指標的跨區（inter-zone）變體（cardinality 加倍） |
@@ -709,7 +713,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 沒有指標出現
 
 1. 首先排除被拒絕的 ingestion key——這是最常見的原因，而且從 agent 端很容易被忽略。請見上文的 [Agent 顯示 "Disconnected"](#agent-顯示-disconnected)（或直接執行診斷指令碼）。
-2. 檢查叢集識別碼是否與您以 `clusterName` 傳入的值相符
+2. 檢查叢集的 **叢集名稱（clusterName）** 是否與您以 `clusterName` 傳入的值相符。它位於叢集 **Settings** 頁面的 **Cluster Details** 中；如需更正，請選擇 **Edit Details** 並展開 **More fields**
 3. 驗證 RBAC 權限：`kubectl get clusterrolebinding | grep kubernetes-agent`
 4. 檢查 OTel collector 日誌是否有匯出錯誤
 

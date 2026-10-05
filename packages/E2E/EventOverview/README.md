@@ -68,6 +68,14 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
 - **State changes** submitted from a hero action (incident, alert, both episodes, scheduled
   maintenance) are stamped like the server does: the new timeline entry starts now, the open
   one is closed and the event moves to the new state, so a background refresh reads the result.
+- **Measurements** (`?measurements=`): the project's incident, alert and maintenance
+  measurements, and each event's value of each one, worked out like the workers do - the real
+  `MeasurementEvaluator` over the event's own fixture timeline - and worked out again after a
+  hero state change. Incidents measure time to acknowledge, time to mitigate (to a Mitigated
+  state no fixture incident enters, so a resolved one skipped it), time to resolve and time to
+  postmortem, plus one measurement kept off incident pages and one switched off, which the
+  card must not ask for; alerts measure time to acknowledge and time to resolve (in minutes);
+  maintenance measures start delay, overrun and maintenance duration.
 
 Navigation targets that are not modelled (AI task, monitor, host, Kubernetes cluster, SLO,
 on-call policy, status page, user, team, roles and member lists, list pages (the metrics,
@@ -94,11 +102,12 @@ Query parameters, parsed once per page load:
 | `?theme=`     | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?role=`      | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
 | `?clusters=`  | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
+| `?measurements=` | `default`, `none` (no measurements: the card is not drawn and only the definitions are read) or `states` (adds Time to impact, whose end is before its start, and Time to close, created a moment ago, which no event has a value for yet) |
 | `?thread=`    | what the card's conversation holds: nobody has asked (default), `answered` (Sam's question and its cited answer, then the viewer's with a table, an executed action and a source), `working` (an answer being written, with live steps), `approval` (an action waiting for approval), `error` (a failed and a stopped answer) or `crowded` (twelve messages from six people, so the thread opens folded)            |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (218 tests):
+`EventOverview.spec.ts` (249 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -196,6 +205,12 @@ Query parameters, parsed once per page load:
   with `?resources=none` the open empty state, promising linked SLOs on the incident but not
   on scheduled maintenance; light and dark (`?theme=dark`) colours of labels, rows, counts,
   hairlines, icon tiles and hover.
+- **Measurements**: the incident, alert and maintenance pages' Measurements card under the
+  details card - names, what each measures, values in their own unit, Running for, Not started
+  yet, Not measured with the server's reason, Ends before it starts, Not worked out yet; the
+  requests (enabled and shown on event pages, in order, then this event's values, and nothing
+  more once the AI report arrives); a hero Resolve turning running clocks into numbers in place;
+  every maintenance phase; `?measurements=none` drawing nothing; the dark theme and a phone.
 - **Responsive**: no horizontal scroll at 390px on all five pages (and with evidence rows
   expanded); right-column card titles wider than 120px at 1280px.
 
@@ -235,7 +250,8 @@ conversation in it
 title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
 and the Affected Resources tests add
 `{incident,alert,scheduled-maintenance}-overview-affected-resources` and
-`incident-affected-resources-{many,mobile,empty,light,dark}`.
+`incident-affected-resources-{many,mobile,empty,light,dark}`, and the Measurements card
+`incident-measurements{,-dark,-mobile}`.
 
 ## Poke at it by hand
 
@@ -258,6 +274,8 @@ relative times against the real clock, not the pinned one.
 - Telemetry snapshots: no event carries a `telemetryQuery`, so the Logs / Spans / Metrics /
   Exceptions preview tabs and their analytics queries are not rendered.
 - The Monitor Summary card, the series-label "Affected Resource" card, runbook executions,
-  auto-remediation suggestions and custom fields are empty, so those cards stay hidden.
+  custom fields, and auto-remediation suggestions and decisions (what auto-remediation did,
+  which the Remediation card reads beside the suggestions) are empty, so those cards stay
+  hidden.
 - Stubs ignore `select`: every read returns the whole record, so a missing column in a page's
   select is not caught unless a test asserts on the recorded `select`.

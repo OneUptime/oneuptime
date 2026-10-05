@@ -22,6 +22,12 @@ import FieldType from "../Types/FieldType";
 import { getRuleDetailFields, RuleDetailFields } from "./RuleDetailFields";
 import RunRuleNowModal from "./RunRuleNowModal";
 import React, { Fragment, ReactElement, useMemo, useState } from "react";
+import {
+  translateNamedAction,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -64,7 +70,8 @@ const RuleView: <TBaseModel extends BaseModel>(
     ModelAction.Update,
   );
 
-  const singularName: string = model.singularName || "Rule";
+  const translator: Translator = useTranslator();
+  const singularName: string = model.singularName || translationKey("Rule");
   const ruleValues: Record<string, unknown> = (rule || {}) as unknown as Record<
     string,
     unknown
@@ -76,7 +83,9 @@ const RuleView: <TBaseModel extends BaseModel>(
   const runNowTooltip: string | undefined =
     updateGate.disabledReason ||
     (rule && !isEnabled
-      ? "This rule is disabled. Enable it before running it."
+      ? translator.translateText(
+          "This rule is disabled. Enable it before running it.",
+        )
       : undefined);
 
   return (
@@ -84,8 +93,14 @@ const RuleView: <TBaseModel extends BaseModel>(
       <CardModelDetail<TBaseModel>
         name={`${singularName} Details`}
         cardProps={{
-          title: ruleName || `${singularName} Details`,
-          description: `Here are the details of this ${singularName.toLowerCase()}.`,
+          title:
+            ruleName ||
+            translateNamedAction(translator, {
+              template: "{{itemName}} Details",
+              itemName: singularName,
+            }),
+          description:
+            "What this rule matches, and what it does to each match.",
         }}
         isEditable={true}
         formSteps={props.formSteps}

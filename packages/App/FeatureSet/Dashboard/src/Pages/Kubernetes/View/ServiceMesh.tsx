@@ -11,7 +11,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -29,6 +28,11 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import EmbeddedMetricCardGroup, {
+  EmbeddedMetricCardGroupEmptyStateProps,
+} from "../../../Components/Metrics/EmbeddedMetricCardGroup";
+import KubernetesMetricsSetupEmptyState from "../../../Components/Kubernetes/KubernetesMetricsSetupEmptyState";
+import { KubernetesMetricsSource } from "../Utils/KubernetesMetricsSetup";
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -784,6 +788,111 @@ function getCiliumHubbleQueries(cluster: string): Array<MetricQueryConfigData> {
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
+ * Tabs: one per mesh, each a few cards of charts
+ * ──────────────────────────────────────────────────────────────────────────────
+ */
+
+interface ServiceMeshCard {
+  icon: IconProp;
+  title: string;
+  description: string;
+  getQueries: (cluster: string) => Array<MetricQueryConfigData>;
+  /*
+   * Metrics the agent does not collect even with the mesh's scrape on (it
+   * reads the sidecars, not the control plane). The card explains that in
+   * place of its charts when they are empty, next to cards that have data.
+   */
+  notCollected?: KubernetesMetricsSource | undefined;
+}
+
+interface ServiceMeshTab {
+  name: string;
+  // Which kubernetes-agent values collect this mesh's metrics, if any.
+  source: KubernetesMetricsSource;
+  cards: Array<ServiceMeshCard>;
+}
+
+const SERVICE_MESH_TABS: Array<ServiceMeshTab> = [
+  {
+    name: "Cilium",
+    source: KubernetesMetricsSource.Cilium,
+    cards: [
+      {
+        icon: IconProp.ArrowCircleRight,
+        title: "Data Plane — eBPF",
+        description:
+          "Packet forwarding, drops, and policy enforcement at the eBPF datapath layer. Covers throughput, endpoint management, and BPF program regeneration.",
+        getQueries: getCiliumDataPlaneQueries,
+      },
+      {
+        icon: IconProp.Settings,
+        title: "Control Plane — Agent",
+        description:
+          "Cilium agent managing security identities, network policies, BPF maps, and IPAM. Monitors policy health, identity allocation, and agent errors.",
+        getQueries: getCiliumControlPlaneQueries,
+      },
+      {
+        icon: IconProp.Eye,
+        title: "Hubble — Observability",
+        description:
+          "Hubble network flow observability layer. Tracks flow processing throughput, DNS visibility, TCP connection flags, and dropped flows.",
+        getQueries: getCiliumHubbleQueries,
+      },
+    ],
+  },
+  {
+    name: "Istio",
+    source: KubernetesMetricsSource.Istio,
+    cards: [
+      {
+        icon: IconProp.ArrowCircleRight,
+        title: "Data Plane — Traffic",
+        description:
+          "HTTP and TCP traffic flowing through Envoy sidecar proxies. Covers request throughput, latency, payload sizes, and connection lifecycle.",
+        getQueries: getIstioTrafficQueries,
+      },
+      {
+        icon: IconProp.Settings,
+        title: "Control Plane — Pilot (istiod)",
+        description:
+          "Istio Pilot manages xDS configuration distribution to all Envoy proxies. Monitors push throughput, errors, convergence time, and listener conflicts.",
+        getQueries: getIstioPilotQueries,
+        notCollected: KubernetesMetricsSource.Istiod,
+      },
+      {
+        icon: IconProp.Globe,
+        title: "Envoy Proxy",
+        description:
+          "Low-level Envoy sidecar proxy metrics. Tracks upstream connection pools, request timeouts, retries, and connection failures.",
+        getQueries: getEnvoyQueries,
+      },
+    ],
+  },
+  {
+    name: "Linkerd",
+    source: KubernetesMetricsSource.Linkerd,
+    cards: [
+      {
+        icon: IconProp.ArrowCircleRight,
+        title: "Data Plane — Traffic",
+        description:
+          "Request throughput, response latency, and TCP connection metrics from Linkerd proxy sidecars.",
+        getQueries: getLinkerdTrafficQueries,
+      },
+      {
+        icon: IconProp.Settings,
+        title: "Control Plane",
+        description:
+          "Linkerd control plane components: identity (mTLS certificate issuance), destination (service discovery), and proxy injector (sidecar injection).",
+        getQueries: getLinkerdControlPlaneQueries,
+        notCollected: KubernetesMetricsSource.LinkerdControlPlane,
+      },
+    ],
+  },
+];
+
+/*
+ * ──────────────────────────────────────────────────────────────────────────────
  * Main component
  * ──────────────────────────────────────────────────────────────────────────────
  */
@@ -853,105 +962,124 @@ const KubernetesClusterServiceMesh: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  const tabs: Array<Tab> = [
-    {
-      name: "Cilium",
+  /*
+   * Checking again resolves the page's range afresh, so "Past 1 hour" takes
+   * in the minutes since the agent was upgraded.
+   */
+  const resolveTimeRangeAgain: () => void = (): void => {
+    handleTimeRangeChange(timeRange);
+  };
+
+  /*
+   * The card a group draws in place of its empty charts: the cards' own
+   * heading and the page's range, with the setup hint for `source` in its
+   * body. Its header Refresh already resolves the range again, so it only
+   * asks the group to reload past the cache; Check again does both.
+   */
+  const renderSetupHint: (args: {
+    title: ReactElement;
+    description?: string | undefined;
+    source: KubernetesMetricsSource;
+    group: EmbeddedMetricCardGroupEmptyStateProps;
+  }) => ReactElement = (args: {
+    title: ReactElement;
+    description?: string | undefined;
+    source: KubernetesMetricsSource;
+    group: EmbeddedMetricCardGroupEmptyStateProps;
+  }): ReactElement => {
+    return (
+      <EmbeddedMetricCard
+        title={args.title}
+        description={args.description}
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+        onRefresh={args.group.checkAgain}
+      >
+        <KubernetesMetricsSetupEmptyState
+          source={args.source}
+          clusterName={clusterIdentifier}
+          isChecking={args.group.isChecking}
+          onCheckAgain={() => {
+            resolveTimeRangeAgain();
+            args.group.checkAgain();
+          }}
+        />
+      </EmbeddedMetricCard>
+    );
+  };
+
+  /*
+   * A mesh's tab says how its metrics are collected only once every one of
+   * its cards has loaded and found nothing (EmbeddedMetricCardGroup): once,
+   * in place of the cards, never above charts that have data. Keyed by tab,
+   * so a tab never shows the state of the tab before it.
+   */
+  const tabs: Array<Tab> = SERVICE_MESH_TABS.map((tab: ServiceMeshTab): Tab => {
+    return {
+      name: tab.name,
       children: (
-        <Fragment>
-          <EmbeddedMetricCard
-            title={getSectionTitle(
-              IconProp.ArrowCircleRight,
-              "Data Plane — eBPF",
-            )}
-            description="Packet forwarding, drops, and policy enforcement at the eBPF datapath layer. Covers throughput, endpoint management, and BPF program regeneration."
-            queryConfigs={getCiliumDataPlaneQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-          <EmbeddedMetricCard
-            title={getSectionTitle(IconProp.Settings, "Control Plane — Agent")}
-            description="Cilium agent managing security identities, network policies, BPF maps, and IPAM. Monitors policy health, identity allocation, and agent errors."
-            queryConfigs={getCiliumControlPlaneQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-          <EmbeddedMetricCard
-            title={getSectionTitle(IconProp.Eye, "Hubble — Observability")}
-            description="Hubble network flow observability layer. Tracks flow processing throughput, DNS visibility, TCP connection flags, and dropped flows."
-            queryConfigs={getCiliumHubbleQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-        </Fragment>
+        <EmbeddedMetricCardGroup
+          key={tab.name}
+          dataTestId={`service-mesh-${tab.source}`}
+          renderEmptyState={(
+            group: EmbeddedMetricCardGroupEmptyStateProps,
+          ): ReactElement => {
+            return renderSetupHint({
+              title: getSectionTitle(IconProp.FlowDiagram, tab.name),
+              source: tab.source,
+              group: group,
+            });
+          }}
+        >
+          {tab.cards.map((card: ServiceMeshCard): ReactElement => {
+            const metricCard: ReactElement = (
+              <EmbeddedMetricCard
+                key={card.title}
+                title={getSectionTitle(card.icon, card.title)}
+                description={card.description}
+                queryConfigs={card.getQueries(clusterIdentifier)}
+                timeRange={timeRange}
+                onTimeRangeChange={handleTimeRangeChange}
+                startAndEndDate={startAndEndDate}
+              />
+            );
+
+            const notCollected: KubernetesMetricsSource | undefined =
+              card.notCollected;
+
+            if (!notCollected) {
+              return metricCard;
+            }
+
+            /*
+             * A group of its own inside the tab's: it explains this card
+             * while the tab's other cards have data, and counts as one of
+             * the tab's cards otherwise.
+             */
+            return (
+              <EmbeddedMetricCardGroup
+                key={card.title}
+                dataTestId={`service-mesh-${notCollected}`}
+                renderEmptyState={(
+                  group: EmbeddedMetricCardGroupEmptyStateProps,
+                ): ReactElement => {
+                  return renderSetupHint({
+                    title: getSectionTitle(card.icon, card.title),
+                    description: card.description,
+                    source: notCollected,
+                    group: group,
+                  });
+                }}
+              >
+                {metricCard}
+              </EmbeddedMetricCardGroup>
+            );
+          })}
+        </EmbeddedMetricCardGroup>
       ),
-    },
-    {
-      name: "Istio",
-      children: (
-        <Fragment>
-          <EmbeddedMetricCard
-            title={getSectionTitle(
-              IconProp.ArrowCircleRight,
-              "Data Plane — Traffic",
-            )}
-            description="HTTP and TCP traffic flowing through Envoy sidecar proxies. Covers request throughput, latency, payload sizes, and connection lifecycle."
-            queryConfigs={getIstioTrafficQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-          <EmbeddedMetricCard
-            title={getSectionTitle(
-              IconProp.Settings,
-              "Control Plane — Pilot (istiod)",
-            )}
-            description="Istio Pilot manages xDS configuration distribution to all Envoy proxies. Monitors push throughput, errors, convergence time, and listener conflicts."
-            queryConfigs={getIstioPilotQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-          <EmbeddedMetricCard
-            title={getSectionTitle(IconProp.Globe, "Envoy Proxy")}
-            description="Low-level Envoy sidecar proxy metrics. Tracks upstream connection pools, request timeouts, retries, and connection failures."
-            queryConfigs={getEnvoyQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-        </Fragment>
-      ),
-    },
-    {
-      name: "Linkerd",
-      children: (
-        <Fragment>
-          <EmbeddedMetricCard
-            title={getSectionTitle(
-              IconProp.ArrowCircleRight,
-              "Data Plane — Traffic",
-            )}
-            description="Request throughput, response latency, and TCP connection metrics from Linkerd proxy sidecars."
-            queryConfigs={getLinkerdTrafficQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-          <EmbeddedMetricCard
-            title={getSectionTitle(IconProp.Settings, "Control Plane")}
-            description="Linkerd control plane components: identity (mTLS certificate issuance), destination (service discovery), and proxy injector (sidecar injection)."
-            queryConfigs={getLinkerdControlPlaneQueries(clusterIdentifier)}
-            timeRange={timeRange}
-            onTimeRangeChange={handleTimeRangeChange}
-            startAndEndDate={startAndEndDate}
-          />
-        </Fragment>
-      ),
-    },
-  ];
+    };
+  });
 
   /*
    * Issue #4105: every card reads the page's range, so a drag on any chart
@@ -964,30 +1092,6 @@ const KubernetesClusterServiceMesh: FunctionComponent<
       timeRange={timeRange}
       onTimeRangeChange={handleTimeRangeChange}
     >
-      {/* Info banner */}
-      <div className="mb-5 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <div className="flex-shrink-0 mt-0.5">
-          <Icon icon={IconProp.Info} className="h-5 w-5 text-blue-500" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-blue-800">
-            Service Mesh Metrics Configuration
-          </p>
-          <p className="mt-1 text-sm text-blue-600">
-            Service mesh metrics require{" "}
-            <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-              serviceMesh.enabled: true
-            </code>{" "}
-            and{" "}
-            <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-              serviceMesh.provider
-            </code>{" "}
-            to be configured in the kubernetes-agent Helm chart values. Select
-            the tab matching your provider below.
-          </p>
-        </div>
-      </div>
-
       {/* Tabbed content: Cilium | Istio | Linkerd */}
       <Tabs tabs={tabs} onTabChange={() => {}} />
     </TimeRangeZoomScope>

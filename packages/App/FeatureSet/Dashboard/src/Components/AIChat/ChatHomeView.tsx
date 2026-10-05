@@ -6,6 +6,11 @@ import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -28,6 +33,10 @@ export interface ComponentProps {
   isPageContextAttached?: boolean | undefined;
 }
 
+/*
+ * The suggestions are English keys. Each card shows its title and question
+ * in the reader's language, and asks the question it shows.
+ */
 const genericSuggestions: Array<SuggestedQuestion> = [
   {
     icon: IconProp.ChartBar,
@@ -56,23 +65,28 @@ const genericSuggestions: Array<SuggestedQuestion> = [
 const ChatHomeView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const context: DashboardPageContext | null | undefined =
     props.isPageContextAttached ? props.pageContext : null;
 
   const contextSuggestions: Array<SuggestedQuestion> = context
-    ? PageContextUtil.getSuggestions(context)
+    ? PageContextUtil.getSuggestions(context, translator)
     : [];
 
   const renderSuggestion: (suggestion: SuggestedQuestion) => ReactElement = (
     suggestion: SuggestedQuestion,
   ): ReactElement => {
+    const question: string = translator.translateText(
+      suggestion.question,
+    ) as string;
+
     return (
       <button
         key={suggestion.title}
         type="button"
         disabled={props.isSending}
         onClick={() => {
-          props.onAsk(suggestion.question);
+          props.onAsk(question);
         }}
         className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3.5 text-left transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
       >
@@ -81,10 +95,10 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
         </div>
         <div className="min-w-0">
           <div className="text-sm font-medium text-gray-900">
-            {suggestion.title}
+            {translator.translateText(suggestion.title)}
           </div>
           <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
-            {suggestion.question}
+            {question}
           </div>
         </div>
       </button>
@@ -104,9 +118,12 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
         {context ? (
           <>
             <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-              {context.isEntity
-                ? `What would you like to know about this ${context.noun}?`
-                : `What would you like to know about your ${context.noun}?`}
+              {translator.translateTemplate(
+                context.isEntity
+                  ? "What would you like to know about this {{noun}}?"
+                  : "What would you like to know about your {{noun}}?",
+                { noun: translatableTerm(context.noun, { inSentence: true }) },
+              )}
             </h3>
             {context.entityTitle && (
               <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
@@ -118,21 +135,22 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
               </div>
             )}
             <p className="mt-1.5 max-w-md text-sm leading-relaxed text-gray-500">
-              Answers are grounded in this page — OneUptime AI runs real queries
-              against your telemetry and cites them. Remove the context chip in
-              the composer to ask about anything else.
+              {translator.translateText(
+                "Answers are grounded in this page — OneUptime AI runs real queries against your telemetry and cites them. Remove the context chip in the composer to ask about anything else.",
+              )}
             </p>
           </>
         ) : (
           <>
             <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-              Ask AI about your data — or tell it to act
+              {translator.translateText(
+                "Ask AI about your data — or tell it to act",
+              )}
             </h3>
             <p className="mt-1.5 max-w-md text-sm leading-relaxed text-gray-500">
-              OneUptime AI runs real queries against your logs, traces, metrics,
-              incidents, monitors and Real User Monitoring — rendering charts
-              and tables inline — and can create incidents or acknowledge
-              alerts, always with your approval.
+              {translator.translateText(
+                "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.",
+              )}
             </p>
           </>
         )}
@@ -147,7 +165,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
       <div className="mb-8">
         {contextSuggestions.length > 0 && (
           <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-            Or explore everything
+            {translator.translateText("Or explore everything")}
           </div>
         )}
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -158,7 +176,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
       {!props.hideConversations && props.conversations.length > 0 && (
         <div className="min-h-0 flex-1">
           <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-            Your recent conversations
+            {translator.translateText("Your recent conversations")}
           </div>
           <div className="space-y-px">
             {props.conversations.map((conversation: AIConversation) => {
@@ -179,7 +197,8 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm text-gray-700 group-hover:text-gray-900">
-                      {conversation.title || "Untitled conversation"}
+                      {conversation.title ||
+                        translator.translateText("Untitled conversation")}
                     </div>
                     {conversation.lastMessageAt && (
                       <div className="mt-0.5 text-[11px] text-gray-400">
@@ -189,7 +208,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
                   </div>
                   <button
                     type="button"
-                    title="Delete conversation"
+                    title={translator.translateText("Delete conversation")}
                     onClick={(event: React.MouseEvent) => {
                       event.stopPropagation();
                       props.onDeleteConversation(conversationId);

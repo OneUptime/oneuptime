@@ -30,6 +30,11 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * The model tables are replaced by stand-ins that print the props that
  * matter, and the license request is answered per test. Billing is pinned in
  * every test: CI's config.env sets BILLING_ENABLED=true.
+ *
+ * Every request goes through API.fetch, and only one to the license route
+ * counts as asking for the license (mockLicenseFetch). The others - Settings
+ * > SCIM looking up the members team its new connections start on - get an
+ * empty list (mockServerFetch).
  */
 
 let billingEnabledForTest: boolean = false;
@@ -51,13 +56,23 @@ jest.mock("Common/UI/Config", () => {
 });
 
 const mockLicenseFetch: jest.Mock = jest.fn();
+const mockServerFetch: jest.Mock = jest.fn();
 
 jest.mock("Common/UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
       fetch: (...args: Array<unknown>): unknown => {
-        return mockLicenseFetch(...args);
+        const request: { url?: unknown } | undefined = args[0] as
+          | { url?: unknown }
+          | undefined;
+
+        // GET /api/global-config/license, whoever asks for it.
+        if (String(request?.url).includes("/global-config/license")) {
+          return mockLicenseFetch(...args);
+        }
+
+        return mockServerFetch(...args);
       },
       getFriendlyMessage: (): string => {
         return "";
@@ -80,6 +95,7 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
       isEditable?: boolean;
       isDeleteable?: boolean;
       actionButtons?: Array<MockActionButton>;
+      selectMoreFields?: Record<string, unknown>;
     }): ReactElement => {
       const visibleActions: Array<string> = (props.actionButtons || [])
         .filter((button: MockActionButton) => {
@@ -96,6 +112,7 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
           data-editable={String(Boolean(props.isEditable))}
           data-deleteable={String(Boolean(props.isDeleteable))}
           data-actions={visibleActions.join("|")}
+          data-selects={Object.keys(props.selectMoreFields || {}).join("|")}
         />
       );
     },
@@ -122,9 +139,19 @@ jest.mock("Common/UI/Components/Tabs/Tabs", () => {
 import SettingsSCIMPage from "../../../Dashboard/Identity/Pages/Settings/SCIM";
 import StatusPageSCIMPage from "../../../Dashboard/Identity/Pages/StatusPages/SCIM";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
-import { JSONObject } from "Common/Types/JSON";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionUtil from "Common/UI/Utils/Permission";
+import UserUtil from "Common/UI/Utils/User";
+import {
+  SCIM_SAVE_ACCESS_NOTICE_TEST_ID,
+  SCIM_SAVE_ACCESS_TITLE,
+} from "../../../Dashboard/Identity/Components/ScimSaveAccessNotice";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -224,13 +251,69 @@ const expectEditable: (screenCase: ScreenCase) => void = (
   );
 };
 
+/*
+ * The canned answer to every request that is not the license request: an
+ * empty list for a list read (the team and team-permission reads behind the
+ * members team a new project connection starts on).
+ */
+const answerServer: (request: {
+  method: unknown;
+  url: { toString: () => string };
+}) => Promise<HTTPResponse<JSONObject | JSONArray>> = async (request: {
+  method: unknown;
+  url: { toString: () => string };
+}): Promise<HTTPResponse<JSONObject | JSONArray>> => {
+  const url: string = request.url.toString();
+
+  if (url.endsWith("/get-list")) {
+    return new HTTPResponse<JSONArray>(
+      200,
+      { data: [], count: 0, skip: 0, limit: 0 },
+      {},
+    );
+  }
+
+  throw new Error(
+    `The fake server has no answer for ${String(request.method)} ${url}`,
+  );
+};
+
+/*
+ * Who is signed in. Settings > SCIM offers Create, Edit and Reset Bearer
+ * Token only to someone who could invite people to every team - a project
+ * owner (Dashboard/Identity/ScimSaveAccess) - so these checks of the license
+ * states sign in as one; the end of this file signs in as a project admin.
+ */
+const signInWith: (permission: Permission) => void = (
+  permission: Permission,
+): void => {
+  PermissionUtil.setProjectPermissions({
+    _type: "UserTenantAccessPermission",
+    projectId: new ObjectID(PROJECT_ID),
+    permissions: [
+      {
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+        scope: PermissionScope.All,
+        _type: "UserPermission",
+      },
+    ],
+  });
+};
+
 beforeEach(() => {
   billingEnabledForTest = false;
   mockLicenseFetch.mockReset();
+  mockServerFetch.mockReset();
+  mockServerFetch.mockImplementation(answerServer as never);
+  window.localStorage.clear();
+  signInWith(Permission.ProjectOwner);
 });
 
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
 });
 
 describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
@@ -430,5 +513,109 @@ describe.each(SCREENS)("$name", (screenCase: ScreenCase) => {
     expect(
       screen.queryByText("Learn about Enterprise Edition"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Someone who may see a project's SCIM connections but could not invite
+ * people to every team - a project admin - is not offered what the server
+ * would refuse them: no Create, no Edit, no Reset Bearer Token, whatever the
+ * license says. They can still view the URLs and delete a connection, and
+ * the screen says who can do the rest. A status page's SCIM has no teams,
+ * so it is unchanged for them.
+ */
+describe("Settings > SCIM for a project admin", () => {
+  const settingsScreen: ScreenCase = SCREENS[0]!;
+  const statusPageScreen: ScreenCase = SCREENS[1]!;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    signInWith(Permission.ProjectAdmin);
+  });
+
+  const expectAdminScreen: () => void = (): void => {
+    const table: HTMLElement = providerTable(settingsScreen);
+
+    expect(table).toHaveAttribute("data-createable", "false");
+    expect(table).toHaveAttribute("data-editable", "false");
+    expect(table).toHaveAttribute("data-deleteable", "true");
+    expect(table.getAttribute("data-actions")).toBe("View SCIM URLs");
+    // The server lets only a project owner read the token: it is not asked for.
+    expect(table.getAttribute("data-selects")?.split("|")).not.toContain(
+      "bearerToken",
+    );
+    expect(
+      screen.getByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
+    ).toHaveTextContent(SCIM_SAVE_ACCESS_TITLE);
+    // The license notice offers a reset they could not make.
+    expect(
+      screen.queryByTestId("enterprise-read-only-actions-notice"),
+    ).not.toBeInTheDocument();
+  };
+
+  test("valid license: no create, edit or reset, and the screen says who can", async () => {
+    answerLicense({ status: "valid", licenseValid: true });
+
+    await renderScreen(settingsScreen);
+
+    expectAdminScreen();
+  });
+
+  test("license required: the read-only banner stays, and the reset is not offered either", async () => {
+    answerLicense({ status: "expired", licenseValid: false });
+
+    await renderScreen(settingsScreen);
+
+    expect(
+      screen.getByTestId("enterprise-license-read-only-banner"),
+    ).toBeInTheDocument();
+    expectAdminScreen();
+  });
+
+  test("OneUptime Cloud: the same", async () => {
+    billingEnabledForTest = true;
+
+    await renderScreen(settingsScreen);
+
+    expectAdminScreen();
+  });
+
+  test("a master admin is offered everything, as the server allows", async () => {
+    UserUtil.setIsMasterAdmin(true);
+    answerLicense({ status: "valid", licenseValid: true });
+
+    await renderScreen(settingsScreen);
+
+    expectEditable(settingsScreen);
+    expect(
+      screen.queryByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a status page's SCIM, which has no teams, is unchanged", async () => {
+    answerLicense({ status: "valid", licenseValid: true });
+
+    await renderScreen(statusPageScreen);
+
+    expectEditable(statusPageScreen);
+    expect(
+      screen.queryByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a project owner sees no such notice, and the table reads the token for them", async () => {
+    window.localStorage.clear();
+    signInWith(Permission.ProjectOwner);
+    answerLicense({ status: "valid", licenseValid: true });
+
+    await renderScreen(settingsScreen);
+
+    expectEditable(settingsScreen);
+    expect(
+      screen.queryByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(
+      providerTable(settingsScreen).getAttribute("data-selects")?.split("|"),
+    ).toContain("bearerToken");
   });
 });

@@ -8,6 +8,7 @@ import {
   CardSelectOptionGroup,
 } from "../../CardSelect/CardSelect";
 import { DropdownOption, DropdownOptionGroup } from "../../Dropdown/Dropdown";
+import type { DropdownChange } from "../../Dropdown/DropdownChange";
 import { BulkAddedLabel } from "../../EntityDropdown/EntityDropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
@@ -16,8 +17,11 @@ import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/Databas
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
+import type IconProp from "../../../../Types/Icon/IconProp";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -51,11 +55,79 @@ export interface CategoryCheckboxProps {
   options: Array<CategoryCheckboxOption>;
 }
 
+/*
+ * What a field's footer (getFooterElement) can do to the field it is drawn
+ * under.
+ */
+export interface FieldFooterProps {
+  /*
+   * Sets the field's value the way picking it in the field would: the
+   * field's onChange is called first - for a dropdown, with what the pick
+   * changed as the field's options name it (DropdownChange) - then the value
+   * is stored, and the form counts it as the user's own edit. For a footer
+   * that offers one-click picks, such as the status pages that show a
+   * maintenance event's monitors, suggested under its status page picker.
+   * Nothing is set until the footer calls it.
+   */
+  setValue: (value: any) => void;
+}
+
+/*
+ * A folded group of fields inside a form (or inside one step of it): a
+ * header the user opens to reach them. Every field that should be in the
+ * group carries the same section (same id), and the fields must be next to
+ * each other in the list - BasicForm folds consecutive fields that share an
+ * id into one section. For the usual case, rarely needed options under
+ * "Advanced", use getAdvancedFormSection (Forms/Utils/AdvancedFormSection)
+ * rather than writing one.
+ *
+ * A folded section says "Configured" on its header while anything in it is
+ * set, and opens by itself when a field in it fails validation.
+ */
 export interface FormFieldCollapsibleSection<TEntity> {
   id: string;
   title: string;
   description?: string | undefined;
-  isConfigured: (values: FormValues<TEntity>) => boolean;
+  /*
+   * Whether anything in the section is set. Left out, the section works it
+   * out from its own fields: one of them holding a value other than empty
+   * or its default (isFormSectionConfigured).
+   */
+  isConfigured?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * Whether the section starts open when it is configured as the form
+   * opens - an edit form, or a default that fills a field in. True when left
+   * out: a section of details someone wrote opens to show them. A More
+   * fields section (getAdvancedFormSection) sets it to false: it always
+   * starts folded, and its header shows what is set instead.
+   */
+  openWhenConfigured?: boolean | undefined;
+  /*
+   * Folded, the header lists the fields the section holds by name - "Declared
+   * At · Initial State · Labels" - with the set ones as chips that say what
+   * they are set to. For a section whose title does not say what is in it:
+   * More fields. Left out, a folded header shows only the fields that are
+   * set (FoldedSection).
+   */
+  listFieldsWhileFolded?: boolean | undefined;
+  // Drawn in a tile before the title (More fields: IconProp.AdjustmentHorizontal).
+  icon?: IconProp | undefined;
+  /*
+   * What the folded fields are set to, in plain words, shown under the
+   * title while the section is folded - so the form says what will happen
+   * without being opened, and a section whose defaults are right for most
+   * people can stay folded ("Subscribers of the event's status pages are
+   * notified when it is scheduled, when it starts and when it ends.").
+   * Worked out from the form's values as they are now, so it follows what
+   * is ticked. Whole English sentences: each is looked up in the
+   * translations on its own (keep them in translationKey() so the string
+   * extractor finds them). Drawn under what the section lists; a section
+   * that does not list its fields shows it in place of the chips of what is
+   * set, since the sentences already say it.
+   */
+  getSummary?:
+    | ((values: FormValues<TEntity>) => Array<string> | undefined)
+    | undefined;
 }
 
 export default interface Field<TEntity> {
@@ -88,10 +160,29 @@ export default interface Field<TEntity> {
     | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
+  /*
+   * The model a dropdown lists. ModelForm fetches it with its colour column,
+   * so a state, severity or monitor status shows its colour before its name
+   * (Field.fetchDropdownOptions, when a field has one, keeps those colours).
+   */
   dropdownModal?: {
     type: DatabaseBaseModelType;
     labelField: string;
     valueField: string;
+    /*
+     * The order to list the options in, by columns of the dropdown's model -
+     * `{ order: SortOrder.Ascending }` lists states in the order an incident
+     * moves through them. Unset, the list comes in the server's default
+     * order (newest first).
+     */
+    sort?: { [columnName: string]: SortOrder } | undefined;
+    /*
+     * Only the rows of the dropdown's model that match this, by its columns
+     * - `{ isVerified: true }` lists only the domains a project has verified.
+     * Both the list the form fetches and the dropdown's own search are
+     * narrowed by it. Unset, every row the reader may see is listed.
+     */
+    query?: Record<string, unknown> | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a
@@ -105,6 +196,12 @@ export default interface Field<TEntity> {
     accessControlColumnTitle: string;
   };
   fileTypes?: Array<MimeType> | undefined;
+  /*
+   * File and ImageFile fields: the largest file the field takes, in bytes,
+   * when it is less than the 10 MB every upload is held to. The picker says
+   * so, and refuses a larger file before uploading it.
+   */
+  maxFileSizeInBytes?: number | undefined;
   sideLink?: FormFieldSideLink | undefined;
   validation?: {
     minLength?: number | undefined;
@@ -136,11 +233,25 @@ export default interface Field<TEntity> {
   codeEditorToolbarActions?:
     | ((editor: CodeEditorActions) => ReactNode)
     | undefined;
+  /*
+   * Called with the new value before the form stores it. currentFormValues
+   * are the values as they were; setNewFormValues replaces them all (spread
+   * currentFormValues into what you hand it), and the new value is stored
+   * on top. For a Dropdown or MultiSelectDropdown field, change says what
+   * the pick was as the list showed it - the options picked now and before,
+   * with their labels - so a field can fill in a name after what was picked
+   * without a request of its own (a status page resource's display name
+   * follows its monitor: StatusPageResourceFormFields). A PeoplePicker field
+   * says the same of its people and teams, each labelled with its name (an
+   * owner rule is named after its owners: Dashboard Utils/Form/
+   * ResourceRuleForm).
+   */
   onChange?:
     | ((
         value: any,
         currentFormValues: FormValues<TEntity>,
         setNewFormValues: (currentFormValues: FormValues<TEntity>) => void,
+        change?: DropdownChange | undefined,
       ) => void)
     | undefined;
   fieldType?: FormFieldSchemaType;
@@ -149,11 +260,34 @@ export default interface Field<TEntity> {
   getDefaultValue?:
     | ((item: FormValues<TEntity>) => boolean | string | Date | number)
     | undefined;
+  /*
+   * For a field whose default follows other fields - an OIDC discovery URL
+   * made from the issuer, a description made from the provider's name -
+   * whether the value it holds now is that default. Such a value is not
+   * one the user chose, so a folded section does not show it as set, and a
+   * review step does not list it (isFormFieldValueSet).
+   */
+  isAtDefault?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * The default of the column the field writes, as its model declares it -
+   * filled in by ModelForm, on Create and Edit alike, for a field that names
+   * no default of its own (Utils/CreateFormDefaults). Not a value the field
+   * starts with: an Edit form shows the record as it is. It is what a folded
+   * section compares with, so a switch that is on because its column starts
+   * on is not shown as set, and one turned off is (isFormFieldValueSet).
+   */
+  columnDefaultValue?: boolean | string | number | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
+  /*
+   * Drawn under the field, from the form's values as they are now. error is
+   * the field's validation error once it has been touched. footer lets it
+   * set the field's value (FieldFooterProps); BasicForm always hands it in.
+   */
   getFooterElement?: (
     values: FormValues<TEntity>,
     error?: string,
+    footer?: FieldFooterProps,
   ) => ReactElement | undefined;
   // For Input fields: render errors in the footer linked by ariaDescribedby.
   errorMessageInFooter?: boolean | undefined;
@@ -171,6 +305,16 @@ export default interface Field<TEntity> {
    */
   customElementDrawsOwnLabel?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
+  /*
+   * For a PeoplePicker field: the kinds of record it offers (people, teams),
+   * in the order its search list shows them, and the form value each kind's
+   * picks are kept in. One picker can so stand in for an "owner users" and an
+   * "owner teams" dropdown and save exactly what they saved: ModelForm saves
+   * a value that is a column of its model as that column, and sends any
+   * other as misc data. The field's own key names it in the form only (use
+   * formOnly). OwnersFormField.ts builds the owners one.
+   */
+  peoplePicker?: PeoplePickerFieldConfig | undefined;
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;
   /*
@@ -256,6 +400,19 @@ export default interface Field<TEntity> {
     | undefined;
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
+
+  /*
+   * Listed on the review step (FormSummary) whatever it holds, even while it
+   * is folded into a collapsible section. A folded field is reviewed only
+   * when it holds something of the user's (isListedInFormSummary), which
+   * suits the options nobody touched; a default whose consequence should be
+   * read before saving says so here. Declare Incident's Notify Status Page
+   * Subscribers starts ticked under More fields, and its review row says who
+   * will be emailed and previews what they will be sent. A field its showIf
+   * hides is still left out, and a section reviewed by its own summary line
+   * (FormFieldCollapsibleSection.getSummary) still stands in for its fields.
+   */
+  alwaysInSummary?: boolean | undefined;
 
   // If true, this field will span the full row in multi-column layouts.
   spanFullRow?: boolean | undefined;

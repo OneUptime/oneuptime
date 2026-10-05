@@ -1,13 +1,20 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import Select from "../../../Types/BaseDatabase/Select";
+import { RuleCriteriaOperator } from "../../../Types/Rules/RuleCriteria";
+import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
 import React from "react";
 import type { ModelField } from "../Forms/ModelForm";
+import type Field from "../Forms/Types/Field";
 import type Filter from "../ModelFilter/Filter";
 import type Column from "../ModelTable/Column";
 import type Columns from "../ModelTable/Columns";
 import FieldType from "../Types/FieldType";
-import { getRuleCriteriaFieldName } from "./RuleCriteriaBuilder";
+import {
+  getRuleCriteriaFieldName,
+  getRuleCriteriaOperatorsForField,
+  isRuleCriteriaAddressRangeField,
+} from "./RuleCriteriaFields";
 import {
   getLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,
@@ -29,17 +36,90 @@ export interface RuleCriteriaTableHelpContent {
   markdown: string;
 }
 
-export const RULE_CRITERIA_HELP_SECTION_BODY: string = `Add one or more conditions, then choose how they are combined:
+/*
+ * The help panel's "Match Criteria" section, written for the conditions the
+ * page's fields actually offer. Each line names the operators exactly as the
+ * builder labels them.
+ */
+const HELP_COMBINE_LINES: string = `Add one or more conditions, then choose how they are combined:
 
-- **Match all (AND)** — every condition must match.
-- **Match any (OR)** — at least one condition must match.
+- **Match all (AND)** — every condition must be true.
+- **Match any (OR)** — at least one condition must be true.`;
 
-Choose an operator for each condition. Only operators supported by the selected field are shown; these can include:
+const HELP_OPERATOR_INTRO: string =
+  "Each condition compares one field. Only the operators that fit the field are offered:";
 
-- **Equality** — Equals or Does not equal.
-- **Text matching** — Contains, Does not contain, Starts with, or Ends with.
-- **Pattern matching** — Matches pattern or Does not match pattern. Patterns accept a regular expression or a \`*\` wildcard pattern.
-- **Multi-select matching** — Has any of, Has all of, or Has none of the selected values.`;
+const HELP_EQUALITY_LINE: string = "- **Equality** — Equals or Does not equal.";
+const HELP_TEXT_LINE: string =
+  "- **Text** — Contains, Does not contain, Starts with or Ends with.";
+const HELP_PATTERN_LINE: string =
+  "- **Patterns** — Matches pattern or Does not match pattern. A pattern is a case-insensitive regular expression (`^api-.*`) or a `*` wildcard (`*api*`).";
+const HELP_ADDRESS_RANGE_LINE: string =
+  "- **Address ranges** — Is in or Is not in a CIDR (`10.0.0.0/24`) or an octet range (`10.16-22.0-255.1-254`).";
+const HELP_LIST_LINE: string =
+  "- **Lists** — Has any of, Has all of or Has none of the selected values.";
+
+const HELP_EMPTY_MATCHES_EVERYTHING: string =
+  "A rule with no conditions applies to everything.";
+const HELP_EMPTY_NEEDS_CONDITION: string =
+  "This kind of rule needs at least one condition: with none, it would match nothing.";
+
+export function getRuleCriteriaHelpSectionBody<TEntity>(data: {
+  // The page's match fields; without them every kind of operator is listed.
+  fields?: Array<Field<TEntity>> | undefined;
+  requiresCondition?: boolean | undefined;
+}): string {
+  const fields: Array<Field<TEntity>> = data.fields || [];
+  const listsEverything: boolean = fields.length === 0;
+  const offered: Set<RuleCriteriaOperator> = new Set<RuleCriteriaOperator>();
+  let offersPatterns: boolean = listsEverything;
+  let offersAddressRanges: boolean = listsEverything;
+
+  for (const field of fields) {
+    for (const operator of getRuleCriteriaOperatorsForField(field)) {
+      offered.add(operator);
+
+      if (
+        operator === RuleCriteriaOperator.MatchesPattern ||
+        operator === RuleCriteriaOperator.DoesNotMatchPattern
+      ) {
+        if (isRuleCriteriaAddressRangeField(field)) {
+          offersAddressRanges = true;
+        } else {
+          offersPatterns = true;
+        }
+      }
+    }
+  }
+
+  const offers: (operator: RuleCriteriaOperator) => boolean = (
+    operator: RuleCriteriaOperator,
+  ): boolean => {
+    return listsEverything || offered.has(operator);
+  };
+
+  const operatorLines: Array<string> = [
+    offers(RuleCriteriaOperator.Equals) ? HELP_EQUALITY_LINE : "",
+    offers(RuleCriteriaOperator.Contains) ? HELP_TEXT_LINE : "",
+    offersPatterns ? HELP_PATTERN_LINE : "",
+    offersAddressRanges ? HELP_ADDRESS_RANGE_LINE : "",
+    offers(RuleCriteriaOperator.HasAnyOf) ? HELP_LIST_LINE : "",
+  ].filter((line: string): boolean => {
+    return line.length > 0;
+  });
+
+  return [
+    HELP_COMBINE_LINES,
+    [HELP_OPERATOR_INTRO, "", ...operatorLines].join("\n"),
+    data.requiresCondition
+      ? HELP_EMPTY_NEEDS_CONDITION
+      : HELP_EMPTY_MATCHES_EVERYTHING,
+  ].join("\n\n");
+}
+
+// The section as it reads for a page that offers every kind of operator.
+export const RULE_CRITERIA_HELP_SECTION_BODY: string =
+  getRuleCriteriaHelpSectionBody({});
 
 const RULE_CRITERIA_HELP_HEADING: RegExp =
   /^(#{1,6})[\t ]+Match Criteria(?:[\t ]+\(Filtering\))?[\t ]*$/;
@@ -50,7 +130,10 @@ const MARKDOWN_HEADING: RegExp = /^(#{1,6})[\t ]+/;
  * Other sections are intentionally retained because they describe the action
  * performed by that particular rule type.
  */
-export function replaceRuleCriteriaHelpMarkdown(markdown: string): string {
+export function replaceRuleCriteriaHelpMarkdown(
+  markdown: string,
+  sectionBody: string = RULE_CRITERIA_HELP_SECTION_BODY,
+): string {
   const lines: Array<string> = markdown.split("\n");
   const result: Array<string> = [];
   let sectionWasReplaced: boolean = false;
@@ -69,7 +152,7 @@ export function replaceRuleCriteriaHelpMarkdown(markdown: string): string {
     sectionWasReplaced = true;
     const headingLevel: number = targetHeadingMatch[1]!.length;
 
-    result.push(line, "", RULE_CRITERIA_HELP_SECTION_BODY, "");
+    result.push(line, "", sectionBody, "");
 
     while (index + 1 < lines.length) {
       const nextLine: string = lines[index + 1]!;
@@ -89,6 +172,7 @@ export function replaceRuleCriteriaHelpMarkdown(markdown: string): string {
 
 function replaceRuleCriteriaHelpContent(
   helpContent: RuleCriteriaTableHelpContent | undefined,
+  sectionBody: string,
 ): RuleCriteriaTableHelpContent | undefined {
   if (!helpContent) {
     return undefined;
@@ -96,6 +180,7 @@ function replaceRuleCriteriaHelpContent(
 
   const markdown: string = replaceRuleCriteriaHelpMarkdown(
     helpContent.markdown,
+    sectionBody,
   );
 
   if (markdown === helpContent.markdown) {
@@ -198,7 +283,15 @@ export function getRuleCriteriaTableConfiguration<
       return !fieldName || !legacyFieldNames.has(fieldName);
     }),
     selectMoreFields: selectMoreFields as Select<TEntity>,
-    helpContent: replaceRuleCriteriaHelpContent(data.helpContent),
+    helpContent: replaceRuleCriteriaHelpContent(
+      data.helpContent,
+      getRuleCriteriaHelpSectionBody({
+        fields: legacyFields,
+        requiresCondition: isRuleCriteriaConditionRequired(
+          data.model.tableName,
+        ),
+      }),
+    ),
   };
 }
 

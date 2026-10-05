@@ -6,7 +6,28 @@ OneUptime støtter sending av e-post via egendefinerte SMTP-servere med tre aute
 - **OAuth 2.0** – Moderne autentisering for Microsoft 365 og Google Workspace
 - **Ingen** – For reléservere som ikke krever autentisering
 
-Denne veiledningen dekker hvordan du konfigurerer OAuth 2.0-autentisering for Microsoft 365 og Google Workspace.
+Den første delen nedenfor viser hvor hver innstilling er. Resten av denne veiledningen handler om OAuth 2.0-autentisering for Microsoft 365 og Google Workspace.
+
+## Legge til en SMTP-server
+
+Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, i kortet **Egendefinerte SMTP-konfigurasjoner**. På en selvhostet installasjon angis serveren OneUptime selv sender fra under **Admin Dashboard > Innstillinger > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om det samme, i to trinn:
+
+1. **Server**: **Navn** (bare prosjektkonfigurasjoner), **Vertsnavn**, **Port** (en ny konfigurasjon starter på `587`), **Brukernavn** og **Passord**.
+2. **Avsender**: **E-post fra** og **Fra-navn** som e-postene dine kommer fra.
+
+Alt annet er felt sammen under **Flere felt** på slutten av trinnet Server. Mens det er felt sammen, sier overskriften hvordan e-post sendes, for eksempel "E-post sendes via SMTP, med pålogging med brukernavn og passord. TLS er påkrevd."
+
+| Felt                   | Hva det gjør                                                                                                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Transport**          | `SMTP` (standard), eller `Microsoft Graph` for en Microsoft 365-leietaker der SMTP AUTH er slått av. Velger du Microsoft Graph, skjules vertsnavn, port, brukernavn og passord, og OAuth-feltene vises.                                       |
+| **Krev TLS**           | På for en ny prosjektkonfigurasjon. E-post sendes bare over en kryptert tilkobling med et gyldig sertifikat. Når dette er av, krypteres e-post bare hvis serveren tilbyr det, og sertifikatet kontrolleres ikke. Port 465 er alltid kryptert. |
+| **Autentiseringstype** | `Username and Password` (standard), `OAuth`, eller `None` for et relé som ikke krever pålogging.                                                                                                                                              |
+| **OAuth-felt**         | Leverandørtype, klient-ID, klienthemmelighet, token-URL og omfang, som vises når OAuth eller Microsoft Graph er valgt.                                                                                                                        |
+| **Beskrivelse**        | Et notat til teamet ditt (bare prosjektkonfigurasjoner).                                                                                                                                                                                      |
+
+**Microsoft Graph.** Åpne **Flere felt**, sett **Transport** til `Microsoft Graph`, og fyll inn en Azure-app med apptillatelsen **Mail.Send**: klient-ID-en og klienthemmeligheten, token-URL-en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. E-post sendes fra postkassen i **E-post fra**, som må være en lisensiert postkasse i leietakeren din.
+
+Når en prosjektkonfigurasjon er lagret, sjekker **Send test-e-post** på raden at den fungerer.
 
 ## OAuth 2.0-autentisering
 
@@ -30,6 +51,8 @@ Når du konfigurerer SMTP med OAuth-autentisering i OneUptime, trenger du:
 | **Klienthemmelighet**    | Klienthemmelighet fra OAuth-leverandøren din (for Google: privat nøkkel)             |
 | **Token-URL**            | OAuth-tokenendepunkt-URL                                                             |
 | **Omfang**               | Påkrevde OAuth-omfang for SMTP-tilgang                                               |
+
+**Autentiseringstype** og OAuth-feltene ligger under **Flere felt** i skjemaets trinn Server.
 
 ---
 
@@ -120,7 +143,7 @@ I OneUptime, opprett eller rediger en SMTP-konfigurasjon med disse innstillingen
 | Token-URL            | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`     |
 | Omfang               | `https://outlook.office365.com/.default`                              |
 | Fra e-post           | Samme som brukernavn                                                  |
-| Sikker (TLS)         | Aktivert                                                              |
+| Krev TLS             | Aktivert                                                              |
 
 Erstatt `<tenant-id>` med katalog-(leietaker-)ID-en fra trinn 1.
 
@@ -202,7 +225,7 @@ I OneUptime, opprett eller rediger en SMTP-konfigurasjon med disse innstillingen
 | Token-URL            | `https://oauth2.googleapis.com/token`                                                                                                        |
 | Omfang               | `https://mail.google.com/`                                                                                                                   |
 | Fra e-post           | Samme som brukernavn                                                                                                                         |
-| Sikker (TLS)         | Aktivert                                                                                                                                     |
+| Krev TLS             | Aktivert                                                                                                                                     |
 
 **Viktig:** For Google (JWT Bearer) er klient-ID-en **tjenestekontoens e-post** (`client_email`), IKKE den numeriske `client_id`. Tjenestekontoen vil representere brukeren angitt i brukernavnfeltet for å sende e-poster.
 

@@ -225,7 +225,11 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   return (
     <MemberRoleAssignment
       title="Incident Roles"
-      description="Assign one team member per role for coordinated incident response."
+      /*
+       * A role can take several people (Allow Multiple Users); the card
+       * offers Add More on those, so it does not promise one each.
+       */
+      description="Who takes each role on this incident."
       roles={roles}
       assignedMembers={assignedMembers}
       availableUsers={availableUsers}
@@ -234,7 +238,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       onAssignMember={handleAssignMember}
       onUnassignMember={handleUnassignMember}
       onRefresh={fetchData}
-      emptyStateMessage="Configure incident roles in Incidents > Settings > Roles to start assigning team members."
+      emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
     />

@@ -1,15 +1,15 @@
 # Creare un workflow
 
-Per creare un workflow, apri **Flussi di lavoro** e clicca **Crea flusso di lavoro**. Ti accompagna una procedura guidata intitolata **Create a workflow**: prima **Start from**, poi **Name**, e infine il passaggio **Configure**, che compare solo se il modello che hai scelto richiede impostazioni proprie.
+Per creare un workflow, apri **Flussi di lavoro** e clicca **Crea flusso di lavoro**. La finestra **Crea un flusso di lavoro** ti chiede prima come vuoi cominciare, poi un nome. Un modello che ha bisogno di impostazioni proprie, come l'URL di un webhook di Slack, te le chiede in un passaggio in più.
 
-In **Start from** scegli come cominciare:
+Scegli come cominciare:
 
-- **Parti da zero**, accanto alla casella di ricerca, ti dà un'area di lavoro vuota.
-- Un modello ti dà un workflow già funzionante da modificare. Il passaggio si apre su alcuni modelli in **Consigliati**. Gli altri sono nelle loro categorie, come **Incidenti**, **Monitor** e **Jira**, ciascuna con il numero dei suoi modelli, e **Tutti i modelli** li elenca tutti. Una ricerca li scorre tutti: ogni parola che scrivi deve corrispondere, e ogni categoria mostra quanti dei suoi modelli corrispondono.
+- **Parti da zero**, in cima alla finestra, ti dà un'area di lavoro vuota. È da qui che parte la maggior parte dei workflow.
+- **Oppure parti da un modello** elenca alcuni modelli **Consigliati**. Per gli altri, scegli una categoria accanto alla casella di ricerca, come **Incidenti**, **Monitor** o **Jira**, oppure **Tutti i modelli**, o scrivi in **Cerca modelli…**. Ogni parola che scrivi deve corrispondere.
 
-Clicca un modello per vedere cosa fa prima di sceglierlo: il suo trigger, i passaggi che lo compongono e le impostazioni che ti chiederà. **Usa questo modello** lo porta a **Name**, e lo stesso fanno **Invio** e un doppio clic. I tasti freccia ti spostano nell'elenco, e `/` ti riporta alla casella di ricerca.
+Clicca un modello per vedere cosa fa: il suo trigger, i blocchi che lo compongono e le impostazioni che ti chiederà. Poi clicca **Usa questo modello**, oppure fai doppio clic sul modello. Nella casella di ricerca, i tasti freccia scelgono un modello e **Invio** lo usa. `/` ti riporta alla casella di ricerca.
 
-Una volta creato, apri **Costruttore** nel menu di sinistra: è la tela su cui progetti il workflow.
+I flussi di lavoro vengono creati disattivati, quindi non viene eseguito nulla finché non li attivi. Un nuovo workflow si apre nel **Costruttore**, la tela su cui lo progetti.
 
 ## La tela
 
@@ -33,7 +33,7 @@ Le modifiche si salvano da sole. Una pillola nella barra degli strumenti tiene i
 | Campo                              | Che cosa fa                                                                                                                                                                                                 |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Identifier** (sotto **ID**)      | L'id breve stampato sul blocco, tipo `log-1`. È il nome con cui gli altri blocchi lo richiamano: se lo rinomini, rompi ogni riferimento `{{local.components.…}}` che punta a questo blocco. L'intestazione del blocco, invece, è il nome del componente stesso e non si può cambiare. |
-| **Settings**                       | Quello che serve al blocco per fare il suo lavoro — un URL, un canale Slack, il testo di un messaggio. I campi facoltativi sono contrassegnati con **(Optional)**; tutti gli altri sono obbligatori. Le impostazioni meno usate stanno sotto la sezione **Advanced**. |
+| **Settings**                       | Quello che serve al blocco per fare il suo lavoro — un URL, un canale Slack, il testo di un messaggio. I campi facoltativi sono contrassegnati con **(Optional)**; tutti gli altri sono obbligatori. Le impostazioni meno usate sono raccolte sotto **More fields**, la cui intestazione le elenca e mostra quelle impostate. |
 | **Input**                          | Il puntino sul bordo superiore, dove arrivano le linee dai blocchi precedenti. I trigger non ce l'hanno — prima di loro non viene eseguito nulla.                                                            |
 | **Outputs**                        | I puntini lungo il bordo inferiore, con l'etichetta appena sopra, da cui partono le linee verso i blocchi successivi. Molti blocchi hanno un output **Success** e uno **Error** separati, così puoi gestire entrambi i casi. |
 

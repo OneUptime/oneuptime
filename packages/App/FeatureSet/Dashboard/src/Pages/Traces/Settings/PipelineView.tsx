@@ -76,7 +76,6 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
         name="Trace Pipeline Details"
         cardProps={{
           title: "Pipeline Details",
-          description: "Basic information about this pipeline.",
         }}
         isEditable={true}
         formFields={[
@@ -178,9 +177,6 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
             "Understanding AttributeRemapper, SpanNameRemapper, StatusRemapper, SpanKindRemapper, and CategoryProcessor",
           markdown: processorsDocMarkdown,
         }}
-        noItemsMessage={
-          "No processors configured. Click 'Add Processor' above to add your first processor."
-        }
         showRefreshButton={true}
         refreshToggle={refreshProcessorToggle}
         actionButtons={[

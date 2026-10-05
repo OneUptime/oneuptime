@@ -9,7 +9,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -21,6 +23,15 @@ import TestLLMProvider, {
   LLMProviderTestResult,
 } from "Common/UI/Utils/TestLLMProvider";
 import { BILLING_ENABLED } from "Common/UI/Config";
+
+/*
+ * Additional Parameters and, where projects are billed for AI, the cost per
+ * million tokens: folded at the end of Provider Settings, as on the
+ * Dashboard's own LLM provider form. Each used to be a wizard step of its
+ * own that every new provider had to walk through.
+ */
+const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
+  getAdvancedFormSection<LlmProvider>();
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -128,6 +139,10 @@ const Settings: FunctionComponent = (): ReactElement => {
           item.isGlobalLlm = true;
           return Promise.resolve(item);
         }}
+        /*
+         * What the provider is, then how to reach it - with the rarely
+         * changed options folded under Advanced at the end of the second.
+         */
         formSteps={[
           {
             title: t("pages.settings.llmProviders.stepBasicInfo"),
@@ -137,18 +152,6 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: t("pages.settings.llmProviders.stepProviderSettings"),
             id: "provider-settings",
           },
-          {
-            title: t("pages.settings.llmProviders.stepAdvanced"),
-            id: "advanced",
-          },
-          ...(BILLING_ENABLED
-            ? [
-                {
-                  title: t("pages.settings.llmProviders.stepCostSettings"),
-                  id: "cost-settings",
-                },
-              ]
-            : []),
         ]}
         formFields={[
           {
@@ -218,7 +221,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             stepId: "provider-settings",
             fieldType: FormFieldSchemaType.URL,
             required: false,
-            placeholder: "http://localhost:11434",
+            placeholder: "http://ollama:11434",
             description:
               "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
           },
@@ -227,9 +230,10 @@ const Settings: FunctionComponent = (): ReactElement => {
               additionalParams: true,
             },
             title: "Additional Parameters",
-            stepId: "advanced",
+            stepId: "provider-settings",
             fieldType: FormFieldSchemaType.JSON,
             required: false,
+            collapsibleSection: advancedSection,
             description:
               'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
           },
@@ -240,9 +244,17 @@ const Settings: FunctionComponent = (): ReactElement => {
                     costPerMillionTokensInUSDCents: true,
                   },
                   title: "Cost Per Million Tokens (USD Cents)",
-                  stepId: "cost-settings",
+                  stepId: "provider-settings",
                   fieldType: FormFieldSchemaType.Number,
                   required: false,
+                  collapsibleSection: advancedSection,
+                  /*
+                   * The column's default: a provider that is free to use.
+                   * Written here too so its Edit form, which does not start
+                   * from column defaults, reads 0 as nothing set rather than
+                   * "Configured".
+                   */
+                  defaultValue: 0,
                   placeholder: "0",
                   description:
                     "Cost per million tokens in USD cents. For example, if the cost is $0.01 per 1M tokens, enter 1.",

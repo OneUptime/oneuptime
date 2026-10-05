@@ -13,6 +13,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Regression tests for the IncidentOwner:SendStateChangeEmail cron's per-row
@@ -477,8 +478,14 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(fetch.id.toString()).toBe(INCIDENT_1_ID.toString());
     expect(fetch.props).toEqual({ isRoot: true });
 
-    // The single select now carries the severity relation...
-    expect(fetch.select["incidentSeverity"]).toEqual({ name: true });
+    /*
+     * The single select now carries the severity relation - its name and the
+     * colour the email paints it in...
+     */
+    expect(fetch.select["incidentSeverity"]).toEqual({
+      name: true,
+      color: true,
+    });
 
     // ...alongside every field the old first query selected.
     expect(fetch.select).toMatchObject({
@@ -613,8 +620,11 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
         projectName: "Prod Project",
         currentState: "Acknowledged",
         currentStateColor: Blue500.toString(),
+        // The readable shade of each state colour, for its name.
+        currentStateTextColor: EmailColorUtil.getColorPair(Blue500)!.textColor,
         previousState: "Identified",
         previousStateColor: Red500.toString(),
+        previousStateTextColor: EmailColorUtil.getColorPair(Red500)!.textColor,
         previousStateDurationText: `Was Identified for ${expectedDuration}`,
         incidentDescription: convertedHtmlOf("**Database** is unreachable"),
         resourcesAffected: "web-server-1, api-server-1",

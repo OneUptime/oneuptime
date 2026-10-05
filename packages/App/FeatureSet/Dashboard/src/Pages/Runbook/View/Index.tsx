@@ -23,7 +23,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { RUNBOOK_URL } from "Common/UI/Config";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
@@ -49,6 +49,13 @@ import {
   Red500,
   Yellow500,
 } from "Common/Types/BrandColors";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translateTemplate,
+  translateText,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   switch (status) {
@@ -73,7 +80,7 @@ function triggerSourceElement(execution: RunbookExecution): ReactElement {
   if (execution.incident) {
     return (
       <span className="inline-flex items-center gap-1 text-sm text-gray-700">
-        <span className="text-gray-500">Incident:</span>
+        <span className="text-gray-500">{translateText("Incident:")}</span>
         <IncidentElement incident={execution.incident as Incident} />
       </span>
     );
@@ -81,7 +88,7 @@ function triggerSourceElement(execution: RunbookExecution): ReactElement {
   if (execution.alert) {
     return (
       <span className="inline-flex items-center gap-1 text-sm text-gray-700">
-        <span className="text-gray-500">Alert:</span>
+        <span className="text-gray-500">{translateText("Alert:")}</span>
         <AlertElement alert={execution.alert as Alert} />
       </span>
     );
@@ -92,7 +99,7 @@ function triggerSourceElement(execution: RunbookExecution): ReactElement {
     if (sm._id) {
       return (
         <span className="inline-flex items-center gap-1 text-sm text-gray-700">
-          <span className="text-gray-500">Maintenance:</span>
+          <span className="text-gray-500">{translateText("Maintenance:")}</span>
           <AppLink
             className="hover:underline"
             to={RouteUtil.populateRouteParams(
@@ -100,26 +107,32 @@ function triggerSourceElement(execution: RunbookExecution): ReactElement {
               { modelId: new ObjectID(sm._id as string) },
             )}
           >
-            <span>{sm.title || "View"}</span>
+            <span>{sm.title || translateText("View")}</span>
           </AppLink>
         </span>
       );
     }
     return (
       <span className="text-sm text-gray-700">
-        Maintenance: {sm.title || "—"}
+        {translateTemplate("Maintenance: {{title}}", {
+          title: sm.title || "—",
+        })}
       </span>
     );
   }
   if (execution.triggeredByUser) {
     return (
       <span className="inline-flex items-center gap-1 text-sm text-gray-700">
-        <span className="text-gray-500">Manual run by</span>
+        <span className="text-gray-500">{translateText("Manual run by")}</span>
         <UserElement user={execution.triggeredByUser as User} />
       </span>
     );
   }
-  return <span className="text-sm text-gray-500">Manual / unknown</span>;
+  return (
+    <span className="text-sm text-gray-500">
+      {translateText("Manual / unknown")}
+    </span>
+  );
 }
 
 interface OverviewStats {
@@ -131,6 +144,7 @@ interface OverviewStats {
 }
 
 const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -300,7 +314,6 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Runbook > Overview"
         cardProps={{
           title: "Runbook",
-          description: "Overview of this runbook.",
           buttons: [
             {
               title: isRunning ? "Starting..." : "Run Now",
@@ -331,20 +344,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder:
               "What this runbook is for and when it should be triggered.",
           },
-          {
-            field: { labels: true },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Runbook>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -403,10 +403,12 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
           >
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Last Run
+              {translator.translateText("Last Run")}
             </div>
             {!stats.isLoaded ? (
-              <div className="text-sm text-gray-400">Loading…</div>
+              <div className="text-sm text-gray-400">
+                {translator.translateText("Loading…")}
+              </div>
             ) : lastExec ? (
               <div className="flex flex-col gap-1">
                 <div>
@@ -424,9 +426,16 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
               </div>
             ) : (
               <div className="text-sm text-gray-500">
-                Never run yet. Click{" "}
-                <span className="font-medium text-gray-700">Run Now</span> to
-                start one.
+                <TranslatedSentence
+                  template="Never run yet. Click {{runNow}} to start one."
+                  slots={{
+                    runNow: (
+                      <span className="font-medium text-gray-700">
+                        {translator.translateText("Run Now")}
+                      </span>
+                    ),
+                  }}
+                />
               </div>
             )}
           </div>
@@ -436,19 +445,19 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onClick={goToExecutionsList}
           >
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Total Runs
+              {translator.translateText("Total Runs")}
             </div>
             <div className="text-3xl font-semibold text-gray-900">
               {stats.isLoaded ? stats.totalRuns : "—"}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              All executions on record
+              {translator.translateText("All executions on record")}
             </div>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Outcomes
+              {translator.translateText("Outcomes")}
             </div>
             <div className="flex items-baseline gap-3 text-sm">
               <div className="flex items-center gap-1">
@@ -456,18 +465,22 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <span className="font-semibold text-gray-900">
                   {stats.isLoaded ? stats.successRuns : "—"}
                 </span>
-                <span className="text-gray-500">completed</span>
+                <span className="text-gray-500">
+                  {translator.translateText("completed")}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
                 <span className="font-semibold text-gray-900">
                   {stats.isLoaded ? stats.failedRuns : "—"}
                 </span>
-                <span className="text-gray-500">failed</span>
+                <span className="text-gray-500">
+                  {translator.translateText("failed")}
+                </span>
               </div>
             </div>
             <div className="text-xs text-gray-500 mt-2">
-              Across all recorded executions
+              {translator.translateText("Across all recorded executions")}
             </div>
           </div>
         </div>

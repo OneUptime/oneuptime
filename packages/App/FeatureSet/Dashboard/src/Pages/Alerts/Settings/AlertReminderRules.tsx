@@ -174,10 +174,6 @@ const AlertReminderRulesPage: FunctionComponent<
               id: "reminder-settings",
               title: "Reminder Settings",
             },
-            {
-              id: "status",
-              title: "Status",
-            },
           ] as Array<FormStep<AlertReminderRule>>
         }
         formFields={[
@@ -205,6 +201,21 @@ const AlertReminderRulesPage: FunctionComponent<
             placeholder:
               "Remind owners of critical alerts every 30 minutes until resolved",
           },
+          /*
+           * A rule starts on, so the create form does not ask. Turning it
+           * off is an edit, with the rule's name - not a step of its own.
+           */
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            stepId: "rule-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            doNotShowWhenCreating: true,
+            description: "Enable or disable this reminder rule.",
+          },
           {
             field: {
               alertSeverities: true,
@@ -216,6 +227,9 @@ const AlertReminderRulesPage: FunctionComponent<
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -264,16 +278,6 @@ const AlertReminderRulesPage: FunctionComponent<
             placeholder: "Resolved",
             description:
               "Stop sending reminders once the alert reaches this state. Defaults to Resolved.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "status",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this reminder rule.",
           },
         ]}
         showRefreshButton={true}

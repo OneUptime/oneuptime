@@ -1,15 +1,52 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   isEditMode: boolean;
+  /*
+   * Starts the board with its first widget: edit mode, with the Add Widget
+   * dialog open. Handed in only to someone who may edit the dashboard
+   * (DashboardView's edit gate), so a reader is never offered it.
+   */
+  onAddWidgetClick?: (() => void) | undefined;
 }
 
 /**
  * Empty state shown when the dashboard has no widgets yet.
+ *
+ * A dashboard made from Blank Dashboard opens here (Pages/Dashboards), so
+ * for someone who may edit it the next step is right on the empty canvas:
+ * Add Widget, which goes into edit mode with the widget catalog open. The
+ * toolbar's Edit Dashboard is in its ⋯ menu, where a first-time user would
+ * not look. While editing, the toolbar's own Add Widget is the way in.
  */
 const BlankCanvasElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const offersAddWidget: boolean =
+    !props.isEditMode && Boolean(props.onAddWidgetClick);
+
+  let description: string | undefined;
+
+  if (props.isEditMode) {
+    description = translator.translateText(
+      "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid.",
+    );
+  } else if (offersAddWidget) {
+    description = translator.translateText(
+      "Add a chart, a number or a list to start this dashboard.",
+    );
+  } else {
+    description = translator.translateText(
+      "This dashboard does not have any widgets.",
+    );
+  }
+
   return (
     <div
       className={`mx-3 mt-4 mb-4 rounded-2xl border border-dashed text-center py-20 px-10 ${
@@ -20,6 +57,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
       style={{
         boxShadow: "var(--ou-card-shadow, 0 2px 8px -2px rgba(0, 0, 0, 0.06))",
       }}
+      data-testid="dashboard-blank-canvas"
     >
       <div
         className="mx-auto w-14 h-14 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-4"
@@ -42,13 +80,24 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
         </svg>
       </div>
       <h3 className="text-sm font-semibold text-gray-700 mb-1">
-        No widgets yet
+        {translator.translateText("No widgets yet")}
       </h3>
-      <p className="text-sm text-gray-400 max-w-sm mx-auto">
-        {props.isEditMode
-          ? "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid."
-          : "This dashboard does not have any widgets."}
-      </p>
+      <p className="text-sm text-gray-400 max-w-sm mx-auto">{description}</p>
+      {offersAddWidget ? (
+        <div className="mt-5 flex justify-center">
+          <Button
+            title="Add Widget"
+            icon={IconProp.Add}
+            buttonStyle={ButtonStyleType.PRIMARY}
+            dataTestId="dashboard-blank-canvas-add-widget"
+            onClick={() => {
+              props.onAddWidgetClick?.();
+            }}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

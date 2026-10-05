@@ -14,7 +14,7 @@ Ogni passo ha:
 | **Richiede approvazione**      | Se attivo, il runbook si mette in pausa dopo questo passo e aspetta che un utente approvi prima di eseguire il successivo. |
 | **Config specifica del tipo**  | Script, URL, agente, ecc. — vedi sotto.                                                                                    |
 
-I passi vengono eseguiti **in ordine**. Riordinali con le frecce su/giù nell'editor dei Passi.
+I passi vengono eseguiti **in ordine**. Per cambiare l'ordine, trascinare un passo dalla maniglia a sinistra della sua intestazione; da tastiera, mettere a fuoco la maniglia, premere Spazio, spostarlo con i tasti freccia e premere di nuovo Spazio.
 
 ## Tipi di passo
 

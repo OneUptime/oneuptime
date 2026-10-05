@@ -1,15 +1,15 @@
 # Skapa ett arbetsflöde
 
-För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. En guide som heter **Create a workflow** tar dig genom det: först **Start from**, sedan **Namn**, och till sist ett **Konfigurera**-steg, som bara dyker upp när mallen du valde vill ha egna inställningar.
+För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. Dialogen **Skapa ett arbetsflöde** frågar först hur du vill börja och sedan efter ett namn. En mall som behöver egna inställningar, till exempel en Slack-webhook-URL, frågar efter dem i ett steg till.
 
-På **Start from** väljer du hur du vill börja:
+Välj hur du vill börja:
 
-- **Börja från grunden**, bredvid sökrutan, ger dig en tom arbetsyta.
-- En mall ger dig ett arbetsflöde som redan fungerar, redo att ändras. Steget öppnas med några mallar under **Rekommenderade**. Resten ligger under sina kategorier, som **Incidenter**, **Monitorer** och **Jira**, var och en med hur många mallar den har, och **Alla mallar** visar varenda en. En sökning letar i alla: varje ord du skriver måste matcha, och varje kategori visar hur många av dess mallar som matchade.
+- **Börja från grunden**, högst upp i dialogen, ger dig en tom arbetsyta. Det är här de flesta arbetsflöden börjar.
+- **Eller börja från en mall** visar några mallar under **Rekommenderade**. För resten väljer du en kategori bredvid sökrutan, som **Incidenter**, **Monitorer** eller **Jira**, eller **Alla mallar**, eller skriver i **Sök mallar…**. Varje ord du skriver måste matcha.
 
-Klicka på en mall för att se vad den gör innan du väljer den: dess utlösare, stegen den består av och inställningarna den kommer att fråga efter. **Använd den här mallen** tar den vidare till **Namn**, och det gör **Enter** och ett dubbelklick också. Piltangenterna flyttar dig genom listan, och `/` tar dig tillbaka till sökrutan.
+Klicka på en mall för att se vad den gör: dess utlösare, blocken den består av och inställningarna den kommer att fråga efter. Klicka sedan på **Använd den här mallen**, eller dubbelklicka på mallen. I sökrutan väljer piltangenterna en mall och **Enter** använder den. `/` tar dig tillbaka till sökrutan.
 
-När det är skapat, öppna **Byggare** i vänstermenyn. Det är arbetsytan där du designar arbetsflödet.
+Arbetsflöden skapas avstängda, så ingenting körs förrän du slår på dem. Ett nytt arbetsflöde öppnas i **Byggare**, arbetsytan där du designar det.
 
 ## Arbetsytan
 
@@ -33,7 +33,7 @@ Ett nytt block landar under det nedersta blocket på arbetsytan, och en ny utlö
 | Fält                          | Vad det gör                                                                                                                                                                                                 |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Identifier** (under **ID**) | Det korta id:t som visas på blocket, som `log-1`. Det är så andra block refererar till det här blocket, så byter du namn på det slutar varje `{{local.components.…}}`-referens som pekar hit att fungera. Blockets rubrik är komponentens eget namn och går inte att ändra. |
-| **Inställningar**             | Det blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext. Valfria fält är märkta **(Optional)**; allt annat är obligatoriskt. Mindre använda inställningar ligger bakom en **Avancerad**-utfällning. |
+| **Inställningar**             | Det blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext. Valfria fält är märkta **(Optional)**; allt annat är obligatoriskt. Mindre använda inställningar är ihopfällda under **Fler fält**, vars rubrik nämner dem och visar dem som är ifyllda. |
 | **Input**                     | Punkten på överkanten, dit linjer kommer in från tidigare block. Utlösare har ingen — inget körs före dem.                                                                                                   |
 | **Outputs**                   | Punkterna längs nederkanten, med sina etiketter strax ovanför, där linjer går ut till nästa block. Många block har separata **Success**- och **Error**-utgångar så att du kan hantera båda fallen.           |
 

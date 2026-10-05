@@ -9,17 +9,23 @@ import {
   buildEntitySearchSelect,
   buildEntitySearchSort,
   buildNavigationCommandDescriptors,
+  buildPageSearchCommandDescriptors,
+  canDeleteProject,
   computeCreateActionGates,
   getEntitySearchSpecs,
   getVisibleActionIds,
   isRoutePathNavigable,
+  PageSearchAvailability,
+  PageSearchCommandDescriptor,
   PALETTE_ENTITY_SEARCH_LIMIT,
   PALETTE_RECENTS_STORAGE_KEY,
+  PALETTE_SEARCH_PRIORITY,
   PaletteActionId,
   PaletteEntitySearchSpec,
   PaletteNavigationCatalogEntry,
   PaletteNavigationCommandDescriptor,
 } from "./DashboardCommandPaletteHelpers";
+import { getPageSearchAreas } from "./PageSearchIndex";
 import Route from "Common/Types/API/Route";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -37,25 +43,29 @@ import {
   PaletteSearchResult,
 } from "Common/UI/Components/CommandPalette/Types";
 import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
-import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
+import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -65,8 +75,12 @@ import { useTranslation } from "react-i18next";
  * AIChatPanel), owns the Cmd/Ctrl+K shortcut (the legacy NavBar binding is
  * disabled via disableCommandKShortcut) and the COMMAND_PALETTE_TOGGLE global
  * event, and feeds the generic Common CommandPalette with:
- *  - every page from the shared NavBar catalog (useDashboardNavigationItems),
+ *  - every product from the shared NavBar catalog (useDashboardNavigationItems),
  *  - quick actions (create flows, theme, Ask AI, global pages, logout),
+ *  - every page the menus link to and the actions done on them (API Keys,
+ *    On-Call Schedules, Delete Project...), from PageSearchIndex.ts. These
+ *    are offered while searching only, each with the breadcrumb of where it
+ *    lives,
  *  - live entity search across monitors/incidents/alerts/status pages/on-call.
  */
 
@@ -140,8 +154,24 @@ function createEntitySearchProvider<
   };
 }
 
+/*
+ * Whether the current project has monitor groups turned on, as its menu
+ * reads it. The palette is mounted outside the pages' error boundary, so a
+ * stored project it cannot read leaves Monitor Groups out rather than take
+ * the dashboard down.
+ */
+const isMonitorGroupsEnabled: () => boolean = (): boolean => {
+  try {
+    const project: Project | null = ProjectUtil.getCurrentProject();
+    return Boolean(project?.isFeatureFlagMonitorGroupsEnabled);
+  } catch {
+    return false;
+  }
+};
+
 const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const theme: Theme = useTheme();
 
@@ -230,8 +260,13 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
   let commands: Array<PaletteCommand> = [];
   let searchProviders: Array<PaletteSearchProvider> | undefined = undefined;
 
-  const hasProjectSelected: boolean =
-    ProjectUtil.getCurrentProjectId() !== null;
+  const currentProjectId: string =
+    ProjectUtil.getCurrentProjectId()?.toString() || "";
+  const hasProjectSelected: boolean = currentProjectId.length > 0;
+
+  // What the page rows are built from, while the palette is open.
+  let pageCatalogEntries: Array<PaletteNavigationCatalogEntry> = [];
+  let pageAvailability: PageSearchAvailability | null = null;
 
   if (isOpen) {
     const essentialsCategory: string = t("navbar.categories.essentials");
@@ -285,6 +320,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
             icon: descriptor.icon,
             iconColor: descriptor.iconColor,
             category: descriptor.category,
+            searchPriority: PALETTE_SEARCH_PRIORITY.product,
             onSelect: () => {
               closePalette();
               Navigation.navigate(new Route(descriptor.routePath));
@@ -488,6 +524,15 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       },
     );
 
+    // --- every page the menus link to: built below, and kept (useMemo) ----
+    pageCatalogEntries = catalogEntries;
+    pageAvailability = {
+      isBillingEnabled: BILLING_ENABLED,
+      isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
+      canDeleteProject:
+        hasProjectSelected && canDeleteProject({ permissions, isMasterAdmin }),
+    };
+
     commands = [...actionCommands, ...navigationCommands];
 
     // --- live entity search (project-scoped, so project required) ---------
@@ -539,6 +584,89 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         }),
       ];
     }
+  }
+
+  /*
+   * Every page the menus link to, and the actions done on them: about four
+   * hundred rows. They are built when Search opens, and again only when the
+   * project, the language, the products menu or what the user may do
+   * changes. A re-render while Search is open keeps the same rows, so the
+   * search keeps the work it did on them (PaletteFilter caches it per row).
+   */
+  const pageCommandsKey: string = pageAvailability
+    ? JSON.stringify([
+        currentProjectId,
+        translator.language,
+        pageAvailability,
+        pageCatalogEntries.map(
+          (entry: PaletteNavigationCatalogEntry): Array<string> => {
+            return [entry.routePath, entry.title];
+          },
+        ),
+      ])
+    : "";
+
+  const pageCommands: Array<PaletteCommand> = useMemo(() => {
+    if (!pageAvailability) {
+      return [];
+    }
+
+    const pagesCategory: string = t("commandPalette.categories.pages", "Pages");
+    const actionsCategory: string = t(
+      "commandPalette.categories.actions",
+      "Actions",
+    );
+
+    // The products menu's own names, so a breadcrumb names a product the same way.
+    const productTitleByRoutePath: Map<string, string> = new Map();
+    pageCatalogEntries.forEach((entry: PaletteNavigationCatalogEntry): void => {
+      if (!productTitleByRoutePath.has(entry.routePath)) {
+        productTitleByRoutePath.set(entry.routePath, entry.title);
+      }
+    });
+
+    return buildPageSearchCommandDescriptors({
+      areas: getPageSearchAreas(),
+      availability: pageAvailability,
+      getRouteTemplate: (pageKey: string): string | undefined => {
+        return RouteMap[pageKey]?.toString();
+      },
+      getRoutePath: (pageKey: string): string | undefined => {
+        const route: Route | undefined = RouteMap[pageKey];
+        return route
+          ? RouteUtil.populateRouteParams(route).toString()
+          : undefined;
+      },
+      getProductTitle: (routePath: string): string | undefined => {
+        return productTitleByRoutePath.get(routePath);
+      },
+      translate: (text: string): string => {
+        return translator.translateText(text) || text;
+      },
+      catalog: pageCatalogEntries,
+    }).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
+      return {
+        id: descriptor.id,
+        title: descriptor.title,
+        titleAliases: descriptor.titleAliases,
+        keywords: descriptor.keywords,
+        breadcrumb: descriptor.breadcrumb,
+        breadcrumbKeywords: descriptor.breadcrumbKeywords,
+        icon: descriptor.icon,
+        iconColor: descriptor.iconColor,
+        category: descriptor.isAction ? actionsCategory : pagesCategory,
+        isSearchOnly: true,
+        searchPriority: PALETTE_SEARCH_PRIORITY.page,
+        onSelect: () => {
+          closePalette();
+          Navigation.navigate(new Route(descriptor.routePath));
+        },
+      };
+    });
+  }, [pageCommandsKey]);
+
+  if (pageCommands.length > 0) {
+    commands = [...commands, ...pageCommands];
   }
 
   return (

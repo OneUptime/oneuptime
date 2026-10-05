@@ -2,7 +2,6 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
-import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -16,16 +15,21 @@ import {
   DropdownOptionLabel,
   DropdownValue,
 } from "../Dropdown/Dropdown";
+import { DropdownChange } from "../Dropdown/DropdownChange";
 import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -81,8 +85,17 @@ export interface EntityDropdownProps {
   // Drop-in compatibility with `Dropdown`.
   initialValue?: EntityDropdownValue | undefined;
   value?: EntityDropdownValue | undefined;
+  /*
+   * The value as the form keeps it (raw ids), and what the pick changed as
+   * the list showed it: the options picked now and before, with their labels
+   * (DropdownChange). A server-searched entry is often in no list the caller
+   * holds, so this is the one place its label is known.
+   */
   onChange?:
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void)
+    | ((
+        value: DropdownValue | Array<DropdownValue> | null,
+        change: DropdownChange,
+      ) => void)
     | undefined;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
@@ -105,6 +118,18 @@ export interface EntityDropdownProps {
   labelField?: string | undefined;
   valueField?: string | undefined;
   colorField?: string | undefined;
+  /*
+   * Only the entries that match this, by columns of modelType - `{
+   * isVerified: true }` offers only the domains a project has verified.
+   * Every list the dropdown asks the server for to offer entries (the
+   * search, and the Labels tab's entries for a label) is narrowed by it.
+   * Looking up the label of an entry that is already picked is not, so a
+   * saved value never shows as a raw id. The reader's search and label pick
+   * are added to it, never in place of it: a condition on labelField or on
+   * labels stays (EntityDropdownQuery). The Labels tab is left out when the
+   * query has a condition on labels that a label pick cannot be added to.
+   */
+  query?: Record<string, unknown> | undefined;
   /*
    * Override the auto-detection — explicitly hide the Labels tab even on a
    * labeled entity, or force-show it.
@@ -280,6 +305,7 @@ const detectLabelsField: (
 const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   props: EntityDropdownProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isMulti: boolean = Boolean(props.isMultiSelect);
   const modelType: { new (): BaseModel } | undefined = props.modelType;
   const labelField: string = props.labelField || "name";
@@ -310,6 +336,17 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return undefined;
   }, [modelType]);
   const colorField: string | undefined = props.colorField || detectedColorField;
+
+  /*
+   * The query is read from a ref when a request goes out, and the search
+   * re-runs when its content changes - not when a caller hands in an equal
+   * object on every render, which would search again on every render.
+   */
+  const baseQueryRef: React.MutableRefObject<Record<string, unknown>> = useRef<
+    Record<string, unknown>
+  >(props.query || {});
+  baseQueryRef.current = props.query || {};
+  const baseQueryKey: string = JSON.stringify(props.query || {});
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -323,7 +360,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     (props.enableLabelsTab !== undefined
       ? props.enableLabelsTab
       : hasLabelsAutoDetected) &&
-    Boolean(modelType);
+    Boolean(modelType) &&
+    canPickByLabel(props.query || {});
 
   /*
    * optionsCache is the single source of truth for which DropdownOption goes
@@ -636,6 +674,24 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     valueButtonRef.current?.focus();
   }, [isOpen]);
 
+  /*
+   * Clearing what a closed single-select shows takes away the value button
+   * and its Clear button, whichever of the two had focus, and puts the search
+   * input in their place. Focus follows to that input once it is mounted (see
+   * the effect after showSingleSelectedText), with the menu kept closed while
+   * it lands: clearing a field is not asking for a new pick, and a menu that
+   * opened by itself would keep Tab among its options instead of moving on to
+   * the next field. Without this focus went down with the pressed button, to
+   * the page.
+   */
+  const focusInputAfterClearRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const keepMenuClosedOnFocusRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  // Names the shown value to a screen reader (aria-describedby).
+  const valueLabelId: string = useId();
+
   useEffect(() => {
     return () => {
       if (debounceRef.current !== null) {
@@ -705,12 +761,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     debounceRef.current = window.setTimeout(
       async () => {
         try {
-          const query: Query<BaseModel> = {} as Query<BaseModel>;
-          if (trimmed.length > 0) {
-            (query as Record<string, unknown>)[labelField] = new Search(
-              trimmed,
-            );
-          }
+          const query: Query<BaseModel> = withSearch(
+            baseQueryRef.current,
+            labelField,
+            trimmed,
+          ) as Query<BaseModel>;
           const baseSelect: Record<string, true> = {
             _id: true,
             [labelField]: true,
@@ -760,6 +815,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     labelField,
     colorField,
     modelToOption,
+    baseQueryKey,
   ]);
 
   /*
@@ -955,23 +1011,52 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     }
   }, [availableOptions, filteredLabels, highlightedIndex, activeTab]);
 
-  const notify: (next: Array<string>) => void = useCallback(
-    (next: Array<string>): void => {
-      if (!props.onChange) {
-        return;
-      }
-      if (isMulti) {
-        props.onChange(next as Array<DropdownValue>);
-        return;
-      }
-      props.onChange(next.length > 0 ? next[0]! : null);
-    },
-    [isMulti, props.onChange],
-  );
+  /*
+   * The options behind some keys, as the list knows them. A key whose label
+   * has not been resolved yet is left out: its raw id is no name.
+   */
+  const getKnownOptions: (keys: Array<string>) => Array<DropdownOption> = (
+    keys: Array<string>,
+  ): Array<DropdownOption> => {
+    const known: Array<DropdownOption> = [];
 
-  const addOption: (opt: DropdownOption) => void = (
+    for (const key of keys) {
+      const option: DropdownOption | undefined =
+        optionsCacheRef.current.get(key);
+
+      if (option) {
+        known.push(option);
+      }
+    }
+
+    return known;
+  };
+
+  const notify: (next: Array<string>, previous: Array<string>) => void =
+    useCallback(
+      (next: Array<string>, previous: Array<string>): void => {
+        if (!props.onChange) {
+          return;
+        }
+
+        const change: DropdownChange = {
+          selectedOptions: getKnownOptions(next),
+          previousOptions: getKnownOptions(previous),
+        };
+
+        if (isMulti) {
+          props.onChange(next as Array<DropdownValue>, change);
+          return;
+        }
+        props.onChange(next.length > 0 ? next[0]! : null, change);
+      },
+      [isMulti, props.onChange],
+    );
+
+  const addOption: (
     opt: DropdownOption,
-  ): void => {
+    pickedWithKeyboard?: boolean,
+  ) => void = (opt: DropdownOption, pickedWithKeyboard?: boolean): void => {
     const key: string = valueKey(opt.value);
     optionsCacheRef.current.set(key, opt);
     if (isMulti) {
@@ -980,14 +1065,24 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const next: Array<string> = [...selectedKeys, key];
       setSelectedKeys(next);
-      notify(next);
+      notify(next, selectedKeys);
       setSearchQuery("");
       inputRef.current?.focus();
       return;
     }
     setSelectedKeys([key]);
-    notify([key]);
+    notify([key], selectedKeys);
     setSearchQuery("");
+    /*
+     * The pick closes the menu, which swaps the search input (or the option
+     * that had focus) for the value button. A keyboard user's focus follows
+     * to that button, as it does on Escape, instead of dropping to the page;
+     * a pointer pick leaves focus alone, so no focus ring appears after a
+     * click.
+     */
+    if (pickedWithKeyboard) {
+      focusFieldAfterSwapRef.current = true;
+    }
     setIsOpen(false);
   };
 
@@ -996,12 +1091,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       return k !== key;
     });
     setSelectedKeys(next);
-    notify(next);
+    notify(next, selectedKeys);
   };
 
   const clearAll: () => void = (): void => {
     setSelectedKeys([]);
-    notify([]);
+    notify([], selectedKeys);
   };
 
   /*
@@ -1010,7 +1105,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * since this is an intentional bulk action, not a typeahead.
    */
   const applyLabelSelection: () => Promise<void> = async (): Promise<void> => {
-    if (!modelType || selectedLabelIds.length === 0) {
+    const labelQuery: Record<string, unknown> | null = withLabels(
+      baseQueryRef.current,
+      selectedLabelIds,
+    );
+    if (!modelType || selectedLabelIds.length === 0 || !labelQuery) {
       return;
     }
     setIsApplyingLabels(true);
@@ -1025,9 +1124,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: modelType,
-        query: {
-          labels: new Includes(selectedLabelIds),
-        } as Query<BaseModel>,
+        query: labelQuery as Query<BaseModel>,
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: baseSelect as never,
@@ -1073,7 +1170,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const next: Array<string> = [...selectedKeys, ...additions];
       setSelectedKeys(next);
-      notify(next);
+      notify(next, selectedKeys);
       setSelectedLabelIds([]);
       setSearchQuery("");
       setActiveTab("options");
@@ -1099,7 +1196,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const fetchLabelPreview: (labelId: string) => Promise<void> = async (
     labelId: string,
   ): Promise<void> => {
-    if (!modelType) {
+    const labelQuery: Record<string, unknown> | null = withLabels(
+      baseQueryRef.current,
+      [labelId],
+    );
+    if (!modelType || !labelQuery) {
       return;
     }
     setLoadingLabelIds((prev: Set<string>): Set<string> => {
@@ -1124,9 +1225,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: modelType,
-        query: {
-          labels: new Includes([labelId]),
-        } as Query<BaseModel>,
+        query: labelQuery as Query<BaseModel>,
         limit: LABEL_PREVIEW_LIMIT,
         skip: 0,
         select: baseSelect as never,
@@ -1150,7 +1249,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     } catch {
       setLabelLoadErrors(
         (prev: Record<string, string>): Record<string, string> => {
-          return { ...prev, [labelId]: "Failed to load entries." };
+          return {
+            ...prev,
+            [labelId]: translationKey("Failed to load entries."),
+          };
         },
       );
     } finally {
@@ -1238,9 +1340,36 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * single value in-place when the popover is closed (single). When the
    * popover is open the input takes over for typing.
    */
-  const placeholderText: string = props.placeholder || "Select...";
+  const placeholderText: string =
+    translator.translateText(props.placeholder || "Select...") || "";
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
+
+  useLayoutEffect(() => {
+    if (!focusInputAfterClearRef.current || showSingleSelectedText) {
+      return;
+    }
+
+    focusInputAfterClearRef.current = false;
+    // The focus event fires inside focus(), so the flag is read by then.
+    keepMenuClosedOnFocusRef.current = true;
+    inputRef.current?.focus();
+    keepMenuClosedOnFocusRef.current = false;
+  }, [showSingleSelectedText]);
+
+  /*
+   * Clears what a closed single-select shows: its Clear button, or Backspace
+   * or Delete on the value button, as in a text field. Focus then goes to the
+   * search input that takes the two buttons' place (focusInputAfterClearRef).
+   */
+  const clearShownValue: () => void = (): void => {
+    if (props.disabled) {
+      return;
+    }
+
+    focusInputAfterClearRef.current = true;
+    clearAll();
+  };
 
   /*
    * Escape while the menu is open closes just the menu, wherever focus is in
@@ -1307,7 +1436,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 {!props.disabled && (
                   <button
                     type="button"
-                    aria-label={`Remove ${opt.label}`}
+                    aria-label={translator.translateTemplate(
+                      "Remove {{option}}",
+                      { option: opt.label },
+                    )}
                     onClick={(): void => {
                       removeKey(key);
                     }}
@@ -1336,83 +1468,119 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       <div ref={controlRef} className="relative">
         {/*
          * Single-select shows the resolved label in-place when closed so the
-         * chrome looks like a static value field. Click anywhere on the
-         * container to start typing.
+         * chrome looks like a static value field. Click anywhere on it to
+         * start typing.
+         *
+         * The value button and its Clear button sit side by side. The Clear
+         * button used to be inside the value button: a button in a button is
+         * invalid HTML (React warned "<button> cannot appear as a descendant
+         * of <button>"), and a screen reader reads a button's content as part
+         * of the button, so the Clear button was lost to it. Now:
+         *
+         *   - this wrapper draws the field's box, so pointing at either
+         *     button lights its border, as pointing anywhere on the one
+         *     button did;
+         *   - the value button covers the whole box: its -1px margin and
+         *     clear 1px border lie over the wrapper's border, so its content
+         *     and its focus outline sit where they always did;
+         *   - it keeps an empty place where the Clear button was, and the
+         *     Clear button is laid over that place (right-8: the value
+         *     button's px-3, the chevron's w-4 and the gap-1 between them).
          */}
         {showSingleSelectedText && (
-          <button
-            ref={valueButtonRef}
-            type="button"
-            disabled={props.disabled}
-            aria-labelledby={props.ariaLabelledby}
-            onClick={(): void => {
-              if (props.disabled) {
-                return;
-              }
-              focusFieldAfterSwapRef.current = true;
-              setIsOpen(true);
-            }}
-            onFocus={() => {
-              props.onFocus?.();
-            }}
-            className={`flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm shadow-sm transition-colors ${
+          <div
+            data-testid="entity-dropdown-value"
+            className={`relative rounded-lg border bg-white shadow-sm transition-colors ${
               props.error
                 ? "border-red-400"
                 : "border-gray-300 hover:border-indigo-300"
-            } ${
-              props.disabled
-                ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                : ""
-            }`}
+            } ${props.disabled ? "bg-gray-100" : ""}`}
           >
-            <span className="flex items-center gap-2">
-              {(() => {
-                const colorStr: string | undefined = optionColorString(
-                  selectedOptions[0]!,
-                );
-                if (!colorStr) {
-                  return null;
+            <button
+              ref={valueButtonRef}
+              type="button"
+              disabled={props.disabled}
+              aria-labelledby={props.ariaLabelledby}
+              /*
+               * Named by the field's label, the button would otherwise never
+               * say what is picked.
+               */
+              aria-describedby={props.ariaLabelledby ? valueLabelId : undefined}
+              onClick={(): void => {
+                if (props.disabled) {
+                  return;
                 }
-                return (
+                focusFieldAfterSwapRef.current = true;
+                setIsOpen(true);
+              }}
+              onFocus={() => {
+                props.onFocus?.();
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
+                if (event.key !== "Backspace" && event.key !== "Delete") {
+                  return;
+                }
+                event.preventDefault();
+                clearShownValue();
+              }}
+              className={`-m-px flex w-[calc(100%+2px)] items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm ${
+                props.disabled ? "cursor-not-allowed text-gray-400" : ""
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {(() => {
+                  const colorStr: string | undefined = optionColorString(
+                    selectedOptions[0]!,
+                  );
+                  if (!colorStr) {
+                    return null;
+                  }
+                  return (
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-2.5 w-2.5 rounded-full border border-gray-200"
+                      style={{ backgroundColor: colorStr }}
+                    />
+                  );
+                })()}
+                <span id={valueLabelId} className="font-medium text-gray-900">
+                  {selectedOptions[0]!.label}
+                </span>
+              </span>
+              <div className="flex items-center gap-1 text-gray-400">
+                {!props.disabled && (
                   <span
                     aria-hidden="true"
-                    className="inline-block h-2.5 w-2.5 rounded-full border border-gray-200"
-                    style={{ backgroundColor: colorStr }}
+                    data-testid="entity-dropdown-clear-place"
+                    className="box-content block h-3.5 w-3.5 p-0.5"
                   />
-                );
-              })()}
-              <span className="font-medium text-gray-900">
-                {selectedOptions[0]!.label}
-              </span>
-            </span>
-            <div className="flex items-center gap-1 text-gray-400">
-              {!props.disabled && (
-                <button
-                  type="button"
-                  aria-label="Clear selection"
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
-                    e.stopPropagation();
-                    clearAll();
-                  }}
-                  className="rounded p-0.5 hover:bg-gray-100 hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                )}
+                <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
+              </div>
+            </button>
+            {!props.disabled && (
+              <button
+                type="button"
+                aria-label={translator.translateText("Clear selection")}
+                data-testid="entity-dropdown-clear"
+                onClick={clearShownValue}
+                className="absolute right-8 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  <svg
-                    className="h-3.5 w-3.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              )}
-              <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-            </div>
-          </button>
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         )}
 
         {!showSingleSelectedText && (
@@ -1440,7 +1608,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               role="combobox"
               placeholder={
                 isMulti && selectedOptions.length > 0
-                  ? "Search to add more..."
+                  ? translator.translateText("Search to add more...")
                   : placeholderText
               }
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1449,7 +1617,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 setHighlightedIndex(-1);
               }}
               onFocus={() => {
-                setIsOpen(true);
+                // Not when focus lands here after a clear (clearShownValue).
+                if (!keepMenuClosedOnFocusRef.current) {
+                  setIsOpen(true);
+                }
                 props.onFocus?.();
               }}
               onBlur={() => {
@@ -1503,7 +1674,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   const opt: DropdownOption | undefined =
                     availableOptions[highlightedIndex];
                   if (opt) {
-                    addOption(opt);
+                    addOption(opt, true);
                     setHighlightedIndex(-1);
                   }
                   return;
@@ -1528,7 +1699,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             {!isMulti && selectedKeys.length > 0 && !props.disabled && (
               <button
                 type="button"
-                aria-label="Clear selection"
+                aria-label={translator.translateText("Clear selection")}
                 onClick={(): void => {
                   clearAll();
                   setSearchQuery("");
@@ -1590,7 +1761,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     : "text-gray-600 hover:bg-white/60 hover:text-gray-800"
                 }`}
               >
-                Results
+                {translator.translateText("Results")}
               </button>
               <button
                 type="button"
@@ -1612,7 +1783,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 }`}
               >
                 <Icon icon={IconProp.Tag} className="h-3.5 w-3.5" />
-                Labels
+                {translator.translateText("Labels")}
                 {selectedLabelIds.length > 0 && (
                   <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
                     {selectedLabelIds.length}
@@ -1620,9 +1791,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 )}
               </button>
               <span className="ml-auto pr-1 text-[11px] text-gray-400">
-                {activeTab === "options"
-                  ? "Pick individually"
-                  : "Bulk-add by tag"}
+                {translator.translateText(
+                  activeTab === "options"
+                    ? "Pick individually"
+                    : "Bulk-add by tag",
+                )}
               </span>
             </div>
           )}
@@ -1652,14 +1825,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                  <span>Searching...</span>
+                  <span>{translator.translateText("Searching...")}</span>
                 </div>
               )}
               {!isLoading && availableOptions.length === 0 && (
                 <div className="px-3 py-2 text-gray-500">
-                  {searchQuery.trim() === ""
-                    ? "No options."
-                    : "No matching entries."}
+                  {translator.translateText(
+                    searchQuery.trim() === ""
+                      ? "No options."
+                      : "No matching entries.",
+                  )}
                 </div>
               )}
               {!isLoading &&
@@ -1684,8 +1859,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                         ): void => {
                           event.preventDefault();
                         }}
-                        onClick={(): void => {
-                          addOption(opt);
+                        onClick={(
+                          event: React.MouseEvent<HTMLButtonElement>,
+                        ): void => {
+                          // Enter or Space on an option reached with Tab.
+                          addOption(opt, event.detail === 0);
                         }}
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
                           isHighlighted
@@ -1767,19 +1945,22 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                  <span>Loading labels...</span>
+                  <span>{translator.translateText("Loading labels...")}</span>
                 </div>
               )}
               {!isLoadingLabels && labelError !== "" && (
-                <div className="px-3 py-2 text-red-600">{labelError}</div>
+                <div className="px-3 py-2 text-red-600">
+                  {translator.translateText(labelError)}
+                </div>
               )}
               {!isLoadingLabels &&
                 labelError === "" &&
                 labelsLoaded &&
                 allLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels found in this project. Create labels first to use
-                    this shortcut.
+                    {translator.translateText(
+                      "No labels found in this project. Create labels first to use this shortcut.",
+                    )}
                   </div>
                 )}
               {!isLoadingLabels &&
@@ -1788,7 +1969,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 allLabels.length > 0 &&
                 filteredLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels match &ldquo;{searchQuery.trim()}&rdquo;.
+                    {translator.translateTemplate(
+                      "No labels match “{{search}}”.",
+                      { search: searchQuery.trim() },
+                    )}
                   </div>
                 )}
               {!isLoadingLabels &&
@@ -1823,9 +2007,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                         <div className="flex w-full items-center gap-2 px-2 py-1.5">
                           <button
                             type="button"
-                            aria-label={
-                              isExpanded ? "Collapse entries" : "Expand entries"
-                            }
+                            aria-label={translator.translateText(
+                              isExpanded
+                                ? "Collapse entries"
+                                : "Expand entries",
+                            )}
                             aria-expanded={isExpanded}
                             onMouseDown={(
                               event: React.MouseEvent<HTMLButtonElement>,
@@ -1892,7 +2078,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                               />
                             )}
                             <span className="truncate">
-                              {label.name || "Unnamed Label"}
+                              {label.name ||
+                                translator.translateText("Unnamed Label")}
                             </span>
                           </button>
                           {preview !== undefined && (
@@ -1927,15 +2114,21 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                                   />
                                 </svg>
-                                <span>Loading entries...</span>
+                                <span>
+                                  {translator.translateText(
+                                    "Loading entries...",
+                                  )}
+                                </span>
                               </div>
                             ) : previewError ? (
                               <div className="py-1 text-xs text-red-600">
-                                {previewError}
+                                {translator.translateText(previewError)}
                               </div>
                             ) : !preview || preview.length === 0 ? (
                               <div className="py-1 text-xs italic text-gray-500">
-                                No entries tagged with this label.
+                                {translator.translateText(
+                                  "No entries tagged with this label.",
+                                )}
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-1">
@@ -1979,7 +2172,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 disabled={isApplyingLabels}
                 className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
               >
-                Clear
+                {translator.translateText("Clear")}
               </button>
               <button
                 type="button"
@@ -2018,10 +2211,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   </svg>
                 )}
                 {isApplyingLabels
-                  ? "Adding..."
-                  : `Add entries from ${selectedLabelIds.length} label${
-                      selectedLabelIds.length === 1 ? "" : "s"
-                    }`}
+                  ? translator.translateText("Adding...")
+                  : translator.translatePlural(
+                      {
+                        one: "Add entries from {{count}} label",
+                        other: "Add entries from {{count}} labels",
+                      },
+                      selectedLabelIds.length,
+                    )}
               </button>
             </div>
           )}

@@ -10,6 +10,12 @@ import Card from "../Card/Card";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import { ModelField } from "../Forms/ModelForm";
 import ConfirmModal from "../Modal/ConfirmModal";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -32,7 +38,12 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const model: TBaseModel = new props.modelType();
+  const duplicateTitle: string = translateNamedAction(translator, {
+    template: "Duplicate {{itemName}}",
+    itemName: model.singularName || "",
+  });
 
   /* Duplicating writes a brand new record, so it needs create permission. */
   const createGate: PermissionGateResult = PermissionGate.check(
@@ -113,11 +124,18 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
   return (
     <>
       <Card
-        title={`Duplicate ${model.singularName}`}
-        description={`Duplicating this ${model.singularName?.toLowerCase()} will create another ${model.singularName?.toLowerCase()} exactly like this one.`}
+        title={duplicateTitle}
+        description={translator.translateTemplate(
+          "Duplicating this {{itemName}} will create another {{itemName}} exactly like this one.",
+          {
+            itemName: translatableTerm(model.singularName || "", {
+              inSentence: true,
+            }),
+          },
+        )}
         buttons={[
           {
-            title: `Duplicate ${model.singularName}`,
+            title: duplicateTitle,
             buttonStyle: ButtonStyleType.NORMAL,
             disabled: !createGate.isAllowed,
             tooltip: createGate.disabledReason,
@@ -136,8 +154,15 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
 
       {showModal ? (
         <BasicFormModal<TBaseModel>
-          description={`Are you sure you want to duplicate this ${model.singularName?.toLowerCase()}?`}
-          title={`Duplicate ${model.singularName}`}
+          description={translator.translateTemplate(
+            "Are you sure you want to duplicate this {{itemName}}?",
+            {
+              itemName: translatableTerm(model.singularName || "", {
+                inSentence: true,
+              }),
+            },
+          )}
+          title={duplicateTitle}
           onSubmit={(item: TBaseModel) => {
             setShowModal(false);
             duplicateItem(
@@ -147,7 +172,7 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText={`Duplicate ${model.singularName}`}
+          submitButtonText={duplicateTitle}
           formProps={{
             fields: props.fieldsToChange,
           }}

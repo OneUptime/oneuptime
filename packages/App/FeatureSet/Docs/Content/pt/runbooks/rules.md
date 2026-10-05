@@ -61,7 +61,7 @@ Você pode ver todas as execuções disparadas por regra em **Runbooks → Execu
 
 ## Runbooks desabilitados
 
-Se uma regra referencia um runbook com `isEnabled = false`, a regra ainda casa mas a execução é pulada. Reabilite o runbook para retomar.
+Se uma regra referencia um runbook desligado (**Run this runbook** desligado na página **Settings** do runbook, `isEnabled = false`), a regra ainda casa mas a execução é pulada. Ligue a chave novamente para retomar.
 
 ## Testando uma regra
 

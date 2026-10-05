@@ -8,19 +8,22 @@ Denne side dækker begge dele: de fem abonnementskanaler og hvordan besøgende t
 
 ## Abonnementskanaler
 
-En statusside understøtter fem kanaler, hver med sin egen kontakt på statussiden. Gå til **Statussider → din side → Abonnenter → Abonnementsindstillinger**:
+En statusside understøtter fem kanaler. De og den side, besøgende tilmelder sig på, slås til ét sted: kortet **Kanaler** under **Statussider → din side → Abonnenter → Abonnementsindstillinger**. Hver kontakt gemmes, så snart du slår den om:
 
-- **Aktivér e-mailabonnenter** (`enableEmailSubscribers`) — slået til som standard. Alt det øvrige er slået fra, indtil du selv tænder for det.
-- **Aktivér SMS-abonnenter** (`enableSmsSubscribers`) — slået fra som standard.
-- **Aktivér Slack-abonnenter** (`enableSlackSubscribers`) — slået fra som standard.
-- **Aktivér Microsoft Teams-abonnenter** (`enableMicrosoftTeamsSubscribers`) — slået fra som standard.
-- **Aktivér webhook-abonnenter** (`enableWebhookSubscribers`) — slået fra som standard.
+- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — slået til som standard. Sætter punktet **Abonner** i statussidens navigationslinje, hvor besøgende tilmelder sig via kanalerne nedenfor.
+- **E-mail** (`enableEmailSubscribers`) — slået til som standard. Alt det øvrige er slået fra, indtil du selv tænder for det.
+- **SMS** (`enableSmsSubscribers`) — slået fra som standard. På OneUptime Cloud betales hver SMS af projektets saldo til SMS og opkald, medmindre siden har sin egen **Twilio-konfiguration**. For at slå den til skal **SMS** også være slået til for projektet i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
+- **Slack** (`enableSlackSubscribers`) — slået fra som standard.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — slået fra som standard.
+- **Webhook** (`enableWebhookSubscribers`) — slået fra som standard.
 
-Hver kanal får også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er dér, du ser hvem der er tilmeldt, tilføjer nogen manuelt eller efterlader dig selv en **Noter**-note (`internalNote`) på en bestemt abonnent.
+Kontakterne bestemmer, hvordan besøgende selv kan tilmelde sig: statussiden afviser en tilmelding via en kanal, der er slået fra. De stopper ikke notifikationer: abonnenter, som dit team tilføjer i dashboardet, via API'et eller med et workflow, får opdateringer, uanset hvilke kanaler der er slået til.
 
-**Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationslinje dukker først op, når **Vis abonnentside** (`showSubscriberPageOnStatusPage`) er slået til *og* mindst én kanal er aktiveret. Slår du **Aktivér e-mailabonnenter** til, men lader **Vis abonnentside** stå slukket, har besøgende ingen vej til formularen.
+På OneUptime Cloud står planens navn ved siden af en kontakt, som din plan ikke omfatter: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**.
 
-De samme fem kontakter optræder en gang til i kortet **Abonnementsindstillinger** på **Avancerede indstillinger**, side om side med **Vis abonnentside**. Det er de samme kolonner nedenunder — vælg én skærm og bliv på den, og hold dig helst til den dedikerede side **Abonnementsindstillinger**, for det er dér, resten af abonnentopsætningen bor.
+Hver kanal får også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er dér, du ser hvem der er tilmeldt, tilføjer nogen manuelt eller efterlader dig selv en **Noter**-note (`internalNote`) på en bestemt abonnent. Så længe en kanal er slået fra, står det øverst i dens liste, med kanalens kontakt lige ved siden af, så du kan slå den til uden at forlade listen.
+
+**Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationslinje dukker først op, når **Vis abonnentside** er slået til *og* mindst én kanal er slået til. Slår du **E-mail** til, men lader **Vis abonnentside** stå slukket, har besøgende ingen vej til formularen.
 
 ## Hvad en besøgende ser på Abonner-siden
 
@@ -40,6 +43,8 @@ Som udgangspunkt får en abonnent alt på siden. To kontakter i kortet **Avancer
 
 - **Tillad abonnenter at vælge ressourcer** (`allowSubscribersToChooseResources`) — slået fra som standard. Slå den til, og abonnementsformularen får en kontakt, **Abonner på alle ressourcer**; ryd den, og **Vælg ressourcer at abonnere på** kommer frem, så den besøgende kan plukke enkelte ressourcer.
 - **Tillad abonnenter at vælge begivenhedstyper** (`allowSubscribersToChooseEventTypes`) — slået fra som standard. Samme form: en kontakt, **Abonner på alle hændelsestyper**, og **Vælg hændelsestyper at abonnere på** nedenunder, når den ryddes.
+
+Med en af dem slået til er formularen stadig én side: Disse valg ligger under **Præferencer**, foldet sammen under, hvor opdateringerne skal sendes hen. Sammenfoldet siger den på én linje, hvad den besøgende får (alle opdateringer fra statussiden, indtil der vælges færre), så den, der vil have det hele, trykker bare på **Abonner**. Siden **Opdater abonnement** viser de samme valg foldet ud.
 
 Hændelsestyperne er `Incident`, `Announcement` og `Scheduled Event`.
 
@@ -79,7 +84,7 @@ Abonnenter hører om de tre hændelsestyper ovenfor, men hver kilde har sin egen
 
 ### Notifikationer om meddelelser
 
-Meddelelsen selv bærer **Skal abonnenter på statussiden underrettes?** (`shouldStatusPageSubscribersBeNotified`), som på oprettelsesformularen vises som afkrydsningsfeltet **Underret statussideabonnenter** og er slået til som standard. Nævner meddelelsen monitorer under **Berørte overvågninger (valgfrit)**, afgrænses notifikationen til dem; lad feltet stå tomt, og alle abonnenter får besked.
+Meddelelsen selv bærer **Skal abonnenter på statussiden underrettes?** (`shouldStatusPageSubscribersBeNotified`), som på oprettelsesformularen vises som afkrydsningsfeltet **Underret statussideabonnenter** under **Tidsplan og notifikationer** og er slået til som standard. Abonnenter hører om den én gang, når meddelelsen begynder at blive vist, så valget træffes ved oprettelsen, og en redigering ændrer det ikke. Nævner meddelelsen monitorer under **Berørte monitorer**, afgrænses notifikationen til dem; lad feltet stå tomt, og alle abonnenter får besked.
 
 ### Planlagte vedligeholdelsesbegivenheder
 
@@ -111,12 +116,14 @@ Egen SMTP er værd at få på plads tidligt, hvis du har e-mailabonnenter: post 
 
 En meddelelse er en post på projektniveau (modellen `StatusPageAnnouncement`), som du breder ud til en eller flere statussider, eventuelt afgrænset til bestemte monitorer, med et vindue, hvor den vises.
 
-Du opretter en fra **Statussider → Mere → Meddelelser**, eller fra **Meddelelser** i en enkelt statussides sidemenu. Oprettelsesformularen er en guide i fire trin:
+Du opretter en fra **Statussider → Mere → Meddelelser**, eller fra **Meddelelser** i en enkelt statussides sidemenu. Oprettet fra en statusside er den side allerede valgt, så en titel og en beskrivelse er alt, der skal til, og **Opret meddelelse** fører dig tilbage til sidens liste **Meddelelser** (eller til projektets liste, hvis du fravalgte siden undervejs). Oprettelsesformularen har to trin og derefter en oversigt:
 
-1. **Grundlæggende oplysninger** — **Meddelelsestitel** (påkrævet, mindst to tegn), **Beskrivelse** (Markdown, valgfri) og **Vedhæftninger** til filer, der skal ligge sammen med meddelelsen på statussiden.
-2. **Statussider** — **Vis meddelelse på disse statussider**, en påkrævet flervalgsliste. Én meddelelse kan ramme flere sider på én gang.
-3. **Berørte ressourcer** — **Berørte overvågninger (valgfrit)**. Vælger du ingen, får alle abonnenter besked.
-4. **Tidsplan og indstillinger** — **Begynd at vise meddelelse den** (påkrævet, står som standard til nu), **Stop visning af meddelelse kl.** (valgfri) og **Underret statussideabonnenter** (slået til som standard).
+1. **Meddelelse** — **Titel** (påkrævet, mindst to tegn) og **Beskrivelse** (Markdown, påkrævet: det er teksten, folk læser på statussiden). **Vedhæftninger** til filer, der skal ligge sammen med meddelelsen på statussiden, ligger under **Flere felter**.
+2. **Statussider** — **Vis meddelelse på disse statussider**, et påkrævet flervalg (én meddelelse kan ramme flere sider på én gang), og **Berørte monitorer**: vælger du ingen, får alle abonnenter besked. Når du har valgt monitorer, foreslår formularen under valget af sider de statussider, der viser dem: "Statussider, der viser de berørte monitorer:" efterfulgt af hver sides navn. Klik på et navn for at tilføje siden, eller på **Tilføj alle**; intet vælges for dig. Herunder er **Tidsplan og notifikationer** foldet sammen til én linje, der siger, hvad der vil ske: "Vises nu og bliver stående, indtil du afslutter den. Abonnenter underrettes, når den begynder at blive vist." Fold den ud for at ændre **Begynd at vise meddelelse den** (som standard nu), **Stop visning af meddelelse kl.** (tomt: meddelelsen bliver stående, indtil du angiver en slutning) eller **Underret statussideabonnenter** (slået til som standard). Linjen følger dine svar. Slutningen skal ligge efter starten og, for en ny meddelelse, stadig ligge ude i fremtiden: en meddelelse, der allerede er slut, ville aldrig blive vist.
+
+Oversigten viser den samme linje. **Opret fra skabelon** udfylder formularen ud fra en skabelon; oprettet fra en statusside bevares skabelonens egne statussider ved siden af den side.
+
+Selve meddelelsens side redigerer den i de samme to trin. **Underret abonnenter om denne opdatering** står under beskrivelsen, og **Tidsplan** rummer start og slutning. At angive en slutning, der er passeret, er måden at tage en meddelelse ned på.
 
 Besøgende læser meddelelser på `/announcements`, delt op i **Aktive meddelelser** og **Tidligere meddelelser**, hver stemplet med **Annonceret den**. Meddelelser, der er live lige nu, hænges desuden op øverst på oversigtssiden. Er der intet at vise, står der *Ingen meddelelser* med en note om, at der ikke er offentliggjort nogen endnu.
 
@@ -127,18 +134,18 @@ Vedhæftninger serveres fra `GET {statusPageCrudPath}/status-page-announcement/a
 **Show At** (`showAnnouncementAt`) og **End At** (`endAnnouncementAt`) styrer det hele, men oversigtssiden og meddelelseslisten stiller hver sit spørgsmål, og forskellen snyder folk.
 
 - **Oversigtssiden** viser en meddelelse, når `showAnnouncementAt` ligger i fortiden, og `endAnnouncementAt` enten ligger i fremtiden eller er tom.
-- **Listen på `/announcements`** viser de meddelelser, hvis `showAnnouncementAt` falder inden for **Vis meddelelseshistorik (i dage)** (`showAnnouncementHistoryInDays`, standard 14), og deler dem så op i aktive og tidligere på klienten.
+- **Listen på `/announcements`** viser de meddelelser, hvis `showAnnouncementAt` falder inden for meddelelsernes historikvindue (`showAnnouncementHistoryInDays`, standard 14), og deler dem så op i aktive og tidligere på klienten.
 
 To konsekvenser, det er værd at planlægge efter:
 
 - **En meddelelse uden slutdato udløber aldrig.** Lad **Stop visning af meddelelse kl.** stå tom, og den bliver hængende på oversigtssiden i det uendelige. Sæt en slutdato på alt, der er tidsbegrænset.
 - **En gammel, men stadig aktiv meddelelse kan forsvinde fra listen.** Startede den for mere end `showAnnouncementHistoryInDays` siden, falder den ud af `/announcements`, men bliver på oversigten. Skru historikvinduet op, hvis du kører langvarige opslag.
 
-Om meddelelser overhovedet vises, styres af kortet **Meddelelsesindstillinger** på **Avancerede indstillinger**: **Vis meddelelser** (`showAnnouncementsOnStatusPage`, standard true) og **Vis meddelelseshistorik (i dage)** (standard 14). Er **Vis meddelelser** slået fra, afviser meddelelsesendepunktet anmodningen helt.
+Om meddelelser overhovedet vises, indstilles i kortet **Hvad din statusside viser** på **Avancerede indstillinger**: **Vis meddelelser** (`showAnnouncementsOnStatusPage`, standard true) og under den **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14). Er **Vis meddelelser** slået fra, afviser meddelelsesendepunktet anmodningen helt.
 
 ## Meddelelsesskabeloner
 
-Slår du den samme slags opslag op igen og igen — et månedligt vedligeholdelsesvarsel, en tilbagevendende forringelse hos en tredjepart — så lav den på forhånd. **Statussider → Indstillinger → Meddelelsesskabeloner** rummer modellen `StatusPageAnnouncementTemplate`, og dens formular beder om **Skabelonnavn**, **Skabelonbeskrivelse**, **Meddelelsestitel**, **Beskrivelse**, **Vis meddelelse på disse statussider**, **Berørte overvågninger (valgfrit)** og **Underret abonnenter**, så både udbredelsen og beslutningen om at underrette træffes én gang i stedet for hver gang.
+Slår du den samme slags opslag op igen og igen — et månedligt vedligeholdelsesvarsel, en tilbagevendende forringelse hos en tredjepart — så lav den på forhånd. **Statussider → Indstillinger → Meddelelsesskabeloner** rummer modellen `StatusPageAnnouncementTemplate`. Dens formular går gennem **Skabeloninformation** (**Skabelonnavn**, **Skabelonbeskrivelse**) og derefter meddelelsens egne trin: **Meddelelse** (**Titel**, **Beskrivelse**) og **Statussider** (**Vis meddelelse på disse statussider**, **Berørte monitorer** og **Underret statussideabonnenter**, slået til som standard), så både udbredelsen og beslutningen om at underrette træffes én gang i stedet for hver gang. En skabelon har ingen tidsplan: en meddelelse, der oprettes ud fra den, vises fra oprettelsen, medmindre du ændrer det under **Tidsplan og notifikationer**.
 
 ## Webhook-abonnenter og SSRF-beskyttelse
 

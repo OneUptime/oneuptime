@@ -11,8 +11,11 @@ import {
 } from "../../../Types/Form/FormTargetSettings";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
+import Color from "../../../Types/Color";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import {
   FormReferenceData,
@@ -94,8 +97,7 @@ type RowKey =
   | "impactStartedAt"
   | "incidentTemplate"
   | "onCallPolicies"
-  | "ownerUsers"
-  | "ownerTeams"
+  | "owners"
   | "customFields"
   | "statusPages"
   | "otherAnswers"
@@ -160,8 +162,7 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
       "impactStartedAt",
       "incidentTemplate",
       "onCallPolicies",
-      "ownerUsers",
-      "ownerTeams",
+      "owners",
       "customFields",
       "statusPages",
       "otherAnswers",
@@ -291,8 +292,13 @@ describe("getFormMappingRows: how a submission becomes an incident", () => {
 
     expect(linesOf(rows.incidentTemplate)).toEqual(["Value:Customer Report"]);
     expect(linesOf(rows.onCallPolicies)).toEqual(["Value:Primary"]);
-    expect(linesOf(rows.ownerUsers)).toEqual(["Value:Ada"]);
-    expect(linesOf(rows.ownerTeams)).toEqual(["Value:SRE"]);
+    // People and teams in one Owners row, people first.
+    expect(rows.owners?.title).toBe(FormsCopy.owners);
+    expect(linesOf(rows.owners)).toEqual(["Value:Ada, SRE"]);
+    expect(linesOf(rowsOf({}).owners)).toEqual([`Value:${FormsCopy.notSet}`]);
+    expect(
+      linesOf(rowsOf({ settings: { ownerTeamIds: [TEAM_ID] } }).owners),
+    ).toEqual(["Value:SRE"]);
     expect(linesOf(rowsOf({}).incidentTemplate)).toEqual([
       `Value:${FormsCopy.noTemplate}`,
     ]);
@@ -375,8 +381,7 @@ describe("getFormMappingRows: how a submission becomes a maintenance event", () 
       "monitors",
       "statusPages",
       "labels",
-      "ownerUsers",
-      "ownerTeams",
+      "owners",
       "showOnStatusPages",
       "notifySubscribers",
       "customFields",
@@ -437,13 +442,24 @@ describe("the On Submit settings dialog", () => {
       "attach:monitorIds",
       "attach:labelIds",
       "attach:onCallDutyPolicyIds",
-      "owners:ownerUserIds",
-      "owners:ownerTeamIds",
+      "owners:owners",
     ]);
     expect(fields[1]!.dropdownOptions).toEqual([
       { value: SEVERITY_ID, label: "Major" },
     ]);
     expect(fields[3]!.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+
+    // Owners: one people picker keeping people and teams where they were.
+    const owners: Field<JSONObject> = fields[6]!;
+
+    expect(owners.title).toBe(FormsCopy.owners);
+    expect(owners.description).toBe(FormsCopy.ownersDescription);
+    expect(owners.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+    expect(owners.peoplePicker?.kinds).toEqual([
+      { kind: PeoplePickerKind.User, valueKey: "ownerUserIds" },
+      { kind: PeoplePickerKind.Team, valueKey: "ownerTeamIds" },
+    ]);
+    expect(owners.formOnly).toBe(true);
 
     for (const field of fields) {
       expect(field.required).toBe(false);
@@ -465,12 +481,12 @@ describe("the On Submit settings dialog", () => {
       "attach:monitorIds",
       "attach:statusPageIds",
       "attach:labelIds",
-      "owners:ownerUserIds",
-      "owners:ownerTeamIds",
+      "owners:owners",
       "publishing:showOnStatusPages",
       "publishing:notifySubscribers",
     ]);
-    expect(fields[6]!.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(fields[4]!.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+    expect(fields[5]!.fieldType).toBe(FormFieldSchemaType.Toggle);
   });
 
   test("starts on the stored settings, dropping records the dialog cannot offer", () => {
@@ -619,5 +635,59 @@ describe("naming records", () => {
       { value: TEAM_ID, label: "SRE" },
     ]);
     expect(toDropdownOptions(undefined)).toEqual([]);
+  });
+
+  /*
+   * A severity (or a label) is offered with its colour, as every other
+   * severity picker offers it - the Severity setting used to list plain
+   * names.
+   */
+  test("as dropdown options, keeping a record's colour", () => {
+    const options: Array<DropdownOption> = toDropdownOptions([
+      { id: SEVERITY_ID, name: "Major", color: "#ef4444" },
+      { id: TEAM_ID, name: "SRE" },
+      { id: LABEL_ID, name: "customer-report", color: "  " },
+    ]);
+
+    expect(
+      options.map((option: DropdownOption) => {
+        return [option.label, option.color?.toString()];
+      }),
+    ).toEqual([
+      ["Major", "#ef4444"],
+      ["SRE", undefined],
+      ["customer-report", undefined],
+    ]);
+    expect(options[0]!.color).toBeInstanceOf(Color);
+    expect(Object.keys(options[1]!)).not.toContain("color");
+  });
+
+  test("the Severity setting offers each severity with its colour", () => {
+    const fields: Array<Field<JSONObject>> = getFormSettingsFields({
+      targetType: FormTargetType.Incident,
+      reference: {
+        ...REFERENCE,
+        lists: {
+          ...REFERENCE.lists,
+          [FormTargetSettingReferenceModel.IncidentSeverity]: [
+            { id: SEVERITY_ID, name: "Major", color: "#ef4444" },
+          ],
+        },
+      },
+    });
+
+    const severity: Field<JSONObject> | undefined = fields.find(
+      (field: Field<JSONObject>): boolean => {
+        return Object.keys(field.field || {})[0] === "incidentSeverityId";
+      },
+    );
+
+    expect(
+      (severity?.dropdownOptions as Array<DropdownOption>).map(
+        (option: DropdownOption) => {
+          return [option.label, option.color?.toString()];
+        },
+      ),
+    ).toEqual([["Major", "#ef4444"]]);
   });
 });

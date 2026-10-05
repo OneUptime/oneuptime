@@ -1,7 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -14,6 +13,20 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../Utils/Logger";
+import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+
+/*
+ * A layer user moved to another place by a non-root update: where it was,
+ * where it goes, and its layer. Read before the update (onBeforeUpdate) and
+ * acted on after it (onUpdateSuccess), only if the update wrote that row.
+ */
+interface LayerUserMove {
+  layerUserId: ObjectID;
+  previousOrder: number;
+  newOrder: number;
+  onCallDutyPolicyScheduleLayerId: ObjectID;
+  projectId: ObjectID;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -160,37 +173,48 @@ export class Service extends DatabaseService<Model> {
       createBy.data.order = count.toNumber() + 1;
     }
 
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.onCallDutyPolicyScheduleLayerId!,
-      true,
-    );
-
     return {
       createBy,
       carryForward: null,
     };
   }
 
+  /*
+   * Only for a layer user the delete actually removed: the users after it
+   * close its gap (within its layer and project) and the roster is
+   * refreshed.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
 
-    if (!deleteBy.props.isRoot && resource) {
+    const wasDeleted: boolean = Boolean(
+      resource &&
+        resource.id &&
+        itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+          return id.toString() === resource.id!.toString();
+        }),
+    );
+
+    if (!deleteBy.props.isRoot && resource && wasDeleted) {
       if (
-        resource &&
         resource.order &&
-        resource.onCallDutyPolicyScheduleLayerId
+        resource.onCallDutyPolicyScheduleLayerId &&
+        resource.projectId
       ) {
-        await this.rearrangeOrder(
-          resource.order,
-          resource.onCallDutyPolicyScheduleLayerId,
-          false,
-        );
+        await ContiguousOrder.afterDelete({
+          service: this,
+          list: {
+            onCallDutyPolicyScheduleLayerId:
+              resource.onCallDutyPolicyScheduleLayerId,
+            projectId: resource.projectId,
+          },
+          order: resource.order,
+        });
 
         if (resource.onCallDutyPolicyScheduleId) {
           await this.refreshScheduleRosterBestEffort(
@@ -254,13 +278,38 @@ export class Service extends DatabaseService<Model> {
       id: createdItem.id!,
       select: {
         onCallDutyPolicyScheduleId: true,
+        onCallDutyPolicyScheduleLayerId: true,
         projectId: true,
         userId: true,
+        order: true,
       },
       props: {
         isRoot: true,
       },
     });
+
+    /*
+     * The users at the new user's place and after it move one place down -
+     * now that it exists, so a create that is refused or fails leaves the
+     * layer's order as it was.
+     */
+    if (
+      resource &&
+      resource.order &&
+      resource.onCallDutyPolicyScheduleLayerId &&
+      resource.projectId
+    ) {
+      await ContiguousOrder.afterCreate({
+        service: this,
+        list: {
+          onCallDutyPolicyScheduleLayerId:
+            resource.onCallDutyPolicyScheduleLayerId,
+          projectId: resource.projectId,
+        },
+        createdItemId: createdItem.id!,
+        order: resource.order,
+      });
+    }
 
     if (!resource || !resource.onCallDutyPolicyScheduleId) {
       return createdItem;
@@ -280,9 +329,31 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onUpdateSuccess(
-    _onUpdate: OnUpdate<Model>,
+    onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    const move: LayerUserMove | null =
+      (onUpdate.carryForward as LayerUserMove) || null;
+
+    // The users the moved one passed step aside, now that it has moved.
+    if (
+      move &&
+      updatedItemIds.some((id: ObjectID): boolean => {
+        return id.toString() === move.layerUserId.toString();
+      })
+    ) {
+      await ContiguousOrder.afterMove({
+        service: this,
+        list: {
+          onCallDutyPolicyScheduleLayerId: move.onCallDutyPolicyScheduleLayerId,
+          projectId: move.projectId,
+        },
+        movedItemId: move.layerUserId,
+        previousOrder: move.previousOrder,
+        newOrder: move.newOrder,
+      });
+    }
+
     for (const item of updatedItemIds) {
       const resource: Model | null = await this.findOneById({
         id: item,
@@ -312,15 +383,23 @@ export class Service extends DatabaseService<Model> {
     }
 
     return {
-      updateBy: _onUpdate.updateBy,
+      updateBy: onUpdate.updateBy,
       carryForward: null,
     };
   }
 
+  /*
+   * A user moved to another place: where it is now is read here, and the
+   * users it passes step aside once the update has moved it - only the rows
+   * strictly between its old and new place (ContiguousOrder.afterMove).
+   * Nothing is written before the update.
+   */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    let move: LayerUserMove | null = null;
+
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: Model | null = await this.findOneBy({
         query: {
@@ -332,132 +411,30 @@ export class Service extends DatabaseService<Model> {
         select: {
           order: true,
           onCallDutyPolicyScheduleLayerId: true,
+          projectId: true,
           _id: true,
         },
       });
 
-      const currentOrder: number = resource?.order as number;
-      const newOrder: number = updateBy.data.order as number;
-
-      const resources: Array<Model> = await this.findBy({
-        query: {
+      if (
+        resource &&
+        resource.id &&
+        resource.order &&
+        resource.onCallDutyPolicyScheduleLayerId &&
+        resource.projectId
+      ) {
+        move = {
+          layerUserId: resource.id,
+          previousOrder: resource.order,
+          newOrder: updateBy.data.order as number,
           onCallDutyPolicyScheduleLayerId:
-            resource?.onCallDutyPolicyScheduleLayerId as ObjectID,
-        },
-
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          onCallDutyPolicyScheduleLayerId: true,
-          _id: true,
-        },
-      });
-
-      if (currentOrder > newOrder) {
-        // moving up.
-
-        for (const resource of resources) {
-          if (resource.order! >= newOrder && resource.order! < currentOrder) {
-            // increment order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! + 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
-      }
-
-      if (newOrder > currentOrder) {
-        // moving down.
-
-        for (const resource of resources) {
-          /*
-           * Only shift rows strictly BETWEEN the old and new position. The lower
-           * bound (order > currentOrder) was missing, so every row above the
-           * moved user was also decremented — driving the top row's order to 0
-           * (and negative after repeated down-drags) and opening a gap at 1,
-           * breaking the 1-based contiguous invariant that create-default
-           * (count+1) and delete re-sequencing rely on (audit L3). Mirrors the
-           * double-bounded moving-up branch above.
-           */
-          if (resource.order! <= newOrder && resource.order! > currentOrder) {
-            // decrement order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! - 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
+            resource.onCallDutyPolicyScheduleLayerId,
+          projectId: resource.projectId,
+        };
       }
     }
 
-    return { updateBy, carryForward: null };
-  }
-
-  private async rearrangeOrder(
-    currentOrder: number,
-    onCallDutyPolicyScheduleLayerId: ObjectID,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get status page resource with this order.
-    const resources: Array<Model> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        onCallDutyPolicyScheduleLayerId: onCallDutyPolicyScheduleLayerId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
-
-    let newOrder: number = currentOrder;
-
-    for (const resource of resources) {
-      if (increaseOrder) {
-        newOrder = resource.order! + 1;
-      } else {
-        newOrder = resource.order! - 1;
-      }
-
-      await this.updateOneBy({
-        query: {
-          _id: resource._id!,
-        },
-        data: {
-          order: newOrder,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    return { updateBy, carryForward: move };
   }
 }
 

@@ -54,7 +54,8 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         cardProps={{
           title: "Status Timeline",
-          description: "Here is the status timeline for this episode",
+          description:
+            "Each status this episode has been in, when it began and how long it lasted.",
         }}
         noItemsMessage={"No status timeline created for this episode so far."}
         sortBy="startsAt"
@@ -72,6 +73,9 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {

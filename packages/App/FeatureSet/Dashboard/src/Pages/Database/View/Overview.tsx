@@ -53,6 +53,9 @@ import DatabaseRuntimeSection from "../../../Components/DatabaseServer/DatabaseR
 import { getDatabaseRunsOnRoute } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { DATABASE_METRIC_DESCRIPTIONS } from "../../../Components/DatabaseServer/DatabaseMetricDescriptions";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
+import { getDatabaseAgentEngine } from "../Utils/DocumentationMarkdown";
 import {
   DatabaseServerScopeSource,
   getDatabaseServerEndpointScopeKeys,
@@ -98,6 +101,11 @@ import {
   isDatabaseServerFound,
   isDatabaseServerLive,
 } from "../Utils/DatabaseServerPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -139,6 +147,7 @@ function formatMs(value: number | null): string {
 const DatabaseServerOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [databaseServer, setDatabaseServer] = useState<DatabaseServer | null>(
@@ -561,7 +570,11 @@ const DatabaseServerOverview: FunctionComponent<
     },
     {
       icon: IconProp.ChartBar,
-      label: `Engine metrics: ${getDatabaseEngineMetricsStatusLabel(engineStatus)}`,
+      label: translator.translateTemplate("Engine metrics: {{status}}", {
+        status: translatableTerm(
+          getDatabaseEngineMetricsStatusLabel(engineStatus),
+        ),
+      }),
     },
   ];
   if (platform) {
@@ -586,7 +599,14 @@ const DatabaseServerOverview: FunctionComponent<
       iconColor: "rose",
       loading: telemetryLoading,
       sublabel: hasQueries
-        ? `${formatDatabaseCount(m.errors)} failed queries`
+        ? translator.translatePlural(
+            {
+              one: "{{count}} failed query",
+              other: "{{count}} failed queries",
+            },
+            m.errors,
+            { count: formatDatabaseCount(m.errors) },
+          )
         : undefined,
       percent: m.errorRatePercent,
       higherIsBetter: false,
@@ -716,7 +736,27 @@ const DatabaseServerOverview: FunctionComponent<
       label: "Engine metrics",
       value: getDatabaseEngineMetricsStatusLabel(engineStatus),
     },
-    { label: "Agent version", value: r.agentVersion },
+    {
+      label: "Agent version",
+      value: r.agentVersion,
+      /*
+       * A sign beside an outdated Database agent opens how to upgrade it:
+       * the install script, or the engine's files again with Docker Compose,
+       * or the Deployment from the setup guide in Kubernetes.
+       */
+      element: (
+        <AgentVersion
+          kind={AgentKind.DatabaseAgent}
+          version={r.agentVersion}
+          setupGuideRoute={populate(PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION)}
+          upgradeGuideContext={{
+            databaseEngine: getDatabaseAgentEngine(r.dbSystem),
+            databaseRunsInKubernetes:
+              platform === DatabaseRuntimePlatform.Kubernetes,
+          }}
+        />
+      ),
+    },
     {
       label: "Engine metrics last received",
       value: r.collectorLastSeenAt

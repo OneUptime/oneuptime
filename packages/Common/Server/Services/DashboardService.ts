@@ -10,12 +10,12 @@ import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
-import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import Model from "../../Models/DatabaseModels/Dashboard";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DashboardViewConfigUtil from "../../Utils/Dashboard/DashboardViewConfig";
 import {
+  DASHBOARD_TEMPLATE_MISC_DATA_KEY,
   DashboardTemplateType,
   getTemplateConfig,
 } from "../../Types/Dashboard/DashboardTemplates";
@@ -23,12 +23,15 @@ import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
-import IP from "../../Types/IP/IP";
 import { resolveClientIp } from "../Utils/ClientIp";
-import {
-  DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
-  DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
-} from "../../Types/Dashboard/MasterPassword";
+import { DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../Types/Dashboard/MasterPassword";
+import PublicDashboardAccessPolicy, {
+  PUBLIC_DASHBOARD_ACCESS_SELECT,
+  PublicDashboardAccess,
+  PublicDashboardAccessResult,
+  PublicDashboardVisitor,
+  UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
+} from "../Utils/Dashboard/PublicDashboardAccess";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -65,7 +68,7 @@ export class Service extends DatabaseService<Model> {
 
     // Check if a template type was provided via miscDataProps
     const templateType: string | undefined = createBy.miscDataProps?.[
-      "dashboardTemplateType"
+      DASHBOARD_TEMPLATE_MISC_DATA_KEY
     ] as string | undefined;
 
     if (
@@ -132,6 +135,122 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  /*
+   * What the visitor making this request is to a dashboard's public link.
+   * Each fact is worked out only when the decision asks for it: the address
+   * for a dashboard with an IP allowlist, the unlock cookie for one that
+   * asks for the password. So an open dashboard's many widget requests never
+   * decode a cookie they have no use for.
+   */
+  public getPublicDashboardVisitor(data: {
+    dashboardId: ObjectID;
+    req: ExpressRequest;
+  }): PublicDashboardVisitor {
+    const resolveAddress: () => string | undefined = (): string | undefined => {
+      /*
+       * One address, resolved from the trusted end of X-Forwarded-For.
+       * Never the raw header: a caller can prepend any address they like to
+       * it, so checking the chain rather than a single resolved address let
+       * anyone who knew an allowlisted address walk straight in.
+       */
+      return resolveClientIp(data.req);
+    };
+
+    const holdsUnlockCookie: () => boolean = (): boolean => {
+      return this.hasValidMasterPasswordCookie({
+        req: data.req,
+        dashboardId: data.dashboardId,
+      });
+    };
+
+    return {
+      get clientIp(): string | undefined {
+        return resolveAddress();
+      },
+      get hasUnlockCookie(): boolean {
+        return holdsUnlockCookie();
+      },
+    };
+  }
+
+  /*
+   * The decision (Utils/Dashboard/PublicDashboardAccess) for a dashboard
+   * already loaded with at least PUBLIC_DASHBOARD_ACCESS_SELECT, for the
+   * visitor making this request. A refusal by the IP allowlist is logged.
+   */
+  public decidePublicAccess(data: {
+    dashboard: Model | null;
+    dashboardId: ObjectID;
+    req: ExpressRequest;
+  }): PublicDashboardAccessResult {
+    const visitor: PublicDashboardVisitor = this.getPublicDashboardVisitor({
+      dashboardId: data.dashboardId,
+      req: data.req,
+    });
+
+    const result: PublicDashboardAccessResult =
+      PublicDashboardAccessPolicy.decide({
+        dashboard: data.dashboard,
+        visitor,
+      });
+
+    if (result.access === PublicDashboardAccess.Forbidden) {
+      const clientIp: string | undefined = visitor.clientIp;
+
+      if (!clientIp) {
+        logger.error("IP address not found in request.", {
+          dashboardId: data.dashboardId?.toString(),
+        } as LogAttributes);
+      } else {
+        logger.error(
+          `IP address ${clientIp} is not whitelisted for dashboard ${data.dashboardId.toString()}.`,
+          { dashboardId: data.dashboardId?.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /*
+   * What the public link answers the visitor making this request. Every
+   * public dashboard route asks this before it reads anything it sends. A
+   * lookup that fails throws (the route answers 500); the read check turns
+   * that into a refusal (hasReadAccess).
+   */
+  public async getPublicAccess(data: {
+    dashboardId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<PublicDashboardAccessResult> {
+    return this.decidePublicAccess({
+      dashboard: await this.findPublicAccessColumns(data.dashboardId),
+      dashboardId: data.dashboardId,
+      req: data.req,
+    });
+  }
+
+  /*
+   * What the public link shows every visitor: decided for one nothing is
+   * known about, with no unlock cookie and no address an IP allowlist could
+   * name. For an answer rendered once for whoever loads the page, never for
+   * whoever happens to ask - the page head filled in from the SEO answer.
+   */
+  public async getPublicAccessForEveryone(data: {
+    dashboardId: ObjectID;
+  }): Promise<PublicDashboardAccessResult> {
+    return PublicDashboardAccessPolicy.decide({
+      dashboard: await this.findPublicAccessColumns(data.dashboardId),
+      visitor: UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
+    });
+  }
+
+  /*
+   * The read check of every public route that serves the dashboard's
+   * content (its overview, view config and widget data): only a visitor the
+   * link lets in (Granted) gets through. A refusal names the link's reason,
+   * and a missing, an archived and a private dashboard are refused in the
+   * same words.
+   */
   public async hasReadAccess(data: {
     dashboardId: ObjectID;
     req: ExpressRequest;
@@ -139,137 +258,53 @@ export class Service extends DatabaseService<Model> {
     hasReadAccess: boolean;
     error?: NotAuthenticatedException | ForbiddenException;
   }> {
-    const dashboardId: ObjectID = data.dashboardId;
-    const req: ExpressRequest = data.req;
+    let result: PublicDashboardAccessResult;
 
     try {
-      const dashboard: Model | null = await this.findOneById({
-        id: dashboardId,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          isPublicDashboard: true,
-          ipWhitelist: true,
-          enableMasterPassword: true,
-          masterPassword: true,
-          isArchived: true,
-        },
-      });
-
-      /*
-       * If dashboard is not public, deny access. An archived dashboard is
-       * not public either, whatever its public setting says: the setting is
-       * kept so unarchiving puts the public link back exactly as it was.
-       */
-      if (dashboard && (!dashboard.isPublicDashboard || dashboard.isArchived)) {
-        return {
-          hasReadAccess: false,
-          error: new NotAuthenticatedException(
-            "This dashboard is not available.",
-          ),
-        };
-      }
-
-      if (dashboard?.ipWhitelist && dashboard.ipWhitelist.length > 0) {
-        const ipWhitelist: Array<string> = dashboard.ipWhitelist?.split("\n");
-
-        /*
-         * One address, resolved from the trusted end of X-Forwarded-For.
-         * Never the raw header: a caller can prepend any address they like to
-         * it, so checking the chain rather than a single resolved address let
-         * anyone who knew an allowlisted address walk straight in.
-         */
-        const ipAccessedFrom: string | undefined = resolveClientIp(req);
-
-        if (!ipAccessedFrom) {
-          logger.error("IP address not found in request.", {
-            dashboardId: dashboardId?.toString(),
-          } as LogAttributes);
-          return {
-            hasReadAccess: false,
-            error: new ForbiddenException(
-              "Unable to verify IP address for dashboard access.",
-            ),
-          };
-        }
-
-        const isIPWhitelisted: boolean = IP.isInWhitelist({
-          ip: ipAccessedFrom,
-          whitelist: ipWhitelist,
-        });
-
-        if (!isIPWhitelisted) {
-          logger.error(
-            `IP address ${ipAccessedFrom} is not whitelisted for dashboard ${dashboardId.toString()}.`,
-            { dashboardId: dashboardId?.toString() } as LogAttributes,
-          );
-
-          return {
-            hasReadAccess: false,
-            error: new ForbiddenException(
-              `Your IP address ${ipAccessedFrom} is blocked from accessing this dashboard.`,
-            ),
-          };
-        }
-      }
-
-      const shouldEnforceMasterPassword: boolean = Boolean(
-        dashboard &&
-          dashboard.isPublicDashboard &&
-          dashboard.enableMasterPassword,
-      );
-
-      if (shouldEnforceMasterPassword) {
-        // Fail closed if protection was enabled before a password was set.
-        if (!dashboard?.masterPassword) {
-          return {
-            hasReadAccess: false,
-            error: new MasterPasswordRequiredException(
-              DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
-            ),
-          };
-        }
-
-        const hasValidMasterPassword: boolean =
-          this.hasValidMasterPasswordCookie({
-            req,
-            dashboardId,
-          });
-
-        if (hasValidMasterPassword) {
-          return {
-            hasReadAccess: true,
-          };
-        }
-
-        return {
-          hasReadAccess: false,
-          error: new MasterPasswordRequiredException(
-            DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
-          ),
-        };
-      }
-
-      // Public dashboard without master password - grant access
-      if (dashboard && dashboard.isPublicDashboard) {
-        return {
-          hasReadAccess: true,
-        };
-      }
+      result = await this.getPublicAccess(data);
     } catch (err) {
+      // Fails closed: a lookup that goes wrong refuses, and nothing is read.
       logger.error(err, {
-        dashboardId: dashboardId?.toString(),
+        dashboardId: data.dashboardId?.toString(),
       } as LogAttributes);
+
+      result = PublicDashboardAccessPolicy.decide({
+        dashboard: null,
+        visitor: UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
+      });
+    }
+
+    if (result.access === PublicDashboardAccess.Granted) {
+      return {
+        hasReadAccess: true,
+      };
     }
 
     return {
       hasReadAccess: false,
-      error: new NotAuthenticatedException(
-        "You do not have access to this dashboard.",
-      ),
+      error: result.error,
     };
+  }
+
+  /*
+   * The columns the public link's decision reads. A value that is not a
+   * dashboard id at all is answered without a query, like an id no
+   * dashboard has.
+   */
+  private async findPublicAccessColumns(
+    dashboardId: ObjectID,
+  ): Promise<Model | null> {
+    if (!dashboardId || !ObjectID.isValidUUID(dashboardId.toString())) {
+      return null;
+    }
+
+    return await this.findOneById({
+      id: dashboardId,
+      select: PUBLIC_DASHBOARD_ACCESS_SELECT,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   private hasValidMasterPasswordCookie(data: {

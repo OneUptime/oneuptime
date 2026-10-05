@@ -6,7 +6,31 @@ import Permission, {
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "./TranslateTemplate";
 import User from "./User";
+
+/*
+ * The tooltip's first sentence for each operation, translated whole with the
+ * model's name in it. A table that names its own verb ("unlink") gets the
+ * verb-and-name template instead.
+ */
+const MISSING_PERMISSION_TEMPLATES: Record<string, string> = {
+  create: translationKey(
+    "You do not have permission to create this {{itemName}}.",
+  ),
+  read: translationKey("You do not have permission to read this {{itemName}}."),
+  update: translationKey(
+    "You do not have permission to update this {{itemName}}.",
+  ),
+  delete: translationKey(
+    "You do not have permission to delete this {{itemName}}.",
+  ),
+};
 
 /*
  * The four record-level operations a user can be gated on. Deliberately not the
@@ -171,6 +195,67 @@ export default class PermissionGate {
   }
 
   /*
+   * Whether the user may change ONE column of a record - a switch that saves
+   * that column alone, say. The record's own update gate first (check), and
+   * then the column's update permissions, which the server holds every write
+   * to as well (ColumnPermission refuses a column the user's permissions do
+   * not cover, whatever the table allows). Many columns are narrower than
+   * their table: a project's settings columns leave out Manage Billing, and
+   * a monitor's "Disable Monitoring" lists Create Project Monitor where the
+   * table lists Edit Project Monitor. Gated on the table alone, such a
+   * control works until the save, which the server then refuses.
+   *
+   * Like check, it never accuses on an empty permission snapshot: it then
+   * answers what the record's gate answered (which, on its own, is "not
+   * allowed, nothing to say"). A column that declares no update permissions
+   * is not judged here either - there is no permission to name - and the
+   * server keeps the last word on it.
+   */
+  public static checkColumnUpdate(
+    model: PermissionCheckableModel & ColumnPermissionCheckableModel,
+    columnName: string,
+    options?: PermissionGateOptions | undefined,
+  ): PermissionGateResult {
+    const recordGate: PermissionGateResult = this.check(
+      model,
+      ModelAction.Update,
+      options,
+    );
+
+    if (!recordGate.isAllowed || User.isMasterAdmin()) {
+      return recordGate;
+    }
+
+    const columnPermissions: Array<Permission> =
+      model.getColumnAccessControlForAllColumns()[columnName]?.update || [];
+
+    const userPermissions: Array<Permission> =
+      options?.permissions ?? PermissionUtil.getAllPermissions();
+
+    if (columnPermissions.length === 0 || userPermissions.length === 0) {
+      return recordGate;
+    }
+
+    if (
+      PermissionHelper.doesPermissionsIntersect(
+        userPermissions,
+        columnPermissions,
+      )
+    ) {
+      return recordGate;
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: this.buildMissingPermissionMessage({
+        singularName: options?.singularName || model.singularName || "item",
+        verb: (options?.verb?.trim() || ModelAction.Update).toLowerCase(),
+        permissions: columnPermissions,
+      }),
+    };
+  }
+
+  /*
    * The sentence shown in the tooltip. Deliberately the same phrasing the API
    * returns when it refuses the same operation (see TablePermission on the
    * server) so that the two do not read like different products.
@@ -180,22 +265,56 @@ export default class PermissionGate {
     action: ModelAction,
     options?: PermissionGateOptions | undefined,
   ): string {
-    const singularName: string =
-      options?.singularName || model.singularName || "item";
+    return this.buildMissingPermissionMessage({
+      singularName: options?.singularName || model.singularName || "item",
+      verb: (options?.verb?.trim() || action).toLowerCase(),
+      permissions: this.getModelPermissions(model, action),
+    });
+  }
 
-    const verb: string = (options?.verb?.trim() || action).toLowerCase();
+  /*
+   * "You do not have permission to <verb> this <item>." and, when there are
+   * permissions to name, "You need one of these permissions: ...".
+   */
+  private static buildMissingPermissionMessage(data: {
+    singularName: string;
+    verb: string;
+    permissions: Array<Permission>;
+  }): string {
+    const singularName: string = data.singularName;
+    const verb: string = data.verb;
 
-    const titles: Array<string> = this.getPermissionTitles(
-      this.getModelPermissions(model, action),
-    );
+    const titles: Array<string> = this.getPermissionTitles(data.permissions);
+
+    const translator: Translator = getGlobalTranslator();
+    const template: string | undefined = MISSING_PERMISSION_TEMPLATES[verb];
+
+    const sentence: string = template
+      ? translator.translateTemplate(template, {
+          itemName: translatableTerm(singularName),
+        })
+      : translator.translateTemplate(
+          "You do not have permission to {{action}} this {{itemName}}.",
+          {
+            action: translatableTerm(verb),
+            itemName: translatableTerm(singularName),
+          },
+        );
 
     if (titles.length === 0) {
-      return `You do not have permission to ${verb} this ${singularName}.`;
+      return sentence;
     }
 
-    return `You do not have permission to ${verb} this ${singularName}. You need one of these permissions: ${titles.join(
-      ", ",
-    )}.`;
+    return `${sentence} ${translator.translateTemplate(
+      "You need one of these permissions: {{permissions}}.",
+      {
+        permissions: titles
+          .map((title: string): string => {
+            return translator.translateText(title) || title;
+          })
+          .join(", "),
+      },
+    )}`;
   }
 
   public static getModelPermissions(

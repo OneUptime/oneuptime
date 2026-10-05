@@ -18,6 +18,7 @@ import ScheduledMaintenanceEventView from "../Pages/ScheduledMaintenanceEvents/V
 import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEvents/View/Delete";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import ScheduledMaintenanceEventViewOwner from "../Pages/ScheduledMaintenanceEvents/View/Owners";
 import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenanceEvents/View/Runbooks";
@@ -40,6 +41,7 @@ import ScheduledMaintenanceEventViewAILogs from "../Pages/ScheduledMaintenanceEv
 import ScheduledMaintenanceEventViewDescription from "../Pages/ScheduledMaintenanceEvents/View/Description";
 
 import ScheduledMaintenanceEventCreate from "../Pages/ScheduledMaintenanceEvents/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 // Settings Pages
 import ScheduledMaintenanceSettingsState from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceState";
@@ -178,16 +180,36 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS
+            ] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+              }
+              microsoftTeamsPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
               PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
             ] || ""
           }
           element={
-            <ScheduledMaintenanceEventCreate
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
-              }
-            />
+            <RemountOnAddressChange>
+              <ScheduledMaintenanceEventCreate
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route
+                }
+              />
+            </RemountOnAddressChange>
           }
         />
 

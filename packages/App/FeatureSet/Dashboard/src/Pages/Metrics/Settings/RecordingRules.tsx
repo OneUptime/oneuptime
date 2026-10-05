@@ -1,8 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -10,16 +15,20 @@ import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRul
 import RecordingRuleDefinition, {
   RecordingRuleDefinitionUtil,
 } from "Common/Types/Metrics/RecordingRuleDefinition";
+import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingRuleOutputMetricName";
+import { getRecordingRuleAdvancedSummary } from "../../../Components/Metrics/RecordingRule/RecordingRuleForm";
 import MetricRecordingRuleDefinitionEditor from "../../../Components/Metrics/RecordingRule/MetricRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Recording Rules Work
 
 A Recording Rule computes a new metric from one or more existing metrics on a schedule.
 
-Every minute, the Recording Rules worker evaluates each enabled rule for the **previous 1-minute bucket**. The result is written into the metric store under your chosen **Output Metric Name**, tagged with the rule ID so you can tell derived series apart from raw data.
+Every minute, the Recording Rules worker evaluates each enabled rule for the **previous 1-minute bucket**. The result is written into the metric store under the rule's **Output Metric Name**, tagged with the rule ID so you can tell derived series apart from raw data. The output metric name is made from the rule's name - "HTTP 5xx error rate" writes \`http_5xx_error_rate\` - unless you choose **Edit** next to it and type your own.
 
 ### Definition
 
@@ -38,9 +47,21 @@ If a bucket would produce a non-finite result (division by zero, missing source,
 Every materialized row carries an attribute \`oneuptime.derived.rule_id\` with this rule's ID, plus the group-by attribute value when set.
 `;
 
+/*
+ * One page: the rule's name - the output metric line under it is made from
+ * the name, not asked for - and its definition, with the description and
+ * Enabled (on) folded under More fields (Components/Metrics/
+ * RecordingRule/RecordingRuleForm says why).
+ */
+const metricRecordingRuleMoreFields: FormFieldCollapsibleSection<MetricRecordingRule> =
+  getAdvancedFormSection<MetricRecordingRule>({
+    getSummary: getRecordingRuleAdvancedSummary,
+  });
+
 const MetricRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelTable<MetricRecordingRule>
       modelType={MetricRecordingRule}
@@ -53,7 +74,11 @@ const MetricRecordingRules: FunctionComponent<
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
-      sortBy="sortOrder"
+      /*
+       * By name: every enabled rule is evaluated each minute, on its own,
+       * so the list has no order to keep (sortOrder is never read).
+       */
+      sortBy="name"
       sortOrder={SortOrder.Ascending}
       createEditModalWidth={ModalWidth.Large}
       createInitialValues={{
@@ -72,52 +97,43 @@ const MetricRecordingRules: FunctionComponent<
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No recording rules found."}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Definition", id: "definition" },
-      ]}
       formFields={[
         {
           field: { name: true },
           title: "Name",
-          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. HTTP 5xx error rate",
           validation: { minLength: 2 },
         },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          description: "What this rule computes and why.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this rule computes and why.",
-        },
+        /*
+         * On Create, made from the rule's name as it is typed (and by the
+         * server when the create leaves it out); never asked for. Right
+         * under the name it is made from.
+         */
+        getGeneratedKeyFormField<MetricRecordingRule>({
+          field: { outputMetricName: true },
+          nameField: "name",
+          title: "Output Metric Name",
+          makeKey: getOutputMetricNameFromRuleName,
+          placeholder: "e.g. http.error_rate",
+          description:
+            "The name the new derived metric will be written under. Must be unique per project.",
+        }),
+        // On Edit, a rule's output metric can still be renamed.
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
-          stepId: "basic-info",
           description:
             "The name the new derived metric will be written under. Must be unique per project.",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. http.error_rate",
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          description:
-            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
+          doNotShowWhenCreating: true,
         },
         {
           field: { definition: true },
           title: "Definition",
-          stepId: "definition",
           description:
             "Pick your source metrics, write the expression that combines them, and optionally split the result by an attribute.",
           fieldType: FormFieldSchemaType.CustomComponent,
@@ -140,6 +156,24 @@ const MetricRecordingRules: FunctionComponent<
               />
             );
           },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          description: "What this rule computes and why.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule computes and why.",
+          collapsibleSection: metricRecordingRuleMoreFields,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          description:
+            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          collapsibleSection: metricRecordingRuleMoreFields,
         },
       ]}
       showRefreshButton={true}
@@ -171,7 +205,7 @@ const MetricRecordingRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

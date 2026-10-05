@@ -38,11 +38,12 @@ When a rule matches, the incident's \`isPrivate\` flag is set to \`true\`. Multi
 const incidentEpisodePrivacyDocumentation: string = `
 ### How Incident Episode Privacy Rules Work
 
-Match an incident episode on creation and mark it as **private** automatically. Empty criteria are skipped.
+Match an incident episode on creation and mark it as **private** automatically.
 
-- **Severities** — any-of
-- **Episode Labels** — any-of
-- **Title / Description Pattern** — case-insensitive regex
+### Match Criteria
+
+- **Incident Severities**, **Episode Labels** — any of the selected values
+- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
 `;
 
 interface RulesTableProps {
@@ -171,6 +172,9 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -203,7 +207,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incidentTitlePattern: true },
-          title: "Incident Title Pattern",
+          title: "Incident Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -214,7 +218,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incidentDescriptionPattern: true },
-          title: "Incident Description Pattern",
+          title: "Incident Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -222,7 +226,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -230,7 +234,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -348,6 +352,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -367,7 +374,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -378,7 +385,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

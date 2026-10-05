@@ -18,14 +18,15 @@ Unntak-monitorer teller og filtrerer unntak som samsvarer med spesifikke kriteri
 1. Gå til **Overvåkere** i OneUptime-dashbordet
 2. Klikk **Opprett monitor**
 3. Velg **Unntak** som monitortype
-4. Velg telemetritjenestene som skal overvåkes
-5. Konfigurer unntaksfiltre og kriterier etter behov
+4. Velg hvilke unntak som skal telles: meldingen, unntakstypene, miljøene og tidsvinduet
+5. Åpne **Flere felt** under disse filtrene for å avgrense dem til telemetritjenester eller infrastrukturenheter, eller for også å telle løste og arkiverte unntak
+6. Konfigurer kriteriene etter behov
 
 ## Konfigurasjonsalternativer
 
 ### Telemetritjenester
 
-Velg én eller flere tjenester det skal overvåkes unntak fra. Tjenester må sende unntaksdata til OneUptime via OpenTelemetry.
+Velg under **Flere felt** én eller flere tjenester det skal overvåkes unntak fra. La feltet stå tomt for å overvåke unntak fra alle tjenester. Tjenester må sende unntaksdata til OneUptime via OpenTelemetry.
 
 ### Unntaksfiltre
 

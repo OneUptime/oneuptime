@@ -1713,6 +1713,12 @@ describe("SiteGeoMap calms its ink rather than hiding it", () => {
    * A thread drawn at a hairline is easy to miss, so somebody who cannot
    * see where a marker really sits has to be told the answer is a hover
    * away rather than gone.
+   *
+   * Each hint is a whole sentence looked up in the reader's language
+   * (#4295), so the space that runs it on from the sentence before it is
+   * added where the hint line renders it rather than carried inside the
+   * key — and the hint line is pinned too, or the sentence could be
+   * computed and never shown.
    */
   test("the map says when it has calmed something down", () => {
     expect(source).toContain(
@@ -1720,9 +1726,27 @@ describe("SiteGeoMap calms its ink rather than hiding it", () => {
         'const isInkCalmed: boolean = inkPlan.positionLines === "quiet" || inkPlan.labelThreads === "quiet" || inkPlan.links === "quiet";',
       ),
     );
-    expect(source).toContain('" Hover one to trace what it connects to."');
-    expect(source).toContain('" Hover one to see exactly where it sits."');
+    expect(code).toContain(
+      squash(
+        'const emphasisHint: string = hasDrawnLinks ? translator.translateTemplate("Hover one to trace what it connects to.") : isInkCalmed ? translator.translateTemplate("Hover one to see exactly where it sits.") : "";',
+      ),
+    );
     expect(source).toContain('data-testid="site-geo-map-hint"');
+    const hintLine: string = code
+      .split('data-testid="site-geo-map-hint"')[1]!
+      .split("</p>")[0]!;
+    expect(hintLine).toContain('{emphasisHint ? ` ${emphasisHint}` : ""}');
+
+    // Keys the extractor recorded, so every locale can translate them.
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", "en.json"), "utf8"),
+    );
+    for (const sentence of [
+      "Hover one to trace what it connects to.",
+      "Hover one to see exactly where it sits.",
+    ]) {
+      expect([sentence, english[sentence]]).toEqual([sentence, sentence]);
+    }
   });
 
   /*

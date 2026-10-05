@@ -348,6 +348,8 @@ Labels worden hoofdletterongevoelig gematcht, dus een bestaand handmatig aangema
 
 ## De Agent upgraden
 
+Als de agent ouder is dan je OneUptime, verschijnt er een waarschuwingsteken naast **Agentversie** in de **Clusterdetails** van het cluster. Selecteer het om dit commando te zien.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -356,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` behoudt je bestaande configuratie (preset, clusternaam, filters); geef nieuwe `--set`-overschrijvingen daar bovenop door.
+
+> **eBPF-span-metrieken hebben nieuwe namen.** `ebpf.features.spanMetrics` stuurt nu `traces.span.metrics.calls` en `traces.span.metrics.duration` (seconden) in plaats van `traces_spanmetrics_calls_total` en `traces_spanmetrics_latency`: dezelfde reeksen onder de namen die OBI behoudt (de oude heeft OBI als verouderd gemarkeerd). Een dashboard, chart of metriek-gebaseerde monitor op een oude naam krijgt na de upgrade geen nieuwe gegevens meer, zonder foutmelding — zet hem over naar de nieuwe naam en pas ook `filters.metrics`-items aan die een oude naam noemen.
 
 ## De Agent verwijderen
 
@@ -412,7 +416,7 @@ Allemaal standaard aan. Schakel er een uit met `--set ebpf.features.<name>=false
 | `ebpf.features.*`         | Standaard | Wat het toevoegt                                                      |
 | ------------------------- | --------- | --------------------------------------------------------------------- |
 | `httpMetrics`             | aan       | HTTP/gRPC RED-metrieken (request rate, latentie, errors) per service  |
-| `spanMetrics`             | aan       | Request-/response-grootte en -duur per span                           |
+| `spanMetrics`             | aan       | Aantal aanroepen en duur van spans (`traces.span.metrics.*`)          |
 | `serviceGraph`            | aan       | Caller → callee edge-metrieken; voedt de service-map                  |
 | `networkMetrics`          | aan       | Pod-naar-pod TCP/UDP-flow-tellers                                     |
 | `networkInterZoneMetrics` | uit       | Inter-zone-variant van netwerkmetrieken (verdubbelt de cardinaliteit) |
@@ -716,7 +720,7 @@ De meest voorkomende reden — vooral na een herinstallatie — is een **verkeer
 ### Geen metrieken zichtbaar
 
 1. Sluit eerst een geweigerde ingestion-sleutel uit — het is de meest voorkomende oorzaak en is vanaf de agent-kant makkelijk over het hoofd te zien. Zie [Agent toont "Disconnected"](#agent-toont-disconnected) hierboven (of voer gewoon het diagnosescript uit).
-2. Controleer of de cluster-identifier overeenkomt met de waarde die je hebt doorgegeven als `clusterName`
+2. Controleer of de **clusternaam (clusterName)** overeenkomt met de waarde die je hebt doorgegeven als `clusterName`. Die staat op de pagina **Settings** van het cluster, in **Cluster Details**; kies **Edit Details** en open **More fields** om hem te corrigeren
 3. Verifieer de RBAC-permissies: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Controleer de OTel-collector-logs op export-fouten
 

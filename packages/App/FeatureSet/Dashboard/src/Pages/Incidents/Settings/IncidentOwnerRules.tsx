@@ -17,9 +17,9 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField, {
+  OWNER_RULE_OWNERS_DESCRIPTION,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const incidentOwnerDocumentation: string = `
 ### How Incident Owner Rules Work
@@ -51,11 +51,12 @@ Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (def
 const incidentEpisodeOwnerDocumentation: string = `
 ### How Incident Episode Owner Rules Work
 
-Match an incident episode on creation and add owner users / teams automatically. Empty criteria are skipped.
+Match an incident episode on creation and add owner users / teams automatically.
 
-- **Severities** — any-of
-- **Episode Labels** — any-of
-- **Title / Description Pattern** — case-insensitive regex
+### Match Criteria
+
+- **Incident Severities**, **Episode Labels** — any of the selected values
+- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
 `;
 
 interface RulesTableProps {
@@ -199,6 +200,9 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -231,7 +235,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incidentTitlePattern: true },
-          title: "Incident Title Pattern",
+          title: "Incident Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -242,7 +246,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { incidentDescriptionPattern: true },
-          title: "Incident Description Pattern",
+          title: "Incident Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -250,7 +254,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -258,41 +262,16 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
         {
           field: { inheritOwnersFromMonitors: true },
           title: "Inherit Owners From Monitors",
@@ -471,6 +450,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -490,7 +472,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -501,41 +483,16 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "timeout|connection refused",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />

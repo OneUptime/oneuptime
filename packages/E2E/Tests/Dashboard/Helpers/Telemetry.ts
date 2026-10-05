@@ -1,6 +1,7 @@
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Page, expect, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { getCardButton } from "../../Helpers/CardButton";
 import { gotoProjectPage } from "./ProductOnboarding";
 
 /*
@@ -22,9 +23,11 @@ const secretKeyRegex: RegExp = /^[0-9a-fA-F-]{36}$/;
 
 /*
  * Registers-nothing: assumes the caller already created a project. Navigates
- * to Settings > Telemetry Ingestion Keys, creates a key from the ModelTable
- * create modal, opens the key detail page, reveals the secret, and returns it
- * so the caller can use it as the OTLP ingestion token.
+ * to Settings > Telemetry Ingestion Keys and creates a key from the table's
+ * create dialog - one page for a Server key: the name (filled in as "Server
+ * key", replaced here), Server already picked - after which the new key
+ * opens on its own page. Reveals the secret there and returns it so the
+ * caller can use it as the OTLP ingestion token.
  */
 type CreateTelemetryIngestionKeyFunction = (data: {
   page: Page;
@@ -46,65 +49,60 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       )
       .toString();
 
+    /*
+     * The card's own Create button: a project's first key is created from an
+     * empty list, which offers the same button again under its message.
+     */
+    const createButton: Locator = getCardButton(page, "Create Ingestion Key");
+
     await gotoProjectPage({
       page,
       projectId: data.projectId,
       url: ingestionKeysUrl,
-      ready: page.getByRole("button", { name: "Create Ingestion Key" }),
+      ready: createButton,
     });
 
-    // Open the create modal and fill in the key name.
-    await page.getByRole("button", { name: "Create Ingestion Key" }).click();
-    await page.getByTestId("modal").waitFor({ state: "visible" });
-    await page
-      .locator("input[placeholder='Ingestion Key Name']")
-      .first()
-      .fill(data.keyName);
+    // Open the create dialog and name the key.
+    await createButton.click();
     const modal: Locator = page.getByTestId("modal");
-    const submitButton: Locator = modal.getByTestId(
-      "modal-footer-submit-button",
-    );
-    await expect(submitButton).toHaveText("Next");
-    await submitButton.click();
+    await modal.waitFor({ state: "visible" });
+    const nameInput: Locator = modal.getByPlaceholder("Ingestion Key Name", {
+      exact: true,
+    });
+    await expect(nameInput).toHaveValue("Server key");
     await expect(
       modal.getByTestId("card-select-option-Server"),
     ).toHaveAttribute("aria-checked", "true");
-    await submitButton.click();
+    await nameInput.fill(data.keyName);
 
+    const submitButton: Locator = modal.getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    /*
+     * On the Free plan the dialog walks on to a Billing step, the last one,
+     * whose pricing is shown before the key can be created: until then the
+     * footer has a plain Next and no Create. Everywhere else the first page
+     * is the only one, and creates the key.
+     */
     const billingStep: Locator = modal
       .getByRole("navigation", { name: "Progress" })
       .getByText("Billing", { exact: true });
     if ((await billingStep.count()) > 0) {
+      await expect(submitButton).toHaveCount(0);
+      await modal.getByTestId("modal-footer-next-button").click();
       await expect(
         modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();
-      await expect(submitButton).toHaveText("Next");
-      await submitButton.click();
     }
 
     await expect(submitButton).toHaveText("Create Ingestion Key");
     await submitButton.click();
-    await page.getByTestId("modal").waitFor({ state: "hidden" });
 
-    /*
-     * The ModelTable stays on the list after create; the row exposes its
-     * detail page through a "View Ingestion Key" action button (singularName
-     * "Ingestion Key"). Scope to the row for our key, then open it.
-     */
+    // A new key opens on its own page, where its secret is.
     const keyDetailUrlRegex: RegExp = new RegExp(
       `/dashboard/${data.projectId}/settings/telemetry-ingestion-keys/[a-f0-9-]+`,
     );
-
-    if (!keyDetailUrlRegex.test(page.url())) {
-      const keyRow: Locator = page
-        .getByRole("row")
-        .filter({ hasText: data.keyName });
-      await keyRow
-        .getByRole("button", { name: "View Ingestion Key" })
-        .first()
-        .click();
-    }
-
     await expect(page).toHaveURL(keyDetailUrlRegex, { timeout: 60000 });
 
     // Reveal the secret key (HiddenText renders "Click to reveal" first).

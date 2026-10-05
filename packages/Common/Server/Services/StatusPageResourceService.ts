@@ -7,9 +7,8 @@ import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -79,6 +78,20 @@ interface StatusPageResourceTarget {
   monitorGroupId: ObjectID | null;
 }
 
+/*
+ * A resource moved to another place by a non-root update: where it was, where
+ * it goes, and its list. Read before the update (onBeforeUpdate) and acted on
+ * after it (onUpdateSuccess), only if the update wrote that resource.
+ */
+interface ResourceMove {
+  resourceId: ObjectID;
+  previousOrder: number;
+  newOrder: number;
+  statusPageId: ObjectID;
+  statusPageGroupId: ObjectID | null;
+  projectId: ObjectID;
+}
+
 /**
  * Named after what the operator sees rather than what the column is, because
  * this reads back to them on the resource form.
@@ -98,10 +111,31 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * The status page resources that show these monitors, on every page: a
+   * resource for one of the monitors, or for a monitor group that holds one
+   * of them. A status page shows an event on a monitor under the group the
+   * monitor is in, and someone who subscribed to that group expects to hear
+   * about every monitor in it.
+   *
+   * This is the one lookup from monitors to resources. Every subscriber
+   * notification finds the resources an event affects here (incidents and
+   * episodes through IncidentStatusPageScope, announcements and scheduled
+   * maintenance through AffectedStatusPageResources), and so do the status
+   * pages the dashboard suggests for an event (StatusPagesListingMonitors),
+   * so the page suggested and the subscribers told agree.
+   *
+   * Every row is read, however many there are: a resource left out is a
+   * subscriber who is silently not told. A caller that knows which status
+   * pages the event is on passes them as statusPageIds, and only those
+   * pages' resources are read.
+   */
   @CaptureSpan()
   public async findByMonitors(data: {
     monitors?: Array<Monitor>;
     monitorIds?: Array<ObjectID>;
+    // Only these pages' resources. Left out: every page that shows the monitors.
+    statusPageIds?: Array<ObjectID> | undefined;
     select: Select<Model>;
   }): Promise<Array<Model>> {
     let resolvedMonitorIds: Array<ObjectID>;
@@ -120,27 +154,36 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    if (resolvedMonitorIds.length === 0) {
+    // No status page to look on: nothing on any page is affected.
+    if (resolvedMonitorIds.length === 0 || data.statusPageIds?.length === 0) {
       return [];
     }
 
-    // Find status page resources directly linked to monitors
-    const statusPageResources: Array<Model> = await this.findBy({
-      query: {
-        monitorId: QueryHelper.any(resolvedMonitorIds),
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      select: data.select,
-    });
+    const onTheStatusPages: Query<Model> = data.statusPageIds
+      ? { statusPageId: QueryHelper.any(data.statusPageIds) }
+      : {};
 
-    // Find monitor groups that contain the affected monitors
-    const monitorGroupResources: Array<MonitorGroupResource> =
-      await MonitorGroupResourceService.findBy({
+    /*
+     * The monitors' own resources, and the monitor groups that hold the
+     * monitors. Neither read needs the other.
+     */
+    const [statusPageResources, monitorGroupResources]: [
+      Array<Model>,
+      Array<MonitorGroupResource>,
+    ] = await Promise.all([
+      this.findAllBy({
+        query: {
+          monitorId: QueryHelper.any(resolvedMonitorIds),
+          ...onTheStatusPages,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+        skip: 0,
+        select: data.select,
+      }),
+      MonitorGroupResourceService.findAllBy({
         query: {
           monitorId: QueryHelper.any(resolvedMonitorIds),
         },
@@ -152,39 +195,64 @@ export class Service extends DatabaseService<Model> {
           monitorGroupId: true,
         },
         skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
+      }),
+    ]);
 
-    const monitorGroupIds: Array<ObjectID> = monitorGroupResources
-      .map((r: MonitorGroupResource) => {
-        return r.monitorGroupId!;
-      })
-      .filter((id: ObjectID) => {
-        return Boolean(id);
-      });
+    // Each group once, however many of the monitors it holds.
+    const monitorGroupIds: Array<ObjectID> = [];
+    const seenMonitorGroupIds: Set<string> = new Set();
+
+    for (const monitorGroupResource of monitorGroupResources) {
+      const monitorGroupId: ObjectID | undefined =
+        monitorGroupResource.monitorGroupId;
+
+      if (!monitorGroupId) {
+        continue;
+      }
+
+      const key: string = monitorGroupId.toString().toLowerCase();
+
+      if (seenMonitorGroupIds.has(key)) {
+        continue;
+      }
+
+      seenMonitorGroupIds.add(key);
+      monitorGroupIds.push(monitorGroupId);
+    }
 
     if (monitorGroupIds.length > 0) {
-      const groupStatusPageResources: Array<Model> = await this.findBy({
+      const groupStatusPageResources: Array<Model> = await this.findAllBy({
         query: {
           monitorGroupId: QueryHelper.any(monitorGroupIds),
+          ...onTheStatusPages,
         },
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
         skip: 0,
-        limit: LIMIT_PER_PROJECT,
         select: data.select,
       });
 
       // Merge and deduplicate
-      for (const resource of groupStatusPageResources) {
-        const alreadyExists: boolean = statusPageResources.some((r: Model) => {
-          return r._id === resource._id;
-        });
-        if (!alreadyExists) {
-          statusPageResources.push(resource);
+      const seenResourceIds: Set<string> = new Set();
+
+      for (const resource of statusPageResources) {
+        if (resource._id) {
+          seenResourceIds.add(resource._id.toString());
         }
+      }
+
+      for (const resource of groupStatusPageResources) {
+        if (resource._id && seenResourceIds.has(resource._id.toString())) {
+          continue;
+        }
+
+        if (resource._id) {
+          seenResourceIds.add(resource._id.toString());
+        }
+
+        statusPageResources.push(resource);
       }
     }
 
@@ -308,17 +376,41 @@ export class Service extends DatabaseService<Model> {
       createBy.data.order = count.toNumber() + 1;
     }
 
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.statusPageId,
-      createBy.data.statusPageGroupId || null,
-      true,
-    );
-
     return {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The resources at the new resource's place and after it move one place
+   * down - now that it exists, so a create that is refused or fails leaves
+   * the status page's order as it was.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (
+      createdItem.id &&
+      createdItem.order &&
+      createdItem.statusPageId &&
+      createdItem.projectId
+    ) {
+      await ContiguousOrder.afterCreate({
+        service: this,
+        list: this.getOrderList({
+          statusPageId: createdItem.statusPageId,
+          statusPageGroupId: createdItem.statusPageGroupId || null,
+          projectId: createdItem.projectId,
+        }),
+        createdItemId: createdItem.id,
+        order: createdItem.order,
+      });
+    }
+
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -343,6 +435,7 @@ export class Service extends DatabaseService<Model> {
           order: true,
           statusPageId: true,
           statusPageGroupId: true,
+          projectId: true,
         },
       });
     }
@@ -353,23 +446,38 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * The resources after a deleted one close its gap - only when the resource
+   * was actually deleted, within its own list and project.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
 
-    if (!deleteBy.props.isRoot && resource) {
-      if (resource && resource.order && resource.statusPageId) {
-        await this.rearrangeOrder(
-          resource.order,
-          resource.statusPageId,
-          resource.statusPageGroupId || null,
-          false,
-        );
-      }
+    if (
+      !deleteBy.props.isRoot &&
+      resource &&
+      resource.id &&
+      resource.order &&
+      resource.statusPageId &&
+      resource.projectId &&
+      itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+        return id.toString() === resource.id!.toString();
+      })
+    ) {
+      await ContiguousOrder.afterDelete({
+        service: this,
+        list: this.getOrderList({
+          statusPageId: resource.statusPageId,
+          statusPageGroupId: resource.statusPageGroupId || null,
+          projectId: resource.projectId,
+        }),
+        order: resource.order,
+      });
     }
 
     return {
@@ -445,6 +553,14 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * A resource moved to another place: where it is now is read here, and
+     * the resources it passes step aside once the update has moved it - only
+     * those strictly between its old and new place. Nothing is written before
+     * the update.
+     */
+    let move: ResourceMove | null = null;
+
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: Model | null = await this.findOneBy({
         query: {
@@ -457,129 +573,76 @@ export class Service extends DatabaseService<Model> {
           order: true,
           statusPageId: true,
           statusPageGroupId: true,
+          projectId: true,
           _id: true,
         },
       });
 
-      const currentOrder: number = resource?.order as number;
-      const newOrder: number = updateBy.data.order as number;
-
-      const resources: Array<Model> = await this.findBy({
-        query: {
-          statusPageId: resource?.statusPageId as ObjectID,
-          statusPageGroupId:
-            resource?.statusPageGroupId || QueryHelper.isNull(),
-        },
-
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          statusPageId: true,
-          statusPageGroupId: true,
-          _id: true,
-        },
-      });
-
-      if (currentOrder > newOrder) {
-        // moving up.
-
-        for (const resource of resources) {
-          if (resource.order! >= newOrder && resource.order! < currentOrder) {
-            // increment order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! + 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
-      }
-
-      if (newOrder > currentOrder) {
-        // moving down.
-
-        for (const resource of resources) {
-          if (resource.order! <= newOrder) {
-            // increment order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! - 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
+      if (
+        resource &&
+        resource.id &&
+        resource.order &&
+        resource.statusPageId &&
+        resource.projectId
+      ) {
+        move = {
+          resourceId: resource.id,
+          previousOrder: resource.order,
+          newOrder: updateBy.data.order as number,
+          statusPageId: resource.statusPageId,
+          statusPageGroupId: resource.statusPageGroupId || null,
+          projectId: resource.projectId,
+        };
       }
     }
 
-    return { updateBy, carryForward: null };
+    return { updateBy, carryForward: move };
   }
 
-  private async rearrangeOrder(
-    currentOrder: number,
-    statusPageId: ObjectID,
-    statusPageGroupId: ObjectID | null,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get status page resource with this order.
-    const resources: Array<Model> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        statusPageId: statusPageId,
-        statusPageGroupId: statusPageGroupId
-          ? statusPageGroupId
-          : QueryHelper.isNull(),
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const move: ResourceMove | null =
+      (onUpdate.carryForward as ResourceMove) || null;
 
-    let newOrder: number = currentOrder;
-
-    for (const resource of resources) {
-      if (increaseOrder) {
-        newOrder = resource.order! + 1;
-      } else {
-        newOrder = resource.order! - 1;
-      }
-
-      await this.updateOneBy({
-        query: {
-          _id: resource._id!,
-        },
-        data: {
-          order: newOrder,
-        },
-        props: {
-          isRoot: true,
-        },
+    if (
+      move &&
+      updatedItemIds.some((id: ObjectID): boolean => {
+        return id.toString() === move.resourceId.toString();
+      })
+    ) {
+      await ContiguousOrder.afterMove({
+        service: this,
+        list: this.getOrderList({
+          statusPageId: move.statusPageId,
+          statusPageGroupId: move.statusPageGroupId,
+          projectId: move.projectId,
+        }),
+        movedItemId: move.resourceId,
+        previousOrder: move.previousOrder,
+        newOrder: move.newOrder,
       });
     }
+
+    return onUpdate;
+  }
+
+  /*
+   * The resources numbered together: those of the same status page and the
+   * same group (or of no group), in the resource's own project.
+   */
+  private getOrderList(data: {
+    statusPageId: ObjectID;
+    statusPageGroupId: ObjectID | null;
+    projectId: ObjectID;
+  }): Query<Model> {
+    return {
+      statusPageId: data.statusPageId,
+      statusPageGroupId: data.statusPageGroupId || QueryHelper.isNull(),
+      projectId: data.projectId,
+    };
   }
 }
 export default new Service();

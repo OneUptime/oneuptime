@@ -14,7 +14,7 @@ Every step has:
 | **Require approval**     | If on, the runbook pauses after this step and waits for a user to approve before running the next step. |
 | **Type-specific config** | Script, URL, agent, etc. — see below.                                                                   |
 
-Steps run **in order**. Reorder them with the up/down arrows on the Steps editor.
+Steps run **in order**. To change the order, drag a step by the grip at the left of its header; from the keyboard, focus the grip, press Space, move the step with the arrow keys and press Space again.
 
 ## Step types
 

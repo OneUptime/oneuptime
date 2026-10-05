@@ -2,6 +2,7 @@ import { BASE_URL } from "../../Config";
 import { Browser, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -44,6 +45,11 @@ test.describe.configure({ mode: "serial" });
 // ModelTable names its create form after the model class.
 const createFormSelector: string = "#create-LogDropFilter-from";
 
+/*
+ * The card's own Create button: the first filter is created from an empty
+ * list, which offers the same button again under its "No drop filters
+ * found" message.
+ */
 const createButtonName: string = "Create Log Drop Filter";
 
 interface SharedContext {
@@ -88,8 +94,9 @@ test.describe("Log Drop Filters", () => {
   });
 
   /*
-   * Opens the create modal and fills the first two steps, which are
-   * identical for both actions: a name, then a real filter condition.
+   * Opens the create modal and fills its first step, Match, which is
+   * identical for both actions: a name and a real filter condition. Then
+   * walks on to the Action step.
    *
    * The Filter Query field is a custom query builder, not an input. Its
    * first condition starts as `severityText = <nothing>` and only emits a
@@ -100,9 +107,7 @@ test.describe("Log Drop Filters", () => {
   async function openCreateModalAndFillConditions(name: string): Promise<void> {
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: createButtonName,
-    });
+    const createButton: Locator = getCardButton(page, createButtonName);
 
     await gotoProjectPage({
       page,
@@ -119,17 +124,24 @@ test.describe("Log Drop Filters", () => {
     const form: Locator = page.locator(createFormSelector);
     await form.waitFor({ state: "visible", timeout: 30000 });
 
-    // Step 1 — Basic Info.
-    await form.getByLabel("Name").fill(name);
-    await page.getByTestId("modal-footer-submit-button").click();
+    /*
+     * The plain Next walks the wizard: Match shows Next and no action, and
+     * Create Log Drop Filter is on Action, the last step, only.
+     */
+    const nextButton: Locator = modal.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
 
     /*
-     * Step 2 — Filter Conditions. The step renders exactly one condition
-     * row, and BasicForm renders only the current step's fields, so the
-     * three comboboxes on screen are this row's Field, Operator and Value in
-     * DOM order. Value is the one to set; Field and Operator already default
-     * to Severity / equals.
+     * Step 1 — Match: the name, then the filter query. The step renders
+     * exactly one condition row, and BasicForm renders only the current
+     * step's fields, so the three comboboxes on screen are this row's Field,
+     * Operator and Value in DOM order (the name is a text box). Value is the
+     * one to set; Field and Operator already default to Severity / equals.
      */
+    await form.getByLabel("Name").fill(name);
+
     const valueDropdown: Locator = form.getByRole("combobox").nth(2);
     await valueDropdown.waitFor({ state: "visible", timeout: 30000 });
     await valueDropdown.click();
@@ -141,16 +153,14 @@ test.describe("Log Drop Filters", () => {
       timeout: 30000,
     });
 
-    await page.getByTestId("modal-footer-submit-button").click();
+    await nextButton.click();
   }
 
   test("should reach the log drop filters settings page", async () => {
     test.setTimeout(120000);
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: createButtonName,
-    });
+    const createButton: Locator = getCardButton(page, createButtonName);
 
     await gotoProjectPage({
       page,
@@ -160,7 +170,8 @@ test.describe("Log Drop Filters", () => {
     });
 
     await expect(createButton).toBeVisible({ timeout: 60000 });
-    await expect(page.getByText("No drop filters found.")).toBeVisible({
+    // The page's sentence heads the table's empty state, without its stop.
+    await expect(page.getByText("No drop filters found")).toBeVisible({
       timeout: 60000,
     });
   });
@@ -176,9 +187,9 @@ test.describe("Log Drop Filters", () => {
     await openCreateModalAndFillConditions(ctx.dropFilterName);
 
     /*
-     * Step 3 — Action. Drop is the form's initial value, so submitting the
+     * Step 2 — Action. Drop is the form's initial value, so submitting the
      * step as-is is exactly the reported reproduction: Logs -> Settings ->
-     * Drop filters -> Create.
+     * Drop filters -> Create. Enabled is folded under More fields, on.
      */
     const form: Locator = page.locator(createFormSelector);
     await expect(
@@ -218,7 +229,7 @@ test.describe("Log Drop Filters", () => {
 
     await openCreateModalAndFillConditions(ctx.sampleFilterName);
 
-    // Step 3 — Action: switch to Sample, which reveals the percentage field.
+    // Step 2 — Action: switch to Sample, which reveals the percentage field.
     const form: Locator = page.locator(createFormSelector);
     const actionDropdown: Locator = form.getByRole("combobox").first();
     await actionDropdown.waitFor({ state: "visible", timeout: 30000 });

@@ -10,6 +10,8 @@ import {
   deviceAttentionCount,
   emptyDeviceHealthCounts,
 } from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * Shared card body for one network site: name, site-type label, health
@@ -58,28 +60,50 @@ const TONE_BAR_CLASS: Record<HealthTone, string> = {
   none: "bg-gray-300",
 };
 
-const pluralUnits: (count: number) => string = (count: number): string => {
-  return count === 1 ? "unit" : "units";
-};
-
 /*
  * "3 down, 1 degraded of 128 devices" — only ever rendered when at least
  * one of the two is non-zero, so the healthy case never has to read a
- * sentence built out of zeroes.
+ * sentence built out of zeroes. One whole sentence per combination.
  */
-const describeDeviceAttention: (counts: DeviceHealthCounts) => string = (
+const describeDeviceAttention: (
   counts: DeviceHealthCounts,
-): string => {
-  const parts: Array<string> = [];
+  translator: Translator,
+) => string = (counts: DeviceHealthCounts, translator: Translator): string => {
+  const values: { down: string; degraded: string } = {
+    down: translator.formatNumber(counts.down),
+    degraded: translator.formatNumber(counts.degraded),
+  };
+
+  if (counts.down > 0 && counts.degraded > 0) {
+    return translator.translatePlural(
+      {
+        one: "{{down}} down, {{degraded}} degraded of {{count}} device",
+        other: "{{down}} down, {{degraded}} degraded of {{count}} devices",
+      },
+      counts.total,
+      values,
+    );
+  }
+
   if (counts.down > 0) {
-    parts.push(`${counts.down} down`);
+    return translator.translatePlural(
+      {
+        one: "{{down}} down of {{count}} device",
+        other: "{{down}} down of {{count}} devices",
+      },
+      counts.total,
+      values,
+    );
   }
-  if (counts.degraded > 0) {
-    parts.push(`${counts.degraded} degraded`);
-  }
-  return `${parts.join(", ")} of ${counts.total} device${
-    counts.total === 1 ? "" : "s"
-  }`;
+
+  return translator.translatePlural(
+    {
+      one: "{{degraded}} degraded of {{count}} device",
+      other: "{{degraded}} degraded of {{count}} devices",
+    },
+    counts.total,
+    values,
+  );
 };
 
 export interface SiteCardBodyProps {
@@ -89,6 +113,7 @@ export interface SiteCardBodyProps {
 export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
   props: SiteCardBodyProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const site: SiteChildView = props.site;
   const status: SiteStatusInfo | undefined = site.currentMonitorStatus;
 
@@ -115,10 +140,16 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
   if (hasRollup) {
     if (tone === "ok") {
       leadValue = `${operationalUnits}`;
-      leadCaption = `${pluralUnits(operationalUnits)} operational`;
+      leadCaption = translator.translatePlural(
+        { one: "unit operational", other: "units operational" },
+        operationalUnits,
+      );
     } else {
       leadValue = `${downUnits}`;
-      leadCaption = `of ${totalUnits} ${pluralUnits(totalUnits)} down`;
+      leadCaption = translator.translatePlural(
+        { one: "of {{count}} unit down", other: "of {{count}} units down" },
+        totalUnits,
+      );
     }
   }
 
@@ -148,7 +179,11 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <span
             className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600"
-            title={status ? status.name : "Nothing reporting yet"}
+            title={
+              status
+                ? status.name
+                : translator.translateText("Nothing reporting yet")
+            }
           >
             {status ? (
               <span
@@ -163,7 +198,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full border border-gray-400" />
             )}
             <span className="truncate">
-              {status ? status.name : "Not reporting"}
+              {status ? status.name : translator.translateText("Not reporting")}
             </span>
           </span>
           {/*
@@ -174,9 +209,11 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
           {site.isUnderMaintenance && (
             <span
               className="flex-shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase leading-4 tracking-wider text-amber-700"
-              title="A scheduled maintenance window covers this site right now. It is excluded from the uptime percentage."
+              title={translator.translateText(
+                "A scheduled maintenance window covers this site right now. It is excluded from the uptime percentage.",
+              )}
             >
-              Maintenance
+              {translator.translateText("Maintenance")}
             </span>
           )}
           <span className="flex-shrink-0 text-[10px] font-semibold uppercase leading-4 tracking-wider text-gray-400">
@@ -192,7 +229,9 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
          */
         <div className="flex flex-1 items-center">
           <p className="text-[11px] leading-4 text-gray-400">
-            Nothing reporting yet — no units or devices attached.
+            {translator.translateText(
+              "Nothing reporting yet — no units or devices attached.",
+            )}
           </p>
         </div>
       ) : (
@@ -212,7 +251,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                 </React.Fragment>
               ) : (
                 <div className="truncate text-[11px] leading-4 text-gray-400">
-                  No unit rollup yet
+                  {translator.translateText("No unit rollup yet")}
                 </div>
               )}
             </div>
@@ -221,7 +260,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                 {formatUptimePercent(site.uptimePercent)}
               </div>
               <div className="text-[10px] leading-4 text-gray-400">
-                30d uptime
+                {translator.translateText("30d uptime")}
               </div>
               {/*
                * The 24-hour figure sits under the 30-day one rather than
@@ -233,9 +272,13 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               {site.dailyUptimePercent !== null && (
                 <div
                   className="text-[10px] leading-4 tabular-nums text-gray-500"
-                  title="Uptime over the last 24 hours"
+                  title={translator.translateText(
+                    "Uptime over the last 24 hours",
+                  )}
                 >
-                  {formatUptimePercent(site.dailyUptimePercent)} today
+                  {translator.translateTemplate("{{uptime}} today", {
+                    uptime: formatUptimePercent(site.dailyUptimePercent),
+                  })}
                 </div>
               )}
             </div>
@@ -250,9 +293,14 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
             <div
               className="flex h-1 w-full overflow-hidden rounded-full bg-gray-100"
               role="img"
-              aria-label={`${operationalUnits} of ${totalUnits} ${pluralUnits(
+              aria-label={translator.translatePlural(
+                {
+                  one: "{{operational}} of {{count}} unit operational",
+                  other: "{{operational}} of {{count}} units operational",
+                },
                 totalUnits,
-              )} operational`}
+                { operational: translator.formatNumber(operationalUnits) },
+              )}
             >
               <div
                 className="bg-emerald-500"
@@ -271,8 +319,11 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
             <div className="truncate text-[11px] leading-4 text-gray-400">
               {site.childSiteCount > 0 ? (
                 <span>
-                  {site.childSiteCount} site
-                  {site.childSiteCount === 1 ? "" : "s"} &middot;{" "}
+                  {translator.translatePlural(
+                    { one: "{{count}} site", other: "{{count}} sites" },
+                    site.childSiteCount,
+                  )}{" "}
+                  &middot;{" "}
                 </span>
               ) : (
                 <></>
@@ -289,11 +340,14 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                   data-testid={`site-card-device-health-${site.id}`}
                   className="font-medium text-red-600"
                 >
-                  {describeDeviceAttention(deviceStats)}
+                  {describeDeviceAttention(deviceStats, translator)}
                 </span>
               ) : (
                 <span>
-                  {site.deviceCount} device{site.deviceCount === 1 ? "" : "s"}
+                  {translator.translatePlural(
+                    { one: "{{count}} device", other: "{{count}} devices" },
+                    site.deviceCount,
+                  )}
                 </span>
               )}
             </div>
@@ -324,6 +378,7 @@ export interface ComponentProps {
 const SiteCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isClickable: boolean = Boolean(props.onClick);
   return (
     <div
@@ -332,14 +387,20 @@ const SiteCard: FunctionComponent<ComponentProps> = (
       tabIndex={isClickable ? 0 : undefined}
       aria-label={
         isClickable
-          ? `${props.site.name} — ${props.site.siteType}${
-              /*
-               * The ring says "the filter landed you here" in colour and
-               * shape only. Assistive tech gets the same fact in words, or
-               * the auto-jump simply does not happen for that reader.
-               */
-              props.isHighlighted ? ", first match for the current filter" : ""
-            }, open this site`
+          ? /*
+             * The ring says "the filter landed you here" in colour and
+             * shape only. Assistive tech gets the same fact in words, or
+             * the auto-jump simply does not happen for that reader.
+             */
+            props.isHighlighted
+            ? translator.translateTemplate(
+                "{{name}} — {{siteType}}, first match for the current filter, open this site",
+                { name: props.site.name, siteType: props.site.siteType },
+              )
+            : translator.translateTemplate(
+                "{{name}} — {{siteType}}, open this site",
+                { name: props.site.name, siteType: props.site.siteType },
+              )
           : undefined
       }
       data-highlighted={props.isHighlighted ? "true" : undefined}

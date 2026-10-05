@@ -24,7 +24,7 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir des **Modèles d'incident**.
 
-Dépliez **Règles** et vous obtenez neuf écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
+Dépliez **Règles** et vous obtenez neuf écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
 
 ## Modèles d'incident
 
@@ -60,25 +60,25 @@ L'essentiel tient dans la règle de fusion : **un modèle ne remplit qu'un champ
 
 Les modèles de notes donnent aux intervenants du texte prêt à l'emploi pour les mises à jour d'incident, afin qu'une mise à jour de page de statut à 3 h du matin ne soit pas rédigée de zéro par quelqu'un à moitié endormi.
 
-Allez dans **Incidents → Paramètres → Modèles de notes** (`/dashboard/{projectId}/incidents/settings/note-templates`). La carte s'intitule **Modèles de notes publiques ou privées pour les incidents** — une seule bibliothèque sert les deux types de notes. Le formulaire de création comporte deux étapes :
+Allez dans **Incidents → Paramètres → Modèles de notes** (`/dashboard/{projectId}/incidents/settings/note-templates`). La carte s'intitule **Modèles de notes publiques ou privées pour les incidents** — une seule bibliothèque sert les deux types de notes. Le formulaire de création tient sur une seule page :
 
-- **Informations du modèle** — **Nom du modèle** et **Description du modèle**, tous deux obligatoires.
-- **Détails de la note** — le corps de la note lui-même, en Markdown, obligatoire.
+- **Nom du modèle** et **Description du modèle**, tous deux obligatoires.
+- Le corps de la note lui-même, en Markdown, obligatoire.
 
 Comme pour les modèles d'incident, les lignes se créent et se consultent plutôt qu'elles ne s'éditent en place ; ouvrez un modèle pour le modifier.
 
-Les modèles de notes apparaissent là où vous en avez réellement besoin : les fenêtres de confirmation **Acknowledge Incident** et **Resolve Incident** proposent toutes deux **Sélectionner le modèle de note** à côté du champ **Note publique**. Voyez [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed) pour la différence entre notes publiques et privées.
+Les modèles de notes apparaissent là où vous en avez réellement besoin : les fenêtres de confirmation **Prendre en compte l'incident** et **Résoudre l'incident** proposent toutes deux **Sélectionner le modèle de note** au-dessus du champ **Note publique**, repliés sous **Ajouter une note publique**. Voyez [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed) pour la différence entre notes publiques et privées.
 
 ## Modèles de post-mortem
 
 Un modèle de post-mortem est le squelette du compte rendu que vous produisez après un incident — vos intertitres, vos amorces, vos questions récurrentes — pour que chaque revue du projet suive la même forme.
 
-Allez dans **Incidents → Paramètres → Modèles de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La carte s'intitule **Modèles de post-mortem**. Le formulaire de création comporte deux étapes :
+Allez dans **Incidents → Paramètres → Modèles de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La carte s'intitule **Modèles de post-mortem**. Le formulaire de création tient sur une seule page :
 
-- **Informations du modèle** — **Nom du modèle** et **Description du modèle**, tous deux obligatoires.
-- **Détails du post-mortem** — **Modèle de post-mortem**, le corps lui-même, en Markdown, obligatoire.
+- **Nom du modèle** et **Description du modèle**, tous deux obligatoires.
+- **Modèle de post-mortem**, le corps lui-même, en Markdown, obligatoire.
 
-L'application se fait depuis l'incident, pas depuis les paramètres. Ouvrez un incident, choisissez **Post-mortem** dans son menu latéral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) et utilisez **Appliquer le modèle**. Cela ouvre une fenêtre **Appliquer le modèle de post-mortem** avec une liste déroulante **Sélectionner le modèle** ; en choisir un charge le corps du modèle dans l'éditeur **Note du post-mortem**, où vous le retravaillez avant d'enregistrer. Les épisodes d'incident ont la même page **Post-mortem** et puisent dans la même bibliothèque de modèles.
+L'application se fait depuis l'incident, pas depuis les paramètres. Ouvrez un incident, choisissez **Post-mortem** dans son menu latéral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) et utilisez **Appliquer le modèle**. Cela ouvre une fenêtre **Appliquer le modèle de post-mortem** avec une liste déroulante **Sélectionner le modèle** ; en choisir un charge le corps du modèle dans l'éditeur **Note du post-mortem**, où vous le retravaillez avant d'enregistrer. Les épisodes d'incident ont la même page **Post-mortem** et puisent dans la même bibliothèque de modèles. **Appliquer le modèle** n'apparaît qu'une fois que le projet a un modèle de post-mortem ; s'il n'y en a qu'un, il est déjà sélectionné. L'éditeur s'ouvre sur le post-mortem de l'incident tel qu'il est, avec le modèle comme note : sa présence sur la page de statut, sa date de publication et ses pièces jointes restent inchangées.
 
 ## Champs personnalisés
 
@@ -122,7 +122,7 @@ Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite.
 - **Règles d'astreinte** — exécuter des politiques d'astreinte pour les incidents correspondants. Détaillées plus bas.
 - **Règles de propriétaire** — attribuer des propriétaires automatiquement.
 - **Règles de runbook** — lancer un [runbook](/docs/runbooks/index) quand un incident correspond.
-- **Règles d'auto-remédiation** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
+- **Règles de remédiation automatique** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
 - **Règles de confidentialité** — décider si un incident correspondant est privé.
 - **Règles d'étiquettes** — appliquer des étiquettes automatiquement.
 - **Règles SLA** — suivre les délais de réponse et de résolution. Les règles sont évaluées dans l'ordre ; les numéros d'ordre les plus bas passent en premier.
@@ -130,11 +130,11 @@ Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite.
 
 **La sémantique de l'ordre n'est pas uniforme.** Les **Règles de regroupement**, les **Règles SLA** et les **Reminder Rules** sont évaluées dans l'ordre. Les **Règles d'astreinte**, non — chaque règle correspondante se déclenche. Ne supposez pas qu'un seul modèle vaut pour les neuf.
 
-Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Incident Rules** et un onglet **Episode Rules**, chacun avec sa propre table. Configurez l'onglet **Incident Rules**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
+Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Règles d'incident** et un onglet **Règles d'épisode**, chacun avec sa propre table. Configurez l'onglet **Règles d'incident**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
 
 ## Règles d'astreinte des incidents
 
-**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous rendez l'alerte automatique. La carte, **Règles d'astreinte d'incident**, décrit des règles qui exécutent automatiquement des politiques d'astreinte à la création d'incidents correspondants. L'écran a deux onglets : **Incident Rules** et **Episode Rules**.
+**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous rendez l'alerte automatique. La carte, **Règles d'astreinte d'incident**, décrit des règles qui exécutent automatiquement des politiques d'astreinte à la création d'incidents correspondants. L'écran a deux onglets : **Règles d'incident** et **Règles d'épisode**.
 
 Le formulaire de création comporte trois étapes :
 

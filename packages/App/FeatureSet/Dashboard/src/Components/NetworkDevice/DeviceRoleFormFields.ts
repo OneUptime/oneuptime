@@ -2,6 +2,7 @@ import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The device-role picker, shared by the create form on the Devices list, the
@@ -21,13 +22,16 @@ import Route from "Common/Types/API/Route";
  * placeholder says where the answer comes from instead.
  */
 
-export const DEVICE_ROLE_FIELD_TITLE: string = "Device Role";
+// English keys: the form looks its title, description and placeholder up.
+export const DEVICE_ROLE_FIELD_TITLE: string = translationKey("Device Role");
 
-export const DEVICE_ROLE_FIELD_DESCRIPTION: string =
-  "What this device does on the network. Leave it empty for SNMP devices — the role is read from their own identity, and that is more reliable than a guess. Set it for anything without SNMP to read: a ping-only device has no identity to classify, so without this it is drawn as an anonymous node and treated as top-of-network when the map lays out the hierarchy.";
+export const DEVICE_ROLE_FIELD_DESCRIPTION: string = translationKey(
+  "What this device does on the network. Leave it empty for SNMP devices — the role is read from their own identity, and that is more reliable than a guess. Set it for anything without SNMP to read: a ping-only device has no identity to classify, so without this it is drawn as an anonymous node and treated as top-of-network when the map lays out the hierarchy.",
+);
 
-export const DEVICE_ROLE_FIELD_PLACEHOLDER: string =
-  "Worked out from the device (SNMP only)";
+export const DEVICE_ROLE_FIELD_PLACEHOLDER: string = translationKey(
+  "Worked out from the device (SNMP only)",
+);
 
 /*
  * The model-backed dropdown wiring, in one place. Spread into a form field

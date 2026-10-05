@@ -125,7 +125,10 @@ test.describe("Runners live under Runbooks", () => {
         SERVER,
       );
 
-      // Create a Runner through the form: Runner, Capabilities, Labels.
+      /*
+       * Create a Runner through the form: Runner (the labels folded under
+       * More fields at its end), then Capabilities.
+       */
       await page
         .getByTestId("card-button")
         .and(page.getByRole("button", { name: "Create Runner", exact: true }))
@@ -134,16 +137,24 @@ test.describe("Runners live under Runbooks", () => {
       await modal
         .getByPlaceholder("prod-eu-runner", { exact: true })
         .fill(runnerName);
+      /*
+       * A name is all a Runner needs, but Create Runner is on the last step
+       * only: a plain Next walks the optional ones.
+       */
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-      await expect(submit).toHaveText("Next");
-      await submit.click();
-      // Capabilities: a new Runner runs runbooks unless told otherwise.
+      const next: Locator = modal.getByTestId("modal-footer-next-button");
+      await expect(submit).toHaveCount(0);
+      await expect(next).toHaveText("Next");
+      await expect(
+        modal.getByRole("button", { name: "More fields", exact: true }),
+      ).toHaveAttribute("aria-expanded", "false");
+      await next.click();
+      // Capabilities, the last step: nothing to walk on to.
       await expect(
         modal.getByRole("switch", { name: /^Runs Runbooks/ }),
       ).toBeChecked();
-      await expect(submit).toHaveText("Next");
-      await submit.click();
-      await expect(submit).not.toHaveText("Next");
+      await expect(next).toHaveCount(0);
+      await expect(submit).toHaveText("Create Runner");
       await submit.click();
       await expect(modal).toBeHidden(SERVER);
 

@@ -1,9 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
@@ -25,13 +23,13 @@ import { Black } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import EventStatusPanel, {
   EventStateAction,
   EventStateItem,
 } from "../EventView/EventStatusPanel";
 import useNoteTemplates from "../EventView/useNoteTemplates";
-import { BulkStateChangeNoteTemplate } from "../../Utils/BulkStateChange";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import { BulkStateChangeNoteType } from "../../Utils/BulkStateChange";
 import {
   EpisodeHeaderError,
   EpisodeHeaderRefreshError,
@@ -45,6 +43,13 @@ import {
   getLatestTimelineStateId,
 } from "../EpisodeView/EpisodeTiming";
 import { EventStateTimelineDate } from "../../Utils/EventDuration";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   episodeId: ObjectID;
@@ -60,6 +65,7 @@ export interface ComponentProps {
 const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const episodeIdString: string = props.episodeId.toString();
 
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -363,25 +369,45 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
-  let modalTitle: string =
-    "Mark Episode as " + (selectedAlertState?.name || "");
-  let modalSubmitButtonText: string =
-    "Mark as " + (selectedAlertState?.name || "");
-  let modalDescription: string =
-    "You are about to mark this episode as " +
-    (selectedAlertState?.name || "") +
-    ". This will also update all alerts in this episode.";
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedAlertState?.name || "",
+  );
 
+  let modalTitle: string = translator.translateTemplate(
+    "Mark Episode as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalSubmitButtonText: string = translator.translateTemplate(
+    "Mark as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalDescription: string = translator.translateTemplate(
+    "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.",
+    { state: selectedStateName },
+  );
+
+  /*
+   * What the change does, in a sentence or two; the optional note is the
+   * folded "Add a private note" line under it. Acknowledging stops the on-call
+   * escalation of the episode and - as it acknowledges its alerts too -
+   * of theirs, so the confirm says so.
+   */
   if (selectedAlertState?.isAcknowledgedState) {
-    modalTitle = "Acknowledge Episode";
-    modalSubmitButtonText = "Acknowledge";
-    modalDescription =
-      "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. You can add an optional private note.";
+    modalTitle = translationKey("Acknowledge Episode");
+    modalSubmitButtonText = translationKey("Acknowledge");
+    modalDescription = translationKey(
+      "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. Any on-call escalation for the episode and its alerts stops.",
+    );
   } else if (selectedAlertState?.isResolvedState) {
-    modalTitle = "Resolve Episode";
-    modalSubmitButtonText = "Resolve";
-    modalDescription =
-      "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode. You can add an optional private note.";
+    modalTitle = translationKey("Resolve Episode");
+    modalSubmitButtonText = translationKey("Resolve");
+    modalDescription = translationKey(
+      "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.",
+    );
   }
 
   return (
@@ -398,7 +424,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
           episode?.episodeNumberWithPrefix ||
           (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)
         }
-        title={episode?.title || "Untitled episode"}
+        title={episode?.title || translator.translateText("Untitled episode")}
         currentStateId={currentAlertState?.id?.toString()}
         severity={
           episode?.alertSeverity
@@ -418,8 +444,8 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         durationPrefix={
           timing.durationStartsAt
             ? timing.isResolved
-              ? "Lasted"
-              : "Ongoing for"
+              ? translationKey("Lasted")
+              : translationKey("Ongoing for")
             : undefined
         }
         durationStartsAt={timing.durationStartsAt}
@@ -427,13 +453,19 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
-        moreMenuTitle="Move episode to"
-        facts={getEpisodeHeaderFacts({
-          groupingRuleName: episode?.alertGroupingRule?.name,
-          createdByName: getEpisodeCreatorName(episode?.createdByUser),
-          lastMemberAddedAt: episode?.lastAlertAddedAt || undefined,
-          memberNoun: "alert",
-        })}
+        moreMenuTitle={translationKey("Move episode to")}
+        facts={getEpisodeHeaderFacts(
+          {
+            groupingRuleName: episode?.alertGroupingRule?.name,
+            createdByName: getEpisodeCreatorName(
+              episode?.createdByUser,
+              translator,
+            ),
+            lastMemberAddedAt: episode?.lastAlertAddedAt || undefined,
+            memberNoun: "alert",
+          },
+          translator,
+        )}
         headerNotice={
           refreshError ? (
             <EpisodeHeaderRefreshError
@@ -446,7 +478,6 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={AlertEpisodeStateTimeline}
           name={"create-episode-state-timeline"}
           title={modalTitle}
@@ -481,66 +512,18 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             name: "create-episode-state-timeline",
             modelType: AlertEpisodeStateTimeline,
             id: "create-episode-state-timeline",
-            fields: [
-              {
-                field: {
-                  privateNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<AlertNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<AlertEpisodeStateTimeline>,
-                  ) => void,
-                ) => {
-                  const selectedTemplate:
-                    | BulkStateChangeNoteTemplate
-                    | undefined = noteTemplates.find(
-                    (template: BulkStateChangeNoteTemplate) => {
-                      return template.id === value;
-                    },
-                  );
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      privateNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: noteTemplates.map(
-                  (template: BulkStateChangeNoteTemplate) => {
-                    return {
-                      value: template.id,
-                      label: template.templateName,
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return noteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "privateNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  privateNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description: "Post a private note about this state change.",
-                title: "Private Note",
-                required: false,
-                overrideFieldKey: "privateNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-            ],
+            /*
+             * Nothing else decides an episode's state change: just the
+             * private note, folded under "Add a private note"
+             * (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<AlertEpisodeStateTimeline>({
+              noteType: BulkStateChangeNoteType.Private,
+              noteDescription: translationKey(
+                "Post a private note about this state change.",
+              ),
+              noteTemplates: noteTemplates,
+            }),
             formType: FormType.Create,
           }}
         />

@@ -204,9 +204,29 @@ describe("the list uses OneUptime facet chips", () => {
     expect(filters).toContain("firstSeenAt: true");
   });
 
+  /*
+   * The facet chips filter outside the table's own search and filters: the
+   * hook's emptyState tells the table about them, so a chip that matched
+   * nothing reads "nothing matches" with Clear Filters - not "Nothing here
+   * yet" and the setup guide.
+   */
   test("an empty facet result is not presented as an empty project", () => {
-    expect(code).toContain("hasActiveFilters ?");
-    expect(code).toContain("No inventory item matches the facets above.");
+    expect(code).toContain("emptyState: facetEmptyState,");
+    expect(code).toContain("...facetEmptyState,");
+    expect(code).not.toContain("No inventory item matches the facets above.");
+  });
+
+  test("an empty inventory says how items arrive, and links the setup guide", () => {
+    expect(code).toContain('title: "Nothing here yet."');
+    expect(code).toContain("icon: IconProp.Cube,");
+    expect(code).toContain(
+      "Items appear here on their own as you send OpenTelemetry data",
+    );
+    expect(code).toContain('title: "Read the setup guide"');
+    expect(code).toContain("style: TableEmptyStateActionStyle.Link,");
+    expect(code).toContain("PageMap.INVENTORY_DOCUMENTATION");
+    // The old full-page EmptyState (13rem of padding) no longer sits in the table.
+    expect(code).not.toContain("<EmptyState");
   });
 });
 
@@ -305,8 +325,29 @@ describe("the list is usable at estate scale", () => {
   });
 
   test("the empty state offers a way forward rather than a bare sentence", () => {
-    expect(code).toContain("<EmptyState");
-    expect(code).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
+    /*
+     * The shared table empty state, with the setup guide as a way forward -
+     * on the main list. The archive has its own ("No archived items"):
+     * nothing the setup guide does puts an item in it.
+     */
+    const liveStart: number = code.indexOf(
+      ': { ...facetEmptyState, title: "Nothing here yet."',
+    );
+    const liveEnd: number = code.indexOf(
+      "return ( <Fragment> <ModelTable<InventoryItem>",
+    );
+
+    expect(liveStart).toBeGreaterThan(-1);
+    expect(liveEnd).toBeGreaterThan(liveStart);
+
+    const live: string = code.slice(liveStart, liveEnd);
+
+    expect(code).toContain("emptyState={emptyState}");
+    expect(code).toContain(
+      "const emptyState: EmptyStateOptions = isArchivedView ? {",
+    );
+    expect(live).toContain("actions: [");
+    expect(live).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
   });
 
   test("rows open the inventory detail page", () => {

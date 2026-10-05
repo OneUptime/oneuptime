@@ -114,7 +114,7 @@ Le message que reçoivent réellement les abonnés est modélisé par page de st
 
 ## Le fil d'incident
 
-La carte **Incident Flux** se trouve en bas de la colonne de gauche, sur la page **Vue d'ensemble** de l'incident. C'est l'histoire de l'incident dans l'ordre : chaque élément comporte une icône, l'avatar et le nom de la personne qui l'a provoqué, un horodatage relatif avec l'heure locale exacte au survol, et un corps en Markdown. Les éléments sont triés du plus ancien au plus récent.
+La carte **Incident Flux** se trouve en bas de la colonne de gauche, sur la page **Vue d'ensemble** de l'incident. C'est l'histoire de l'incident dans l'ordre : chaque élément comporte une icône, l'avatar et le nom de la personne qui l'a provoqué, un horodatage relatif avec l'heure locale exacte au survol, et un corps en Markdown. Par défaut, les éléments les plus récents sont en haut.
 
 Certains éléments portent du détail supplémentaire — une notification de propriétaires liste par exemple toutes les personnes qui ont reçu le message. Ceux-là affichent un bouton **More Information** qui ouvre un panneau **More Information**.
 
@@ -122,10 +122,14 @@ L'en-tête de la carte comporte aussi un menu **Actions**, pour agir sans quitte
 
 - **Execute Runbook** — lancer un [runbook](/docs/runbooks/index) sur cet incident.
 - **Exécuter la politique d'astreinte** — alerter une politique à la demande.
-- **Add Public Note** — les quatre mêmes champs que la page Notes publiques, dans une fenêtre.
-- **Ajouter une note privée** — corps de note et pièces jointes uniquement.
+- **Add Public Note** — l'éditeur de la page Notes publiques, dans une fenêtre : rédigez la note, puis **Post update**. Les modèles, **Draft with AI**, les pièces jointes, **Notify status page subscribers** avec les destinataires et **Preview notification** y sont tous. La note est publiée maintenant ; pour l'antidater, choisissez **Posted now**.
+- **Ajouter une note privée** — l'éditeur de la page Notes privées, dans une fenêtre : rédigez la note, puis **Add note**.
 
-Juste à côté, **Actualiser** recharge le fil.
+Tout le reste se trouve derrière le bouton **⋯** juste à côté, le même bouton **Plus d'options** que l'en-tête de carte d'un tableau, pour que l'en-tête affiche le moins de boutons possible :
+
+- **Plus récents d'abord** / **Plus anciens d'abord** — l'ordre de lecture du fil. Une coche indique celui qui est utilisé, et votre navigateur retient ce choix pour le fil de chaque incident.
+- **Filtrer par type d'événement** — une boîte de dialogue qui liste les types d'événements du fil, chacun avec l'icône de ses éléments, et un champ de recherche quand la liste est longue. Cochez ceux à afficher puis choisissez **Appliquer les filtres** ; si rien n'est coché, tous sont affichés. Tant que le fil est filtré, un encadré au-dessus indique combien de types d'événements il affiche, avec une étiquette pour chacun, **Modifier les filtres** et **Effacer les filtres**. Le filtre n'est pas enregistré : quittez l'incident et son fil affiche de nouveau tout.
+- **Actualiser** — recharge le fil.
 
 **Le fil est en ajout seul, et ce n'est pas votre journal d'audit.** L'API permet de créer et de lire des éléments de fil, mais pas de les modifier ni de les supprimer : personne ne peut donc réécrire discrètement l'histoire d'un incident. Il n'est pas permanent pour autant : sur les installations facturées, les lignes de fil de plus de trois ans sont supprimées. Pour une trace durable de qui a changé quoi, utilisez **Audit → Journaux d'audit** dans le menu latéral de l'incident.
 

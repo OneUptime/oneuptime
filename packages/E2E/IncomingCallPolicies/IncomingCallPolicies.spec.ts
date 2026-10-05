@@ -341,21 +341,35 @@ test("the create form validates the name, then adds the policy to the table", as
   const name: Locator = dialog.getByPlaceholder(
     "e.g., Production Support Hotline",
   );
-  const next: Locator = dialog.getByRole("button", {
-    name: "Next",
+  const create: Locator = dialog.getByRole("button", {
+    name: "Create Incoming Call Policy",
     exact: true,
   });
+  const advanced: Locator = dialog.getByRole("button", {
+    name: "More fields",
+    exact: true,
+  });
+  const labels: Locator = dialog.getByRole("combobox", {
+    name: "Labels (Optional)",
+  });
+
+  /*
+   * One page: the name, the description, and the labels folded under
+   * More fields. There is no Labels step to walk, so no Next.
+   */
+  await expect(
+    dialog.getByRole("button", { name: "Next", exact: true }),
+  ).toHaveCount(0);
+  await expect(advanced).toHaveAttribute("aria-expanded", "false");
+  await expect(labels).toBeHidden();
 
   // Empty name: required.
-  await next.click();
+  await create.click();
   await expect(dialog.getByText("Name is required.")).toBeVisible();
-  await expect(
-    dialog.getByRole("combobox", { name: "Labels (Optional)" }),
-  ).toHaveCount(0);
 
   // One character: below the page's minLength of 2.
   await name.fill("A");
-  await next.click();
+  await create.click();
   await expect(
     dialog.getByText("Name cannot be less than 2 characters."),
   ).toBeVisible();
@@ -366,16 +380,13 @@ test("the create form validates the name, then adds the policy to the table", as
   await dialog
     .getByPlaceholder("Description of this incoming call policy")
     .fill("Customers calling from the status page");
-  await next.click();
 
-  // Step two is Labels, and it is optional: the form can be submitted.
+  // The labels are one click away, and optional.
+  await advanced.click();
+  await expect(advanced).toHaveAttribute("aria-expanded", "true");
+  await expect(labels).toBeVisible();
   await expect(dialog.getByText("Name is required.")).toHaveCount(0);
-  await expect(
-    dialog.getByRole("combobox", { name: "Labels (Optional)" }),
-  ).toBeVisible();
-  await dialog
-    .getByRole("button", { name: "Create Incoming Call Policy", exact: true })
-    .click();
+  await create.click();
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
 

@@ -6,6 +6,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -52,7 +53,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Notification Timeline",
           description:
-            "Here are all the timeline events. This will help you to debug any notification issues that you may face.",
+            "Each notification sent to you, how it was sent and whether it was delivered. If one failed, its status message says why.",
         }}
         selectMoreFields={{
           statusMessage: true,
@@ -64,6 +65,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         actionButtons={[
           {
             title: "View Status Message",
+            icon: IconProp.Error,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: UserOnCallLogTimeline,

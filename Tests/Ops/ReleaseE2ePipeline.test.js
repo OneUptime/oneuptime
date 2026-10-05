@@ -17,6 +17,13 @@
  *     (CI_PIPELINE_ID), or it `git pull`s, which moves the checkout too - and
  *     fetches every branch and tag first, ~45 seconds a job.
  *
+ * release.yml is held to the same checkout rule, for the same reason: a
+ * release run takes hours and its jobs start far apart, queued behind the
+ * organization's concurrent-job limit, so a push to `release` mid-run would
+ * have one release publish images of two commits, all tagged with its
+ * version and labelled with its github.sha. A job stays on the branch tip
+ * only from BRANCH_TIP_CHECKOUTS, which says why.
+ *
  * The e2e jobs wait for the images of the stack they boot and nothing else:
  * they used to wait for the Helm chart test and, through it, a 35-minute
  * Terraform provider dry run. That is checked here against the compose files
@@ -62,6 +69,66 @@ function commandOf(step) {
   return step.with && typeof step.with.command === "string"
     ? step.with.command
     : "";
+}
+
+// The `ref` of a checkout that gets the commit that triggered the run:
+// none (actions/checkout's default), or that commit by name.
+const RUN_COMMIT_REFS = [undefined, "${{ github.sha }}"];
+
+/**
+ * The jobs that may check out the branch tip instead of the commit that
+ * triggered the run, by workflow, as { job: "why it must" }. A job belongs
+ * here only if it has to build on commits pushed after the run started - one
+ * that commits and pushes back to the branch it runs on, say, whose push from
+ * the run's own commit would be rejected as a non-fast-forward.
+ *
+ * No job does. helm-chart-deploy (release.yml) commits and pushes, but to
+ * OneUptime/helm-chart's master, from a clone of its own: its checkout of this
+ * repository is only the chart source it packages, and that has to be the
+ * commit the rest of the run built and tested, not one pushed since. A
+ * checkout of another repository is not held to the rule at all (see
+ * checksOutThisRepository).
+ */
+const BRANCH_TIP_CHECKOUTS = {
+  [TEST_RELEASE]: {},
+  [RELEASE]: {},
+};
+
+/**
+ * Whether a step checks out this repository: any actions/checkout, unless its
+ * `repository` names another one outright. Another repository's checkout is
+ * not this run's code, and may pin whatever ref it needs.
+ * @param {Object} step
+ * @returns {boolean}
+ */
+function checksOutThisRepository(step) {
+  if (!/^actions\/checkout@/.test(step.uses || "")) {
+    return false;
+  }
+  const repository = String((step.with || {}).repository || "");
+  const another =
+    /^[\w.-]+\/[\w.-]+$/.test(repository) &&
+    repository.toLowerCase() !== "oneuptime/oneuptime";
+  return !another;
+}
+
+/**
+ * The jobs of a workflow's run, as [label, job]: its own, with each job that
+ * calls a workflow of this repository (`uses: ./.github/workflows/...`)
+ * replaced by the called workflow's jobs, labelled "caller -> job". Those run
+ * inside the caller's run, against the same github.sha.
+ * @param {string} relativePath
+ * @returns {Array<[string, Object]>}
+ */
+function jobsOfRun(relativePath) {
+  return Object.entries(readYaml(relativePath).jobs).flatMap(([name, job]) => {
+    if (typeof job.uses !== "string" || !job.uses.startsWith("./")) {
+      return [[name, job]];
+    }
+    return jobsOfRun(job.uses.slice(2)).map(([called, calledJob]) => {
+      return [`${name} -> ${called}`, calledJob];
+    });
+  });
 }
 
 /**
@@ -185,9 +252,47 @@ describe("the helpers this suite reads the workflows with", () => {
   test("read the shard counts test-sharding checks", () => {
     expect(verifiedShardTotals().length).toBeGreaterThan(0);
   });
+
+  test("tell a checkout of this repository from one of another", () => {
+    const checkout = (inputs) => {
+      return { uses: "actions/checkout@v4", with: inputs };
+    };
+
+    expect(checksOutThisRepository({ uses: "actions/checkout@v4" })).toBe(true);
+    expect(checksOutThisRepository(checkout({ path: "src" }))).toBe(true);
+    expect(
+      checksOutThisRepository(
+        checkout({ repository: "${{ github.repository }}" }),
+      ),
+    ).toBe(true);
+    expect(
+      checksOutThisRepository(checkout({ repository: "OneUptime/oneuptime" })),
+    ).toBe(true);
+    expect(
+      checksOutThisRepository(checkout({ repository: "OneUptime/helm-chart" })),
+    ).toBe(false);
+    expect(checksOutThisRepository({ uses: "actions/setup-node@v4" })).toBe(
+      false,
+    );
+  });
+
+  test("read a run's jobs with those of the workflows it calls", () => {
+    const labels = jobsOfRun(RELEASE).map(([label]) => {
+      return label;
+    });
+
+    expect(labels).toContain("read-version");
+    // The Terraform provider gate is a workflow of its own, called by a job.
+    expect(labels).not.toContain("terraform-provider-e2e");
+    expect(
+      labels.filter((label) => {
+        return label.startsWith("terraform-provider-e2e -> ");
+      }).length,
+    ).toBeGreaterThan(0);
+  });
 });
 
-describe(`${TEST_RELEASE}: a started run finishes, and builds only its own commit`, () => {
+describe(`${TEST_RELEASE}: a started run finishes`, () => {
   const workflow = readYaml(TEST_RELEASE);
   const jobs = Object.entries(workflow.jobs);
 
@@ -203,30 +308,82 @@ describe(`${TEST_RELEASE}: a started run finishes, and builds only its own commi
     expect(job["timeout-minutes"]).toBeGreaterThan(0);
   });
 
-  test("checks out code in its jobs (the check below is not vacuous)", () => {
-    const checkouts = jobs.flatMap(([, job]) => {
-      return (job.steps || []).filter((step) => {
-        return /^actions\/checkout@/.test(step.uses || "");
-      });
-    });
-
-    expect(checkouts.length).toBeGreaterThan(20);
-  });
-
+  /*
+   * generate-build-number creates a tag through the API, which can be
+   * refused - it was, once, while a newer push changed the workflows - and
+   * every job waiting for it is skipped when it fails. Only a job that reads
+   * the number may wait for it, so a failed counter costs that job, not the
+   * run's images and e2e.
+   */
   test.each(jobs)(
-    "%s checks out the commit that triggered the run, never the branch tip",
+    "%s waits for generate-build-number only if it reads the build number",
     (_name, job) => {
-      for (const step of job.steps || []) {
-        if (!/^actions\/checkout@/.test(step.uses || "")) {
-          continue;
-        }
-        const ref = (step.with || {}).ref;
-        // Unset is actions/checkout's default: the triggering commit.
-        expect([undefined, "${{ github.sha }}"]).toContain(ref);
-      }
+      const needs = needsOf(job);
+      const reads = JSON.stringify(job.steps || []).includes(
+        "needs.generate-build-number.outputs",
+      );
+
+      expect({
+        waits: needs.includes("generate-build-number"),
+      }).toEqual({ waits: reads });
     },
   );
 });
+
+describe.each([TEST_RELEASE, RELEASE])(
+  "%s: every job builds the commit that triggered the run",
+  (workflow) => {
+    const jobs = jobsOfRun(workflow);
+    const branchTip = BRANCH_TIP_CHECKOUTS[workflow];
+    const mayCheckOutBranchTip = (label) => {
+      return Object.prototype.hasOwnProperty.call(branchTip, label);
+    };
+
+    test("checks out code in its jobs (the check below is not vacuous)", () => {
+      const checkouts = jobs.flatMap(([, job]) => {
+        return (job.steps || []).filter(checksOutThisRepository);
+      });
+
+      expect(checkouts.length).toBeGreaterThan(20);
+    });
+
+    test.each(
+      jobs.filter(([label]) => {
+        return !mayCheckOutBranchTip(label);
+      }),
+    )(
+      "%s checks out the commit that triggered the run, never the branch tip",
+      (_label, job) => {
+        for (const step of (job.steps || []).filter(checksOutThisRepository)) {
+          expect(RUN_COMMIT_REFS).toContain((step.with || {}).ref);
+        }
+      },
+    );
+
+    test("lets a job check out the branch tip only if it says why, and still does", () => {
+      const byLabel = new Map(jobs);
+      const problems = Object.entries(branchTip).flatMap(([label, reason]) => {
+        const job = byLabel.get(label);
+        if (!job) {
+          return [`${label} is not a job of this run`];
+        }
+        if (typeof reason !== "string" || reason.trim() === "") {
+          return [`${label} does not say why it needs the branch tip`];
+        }
+        const onBranchTip = (job.steps || [])
+          .filter(checksOutThisRepository)
+          .some((step) => {
+            return !RUN_COMMIT_REFS.includes((step.with || {}).ref);
+          });
+        return onBranchTip
+          ? []
+          : [`${label} checks out the run's own commit; take it off the list`];
+      });
+
+      expect(problems).toEqual([]);
+    });
+  },
+);
 
 describe("every CI job that runs prerun tells configure.sh it is in CI", () => {
   // `npm run prerun` ends in configure.sh; dev, force-build and update run it.
@@ -362,5 +519,203 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
         })
         .sort(),
     ).toEqual(merges);
+  });
+});
+
+/**
+ * Runs an actions/github-script step's script as the action does - the body
+ * of an async function of `github` and `context` - with each ${{ }}
+ * expression in it replaced from `expressions`. An expression with no value
+ * there throws, rather than reaching the script as literal text.
+ * `setTimeout`, if given, stands in for the global one the script waits on.
+ * @param {object} step
+ * @param {{github: object, context: object, expressions: Object<string, string>, setTimeout?: Function}} scope
+ * @returns {Promise<unknown>}
+ */
+function runGithubScript(
+  step,
+  { github, context, expressions, setTimeout = global.setTimeout },
+) {
+  const script = step.with.script.replace(
+    /\$\{\{\s*(.+?)\s*\}\}/g,
+    (match, expression) => {
+      if (!(expression in expressions)) {
+        throw new Error(`no value given for ${match}`);
+      }
+      return expressions[expression];
+    },
+  );
+  const AsyncFunction = Object.getPrototypeOf(async () => {
+    return undefined;
+  }).constructor;
+
+  return new AsyncFunction("github", "context", "setTimeout", script)(
+    github,
+    context,
+    setTimeout,
+  );
+}
+
+/*
+ * A draft release has no tag. GitHub cuts it when finalize-github-release
+ * publishes the draft, from the release's target_commitish, and a release
+ * created without one targets the default branch - so releases were tagged
+ * on master as it was at publish time, hours after the run started (14.0.12
+ * on a commit merged two minutes before it), and the tag and the release
+ * page's source archives were not the code the release was built from.
+ *
+ * Every step that can create the release names the run's commit:
+ * ncipollo/release-action as `commit` (it sends it when it updates a draft,
+ * too), softprops/action-gh-release as `target_commitish` - before
+ * publication it always creates a draft of its own, and keeps it if it
+ * cannot find draft-github-release's. The publish names the commit once
+ * more, so the tag is right whichever draft it publishes.
+ */
+describe(`${RELEASE}: the release is tagged on the commit the run built`, () => {
+  const workflow = readYaml(RELEASE);
+
+  function stepsUsing(action) {
+    return Object.entries(workflow.jobs).flatMap(([jobName, job]) => {
+      return (job.steps || [])
+        .filter((step) => {
+          return (step.uses || "").startsWith(`${action}@`);
+        })
+        .map((step) => {
+          return [`${jobName}: ${step.name || step.id}`, step];
+        });
+    });
+  }
+
+  const draftSteps = stepsUsing("ncipollo/release-action");
+  const uploadSteps = stepsUsing("softprops/action-gh-release");
+  const publish = (workflow.jobs["finalize-github-release"].steps || []).find(
+    (step) => {
+      return /^actions\/github-script@/.test(step.uses || "");
+    },
+  );
+
+  test("finds the steps that create, fill and publish the release (the checks below are not vacuous)", () => {
+    // The draft step is written out three times, as retries.
+    expect(draftSteps.length).toBeGreaterThanOrEqual(3);
+    // SBOMs, the infrastructure agent, and the Android and iOS apps.
+    expect(uploadSteps.length).toBeGreaterThanOrEqual(4);
+    expect(publish).toBeDefined();
+  });
+
+  test.each(draftSteps)(
+    "%s creates the draft with commit: ${{ github.sha }}",
+    (_label, step) => {
+      expect(step.with.commit).toBe("${{ github.sha }}");
+    },
+  );
+
+  test.each(uploadSteps)(
+    "%s passes target_commitish: ${{ github.sha }}, for a draft it creates",
+    (_label, step) => {
+      expect(step.with.target_commitish).toBe("${{ github.sha }}");
+    },
+  );
+
+  describe("finalize-github-release", () => {
+    const sha = "5a55eface9b1d6f0c2e8a4b7d3c9e1f2a6b8c0d4";
+
+    // Runs the publish script for 9.9.9, whose draft is release 42.
+    async function runPublish(updateRelease, waits = jest.fn()) {
+      const github = {
+        paginate: jest.fn().mockResolvedValue([
+          { id: 41, tag_name: "9.9.8", draft: false },
+          {
+            id: 42,
+            tag_name: "9.9.9",
+            draft: true,
+            target_commitish: "master",
+          },
+        ]),
+        rest: { repos: { listReleases: jest.fn(), updateRelease } },
+      };
+      const log = jest.spyOn(console, "log").mockImplementation(() => {
+        return undefined;
+      });
+
+      try {
+        await runGithubScript(publish, {
+          github,
+          context: { repo: { owner: "OneUptime", repo: "oneuptime" }, sha },
+          expressions: { "needs.read-version.outputs.major_minor": "9.9.9" },
+          // The back-off between attempts returns at once, recorded in
+          // `waits`, so a retry shows up as calls rather than minutes.
+          setTimeout: (resolve, ms) => {
+            waits(ms);
+            resolve();
+          },
+        });
+      } finally {
+        log.mockRestore();
+      }
+
+      expect(github.paginate).toHaveBeenCalledWith(
+        github.rest.repos.listReleases,
+        expect.objectContaining({ owner: "OneUptime", repo: "oneuptime" }),
+      );
+    }
+
+    test("publishes the draft with target_commitish set to the run's commit", async () => {
+      const updateRelease = jest.fn().mockResolvedValue({ data: {} });
+
+      await runPublish(updateRelease);
+
+      expect(updateRelease).toHaveBeenCalledTimes(1);
+      expect(updateRelease).toHaveBeenCalledWith(
+        expect.objectContaining({
+          release_id: 42,
+          draft: false,
+          target_commitish: sha,
+        }),
+      );
+    });
+
+    test("still retries a transient failure", async () => {
+      const unavailable = Object.assign(
+        new Error("No server is currently available to service your request."),
+        { status: 503 },
+      );
+      const updateRelease = jest
+        .fn()
+        .mockRejectedValueOnce(unavailable)
+        .mockResolvedValue({ data: {} });
+      const waits = jest.fn();
+
+      await runPublish(updateRelease, waits);
+
+      expect(updateRelease).toHaveBeenCalledTimes(2);
+      expect(waits).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The workflow token may not create a ref at a commit whose workflows
+     * differ from master's, so the publish is refused if master changed a
+     * workflow during the run. That is not transient: retrying it only
+     * waited out 150 seconds of back-off before failing with a bare 403.
+     */
+    test("stops at once when GitHub refuses to create the tag, and says how to publish by hand", async () => {
+      const refused = Object.assign(
+        new Error(
+          "Resource not accessible by integration - https://docs.github.com/rest/releases/releases#update-a-release",
+        ),
+        { status: 403 },
+      );
+      const updateRelease = jest.fn().mockRejectedValue(refused);
+      const waits = jest.fn();
+      const publishing = runPublish(updateRelease, waits);
+
+      await expect(publishing).rejects.toThrow(
+        `GitHub refused to create tag 9.9.9 at ${sha}`,
+      );
+      await expect(publishing).rejects.toThrow(
+        "Publish the draft for 9.9.9 from the Releases page",
+      );
+      expect(updateRelease).toHaveBeenCalledTimes(1);
+      expect(waits).not.toHaveBeenCalled();
+    });
   });
 });

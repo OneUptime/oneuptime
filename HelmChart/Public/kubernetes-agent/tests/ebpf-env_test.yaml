@@ -126,7 +126,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   - it: drops the TCP stats families together
     set:
@@ -136,9 +136,9 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network
+            value: application,application_span_otel,application_service_graph,network
 
-  # OBI v0.14 removed `application_host`, and since v0.12 an unknown feature
+  # OBI v0.14 removed `application_host`, and since v0.11 an unknown feature
   # stops OBI starting: every eBPF pod would crash-loop. Values files written
   # for older charts say hostMetrics: true, so it must be a no-op, not an error.
   - it: never passes the removed application_host feature, even when an old values file asks for it
@@ -149,10 +149,10 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   # Every token the chart can render, all at once. Each must exist in the
-  # pinned OBI: since v0.12 it exits on an unknown one ("unknown metrics feature"),
+  # pinned OBI: since v0.11 it exits on an unknown one ("unknown metrics feature"),
   # taking every eBPF pod down. Checked against v0.14's FeatureMapper
   # (pkg/export/feature.go); re-check it when the tag moves.
   - it: renders only feature names the pinned OBI knows, with every toggle on
@@ -169,7 +169,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network,network_inter_zone,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span_otel,application_service_graph,network,network_inter_zone,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   # The profiler (profiling.obiProcessContext) links CPU samples to spans by
   # reading OBI's pinned traces_ctx_v1 map. Since v0.14 OBI fills that map
@@ -238,11 +238,11 @@ tests:
           count: 0
 
   # The tag decides which of OBI's behaviours the tests above are about:
-  # v0.13.0 validates feature names and no longer misreads Redis replies to
-  # blocking commands as requests. (v0.14 adds Node.js 26+ identification;
-  # it is not published yet.)
+  # v0.14.0 identifies Node.js 26+ as Node.js, validates feature names (since
+  # v0.12) and no longer misreads Redis replies to blocking commands as
+  # requests (since v0.11).
   - it: runs the pinned OBI release
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: otel/ebpf-instrument:v0.13.0
+          value: otel/ebpf-instrument:v0.14.0

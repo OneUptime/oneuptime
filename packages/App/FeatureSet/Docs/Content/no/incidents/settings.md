@@ -60,25 +60,25 @@ Det viktige er sammenslåingsregelen: **en mal fyller bare felt du lot være ude
 
 Notatmaler gir respondentene ferdigskrevet tekst til hendelsesoppdateringer, slik at en statussideoppdatering klokken tre om natten ikke skrives fra bunnen av noen som er halvveis våken.
 
-Gå til **Hendelser → Innstillinger → Notatmaler** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet heter **Public or Private Note Templates for Incidents** — ett bibliotek betjener begge notattypene. Opprettelsesskjemaet har to trinn:
+Gå til **Hendelser → Innstillinger → Notatmaler** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet heter **Public or Private Note Templates for Incidents** — ett bibliotek betjener begge notattypene. Opprettelsesskjemaet er én side:
 
-- **Malinformasjon** — **Malnavn** og **Malbeskrivelse**, begge påkrevd.
-- **Notatdetaljer** — selve notatteksten, i Markdown, påkrevd.
+- **Malnavn** og **Malbeskrivelse**, begge påkrevd.
+- Selve notatteksten, i Markdown, påkrevd.
 
 Som med hendelsesmaler opprettes og vises radene i stedet for å redigeres direkte i listen; åpne en mal for å endre den.
 
-Notatmaler dukker opp der du faktisk trenger dem: bekreftelsesdialogene **Acknowledge Incident** og **Resolve Incident** tilbyr begge **Velg notatmal** ved siden av feltet **Offentlig notat**. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed) for hvordan offentlige og private notater skiller seg fra hverandre.
+Notatmaler dukker opp der du faktisk trenger dem: bekreftelsesdialogene **Bekreft hendelse** og **Løs hendelse** tilbyr begge **Velg notatmal** over feltet **Offentlig notat**, foldet sammen under **Legg til et offentlig notat**. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed) for hvordan offentlige og private notater skiller seg fra hverandre.
 
 ## Postmortem-maler
 
 En postmortem-mal er skjelettet til rapporten du skriver etter en hendelse — overskriftene dine, spørsmålene dine, de faste punktene dine — slik at hver gjennomgang i prosjektet følger samme form.
 
-Gå til **Hendelser → Innstillinger → Postmortem-maler** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-maler**. Opprettelsesskjemaet har to trinn:
+Gå til **Hendelser → Innstillinger → Postmortem-maler** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-maler**. Opprettelsesskjemaet er én side:
 
-- **Malinformasjon** — **Malnavn** og **Malbeskrivelse**, begge påkrevd.
-- **Detaljer om etteranalyse** — **Mal for etteranalyse**, altså selve teksten, i Markdown, påkrevd.
+- **Malnavn** og **Malbeskrivelse**, begge påkrevd.
+- **Mal for etteranalyse**, altså selve teksten, i Markdown, påkrevd.
 
-Du tar en mal i bruk fra hendelsen, ikke fra innstillingene. Åpne en hendelse, velg **Etteranalyse** i sidemenyen dens (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og bruk **Bruk mal**. Det åpner dialogen **Bruk obduksjonsmal** med en nedtrekksliste **Velg mal**; velger du én, lastes maltekst inn i redigeringsfeltet **Notat om etteranalyse**, der du redigerer den før du lagrer. Hendelsesepisoder har den samme **Etteranalyse**-siden og henter fra det samme malbiblioteket.
+Du tar en mal i bruk fra hendelsen, ikke fra innstillingene. Åpne en hendelse, velg **Etteranalyse** i sidemenyen dens (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og bruk **Bruk mal**. Det åpner dialogen **Bruk obduksjonsmal** med en nedtrekksliste **Velg mal**; velger du én, lastes maltekst inn i redigeringsfeltet **Notat om etteranalyse**, der du redigerer den før du lagrer. Hendelsesepisoder har den samme **Etteranalyse**-siden og henter fra det samme malbiblioteket. **Bruk mal** vises først når prosjektet har en etteranalysemal; finnes det bare én, er den allerede valgt. Redigeringsfeltet åpner hendelsens etteranalyse slik den er, med malen som notat, så om den står på statussiden, når den ble publisert og vedleggene forblir uendret.
 
 ## Egendefinerte felt
 

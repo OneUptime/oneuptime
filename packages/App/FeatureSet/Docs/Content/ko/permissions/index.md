@@ -56,7 +56,7 @@ OneUptime의 모든 것은 **프로젝트** 안에 있습니다. 그 프로젝�
 
 추가 팀은 원하는 만큼 만들 수 있습니다. "프런트엔드 온콜", "지원", "읽기 전용 감사"처럼 만들고 각각 필요한 권한을 주세요.
 
-위치: **설정 → 팀**. 팀을 열면 **Members**, **Permissions**, **Block Permissions**로 갈 수 있습니다.
+위치: **설정 → 팀**. 팀을 열면 **Members**와 **Permissions**로 갈 수 있습니다. **Block Permissions**는 Permissions 페이지 맨 아래 **More settings**에 있습니다.
 
 ## 권한
 

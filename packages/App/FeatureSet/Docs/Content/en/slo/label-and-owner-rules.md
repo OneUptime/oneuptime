@@ -8,7 +8,7 @@ If you have not read it yet, start with the [SLOs Overview](/docs/slo/introducti
 
 ## Label rules
 
-A label rule has a name, an optional description, whether it is **enabled**, its match criteria, and the **Labels to Add**.
+Creating a label rule takes two steps: **Match**, the conditions an SLO must meet (see [Match criteria](#match-criteria)), then **Labels**, where you pick the **Labels to Add**. A rule has to add at least one label. Its **Name** is filled in from the labels you pick (_Add Checkout, Production_) and follows your picks until you type a name of your own. The optional **Description** is under **More fields**. A new rule starts enabled; to pause one without deleting it, switch **Enabled** off on its edit form.
 
 When the rule matches an SLO, every label in **Labels to Add** is attached to it. Labels the SLO already has are not added twice, and when several rules match, the SLO gets all of their labels.
 
@@ -16,11 +16,11 @@ Label rules can be exported to a file and imported into another project — see 
 
 ## Owner rules
 
-An owner rule has a name, an optional description, whether it is **enabled**, whether to **Notify Owners**, its match criteria, and the **Owner Teams** and **Owner Users** to add.
+Creating an owner rule takes the same two steps: **Match**, then **Owners**, where you pick the **Owners** to add — people and teams, picked from one list with **Add owner**. A rule has to add at least one owner. Its **Name** is filled in from them (_Add Checkout team as owners_) until you type a name of your own, and **Notify Owners** and the optional **Description** are under **More fields**. Like a label rule, it starts enabled, and its edit form has the **Enabled** switch.
 
 When the rule matches an SLO, every user and team on the rule is added as an owner. Owners the SLO already has are skipped, and when several rules match, the SLO gets all of their owners. SLO owners are who hears about the SLO — see [Error Budgets](/docs/slo/error-budget) for the notifications they get.
 
-- **Notify Owners** is on by default: the owners the rule adds get the same "you were added as an owner" notification as an owner added by hand. Turn it off to add owners silently.
+- **Notify Owners** (under **More fields**) is on by default: the owners the rule adds get the same "you were added as an owner" notification as an owner added by hand. Turn it off to add owners silently.
 - A user who is no longer a member of the project, or a team from another project, is never added. The rule's other owners still are.
 
 ## Match criteria
@@ -32,13 +32,13 @@ Add one or more conditions, then choose how they combine:
 
 Each condition compares one field of the SLO:
 
-| Field                       | Compared with          |
-| --------------------------- | ---------------------- |
-| **SLO Labels**              | The SLO's labels.      |
-| **SLO Name Pattern**        | The SLO's name.        |
-| **SLO Description Pattern** | The SLO's description. |
+| Field               | Compared with          |
+| ------------------- | ---------------------- |
+| **SLO Labels**      | The SLO's labels.      |
+| **SLO Name**        | The SLO's name.        |
+| **SLO Description** | The SLO's description. |
 
-The operators on offer depend on the field. They can include equality (**Equals**, **Does not equal**), text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**.
+The operators on offer depend on the field. They can include text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), equality (**Equals**, **Does not equal**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**. A new name or description condition starts on **Contains**.
 
 Patterns accept a regular expression (`^checkout-.*`) or a `*` wildcard (`*checkout*`). A pattern that is neither — `checkout-(01` — is rejected when you save, rather than silently matching nothing.
 
@@ -46,11 +46,11 @@ A rule with no conditions matches every SLO.
 
 Some examples:
 
-| You want                                     | Conditions                                                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Every SLO for the checkout service           | **SLO Name Pattern** matches pattern `*checkout*`                                                                  |
-| Every production SLO                         | **SLO Labels** has any of _Production_                                                                             |
-| Checkout SLOs, but not the ones for staging  | **Match all (AND)**: **SLO Name Pattern** matches pattern `*checkout*`, and **SLO Labels** has none of _Staging_   |
+| You want                                     | Conditions                                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Every SLO for the checkout service           | **SLO Name** contains `checkout`                                                                        |
+| Every production SLO                         | **SLO Labels** has any of _Production_                                                                  |
+| Checkout SLOs, but not the ones for staging  | **Match all (AND)**: **SLO Name** contains `checkout`, and **SLO Labels** has none of _Staging_          |
 
 ## When rules run
 

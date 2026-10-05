@@ -26,6 +26,7 @@ import MessageQueueOwnerTeamService from "../../../Server/Services/MessageQueueO
 import MessageQueueOwnerUserService from "../../../Server/Services/MessageQueueOwnerUserService";
 import MessageQueueService from "../../../Server/Services/MessageQueueService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import logger from "../../../Server/Utils/Logger";
 import {
   RuleApplicationResult,
@@ -676,6 +677,8 @@ describe("MessageQueueOwnerRuleEngineService", () => {
     getJestSpyOn(TeamMemberService, "isUserMemberOfProject").mockResolvedValue(
       true,
     );
+    // The teams the rules name are the project's.
+    stubProjectDirectory({});
   }
 
   test("reads the queue criteria fields and the owners to add", () => {

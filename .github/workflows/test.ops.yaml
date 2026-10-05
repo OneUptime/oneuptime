@@ -95,6 +95,13 @@ jobs:
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
           RUN_NPM_CLI_UPDATE_TESTS: "1"
+      # The eBPF end-to-end test (the "Kubernetes Agent eBPF E2E" workflow)
+      # needs a cluster and only runs when the chart changes; its assertions
+      # do not. These unit tests feed Tests/Ops/agent-ebpf-e2e/analyze.py
+      # synthetic captures, one fault each, and check that exactly the check
+      # guarding against it fails, so a check that stopped checking anything
+      # fails here on every PR rather than passing there forever.
+      - run: python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
       # The jest suite reads the collector configs with js-yaml and reasons
       # about them, which cannot see the Go-side class of error: a malformed
       # RE2 regex, an `output`/`default` naming an operator that does not
@@ -113,6 +120,12 @@ jobs:
       # traces and SDK spans kept. A wrong condition here is not a crash, it
       # is a customer's traces quietly missing (or the one-span flood back).
       - run: bash Tests/Ops/agent-trace-filter-behaviour.sh
+      # The same for the agent's metrics: filter/ebpf-node-inspector as the
+      # chart renders it, in the same collector image, fed datapoints shaped
+      # like OBI's. The http.server.* datapoints of OBI's own Node.js
+      # inspector requests are dropped; an app's own routes, other ports,
+      # other methods and SDK metrics are kept.
+      - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and
@@ -123,8 +136,10 @@ jobs:
       # this does for its eBPF DaemonSet. helm-unittest pins OBI's config file
       # and env as text, but only OBI can say whether it takes them: it
       # refuses to start on a metrics feature it does not know (the
-      # `application_host` that would crash-loop every node on v0.14), and it
-      # silently ignores a YAML key it does not know. This loads each rendered
+      # `application_host` that would crash-loop every node on v0.14),
+      # silently ignores a YAML key it does not know, and warns on every start
+      # about a feature it deprecated (`application_span`, which the chart
+      # replaced with `application_span_otel`). This loads each rendered
       # variant in the OBI image the chart pins, unprivileged (no
       # capabilities, no network, never --privileged or --pid=host), and
       # checks the effective configuration OBI prints before it gives up for
@@ -132,5 +147,7 @@ jobs:
       #
       # It pulls the image the chart renders, so a tag nobody can pull fails
       # it: a chart pinning such an image puts every node in ImagePullBackOff.
+      # It also pulls OBI v0.13.0, the release a --reuse-values upgrade keeps,
+      # and loads the render for that tag in it.
       # Last in the job, so a red run here never skips the steps above.
       - run: bash Tests/Ops/agent-obi-config-load.sh

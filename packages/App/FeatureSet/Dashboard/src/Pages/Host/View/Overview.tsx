@@ -10,6 +10,9 @@ import OsVersionDisplay, {
 import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -76,6 +79,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface OverviewStats {
   cpuPercent: number | null;
@@ -160,6 +165,7 @@ const REFRESH_STORAGE_KEY: string = "host-overview-auto-refresh-interval";
 const HostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [host, setHost] = useState<Host | null>(null);
@@ -1149,7 +1155,10 @@ const HostOverview: FunctionComponent<
       const cores: number = Number(host.cpuCores);
       specChips.push({
         icon: IconProp.ChartBar,
-        label: `${cores} core${cores === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} core", other: "{{count}} cores" },
+          cores,
+        ),
       });
     }
     if (host.totalMemoryBytes !== undefined && host.totalMemoryBytes !== null) {
@@ -1222,7 +1231,9 @@ const HostOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1420,10 +1431,12 @@ const HostOverview: FunctionComponent<
               className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
             >
               <div className="text-sm font-semibold text-gray-900">
-                Docker Host
+                {translator.translateText("Docker Host")}
               </div>
               <div className="text-xs text-gray-500">
-                Containers, container metrics, and Docker-specific logs.
+                {translator.translateText(
+                  "Containers, container metrics, and Docker-specific logs.",
+                )}
               </div>
             </Link>
           )}
@@ -1433,10 +1446,12 @@ const HostOverview: FunctionComponent<
               className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
             >
               <div className="text-sm font-semibold text-gray-900">
-                Kubernetes Cluster
+                {translator.translateText("Kubernetes Cluster")}
               </div>
               <div className="text-xs text-gray-500">
-                Cluster nodes, pods, and namespaces this host belongs to.
+                {translator.translateText(
+                  "Cluster nodes, pods, and namespaces this host belongs to.",
+                )}
               </div>
             </Link>
           )}
@@ -1474,26 +1489,26 @@ const HostOverview: FunctionComponent<
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Mount
+                      {translator.translateText("Mount")}
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Type
+                      {translator.translateText("Type")}
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Device
+                      {translator.translateText("Device")}
                     </th>
                     <th
                       scope="col"
                       className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                     >
                       <span className="inline-flex items-center justify-end gap-1">
-                        Used / Total
+                        {translator.translateText("Used / Total")}
                         <InfoTooltip
                           label="Used / Total"
                           text={HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal}
@@ -1505,7 +1520,7 @@ const HostOverview: FunctionComponent<
                       className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
                     >
                       <span className="inline-flex items-center gap-1">
-                        Utilization
+                        {translator.translateText("Utilization")}
                         <InfoTooltip
                           label="Utilization"
                           text={HOST_METRIC_DESCRIPTIONS.filesystemUtilization}
@@ -1607,7 +1622,7 @@ const HostOverview: FunctionComponent<
           <div className="flex items-center justify-between mb-3">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {params.title}
+                {translator.translateText(params.title)}
               </span>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
@@ -1653,7 +1668,7 @@ const HostOverview: FunctionComponent<
           <div className="flex items-center gap-2">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {params.title}
+                {translator.translateText(params.title)}
               </span>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
@@ -1741,7 +1756,9 @@ const HostOverview: FunctionComponent<
                 : "bg-red-50 text-red-700 ring-red-200"
           }`}
         >
-          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+          {translator.translateTemplate("{{percent}}% uptime", {
+            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+          })}
         </span>
       );
 
@@ -1757,11 +1774,12 @@ const HostOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Availability
+                {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
-                Per-bucket presence of host heartbeats over the selected time
-                range
+                {translator.translateText(
+                  "Per-bucket presence of host heartbeats over the selected time range",
+                )}
               </p>
             </div>
             <TimeRangeZoomHint revealOnHover={true} />
@@ -1781,10 +1799,12 @@ const HostOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Resource usage
+                {translator.translateText("Resource usage")}
               </h2>
               <p className="text-xs text-gray-500">
-                Aggregated over the selected time range
+                {translator.translateText(
+                  "Aggregated over the selected time range",
+                )}
               </p>
             </div>
             <TimeRangeZoomHint revealOnHover={true} />
@@ -1939,6 +1959,16 @@ const HostOverview: FunctionComponent<
             <Card
               title="Identification"
               description="How this host is named and classified."
+              // Edited in one place: the Host Details card on its Settings page.
+              buttons={[
+                <EditInSettingsLink
+                  key="edit-in-settings"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.HOST_VIEW_SETTINGS] as Route,
+                    { modelId: modelId },
+                  )}
+                />,
+              ]}
             >
               <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
                 <Detail<Host>
@@ -1948,7 +1978,7 @@ const HostOverview: FunctionComponent<
                     [
                       {
                         key: "name",
-                        title: "Name",
+                        title: "Display Name",
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.name);
@@ -1956,7 +1986,7 @@ const HostOverview: FunctionComponent<
                       },
                       {
                         key: "hostIdentifier",
-                        title: "Host Identifier",
+                        title: "Host Name (host.name)",
                         fieldType: FieldType.Text,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.hostIdentifier);
@@ -1981,9 +2011,17 @@ const HostOverview: FunctionComponent<
                       {
                         key: "agentVersion",
                         title: "Agent Version",
-                        fieldType: FieldType.Text,
+                        fieldType: FieldType.Element,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.agentVersion);
+                        },
+                        getElement: (item: Host): ReactElement => {
+                          return (
+                            <AgentVersion
+                              kind={AgentKind.HostCollector}
+                              version={item.agentVersion}
+                            />
+                          );
                         },
                       },
                     ] as Array<DetailField<Host>>
@@ -2017,7 +2055,13 @@ const HostOverview: FunctionComponent<
                           }
                           return (
                             <span className="text-sm text-gray-900">
-                              {cores} core{cores === 1 ? "" : "s"}
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} core",
+                                  other: "{{count}} cores",
+                                },
+                                cores,
+                              )}
                             </span>
                           );
                         },

@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface LogSearchSuggestionsProps {
   suggestions: Array<string>;
@@ -20,6 +22,7 @@ const MAX_VISIBLE_SUGGESTIONS: number = 8;
 const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
   props: LogSearchSuggestionsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const visible: Array<string> = props.suggestions.slice(
     0,
     MAX_VISIBLE_SUGGESTIONS,
@@ -50,7 +53,9 @@ const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
               d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
             ></path>
           </svg>
-          <span>{props.loadingMessage || "Loading..."}</span>
+          <span>
+            {translator.translateText(props.loadingMessage || "Loading...")}
+          </span>
         </div>
       )}
       {!props.isLoading &&
@@ -97,7 +102,10 @@ const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
       })}
       {props.suggestions.length > MAX_VISIBLE_SUGGESTIONS && (
         <div className="px-3 py-1 text-[11px] text-gray-400">
-          +{props.suggestions.length - MAX_VISIBLE_SUGGESTIONS} more...
+          {translator.translatePlural(
+            { one: "+{{count}} more...", other: "+{{count}} more..." },
+            props.suggestions.length - MAX_VISIBLE_SUGGESTIONS,
+          )}
         </div>
       )}
     </div>

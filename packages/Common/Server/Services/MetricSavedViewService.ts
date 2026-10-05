@@ -2,16 +2,20 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/MetricSavedView";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import UpdateBy from "../Types/Database/UpdateBy";
 import ObjectID from "../../Types/ObjectID";
-import QueryHelper from "../Types/Database/QueryHelper";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
 
+  /*
+   * A project's first saved view becomes its default when the create does
+   * not say. The view only takes the default from the project's other views
+   * once it is saved (onCreateSuccess), so a create that is refused or fails
+   * leaves the project's default where it was.
+   */
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
@@ -32,77 +36,35 @@ export class Service extends DatabaseService<Model> {
       createBy.data.isDefault = !existingDefaultView;
     }
 
-    if (createBy.data.projectId) {
-      await this.unsetOtherDefaultsIfNeeded({
-        projectId: createBy.data.projectId,
-        isDefault: createBy.data.isDefault || false,
-      });
-    }
-
     return { createBy, carryForward: null };
   }
 
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    if (updateBy.data.isDefault !== true) {
-      return { updateBy, carryForward: null };
-    }
-
-    const itemsToUpdate: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isDefault",
+      createdItem: createdItem,
     });
 
-    for (const item of itemsToUpdate) {
-      if (item.projectId) {
-        await this.unsetOtherDefaultsIfNeeded({
-          projectId: item.projectId,
-          isDefault: true,
-          excludeIds: item._id ? [item._id] : [],
-        });
-      }
-    }
-
-    return { updateBy, carryForward: null };
+    return createdItem;
   }
 
-  private async unsetOtherDefaultsIfNeeded(data: {
-    projectId?: ObjectID;
-    isDefault?: boolean;
-    excludeIds?: Array<string>;
-  }): Promise<void> {
-    if (!data.projectId || !data.isDefault) {
-      return;
-    }
-
-    await this.updateBy({
-      query: {
-        projectId: data.projectId,
-        isDefault: true,
-        ...(data.excludeIds && data.excludeIds.length > 0
-          ? {
-              _id: QueryHelper.notInOrNull(data.excludeIds),
-            }
-          : {}),
-      },
-      data: {
-        isDefault: false,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
+  // A view an update made the default takes it from the project's others.
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
     });
+
+    return onUpdate;
   }
 }
 

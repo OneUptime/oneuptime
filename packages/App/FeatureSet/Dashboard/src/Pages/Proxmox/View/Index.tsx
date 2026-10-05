@@ -6,8 +6,9 @@ import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -90,6 +91,8 @@ import {
   METRIC_STALE_MS,
 } from "../Utils/ProxmoxResourceUtils";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -203,6 +206,7 @@ const REFRESH_STORAGE_KEY: string = "proxmox-overview-auto-refresh-interval";
 const ProxmoxClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<ProxmoxCluster | null>(null);
@@ -1428,34 +1432,53 @@ const ProxmoxClusterOverview: FunctionComponent<
     if (nodesTotal > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
-        label: `${nodesOnline}/${nodesTotal} node${nodesTotal === 1 ? "" : "s"} online`,
+        label: translator.translatePlural(
+          {
+            one: "{{online}}/{{count}} node online",
+            other: "{{online}}/{{count}} nodes online",
+          },
+          nodesTotal,
+          { online: nodesOnline },
+        ),
       });
     }
     if (guestsTotal > 0) {
       specChips.push({
         icon: IconProp.Cube,
         label: inventory
-          ? `${guestsRunning}/${guestsTotal} guest${guestsTotal === 1 ? "" : "s"} running`
-          : `${guestsTotal} guest${guestsTotal === 1 ? "" : "s"}`,
+          ? translator.translatePlural(
+              {
+                one: "{{running}}/{{count}} guest running",
+                other: "{{running}}/{{count}} guests running",
+              },
+              guestsTotal,
+              { running: guestsRunning },
+            )
+          : translator.translatePlural(
+              { one: "{{count}} guest", other: "{{count}} guests" },
+              guestsTotal,
+            ),
       });
     }
     if (storageCount > 0) {
       specChips.push({
         icon: IconProp.Database,
-        label: `${storageCount} storage volume${storageCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          {
+            one: "{{count}} storage volume",
+            other: "{{count}} storage volumes",
+          },
+          storageCount,
+        ),
       });
     }
     const hasCountChips: boolean = specChips.length > 0;
     if (cluster.pveVersion) {
       specChips.push({
         icon: IconProp.Info,
-        label: `PVE ${String(cluster.pveVersion)}`,
-      });
-    }
-    if (cluster.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: `Agent ${String(cluster.agentVersion)}`,
+        label: translator.translateTemplate("PVE {{version}}", {
+          version: String(cluster.pveVersion),
+        }),
       });
     }
 
@@ -1482,7 +1505,11 @@ const ProxmoxClusterOverview: FunctionComponent<
         } else if (state === "stopped" || state === "disabled") {
           colorClass = "bg-gray-50 text-gray-700 ring-gray-200";
         }
-        return { label: `HA ${state}`, value: count, colorClass };
+        return {
+          label: translator.translateTemplate("HA {{state}}", { state: state }),
+          value: count,
+          colorClass,
+        };
       });
 
     return (
@@ -1539,7 +1566,9 @@ const ProxmoxClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1548,7 +1577,7 @@ const ProxmoxClusterOverview: FunctionComponent<
               </div>
             </div>
 
-            {specChips.length > 0 && (
+            {(specChips.length > 0 || Boolean(cluster.agentVersion)) && (
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
@@ -1569,6 +1598,15 @@ const ProxmoxClusterOverview: FunctionComponent<
                     );
                   },
                 )}
+                {/*
+                 * The agent's version chip, last (AgentVersion draws the
+                 * same gray chip, or nothing without a version).
+                 */}
+                <AgentVersion
+                  kind={AgentKind.ProxmoxAgent}
+                  version={cluster.agentVersion}
+                  variant="chip"
+                />
                 {/*
                  * Only the count chips need explaining; the version chips
                  * are metadata, so a row of versions alone gets no (i).
@@ -1713,7 +1751,10 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={formatPercent(s.memoryPercent)}
           sublabel={
             s.memoryUsedBytes !== null && s.memorySizeBytes !== null
-              ? `${formatBytes(s.memoryUsedBytes)} of ${formatBytes(s.memorySizeBytes)}`
+              ? translator.translateTemplate("{{used}} of {{total}}", {
+                  used: formatBytes(s.memoryUsedBytes),
+                  total: formatBytes(s.memorySizeBytes),
+                })
               : "of node memory"
           }
           percent={s.memoryPercent}
@@ -1727,7 +1768,9 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={formatPercent(inventory?.worstStoragePercent ?? null)}
           sublabel={
             inventory?.worstStorageName
-              ? `fullest: ${inventory.worstStorageName}`
+              ? translator.translateTemplate("fullest: {{storageName}}", {
+                  storageName: inventory.worstStorageName,
+                })
               : "fullest volume"
           }
           percent={inventory?.worstStoragePercent ?? null}
@@ -1742,7 +1785,9 @@ const ProxmoxClusterOverview: FunctionComponent<
           sublabel={
             netTotal === null
               ? "running"
-              : `running · net ${ValueFormatter.formatValue(netTotal, "By/s")}`
+              : translator.translateTemplate("running · net {{throughput}}", {
+                  throughput: ValueFormatter.formatValue(netTotal, "By/s"),
+                })
           }
           percent={guestsRunningPct}
           thresholds={{ warn: 99, danger: 50 }}
@@ -1761,7 +1806,13 @@ const ProxmoxClusterOverview: FunctionComponent<
           sublabel={
             backupKnown && guestsTotal > 0
               ? guestsNotCovered > 0
-                ? `${guestsNotCovered} guest${guestsNotCovered === 1 ? "" : "s"} not in any backup job`
+                ? translator.translatePlural(
+                    {
+                      one: "{{count}} guest not in any backup job",
+                      other: "{{count}} guests not in any backup job",
+                    },
+                    guestsNotCovered,
+                  )
                 : "guests in a backup job"
               : "backup-info not reported yet"
           }
@@ -1908,11 +1959,12 @@ const ProxmoxClusterOverview: FunctionComponent<
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
-              Cluster resource usage
+              {translator.translateText("Cluster resource usage")}
             </h2>
             <p className="text-xs text-gray-500">
-              Aggregated across nodes (CPU/memory), storage volumes, and guests
-              (network) over the selected time range
+              {translator.translateText(
+                "Aggregated across nodes (CPU/memory), storage volumes, and guests (network) over the selected time range",
+              )}
             </p>
           </div>
           <TimeRangeZoomHint revealOnHover={true} />
@@ -2286,10 +2338,11 @@ const ProxmoxClusterOverview: FunctionComponent<
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-gray-900 group-hover:text-indigo-700">
-                {linkedCephCluster.name || "Ceph cluster"}
+                {linkedCephCluster.name ||
+                  translator.translateText("Ceph cluster")}
               </div>
               <div className="text-xs text-gray-500">
-                View Ceph cluster overview →
+                {translator.translateText("View Ceph cluster overview →")}
               </div>
             </div>
           </div>
@@ -2304,7 +2357,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           <div className="flex-1">
             <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
               <span className="inline-flex items-center gap-1">
-                Capacity used
+                {translator.translateText("Capacity used")}
                 <InfoTooltip
                   label="Capacity used"
                   text={PROXMOX_METRIC_DESCRIPTIONS.cephCapacityUsed}
@@ -2342,7 +2395,7 @@ const ProxmoxClusterOverview: FunctionComponent<
     if (params.rows.length === 0) {
       return (
         <p className="text-gray-400 text-sm py-8 text-center">
-          No usage data available.
+          {translator.translateText("No usage data available.")}
         </p>
       );
     }
@@ -2418,14 +2471,16 @@ const ProxmoxClusterOverview: FunctionComponent<
                 <div>
                   <div className="flex items-center gap-1">
                     <h4 className="text-sm font-semibold text-gray-900">
-                      CPU Usage
+                      {translator.translateText("CPU Usage")}
                     </h4>
                     <InfoTooltip
                       label="CPU Usage"
                       text={PROXMOX_METRIC_DESCRIPTIONS.topGuestsByCpu}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">Top 5 guests by CPU</p>
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText("Top 5 guests by CPU")}
+                  </p>
                 </div>
               </div>
               {renderTopGuestList({
@@ -2451,7 +2506,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                 <div>
                   <div className="flex items-center gap-1">
                     <h4 className="text-sm font-semibold text-gray-900">
-                      Memory Usage
+                      {translator.translateText("Memory Usage")}
                     </h4>
                     <InfoTooltip
                       label="Memory Usage"
@@ -2459,7 +2514,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    Top 5 guests by memory
+                    {translator.translateText("Top 5 guests by memory")}
                   </p>
                 </div>
               </div>
@@ -2802,67 +2857,25 @@ const ProxmoxClusterOverview: FunctionComponent<
       {/* Top Resource Consumers */}
       {renderTopGuests()}
 
-      {/* Cluster Details */}
+      {/*
+       * Cluster Details: read here, edited in one place - the same card at
+       * the top of the cluster's Settings page (ResourceDetailsCard).
+       */}
       <CardModelDetail<ProxmoxCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "Cluster Info",
-            id: "cluster-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Proxmox cluster.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        editButtonText="Edit Cluster"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            stepId: "cluster-info",
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "pve-production",
-            description:
-              "This should match the proxmox.cluster.name resource attribute reported by the Proxmox Agent.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            stepId: "cluster-info",
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production Proxmox cluster running in US East",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: ProxmoxCluster,
@@ -2903,8 +2916,16 @@ const ProxmoxClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
+              getElement: (item: ProxmoxCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.ProxmoxAgent}
+                    version={item.agentVersion}
+                    placeholder="Not reported"
+                  />
+                );
+              },
             },
             {
               field: {

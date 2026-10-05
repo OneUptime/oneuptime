@@ -9,6 +9,8 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The substitutions in force on this schedule, stated in full above the grid
@@ -18,8 +20,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * substitute's colour — and a block cannot say what it would have said without
  * the override. That leaves the reader of a correct calendar unable to tell a
  * substitution from an ordinary rotation, which is the complaint this card
- * answers: it names the person who was overridden, the person their alerts now
- * reach, the window, and whether the swap applies everywhere or to one policy.
+ * answers: it names the person who is away, the person covering - who their
+ * alerts now reach - the window, and whether the swap applies everywhere or
+ * to one policy. "Away" and "Covering" are the words the Add User Override
+ * form asks with ("Who is away?", "Who covers?").
  *
  * Rows come from OverridePresentation.buildOverrideSummaryRows, so this
  * component holds no wording of its own and stays a pure render of props.
@@ -46,6 +50,7 @@ export const MAX_SHOWN_OVERRIDE_ROWS: number = 4;
 const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (props.rows.length === 0) {
     return null;
   }
@@ -97,7 +102,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           <div
             className={`text-[11px] font-medium uppercase tracking-wide ${data.captionClassName}`}
           >
-            {data.caption}
+            {translator.translateText(data.caption)}
           </div>
         </div>
       </div>
@@ -117,20 +122,20 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           {getParty({
             userId: row.originalUserId,
             name: row.originalName,
-            caption: "Overridden",
+            caption: "Away",
             captionClassName: "text-gray-400",
           })}
 
           <Icon
             icon={IconProp.ArrowRight}
             className="h-4 w-4 flex-shrink-0 text-indigo-500"
-            ariaLabel="alerts routed to"
+            ariaLabel={translator.translateText("alerts routed to")}
           />
 
           {getParty({
             userId: row.substituteUserId,
             name: row.substituteName,
-            caption: "Alerts go here",
+            caption: "Covering",
             captionClassName: "text-indigo-600",
           })}
 
@@ -140,7 +145,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500" />
               </span>
-              In force now
+              {translator.translateText("In force now")}
             </span>
           )}
         </div>
@@ -191,9 +196,13 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
     >
       <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-indigo-700">
         <Icon icon={IconProp.ArrowUturnRight} className="h-3.5 w-3.5" />
-        {props.rows.length === 1
-          ? "1 user override on this schedule"
-          : `${props.rows.length} user overrides on this schedule`}
+        {translator.translatePlural(
+          {
+            one: "{{count}} user override on this schedule",
+            other: "{{count}} user overrides on this schedule",
+          },
+          props.rows.length,
+        )}
       </div>
       {/*
        * Deliberately not "during these windows the calendar shows the
@@ -205,17 +214,23 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
        * changed the grid.
        */}
       <p className="mt-1 text-xs text-gray-600">
-        An override sends the alerts that would page one person to somebody
-        else. Wherever one covers a shift, the calendar below shows the
-        substitute rather than the person the rotation put on call.
+        {translator.translateText(
+          "An override sends the alerts that would page one person to somebody else. Wherever one covers a shift, the calendar below shows the substitute rather than the person the rotation put on call.",
+        )}
       </p>
 
       <ul className="mt-3 space-y-2">{shownRows.map(getRow)}</ul>
 
       {hiddenCount > 0 && (
         <div className="mt-2 text-xs text-gray-500">
-          + {hiddenCount} more {hiddenCount === 1 ? "override" : "overrides"}{" "}
-          scheduled later in this window.
+          {translator.translatePlural(
+            {
+              one: "+ {{count}} more override scheduled later in this window.",
+              other:
+                "+ {{count}} more overrides scheduled later in this window.",
+            },
+            hiddenCount,
+          )}
         </div>
       )}
     </div>

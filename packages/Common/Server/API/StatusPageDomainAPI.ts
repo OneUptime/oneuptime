@@ -14,9 +14,12 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
+import CertificateOrder from "../Utils/Greenlock/CertificateOrder";
+import CustomDomainRoutes from "./CustomDomainRoutes";
 
 export default class StatusPageDomainAPI extends BaseAPI<
   StatusPageDomain,
@@ -25,102 +28,34 @@ export default class StatusPageDomainAPI extends BaseAPI<
   public constructor() {
     super(StatusPageDomain, StatusPageDomainService);
 
-    // CNAME verification api. THis API will be used from the dashboard to validate the CNAME MANUALLY.
-    this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/verify-cname/:id`,
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          if (!StatusPageCNameRecord) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                `Custom Domains not enabled for this
-                                OneUptime installation. Please contact
-                                your server admin to enable this
-                                feature.`,
-              ),
-            );
-          }
-
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-          const id: ObjectID = new ObjectID(req.params["id"] as string);
-
-          // check if the user can read the domain.
-
-          const domainCount: PositiveNumber =
-            await StatusPageDomainService.countBy({
-              query: {
-                _id: id.toString(),
-              },
-              props: databaseProps,
-            });
-
-          if (domainCount.toNumber() === 0) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "The domain does not exist or user does not have access to it.",
-              ),
-            );
-          }
-
-          const domain: StatusPageDomain | null =
-            await StatusPageDomainService.findOneBy({
-              query: {
-                _id: id.toString(),
-              },
-              select: {
-                _id: true,
-                fullDomain: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!domain) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid token."),
-            );
-          }
-
-          if (!domain.fullDomain) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid domain."),
-            );
-          }
-
-          const isValid: boolean = await StatusPageDomainService.isCnameValid(
-            domain.fullDomain!,
-          );
-
-          if (!isValid) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "CNAME is not verified. Please make sure you have the correct record and please verify CNAME again. If you are sure that the record is correct, please wait for some time for the DNS to propagate.",
-              ),
-            );
-          }
-
-          return Response.sendEmptySuccessResponse(req, res);
-        } catch (e) {
-          next(e);
-        }
+    /*
+     * Check now (verify-cname) and the Status column's certificates: the
+     * same routes as a dashboard's custom domains, registered once for both
+     * (CustomDomainRoutes).
+     */
+    CustomDomainRoutes.add({
+      router: this.router,
+      crudApiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      service: StatusPageDomainService,
+      getCnameRecord: (): string => {
+        return StatusPageCNameRecord;
       },
-    );
+      parentColumn: "statusPageId",
+    });
 
-    // Provision SSL API. THis API will be used from the dashboard to validate the CNAME MANUALLY.
+    /*
+     * Order SSL. The dashboard no longer has a button for this: a domain's
+     * certificate is ordered as soon as its CNAME is verified. It stays for
+     * API callers, and orders the way everything else does, through
+     * orderCertIfMissing: a domain that has its certificate already, or has
+     * one being ordered right now, is not ordered twice.
+     *
+     * It shares Check now's window: one order on demand per domain per 15
+     * minutes, whichever of the two placed it. An order that fails leaves the
+     * domain unordered, so without it a script calling this in a loop placed
+     * an order on every call - against the account the whole installation
+     * shares, and Let's Encrypt's five failed validations per name per hour.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/order-ssl/:id`,
       UserMiddleware.getUserMiddleware,
@@ -175,6 +110,8 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 cnameVerificationToken: true,
                 isCnameVerified: true,
                 isSslProvisioned: true,
+                isCustomCertificate: true,
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -215,6 +152,17 @@ export default class StatusPageDomainAPI extends BaseAPI<
             );
           }
 
+          // The sweeps never order for one either: it serves the upload.
+          if (domain.isCustomCertificate) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This domain uses a certificate you uploaded, so there is no free SSL certificate to order for it.",
+              ),
+            );
+          }
+
           if (!domain.fullDomain) {
             return Response.sendErrorResponse(
               req,
@@ -225,8 +173,23 @@ export default class StatusPageDomainAPI extends BaseAPI<
 
           logger.debug("Ordering SSL", getLogAttributesFromRequest(req as any));
 
-          // provision SSL
-          await StatusPageDomainService.orderCert(domain);
+          try {
+            await CertificateOrder.orderOnDemand({
+              domain: domain.fullDomain,
+              order: () => {
+                return StatusPageDomainService.orderCertIfMissing(domain, {
+                  onDemand: true,
+                });
+              },
+            });
+          } catch (err) {
+            // Too soon, or nothing ordered: the order's own failures go on.
+            if (err instanceof TooManyRequestsException) {
+              return Response.sendErrorResponse(req, res, err);
+            }
+
+            throw err;
+          }
 
           logger.debug(
             "SSL Provisioned for domain - " + domain.fullDomain,

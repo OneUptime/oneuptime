@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### 進階選項
+### 更多欄位
 
 #### 不要跟隨重新導向
 

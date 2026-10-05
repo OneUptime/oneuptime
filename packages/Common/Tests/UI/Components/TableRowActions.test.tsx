@@ -12,7 +12,6 @@ import {
 import * as React from "react";
 import Table from "../../../UI/Components/Table/Table";
 import List from "../../../UI/Components/List/List";
-import OrderedStatesListItem from "../../../UI/Components/OrderedStatesList/Item";
 import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -24,9 +23,9 @@ import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * The row actions of the plain Table, on desktop rows and on the mobile cards
- * it switches to below 768px, and of the two other row surfaces that share
- * them - List cards and ordered-states items. Each draws one button and a ⋯
- * menu instead of a strip of buttons; each has to keep acting on its own row.
+ * it switches to below 768px, and of the other row surface that shares them -
+ * List cards. Each draws one button and a ⋯ menu instead of a strip of
+ * buttons; each has to keep acting on its own row.
  */
 
 jest.mock("react-i18next", () => {
@@ -82,6 +81,7 @@ const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
     actions: [
       {
         title: "Show ID",
+        icon: IconProp.Identification,
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
         placement: ActionButtonPlacement.MoreMenu,
@@ -89,6 +89,7 @@ const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
       },
       {
         title: "Verify",
+        icon: IconProp.Check,
         buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
         isVisible: (row: Row) => {
           return !row.isVerified;
@@ -97,6 +98,7 @@ const makeRowActions: () => RowActionMocks = (): RowActionMocks => {
       },
       {
         title: "View Domain",
+        icon: IconProp.Eye,
         buttonStyleType: ButtonStyleType.NORMAL,
         placement: ActionButtonPlacement.Primary,
         onClick: onView,
@@ -447,30 +449,6 @@ describe("List cards", () => {
   });
 });
 
-describe("Ordered states list items", () => {
-  test("a state shows one centred button and a ⋯ menu with the rest", () => {
-    const mocks: RowActionMocks = makeRowActions();
-
-    render(
-      <OrderedStatesListItem<Row>
-        item={ROWS[0]!}
-        titleField="name"
-        actionButtons={mocks.actions}
-      />,
-    );
-
-    const rowActions: HTMLElement = screen.getByTestId("row-actions");
-
-    expect(rowActions).toHaveClass("justify-center");
-    expect(buttonLabels(rowActions)).toEqual(["View Domain", "More actions"]);
-    expect(menuLabels(openMenuIn(rowActions))).toEqual([
-      "Show ID",
-      "Verify",
-      "Delete",
-    ]);
-  });
-});
-
 /*
  * The ⋯ on every one of these surfaces is a bare icon, like the one in a card
  * header - no border, fill or shadow boxing it in beside the row's button.
@@ -564,19 +542,5 @@ describe("the ⋯ on every row surface has no border", () => {
 
     expect(rowActions).toHaveLength(2);
     rowActions.forEach(expectBareMoreTrigger);
-  });
-
-  test("on an ordered-states item", () => {
-    const { actions } = makeRowActions();
-
-    render(
-      <OrderedStatesListItem<Row>
-        item={ROWS[0]!}
-        titleField="name"
-        actionButtons={actions}
-      />,
-    );
-
-    expectBareMoreTrigger(screen.getByTestId("row-actions"));
   });
 });

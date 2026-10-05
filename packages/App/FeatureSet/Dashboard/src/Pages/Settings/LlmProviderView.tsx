@@ -7,6 +7,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -25,6 +27,10 @@ import React, {
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+
+// Set as Default and Additional Parameters, folded at the end of Provider Settings.
+const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
+  getAdvancedFormSection<LlmProvider>();
 
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -62,8 +68,6 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
         name="LLM Provider Details"
         cardProps={{
           title: "LLM Provider Details",
-          description:
-            "Here are more details for this LLM Provider configuration.",
           buttons: [
             {
               title: "Test",
@@ -79,6 +83,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
           ],
         }}
         isEditable={true}
+        // As on the create form: Advanced is folded into Provider Settings.
         formSteps={[
           {
             title: "Basic Info",
@@ -87,10 +92,6 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
           {
             title: "Provider Settings",
             id: "provider-settings",
-          },
-          {
-            title: "Advanced",
-            id: "advanced",
           },
         ]}
         formFields={[
@@ -160,20 +161,9 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             stepId: "provider-settings",
             fieldType: FormFieldSchemaType.URL,
             required: false,
-            placeholder: "http://localhost:11434",
+            placeholder: "http://ollama:11434",
             description:
               "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
-          },
-          {
-            field: {
-              additionalParams: true,
-            },
-            title: "Additional Parameters",
-            stepId: "advanced",
-            fieldType: FormFieldSchemaType.JSON,
-            required: false,
-            description:
-              'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
           },
           {
             field: {
@@ -183,8 +173,21 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             stepId: "provider-settings",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            collapsibleSection: advancedSection,
             description:
               "Set this as the default LLM provider for the project. When a default is set, the global LLM provider will not be used.",
+          },
+          {
+            field: {
+              additionalParams: true,
+            },
+            title: "Additional Parameters",
+            stepId: "provider-settings",
+            fieldType: FormFieldSchemaType.JSON,
+            required: false,
+            collapsibleSection: advancedSection,
+            description:
+              'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
           },
         ]}
         modelDetailProps={{

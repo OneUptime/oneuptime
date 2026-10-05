@@ -287,6 +287,11 @@ describe.each(ENTITY_KINDS)(
           iotFleetIds: [],
           databaseServerIds: [],
         });
+
+      // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+      jest
+        .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+        .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
       jest.spyOn(HostService, "findBy").mockResolvedValue([]);
       jest
         .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")

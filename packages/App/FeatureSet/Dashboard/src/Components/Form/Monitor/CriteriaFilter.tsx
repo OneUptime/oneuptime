@@ -34,7 +34,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { getNoDataPolicyMoreFieldsItems } from "./MonitorMoreFields";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   DropdownOption,
@@ -43,6 +48,8 @@ import Dropdown, {
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * One entry of a network device's EFFECTIVE health-OID list - the list the
@@ -112,6 +119,7 @@ export interface ComponentProps {
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const criteriaFilter: CriteriaFilter | undefined = props.value;
 
   const networkDeviceCatalogue: NetworkDeviceCriteriaCatalogue =
@@ -397,7 +405,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   return {
                     value: entry.oid,
                     label: entry.templateName
-                      ? `${oidLabel} - from template ${entry.templateName}`
+                      ? translator.translateTemplate(
+                          "{{oid}} - from template {{template}}",
+                          { oid: oidLabel, template: entry.templateName },
+                        )
                       : oidLabel,
                   };
                 },
@@ -433,7 +444,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               selectedOidOption = {
                 value: savedOid,
                 label: networkDeviceCatalogue.isLoaded
-                  ? `${savedOid} - no longer collected by this device`
+                  ? translator.translateTemplate(
+                      "{{oid}} - no longer collected by this device",
+                      { oid: savedOid },
+                    )
                   : savedOid,
               };
               oidOptions.push(selectedOidOption);
@@ -451,9 +465,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 />
                 {oidOptions.length === 0 ? (
                   <p className="text-sm text-gray-500">
-                    {isDeviceSelected
-                      ? "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here."
-                      : "Choose the network device for this monitor in the configuration above, and the health OIDs it collects are listed here."}
+                    {translator.translateText(
+                      isDeviceSelected
+                        ? "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here."
+                        : "Choose the network device for this monitor in the configuration above, and the health OIDs it collects are listed here.",
+                    )}
                   </p>
                 ) : (
                   <Dropdown
@@ -536,7 +552,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               selectedInterfaceOption = {
                 value: savedInterfaceName,
                 label: networkDeviceCatalogue.isLoaded
-                  ? `${savedInterfaceName} - not on this device's last interface walk`
+                  ? translator.translateTemplate(
+                      "{{interface}} - not on this device's last interface walk",
+                      { interface: savedInterfaceName },
+                    )
                   : savedInterfaceName,
               };
             }
@@ -564,8 +583,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   }}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Or type a name or alias - for an interface this device has not
-                  walked yet.
+                  {translator.translateText(
+                    "Or type a name or alias - for an interface this device has not walked yet.",
+                  )}
                 </p>
                 <Input
                   value={savedInterfaceName}
@@ -652,7 +672,15 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               selectedMetricOption = {
                 value: savedMetricType,
                 label: staleMetric
-                  ? `${staleMetric.friendlyName} - not collected by ${databaseType}`
+                  ? translator.translateTemplate(
+                      "{{metric}} - not collected by {{engine}}",
+                      {
+                        metric: translator.translateText(
+                          staleMetric.friendlyName,
+                        ) as string,
+                        engine: databaseType || "",
+                      },
+                    )
                   : savedMetricType.toString(),
               };
 
@@ -694,9 +722,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 )}
                 {!databaseType ? (
                   <p className="text-xs text-gray-500 mt-2">
-                    Choose a database engine on the Monitor Details step first -
-                    every metric in the catalogue is listed until then,
-                    including ones your engine cannot report.
+                    {translator.translateText(
+                      "Choose a database engine on the Monitor Details step first - every metric in the catalogue is listed until then, including ones your engine cannot report.",
+                    )}
                   </p>
                 ) : (
                   <></>
@@ -1137,7 +1165,13 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                               ? "60 days (monthly seasonality)"
                               : days === 90
                                 ? "90 days (quarterly cycles)"
-                                : `${days} days`,
+                                : translator.translatePlural(
+                                    {
+                                      one: "{{count}} day",
+                                      other: "{{count}} days",
+                                    },
+                                    days,
+                                  ),
                     };
                   })()}
                   options={[
@@ -1165,9 +1199,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Anomaly detection requires at least the chosen window of
-                telemetry history before firing — until then the rule sits in
-                &quot;Learning&quot; state and produces no alerts.
+                {translator.translateText(
+                  'Anomaly detection requires at least the chosen window of telemetry history before firing — until then the rule sits in "Learning" state and produces no alerts.',
+                )}
               </p>
             </div>
           )}
@@ -1175,17 +1209,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
             <div className="mt-4">
-              <CollapsibleSection
-                title="Advanced"
-                variant="default"
-                defaultCollapsed={
-                  !criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
-                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ===
-                    NoDataPolicy.Ignore
-                }
-                headerClassName="text-xs text-gray-500"
+              {/*
+               * More fields, folded like every form's: what happens when the
+               * query returns no data. Its header shows the policy once it
+               * is not the default (Ignore).
+               */}
+              <FoldedSection
+                title={MORE_FIELDS_SECTION_TITLE}
+                icon={MORE_SECTION_ICON}
+                items={getNoDataPolicyMoreFieldsItems(
+                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy,
+                )}
+                dataTestId="criteria-filter-more-fields"
               >
-                <div className="pl-6">
+                <div>
                   <FieldLabelElement
                     title="If No Data"
                     description="What should happen when the query returns no data points in the evaluation window?"
@@ -1224,7 +1261,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     }}
                   />
                 </div>
-              </CollapsibleSection>
+              </FoldedSection>
             </div>
           )}
 
@@ -1246,7 +1283,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             to={Route.fromString("/docs/monitor/javascript-expression")}
             openInNewTab={true}
           >
-            <p> Read documentation for using JavaScript expressions here. </p>
+            <p>
+              {translator.translateText(
+                "Read documentation for using JavaScript expressions here.",
+              )}
+            </p>
           </Link>{" "}
         </div>
       ) : (

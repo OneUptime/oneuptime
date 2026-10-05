@@ -3,6 +3,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
@@ -77,6 +80,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface TopContainerRow {
   name: string;
@@ -145,6 +150,7 @@ const REFRESH_STORAGE_KEY: string = "docker-overview-auto-refresh-interval";
 const DockerHostOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [host, setHost] = useState<DockerHost | null>(null);
@@ -927,7 +933,10 @@ const DockerHostOverview: FunctionComponent<
     if (stats && stats.containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: `${stats.containerCount} container${stats.containerCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} container", other: "{{count}} containers" },
+          stats.containerCount,
+        ),
         description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containers,
       });
     }
@@ -999,7 +1008,9 @@ const DockerHostOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1160,7 +1171,7 @@ const DockerHostOverview: FunctionComponent<
       return (
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
+            {translator.translateText(params.title)}
           </span>
           <InfoTooltip label={params.title} text={params.description} />
         </div>
@@ -1290,7 +1301,9 @@ const DockerHostOverview: FunctionComponent<
                 : "bg-red-50 text-red-700 ring-red-200"
           }`}
         >
-          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+          {translator.translateTemplate("{{percent}}% uptime", {
+            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+          })}
         </span>
       );
 
@@ -1308,11 +1321,12 @@ const DockerHostOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Availability
+                {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
-                Whether this host&apos;s agent was sending metrics, over the
-                selected time range
+                {translator.translateText(
+                  "Whether this host's agent was sending metrics, over the selected time range",
+                )}
               </p>
             </div>
             <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
@@ -1332,10 +1346,12 @@ const DockerHostOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Container resource usage
+                {translator.translateText("Container resource usage")}
               </h2>
               <p className="text-xs text-gray-500">
-                Aggregated across containers over the selected time range
+                {translator.translateText(
+                  "Aggregated across containers over the selected time range",
+                )}
               </p>
             </div>
             <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
@@ -1374,9 +1390,13 @@ const DockerHostOverview: FunctionComponent<
         <div className="group/zoomhint mb-6">
           <div className="mb-3 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Network</h2>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {translator.translateText("Network")}
+              </h2>
               <p className="text-xs text-gray-500">
-                Aggregate receive / transmit rate across all containers
+                {translator.translateText(
+                  "Aggregate receive / transmit rate across all containers",
+                )}
               </p>
             </div>
             <TimeRangeZoomHint revealOnHover={true} className="max-lg:hidden" />
@@ -1418,7 +1438,7 @@ const DockerHostOverview: FunctionComponent<
         <Card
           title={
             <span className="inline-flex items-center gap-1.5">
-              {title}
+              {translator.translateText(title)}
               <InfoTooltip
                 label={title}
                 text={description}
@@ -1426,12 +1446,30 @@ const DockerHostOverview: FunctionComponent<
               />
             </span>
           }
-          description={`Top ${rows.length} containers by ${metric === "cpu" ? "CPU" : "memory"} usage (last 5 minutes).`}
+          description={
+            metric === "cpu"
+              ? translator.translatePlural(
+                  {
+                    one: "Top {{count}} container by CPU usage (last 5 minutes).",
+                    other:
+                      "Top {{count}} containers by CPU usage (last 5 minutes).",
+                  },
+                  rows.length,
+                )
+              : translator.translatePlural(
+                  {
+                    one: "Top {{count}} container by memory usage (last 5 minutes).",
+                    other:
+                      "Top {{count}} containers by memory usage (last 5 minutes).",
+                  },
+                  rows.length,
+                )
+          }
         >
           <div className="divide-y divide-gray-200">
             {rows.length === 0 ? (
               <div className="py-4 text-sm text-gray-500">
-                No data available yet.
+                {translator.translateText("No data available yet.")}
               </div>
             ) : (
               rows.map((row: TopContainerRow) => {
@@ -1469,13 +1507,13 @@ const DockerHostOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {renderList(
-          "Top CPU Consumers",
+          translationKey("Top CPU Consumers"),
           stats.topByCpu,
           "cpu",
           CONTAINER_HOST_METRIC_DESCRIPTIONS.topCpuConsumers,
         )}
         {renderList(
-          "Top Memory Consumers",
+          translationKey("Top Memory Consumers"),
           stats.topByMemory,
           "memory",
           CONTAINER_HOST_METRIC_DESCRIPTIONS.topMemoryConsumers,
@@ -1496,28 +1534,38 @@ const DockerHostOverview: FunctionComponent<
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
             <div className="text-sm font-semibold text-gray-900">
-              Containers
+              {translator.translateText("Containers")}
             </div>
             <div className="text-xs text-gray-500">
-              Live list of running containers with CPU, memory, and network.
+              {translator.translateText(
+                "Live list of running containers with CPU, memory, and network.",
+              )}
             </div>
           </Link>
           <Link
             to={metricsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Metrics</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Metrics")}
+            </div>
             <div className="text-xs text-gray-500">
-              Aggregated CPU, memory, network, and process charts.
+              {translator.translateText(
+                "Aggregated CPU, memory, network, and process charts.",
+              )}
             </div>
           </Link>
           <Link
             to={logsRoute}
             className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
           >
-            <div className="text-sm font-semibold text-gray-900">Logs</div>
+            <div className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Logs")}
+            </div>
             <div className="text-xs text-gray-500">
-              Structured container logs ingested via OpenTelemetry.
+              {translator.translateText(
+                "Structured container logs ingested via OpenTelemetry.",
+              )}
             </div>
           </Link>
         </div>
@@ -1580,7 +1628,16 @@ const DockerHostOverview: FunctionComponent<
         refresher={detailsRefresher}
         cardProps={{
           title: "Docker Host Details",
-          description: "Overview of this Docker host.",
+          // Edited in one place: the same card on the host's Settings page.
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DOCKER_HOST_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
         modelDetailProps={{
           modelType: DockerHost,
@@ -1591,7 +1648,7 @@ const DockerHostOverview: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Name",
+              title: "Display Name",
               fieldType: FieldType.Text,
               showIf: (item: DockerHost): boolean => {
                 return Boolean(item.name);
@@ -1611,7 +1668,7 @@ const DockerHostOverview: FunctionComponent<
               field: {
                 hostIdentifier: true,
               },
-              title: "Host Identifier",
+              title: "Host Name (host.name)",
               fieldType: FieldType.Text,
               showIf: (item: DockerHost): boolean => {
                 return Boolean(item.hostIdentifier);
@@ -1682,10 +1739,25 @@ const DockerHostOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: DockerHost): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * agent; the docker run command is in the host's setup guide.
+               */
+              getElement: (item: DockerHost): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.DockerAgent}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                  />
+                );
               },
             },
             {

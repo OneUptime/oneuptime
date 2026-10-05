@@ -37,6 +37,11 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import {
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   title: string;
@@ -87,6 +92,7 @@ export interface ComponentProps {
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [schemaList, setSchemaList] = useState<Array<BaseModel>>([]);
   /*
    * Read failures and write failures are kept apart because hideIfEmpty
@@ -427,6 +433,12 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         {!isLoading && !loadError && schemaList.length > 0 && model && (
           <Detail
             id={props.name}
+            /*
+             * The values of the record's custom fields, keyed by the names
+             * people gave them: one called "createdAt" is theirs to read as
+             * that, not the record's own creation time for the ID line.
+             */
+            showRecordLine={false}
             item={getDisplayValues()}
             fields={schemaList.map((schemaItem: BaseModel) => {
               const isDropdown: boolean =
@@ -456,7 +468,10 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
 
         {showModelForm && (
           <BasicFormModal
-            title={"Edit " + new props.modelType().singularName}
+            title={translateNamedAction(translator, {
+              template: "Edit {{itemName}}",
+              itemName: new props.modelType().singularName || "",
+            })}
             onClose={() => {
               return setShowModelForm(false);
             }}

@@ -6,6 +6,7 @@ import {
   FULL_VIEWPORT,
   MIN_VIEWPORT_WIDTH,
   SpanFilterOptions,
+  SpanSubtreeIds,
   SpanTree,
   SpanVisibility,
   TimeViewport,
@@ -30,6 +31,7 @@ import {
   getCollapsibleSpanIds,
   getNiceTickStep,
   getScrollTopToReveal,
+  getSubtreeSpanIds,
   getViewportForSpan,
   getWaterfallBodyHeight,
   isFullViewport,
@@ -426,6 +428,261 @@ describe("tree helpers", () => {
     const collapsed: Set<string> = new Set(["a"]);
 
     expect(revealSpans(tree, collapsed, ["b1", "root"])).toBe(collapsed);
+  });
+});
+
+describe("getSubtreeSpanIds", () => {
+  /*
+   * An OBI v0.14 Node.js request as the e2e capture recorded it: the
+   * profiler links CPU samples to "processing" or to a client call in
+   * flight, never to the SERVER span the user clicks.
+   *
+   *   server GET /api/items/:id
+   *   ├── in queue
+   *   └── processing
+   *       ├── SELECT postgres
+   *       ├── set
+   *       └── GET /ping (client)
+   *           └── downstream GET /ping (server)
+   *               └── downstream processing
+   */
+  function obiRequestSpans(): Array<WaterfallSpan> {
+    return [
+      span("server", "", 0, 20, { kind: SpanKind.Server }),
+      span("queue", "server", 0, 1),
+      span("processing", "server", 1, 19),
+      span("select", "processing", 2, 3, { kind: SpanKind.Client }),
+      span("set", "processing", 6, 1, { kind: SpanKind.Client }),
+      span("ping", "processing", 8, 10, { kind: SpanKind.Client }),
+      span("ds-server", "ping", 9, 8, {
+        kind: SpanKind.Server,
+        serviceId: "svc-downstream",
+      }),
+      span("ds-processing", "ds-server", 10, 6, {
+        serviceId: "svc-downstream",
+      }),
+    ];
+  }
+
+  test("lists the span first, then the spans under it breadth-first", () => {
+    const tree: SpanTree = buildSpanTree(sampleSpans());
+
+    expect(getSubtreeSpanIds(tree, "root", 100)).toEqual({
+      spanIds: ["root", "a", "b", "a1", "a2", "b1"],
+      descendantCount: 5,
+      isTruncated: false,
+    });
+    expect(getSubtreeSpanIds(tree, "a", 100)).toEqual({
+      spanIds: ["a", "a1", "a2"],
+      descendantCount: 2,
+      isTruncated: false,
+    });
+  });
+
+  test("a leaf is its own subtree", () => {
+    const tree: SpanTree = buildSpanTree(sampleSpans());
+
+    expect(getSubtreeSpanIds(tree, "b1", 100)).toEqual({
+      spanIds: ["b1"],
+      descendantCount: 0,
+      isTruncated: false,
+    });
+  });
+
+  test("a server span covers the processing and client spans its samples link to", () => {
+    const tree: SpanTree = buildSpanTree(obiRequestSpans());
+
+    const subtree: SpanSubtreeIds = getSubtreeSpanIds(tree, "server", 100);
+
+    expect(subtree.spanIds[0]).toBe("server");
+    expect(subtree.spanIds).toEqual([
+      "server",
+      "queue",
+      "processing",
+      "select",
+      "set",
+      "ping",
+      "ds-server",
+      "ds-processing",
+    ]);
+    expect(subtree.descendantCount).toBe(7);
+  });
+
+  test("ancestors and siblings stay out of a span's subtree", () => {
+    const tree: SpanTree = buildSpanTree(obiRequestSpans());
+
+    expect(getSubtreeSpanIds(tree, "processing", 100).spanIds).toEqual([
+      "processing",
+      "select",
+      "set",
+      "ping",
+      "ds-server",
+      "ds-processing",
+    ]);
+    expect(getSubtreeSpanIds(tree, "ping", 100).spanIds).toEqual([
+      "ping",
+      "ds-server",
+      "ds-processing",
+    ]);
+    expect(getSubtreeSpanIds(tree, "queue", 100).spanIds).toEqual(["queue"]);
+  });
+
+  test("a span that is not in the tree falls back to itself", () => {
+    const tree: SpanTree = buildSpanTree(sampleSpans());
+
+    expect(getSubtreeSpanIds(tree, "not-loaded", 100)).toEqual({
+      spanIds: ["not-loaded"],
+      descendantCount: 0,
+      isTruncated: false,
+    });
+    expect(getSubtreeSpanIds(buildSpanTree([]), "x", 100).spanIds).toEqual([
+      "x",
+    ]);
+  });
+
+  test("an orphan keeps its own children, and the true root does not take them", () => {
+    const tree: SpanTree = buildSpanTree([
+      span("root", "", 0, 100),
+      span("child", "root", 5, 10),
+      span("lost", "missing-parent", 20, 10),
+      span("lost-child", "lost", 22, 5),
+    ]);
+
+    expect(getSubtreeSpanIds(tree, "root", 100).spanIds).toEqual([
+      "root",
+      "child",
+    ]);
+    expect(getSubtreeSpanIds(tree, "lost", 100).spanIds).toEqual([
+      "lost",
+      "lost-child",
+    ]);
+  });
+
+  test("a parent cycle broken by the tree yields each span once", () => {
+    const tree: SpanTree = buildSpanTree([
+      span("x", "z", 30, 5),
+      span("y", "x", 10, 5),
+      span("z", "y", 20, 5),
+    ]);
+
+    expect(getSubtreeSpanIds(tree, "y", 100).spanIds).toEqual(["y", "z", "x"]);
+    expect(getSubtreeSpanIds(tree, "x", 100).spanIds).toEqual(["x"]);
+  });
+
+  test("a tree that loops back or repeats a span still lists each id once", () => {
+    const tree: SpanTree = buildSpanTree(sampleSpans());
+    // A child pointing back at the root, and a1 reachable a second time.
+    tree.nodesById.get("a1")!.children.push(tree.nodesById.get("root")!);
+    tree.nodesById.get("b")!.children.push(tree.nodesById.get("a1")!);
+    // A different node that reuses an id already listed.
+    tree.nodesById.get("b1")!.children.push({
+      span: span("a2", "b1", 60, 1),
+      children: [],
+      depth: 3,
+      isOrphan: false,
+      descendantCount: 0,
+    });
+
+    expect(getSubtreeSpanIds(tree, "root", 100)).toEqual({
+      spanIds: ["root", "a", "b", "a1", "a2", "b1"],
+      descendantCount: 5,
+      isTruncated: false,
+    });
+  });
+
+  test("duplicate span rows are listed once", () => {
+    const tree: SpanTree = buildSpanTree([
+      span("root", "", 0, 10),
+      span("dup", "root", 1, 2),
+      span("dup", "root", 3, 2),
+    ]);
+
+    expect(getSubtreeSpanIds(tree, "root", 100).spanIds).toEqual([
+      "root",
+      "dup",
+    ]);
+  });
+
+  test("a 20,000-level chain is collected without overflowing the stack", () => {
+    const spans: Array<WaterfallSpan> = [];
+    for (let index: number = 0; index < 20000; index++) {
+      spans.push(
+        span(`s${index}`, index === 0 ? "" : `s${index - 1}`, index, 1),
+      );
+    }
+    const tree: SpanTree = buildSpanTree(spans);
+
+    const subtree: SpanSubtreeIds = getSubtreeSpanIds(tree, "s0", 50000);
+
+    expect(subtree.spanIds).toHaveLength(20000);
+    expect(subtree.spanIds[0]).toBe("s0");
+    expect(subtree.spanIds[19999]).toBe("s19999");
+    expect(subtree.descendantCount).toBe(19999);
+    expect(subtree.isTruncated).toBe(false);
+  });
+
+  describe("limit", () => {
+    // root -> c0..c2, each with two children g<c>a and g<c>b.
+    function wideSpans(): Array<WaterfallSpan> {
+      const spans: Array<WaterfallSpan> = [span("root", "", 0, 100)];
+      for (let index: number = 0; index < 3; index++) {
+        spans.push(span(`c${index}`, "root", 10 * index, 5));
+        spans.push(span(`g${index}a`, `c${index}`, 10 * index + 1, 1));
+        spans.push(span(`g${index}b`, `c${index}`, 10 * index + 2, 1));
+      }
+      return spans;
+    }
+
+    test("keeps the span and its nearest descendants", () => {
+      const tree: SpanTree = buildSpanTree(wideSpans());
+
+      expect(getSubtreeSpanIds(tree, "root", 5)).toEqual({
+        spanIds: ["root", "c0", "c1", "c2", "g0a"],
+        descendantCount: 9,
+        isTruncated: true,
+      });
+    });
+
+    test("a subtree that exactly fits is not truncated", () => {
+      const tree: SpanTree = buildSpanTree(wideSpans());
+
+      const subtree: SpanSubtreeIds = getSubtreeSpanIds(tree, "root", 10);
+
+      expect(subtree.spanIds).toHaveLength(10);
+      expect(subtree.isTruncated).toBe(false);
+      expect(getSubtreeSpanIds(tree, "root", 9).isTruncated).toBe(true);
+    });
+
+    test("the span itself is always kept, even with no room", () => {
+      const tree: SpanTree = buildSpanTree(wideSpans());
+
+      expect(getSubtreeSpanIds(tree, "root", 1)).toEqual({
+        spanIds: ["root"],
+        descendantCount: 9,
+        isTruncated: true,
+      });
+      expect(getSubtreeSpanIds(tree, "root", 0).spanIds).toEqual(["root"]);
+      expect(getSubtreeSpanIds(tree, "g0a", 0)).toEqual({
+        spanIds: ["g0a"],
+        descendantCount: 0,
+        isTruncated: false,
+      });
+    });
+
+    test("a capped subtree still counts every descendant", () => {
+      const spans: Array<WaterfallSpan> = [span("root", "", 0, 10)];
+      for (let index: number = 0; index < 3000; index++) {
+        spans.push(span(`c${index}`, "root", 1, 1));
+      }
+      const tree: SpanTree = buildSpanTree(spans);
+
+      const subtree: SpanSubtreeIds = getSubtreeSpanIds(tree, "root", 1000);
+
+      expect(subtree.spanIds).toHaveLength(1000);
+      expect(new Set(subtree.spanIds).size).toBe(1000);
+      expect(subtree.descendantCount).toBe(3000);
+      expect(subtree.isTruncated).toBe(true);
+    });
   });
 });
 

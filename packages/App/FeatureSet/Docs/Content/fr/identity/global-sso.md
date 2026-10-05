@@ -21,8 +21,8 @@ Global SSO, y compris le bouton « Require SSO for Login » à l'échelle de l'i
 2. **Créer un fournisseur**
 
    - Cliquez sur **Create Global SSO**.
-   - Pour SAML : saisissez un **Name**, le **Sign On URL** et l'**Issuer** de votre fournisseur d'identité, puis collez le **Public Certificate**. Choisissez les méthodes **Signature** et **Digest** (laissez les valeurs par défaut — `RSA-SHA256` / `SHA256` — si vous n'êtes pas sûr).
-   - Pour OIDC : saisissez le **Discovery URL**, l'**Issuer**, le **Client ID**, le **Client Secret**, les **Scopes** (doivent inclure `openid`), ainsi que les noms de revendications **email** / **name**.
+   - Pour SAML : saisissez un **Name**, le **Sign On URL** et l'**Issuer** de votre fournisseur d'identité, puis collez le **Public Certificate**. Tout le reste est rempli sous **More fields** : la **Signature Method** (`RSA-SHA256`), la **Digest Method** (`SHA256`) et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
+   - Pour OIDC : saisissez un **Name**, l'**Issuer URL**, ainsi que le **Client ID** et le **Client Secret** de l'application enregistrée auprès de votre IdP. Vous pouvez aussi coller l'URL de découverte de votre IdP dans **Issuer URL**. Tout le reste est rempli sous **More fields** : le **Discovery URL** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Scopes** (`openid email profile`), les noms de revendications `email` et `name`, et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
 
 3. **Copier les URL OneUptime dans votre fournisseur d'identité**
 
@@ -39,7 +39,7 @@ Le comportement d'un fournisseur global dépend de la présence ou non de projet
 
 - **Aucun projet attaché (par défaut pour tous / invitation d'abord) :** Les utilisateurs peuvent se connecter avec le fournisseur et atteindre **tout projet dont ils sont déjà membres**. Les nouveaux utilisateurs ne sont **pas** créés automatiquement — un utilisateur doit d'abord être invité à un projet. Utilisez cette approche pour un SSO à l'échelle de l'entreprise où les adhésions sont gérées ailleurs.
 
-- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Attached Projects** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut lors de leur première connexion. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
+- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Attached Projects** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut lors de leur première connexion. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
 
 Si vous souhaitez empêcher toute création automatique de compte même lorsque des projets sont attachés, activez **Disable Sign Up with SSO** sur le fournisseur — les utilisateurs doivent alors être invités avant de pouvoir se connecter.
 

@@ -280,6 +280,7 @@ export default class LogPipeline extends BaseModel {
     title: "Enabled",
     description: "Whether this log pipeline is active.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

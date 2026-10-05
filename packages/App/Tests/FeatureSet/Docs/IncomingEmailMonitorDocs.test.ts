@@ -1,5 +1,12 @@
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { REDACTED } from "Common/Server/Utils/LogRedaction";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import TemplateVariablesCatalog, {
+  TemplateVariable,
+  TemplateVariableGroup,
+} from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { INCOMING_EMAIL_SCHEDULED_CHECK_LABEL } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -20,6 +27,11 @@ import path from "path";
  * moves, or when a default it quotes changes. Dashboard components read
  * browser globals at load, so their sources are read as text rather than
  * imported.
+ *
+ * "Template Variables" once listed five variables that no alert or incident
+ * template could use: the server had no Incoming Email branch, and the
+ * template-variables picker listed none of them. The page is now held to the
+ * picker, which MonitorTemplateUtilIncomingEmail.test.ts holds to the server.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
@@ -210,15 +222,25 @@ describe("What the section tells readers to click", () => {
       file: "Pages/Monitor/View/SideMenu.tsx",
       source: 'title: "Settings"',
     },
+    /*
+     * The Monitoring card's switch, which saves when it is flipped, and the
+     * banner's button that turns monitoring back on. They replaced "Disable
+     * Active Monitoring" behind an Edit Settings dialog.
+     */
     {
-      label: "Edit Settings",
-      file: "Pages/Monitor/View/Settings.tsx",
-      source: 'editButtonText="Edit Settings"',
+      label: "Monitoring",
+      file: "Components/Monitor/MonitoringSwitchCopy.ts",
+      source: 'cardTitle: translationKey("Monitoring")',
     },
     {
-      label: "Disable Active Monitoring",
-      file: "Pages/Monitor/View/Settings.tsx",
-      source: 'title: "Disable Active Monitoring"',
+      label: "Check this monitor",
+      file: "Components/Monitor/MonitoringSwitchCopy.ts",
+      source: 'switchTitle: translationKey("Check this monitor")',
+    },
+    {
+      label: "Turn monitoring on",
+      file: "Components/Monitor/MonitoringSwitchCopy.ts",
+      source: 'turnOnButton: translationKey("Turn monitoring on")',
     },
   ];
 
@@ -262,7 +284,9 @@ describe("What the section tells readers to click", () => {
       readDashboard(
         "Components/Monitor/SummaryView/IncomingEmailMonitorSummaryView.tsx",
       ),
-    ).toContain('lastEmailReceivedAt = "No email yet";');
+    ).toContain(
+      'lastEmailReceivedAt = translator.translateTemplate("No email yet");',
+    );
   });
 
   test("says the HTML body is shown as source, which is true", () => {
@@ -301,7 +325,7 @@ describe("The defaults the section quotes", () => {
     );
   });
 
-  test("a disabled monitor records the email but logs nothing, as it says", () => {
+  test("a monitor with monitoring off records the email but logs nothing, as it says", () => {
     /*
      * processIncomingEmailFromQueue writes the email to the monitor before
      * it checks whether the monitor is disabled, then returns before
@@ -332,13 +356,13 @@ describe("The defaults the section quotes", () => {
     expect(ingest.slice(skipsDisabled, evaluates)).toContain("return;");
 
     expect(section).toContain(
-      "A disabled monitor still records the email, and the **Monitor Summary** card still shows it.",
+      "A monitor with monitoring off still records the email, and the **Monitor Summary** card still shows it.",
     );
     expect(section).toContain(
       "It evaluates nothing, though, so the email gets no row in **Monitoring Logs**",
     );
     expect(summarySection).toContain(
-      "A disabled monitor evaluates nothing, so the emails it receives get no rows.",
+      "A monitor with monitoring turned off evaluates nothing, so the emails it receives get no rows.",
     );
   });
 });
@@ -367,5 +391,92 @@ describe("The senders it covers", () => {
     expect(sectionOf("### Emails Not Being Received")).toContain(
       "[Verifying the Address With the Sender](#verifying-the-address-with-the-sender)",
     );
+  });
+});
+
+describe("The template variables the page lists", () => {
+  const templateSection: string = sectionOf("## Template Variables");
+
+  // `{{emailSubject}}` and the rest, from the first column of its table.
+  const documented: Array<string> = Array.from(
+    templateSection.matchAll(/^\| `\{\{(\w+)\}\}` /gm),
+  ).map((match: RegExpMatchArray): string => {
+    return match[1]!;
+  });
+
+  test("are the ones the template-variables picker offers an Incoming Email monitor", () => {
+    const group: TemplateVariableGroup | undefined =
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IncomingEmail,
+      }).find((candidate: TemplateVariableGroup): boolean => {
+        return candidate.title === "Incoming Email";
+      });
+
+    expect(group).toBeDefined();
+    expect(documented).toEqual(
+      group!.variables.map((variable: TemplateVariable): string => {
+        return variable.key;
+      }),
+    );
+  });
+
+  test("quotes the title cap and the title column the server uses", () => {
+    const templateUtil: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "Common/Server/Utils/Monitor/MonitorTemplateUtil.ts",
+      ),
+      "utf8",
+    );
+    const cap: string | undefined = templateUtil.match(
+      /export const MaxEmailValueLengthInTitle: number = (\d+);/,
+    )?.[1];
+
+    expect(cap).toBeDefined();
+    expect(templateSection).toContain(
+      `each variable is cut to one line of at most ${cap} characters`,
+    );
+    expect(templateSection).toContain(
+      `A title can't be longer than ${ColumnLength.LongText} characters`,
+    );
+  });
+
+  test("shows the monitor's address masked the way it is stored", () => {
+    expect(templateSection).toContain(
+      `\`monitor-${REDACTED}@{inbound-domain}\``,
+    );
+    expect(templateSection).toContain(`\`${REDACTED}@{inbound-domain}\``);
+  });
+
+  test("links to the templating page, which lists the same variables", () => {
+    expect(templateSection).toContain(
+      "[Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating)",
+    );
+
+    const templatingPage: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "App/FeatureSet/Docs/Content/en/monitor/incident-alert-templating.md",
+      ),
+      "utf8",
+    );
+    const start: number = templatingPage.indexOf(
+      "### Incoming Email Monitors\n",
+    );
+    const end: number = templatingPage.indexOf("\n### ", start + 1);
+
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const listedThere: Array<string> = Array.from(
+      templatingPage.slice(start, end).matchAll(/^\| `(\w+)` /gm),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(listedThere).toEqual(documented);
+    expect(templatingPage.slice(start, end)).toContain(
+      "(/docs/monitor/incoming-email-monitor#template-variables)",
+    );
+    expect(headingSlugs(page)).toContain("template-variables");
   });
 });

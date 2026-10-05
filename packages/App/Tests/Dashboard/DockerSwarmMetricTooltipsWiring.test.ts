@@ -34,7 +34,8 @@ const VIEW_DIR: string = path.join(
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const WHITESPACE: RegExp = /\s+/g;
-const RENDER_COUNT_TILE_CALL: RegExp = /renderCountTile\( "(\w+)",/g;
+const RENDER_COUNT_TILE_CALL: RegExp =
+  /renderCountTile\( translationKey\("(\w+)"\),/g;
 const DESCRIPTION_REFERENCE: RegExp =
   /DOCKER_SWARM_METRIC_DESCRIPTIONS\.(\w+)/g;
 const NODE_OR_SERVICE_KIND: RegExp = /kind: "(Node|Service)"/;
@@ -100,7 +101,11 @@ describe("Docker Swarm overview (Index.tsx)", () => {
   test.each(TILES)(
     "the %s tile passes its own description",
     (title: string, key: string) => {
-      const call: string = between(code, `renderCountTile( "${title}",`, ")}");
+      const call: string = between(
+        code,
+        `renderCountTile( translationKey("${title}"),`,
+        ")}",
+      );
 
       expect(call).toContain(`DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`);
       expect(
@@ -126,7 +131,7 @@ describe("Docker Swarm overview (Index.tsx)", () => {
 
     const strip: string = between(
       code,
-      'renderCountTile( "Nodes",',
+      'renderCountTile( translationKey("Nodes"),',
       '<Card title="Cluster Health"',
     );
 
@@ -158,7 +163,9 @@ describe("Docker Swarm overview (Index.tsx)", () => {
 
     expect(overlay).toContain("absolute inset-0");
     expect(overlay).toContain('className="sr-only"');
-    expect(overlay).toContain("View ${props.label}");
+    expect(overlay).toContain(
+      'translator.translateTemplate("View {{label}}", { label: translatableTerm(props.label), })',
+    );
     expect(overlay).not.toContain("<InfoTooltip");
 
     // Exactly one button of its own, closed before the (i) is drawn.
@@ -194,10 +201,10 @@ describe("Docker Swarm overview (Index.tsx)", () => {
   });
 
   const CHIPS: Array<[string, string, string]> = [
-    ["node${", "Nodes ready", "nodes"],
-    ["manager${", "Managers", "managers"],
-    ["service${", "Services", "services"],
-    ["task${", "Tasks running", "tasks"],
+    ['other: "{{ready}}/{{count}} nodes ready"', "Nodes ready", "nodes"],
+    ['other: "{{count}} managers"', "Managers", "managers"],
+    ['other: "{{count}} services"', "Services", "services"],
+    ['other: "{{running}}/{{count}} tasks running"', "Tasks running", "tasks"],
   ];
 
   test.each(CHIPS)(
@@ -205,7 +212,7 @@ describe("Docker Swarm overview (Index.tsx)", () => {
     (labelFragment: string, name: string, key: string) => {
       const chip: string = between(code, labelFragment, "});");
 
-      expect(chip).toContain(`name: "${name}",`);
+      expect(chip).toContain(`name: translationKey("${name}"),`);
       expect(chip).toContain(
         `description: DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`,
       );
@@ -213,11 +220,34 @@ describe("Docker Swarm overview (Index.tsx)", () => {
   );
 
   test("version chips stay plain - they are metadata, not metrics", () => {
-    for (const label of ["label: `Docker ${", "label: `Agent ${"]) {
-      const chip: string = between(code, label, "});");
+    const docker: string = between(
+      code,
+      'label: translator.translateTemplate("Docker {{version}}"',
+      "});",
+    );
 
-      expect(chip).not.toContain("description:");
-    }
+    expect(docker).not.toContain("description:");
+
+    /*
+     * The agent's chip is AgentVersion's own - gray, or amber with a sign
+     * when the agent is behind the collector this release pins - drawn after
+     * the spec chips rather than among them, so it never gets an (i).
+     */
+    const row: string = between(
+      code,
+      "{(specChips.length > 0 || Boolean(cluster.agentVersion)) && (",
+      "</div> )}",
+    );
+
+    expect(row.indexOf("specChips.map((chip: SpecChip")).toBeGreaterThan(-1);
+    expect(
+      row.indexOf(
+        '<AgentVersion kind={AgentKind.DockerSwarmAgent} version={cluster.agentVersion} variant="chip" />',
+      ),
+    ).toBeGreaterThan(row.indexOf("specChips.map((chip: SpecChip"));
+    expect(code).not.toContain(
+      'label: translator.translateTemplate("Agent {{version}}"',
+    );
   });
 
   test("each chip renders its (i) with the static name, never the numbers", () => {

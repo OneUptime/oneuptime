@@ -14,6 +14,7 @@ import {
   render,
   RenderResult,
   screen,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -23,13 +24,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * header, which posts a "state changed" item to this feed. The feed used to
  * load once at mount, so that item only appeared after pressing Refresh. The
  * page now bumps refreshToken after every state change; these tests pin that
- * signal, the request the feed makes, the icon for every event type and the
- * note modals' own names and copy.
+ * signal, the request the feed makes, the icon for every event type and that
+ * the feed's notes are written in the event's Notes page composer.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
 const feedRenderMock: MockFunction = getJestMockFunction();
-const modalRenderMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -75,16 +75,17 @@ jest.mock("../../../UI/Components/Feed/Feed", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
+// Someone who may write notes, so the feed offers them.
+jest.mock("../../../UI/Utils/User", () => {
   return {
     __esModule: true,
-    default: (props: { title: string }): React.ReactElement => {
-      modalRenderMock(props);
-      return React.createElement(
-        "div",
-        { "data-testid": "note-modal" },
-        props.title,
-      );
+    default: {
+      isMasterAdmin: (): boolean => {
+        return true;
+      },
+      getUserId: (): null => {
+        return null;
+      },
     },
   };
 });
@@ -140,16 +141,6 @@ interface FeedListRequest {
   sort: Record<string, SortOrder>;
 }
 
-interface NoteModalProps {
-  name: string;
-  title: string;
-  formProps: {
-    name: string;
-    id: string;
-    fields: Array<{ title: string; description?: string }>;
-  };
-}
-
 const EVENT_ID: string = "55555555-5555-4555-8555-555555555555";
 const POSTED_AT: Date = new Date("2026-09-14T18:00:00.000Z");
 
@@ -195,13 +186,6 @@ function lastRenderedItems(): Array<RenderedFeedItem> {
   return calls[calls.length - 1]![0]!.items;
 }
 
-function lastModalProps(): NoteModalProps {
-  const calls: Array<Array<NoteModalProps>> = modalRenderMock.mock
-    .calls as Array<Array<NoteModalProps>>;
-
-  return calls[calls.length - 1]![0]!;
-}
-
 async function chooseAction(text: string): Promise<void> {
   const trigger: HTMLElement = screen
     .getByText("Actions")
@@ -225,7 +209,6 @@ afterEach(() => {
   cleanup();
   getListMock.mockReset();
   feedRenderMock.mockReset();
-  modalRenderMock.mockReset();
 });
 
 describe("ScheduledMaintenanceFeedElement refresh", () => {
@@ -441,47 +424,47 @@ describe("scheduled maintenance feed icons", () => {
   });
 });
 
-describe("scheduled maintenance note modals", () => {
-  test("the public note modal has its own form name and describes a note, not a state change", async () => {
+describe("scheduled maintenance note dialogs", () => {
+  test("Add Public Note opens the event's public note composer, about a note on the status page, not a state change", async () => {
     getListMock.mockResolvedValue(listResult([]) as never);
 
     renderFeed(0);
     await flush();
     await chooseAction("Add Public Note");
 
-    const props: NoteModalProps = lastModalProps();
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Add Public Note",
+    });
 
-    expect(props.title).toBe("Add Public Note to this scheduled maintenance");
-    expect(props.name).toBe("create-scheduled-maintenance-public-note");
-    expect(props.formProps.name).toBe(
-      "create-scheduled-maintenance-public-note",
+    expect(within(dialog).getByTestId("note-composer")).toBeInTheDocument();
+    expect(within(dialog).getByTestId("note-audience")).toHaveTextContent(
+      "Visible on your status page",
     );
-    expect(props.formProps.id).toBe("create-scheduled-maintenance-public-note");
-
-    const noteField: { title: string; description?: string } =
-      props.formProps.fields[0]!;
-
-    expect(noteField.title).toBe("Public Note");
-    expect(noteField.description).not.toMatch(/state change/i);
-    expect(noteField.description).toMatch(/status page/i);
+    expect(dialog).not.toHaveTextContent(/state change/i);
+    // One step, posted as an update.
+    expect(within(dialog).queryByRole("button", { name: "Next" })).toBeNull();
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Post update");
   });
 
-  test("the private note modal has its own correctly spelled form name", async () => {
+  test("Add Private Note opens the event's private note composer", async () => {
     getListMock.mockResolvedValue(listResult([]) as never);
 
     renderFeed(0);
     await flush();
     await chooseAction("Add Private Note");
 
-    const props: NoteModalProps = lastModalProps();
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Add Private Note",
+    });
 
-    expect(props.title).toBe("Add Private Note to this scheduled maintenance");
-    expect(props.name).toBe("create-scheduled-maintenance-internal-note");
-    expect(props.formProps.name).toBe(
-      "create-scheduled-maintenance-internal-note",
+    expect(within(dialog).getByTestId("note-audience")).toHaveTextContent(
+      "Only your team can see this",
     );
-    expect(props.formProps.id).toBe(
-      "create-scheduled-maintenance-internal-note",
-    );
+    expect(within(dialog).queryByTestId("note-notify-checkbox")).toBeNull();
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Add note");
   });
 });

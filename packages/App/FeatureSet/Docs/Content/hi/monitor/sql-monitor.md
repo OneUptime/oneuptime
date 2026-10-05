@@ -57,7 +57,7 @@ probe केवल इतना report करता है:
 - **SQL Query** — चलाने के लिए read-only query (देखें query लिखना)।
 - **Use SSL/TLS** — TLS पर connect करने के लिए सक्षम करें। सक्षम होने पर, यदि database एक self-signed certificate का उपयोग करता है तो आप **Verify server certificate** को बंद कर सकते हैं।
 
-### उन्नत विकल्प
+### और फ़ील्ड
 
 - **Connection Timeout (ms)** — एक connection स्थापित करने के लिए कितनी देर प्रतीक्षा करनी है। Default `10000`, अधिकतम `30000`।
 - **Statement Timeout (ms)** — query कितनी देर चल सकती है, इस पर कठोर सीमा। Default `15000`, अधिकतम `60000`।

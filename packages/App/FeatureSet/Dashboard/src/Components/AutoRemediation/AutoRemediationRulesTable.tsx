@@ -133,11 +133,15 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
       }}
       cardProps={{
         title: "Auto Remediation Rules",
-        description: `Propose or start remediation runbooks automatically when matching ${props.entityLabel}s are created.`,
+        description: isIncident
+          ? "Propose or start remediation runbooks automatically when matching incidents are created."
+          : "Propose or start remediation runbooks automatically when matching alerts are created.",
       }}
       helpContent={{
         title: "How Auto Remediation Rules Work",
-        description: `Match ${props.entityLabel}s and remediate automatically — with a human in the loop by default.`,
+        description: isIncident
+          ? "Match incidents and remediate automatically — with a human in the loop by default."
+          : "Match alerts and remediate automatically — with a human in the loop by default.",
         markdown: autoRemediationDocumentation(props.entityLabel),
       }}
       sortBy="name"
@@ -228,6 +232,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: "Enabled",
           stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
         },
         {
@@ -235,7 +241,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: "Monitors",
           stepId: "match-criteria",
           sectionTitle: "Match by Attributes",
-          sectionDescription: `Filter ${props.entityLabel}s by monitor, severity and labels. Leave a filter empty to skip it.`,
+          sectionDescription: isIncident
+            ? "Filter incidents by monitor, severity and labels. Leave a filter empty to skip it."
+            : "Filter alerts by monitor, severity and labels. Leave a filter empty to skip it.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Monitor,
@@ -256,6 +264,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Severities (optional)",
@@ -271,6 +282,9 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Severities (optional)",
@@ -278,7 +292,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
             ]),
         {
           field: { labels: true },
-          title: `${isIncident ? "Incident" : "Alert"} Labels`,
+          title: isIncident ? "Incident Labels" : "Alert Labels",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -306,7 +320,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { titlePattern: true },
-          title: "Title Pattern",
+          title: isIncident ? "Incident Title" : "Alert Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription: "Case-insensitive regex. Leave empty to skip.",
@@ -316,7 +330,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { descriptionPattern: true },
-          title: "Description Pattern",
+          title: isIncident ? "Incident Description" : "Alert Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

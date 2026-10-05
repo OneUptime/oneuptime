@@ -5,13 +5,13 @@ import {
   MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES,
   MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES,
   MESSAGE_QUEUE_LIVE_WINDOW_MINUTES,
-  MESSAGE_QUEUE_LIVENESS_DESCRIPTION,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
   formatMessageQueueErrorRate,
   formatMessageQueueMetricValue,
   getMessageQueueDocsRoute,
+  getMessageQueueLivenessDescription,
   getMessageQueueLivenessLabel,
   getMessageQueueLivenessStatus,
   getMessageQueueLivenessTone,
@@ -86,7 +86,7 @@ describe("liveness", () => {
       ["Not seen recently", "warning"],
       ["Never seen", "neutral"],
     ]);
-    expect(MESSAGE_QUEUE_LIVENESS_DESCRIPTION).toContain(
+    expect(getMessageQueueLivenessDescription()).toContain(
       `${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes`,
     );
   });
@@ -103,11 +103,11 @@ describe("liveness", () => {
       MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES +
         MESSAGE_QUEUE_LATE_METRIC_MINUTES,
     );
-    expect(MESSAGE_QUEUE_LIVENESS_DESCRIPTION).toBe(
+    expect(getMessageQueueLivenessDescription()).toBe(
       `Seen recently: in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes, discovery found spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late.`,
     );
     // It never claims the telemetry itself is that recent.
-    expect(MESSAGE_QUEUE_LIVENESS_DESCRIPTION).not.toContain(
+    expect(getMessageQueueLivenessDescription()).not.toContain(
       "named this queue in the last",
     );
     // Three runs fit the window.

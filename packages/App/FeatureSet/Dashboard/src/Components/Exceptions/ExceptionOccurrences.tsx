@@ -13,6 +13,8 @@ import { getExceptionSpansDefaultTimeRange } from "../../Utils/ExceptionDetailPr
 import TracesViewer from "../Traces/TracesViewer";
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
 import OccouranceTable from "./OccuranceTable";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export enum ExceptionOccurrencesView {
   Spans = "spans",
@@ -35,6 +37,7 @@ export interface ComponentProps {
 const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [view, setView] = useState<ExceptionOccurrencesView>(
     ExceptionOccurrencesView.Spans,
   );
@@ -72,17 +75,21 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-gray-900">
-              {view === ExceptionOccurrencesView.Spans
-                ? "Spans that raised this exception"
-                : "Occurrence details"}
+              {translator.translateText(
+                view === ExceptionOccurrencesView.Spans
+                  ? "Spans that raised this exception"
+                  : "Occurrence details",
+              )}
             </h2>
             <p
               className="mt-0.5 text-sm text-gray-600"
               data-testid="exception-occurrences-description"
             >
-              {view === ExceptionOccurrencesView.Spans
-                ? "Search, filter and chart every span this exception was recorded in. Open a span to see its whole trace."
-                : "Each recorded occurrence with its release, environment, and links to its logs and session replay."}
+              {translator.translateText(
+                view === ExceptionOccurrencesView.Spans
+                  ? "Search, filter and chart every span this exception was recorded in. Open a span to see its whole trace."
+                  : "Each recorded occurrence with its release, environment, and links to its logs and session replay.",
+              )}
             </p>
           </div>
         </div>
@@ -116,7 +123,8 @@ const ExceptionOccurrences: FunctionComponent<ComponentProps> = (
         <TracesViewer
           exceptionScope={exceptionScope}
           exceptionScopeLabel={
-            props.exception.exceptionType || "This exception"
+            props.exception.exceptionType ||
+            (translator.translateText("This exception") as string)
           }
           {...(props.exception.primaryEntityId
             ? {

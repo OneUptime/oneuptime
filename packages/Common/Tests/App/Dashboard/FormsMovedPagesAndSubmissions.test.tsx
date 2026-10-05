@@ -54,7 +54,7 @@ import {
   getFormSubmissionSubmitter,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Submissions/FormSubmissionPresentation";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
-import { MOVED_INCIDENT_FORM_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/IncidentsRoutes";
+import { MOVED_INCIDENT_FORM_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
 import FormSubmission from "../../../Models/DatabaseModels/FormSubmission";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";

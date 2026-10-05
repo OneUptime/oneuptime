@@ -5,7 +5,6 @@ import Email from "Common/Types/Email";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -30,13 +29,31 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import {
+  getStatusPageAccess,
+  StatusPageAccess,
+} from "Common/Types/StatusPage/StatusPageAccess";
+import StatusPageAccessCopy, {
+  getStatusPageAccessState,
+  PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID,
+} from "../../../Components/StatusPage/StatusPageAccessCopy";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const [isMasterPasswordEnabled, setIsMasterPasswordEnabled] =
-    useState<boolean>(false);
+  /*
+   * Whether visitors enter the master password instead of signing in: the
+   * server then lets no private user sign in, so the page says so, with the
+   * way to Access, where who can see the page is chosen.
+   */
+  const [isPasswordRequired, setIsPasswordRequired] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
@@ -169,11 +186,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelType: StatusPage,
           id: modelId,
           select: {
+            isPublicStatusPage: true,
             enableMasterPassword: true,
+            masterPassword: true,
           },
         });
 
-        setIsMasterPasswordEnabled(Boolean(statusPage?.enableMasterPassword));
+        setIsPasswordRequired(
+          Boolean(
+            statusPage &&
+              getStatusPageAccess(getStatusPageAccessState(statusPage)) ===
+                StatusPageAccess.Password,
+          ),
+        );
         setFetchError(null);
       } catch (error) {
         const newErrorMessage: string =
@@ -192,11 +217,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       {fetchError && (
         <Alert className="mb-5" type={AlertType.DANGER} title={fetchError} />
       )}
-      {isMasterPasswordEnabled && (
+      {isPasswordRequired && (
         <Alert
           className="mb-5"
           type={AlertType.INFO}
-          title="Master password is enabled for this status page. Private users authentication is disabled while the master password is active."
+          title={StatusPageAccessCopy.privateUsersPasswordNotice}
+          textOnRight={StatusPageAccessCopy.privateUsersPasswordNoticeAction}
+          dataTestId={PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID}
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                ] as Route,
+                { modelId },
+              ),
+            );
+          }}
         />
       )}
       <ModelTable<StatusPagePrivateUser>
@@ -225,15 +262,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         refreshToggle={refreshToggle}
         cardProps={{
           title: "Private Users",
-          description: "Here are a list of private users for this status page.",
+          description:
+            "People who can sign in to see this status page. Each one is emailed an invitation when you add them.",
           buttons: [
             {
               title: "Add in Bulk",
               buttonStyle: ButtonStyleType.OUTLINE,
+              icon: IconProp.UserGroup,
               onClick: () => {
                 setShowBulkAddModal(true);
               },
-            } as CardButtonSchema,
+            },
           ],
         }}
         noItemsMessage={"No private users created for this status page."}
@@ -323,8 +362,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               {bulkActionInProgress ? (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-500">
-                    Please wait while private users are being added. This may
-                    take a moment.
+                    {translator.translateText(
+                      "Please wait while private users are being added. This may take a moment.",
+                    )}
                   </p>
                   <ProgressBar
                     count={bulkProgress.completed}
@@ -344,11 +384,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                           color={Green}
                         />
                         <div className="ml-2 text-sm font-medium text-green-800">
-                          {bulkProgress.succeeded}{" "}
-                          {bulkProgress.succeeded === 1
-                            ? "private user"
-                            : "private users"}{" "}
-                          added successfully
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} private user added successfully",
+                              other:
+                                "{{count}} private users added successfully",
+                            },
+                            bulkProgress.succeeded,
+                          )}
                         </div>
                       </div>
                     )}
@@ -360,11 +403,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                           color={Red}
                         />
                         <div className="ml-2 text-sm font-medium text-red-800">
-                          {bulkProgress.failed.length}{" "}
-                          {bulkProgress.failed.length === 1
-                            ? "private user"
-                            : "private users"}{" "}
-                          failed
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} private user failed",
+                              other: "{{count}} private users failed",
+                            },
+                            bulkProgress.failed.length,
+                          )}
                         </div>
                       </div>
                     )}
@@ -376,11 +421,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                           color={Yellow}
                         />
                         <div className="ml-2 text-sm font-medium text-yellow-800">
-                          {bulkProgress.skippedInvalid.length} invalid{" "}
-                          {bulkProgress.skippedInvalid.length === 1
-                            ? "email"
-                            : "emails"}{" "}
-                          skipped
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} invalid email skipped",
+                              other: "{{count}} invalid emails skipped",
+                            },
+                            bulkProgress.skippedInvalid.length,
+                          )}
                         </div>
                       </div>
                     )}

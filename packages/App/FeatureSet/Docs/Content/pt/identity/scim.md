@@ -19,6 +19,8 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 
 ### Configurando o SCIM de Projeto
 
+Somente um proprietário do projeto pode adicionar ou alterar a conexão SCIM de um projeto, ou ver ou redefinir seu token Bearer: pelo SCIM, seu provedor de identidade pode adicionar pessoas a qualquer equipe do projeto.
+
 1. **Navegar para as Configurações do Projeto**
 
    - Vá para o seu projeto do OneUptime
@@ -26,10 +28,9 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 
 2. **Configurar as Definições SCIM**
 
-   - Habilite **Provisionar usuários automaticamente** para adicionar automaticamente usuários quando eles são atribuídos no seu IdP
-   - Habilite **Desprovisionar usuários automaticamente** para remover automaticamente usuários quando eles são desatribuídos no seu IdP
-   - Selecione as **Equipes Padrão** às quais os novos usuários devem ser adicionados
-   - Copie a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP
+   - Insira um **Nome**. O campo **Equipes Padrão** começa com a equipe de membros do seu projeto: novos usuários são adicionados a essas equipes
+   - Em **Mais campos**, **Provisionar usuários automaticamente** (adicionar usuários quando eles são atribuídos no seu IdP) e **Desprovisionar usuários automaticamente** (remover usuários quando eles são desatribuídos no seu IdP) estão ativados, e **Habilitar grupos de push** está desativado. Altere-os lá se precisar
+   - Salve. A caixa de diálogo com a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP é aberta imediatamente
 
 3. **Configurar Seu Provedor de Identidade**
    - Use a SCIM Base URL: `https://oneuptime.com/scim/v2/{scimId}`
@@ -75,9 +76,8 @@ O SCIM de Página de Status permite que provedores de identidade gerenciem assin
 
 2. **Configurar as Definições SCIM**
 
-   - Habilite **Provisionar usuários automaticamente** para adicionar automaticamente assinantes quando eles são atribuídos no seu IdP
-   - Habilite **Desprovisionar usuários automaticamente** para remover automaticamente assinantes quando eles são desatribuídos no seu IdP
-   - Copie a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP
+   - Insira um **Nome**. Em **Mais campos**, **Provisionar usuários automaticamente** (adicionar assinantes quando eles são atribuídos no seu IdP) e **Desprovisionar usuários automaticamente** (remover assinantes quando eles são desatribuídos no seu IdP) estão ativados. Altere-os lá se precisar
+   - Salve. A caixa de diálogo com a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP é aberta imediatamente
 
 3. **Configurar Seu Provedor de Identidade**
    - Use a SCIM Base URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -122,13 +122,12 @@ O Microsoft Entra ID fornece gerenciamento de identidade empresarial com recurso
 2. Navegue para **Configurações do projeto** > **Segurança** > **SCIM**
 3. Clique em **Create SCIM Configuration**
 4. Insira um nome amigável (ex.: "Microsoft Entra ID Provisioning")
-5. Configure as seguintes opções:
-   - **Provisionar usuários automaticamente**: Habilite para criar usuários automaticamente
-   - **Desprovisionar usuários automaticamente**: Habilite para remover usuários automaticamente
-   - **Equipes Padrão**: Selecione equipes às quais novos usuários devem ser adicionados
-   - **Habilitar grupos de push**: Habilite se quiser gerenciar a adesão à equipe via grupos do Entra ID
+5. Confira as opções:
+   - **Equipes Padrão**: começa com a equipe de membros do seu projeto; novos usuários são adicionados a essas equipes
+   - **Provisionar usuários automaticamente** e **Desprovisionar usuários automaticamente**: ativados, em **Mais campos**
+   - **Habilitar grupos de push**: em **Mais campos**; ative se quiser gerenciar a adesão à equipe via grupos do Entra ID
 6. Salve a configuração
-7. Copie a **SCIM Base URL** e o **Bearer Token** — você precisará desses para o Entra ID
+7. Copie a **SCIM Base URL** e o **Bearer Token** da caixa de diálogo que é aberta — você precisará desses para o Entra ID
 
 #### Passo 2: Criar Aplicativo Empresarial no Microsoft Entra ID
 
@@ -224,13 +223,12 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 2. Navegue para **Configurações do projeto** > **Segurança** > **SCIM**
 3. Clique em **Create SCIM Configuration**
 4. Insira um nome amigável (ex.: "Okta Provisioning")
-5. Configure as seguintes opções:
-   - **Provisionar usuários automaticamente**: Habilite para criar usuários automaticamente
-   - **Desprovisionar usuários automaticamente**: Habilite para remover usuários automaticamente
-   - **Equipes Padrão**: Selecione equipes às quais novos usuários devem ser adicionados
-   - **Habilitar grupos de push**: Habilite se quiser gerenciar a adesão à equipe via grupos do Okta
+5. Confira as opções:
+   - **Equipes Padrão**: começa com a equipe de membros do seu projeto; novos usuários são adicionados a essas equipes
+   - **Provisionar usuários automaticamente** e **Desprovisionar usuários automaticamente**: ativados, em **Mais campos**
+   - **Habilitar grupos de push**: em **Mais campos**; ative se quiser gerenciar a adesão à equipe via grupos do Okta
 6. Salve a configuração
-7. Copie a **SCIM Base URL** e o **Bearer Token** — você precisará desses para o Okta
+7. Copie a **SCIM Base URL** e o **Bearer Token** da caixa de diálogo que é aberta — você precisará desses para o Okta
 
 #### Passo 2: Criar ou Configurar o Aplicativo Okta
 

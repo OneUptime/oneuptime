@@ -22,9 +22,10 @@ import React, { createRef, RefObject } from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
- * BasicForm's submitAllSteps - what a stepped edit dialog's Save Changes
- * calls from whichever step is on screen - and allowAnyStepNavigation, which
- * lets that dialog's step list open any step.
+ * BasicForm's submitAllSteps - what a stepped form's action calls, on the
+ * last step, where it is offered (Utils/SteppedFormFooter.ts) - and
+ * allowAnyStepNavigation, which lets an edit dialog's step list open any
+ * step, the last one among them.
  *
  * submitAllSteps validates the fields of every step the user can reach, then
  * submits; a failing field sends the user to the first step it is on. A step

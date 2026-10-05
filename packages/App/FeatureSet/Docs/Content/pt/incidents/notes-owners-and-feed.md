@@ -114,7 +114,7 @@ A mensagem que os assinantes recebem é montada com modelos por página de statu
 
 ## O feed do incidente
 
-O cartão **Incidente Feed** fica no fim da coluna esquerda da página **Visão geral** do incidente. É a história do incidente em ordem: cada item é um ícone, o avatar e o nome de quem o causou, um carimbo de tempo relativo com a hora local exata ao passar o mouse, e um corpo em Markdown. Os itens são ordenados do mais antigo para o mais recente.
+O cartão **Incidente Feed** fica no fim da coluna esquerda da página **Visão geral** do incidente. É a história do incidente em ordem: cada item é um ícone, o avatar e o nome de quem o causou, um carimbo de tempo relativo com a hora local exata ao passar o mouse, e um corpo em Markdown. Por padrão, os itens mais recentes ficam no topo.
 
 Alguns itens carregam detalhe extra — uma notificação de proprietário lista todo mundo que recebeu e-mail, por exemplo. Esses mostram um botão **More Information** que abre um painel **More Information**.
 
@@ -122,10 +122,14 @@ O cabeçalho do cartão também tem um menu **Ações**, para que você aja sem 
 
 - **Execute Runbook** — inicia um [runbook](/docs/runbooks/index) contra este incidente.
 - **Executar política de plantão** — aciona uma política sob demanda.
-- **Add Public Note** — os mesmos quatro campos da página de Notas públicas, em um modal.
-- **Adicionar nota privada** — só corpo da nota e anexos.
+- **Add Public Note** — o editor da página de Notas públicas, em um modal: escreva a nota e depois **Post update**. Modelos, **Draft with AI**, anexos, **Notify status page subscribers** com quem ela alcança e **Preview notification** estão todos lá. A nota é publicada agora; para uma hora anterior, escolha **Posted now**.
+- **Adicionar nota privada** — o editor da página de Notas privadas, em um modal: escreva a nota e depois **Add note**.
 
-Ao lado, **Atualizar** busca o feed novamente.
+Todo o resto fica atrás do botão **⋯** ao lado, o mesmo botão **Mais opções** do cabeçalho do cartão de uma tabela, para que o cabeçalho mostre o mínimo de botões possível:
+
+- **Mais recentes primeiro** / **Mais antigos primeiro** — a ordem em que o feed é lido. Uma marca indica a que está em uso, e o seu navegador lembra a escolha para o feed de cada incidente.
+- **Filtrar por tipo de evento** — uma caixa de diálogo que lista os tipos de evento do feed, cada um com o ícone dos seus itens, e uma caixa de busca quando a lista é longa. Marque os que quer ver e escolha **Aplicar filtros**; sem nenhum marcado, todos são mostrados. Enquanto o feed está filtrado, um quadro acima dele diz quantos tipos de evento ele mostra, com uma etiqueta para cada um, **Editar filtros** e **Limpar filtros**. O filtro não é salvo: saia do incidente e o feed volta a mostrar tudo.
+- **Atualizar** — busca o feed novamente.
 
 **O feed é somente-adição, e ele não é o seu log de auditoria.** A API permite criar e ler itens de feed, mas não atualizar nem excluir, então ninguém pode reescrever a história de um incidente às escondidas. Ele também não é permanente: em instalações pagas, linhas de feed com mais de três anos são removidas. Para um registro durável de quem mudou o quê, use **Auditoria → Registros de auditoria** no menu lateral do incidente.
 

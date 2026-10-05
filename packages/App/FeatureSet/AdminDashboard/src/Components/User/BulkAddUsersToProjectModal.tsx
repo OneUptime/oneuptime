@@ -11,7 +11,6 @@ import Field, {
   CustomElementProps,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import React, {
@@ -52,31 +51,11 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
   const { t } = useTranslation();
 
   const [error, setError] = useState<string>("");
-  const [submitButtonText, setSubmitButtonText] = useState<string>(
-    t("pages.users.bulkAddToProjectNext"),
-  );
 
   const formRef: MutableRefObject<any> = useRef<any>(null);
 
   // A ref, not state: a re-render must not reopen the window for a second submit.
   const hasSubmittedRef: MutableRefObject<boolean> = useRef<boolean>(false);
-
-  /*
-   * Two steps, and the team picker is on the second one, because the teams to
-   * offer are the chosen project's. Same shape as the single-user
-   * "Add to Project" form on User > Projects, so the flow an admin already
-   * knows is the flow they get here.
-   */
-  const formSteps: Array<FormStep<BulkAddUsersToProjectFormValues>> = [
-    {
-      id: "project",
-      title: t("pages.users.bulkAddToProjectStepProject"),
-    },
-    {
-      id: "team",
-      title: t("pages.users.bulkAddToProjectStepTeam"),
-    },
-  ];
 
   const onFormSubmit: (
     values: FormValues<BulkAddUsersToProjectFormValues>,
@@ -97,7 +76,7 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
     );
 
     /*
-     * BasicForm validates the step's required fields before it calls this, so
+     * BasicForm validates the form's required fields before it calls this, so
      * these two guards are not the usual way an empty pick is caught. They
      * stay because the cost of getting past them is not a validation message:
      * TeamMemberService dereferences `createBy.data.team!._id!` when no teamId
@@ -127,12 +106,19 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * One page: the project, then one of its teams under it, then whether to
+   * accept the invitations. The team picker offers the chosen project's teams
+   * and starts on its members team as soon as the project is picked, so an
+   * admin who only wants people in the project picks the project and adds.
+   * Same shape as the single-user "Add to Project" form on User > Projects, so
+   * the flow an admin already knows is the flow they get here.
+   */
   const fields: Array<Field<BulkAddUsersToProjectFormValues>> = [
     {
       field: {
         project: true,
       },
-      stepId: "project",
       title: t("pages.users.bulkAddToProjectFieldProject"),
       description: t("pages.users.bulkAddToProjectFieldProjectDescription"),
       fieldType: FormFieldSchemaType.Dropdown,
@@ -148,14 +134,13 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
       field: {
         team: true,
       },
-      stepId: "team",
       title: t("pages.users.bulkAddToProjectFieldTeam"),
       description: t("pages.users.bulkAddToProjectFieldTeamDescription"),
       /*
        * A custom element rather than `fetchDropdownOptions`: the teams to offer
-       * depend on the project chosen in the previous step, and
-       * fetchDropdownOptions only re-runs when the form's fields change, so it
-       * would fetch before a project exists.
+       * depend on the project picked above it, and fetchDropdownOptions only
+       * re-runs when the form's fields change, so it would fetch before a
+       * project exists.
        */
       fieldType: FormFieldSchemaType.CustomComponent,
       required: true,
@@ -185,7 +170,6 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
       field: {
         hasAcceptedInvitation: true,
       },
-      stepId: "team",
       title: t("pages.users.bulkAddToProjectFieldAutoAccept"),
       description: t("pages.users.bulkAddToProjectFieldAutoAcceptDescription"),
       fieldType: FormFieldSchemaType.Checkbox,
@@ -207,7 +191,7 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
         userCount: props.users.length,
       })}
       modalWidth={ModalWidth.Medium}
-      submitButtonText={submitButtonText}
+      submitButtonText={t("pages.users.bulkAddToProjectSubmit")}
       submitButtonType={ButtonType.Submit}
       onClose={props.onClose}
       onSubmit={() => {
@@ -221,14 +205,6 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
         name="Admin > Users > Add to Project"
         hideSubmitButton={true}
         fields={fields}
-        steps={formSteps}
-        onIsLastFormStep={(isLastFormStep: boolean) => {
-          setSubmitButtonText(
-            isLastFormStep
-              ? t("pages.users.bulkAddToProjectSubmit")
-              : t("pages.users.bulkAddToProjectNext"),
-          );
-        }}
         onSubmit={(values: FormValues<BulkAddUsersToProjectFormValues>) => {
           onFormSubmit(values);
         }}

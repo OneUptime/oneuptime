@@ -11,6 +11,10 @@ import {
   resolveMarkerCollisions,
 } from "./Geo/MarkerLayout";
 import { MapLinkView, MapSiteView, SiteMapMode } from "./SiteHierarchyTypes";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure, react-free view-model for the SiteGeoMap component: projecting map
@@ -361,13 +365,6 @@ export const markerCountForSite: (site: MapSiteView) => number = (
   return site.childSiteCount > 0 ? site.childSiteCount : 1;
 };
 
-const pluralize: (count: number, singular: string) => string = (
-  count: number,
-  singular: string,
-): string => {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
-};
-
 /*
  * The fallback name for a level whose children are of mixed types. Site
  * types are per-project rows, so there is no safe generic to borrow from
@@ -521,18 +518,36 @@ export const describeMapCoverage: (input: {
 }): string => {
   if (input.mode === "all") {
     return input.inViewCount < input.siteCount
-      ? `${input.inViewCount} of ${input.siteCount} sites in view`
-      : `${pluralize(input.siteCount, "site")} mapped`;
+      ? translatePlural(
+          {
+            one: "{{inView}} of {{count}} site in view",
+            other: "{{inView}} of {{count}} sites in view",
+          },
+          input.siteCount,
+          { inView: input.inViewCount },
+        )
+      : translatePlural(
+          { one: "{{count}} site mapped", other: "{{count}} sites mapped" },
+          input.siteCount,
+        );
   }
+  // The project's own site type, as data: "3 regions on the map".
   const noun: string = input.childTypeLabel || GENERIC_SITE_TYPE_LABEL;
   const counted: string =
     input.markerCount === 1
       ? noun.toLowerCase()
       : pluralizeSiteType(noun).toLowerCase();
   if (input.inViewCount < input.markerCount) {
-    return `${input.inViewCount} of ${input.markerCount} ${counted} in view`;
+    return translateTemplate("{{inView}} of {{count}} {{siteType}} in view", {
+      inView: input.inViewCount,
+      count: input.markerCount,
+      siteType: counted,
+    });
   }
-  return `${input.markerCount} ${counted} on the map`;
+  return translateTemplate("{{count}} {{siteType}} on the map", {
+    count: input.markerCount,
+    siteType: counted,
+  });
 };
 
 /**
@@ -544,9 +559,11 @@ export const describeMarkerHealth: (site: MapSiteView) => string = (
 ): string => {
   if (!site.isContainer || site.totalUnits <= 0) {
     if (site.isOperational === true) {
-      return "Operational";
+      return translateTemplate("Operational");
     }
-    return site.isOperational === false ? "Down" : "No status yet";
+    return site.isOperational === false
+      ? translateTemplate("Down")
+      : translateTemplate("No status yet");
   }
   const total: number = site.totalUnits;
   const operational: number = Math.min(
@@ -554,9 +571,22 @@ export const describeMarkerHealth: (site: MapSiteView) => string = (
     total,
   );
   if (operational >= total) {
-    return `${pluralize(total, "unit")} operational`;
+    return translatePlural(
+      {
+        one: "{{count}} unit operational",
+        other: "{{count}} units operational",
+      },
+      total,
+    );
   }
-  return `${total - operational} of ${pluralize(total, "unit")} down`;
+  return translatePlural(
+    {
+      one: "{{down}} of {{count}} unit down",
+      other: "{{down}} of {{count}} units down",
+    },
+    total,
+    { down: total - operational },
+  );
 };
 
 /**
@@ -572,13 +602,24 @@ export const describeMarkerSite: (site: MapSiteView) => string = (
     describeMarkerHealth(site),
   ];
   if (site.isContainer && site.childSiteCount > 0) {
-    parts.push(pluralize(site.childSiteCount, "site"));
+    parts.push(
+      translatePlural(
+        { one: "{{count}} site", other: "{{count}} sites" },
+        site.childSiteCount,
+      ),
+    );
   }
   if (site.isDerivedLocation) {
     parts.push(
       site.locatedDescendantCount > 0
-        ? `centered on ${pluralize(site.locatedDescendantCount, "located site")}`
-        : "approximate location",
+        ? translatePlural(
+            {
+              one: "centered on {{count}} located site",
+              other: "centered on {{count}} located sites",
+            },
+            site.locatedDescendantCount,
+          )
+        : translateTemplate("approximate location"),
     );
   }
   return parts.join(" · ");
@@ -1441,12 +1482,19 @@ const clusterTooltip: (
   const names: Array<string> = cluster.ids
     .slice(0, 5)
     .map((id: string): string => {
-      return siteById.get(id)?.name || "Unnamed site";
+      return siteById.get(id)?.name || translateTemplate("Unnamed site");
     });
   const more: number = cluster.ids.length - names.length;
-  return `${cluster.totalCount} sites: ${names.join(", ")}${
-    more > 0 ? `, +${more} more` : ""
-  }`;
+  return more > 0
+    ? translateTemplate("{{count}} sites: {{names}}, +{{more}} more", {
+        count: cluster.totalCount,
+        names: names.join(", "),
+        more: more,
+      })
+    : translateTemplate("{{count}} sites: {{names}}", {
+        count: cluster.totalCount,
+        names: names.join(", "),
+      });
 };
 
 export interface BuildMarkersInput {
@@ -1748,10 +1796,10 @@ export const describeMapLink: (link: {
   name: string;
   monitorStatus?: { name: string } | undefined;
 }): string => {
-  const name: string = link.name || "Unnamed link";
-  return `${name} — ${
-    link.monitorStatus ? link.monitorStatus.name : "No monitor attached"
-  }`;
+  const name: string = link.name || translateTemplate("Unnamed link");
+  return link.monitorStatus
+    ? `${name} — ${link.monitorStatus.name}`
+    : translateTemplate("{{name}} — No monitor attached", { name: name });
 };
 
 // What buildMapLinks needs off a marker: its identity, its sites, its spot.

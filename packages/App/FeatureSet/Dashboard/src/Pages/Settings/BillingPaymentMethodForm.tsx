@@ -12,6 +12,8 @@ import React, {
   Ref,
   useRef,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   onError: (error: string) => void;
@@ -25,11 +27,14 @@ export interface ComponentProps {
   formRef: Ref<HTMLButtonElement>;
 }
 
-export const DEFAULT_SETUP_ERROR_MESSAGE: string =
-  "Unable to save your payment method. Please try again.";
+// English; translated where they are shown (translateTemplate).
+export const DEFAULT_SETUP_ERROR_MESSAGE: string = translationKey(
+  "Unable to save your payment method. Please try again.",
+);
 
-export const SETUP_NOT_COMPLETED_ERROR_MESSAGE: string =
-  "Your payment method could not be verified. Please try again or use a different payment method.";
+export const SETUP_NOT_COMPLETED_ERROR_MESSAGE: string = translationKey(
+  "Your payment method could not be verified. Please try again or use a different payment method.",
+);
 
 type GetPaymentMethodIdFunction = (setupIntent: SetupIntent) => string | null;
 
@@ -53,6 +58,7 @@ export const getSetupIntentPaymentMethodId: GetPaymentMethodIdFunction = (
 const CheckoutForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const stripe: ReturnType<typeof useStripe> = useStripe();
   const elements: ReturnType<typeof useElements> = useElements();
   const isSubmitting: React.MutableRefObject<boolean> = useRef<boolean>(false);
@@ -131,10 +137,10 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
 
       props.onError(
         setupIntent.last_setup_error?.message ||
-          SETUP_NOT_COMPLETED_ERROR_MESSAGE,
+          translator.translateTemplate(SETUP_NOT_COMPLETED_ERROR_MESSAGE),
       );
     } catch {
-      props.onError(DEFAULT_SETUP_ERROR_MESSAGE);
+      props.onError(translator.translateTemplate(DEFAULT_SETUP_ERROR_MESSAGE));
     } finally {
       isSubmitting.current = false;
     }
@@ -147,7 +153,7 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
         ref={props.formRef}
         type="submit"
         hidden={true}
-        aria-label="Save payment method"
+        aria-label={translator.translateText("Save payment method")}
       />
     </form>
   );

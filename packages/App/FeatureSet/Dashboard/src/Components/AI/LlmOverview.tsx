@@ -29,6 +29,8 @@ import StartAndEndDate, {
   StartAndEndDateType,
 } from "Common/UI/Components/Date/StartAndEndDate";
 import LlmCallsTable from "./LlmCallsTable";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const DEFAULT_WINDOW_DAYS: number = 7;
 
@@ -42,7 +44,7 @@ const DEFAULT_WINDOW_DAYS: number = 7;
  */
 type KpiSource = "spans" | "metrics" | "none";
 
-const METRIC_SOURCE_HINT: string = "from GenAI metrics";
+const METRIC_SOURCE_HINT: string = translationKey("from GenAI metrics");
 
 interface Kpis {
   totalCalls: number | null;
@@ -86,6 +88,8 @@ const KpiCard: FunctionComponent<{
   value: string;
   hint?: string | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <InfoCard
       title={props.label}
@@ -95,7 +99,9 @@ const KpiCard: FunctionComponent<{
             {props.value}
           </div>
           {props.hint ? (
-            <div className="mt-1 text-sm text-gray-500">{props.hint}</div>
+            <div className="mt-1 text-sm text-gray-500">
+              {translator.translateText(props.hint)}
+            </div>
           ) : null}
         </div>
       }
@@ -104,6 +110,7 @@ const KpiCard: FunctionComponent<{
 };
 
 const LlmOverview: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [kpis, setKpis] = useState<Kpis>(EMPTY_KPIS);
 
   const [range, setRange] = useState<InBetween<Date>>(() => {
@@ -360,14 +367,12 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
           />
           <div>
             <div className="text-sm font-semibold text-gray-900">
-              AI / LLM Observability
+              {translator.translateText("AI / LLM Observability")}
             </div>
             <div className="mt-0.5 text-sm text-gray-600">
-              Token usage, cost, latency and errors for every LLM, embedding,
-              agent and tool call your apps emit via the OpenTelemetry GenAI
-              conventions. Figures below cover the selected time range. Token
-              and cost tiles read your GenAI spans; if you emit GenAI metrics
-              without spans, they fall back to the metric stream and say so.
+              {translator.translateText(
+                "Token usage, cost, latency and errors for every LLM, embedding, agent and tool call your apps emit via the OpenTelemetry GenAI conventions. Figures below cover the selected time range. Token and cost tiles read your GenAI spans; if you emit GenAI metrics without spans, they fall back to the metric stream and say so.",
+              )}
             </div>
           </div>
         </div>
@@ -375,7 +380,7 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Time Range
+          {translator.translateText("Time Range")}
         </span>
         <StartAndEndDate
           type={StartAndEndDateType.DateTime}
@@ -393,7 +398,9 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
         <KpiCard
           label="Errored calls"
           value={fmt(kpis.erroredCalls)}
-          hint={`${errorRate} error rate`}
+          hint={translator.translateTemplate("{{rate}} error rate", {
+            rate: errorRate,
+          })}
         />
         <KpiCard
           label="Input tokens"

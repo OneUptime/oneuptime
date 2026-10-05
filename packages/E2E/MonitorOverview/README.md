@@ -95,9 +95,11 @@ another monitor lands on a plain, healthy one.
 
 - **Probe checks**: the operational API monitor (headline, target, facts, pulse, the four
   stat cells and their numbers, exactly 90 bars and the 90-day figure, both columns' card
-  order, the probe picker, the status dot's colour, the Response time plot's height); Offline
+  order, the Linked Resources card's empty state and its Edit button, the probe picker, the
+  status dot's colour, the Response time plot's height); Offline
   with an open incident and alert (danger tile, failure cause, Open now links, open-work rows
-  with their severity, and links); a new monitor (no-data bars before creation, "measured
+  with their severity, and links; the ongoing Offline row is the only one marked Currently
+  Active, with its live duration); a new monitor (no-data bars before creation, "measured
   over", the creation footnote); probes off; disabled with no probe enabled; maintenance
   ("includes paused time", no probe Late, "Checks paused"); disabled (no probe Late); stale
   (Checks overdue, Overdue by, the tile is amber not emerald); degraded; every probe
@@ -181,4 +183,6 @@ real clock, not the pinned one.
 
 - Telemetry previews: no Logs, Metrics, Traces or Security Events monitor is modelled.
 - Custom fields: the project defines none, so the card stays hidden.
+- Linked resources: no monitor links a host, cluster, database or service, so the Linked
+  Resources card shows its empty state.
 - Dependencies: no monitor depends on another, so the suppression notice stays hidden.

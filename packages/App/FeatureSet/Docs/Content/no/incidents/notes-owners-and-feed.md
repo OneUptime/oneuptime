@@ -114,7 +114,7 @@ Selve meldingen abonnentene får, males per statusside og per kanal — e-post, 
 
 ## Hendelsesfeeden
 
-Kortet **Hendelse Feed** ligger nederst i venstre kolonne på hendelsens side **Oversikt**. Det er historien om hendelsen i rekkefølge: hvert element er et ikon, avataren og navnet til den som forårsaket det, et relativt tidsstempel med den eksakte lokale tiden når du holder musepekeren over, og en Markdown-tekst. Elementene er sortert eldst først.
+Kortet **Hendelse Feed** ligger nederst i venstre kolonne på hendelsens side **Oversikt**. Det er historien om hendelsen i rekkefølge: hvert element er et ikon, avataren og navnet til den som forårsaket det, et relativt tidsstempel med den eksakte lokale tiden når du holder musepekeren over, og en Markdown-tekst. Som standard står de nyeste elementene øverst.
 
 Enkelte elementer bærer ekstra detaljer — et eiervarsel lister for eksempel opp alle som fikk e-post. De viser en knapp **More Information** som åpner et panel **More Information**.
 
@@ -122,10 +122,14 @@ Korthodet har også en meny **Handlinger**, slik at du kan handle uten å forlat
 
 - **Execute Runbook** — start en [runbook](/docs/runbooks/index) mot denne hendelsen.
 - **Kjør vakttjenesteretningslinje** — tilkall en policy på forespørsel.
-- **Add Public Note** — de samme fire feltene som på siden Offentlige notater, i en dialog.
-- **Legg til privat notat** — bare notattekst og vedlegg.
+- **Add Public Note** — skrivefeltet fra siden Offentlige notater, i en dialog: skriv notatet, og velg **Post update**. Maler, **Draft with AI**, vedlegg, **Notify status page subscribers** med hvem det når, og **Preview notification** er alle der. Notatet publiseres nå; velg **Posted now** for å sette et tidligere tidspunkt.
+- **Legg til privat notat** — skrivefeltet fra siden Private notater, i en dialog: skriv notatet, og velg **Add note**.
 
-Ved siden av den henter **Oppdater** feeden på nytt.
+Alt annet ligger bak knappen **⋯** ved siden av, den samme knappen **Flere alternativer** som korthodet til en tabell har, slik at hodet viser så få knapper som mulig:
+
+- **Nyeste først** / **Eldste først** — rekkefølgen feeden leses i. En hake markerer den valgte, og nettleseren din husker valget for feeden til hver hendelse.
+- **Filtrer etter hendelsestype** — en dialog med feedens hendelsestyper, hver med ikonet til elementene sine, og et søkefelt når listen er lang. Huk av dem som skal vises, og velg **Bruk filtre**; uten avhuking vises alle. Så lenge feeden er filtrert, viser en boks over den hvor mange hendelsestyper den viser, med en etikett for hver, **Rediger filtre** og **Tøm filtre**. Filteret lagres ikke: forlat hendelsen, så viser feeden alt igjen.
+- **Oppdater** — henter feeden på nytt.
 
 **Feeden kan bare tilføyes, og den er ikke revisjonsloggen din.** API-et tillater å opprette og lese feed-elementer, men ikke å oppdatere eller slette dem, så ingen kan stille og rolig skrive om historien til en hendelse. Den er heller ikke permanent: på betalte installasjoner fjernes feed-rader som er eldre enn tre år. For et varig register over hvem som endret hva, bruk **Revisjon → Revisjonslogger** i hendelsens sidemeny.
 

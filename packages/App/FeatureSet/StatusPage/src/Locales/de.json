@@ -236,9 +236,17 @@
       "failed": "Das Abbestellen ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "loadFailed": "Dieser Abbestelllink konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
     },
-    "steps": {
-      "details": "Details",
-      "preferences": "Einstellungen"
+    "preferences": {
+      "title": "Einstellungen",
+      "description": "Wählen Sie, worüber Sie informiert werden.",
+      "summary": {
+        "everything": "Sie erhalten alle Updates dieser Statusseite.",
+        "pickedResources": "Sie erhalten nur Updates zu den ausgewählten Ressourcen.",
+        "pickedEventTypes": "Sie erhalten nur Updates der ausgewählten Ereignistypen.",
+        "pickedResourcesAndEventTypes": "Sie erhalten nur Updates zu den ausgewählten Ressourcen und Ereignistypen.",
+        "noResources": "Sie haben noch keine Ressourcen ausgewählt.",
+        "noEventTypes": "Sie haben noch keine Ereignistypen ausgewählt."
+      }
     }
   },
   "accounts": {

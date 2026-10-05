@@ -7,6 +7,8 @@ import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -30,8 +32,16 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+
+// Set as Default and Additional Parameters, folded at the end of Provider Settings.
+const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
+  getAdvancedFormSection<LlmProvider>();
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
@@ -76,10 +86,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Incident Notes</span>
+                <span className="font-medium">
+                  {translator.translateText("Incident Notes")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Automatically generate detailed incident notes and updates
+                  {" - "}
+                  {translator.translateText(
+                    "Automatically generate detailed incident notes and updates",
+                  )}
                 </span>
               </div>
             </div>
@@ -89,10 +103,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Alert Notes</span>
+                <span className="font-medium">
+                  {translator.translateText("Alert Notes")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Create meaningful alert descriptions and context
+                  {" - "}
+                  {translator.translateText(
+                    "Create meaningful alert descriptions and context",
+                  )}
                 </span>
               </div>
             </div>
@@ -102,10 +120,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Scheduled Maintenance Notes</span>
+                <span className="font-medium">
+                  {translator.translateText("Scheduled Maintenance Notes")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Generate maintenance event notes automatically
+                  {" - "}
+                  {translator.translateText(
+                    "Generate maintenance event notes automatically",
+                  )}
                 </span>
               </div>
             </div>
@@ -115,11 +137,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Incident Postmortems</span>
+                <span className="font-medium">
+                  {translator.translateText("Incident Postmortems")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Automatically draft comprehensive incident postmortem
-                  reports
+                  {" - "}
+                  {translator.translateText(
+                    "Automatically draft comprehensive incident postmortem reports",
+                  )}
                 </span>
               </div>
             </div>
@@ -129,14 +154,21 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Code Improvements</span>
+                <span className="font-medium">
+                  {translator.translateText("Code Improvements")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Analyze telemetry data (logs, traces, metrics, exceptions)
-                  and suggest code improvements when connected to your{" "}
-                  <Link to={codeRepositoriesRoute} className="underline">
-                    code repository
-                  </Link>
+                  {" - "}
+                  <TranslatedSentence
+                    template="Analyze telemetry data (logs, traces, metrics, exceptions) and suggest code improvements when connected to your {{codeRepositoryLink}}"
+                    slots={{
+                      codeRepositoryLink: (
+                        <Link to={codeRepositoriesRoute} className="underline">
+                          {translator.translateText("code repository")}
+                        </Link>
+                      ),
+                    }}
+                  />
                 </span>
               </div>
             </div>
@@ -284,6 +316,12 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "No LLM Providers configured. Add an LLM Provider to enable AI features for your project."
           }
           viewPageRoute={Navigation.getCurrentRoute()}
+          /*
+           * Two steps: what the provider is, then how to reach it. Whether
+           * it is the default and any extra model parameters are folded
+           * under Advanced at the end of the second - they used to be a
+           * step of their own that every new provider had to walk through.
+           */
           formSteps={[
             {
               title: "Basic Info",
@@ -292,10 +330,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             {
               title: "Provider Settings",
               id: "provider-settings",
-            },
-            {
-              title: "Advanced",
-              id: "advanced",
             },
           ]}
           formFields={[
@@ -365,20 +399,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.URL,
               required: false,
-              placeholder: "http://localhost:11434",
+              placeholder: "http://ollama:11434",
               description:
                 "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
-            },
-            {
-              field: {
-                additionalParams: true,
-              },
-              title: "Additional Parameters",
-              stepId: "advanced",
-              fieldType: FormFieldSchemaType.JSON,
-              required: false,
-              description:
-                'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
             },
             {
               field: {
@@ -388,6 +411,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
+              collapsibleSection: advancedSection,
               /*
                * Defaults to on: an untouched toggle submits false, which
                * silently leaves the new provider unused (AI features only
@@ -396,6 +420,18 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               defaultValue: true,
               description:
                 "Use this provider for AI features in this project. Only the default provider is used — if you turn this off (and no other provider is the default), this provider will not be used by AI features.",
+            },
+            {
+              field: {
+                additionalParams: true,
+              },
+              title: "Additional Parameters",
+              stepId: "provider-settings",
+              fieldType: FormFieldSchemaType.JSON,
+              required: false,
+              collapsibleSection: advancedSection,
+              description:
+                'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
             },
           ]}
           showRefreshButton={true}

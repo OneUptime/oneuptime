@@ -286,6 +286,7 @@ export class ProfileAggregationService {
   private static readonly TABLE_NAME: string = AnalyticsTableName.ProfileSample;
   private static readonly PROFILE_TABLE_NAME: string =
     AnalyticsTableName.Profile;
+  private static readonly SPAN_TABLE_NAME: string = AnalyticsTableName.Span;
   private static readonly DEFAULT_FUNCTION_LIST_LIMIT: number = 50;
   private static readonly DEFAULT_BREAKDOWN_LIMIT: number = 10;
   /**
@@ -1312,6 +1313,8 @@ export class ProfileAggregationService {
           value: new Includes(request.spanIds),
         }})`,
       );
+    } else {
+      ProfileAggregationService.appendTraceSpansFilter(statement, request);
     }
 
     /*
@@ -1540,6 +1543,11 @@ export class ProfileAggregationService {
           value: new Includes(request.spanIds),
         }})`,
       );
+    } else if (request.traceId) {
+      ProfileAggregationService.appendTraceSpansFilter(statement, {
+        projectId: request.projectId,
+        traceId: request.traceId,
+      });
     }
 
     /*
@@ -1549,6 +1557,36 @@ export class ProfileAggregationService {
     statement.append(" AND retentionDate >= now()");
 
     ProfileAggregationService.appendCommonFilters(statement, request);
+  }
+
+  /**
+   * A trace-wide read (a traceId without spanIds) counts a sample only
+   * when the sample names one of the trace's own spans, as a span-scoped
+   * read already does. A sample's link is whatever span context the
+   * profiler found for its thread, and OBI v0.14.0 can publish context for
+   * threads of processes it does not instrument: such a caller of an
+   * instrumented service keeps the context of its last call, under a span
+   * of its own that was never exported, so all its later CPU would land in
+   * this trace. Samples linked to spans dropped before storage (database
+   * server spans, for instance) are left out as well.
+   *
+   * GLOBAL IN, not plain IN: both tables are Distributed and shard on
+   * different keys (spans by traceId, samples by profileId), so a plain IN
+   * is rejected on multi-shard clusters (Code 288).
+   */
+  private static appendTraceSpansFilter(
+    statement: Statement,
+    request: Pick<TracePresenceRequest, "projectId" | "traceId">,
+  ): void {
+    statement.append(
+      SQL` AND spanId GLOBAL IN (SELECT spanId FROM ${ProfileAggregationService.SPAN_TABLE_NAME} WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND traceId = ${{
+        type: TableColumnType.Text,
+        value: request.traceId,
+      }})`,
+    );
   }
 
   private static appendCommonFilters(

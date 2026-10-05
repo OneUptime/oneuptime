@@ -21,8 +21,8 @@ Global SSO, compreso l'interruttore «Require SSO for Login» a livello di istan
 2. **Crea un provider**
 
    - Clicca su **Create Global SSO**.
-   - Per SAML: inserisci un **Nome**, il **Sign On URL** e l'**Issuer** dal tuo provider di identità, e incolla il **Public Certificate**. Scegli i metodi **Signature** e **Digest** (lascia i valori predefiniti — `RSA-SHA256` / `SHA256` — se hai dubbi).
-   - Per OIDC: inserisci il **Discovery URL**, l'**Issuer**, il **Client ID**, il **Client Secret**, gli **Scopes** (devono includere `openid`) e i nomi delle attestazioni **email** / **name**.
+   - Per SAML: inserisci un **Nome**, il **Sign On URL** e l'**Issuer** dal tuo provider di identità, e incolla il **Public Certificate**. Tutto il resto viene compilato in **More fields**: il **Signature Method** (`RSA-SHA256`), il **Digest Method** (`SHA256`) e una descrizione (`Sign in with` e il nome). Modificali solo se il tuo IdP lo richiede. Al salvataggio si apre la pagina del provider.
+   - Per OIDC: inserisci un **Name**, l'**Issuer URL**, e il **Client ID** e il **Client Secret** dell'app registrata nel tuo IdP. Puoi anche incollare l'URL di discovery del tuo IdP in **Issuer URL**. Tutto il resto viene compilato in **More fields**: il **Discovery URL** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Scopes** (`openid email profile`), i nomi delle attestazioni `email` e `name` e una descrizione (`Sign in with` e il nome). Modificali solo se il tuo IdP lo richiede. Al salvataggio si apre la pagina del provider.
 
 3. **Copia gli URL di OneUptime nel tuo provider di identità**
 
@@ -39,7 +39,7 @@ Il comportamento di un provider globale dipende dal fatto che tu vi colleghi o m
 
 - **Nessun progetto collegato (default-all / invito prioritario):** Gli utenti possono accedere con il provider e raggiungere **qualsiasi progetto di cui sono già membri**. I nuovi utenti **non** vengono creati automaticamente — un utente deve prima essere invitato a un progetto. Usa questa modalità per un SSO a livello aziendale in cui le appartenenze sono gestite altrove.
 
-- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Attached Projects** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti al primo accesso. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
+- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Attached Projects** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti al primo accesso. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
 
 Se vuoi impedire qualsiasi creazione automatica di account anche quando i progetti sono collegati, abilita **Disable Sign Up with SSO** sul provider — gli utenti dovranno quindi essere invitati prima di poter accedere.
 

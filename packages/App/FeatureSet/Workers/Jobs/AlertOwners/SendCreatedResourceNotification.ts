@@ -18,6 +18,9 @@ import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil, {
+  EmailColorPair,
+} from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -55,6 +58,7 @@ RunCron(
         remediationNotes: true,
         currentAlertState: {
           name: true,
+          color: true,
         } as Select<AlertState>,
         alertSeverity: {
           name: true,
@@ -306,10 +310,16 @@ RunCron(
       /*
        * The severity's own colour, not a mapping onto a fixed palette: the
        * row already carries the answer, and severities are project-defined.
-       * The fallback is the same slate the detail rows use.
+       * The badge's name takes the nearest shade of it that reads on white.
+       * The fallback, for a severity with no usable colour, is the same slate
+       * the detail rows use.
        */
-      const severityColor: string =
-        alert.alertSeverity?.color?.toString() || "#64748b";
+      const severityColors: EmailColorPair = EmailColorUtil.getColorPair(
+        alert.alertSeverity?.color,
+      ) || {
+        color: "#64748b",
+        textColor: "#64748b",
+      };
 
       /*
        * Named separately from the affected resource, because they are
@@ -354,9 +364,17 @@ RunCron(
             alertNumber: alertNumberStr,
             projectName: alert.project!.name!,
             currentState: alert.currentAlertState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              alert.currentAlertState?.color,
+            ),
             alertDescription: alertDescriptionHtml,
             resourcesAffected: resourcesAffected,
             alertSeverity: alert.alertSeverity!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "alertSeverity",
+              alert.alertSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: alertIdentifiedDate,
@@ -375,7 +393,8 @@ RunCron(
             flapWarning: flapWarning,
             monitorName: monitorName,
             severityBadgeText: alert.alertSeverity!.name!,
-            severityColor: severityColor,
+            severityColor: severityColors.color,
+            severityTextColor: severityColors.textColor,
             preheader: preheader,
           };
 

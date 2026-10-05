@@ -133,6 +133,7 @@ const buildDashboard: (data: {
   const dashboard: Dashboard = new Dashboard();
   dashboard.id = data.id;
   dashboard.name = `Dashboard ${data.id.toString()}`;
+  dashboard.description = `About ${data.id.toString()}`;
   dashboard.isPublicDashboard = data.isPublicDashboard;
   dashboard.enableMasterPassword = Boolean(data.enableMasterPassword);
 
@@ -368,6 +369,49 @@ describe("public routes with an access-token cookie that no longer decodes", () 
       expect(result.body?.["isPublicDashboard"]).toBe(true);
     });
 
+    it("answers a protected dashboard's metadata with its password prompt, and unlocks it for a viewer holding its master-password cookie", async () => {
+      const prompt: HttpResult = await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/metadata/${PROTECTED_DASHBOARD_ID.toString()}`,
+        cookies: STALE_SESSION_COOKIE,
+      });
+
+      expect(prompt.status).toBe(200);
+      expect(prompt.body?.["enableMasterPassword"]).toBe(true);
+      expect(prompt.body?.["name"]).toBe(
+        `Dashboard ${PROTECTED_DASHBOARD_ID.toString()}`,
+      );
+      expect(prompt.body?.["description"]).toBe("");
+
+      const unlocked: HttpResult = await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/metadata/${PROTECTED_DASHBOARD_ID.toString()}`,
+        cookies: {
+          ...STALE_SESSION_COOKIE,
+          ...masterPasswordCookie(PROTECTED_DASHBOARD_ID),
+        },
+      });
+
+      expect(unlocked.status).toBe(200);
+      expect(unlocked.body?.["description"]).toBe(
+        `About ${PROTECTED_DASHBOARD_ID.toString()}`,
+      );
+    });
+
+    it("answers a private dashboard's metadata like a missing dashboard's", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/metadata/${PRIVATE_DASHBOARD_ID.toString()}`,
+        cookies: STALE_SESSION_COOKIE,
+      });
+
+      expect(result.status).toBe(404);
+      expect(errorMessageOf(result)).toBe("Dashboard not found");
+    });
+
     /*
      * The master-password case from the report: the viewer already entered
      * the password, and the stale session cookie must not send them back to
@@ -426,6 +470,10 @@ describe("public routes with an access-token cookie that no longer decodes", () 
     it.each([
       ["GET", `/api/dashboard/overview/${PUBLIC_DASHBOARD_ID.toString()}`],
       ["POST", `/api/dashboard/metadata/${PUBLIC_DASHBOARD_ID.toString()}`],
+      ["POST", `/api/dashboard/metadata/${PROTECTED_DASHBOARD_ID.toString()}`],
+      ["POST", `/api/dashboard/metadata/${PRIVATE_DASHBOARD_ID.toString()}`],
+      ["GET", `/api/dashboard/seo/${PUBLIC_DASHBOARD_ID.toString()}`],
+      ["GET", `/api/dashboard/seo/${PRIVATE_DASHBOARD_ID.toString()}`],
       ["GET", `/api/dashboard/overview/${PROTECTED_DASHBOARD_ID.toString()}`],
       ["GET", `/api/dashboard/overview/${PRIVATE_DASHBOARD_ID.toString()}`],
     ] as Array<["GET" | "POST", string]>)(
@@ -470,6 +518,10 @@ describe("public routes with an access-token cookie that no longer decodes", () 
       [
         "the status page test email report",
         "/api/status-page/test-email-report",
+      ],
+      [
+        "the status page listing-monitors lookup",
+        "/api/status-page/listing-monitors",
       ],
     ])("still answer %s with a 401", async (_label: string, path: string) => {
       const result: HttpResult = await send({
@@ -574,8 +626,11 @@ describe("which routes treat an undecodable access token as anonymous", () => {
    * routes decide access from the page's own cookies (StatusPageService
    * .hasReadAccess), never from the dashboard session.
    *
-   * test-email-report is the exception - it acts for a signed-in project
-   * member and requires authentication - and must stay strict.
+   * Two routes are the exception. test-email-report sends the page's report
+   * for a signed-in project member, and listing-monitors is the dashboard's
+   * own lookup for its status page pickers, answered from the caller's
+   * project permissions. No public status page calls either, both require
+   * authentication, and both must stay strict.
    */
   it("mounts the public variant on every public status page route, and only there", () => {
     const { custom, inherited }: SplitRoutes = splitRoutes({
@@ -589,18 +644,28 @@ describe("which routes treat an undecodable access token as anonymous", () => {
         return route.key;
       });
 
-    expect(strictCustomRoutes).toEqual(["POST /status-page/test-email-report"]);
+    const authenticatedRoutes: Array<string> = [
+      "POST /status-page/listing-monitors",
+      "POST /status-page/test-email-report",
+    ];
 
-    const testEmailReport: RegisteredRoute | undefined = custom.find(
-      (route: RegisteredRoute) => {
-        return route.key === "POST /status-page/test-email-report";
-      },
-    );
+    expect([...strictCustomRoutes].sort()).toEqual(authenticatedRoutes);
 
-    expect(testEmailReport?.handlers).toContain(
-      UserMiddleware.requireUserAuthentication as RouteHandler,
-    );
-    expect(mountsPublic(testEmailReport!)).toBe(false);
+    for (const key of authenticatedRoutes) {
+      const route: RegisteredRoute | undefined = custom.find(
+        (candidate: RegisteredRoute) => {
+          return candidate.key === key;
+        },
+      );
+
+      expect([
+        key,
+        route?.handlers.includes(
+          UserMiddleware.requireUserAuthentication as RouteHandler,
+        ),
+        mountsPublic(route!),
+      ]).toEqual([key, true, false]);
+    }
 
     expect(custom.filter(mountsPublic).length).toBeGreaterThan(0);
 

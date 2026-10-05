@@ -30,7 +30,7 @@ Use a global variable in any workflow with:
 
 For example, if you saved your PagerDuty key as `PAGERDUTY_KEY`, any block can use it as `{{global.variables.PAGERDUTY_KEY}}` — the editor stores the reference, and workflow logging scrubs the resolved secret value.
 
-The list shows each variable's name, type and description. Click **View** on a row to open the variable's page, where you can do everything else:
+The list shows each variable's name and description. Click **View** on a row to open the variable's page. It shows whether the variable is static or OAuth 2.0, and it's where you do everything else:
 
 - **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
 - **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
@@ -95,7 +95,7 @@ Under some fields the form adds a line of help for the provider you picked, for 
 
 When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. (Fetching a token writes to the variable, so this needs permission to edit workflow variables. If you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.)
 
-The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** walks the same **Provider** (token URL), **Credentials** (client ID) and **Advanced** (scope, additional parameters, client authentication) steps. **Save Changes** is on every step, so you can change one setting and save without walking the others. The grant type is fixed once saved.
+The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** walks the same **Provider** (token URL), **Credentials** (client ID) and **Advanced** (scope, additional parameters, client authentication) steps. **Next** walks on and **Save Changes** is on the last step. Every step is filled in already, so the step list beside the form opens any of them: change one setting on its step, then open the last step and save. The grant type is fixed once saved.
 
 ### The Access Token card
 

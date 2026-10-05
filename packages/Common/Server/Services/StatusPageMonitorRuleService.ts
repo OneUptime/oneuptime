@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -24,15 +24,26 @@ import {
   isValidRuleCriteria,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The page and its group are checked by assertReferencesAreInScope, which
+   * also holds the group to the page. The generic check covers the rest.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["statusPage", "statusPageGroup"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.statusPageId) {
       throw new BadDataException(
         "Status Page ID is required to create a status page monitor rule.",
@@ -87,6 +98,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     StatusPageMonitorRulePatternValidator.validate({
       namePattern: updateBy.data.monitorNamePattern as string | undefined,
       descriptionPattern: updateBy.data.monitorDescriptionPattern as

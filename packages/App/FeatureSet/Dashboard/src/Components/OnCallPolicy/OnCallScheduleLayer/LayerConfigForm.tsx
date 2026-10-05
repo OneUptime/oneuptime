@@ -12,6 +12,8 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -39,6 +41,7 @@ export interface ComponentProps {
 const LayerConfigForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelForm<OnCallDutyPolicyScheduleLayer>
       modelType={OnCallDutyPolicyScheduleLayer}
@@ -185,8 +188,9 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           const handoff: Date = OneUptimeDate.fromString(handOffTime as any);
 
           if (OneUptimeDate.isBefore(handoff, start)) {
-            errors["handOffTime"] =
-              "The first hand-off time must be at or after the rotation start.";
+            errors["handOffTime"] = translator.translateTemplate(
+              "The first hand-off time must be at or after the rotation start.",
+            );
           }
         }
 
@@ -220,8 +224,9 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
             restrictionStart.getMinutes() === restrictionEnd.getMinutes() &&
             restrictionStart.getSeconds() === restrictionEnd.getSeconds()
           ) {
-            errors["restrictionTimes"] =
-              "The restriction 'From' and 'To' times cannot be the same. Choose a window with a positive duration (or set the restriction to None for 24/7 coverage).";
+            errors["restrictionTimes"] = translator.translateTemplate(
+              "The restriction 'From' and 'To' times cannot be the same. Choose a window with a positive duration (or set the restriction to None for 24/7 coverage).",
+            );
           }
         }
 

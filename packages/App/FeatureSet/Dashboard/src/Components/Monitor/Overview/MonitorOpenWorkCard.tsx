@@ -17,6 +17,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -78,6 +80,7 @@ export const mergeOpenWorkRows: (
 const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const incidents: OverviewSection<MonitorOpenWorkSide> =
     props.openWork.incidents;
   const alerts: OverviewSection<MonitorOpenWorkSide> = props.openWork.alerts;
@@ -231,22 +234,51 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
 
     const notes: Array<string> = [];
 
+    // An error is the hook's own sentence or the server's; either is looked up.
+    const errorText: (error: string | undefined | null) => string = (
+      error: string | undefined | null,
+    ): string => {
+      return translator.translateText(error || "") || "";
+    };
+
     if (incidentsState === "forbidden") {
       notes.push(
-        "Incidents are hidden: you need permission to read incidents.",
+        translator.translateTemplate(
+          "Incidents are hidden: you need permission to read incidents.",
+        ),
       );
     } else if (incidentsState === "error") {
-      notes.push(`Couldn't load incidents. ${incidents.error}`);
+      notes.push(
+        translator.translateTemplate("Couldn't load incidents. {{error}}", {
+          error: errorText(incidents.error),
+        }),
+      );
     } else if (incidents.refreshError) {
-      notes.push(`Couldn't refresh incidents. ${incidents.refreshError}`);
+      notes.push(
+        translator.translateTemplate("Couldn't refresh incidents. {{error}}", {
+          error: errorText(incidents.refreshError),
+        }),
+      );
     }
 
     if (alertsState === "forbidden") {
-      notes.push("Alerts are hidden: you need permission to read alerts.");
+      notes.push(
+        translator.translateTemplate(
+          "Alerts are hidden: you need permission to read alerts.",
+        ),
+      );
     } else if (alertsState === "error") {
-      notes.push(`Couldn't load alerts. ${alerts.error}`);
+      notes.push(
+        translator.translateTemplate("Couldn't load alerts. {{error}}", {
+          error: errorText(alerts.error),
+        }),
+      );
     } else if (alerts.refreshError) {
-      notes.push(`Couldn't refresh alerts. ${alerts.refreshError}`);
+      notes.push(
+        translator.translateTemplate("Couldn't refresh alerts. {{error}}", {
+          error: errorText(alerts.refreshError),
+        }),
+      );
     }
 
     let list: ReactElement = <></>;
@@ -264,7 +296,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
     } else if (rows.length > 0) {
       list = (
         <ul
-          aria-label="Open incidents and alerts"
+          aria-label={translator.translateText("Open incidents and alerts")}
           className="mt-4 divide-y divide-gray-100"
         >
           {rows.map((row: MonitorOpenWorkRow) => {
@@ -276,7 +308,9 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
       list = (
         <div
           role="status"
-          aria-label="Loading open incidents and alerts"
+          aria-label={translator.translateText(
+            "Loading open incidents and alerts",
+          )}
           className="mt-4 space-y-2 animate-pulse"
         >
           <div className="h-4 w-5/6 rounded bg-gray-100"></div>

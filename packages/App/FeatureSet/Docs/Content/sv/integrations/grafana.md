@@ -25,7 +25,7 @@ Grafanas webhook-payload följer Alertmanager-formen — `status`, en `alerts`-a
 
 1. Gå till **Monitorer → Skapa monitor** och välj **Inkommande förfrågan**. Öppna den och klicka på **Documentation** i vänstermenyn för att kopiera URL:en.
 2. Öppna monitorns **Criteria** och sätt **Filter Type** till `JavaScript Expression` och **Value** till `"{{requestBody.status}}" === "firing"`.
-3. Skapa en incident vid träff, välj de **On-Call Policies** som ska larmas, och slå på **Auto Resolve Incident** under **Advanced Options**.
+3. Skapa en incident vid träff, välj de **On-Call Policies** som ska larmas, och slå på **Auto Resolve Incident** under **More fields**.
 4. Slå på **Group incidents and alerts by a payload field** under **Settings** och sätt:
 
    | Fält                               | Värde                               |
@@ -89,7 +89,7 @@ Med **Alternativ 2** lägger du till en andra **Villkor**-gren (`status == resol
 ## Felsökning
 
 - **Ingenting kommer fram** — bekräfta att Grafana kan nå URL:en (kolla Grafanas serverloggar) och, för Alternativ 2, att arbetsflödet är **Aktiverat**. OneUptime svarar på varje inkommande förfrågan med en tom `200` innan den valideras, så en `200` i Grafanas loggar bekräftar inte att payloaden accepterades.
-- **Incidenter öppnas men stängs aldrig** — kontrollera återhämtningsfältet och värdet på kriteriet, och att **Auto Resolve Incident** är påslaget under incidentens **Advanced Options**. Jämförelsen skiljer på gemener och versaler.
+- **Incidenter öppnas men stängs aldrig** — kontrollera återhämtningsfältet och värdet på kriteriet, och att **Auto Resolve Incident** är påslaget under incidentens **More fields**. Jämförelsen skiljer på gemener och versaler.
 - **Bara en incident för en payload full av larm** — du grupperade på en etikett som inte varierar inom en notifiering. Gruppera på `requestBody.alerts[*].fingerprint` i stället.
 - **Incidenttexten visar råa `{{...}}`-platshållare** — sökvägen löstes inte upp, och olösta platshållare lämnas kvar i stället för att tömmas. Referera till fält som finns i din version av larmhanteringen; granska utlösarens utdata i fliken **Loggar** om du använde Alternativ 2.
 

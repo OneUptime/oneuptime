@@ -97,7 +97,7 @@ Waar ernst meer doet dan beschrijven: op **Incidenten → Regels → Bereikbaarh
 
 Er zijn vier manieren waarop een incident van status wisselt:
 
-- **De knoppen in de kop.** Open een incident. Staat de huidige status vóór de bevestigd-status, dan krijg je **Acknowledge** en **Oplossen**; staat hij daartussenin, dan krijg je **Oplossen**. Elk opent een bevestigingsdialoog — **Acknowledge Incident** of **Resolve Incident** — die ook **Selecteer notitiesjabloon**, **Openbare notitie** en **Statuspagina-abonnees op de hoogte stellen** aanbiedt.
+- **De knoppen in de kop.** Open een incident. Staat de huidige status vóór de bevestigd-status, dan krijg je **Bevestigen** en **Oplossen**; staat hij daartussenin, dan krijg je **Oplossen**. Elk opent een korte bevestiging — **Incident bevestigen** of **Incident oplossen** — met **Statuspagina-abonnees op de hoogte stellen** en, ingeklapt onder **Openbare notitie toevoegen**, het optionele veld **Openbare notitie** en de keuzelijst **Selecteer notitiesjabloon** (als het project notitiesjablonen heeft). Bevestigen stopt ook elke escalatie van de bereikbaarheidsdienst voor het incident.
 - **De statustijdlijn.** Voeg met de hand een rij toe vanaf de pagina **Statustijdlijn** van het incident, met **Incidentstatus**, **Begint op** en **Statuspagina-abonnees op de hoogte stellen**.
 - **Bulkwijziging.** De incidentenlijst heeft een bulkactie **Status wijzigen** om meerdere incidenten tegelijk te verplaatsen.
 - **Automatisch.** Een monitorcriterium met **Incident automatisch oplossen** aan lost zijn incident op zodra het criterium niet meer wordt gehaald, en de API kan de status bijwerken via `/api/incident-state-timeline`.

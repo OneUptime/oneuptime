@@ -731,13 +731,13 @@ describe("the navbar entry is translated everywhere", () => {
 describe("the rule forms match exactly what the rule engines evaluate", () => {
   /*
    * The match-criteria step's fields, as StaticRuleCriteriaRuntimeCoverage
-   * reads them: `field: { x: true }` followed (before the next stepId) by
-   * `stepId: "match-criteria"`.
+   * reads them: `field: { x: true }` followed (before the next stepId, and
+   * before the next field) by `stepId: "match-criteria"`.
    */
   function matchCriteriaFields(source: string): Array<string> {
     return Array.from(
       source.matchAll(
-        /field\s*:\s*\{\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*true\s*,?\s*\}\s*,(?:(?!stepId\s*:)[\s\S])*?stepId\s*:\s*["']match-criteria["']/g,
+        /field\s*:\s*\{\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*true\s*,?\s*\}\s*,(?:(?!stepId\s*:|field\s*:)[\s\S])*?stepId\s*:\s*["']match-criteria["']/g,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[1]!;
@@ -805,7 +805,15 @@ describe("the rule forms match exactly what the rule engines evaluate", () => {
       expect(dense(source)).toContain(
         `viewRuleId={RuleViewPageUtil.getViewRuleId(props,${model})}`,
       );
-      expect(source).toMatch(/id\s*:\s*"match-criteria"/);
+      /*
+       * The shared label and owner rule form (Utils/Form/ResourceRuleForm):
+       * its Match step is the "match-criteria" step these fields are on.
+       */
+      expect(dense(source)).toContain(
+        model.endsWith("LabelRule")
+          ? `formSteps={getLabelRuleFormSteps<${model}>()}`
+          : `formSteps={getOwnerRuleFormSteps<${model}>()}`,
+      );
       // The help keeps a Match Criteria heading, which the shared help replaces.
       expect(source).toMatch(/^### Match Criteria$/m);
     },
@@ -918,9 +926,16 @@ describe("the pages follow the house idioms", () => {
     expect(code).toContain("RouteMap[PageMap.MESSAGE_QUEUES] as Route");
     expect(code).toContain("const { id } = useParams();");
     expect(code).not.toContain("TelemetryResourceRetentionSettings");
-    for (const field of ["name: true", "description: true", "labels: true"]) {
-      expect(code).toContain(field);
+    const formStart: number = code.indexOf("formFields={[");
+    const formEnd: number = code.indexOf("modelDetailProps={{", formStart);
+    expect(formStart).toBeGreaterThan(-1);
+    expect(formEnd).toBeGreaterThan(formStart);
+    const form: string = code.slice(formStart, formEnd);
+    for (const field of ["name: true", "description: true"]) {
+      expect(form).toContain(field);
     }
+    // The labels come through the one shared labels field (#4303).
+    expect(form).toContain("getLabelsFormField<MessageQueue>()");
     expect(code).toContain("refreshMessageQueueHeader();");
     /*
      * No length rule on the name: a queue is named after its destination,

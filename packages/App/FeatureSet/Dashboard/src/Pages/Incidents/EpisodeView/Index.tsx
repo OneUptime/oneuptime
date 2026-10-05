@@ -23,7 +23,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -57,10 +57,13 @@ import {
 } from "../../../Components/EpisodeView/EpisodeTiming";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const IncidentEpisodeView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -169,8 +172,11 @@ const IncidentEpisodeView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem({
           modelType: IncidentEpisode,
@@ -334,14 +340,17 @@ const IncidentEpisodeView: FunctionComponent<
           className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
         >
           <span className="min-w-0 break-words">
-            {`Couldn't refresh episode timings: ${refreshError}`}
+            {translator.translateTemplate(
+              "Couldn't refresh episode timings: {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <button
             type="button"
             onClick={refreshInPlace}
             className="rounded-sm font-medium underline underline-offset-2 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
           >
-            Try again
+            {translator.translateText("Try again")}
           </button>
         </div>
       )}
@@ -349,13 +358,17 @@ const IncidentEpisodeView: FunctionComponent<
       <EventStatBar columns={4} ariaLabel="Episode timing">
         <EventStatTile
           variant="segment"
-          label={`${timing.acknowledgedStateName} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: timing.acknowledgedStateName,
+          })}
           icon={IconProp.Check}
           value={timing.timeToAcknowledge}
         />
         <EventStatTile
           variant="segment"
-          label={`${timing.resolvedStateName} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: timing.resolvedStateName,
+          })}
           icon={IconProp.CheckCircle}
           value={timing.timeToResolve}
         />
@@ -448,23 +461,12 @@ const IncidentEpisodeView: FunctionComponent<
               });
               refreshInPlace();
             }}
-            formSteps={[
-              {
-                title: "Episode Details",
-                id: "episode-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Episode Title",
-                stepId: "episode-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Episode Title",
@@ -479,32 +481,18 @@ const IncidentEpisodeView: FunctionComponent<
                 title: "Episode Severity",
                 description: "What is the severity of this episode?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "episode-details",
                 dropdownModal: {
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Episode Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<IncidentEpisode>(),
             ]}
             modelDetailProps={{
               selectMoreFields: {
@@ -606,7 +594,9 @@ const IncidentEpisodeView: FunctionComponent<
                       return <span>{item.incidentGroupingRule.name}</span>;
                     }
 
-                    return <span>Manual Episode</span>;
+                    return (
+                      <span>{translator.translateText("Manual Episode")}</span>
+                    );
                   },
                 },
                 {
@@ -624,7 +614,7 @@ const IncidentEpisodeView: FunctionComponent<
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span>System</span>;
+                    return <span>{translator.translateText("System")}</span>;
                   },
                 },
                 {

@@ -74,7 +74,7 @@ Schrijft je team elke storing dezelfde drie updates, sla ze dan één keer op. B
 
 Sjablonen worden gedeeld tussen openbare en privénotities: één sjabloonlijst bedient beide, en hetzelfde sjabloon kan in elk van beide soorten notities worden ingevoegd.
 
-Je beheert ze onder **Incidenten → Instellingen → Notitie-sjablonen** — de kaart heet **Public or Private Note Templates for Incidents** en het formulier heeft een stap **Sjablooninformatie** (**Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht) en een stap **Notitiedetails** voor de tekst. Klik je op **Maken op basis van sjabloon** voordat je er een hebt gemaakt, dan meldt OneUptime dat er nog geen bestaan; let op dat die melding naar Projectinstellingen wijst, terwijl de pagina in werkelijkheid onder **Incidenten → Instellingen → Notitie-sjablonen** staat.
+Je beheert ze onder **Incidenten → Instellingen → Notitie-sjablonen** — de kaart heet **Public or Private Note Templates for Incidents** en het formulier is één pagina: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan de tekst. Klik je op **Maken op basis van sjabloon** voordat je er een hebt gemaakt, dan meldt OneUptime dat er nog geen bestaan; let op dat die melding naar Projectinstellingen wijst, terwijl de pagina in werkelijkheid onder **Incidenten → Instellingen → Notitie-sjablonen** staat.
 
 ## Notities plaatsen vanuit Slack of Microsoft Teams
 
@@ -114,7 +114,7 @@ Het bericht dat abonnees daadwerkelijk krijgen wordt per statuspagina en per kan
 
 ## De incidentfeed
 
-De kaart **Incidentfeed** staat onderaan de linkerkolom op de pagina **Overzicht** van het incident. Het is het verhaal van het incident op volgorde: elk item is een pictogram, de avatar en naam van wie het veroorzaakte, een relatief tijdstempel met de exacte lokale tijd bij hover, en een Markdown-tekst. Items staan oudste eerst.
+De kaart **Incidentfeed** staat onderaan de linkerkolom op de pagina **Overzicht** van het incident. Het is het verhaal van het incident op volgorde: elk item is een pictogram, de avatar en naam van wie het veroorzaakte, een relatief tijdstempel met de exacte lokale tijd bij hover, en een Markdown-tekst. Standaard staan de nieuwste items bovenaan.
 
 Sommige items dragen extra detail — een eigenaarsmelding somt bijvoorbeeld iedereen op die mail kreeg. Die tonen een knop **More Information** die een paneel **More Information** opent.
 
@@ -122,10 +122,14 @@ De kaartkop heeft ook een menu **Acties**, zodat je kunt handelen zonder de tijd
 
 - **Execute Runbook** — start een [runbook](/docs/runbooks/index) op dit incident.
 - **Bereikbaarheidsdienstbeleid uitvoeren** — een beleid op verzoek pagen.
-- **Add Public Note** — dezelfde vier velden als de pagina Openbare notities, in een dialoog.
-- **Privénotitie toevoegen** — alleen notitietekst en bijlagen.
+- **Add Public Note** — het invoerveld van de pagina Openbare notities, in een dialoog: schrijf de notitie en kies dan **Post update**. Sjablonen, **Draft with AI**, bijlagen, **Notify status page subscribers** met wie de notitie bereikt, en **Preview notification** zijn er allemaal. De notitie wordt nu geplaatst; kies **Posted now** voor een eerder tijdstip.
+- **Privénotitie toevoegen** — het invoerveld van de pagina Privénotities, in een dialoog: schrijf de notitie en kies dan **Add note**.
 
-Ernaast haalt **Vernieuwen** de feed opnieuw op.
+Al het andere zit achter de knop **⋯** ernaast, dezelfde knop **Meer opties** die de kaartkop van een tabel heeft, zodat de kop zo weinig mogelijk knoppen toont:
+
+- **Nieuwste eerst** / **Oudste eerst** — de volgorde waarin de feed wordt gelezen. Een vinkje markeert de gekozen volgorde, en je browser onthoudt de keuze voor de feed van elk incident.
+- **Filteren op gebeurtenistype** — een dialoog met de gebeurtenistypen van de feed, elk met het pictogram van zijn items, en een zoekveld als de lijst lang is. Vink de typen aan die je wilt zien en kies **Filters toepassen**; zonder vinkjes worden ze allemaal getoond. Zolang de feed gefilterd is, zegt een kader erboven hoeveel gebeurtenistypen hij toont, met een label voor elk, **Filters bewerken** en **Filters wissen**. Het filter wordt niet bewaard: verlaat je het incident, dan toont de feed weer alles.
+- **Vernieuwen** — haalt de feed opnieuw op.
 
 **De feed is alleen-toevoegen, en het is niet je auditlogboek.** De API staat toe feed-items aan te maken en te lezen, maar niet bij te werken of te verwijderen, dus niemand kan stilletjes de geschiedenis van een incident herschrijven. Permanent is hij ook niet: op betaalde installaties worden feed-rijen ouder dan drie jaar verwijderd. Voor een duurzaam verslag van wie wat wijzigde gebruik je **Audit → Auditlogboeken** in het zijmenu van het incident.
 

@@ -1,9 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -25,7 +23,11 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  BulkStateChangeNoteType,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 import EventStatusPanel, {
   EventPanelAction,
   EventStateAction,
@@ -42,6 +44,13 @@ import {
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
 import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -73,6 +82,7 @@ export interface ComponentProps {
  * swap from the page skeleton nor the swap to the real header moves the page.
  */
 export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="status"
@@ -80,7 +90,9 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
       data-testid="alert-state-placeholder"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <span className="sr-only">Loading alert status</span>
+      <span className="sr-only">
+        {translator.translateText("Loading alert status")}
+      </span>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -112,6 +124,7 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
 const ChangeAlertState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string | undefined>(undefined);
@@ -385,7 +398,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   const durationStartsAt: Date | undefined =
     props.eventStartsAt || alertStateTimelines[0]?.startsAt;
 
-  let durationPrefix: string = "Ongoing for";
+  let durationPrefix: string = translationKey("Ongoing for");
   let durationEndsAt: Date | undefined = undefined;
 
   if (isResolved && resolvedState) {
@@ -405,7 +418,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
        * while the stat bar's "Resolved in" counts to the FIRST one, so a
        * reopened alert would show one label with two different numbers.
        */
-      durationPrefix = "Lasted";
+      durationPrefix = translationKey("Lasted");
       durationEndsAt = lastResolvedTimeline.startsAt;
     }
   }
@@ -439,25 +452,47 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     selectedAlertState?.isAcknowledgedState || false;
   const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
 
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedAlertState?.name || "",
+  );
+
   const modalTitle: string = isAcknowledgeTarget
-    ? "Acknowledge Alert"
+    ? translationKey("Acknowledge Alert")
     : isResolveTarget
-      ? "Resolve Alert"
-      : "Mark Alert as " + (selectedAlertState?.name || "");
+      ? translationKey("Resolve Alert")
+      : translator.translateTemplate("Mark Alert as {{state}}", {
+          state: selectedStateName,
+        });
 
   const modalSubmitButtonText: string = isAcknowledgeTarget
-    ? "Acknowledge"
+    ? translationKey("Acknowledge")
     : isResolveTarget
-      ? "Resolve"
-      : "Mark as " + (selectedAlertState?.name || "");
+      ? translationKey("Resolve")
+      : translator.translateTemplate("Mark as {{state}}", {
+          state: selectedStateName,
+        });
 
+  /*
+   * One sentence on what the change does; the optional note is the folded
+   * "Add a private note" line under it. Acknowledging is what stops the
+   * alert's on-call escalation, so the confirm says so.
+   */
   const modalDescription: string = isAcknowledgeTarget
-    ? "This records an acknowledgement on the alert timeline. You can add an optional private note for your team."
+    ? translationKey(
+        "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
+      )
     : isResolveTarget
-      ? "This marks the alert as resolved on the alert timeline. You can add an optional private note for your team."
-      : "You are about to mark this alert as " +
-        (selectedAlertState?.name || "") +
-        ".";
+      ? translationKey(
+          "This marks the alert as resolved on the alert timeline.",
+        )
+      : translator.translateTemplate(
+          "You are about to mark this alert as {{state}}.",
+          { state: selectedStateName },
+        );
 
   return (
     <Fragment>
@@ -504,7 +539,6 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={AlertStateTimeline}
           name={"create-alert-state-timeline"}
           title={modalTitle}
@@ -543,65 +577,20 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             name: "create-alert-state-timeline",
             modelType: AlertStateTimeline,
             id: "create-alert-state-timeline",
-            fields: [
-              {
-                field: {
-                  privateNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<AlertNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<AlertStateTimeline>,
-                  ) => void,
-                ) => {
-                  // get note template by id
-                  const selectedTemplate: AlertNoteTemplate | undefined =
-                    alertNoteTemplates.find((template: AlertNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    });
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      privateNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: alertNoteTemplates.map(
-                  (template: AlertNoteTemplate) => {
-                    return {
-                      value: template.id!.toString(),
-                      label: template.templateName || "",
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return alertNoteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "privateNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  privateNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description:
-                  "Add an optional private note about this state change. Only your team can see it.",
-                title: "Private Note",
-                required: false,
-                overrideFieldKey: "privateNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-            ],
+            /*
+             * Nothing else decides an alert's state change: just the private
+             * note, folded under "Add a private note"
+             * (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<AlertStateTimeline>({
+              noteType: BulkStateChangeNoteType.Private,
+              noteDescription: translationKey(
+                "Add an optional private note about this state change. Only your team can see it.",
+              ),
+              noteTemplates: alertNoteTemplates.map(
+                toBulkStateChangeNoteTemplate,
+              ),
+            }),
             formType: FormType.Create,
           }}
         />

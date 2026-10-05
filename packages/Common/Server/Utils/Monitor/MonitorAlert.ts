@@ -446,6 +446,24 @@ export default class MonitorAlert {
       });
 
     /*
+     * What someone linked the monitor to by hand (Monitor > Overview >
+     * Linked Resources). Read only once an alert is really being created,
+     * and at most once per evaluation: a monitor that stays down keeps
+     * evaluating with its alert already open.
+     */
+    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
+    const getLinkedResources: () => Promise<SeriesResolvedResourceIds> =
+      (): Promise<SeriesResolvedResourceIds> => {
+        if (!linkedResources) {
+          linkedResources =
+            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
+              monitor: input.monitor,
+            });
+        }
+        return linkedResources;
+      };
+
+    /*
      * `undefined` matchesPerSeries → legacy single-alert path. A defined
      * (even empty) array → per-series mode: iterate exactly the matches.
      * An empty array therefore creates nothing — used by grouped
@@ -568,6 +586,13 @@ export default class MonitorAlert {
               seriesLabels,
             });
 
+          // A title is one bounded line; see buildTitleStorageMap.
+          const titleStorageMap: JSONObject =
+            MonitorTemplateUtil.buildTitleStorageMap({
+              monitorType: input.monitor.monitorType!,
+              storageMap,
+            });
+
           /*
            * Render the criteria's template, then make it say WHICH
            * series it is about.
@@ -586,7 +611,7 @@ export default class MonitorAlert {
           alert.title = SeriesContextEnricher.enrichTitle({
             title: MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.title,
-              storageMap,
+              storageMap: titleStorageMap,
             }),
             seriesLabels,
           });
@@ -730,6 +755,12 @@ export default class MonitorAlert {
           SeriesResourceLinker.attachResolvedResources({
             model: alert,
             resolved: resourceContext,
+          });
+
+          // And what the monitor was linked to by hand, merged the same way.
+          SeriesResourceLinker.attachResolvedResources({
+            model: alert,
+            resolved: await getLinkedResources(),
           });
 
           /*

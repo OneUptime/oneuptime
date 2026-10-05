@@ -21,8 +21,8 @@ Global SSO（包括实例级的“Require SSO for Login”开关）属于 OneUpt
 2. **创建提供商**
 
    - 点击 **Create Global SSO**。
-   - 对于 SAML：输入 **名称**、来自身份提供商的 **Sign On URL** 和 **Issuer**，并粘贴 **Public Certificate**。选择 **Signature** 和 **Digest** 方法（如果不确定，请保留默认值 —— `RSA-SHA256` / `SHA256`）。
-   - 对于 OIDC：输入 **Discovery URL**、**Issuer**、**Client ID**、**Client Secret**、**Scopes**（必须包含 `openid`），以及 **email** / **name** 声明名称。
+   - 对于 SAML：输入 **名称**、来自身份提供商的 **Sign On URL** 和 **Issuer**，并粘贴 **Public Certificate**。其余内容会在 **More fields** 中自动填好：**Signature Method**（`RSA-SHA256`）、**Digest Method**（`SHA256`）以及描述（`Sign in with` 加名称）。仅当您的 IdP 需要时才更改它们。保存后会打开该提供商的页面。
+   - 对于 OIDC：输入 **Name**、**Issuer URL**，以及您在 IdP 中注册的应用的 **Client ID** 和 **Client Secret**。也可以把 IdP 的发现 URL 直接粘贴到 **Issuer URL**。其余内容会在 **More fields** 中自动填好：**Discovery URL**（颁发者后接 `/.well-known/openid-configuration`）、**Scopes**（`openid email profile`）、`email` 和 `name` 声明名称，以及描述（`Sign in with` 加名称）。仅当您的 IdP 需要时才更改它们。保存后会打开该提供商的页面。
 
 3. **将 OneUptime URL 复制到您的身份提供商**
 
@@ -39,7 +39,7 @@ Global SSO（包括实例级的“Require SSO for Login”开关）属于 OneUpt
 
 - **未附加项目（default-all / 邀请优先）：** 用户可以使用该提供商登录，并访问**他们已经是成员的任何项目**。系统**不会**自动创建新用户 —— 用户必须先被邀请加入某个项目。当成员资格在别处管理时，可将此用于全公司范围的 SSO。
 
-- **已附加项目（自动预配）：** 打开该提供商并使用 **Attached Projects** 表附加一个或多个项目，每个项目均带有一组默认团队。登录的用户会被**自动预配**到这些项目中，并在首次登录时被添加到默认团队。一次添加一个项目及其团队来构建列表；若要更改某个附加项，请将其删除后重新添加。
+- **已附加项目（自动预配）：** 打开该提供商并使用 **Attached Projects** 表附加一个或多个项目，每个项目均带有一组默认团队。登录的用户会被**自动预配**到这些项目中，并在首次登录时被添加到默认团队。附加的项目默认选中其成员团队；如果新用户应从不同的访问权限开始，请选择其他团队。一次添加一个项目及其团队来构建列表；若要更改某个附加项，请将其删除后重新添加。
 
 如果您希望即使在已附加项目的情况下也阻止任何自动创建账号，请在该提供商上启用 **Disable Sign Up with SSO** —— 此时用户必须先被邀请才能登录。
 

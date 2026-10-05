@@ -18,6 +18,10 @@ import {
 import userEvent from "@testing-library/user-event";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  describeNestedControls,
+  findNestedControls,
+} from "../../Helpers/NestedControls";
 
 /*
  * The results list of the Affected Resources picker closes when keyboard
@@ -201,6 +205,34 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+});
+
+/*
+ * The picker has the shape the dropdown's Clear button and the filter chips'
+ * "x" were taken apart for: chips that each carry a remove button, beside an
+ * input that opens a list of options. No control may be drawn inside another
+ * (a screen reader reads a button, or an option, as one control and offers
+ * nothing inside it).
+ */
+describe("the picker draws no control inside another", () => {
+  test("with a chip picked, its list open on Resources and on Labels", async () => {
+    const user: UserEventController = userEvent.setup();
+    renderPickerBetweenFields();
+
+    await user.click(getPickerInput());
+    await user.click(await screen.findByRole("option", { name: MONITOR_NAME }));
+    await screen.findByRole("button", { name: `Remove ${MONITOR_NAME}` });
+    expect(queryPickerList()).toBeInTheDocument();
+    expect(describeNestedControls(findNestedControls(document.body))).toEqual(
+      [],
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Labels/ }));
+    await screen.findByRole("option", { name: LABEL_NAME });
+    expect(describeNestedControls(findNestedControls(document.body))).toEqual(
+      [],
+    );
+  });
 });
 
 describe("the picker's results list closes when keyboard focus leaves the picker", () => {

@@ -25,7 +25,7 @@ Grafana 的 webhook 负载遵循 Alertmanager 的格式——`status`、一个 `
 
 1. 进入 **监控器 → 创建监控器**，选择 **传入请求**。打开它，点击左侧菜单中的 **Documentation** 复制 URL。
 2. 打开监控器的 **Criteria**，把 **Filter Type** 设为 `JavaScript Expression`，**Value** 设为 `"{{requestBody.status}}" === "firing"`。
-3. 匹配时创建事件，选择要呼叫的 **On-Call Policies**，并在 **Advanced Options** 下打开 **Auto Resolve Incident**。
+3. 匹配时创建事件，选择要呼叫的 **On-Call Policies**，并在 **More fields** 下打开 **Auto Resolve Incident**。
 4. 在 **Settings** 下打开 **Group incidents and alerts by a payload field**，并设置：
 
    | 字段                               | 值                                  |
@@ -89,7 +89,7 @@ Grafana 的 webhook 负载遵循 Alertmanager 的格式——`status`、一个 `
 ## 故障排查
 
 - **什么都没收到** —— 确认 Grafana 能访问该 URL（检查 Grafana 的服务器日志），若使用方案 2 还要确认工作流处于 **已启用** 状态。OneUptime 会在校验之前就用空的 `200` 回应每个传入请求，因此 Grafana 日志中的 `200` 并不能确认负载被接受。
-- **事件能打开但从不关闭** —— 检查条件中的恢复字段与取值，以及事件 **Advanced Options** 下的 **Auto Resolve Incident** 是否打开。比较是区分大小写的。
+- **事件能打开但从不关闭** —— 检查条件中的恢复字段与取值，以及事件 **More fields** 下的 **Auto Resolve Incident** 是否打开。比较是区分大小写的。
 - **一份满是告警的负载只产生一个事件** —— 你按一个在通知内部不变的标签做了分组。请改用 `requestBody.alerts[*].fingerprint` 分组。
 - **事件文本中显示原始的 `{{...}}` 占位符** —— 路径没有解析成功，未解析的占位符会被原样保留而不是清空。请引用你所用告警版本中确实存在的字段；若使用了方案 2，可在 **日志** 标签页查看触发器的输出。
 

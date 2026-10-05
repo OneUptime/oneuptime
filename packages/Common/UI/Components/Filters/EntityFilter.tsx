@@ -5,6 +5,9 @@ import FilterData from "./Types/FilterData";
 import FilterOperator from "./Types/FilterOperator";
 import OperatorSelector from "./OperatorSelector";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
@@ -158,21 +161,23 @@ const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
   }
 };
 
-const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
-  props: ComponentProps<T>,
+interface ControlsProps<T extends GenericObject> extends ComponentProps<T> {
+  // The filter's options: the controls are only drawn once it has them.
+  options: Array<DropdownOption>;
+}
+
+type EntityFilterControlsFunction = <T extends GenericObject>(
+  props: ControlsProps<T>,
+) => ReactElement;
+
+// An entity filter's controls. EntityFilter below decides whether to draw them.
+const EntityFilterControls: EntityFilterControlsFunction = <
+  T extends GenericObject,
+>(
+  props: ControlsProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
-
-  if (
-    filter.type !== FieldType.Entity &&
-    filter.type !== FieldType.EntityArray
-  ) {
-    return <></>;
-  }
-
-  if (!filter.filterDropdownOptions) {
-    return <></>;
-  }
 
   const isArray: boolean = filter.type === FieldType.EntityArray;
   const detectedState: EntityState = isArray
@@ -211,10 +216,11 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
     operator === FilterOperator.IsEmpty ||
     operator === FilterOperator.IsNotEmpty;
 
-  const dropdownValues: Array<DropdownOption> =
-    filter.filterDropdownOptions?.filter((option: DropdownOption) => {
+  const dropdownValues: Array<DropdownOption> = props.options.filter(
+    (option: DropdownOption) => {
       return state.values.includes(option.value.toString());
-    }) || [];
+    },
+  );
 
   type ApplyFunction = (nextState: EntityState) => void;
 
@@ -247,7 +253,7 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
       {!valuelessOperator && (
         <div className="flex-1 min-w-0">
           <Dropdown
-            options={filter.filterDropdownOptions}
+            options={props.options}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               if (!value || (Array.isArray(value) && value.length === 0)) {
                 apply({ ...state, values: [] });
@@ -262,12 +268,43 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
             }}
             value={dropdownValues}
             isMultiSelect={isArray}
-            placeholder={`Filter by ${filter.title}`}
+            placeholder={getFilterPlaceholder(translator, filter.title)}
             className="relative rounded-md w-full overflow-visible"
           />
         </div>
       )}
     </div>
+  );
+};
+
+/*
+ * FiltersForm draws every filter component in each of its rows, and each one
+ * draws nothing for a filter it does not own. An entity filter also draws
+ * nothing until its options are there. Those checks call no hook, so they
+ * live in this wrapper and the hooks in EntityFilterControls: a row whose
+ * filter changes type, or whose options arrive, mounts the controls instead
+ * of changing how many hooks one component calls. See DateFilter for the
+ * crash that a check below a hook caused.
+ */
+const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  if (
+    props.filter.type !== FieldType.Entity &&
+    props.filter.type !== FieldType.EntityArray
+  ) {
+    return <></>;
+  }
+
+  if (!props.filter.filterDropdownOptions) {
+    return <></>;
+  }
+
+  return (
+    <EntityFilterControls<T>
+      {...props}
+      options={props.filter.filterDropdownOptions}
+    />
   );
 };
 

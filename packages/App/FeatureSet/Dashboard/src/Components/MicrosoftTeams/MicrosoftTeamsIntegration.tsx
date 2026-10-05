@@ -42,6 +42,9 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import TeamsAvailableModal from "./TeamsAvailableModal";
 import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
 import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
+import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -52,6 +55,7 @@ export interface ComponentProps {
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = React.useState<ReactElement | null>(null);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -211,10 +215,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     if (error) {
       setError(
         <div>
-          There was an error while connecting with Microsoft Teams. Please try
-          again.
+          {translator.translateText(
+            "There was an error while connecting with Microsoft Teams. Please try again.",
+          )}
           <br />
-          Error: {error}
+          {translator.translateTemplate("Error: {{error}}", { error: error })}
         </div>,
       );
       setIsLoading(false);
@@ -240,8 +245,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // if user and project both connected with Microsoft Teams, then.
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with Microsoft Teams`;
-    cardDescription = `Your account is already connected with Microsoft Teams. You can now create workspace notification rules to send messages to your teams.`;
+    cardTitle = translationKey("You are connected with Microsoft Teams");
+    cardDescription = translationKey(
+      "Your account is already connected with Microsoft Teams. You can now create workspace notification rules to send messages to your teams.",
+    );
     cardButtons = [
       {
         title: `Disconnect`,
@@ -262,8 +269,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             } else {
               setError(
                 <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
+                  {translator.translateText(
+                    "Looks like the user auth token id is not set properly. Please try again.",
+                  )}
                 </div>,
               );
             }
@@ -308,7 +316,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       if (!authorizationUrl) {
         throw new Error(
-          "OneUptime could not start the Microsoft Teams connection. Please try again.",
+          translator.translateTemplate(
+            "OneUptime could not start the Microsoft Teams connection. Please try again.",
+          ),
         );
       }
 
@@ -323,8 +333,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       if (!ProjectUtil.getCurrentProjectId()) {
         setError(
           <div>
-            Looks like you have not selected any project. Please select a
-            project to continue.
+            {translator.translateText(
+              "Looks like you have not selected any project. Please select a project to continue.",
+            )}
           </div>,
         );
         return;
@@ -333,7 +344,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       if (!UserUtil.getUserId()) {
         setError(
           <div>
-            Looks like you are not logged in. Please login to continue.
+            {translator.translateText(
+              "Looks like you are not logged in. Please login to continue.",
+            )}
           </div>,
         );
         return;
@@ -347,15 +360,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     } else {
       setError(
         <div>
-          Looks like the Microsoft Teams App Client ID is not set in the
-          environment variables when you installed OneUptime. For more
-          information, please check this guide to set up Microsoft Teams App
-          properly:{" "}
+          {translator.translateText(
+            "Looks like the Microsoft Teams App Client ID is not set in the environment variables when you installed OneUptime. For more information, please check this guide to set up Microsoft Teams App properly:",
+          )}{" "}
           <Link
             to={new Route("/docs/self-hosted/microsoft-teams-integration")}
             openInNewTab={true}
           >
-            Microsoft Teams Integration
+            {translator.translateText("Microsoft Teams Integration")}
           </Link>
         </div>,
       );
@@ -379,7 +391,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   const startAdminConsent: VoidFunction = (): void => {
     if (!ProjectUtil.getCurrentProjectId() || !UserUtil.getUserId()) {
-      setError(<div>Missing project or user context.</div>);
+      setError(
+        <div>
+          {translator.translateText("Missing project or user context.")}
+        </div>,
+      );
       return;
     }
 
@@ -418,11 +434,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // if user is not connected and the project is connected with Teams.
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Microsoft Teams`;
-    cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime.`;
+    cardTitle = translationKey("You are disconnected from Microsoft Teams");
+    cardDescription = translationKey(
+      "Connect your account with Microsoft Teams to make the most out of OneUptime.",
+    );
     cardButtons = [
       // connect with Teams button.
-      getConnectWithTeamsButton(`Connect my account with Microsoft Teams`),
+      getConnectWithTeamsButton(
+        translationKey("Connect my account with Microsoft Teams"),
+      ),
       {
         title: `Uninstall OneUptime from Microsoft Teams`,
         isLoading: isButtonLoading,
@@ -446,11 +466,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               setIsProjectAccountConnected(false);
               setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
               setWorkspaceProjectAuthTokenId(null);
+
+              /*
+               * Every Workspace menu in the project lists only connected
+               * workspaces: ask again, so they stop listing this one.
+               */
+              ConnectedWorkspaces.refresh().catch(() => {
+                // A failed request leaves the menus as they were.
+              });
             } else {
               setError(
                 <div>
-                  Looks like the project auth token id is not set properly.
-                  Please try again.
+                  {translator.translateText(
+                    "Looks like the project auth token id is not set properly. Please try again.",
+                  )}
                 </div>,
               );
             }
@@ -472,15 +501,23 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     !isProjectAccountConnected &&
     !isUserAccountConnected
   ) {
-    cardTitle = `Admin Consent Granted - Connect Your Account`;
-    cardDescription = `Admin consent has been granted for the OneUptime Microsoft Teams app. Now connect your account to select a team and complete the setup.`;
-    cardButtons = [getConnectWithTeamsButton(`Connect with Microsoft Teams`)];
+    cardTitle = translationKey("Admin Consent Granted - Connect Your Account");
+    cardDescription = translationKey(
+      "Admin consent has been granted for the OneUptime Microsoft Teams app. Now connect your account to select a team and complete the setup.",
+    );
+    cardButtons = [
+      getConnectWithTeamsButton(translationKey("Connect with Microsoft Teams")),
+    ];
   }
 
   if (!isProjectAccountConnected && !isAdminConsentCompleted) {
-    cardTitle = `Connect with Microsoft Teams`;
-    cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime.`;
-    cardButtons = [getConnectWithTeamsButton(`Connect with Microsoft Teams`)];
+    cardTitle = translationKey("Connect with Microsoft Teams");
+    cardDescription = translationKey(
+      "Connect your account with Microsoft Teams to make the most out of OneUptime.",
+    );
+    cardButtons = [
+      getConnectWithTeamsButton(translationKey("Connect with Microsoft Teams")),
+    ];
   }
 
   if (!MicrosoftTeamsAppClientId) {

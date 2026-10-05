@@ -13,6 +13,11 @@ import {
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import {
+  createTranslator,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import fs from "fs";
 import path from "path";
@@ -116,6 +121,22 @@ function readSource(): string {
 }
 
 /*
+ * The Dashboard's English locale (src/Locales/en.json): every key
+ * `npm run i18n:extract` found, each mapped to itself. The row's own words —
+ * the NetBIOS hint, the checkbox label — are looked up in the reader's
+ * language (#4280), and a sentence that is not in here is one no locale can
+ * ever translate.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(DISCOVERY_PAGE, "..", "..", "..", "Locales", "en.json"),
+      "utf8",
+    ),
+  );
+}
+
+/*
  * Comments stripped so that DESCRIBING a rule in prose never counts as
  * implementing it. Split out of readCode() so the stripper itself can be
  * tested on a synthetic input: it is the foundation every source assertion in
@@ -178,6 +199,8 @@ interface RowNameSource {
    * is the gate the row actually paints with.
    */
   netbiosHintIdentifier: string;
+  /* The English sentence the hint's hover `title` is looked up by. */
+  netbiosHintTitle: string;
   /* The statements themselves, comments stripped and whitespace squashed. */
   statements: string;
 }
@@ -204,11 +227,13 @@ const SECONDARY_NAME_SPAN: RegExp =
  * The one thing on that line that is not a name: the "NetBIOS name" hint
  * (issue #3677), gated on a boolean the row computes, separated by the same
  * middle dot, and carrying a hover `title` that says why the name is worth
- * flagging. Literal text rather than an interpolated value, so a scanned host
- * cannot choose what it says.
+ * flagging. Both are fixed English text looked up in the reader's language
+ * (#4280) — string literals handed to translateText, never an interpolated
+ * value — so a scanned host cannot choose what the hint says, in any
+ * language.
  */
 const NETBIOS_HINT_SPAN: RegExp =
-  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title="[^"]*"\s*>\s*\{" · "\}\s*NetBIOS name\s*<\/span>\s*\)\s*\}/;
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title=\{translator\.translateText\(\s*"([^"]+)"\s*,?\s*\)\}\s*>\s*\{" · "\}\s*\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>\s*\)\s*\}/;
 
 let cachedRowNameSource: RowNameSource | null = null;
 
@@ -296,6 +321,7 @@ function rowNameSource(): RowNameSource {
     namingIdentifier: match[3]!,
     secondaryIdentifiers: secondaryIdentifiers,
     netbiosHintIdentifier: netbiosHintIdentifier,
+    netbiosHintTitle: netbiosHint[2]!,
     statements: statements,
   };
 
@@ -426,30 +452,54 @@ function extraNamesFor(
 
 /*
  * The checkbox's accessible name, lifted and run the same way. A screen-reader
- * user never sees the row; this template is the entire row, for them.
+ * user never sees the row; this sentence is the entire row, for them.
+ *
+ * Since #4280 it is one whole sentence looked up in the reader's language —
+ * `translator.translateTemplate("Import {{name}} ({{address}})", { ... })` —
+ * so the expression is run with the real translation helpers injected: an
+ * English translator for the sentences the tests below expect, and a
+ * translating one where the test is about what a locale does with the
+ * values.
  */
-const ARIA_LABEL_TEMPLATE: RegExp = /ariaLabel=\{(`Import [^`]*`)\}/;
+const ARIA_LABEL_CALL: RegExp =
+  /ariaLabel=\{(translator\.translateTemplate\(\s*"(Import [^"]*)"\s*,\s*\{[^{}]*\}\s*,?\s*\))\}/;
 
 type RowAriaLabel = (
   entry: DiscoveredNetworkDevice,
   displayName: string,
+  translator: Translator,
+  translatableTermFunction: typeof translatableTerm,
 ) => string;
 
 let cachedAriaLabel: RowAriaLabel | null = null;
 
-function ariaLabelTemplate(): string {
-  const match: RegExpMatchArray | null = readCode().match(ARIA_LABEL_TEMPLATE);
+interface AriaLabelCall {
+  // The whole `translator.translateTemplate(...)` expression.
+  expression: string;
+  // The English sentence it looks up.
+  template: string;
+}
+
+function ariaLabelCall(): AriaLabelCall {
+  const match: RegExpMatchArray | null = readCode().match(ARIA_LABEL_CALL);
 
   if (!match) {
     throw new Error(
-      "The discovered-host checkbox no longer carries an `ariaLabel={`Import" +
-        " ...`}`. A disabled checkbox in a list that does not say what it is" +
-        " reads as broken rather than as deliberate.",
+      "The discovered-host checkbox no longer carries an" +
+        ' `ariaLabel={translator.translateTemplate("Import ...", { ... })}`.' +
+        " A disabled checkbox in a list that does not say what it is reads" +
+        " as broken rather than as deliberate.",
     );
   }
 
-  return match[1]!;
+  return { expression: match[1]!, template: match[2]! };
 }
+
+/*
+ * What a reader whose Dashboard is in English hears: no stored wording
+ * differs from the English, so the English sentence is filled in.
+ */
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 /*
  * Fed the name line the ROW computes for this scan, not a name recomputed
@@ -459,16 +509,24 @@ function ariaLabelTemplate(): string {
 function ariaLabelFor(
   host: DiscoveredNetworkDevice,
   naming: DiscoveredHostNaming,
+  translator: Translator = ENGLISH,
 ): string {
   if (cachedAriaLabel === null) {
     cachedAriaLabel = new Function(
       "entry",
       rowNameSource().displayNameIdentifier,
-      `return ${ariaLabelTemplate()};`,
+      "translator",
+      "translatableTerm",
+      `return ${ariaLabelCall().expression};`,
     ) as unknown as RowAriaLabel;
   }
 
-  return cachedAriaLabel(host, rowNamesFor(host, naming).displayName);
+  return cachedAriaLabel(
+    host,
+    rowNamesFor(host, naming).displayName,
+    translator,
+    translatableTerm,
+  );
 }
 
 /*
@@ -957,6 +1015,61 @@ describe("the checkbox tells a screen reader what the row says", () => {
     expect(ariaLabelFor({ ipAddress: "" }, FULL_NAMES)).toBe(
       "Import  (no address)",
     );
+  });
+
+  test("in another language the label still carries the row's own name and address", () => {
+    /*
+     * The label has been one translated sentence since #4280, so what has to
+     * survive translation is what it says about THIS row. The locale moves
+     * the values where its grammar wants them; the name line goes in exactly
+     * as the row shows it — a host is called what it is called, so a sysName
+     * that happens to spell one of the dialog's own words ("Already added")
+     * is never looked up and translated — while the no-address fallback is
+     * the dialog's own word, and is.
+     */
+    const words: Record<string, string> = {
+      "Import {{name}} ({{address}})": "{{name}} ({{address}}) importieren",
+      "no address": "keine Adresse",
+      "Already added": "Bereits hinzugefügt",
+    };
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
+
+    expect(
+      ariaLabelFor(
+        {
+          ipAddress: "10.18.166.51",
+          dnsHostname: "core-gw.corp.example.com",
+          snmpReachable: false,
+        },
+        FULL_NAMES,
+        german,
+      ),
+    ).toBe("core-gw.corp.example.com (10.18.166.51) importieren");
+
+    expect(
+      ariaLabelFor(
+        { ipAddress: "", sysName: "core-switch-01" },
+        FULL_NAMES,
+        german,
+      ),
+    ).toBe("core-switch-01 (keine Adresse) importieren");
+
+    expect(
+      ariaLabelFor(
+        {
+          ipAddress: "10.0.0.9",
+          sysName: "Already added",
+          snmpReachable: true,
+        },
+        FULL_NAMES,
+        german,
+      ),
+    ).toBe("Already added (10.0.0.9) importieren");
   });
 });
 
@@ -1466,7 +1579,7 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
      */
     expect(
       rowNamingFor(
-        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01   " },
+        { ...netbiosOnlyHost, netbiosName: "ACCOUNTS-PC01  \u0000" },
         FULL_NAMES,
       ),
     ).toEqual({
@@ -1733,7 +1846,9 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     const fullNameIdentifier: string = fullNameDeclaration![1]!;
 
     expect(fullNameIdentifier).not.toBe(rowNameSource().displayNameIdentifier);
-    expect(ariaLabelTemplate()).not.toContain(`\${${fullNameIdentifier}}`);
+    expect(ariaLabelCall().expression).not.toMatch(
+      new RegExp(`\\b${fullNameIdentifier}\\b`),
+    );
     expect(readCode()).not.toMatch(
       new RegExp(`title=\\{${fullNameIdentifier}\\}`),
     );
@@ -1768,13 +1883,38 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     /*
      * One variable, used twice. A sighted operator and a screen-reader user
      * must be told the same thing about the same row — and the label tests
-     * above are running this very template, so if it interpolated something
-     * other than the name line they would report a different string.
+     * above are running this very expression, so if it filled the sentence
+     * with something other than the name line they would report a different
+     * string. The name goes in as a plain value, never as a term to look up;
+     * only the no-address fallback is the dialog's own word.
      */
-    expect(ariaLabelTemplate()).toContain(
-      `\${${rowNameSource().displayNameIdentifier}}`,
+    const expression: string = ariaLabelCall().expression;
+
+    expect(expression).toMatch(
+      new RegExp(
+        `[{,]\\s*name:\\s*${rowNameSource().displayNameIdentifier}\\s*,`,
+      ),
     );
-    expect(ariaLabelTemplate()).toContain('${entry.ipAddress || "no address"}');
+    expect(expression).toContain(
+      'address: entry.ipAddress || translatableTerm("no address")',
+    );
+  });
+
+  test("the hint and the checkbox label are sentences recorded for translation", () => {
+    /*
+     * Looked up by their English text (#4280), so each has to be a key the
+     * extractor recorded, or the reader's language never gets a say. The
+     * hover title still says why a NetBIOS name is worth flagging.
+     */
+    const english: Record<string, string> = readEnglishLocale();
+    const title: string = rowNameSource().netbiosHintTitle;
+
+    expect(title).toContain("NetBIOS");
+    expect(ariaLabelCall().template).toBe("Import {{name}} ({{address}})");
+
+    for (const key of ["NetBIOS name", title, ariaLabelCall().template]) {
+      expect([key, english[key]]).toEqual([key, key]);
+    }
   });
 
   test("the row still renders the address, on its own truncating line", () => {
@@ -1862,13 +2002,18 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     expect(readCode()).toMatch(
       /import\s*\{[^}]*\bnormalizeNetbiosName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/NetbiosNameUtil"/,
     );
-    expect(readCode().split("NetBIOS name </span>").length - 1).toBe(1);
+    const hintText: RegExp =
+      /\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>/g;
+    expect(Array.from(readCode().matchAll(hintText))).toHaveLength(1);
     /*
      * And never a badge. The badges on the right of the row describe the HOST
      * ("No SNMP", "Already added"); the hint describes where its NAME came
-     * from, so it belongs on the address line and nowhere else.
+     * from, so it belongs on the address line and nowhere else — whether its
+     * words are written out or looked up.
      */
-    expect(readCode()).not.toMatch(/rounded-full[^>]*>\s*NetBIOS/);
+    expect(readCode()).not.toMatch(
+      /rounded-full[^>]*>\s*(?:\{translator\.translateText\(\s*)?"?NetBIOS/,
+    );
   });
 
   test("a failed create is retried once under the address-qualified name", () => {

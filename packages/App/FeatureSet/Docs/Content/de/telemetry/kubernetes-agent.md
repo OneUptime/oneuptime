@@ -348,6 +348,8 @@ Labels werden ohne Beachtung der Groß-/Kleinschreibung abgeglichen, sodass ein 
 
 ## Den Agent aktualisieren
 
+Ist der Agent älter als Ihr OneUptime, erscheint neben **Agent-Version** in den **Cluster-Details** des Clusters ein Warnzeichen. Wählen Sie es aus, um diesen Befehl zu sehen.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -356,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` behält Ihre bestehende Konfiguration bei (Preset, Cluster-Name, Filter); übergeben Sie alle neuen `--set`-Überschreibungen zusätzlich.
+
+> **eBPF-Span-Metriken haben neue Namen.** `ebpf.features.spanMetrics` sendet jetzt `traces.span.metrics.calls` und `traces.span.metrics.duration` (Sekunden) statt `traces_spanmetrics_calls_total` und `traces_spanmetrics_latency`: dieselben Reihen unter den Namen, die OBI beibehält (die alten hat OBI als veraltet markiert). Ein Dashboard, ein Diagramm oder ein Metriken-Monitor auf einem alten Namen erhält nach dem Upgrade keine neuen Daten mehr, ohne Fehlermeldung — stellen Sie ihn auf den neuen Namen um und passen Sie auch `filters.metrics`-Einträge an, die einen alten Namen nennen.
 
 ## Den Agent deinstallieren
 
@@ -412,7 +416,7 @@ Alle standardmäßig aktiviert. Schalten Sie jede mit `--set ebpf.features.<name
 | `ebpf.features.*`         | Standard    | Was es hinzufügt                                                       |
 | ------------------------- | ----------- | ---------------------------------------------------------------------- |
 | `httpMetrics`             | aktiviert   | HTTP/gRPC-RED-Metriken (Request-Rate, Latenz, Fehler) pro Service      |
-| `spanMetrics`             | aktiviert   | Request-/Response-Größe und -Dauer pro Span                            |
+| `spanMetrics`             | aktiviert   | Aufrufanzahl und Dauer der Spans (`traces.span.metrics.*`)             |
 | `serviceGraph`            | aktiviert   | Caller → Callee Edge-Metriken; speist die Service-Map                  |
 | `networkMetrics`          | aktiviert   | Pod-zu-Pod-TCP/UDP-Fluss-Zähler                                        |
 | `networkInterZoneMetrics` | deaktiviert | Inter-Zone-Variante der Netzwerkmetriken (verdoppelt die Kardinalität) |
@@ -716,7 +720,7 @@ Der häufigste Grund — besonders nach einer Neuinstallation — ist ein **fals
 ### Keine Metriken erscheinen
 
 1. Schließen Sie zunächst einen abgelehnten Ingestion-Schlüssel aus — das ist die häufigste Ursache und von der Agent-Seite aus leicht zu übersehen. Siehe [Agent zeigt "Disconnected" an](#agent-zeigt-disconnected-an) oben (oder führen Sie einfach das Diagnoseskript aus).
-2. Prüfen Sie, ob der Cluster-Bezeichner mit dem Wert übereinstimmt, den Sie als `clusterName` übergeben haben
+2. Prüfen Sie, ob der **Clustername (clusterName)** des Clusters mit dem Wert übereinstimmt, den Sie als `clusterName` übergeben haben. Er steht auf der Seite **Settings** des Clusters unter **Cluster Details**; zum Korrigieren wählen Sie **Edit Details** und öffnen **More fields**
 3. Überprüfen Sie die RBAC-Berechtigungen: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Prüfen Sie die OTel-Collector-Logs auf Export-Fehler
 

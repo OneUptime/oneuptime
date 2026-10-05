@@ -1,8 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -12,13 +11,13 @@ import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import ProjectUtil from "Common/UI/Utils/Project";
-import FilterQueryBuilderField from "../../../Components/FilterQueryBuilder/FilterQueryBuilderField";
-import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
 import {
-  MAX_SAMPLE_PERCENTAGE,
-  MIN_SAMPLE_PERCENTAGE,
-} from "Common/Types/Telemetry/DropFilterSampling";
-import React, { FunctionComponent, ReactElement } from "react";
+  getDropFilterFormSteps,
+  getLogDropFilterFormFields,
+} from "../../../Components/Telemetry/DropFilterForm";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Log Drop Filters Work
@@ -97,6 +96,25 @@ Filter queries determine which logs this drop filter applies to.
 const LogDropFilters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * Match (the name and the filter query), then Action (Drop picked, the
+   * percentage for Sample, and the description and Enabled folded under
+   * Advanced): Components/Telemetry/DropFilterForm, shared with Traces.
+   */
+  const formSteps: Array<FormStep<LogDropFilter>> = useMemo((): Array<
+    FormStep<LogDropFilter>
+  > => {
+    return getDropFilterFormSteps<LogDropFilter>();
+  }, []);
+
+  const formFields: Array<ModelField<LogDropFilter>> = useMemo((): Array<
+    ModelField<LogDropFilter>
+  > => {
+    return getLogDropFilterFormFields();
+  }, []);
+
   return (
     <ModelTable<LogDropFilter>
       modelType={LogDropFilter}
@@ -131,8 +149,12 @@ const LogDropFilters: FunctionComponent<
         samplePercentage: true,
       }}
       viewPageRoute={Navigation.getCurrentRoute()}
+      /*
+       * Drop is the form's suggestion: the action has no server default (a
+       * filter created without one is refused). Enabled starts from its
+       * column default, on.
+       */
       createInitialValues={{
-        isEnabled: true,
         action: LogDropFilterAction.Drop,
       }}
       onBeforeCreate={async (item: LogDropFilter) => {
@@ -140,118 +162,10 @@ const LogDropFilters: FunctionComponent<
         if (!item.action) {
           item.action = LogDropFilterAction.Drop;
         }
-        if (item.isEnabled === undefined || item.isEnabled === null) {
-          item.isEnabled = true;
-        }
         return item;
       }}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Filter Conditions", id: "filter-conditions" },
-        { title: "Action", id: "action" },
-      ]}
-      formFields={[
-        {
-          field: {
-            name: true,
-          },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "e.g. Drop Debug Logs",
-          validation: {
-            minLength: 2,
-          },
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Describe what this filter does.",
-        },
-        {
-          field: {
-            isEnabled: true,
-          },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: {
-            filterQuery: true,
-          },
-          title: "Filter Query",
-          stepId: "filter-conditions",
-          description:
-            "Which logs this filter applies to. Build rules with fields like severity, body, service, or custom attributes.",
-          fieldType: FormFieldSchemaType.CustomComponent,
-          required: true,
-          getCustomElement: (
-            values: FormValues<LogDropFilter>,
-            fieldProps: CustomElementProps,
-          ): ReactElement => {
-            return (
-              <FilterQueryBuilderField
-                initialValue={(values.filterQuery as string) || ""}
-                onChange={(value: string) => {
-                  if (fieldProps.onChange) {
-                    fieldProps.onChange(value);
-                  }
-                }}
-                error={fieldProps.error}
-                config={LogFilterConfig}
-              />
-            );
-          },
-        },
-        {
-          field: {
-            action: true,
-          },
-          title: "Action",
-          stepId: "action",
-          description:
-            "Drop permanently discards matching logs. Sample keeps a percentage of them.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          dropdownOptions: [
-            { label: "Drop", value: LogDropFilterAction.Drop },
-            { label: "Sample", value: LogDropFilterAction.Sample },
-          ],
-        },
-        {
-          field: {
-            samplePercentage: true,
-          },
-          title: "Sample Percentage",
-          stepId: "action",
-          description:
-            "Required when Action is Sample. Percentage of matching logs to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
-          fieldType: FormFieldSchemaType.Number,
-          /*
-           * Required, but only while the Sample action is selected — the
-           * form skips validation for fields hidden by showIf. Leaving this
-           * optional let a sample filter be saved with no percentage, which
-           * the engine used to read as "throw away half".
-           */
-          required: true,
-          validation: {
-            minValue: MIN_SAMPLE_PERCENTAGE,
-            maxValue: MAX_SAMPLE_PERCENTAGE,
-          },
-          placeholder: "e.g. 10",
-          showIf: (values: FormValues<LogDropFilter>): boolean => {
-            return values.action === LogDropFilterAction.Sample;
-          },
-        },
-      ]}
+      formSteps={formSteps}
+      formFields={formFields}
       showRefreshButton={true}
       searchableFields={["name", "description"]}
       showViewIdButton={true}
@@ -308,7 +222,13 @@ const LogDropFilters: FunctionComponent<
               return (
                 <Pill
                   color={Yellow}
-                  text={`Sample ${item.samplePercentage ? item.samplePercentage + "%" : ""}`}
+                  text={
+                    item.samplePercentage
+                      ? translator.translateTemplate("Sample {{percent}}%", {
+                          percent: item.samplePercentage,
+                        })
+                      : "Sample"
+                  }
                 />
               );
             }
@@ -345,7 +265,7 @@ const LogDropFilters: FunctionComponent<
             if (dropped === 0) {
               return (
                 <span className="text-sm text-gray-400">
-                  Nothing dropped yet
+                  {translator.translateText("Nothing dropped yet")}
                 </span>
               );
             }

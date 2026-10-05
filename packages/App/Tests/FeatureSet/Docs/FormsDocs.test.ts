@@ -78,6 +78,14 @@ import {
   FormFieldSource,
   getDefaultFormFields,
 } from "Common/Types/Form/FormField";
+import {
+  FORM_FAVICON_NOT_FOUND_MESSAGE,
+  FORM_FAVICON_TOO_LARGE_MESSAGE,
+  FORM_FAVICON_TYPE_MESSAGE,
+  FORM_LOGO_NOT_FOUND_MESSAGE,
+  FORM_LOGO_TOO_LARGE_MESSAGE,
+  FORM_LOGO_TYPE_MESSAGE,
+} from "Common/Types/Form/FormBranding";
 import { validateFormIpAllowlist } from "Common/Types/Form/FormIpAllowlist";
 import {
   FORM_MULTI_SELECT_MAX_CHOICES,
@@ -1077,11 +1085,12 @@ describe("Forms docs", () => {
       expect(readSource(FORM_MAPPING_CARD_FILE)).toContain(
         "submitButtonText={FormsCopy.saveChanges}",
       );
+      // On the last step only, and the step list opens any step.
       expect(
         sectionOf(readPage(ON_SUBMIT_PAGE), 2, "The On Submit settings"),
-      ).toContain(`**${FormsCopy.saveChanges}** saves from any of them`);
+      ).toContain(`**${FormsCopy.saveChanges}** is on the last step`);
       expect(readSource(FORM_MAPPING_CARD_FILE)).toContain(
-        "saveFromAnyStep={true}",
+        "allowAnyStepNavigation: true,",
       );
     });
 
@@ -1100,6 +1109,13 @@ describe("Forms docs", () => {
         FormMessage.CaptchaFailed,
         FORM_FOREIGN_PAGE_MESSAGE,
         FORM_SUBMISSION_BODY_MESSAGE,
+        // Saving a logo or favicon the public page could not draw (Branding).
+        FORM_LOGO_TYPE_MESSAGE,
+        FORM_LOGO_TOO_LARGE_MESSAGE,
+        FORM_LOGO_NOT_FOUND_MESSAGE,
+        FORM_FAVICON_TYPE_MESSAGE,
+        FORM_FAVICON_TOO_LARGE_MESSAGE,
+        FORM_FAVICON_NOT_FOUND_MESSAGE,
       ];
 
       for (const sentence of quoted) {

@@ -18,6 +18,8 @@ OneUptime 中的 LLM 提供商可帮助您自动化并增强事件管理工作�
 
 如果您希望使用自己的 API 密钥或特定提供商，仍可按照以下说明配置自定义 LLM 提供商。
 
+OneUptime SaaS 只能访问公共互联网上的 LLM 端点，无法连接您私有网络中的模型，例如自托管的 Ollama 或 vLLM 服务器。要使用您自己运行的模型，请在能访问该模型的网络中自托管 OneUptime，或将模型发布到公共端点——请参阅[为自托管模型选择基础 URL](#为自托管模型选择基础-url)。
+
 ## 支持的提供商
 
 OneUptime 目前支持以下 LLM 提供商：
@@ -98,28 +100,58 @@ Model Name: claude-3-5-sonnet-20241022
 Ollama 允许您在本地或自己的基础设施上运行开源 LLM。
 
 1. 从 [ollama.ai](https://ollama.ai) 安装 Ollama
-2. 拉取所需的模型：`ollama pull llama2`
-3. 确保 Ollama 正在运行且可访问
+2. 拉取所需的模型：`ollama pull llama3.1`
+3. 确保 Ollama 正在运行，并且 OneUptime 服务器可以访问它。原生安装只监听 `127.0.0.1`，因此请使用 `OLLAMA_HOST=0.0.0.0:11434` 启动它，以接受来自其他机器和容器的连接（官方 Docker 镜像 `ollama/ollama` 已经这样设置）
 4. 选择 **Ollama** 作为 LLM 类型
-5. 输入基础 URL（例如 `http://localhost:11434`）
+5. 输入基础 URL：OneUptime 服务器访问 Ollama 服务器时使用的地址，例如 `http://ollama:11434`（`/api/chat` 由 OneUptime 自动添加）。`localhost` 无法使用——请参阅[为自托管模型选择基础 URL](#为自托管模型选择基础-url)
 6. 输入您拉取的模型名称
 
-**示例配置：**
+**示例配置（Ollama 作为名为 `ollama` 的服务运行在 OneUptime 的 Docker Compose 网络上）：**
 
 ```
-Name: Local Ollama
+Name: Self-Hosted Ollama
 LLM Type: Ollama
-Base URL: http://localhost:11434
-Model Name: llama2
+Base URL: http://ollama:11434
+Model Name: llama3.1
 ```
+
+**增大上下文窗口。** 除非另行设置，Ollama 会以较小的上下文窗口运行模型（当前版本为 4096 个 token，旧版本为 2048），并静默截断放不下的内容。OneUptime 的 AI 功能在每个请求中都会发送工具定义，仅这些就可能占用数千个 token。工具定义被截断时不会报错：模型只会回答它没有可用于该问题的工具。请在提供商的**附加参数**中设置更大的 `num_ctx`：
+
+```json
+{ "options": { "num_ctx": 16384 } }
+```
+
+OneUptime 会把这个 `options` 对象合并到它发送给 Ollama 的选项中，因此只需列出您要更改的设置。上下文窗口越大，占用的内存越多，请选择模型支持且硬件能够承受的大小。如果想改为提高所有客户端的默认值，请在 Ollama 服务器上设置 `OLLAMA_CONTEXT_LENGTH`。对于通过 `GLOBAL_LLM_PROVIDER_*` 变量注册的全局提供商，请在管理仪表板的 **设置** > **全局 LLM 提供商** 中设置该字段；启动时的同步不会改动它。
 
 **常用 Ollama 模型：**
 
-- `llama2` - Meta 的 Llama 2 模型
-- `llama3` - Meta 的 Llama 3 模型
-- `mistral` - Mistral AI 的模型
-- `codellama` - 专注于代码的 Llama 模型
-- `mixtral` - Mistral 的混合专家模型
+- `llama3.1` - Meta 的 Llama 3.1 模型，最早支持工具调用的 Llama
+- `llama3.3` - Meta 的 Llama 3.3 模型
+- `qwen2.5` - 阿里巴巴的 Qwen 2.5 模型
+- `mistral-nemo` - Mistral AI 的 Nemo 模型
+
+> 注意：OneUptime 的 AI 功能是智能体式的——高度依赖工具调用。请使用 `llama3.1` 或更新版本（或其他支持工具调用的模型）。小模型或不支持工具调用的模型（例如 `llama2`、最初的 `llama3`）效果很差：它们无法查询您的监控、事件或遥测数据，因此调查结果会是空的或凭空编造的。
+
+### 为自托管模型选择基础 URL
+
+自托管模型（Ollama、vLLM、LM Studio 或任何其他兼容 OpenAI 的服务器）的基础 URL 必须是 **OneUptime 服务器** 能够访问的地址。您的浏览器从不连接它。
+
+**回环地址始终会被拒绝。** 连接之前，OneUptime 会检查基础 URL 的主机名解析到的每个地址。`localhost`、`127.0.0.1`、`[::1]` 和 `0.0.0.0`，以及链路本地地址和 `169.254.169.254` 这样的云元数据地址，在所有部署中都会被拒绝，自托管部署也不例外。这是有意为之：提供商的基础 URL 不能被用来访问 OneUptime 服务器自身的服务。而且在 Docker Compose 或 Kubernetes 中，`localhost` 指的是 OneUptime 容器，而不是运行模型的机器。
+
+请改用私有地址或内部主机名：
+
+| 模型服务器的运行位置 | 基础 URL |
+| --- | --- |
+| OneUptime 的 Docker Compose 网络（`oneuptime`）上的服务 | 服务名，例如 `http://ollama:11434` |
+| 与 OneUptime 相同的 Kubernetes 集群 | Service 的 DNS 名称，例如 `http://ollama.<namespace>.svc.cluster.local:11434`——与[内置 vLLM](#在-kubernetes-上自托管-vllmhelm) 的模式相同 |
+| 宿主机本身，不在任何容器中 | 宿主机的局域网 IP，例如 `http://192.168.1.20:11434`；在 Docker Desktop 上也可以用 `http://host.docker.internal:11434` |
+| 您网络中的另一台机器 | 它的私有 IP 或内部主机名，例如 `http://10.0.0.12:11434` |
+
+兼容 OpenAI 的服务器遵循同样的规则，使用各自的端口和 `/v1` 路径，例如 `http://vllm:8000/v1`，或 LM Studio 的 `http://192.168.1.20:1234/v1`。与原生安装的 Ollama 一样，LM Studio 在您于其服务器设置中打开 **Serve on Local Network** 之前只监听 `127.0.0.1`。
+
+**自托管部署可以使用私有地址。** 自托管的 OneUptime 可以访问私有网络地址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 和 IPv6 `fc00::/7`，除非您设置了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，这样它们会像在 OneUptime Cloud 上一样被拒绝。
+
+**OneUptime Cloud（SaaS）无法访问私有网络。** 对于所有 LLM 提供商，它都会拒绝私有网络地址以及解析到这些地址的主机名。要使用运行在您自己基础设施上的模型，请在能访问该模型的网络中自托管 OneUptime，或将模型发布到可公开访问的端点。请用 API 密钥保护公共端点：**Ollama** 提供商不发送任何凭据，而 **OpenAI Compatible** 会把 API 密钥作为 Bearer 令牌发送（Ollama 也在 `/v1` 下提供兼容 OpenAI 的 API，因此可以放在校验密钥的反向代理之后）。
 
 ### OpenAI Compatible（vLLM、LocalAI、LM Studio 等）
 
@@ -127,7 +159,7 @@ Model Name: llama2
 
 1. 启动您的兼容 OpenAI 的服务器，并记下其基础 URL（通常以 `/v1` 结尾）
 2. 选择 **OpenAI Compatible** 作为 LLM 类型
-3. 输入**基础 URL**（必填），例如 `http://your-server:8000/v1`
+3. 输入**基础 URL**（必填），例如 `http://your-server:8000/v1`。它必须能被 OneUptime 服务器访问，因此不能用 `localhost`——请参阅[为自托管模型选择基础 URL](#为自托管模型选择基础-url)
 4. 输入**模型名称**（必填）——必须与您服务器上提供的模型匹配
 5. 仅当您的服务器需要身份验证时才输入 **API 密钥**；无需密钥的服务器可留空
 
@@ -161,7 +193,7 @@ API Key: (leave blank)
 如果您禁用了自动注册（`vllm.globalProvider.enabled: false`），请手动创建提供商：
 
 1. 选择 **OpenAI Compatible** 作为 LLM 类型（vLLM 使用 OpenAI API）
-2. 输入集群内基础 URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+2. 输入集群内基础 URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（如果您更改了 `global.clusterDomain`，请替换 `cluster.local`）
 3. 输入模型名称：完整的 HuggingFace 模型 id（如果您设置了 `vllm.servedModelName`，则使用该值）
 4. 仅当您设置了 `vllm.apiKey` 时才输入 API 密钥；无密钥的 vLLM 可留空
 
@@ -175,7 +207,7 @@ Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
 
-有关 GPU 调度、受限模型和调优选项，请参阅 [Helm chart README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm)。
+有关 GPU 调度、受限模型和调优选项，请参阅 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)。
 
 ## 使用自定义基础 URL
 
@@ -197,8 +229,9 @@ API Key: (leave blank unless vllm.apiKey is set)
 ### 连接问题
 
 - **OpenAI/Anthropic**：验证您的 API 密钥有效且有足够的额度
-- **Ollama**：确保 Ollama 服务器正在运行且基础 URL 正确
+- **Ollama**：确保 Ollama 服务器正在运行、监听 OneUptime 服务器能访问的地址（原生安装请使用 `OLLAMA_HOST=0.0.0.0:11434`），并且基础 URL 指向该地址
 - **OpenAI Compatible**：确保基础 URL 以 `/v1` 结尾（或与您的服务器匹配）、模型名称与您服务器提供的模型一致，并且仅在服务器需要时才设置 API 密钥
+- **"…points to an address OneUptime is not allowed to connect to"**：基础 URL 解析到了被拒绝的地址——`localhost` 或其他回环地址，或者在 OneUptime Cloud 上是私有网络地址。（OneUptime Cloud 会把被拒绝的主机名报告为 "…could not be reached"。）请参阅[为自托管模型选择基础 URL](#为自托管模型选择基础-url)
 - **防火墙**：检查您的网络是否允许出站连接到提供商的 API
 
 ### 找不到模型

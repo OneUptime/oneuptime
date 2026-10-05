@@ -31,6 +31,8 @@ import PageMap from "../../Utils/PageMap";
 import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The fleet-wide way out of "monitor-backed with nothing bound".
@@ -57,8 +59,9 @@ export interface BulkSwitchToProbePollingResult {
   modals: ReactElement;
 }
 
-export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string =
-  "Switch to Probe Polling";
+export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string = translationKey(
+  "Switch to Probe Polling",
+);
 
 /*
  * The one no-op outcome, worded once so the tests and the page can pin it.
@@ -68,8 +71,9 @@ export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string =
  * honestly — "succeeded" claims it was switched, dropping it makes the
  * totals stop adding up.
  */
-export const SKIPPED_ALREADY_PROBE_POLLED_MESSAGE: string =
-  "Skipped: already probe-polled.";
+export const SKIPPED_ALREADY_PROBE_POLLED_MESSAGE: string = translationKey(
+  "Skipped: already probe-polled.",
+);
 
 /*
  * The one field the modal writes. A type alias rather than an interface so
@@ -80,6 +84,7 @@ type SwitchToProbePollingFormData = {
 };
 
 function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<NetworkDevice> | null>(null);
@@ -165,7 +170,9 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
 
     if (!device) {
       throw new BadDataException(
-        "This device could not be read. It may have been deleted since the list was loaded.",
+        translationKey(
+          "This device could not be read. It may have been deleted since the list was loaded.",
+        ),
       );
     }
 
@@ -235,15 +242,19 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
         if (skippedMessage) {
           failedItems.push({
             item: item,
-            failedMessage: skippedMessage,
+            // The progress list shows it as given: a fixed sentence is looked up.
+            failedMessage:
+              translator.translateText(skippedMessage) || skippedMessage,
           });
         } else {
           successItems.push(item);
         }
       } catch (err) {
+        const message: string = API.getFriendlyMessage(err);
+
         failedItems.push({
           item: item,
-          failedMessage: API.getFriendlyMessage(err),
+          failedMessage: translator.translateText(message) || message,
         });
       }
 
@@ -274,7 +285,9 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       const name: string = probe.name || probe._id?.toString() || "";
 
       return {
-        label: probe.isGlobalProbe ? `${name} (global)` : name,
+        label: probe.isGlobalProbe
+          ? translator.translateTemplate("{{name}} (global)", { name: name })
+          : name,
         value: probe._id?.toString() || "",
       };
     });
@@ -395,7 +408,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
             to={probesSettingsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Create a custom probe
+            {translator.translateText("Create a custom probe") || ""}
           </AppLink>
         </Modal>
       )}

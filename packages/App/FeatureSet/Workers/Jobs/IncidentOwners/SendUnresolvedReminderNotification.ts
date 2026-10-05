@@ -17,6 +17,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
@@ -59,12 +60,14 @@ RunCron(
         incidentSeverityId: true,
         incidentSeverity: {
           name: true,
+          color: true,
         },
         labels: {
           _id: true,
         },
         currentIncidentState: {
           name: true,
+          color: true,
         },
         incidentNumber: true,
         incidentNumberWithPrefix: true,
@@ -232,6 +235,10 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       incidentNumber: incidentNumberStr,
       projectName: incident.project!.name!,
       currentState: currentStateName,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incident.currentIncidentState?.color,
+      ),
       openDuration: openDuration,
       declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
         date: openedAt,
@@ -240,6 +247,10 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       incidentDescription: incidentDescriptionHtml,
       resourcesAffected: resourcesAffected || "None",
       incidentSeverity: incident.incidentSeverity?.name || "",
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentSeverity",
+        incident.incidentSeverity?.color,
+      ),
       incidentViewLink: incidentViewLink,
     };
 

@@ -1,15 +1,15 @@
 # Crear un flujo de trabajo
 
-Para crear un flujo de trabajo, abre **Flujos de Trabajo** y haz clic en **Crear flujo de trabajo**. Se abre un asistente, **Create a workflow**, que te lleva de la mano: primero **Start from**, luego **Name**, y por último un paso **Configure**, que solo aparece si la plantilla que elegiste pide ajustes propios.
+Para crear un flujo de trabajo, abre **Flujos de Trabajo** y haz clic en **Crear flujo de trabajo**. El diálogo **Crear un flujo de trabajo** te pregunta primero cómo quieres empezar y después un nombre. Una plantilla que necesita ajustes propios, como la URL de un webhook de Slack, te los pide en un paso más.
 
-En **Start from** eliges cómo empezar:
+Elige cómo empezar:
 
-- **Empezar desde cero**, junto al cuadro de búsqueda, te da un lienzo vacío.
-- Una plantilla te da un flujo de trabajo que ya funciona, listo para cambiarlo. El paso se abre con unas pocas plantillas en **Recomendadas**. El resto está en sus categorías, como **Incidentes**, **Monitores** y **Jira**, cada una con cuántas plantillas tiene, y **Todas las plantillas** las muestra todas. Una búsqueda mira en todas: cada palabra que escribas tiene que coincidir, y cada categoría muestra cuántas de sus plantillas coincidieron.
+- **Empezar desde cero**, arriba del todo en el diálogo, te da un lienzo vacío. Es por donde empiezan la mayoría de los flujos de trabajo.
+- **O empieza con una plantilla** muestra unas pocas plantillas **Recomendadas**. Para ver las demás, elige una categoría junto al cuadro de búsqueda, como **Incidentes**, **Monitores** o **Jira**, o **Todas las plantillas**, o escribe en **Buscar plantillas…**. Cada palabra que escribas tiene que coincidir.
 
-Haz clic en una plantilla para ver qué hace antes de elegirla: su disparador, los pasos que la forman y los ajustes que te pedirá. **Usar esta plantilla** te lleva con ella a **Name**, y lo mismo hacen **Enter** y un doble clic. Las flechas te mueven por la lista, y `/` te devuelve al cuadro de búsqueda.
+Haz clic en una plantilla para ver qué hace: su disparador, los bloques que la forman y los ajustes que te pedirá. Después haz clic en **Usar esta plantilla**, o haz doble clic en la plantilla. En el cuadro de búsqueda, las flechas eligen una plantilla y **Enter** la usa. `/` te devuelve al cuadro de búsqueda.
 
-Una vez creado, abre **Constructor** en el menú izquierdo. Ese es el lienzo donde diseñas el flujo de trabajo.
+Los flujos de trabajo se crean desactivados, así que nada se ejecuta hasta que los actives. Un flujo de trabajo nuevo se abre en el **Constructor**, el lienzo donde lo diseñas.
 
 ## El lienzo
 
@@ -33,7 +33,7 @@ Los cambios se guardan solos. Una píldora en la barra de herramientas te lo cue
 | Campo                         | Qué hace                                                                                                                                                                                                |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Identifier** (en **ID**) | El id corto que se ve en el bloque, tipo `log-1`. Es el nombre con el que los demás bloques se refieren a este, así que cambiarlo rompe todas las referencias `{{local.components.…}}` que apunten aquí. El encabezado del bloque es el nombre propio del componente y no se puede cambiar. |
-| **Settings**                  | Lo que el bloque necesita para hacer su trabajo — una URL, un canal de Slack, el texto de un mensaje. Los campos opcionales llevan la etiqueta **(Optional)**; el resto son obligatorios. Los ajustes menos frecuentes están detrás de un desplegable **Advanced**. |
+| **Settings**                  | Lo que el bloque necesita para hacer su trabajo — una URL, un canal de Slack, el texto de un mensaje. Los campos opcionales llevan la etiqueta **(Optional)**; el resto son obligatorios. Los ajustes menos frecuentes están plegados bajo **More fields**, cuya cabecera los nombra y muestra los que tienen valor. |
 | **Input**                     | El punto del borde superior, por donde entran las líneas que vienen de bloques anteriores. Los disparadores no lo tienen — nada se ejecuta antes que ellos.                                                                                       |
 | **Outputs**                   | Los puntos del borde inferior, con su etiqueta justo encima, por donde salen las líneas hacia los bloques siguientes. Muchos bloques tienen salidas **Success** y **Error** separadas para que puedas atender los dos casos.                  |
 

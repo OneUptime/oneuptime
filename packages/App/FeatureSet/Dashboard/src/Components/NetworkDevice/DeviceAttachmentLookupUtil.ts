@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import DeviceReachabilityUtil from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
 import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Finds the switch port a device is plugged into, for the "Connected to"
@@ -450,7 +451,9 @@ export async function getDeviceAttachment(
   });
 
   if (!device) {
-    throw new BadDataException("This device no longer exists.");
+    throw new BadDataException(
+      translateTemplate("This device no longer exists."),
+    );
   }
 
   const deviceInput: AttachmentDeviceInput = {
@@ -503,7 +506,7 @@ export async function getDeviceAttachment(
   for (const page of await Promise.all(pages)) {
     for (const endpoint of page) {
       const row: AttachmentEndpointRow = toEndpointRow(endpoint);
-      const key: string = row._id || `${row.macAddress} ${row.ipAddress}`;
+      const key: string = row._id || `${row.macAddress}\u0000${row.ipAddress}`;
 
       if (!rowsById.has(key)) {
         rowsById.set(key, row);

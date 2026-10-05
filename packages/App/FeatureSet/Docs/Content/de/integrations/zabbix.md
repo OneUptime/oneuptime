@@ -25,7 +25,7 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Tun Sie dies zuerst, da Sie die dabei generierte Webhook-URL benötigen.
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**. Benennen Sie ihn `Zabbix → Incidents` und öffnen Sie den **Builder**-Tab.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**. Benennen Sie ihn `Zabbix → Incidents` und öffnen Sie den **Editor**-Tab.
 2. Ziehen Sie einen **Webhook**-Auslöser auf die Arbeitsfläche. Klicken Sie darauf und **kopieren Sie die angezeigte eindeutige URL**. Bewahren Sie diese sicher auf – jeder, der sie besitzt, kann den Workflow starten. Benennen Sie den Block in `Zabbix` um, damit Variablen übersichtlich lesbar sind.
 3. Ziehen Sie einen **Bedingungen**-Block auf die Arbeitsfläche und verbinden Sie den Ausgang des Auslösers damit. Konfigurieren Sie:
    - **Linker Wert**: `{{Zabbix.Request Body.status}}`

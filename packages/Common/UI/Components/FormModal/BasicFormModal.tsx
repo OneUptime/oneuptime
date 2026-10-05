@@ -4,8 +4,19 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
+  BasicFormHandle,
 } from "../Forms/BasicForm";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
+import {
+  SteppedModalFooter,
+  getSteppedModalFooter,
+} from "../Forms/Utils/SteppedFormFooter";
+import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
+import {
+  OpenFormSections,
+  OpenFormSectionsContext,
+  useOpenFormSections,
+} from "../Forms/Utils/OpenFormSections";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
@@ -27,11 +38,6 @@ export interface ComponentProps<T extends GenericObject> {
   formProps: BasicFormComponentProps<T>;
   description?: string | undefined;
   modalWidth?: ModalWidth | undefined;
-  /*
-   * The dialog edits values that are all filled in already, so a stepped
-   * form saves from any step: see isEditFormWithSteps below.
-   */
-  saveFromAnyStep?: boolean | undefined;
 }
 
 const BasicFormModal: <T extends GenericObject>(
@@ -40,69 +46,66 @@ const BasicFormModal: <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(props.isLoading));
-  const formRef: any = useRef<any>(null);
+  const formRef: React.MutableRefObject<BasicFormHandle | null> =
+    useRef<BasicFormHandle | null>(null);
 
   /*
-   * A stepped form's button moves on until the last step, and says so: it
-   * read the action ("Change State", "Add Subscribers") on every step while
-   * it only went to the next one. Like ModelFormModal, a stepped dialog is
-   * also widened to fit the step list beside the fields.
+   * A stepped form walks with a plain Next and offers the dialog's action
+   * ("Change State", "Add Subscribers") on its last step only, as its one
+   * primary button (Forms/Utils/SteppedFormFooter.ts). Like ModelFormModal,
+   * a stepped dialog is also widened to fit the step list beside the
+   * fields.
    */
   const hasSteps: boolean = Boolean(
     props.formProps.steps && props.formProps.steps.length > 0,
   );
 
+  // Starts on Next: the form reports where it is once its first step opens.
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(!hasSteps);
+
   /*
-   * A stepped EDIT dialog keeps its save button on every step, like
-   * ModelFormModal's stepped edit forms: every step is filled in already,
-   * and a wizard whose only button read "Next" lost the change someone made
-   * on an earlier step when they closed it. The save validates every step;
-   * a plain Next walks on; the step list opens any step.
+   * Without a submitButtonText the dialog's own default ("Save") is the
+   * action: Modal draws it when handed none.
    */
-  const isEditFormWithSteps: boolean =
-    hasSteps && Boolean(props.saveFromAnyStep);
-
-  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
-
-  const submitButtonText: string | undefined =
-    hasSteps && !isOnLastFormStep && !isEditFormWithSteps
-      ? "Next"
-      : props.submitButtonText;
+  const footer: SteppedModalFooter = getSteppedModalFooter({
+    hasSteps: hasSteps,
+    isOnLastStep: isOnLastFormStep,
+    onAction: () => {
+      formRef.current?.submitAllSteps();
+    },
+    onNext: () => {
+      formRef.current?.goToNextStep();
+    },
+  });
 
   useEffect(() => {
     setIsLoading(Boolean(props.isLoading));
   }, [props.isLoading]);
 
+  // Which folded sections are open: an editor in one widens the dialog.
+  const openFormSections: OpenFormSections = useOpenFormSections();
+
   return (
     <Modal
       {...props}
-      submitButtonText={submitButtonText}
-      modalWidth={
-        props.modalWidth ?? (hasSteps ? ModalWidth.Medium : undefined)
-      }
+      submitButtonText={props.submitButtonText}
+      /*
+       * A form with a Markdown editor opens wide, its toolbar on one line -
+       * or grows wide when a folded section with one is opened.
+       */
+      modalWidth={getFormModalWidth({
+        fields: props.formProps.fields,
+        width: props.modalWidth ?? (hasSteps ? ModalWidth.Medium : undefined),
+        openSectionIds: openFormSections.openSectionIds,
+      })}
       submitButtonType={ButtonType.Submit}
       isLoading={isLoading}
-      onSubmit={() => {
-        if (isEditFormWithSteps) {
-          formRef.current.submitAllSteps();
-          return;
-        }
-
-        formRef.current.submitForm();
-      }}
-      secondaryButton={
-        isEditFormWithSteps && !isOnLastFormStep
-          ? {
-              title: "Next",
-              dataTestId: "modal-footer-next-button",
-              onClick: () => {
-                formRef.current.submitForm();
-              },
-            }
-          : undefined
-      }
+      onSubmit={footer.onSubmit}
+      secondaryButton={footer.secondaryButton}
     >
-      <>
+      <OpenFormSectionsContext.Provider
+        value={openFormSections.reportSectionOpen}
+      >
         {isLoading && <ComponentLoader />}
 
         {props.error && <ErrorMessage message={props.error} />}
@@ -116,9 +119,6 @@ const BasicFormModal: <T extends GenericObject>(
               props.title,
             )}
             hideSubmitButton={true}
-            allowAnyStepNavigation={
-              isEditFormWithSteps || props.formProps.allowAnyStepNavigation
-            }
             onIsLastFormStep={(isLastFormStep: boolean) => {
               setIsOnLastFormStep(isLastFormStep);
               props.formProps.onIsLastFormStep?.(isLastFormStep);
@@ -132,7 +132,7 @@ const BasicFormModal: <T extends GenericObject>(
             }}
           />
         )}
-      </>
+      </OpenFormSectionsContext.Provider>
     </Modal>
   );
 };

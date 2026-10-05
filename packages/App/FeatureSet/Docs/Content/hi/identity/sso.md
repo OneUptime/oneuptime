@@ -27,13 +27,14 @@ SSO integration निम्नलिखित लाभ प्रदान क�
    - अपने identity provider से **साइन ऑन URL** दर्ज करें
    - अपने identity provider से **जारीकर्ता** (Entity ID) दर्ज करें
    - अपने identity provider से **सार्वजनिक प्रमाणपत्र** paste करें
-   - **Signature Algorithm** चुनें (जैसे `RSA-SHA-256`)
-   - **Digest Algorithm** चुनें (जैसे `SHA256`)
+   - **साइन-इन** चरण में, **टीमें** आपके प्रोजेक्ट की सदस्य टीम से शुरू होती हैं: पहली बार साइन इन करने वाले लोग इन टीमों में शामिल होते हैं। केवल वही टीमें स्वीकार की जाती हैं जिनमें आप खुद किसी को आमंत्रित कर सकते हैं: आपके पास मौजूद एक्सेस से ज़्यादा एक्सेस देने वाली टीम का नाम **टीमें** के नीचे दिखाया जाता है
+   - बाकी सब **और फ़ील्ड** में अपने आप भर जाता है: **हस्ताक्षर विधि** (`RSA-SHA256`), **डाइजेस्ट विधि** (`SHA256`) और एक विवरण ("Sign in with" और नाम)। इन्हें तभी बदलें जब आपके identity provider को इसकी ज़रूरत हो
 
 3. **OneUptime SSO Metadata प्राप्त करें**
-   - सहेजने के बाद, **SSO कॉन्फ़िग देखें** button पर क्लिक करें
+   - सहेजने पर **SSO Configuration** dialog खुल जाता है। आप इसे **SSO कॉन्फ़िग देखें** button से फिर से खोल सकते हैं
    - **Identifier (Entity ID)** copy करें — यह आपकी IdP configuration में आवश्यक है
    - **Reply URL (Assertion Consumer Service URL)** copy करें — यह आपकी IdP configuration में आवश्यक है
+   - नया provider बंद अवस्था में शुरू होता है। जब आपके IdP में ये दोनों मान जुड़ जाएँ, तो provider को संपादित करें और **सक्षम** चालू करें
 
 ## Keycloak SAML Configuration
 
@@ -54,8 +55,7 @@ Keycloak एक लोकप्रिय open-source identity और access mana
    - **साइन ऑन URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **जारीकर्ता**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **प्रमाणपत्र**: नीचे [चरण 2](#चरण-2-keycloak-certificate-प्राप्त-करें) देखें
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **हस्ताक्षर विधि** और **डाइजेस्ट विधि**: **और फ़ील्ड** में पहले से सेट हैं (`RSA-SHA256` और `SHA256`)
 4. configuration सहेजें
 
 ### चरण 2: Keycloak Certificate प्राप्त करें
@@ -121,8 +121,7 @@ Microsoft Entra ID, Microsoft की cloud-based identity और access manageme
    - **साइन ऑन URL**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
    - **जारीकर्ता**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
    - **प्रमाणपत्र**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **हस्ताक्षर विधि** और **डाइजेस्ट विधि**: **और फ़ील्ड** में पहले से सेट हैं (`RSA-SHA256` और `SHA256`)
 4. **SSO कॉन्फ़िग देखें** पर क्लिक करें और **Identifier (Entity ID)** और **Reply URL (Assertion Consumer Service URL)** copy करें — आपको Entra ID के लिए इनकी आवश्यकता होगी
 
 ### चरण 2: Microsoft Entra ID में Enterprise Application बनाएं
@@ -206,8 +205,7 @@ Okta एक व्यापक रूप से उपयोग किया ज
    - **साइन ऑन URL**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा
    - **जारीकर्ता**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा
    - **प्रमाणपत्र**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **हस्ताक्षर विधि** और **डाइजेस्ट विधि**: **और फ़ील्ड** में पहले से सेट हैं (`RSA-SHA256` और `SHA256`)
 4. **SSO कॉन्फ़िग देखें** पर क्लिक करें और **Identifier (Entity ID)** और **Reply URL (Assertion Consumer Service URL)** copy करें — आपको Okta के लिए इनकी आवश्यकता होगी
 
 ### चरण 2: Okta में SAML Application बनाएं
@@ -287,8 +285,21 @@ OneUptime का SSO implementation SAML 2.0 protocol उपयोग करत�
    - **साइन ऑन URL** (SSO endpoint)
    - **जारीकर्ता** (IdP का Entity ID)
    - **सार्वजनिक प्रमाणपत्र** (X.509 signing certificate)
-4. **Signature Algorithm** को `RSA-SHA-256` और **Digest Algorithm** को `SHA256` पर सेट करें
+4. **हस्ताक्षर विधि** (`RSA-SHA256`) और **डाइजेस्ट विधि** (`SHA256`) **और फ़ील्ड** में पहले से सेट हैं; इन्हें तभी बदलें जब आपका identity provider अलग तरह से हस्ताक्षर करता हो
+
+## OpenID Connect (OIDC)
+
+कोई प्रोजेक्ट OpenID Connect प्रदाता से भी साइन इन कर सकता है, जैसे Google Workspace, Okta, Microsoft Entra ID, Auth0 या Keycloak।
+
+1. अपने identity provider में एक ऐप (OIDC client) पंजीकृत करें और उसका **जारीकर्ता URL**, **क्लाइंट ID** और **क्लाइंट सीक्रेट** कॉपी करें।
+2. OneUptime में **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **OIDC** पर जाएं और **OIDC बनाएँ** पर क्लिक करें।
+3. एक **नाम** (जो लोग साइन-इन पेज पर देखते हैं), **जारीकर्ता URL**, **क्लाइंट ID** और **क्लाइंट सीक्रेट** दर्ज करें। आप प्रदाता का discovery URL भी **जारीकर्ता URL** में चिपका सकते हैं।
+4. **साइन-इन** चरण में **टीमें** पहले से आपके प्रोजेक्ट की सदस्य टीम पर सेट होती हैं: पहली बार साइन इन करने वाले लोग इन टीमों में जुड़ते हैं। बाकी सब **और फ़ील्ड** में अपने आप भर जाता है: **डिस्कवरी URL** (जारीकर्ता के बाद `/.well-known/openid-configuration`), **दायरे** (`openid email profile`), `email` और `name` claim नाम, और एक विवरण ("Sign in with" और नाम)। इन्हें तभी बदलें जब आपके प्रदाता को ज़रूरत हो। केवल वही टीमें स्वीकार की जाती हैं जिनमें आप खुद किसी को आमंत्रित कर सकते हैं: आपके पास मौजूद एक्सेस से ज़्यादा एक्सेस देने वाली टीम का नाम **टीमें** के नीचे दिखाया जाता है।
+5. सहेजें। **OIDC Configuration** डायलॉग **Redirect URI** के साथ खुलता है: इसे अपने ऐप के अनुमत redirect URI में जोड़ें। नया प्रदाता शुरू में बंद रहता है; फिर इसे संपादित करें और **सक्षम** चालू करें।
+6. प्रोजेक्ट के लिए SSO अनिवार्य करने से पहले, **Test OpenID Connect (OIDC)** कार्ड के लिंक से प्रदाता के ज़रिए साइन इन करके देखें।
 
 ## SSO और Roles पर नोट्स
 
 OneUptime वर्तमान में अपने identity provider से SAML roles mapping का समर्थन नहीं करता। Role-based access को OneUptime के **प्रोजेक्ट सेटिंग्स** > **SSO** settings के भीतर अलग से configure किया जाना चाहिए, जहाँ आप SSO users के लिए default roles assign कर सकते हैं।
+
+किसी प्रोवाइडर की टीमें तय करती हैं कि उससे साइन इन करने वाले लोग क्या कर सकते हैं, इसलिए प्रोवाइडर केवल उन्हीं टीमों के साथ सेव होता है जिनमें सेव करने वाला व्यक्ति किसी को आमंत्रित कर सकता है। हर बार सेव करने पर इनकी फिर से जाँच होती है: जिस प्रोवाइडर की टीमें आपके पास मौजूद एक्सेस से ज़्यादा एक्सेस देती हैं, उसे केवल वही व्यक्ति बदल सकता है जिसका एक्सेस उन्हें कवर करता हो, जैसे कोई प्रोजेक्ट ओनर। इस जाँच से पहले सेव किए गए प्रोवाइडर लोगों को उनकी टीमों में जोड़ते रहते हैं। जो भी व्यक्ति किसी प्रोवाइडर को संपादित कर सकता है, वह अब भी उसे बंद कर सकता है, ताकि उसे तुरंत रोका जा सके।

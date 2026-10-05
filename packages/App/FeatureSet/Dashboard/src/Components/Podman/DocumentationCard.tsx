@@ -9,6 +9,7 @@ import {
   getPodmanSetupGuide,
   resolvePodmanInstallMethod,
 } from "../../Pages/Podman/Utils/DocumentationMarkdown";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   title: string;
@@ -29,9 +30,12 @@ const PodmanDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Podman}
+      newKeyName={translationKey("Podman key")}
       optionsLabel="How do you want to run the agent?"
       options={PODMAN_INSTALL_METHODS}
-      keyStepDescription="The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getPodmanSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,

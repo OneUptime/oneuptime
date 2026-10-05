@@ -4,8 +4,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -102,6 +103,13 @@ import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/Metr
 import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateText,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface ResourceLink {
   title: string;
@@ -297,7 +305,7 @@ export function titleWithTooltip(
 ): ReactElement {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span>{title}</span>
+      <span>{translateText(title)}</span>
       <InfoTooltip label={title} text={description} />
     </span>
   );
@@ -311,17 +319,17 @@ function formatRelativeTime(timestamp: string): string {
     const diffMins: number = Math.floor(diffMs / 60000);
 
     if (diffMins < 1) {
-      return "just now";
+      return translateTemplate("just now");
     }
     if (diffMins < 60) {
-      return `${diffMins}m ago`;
+      return translateTemplate("{{minutes}}m ago", { minutes: diffMins });
     }
     const diffHours: number = Math.floor(diffMins / 60);
     if (diffHours < 24) {
-      return `${diffHours}h ago`;
+      return translateTemplate("{{hours}}h ago", { hours: diffHours });
     }
     const diffDays: number = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
+    return translateTemplate("{{days}}d ago", { days: diffDays });
   } catch {
     return timestamp;
   }
@@ -330,6 +338,7 @@ function formatRelativeTime(timestamp: string): string {
 const KubernetesClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -1536,7 +1545,13 @@ const KubernetesClusterOverview: FunctionComponent<
           value={formatPercent(s.cpuPercent)}
           sublabel={
             nodeCount > 0
-              ? `across ${nodeCount} node${nodeCount === 1 ? "" : "s"}`
+              ? translator.translatePlural(
+                  {
+                    one: "across {{count}} node",
+                    other: "across {{count}} nodes",
+                  },
+                  nodeCount,
+                )
               : "across nodes"
           }
           percent={s.cpuPercent}
@@ -1681,7 +1696,9 @@ const KubernetesClusterOverview: FunctionComponent<
                 : "bg-red-50 text-red-700 ring-red-200"
           }`}
         >
-          {availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2)}% uptime
+          {translator.translateTemplate("{{percent}}% uptime", {
+            percent: availabilityPct.toFixed(availabilityPct >= 99.95 ? 1 : 2),
+          })}
         </span>
       );
 
@@ -1691,11 +1708,12 @@ const KubernetesClusterOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Availability
+                {translator.translateText("Availability")}
               </h2>
               <p className="text-xs text-gray-500">
-                Per-bucket presence of cluster heartbeats over the selected time
-                range
+                {translator.translateText(
+                  "Per-bucket presence of cluster heartbeats over the selected time range",
+                )}
               </p>
             </div>
           </div>
@@ -1715,10 +1733,12 @@ const KubernetesClusterOverview: FunctionComponent<
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Cluster resource usage
+                {translator.translateText("Cluster resource usage")}
               </h2>
               <p className="text-xs text-gray-500">
-                Aggregated across nodes over the selected time range
+                {translator.translateText(
+                  "Aggregated across nodes over the selected time range",
+                )}
               </p>
             </div>
           </div>
@@ -1872,31 +1892,46 @@ const KubernetesClusterOverview: FunctionComponent<
     if (nodeCount > 0) {
       specChips.push({
         icon: IconProp.Server,
-        label: `${nodeCount} node${nodeCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} node", other: "{{count}} nodes" },
+          nodeCount,
+        ),
       });
     }
     if (podCount > 0) {
       specChips.push({
         icon: IconProp.Circle,
-        label: `${podCount} pod${podCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} pod", other: "{{count}} pods" },
+          podCount,
+        ),
       });
     }
     if (namespaceCount > 0) {
       specChips.push({
         icon: IconProp.Folder,
-        label: `${namespaceCount} namespace${namespaceCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} namespace", other: "{{count}} namespaces" },
+          namespaceCount,
+        ),
       });
     }
     if (deploymentCount > 0) {
       specChips.push({
         icon: IconProp.Layers,
-        label: `${deploymentCount} deployment${deploymentCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} deployment", other: "{{count}} deployments" },
+          deploymentCount,
+        ),
       });
     }
     if (containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: `${containerCount} container${containerCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} container", other: "{{count}} containers" },
+          containerCount,
+        ),
       });
     }
 
@@ -2014,7 +2049,9 @@ const KubernetesClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -2039,7 +2076,9 @@ const KubernetesClusterOverview: FunctionComponent<
                           icon={chip.icon}
                           className="h-3 w-3 text-gray-500"
                         />
-                        <span className="font-medium">{chip.label}</span>
+                        <span className="font-medium">
+                          {translator.translateText(chip.label)}
+                        </span>
                       </span>
                     );
                   },
@@ -2073,7 +2112,7 @@ const KubernetesClusterOverview: FunctionComponent<
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
                       >
                         <span className="font-semibold">{chip.value}</span>
-                        {chip.label}
+                        {translator.translateText(chip.label)}
                         <InfoTooltip
                           label={chip.label}
                           text={chip.description}
@@ -2191,7 +2230,7 @@ const KubernetesClusterOverview: FunctionComponent<
                             {node.name}
                           </span>
                           <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">
-                            Node
+                            {translator.translateText("Node")}
                           </span>
                           {pressureLabels.map((label: string) => {
                             return (
@@ -2303,7 +2342,9 @@ const KubernetesClusterOverview: FunctionComponent<
                         ) : (
                           !pod.reason && (
                             <p className="text-sm text-gray-400 italic">
-                              No reason reported yet — click to inspect the pod.
+                              {translator.translateText(
+                                "No reason reported yet — click to inspect the pod.",
+                              )}
                             </p>
                           )
                         )}
@@ -2369,7 +2410,9 @@ const KubernetesClusterOverview: FunctionComponent<
                 {nodeCount.toString()}
                 {nodeHealthSummary.notReady > 0 && (
                   <span className="text-sm text-red-500 ml-1">
-                    ({nodeHealthSummary.notReady} not ready)
+                    {translator.translateTemplate("({{notReady}} not ready)", {
+                      notReady: nodeHealthSummary.notReady,
+                    })}
                   </span>
                 )}
               </span>
@@ -2515,7 +2558,14 @@ const KubernetesClusterOverview: FunctionComponent<
                     className="inline-flex items-center gap-1"
                   >
                     <StatusBadge
-                      text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
+                      text={translator.translatePlural(
+                        {
+                          one: "{{count}} node: {{label}}",
+                          other: "{{count}} nodes: {{label}}",
+                        },
+                        badge.count,
+                        { label: translatableTerm(badge.label) },
+                      )}
                       type={StatusBadgeType.Danger}
                     />
                     <InfoTooltip label={badge.label} text={badge.description} />
@@ -2570,12 +2620,14 @@ const KubernetesClusterOverview: FunctionComponent<
                       KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.topCpuPods,
                     )}
                   </h4>
-                  <p className="text-xs text-gray-500">Top 5 pods by CPU</p>
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText("Top 5 pods by CPU")}
+                  </p>
                 </div>
               </div>
               {topCpuPods.length === 0 ? (
                 <p className="text-gray-400 text-sm py-8 text-center">
-                  No CPU usage data available.
+                  {translator.translateText("No CPU usage data available.")}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -2658,12 +2710,14 @@ const KubernetesClusterOverview: FunctionComponent<
                       KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.topMemoryPods,
                     )}
                   </h4>
-                  <p className="text-xs text-gray-500">Top 5 pods by memory</p>
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText("Top 5 pods by memory")}
+                  </p>
                 </div>
               </div>
               {topMemoryPods.length === 0 ? (
                 <p className="text-gray-400 text-sm py-8 text-center">
-                  No memory usage data available.
+                  {translator.translateText("No memory usage data available.")}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -2873,7 +2927,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   }}
                   className="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
                 >
-                  View All Events →
+                  {translator.translateText("View All Events →")}
                 </span>
               </div>
             </Card>
@@ -2881,77 +2935,25 @@ const KubernetesClusterOverview: FunctionComponent<
         })()
       )}
 
-      {/* Cluster Details */}
+      {/*
+       * Cluster Details: read here, edited in one place - the same card at
+       * the top of the cluster's Settings page (ResourceDetailsCard).
+       */}
       <CardModelDetail<KubernetesCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "Cluster Info",
-            id: "cluster-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "Cluster Details",
-          description: "Basic information about this Kubernetes cluster.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        editButtonText="Edit Cluster"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            stepId: "cluster-info",
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
-            field: {
-              description: true,
-            },
-            stepId: "cluster-info",
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production cluster running in US East",
-          },
-          {
-            field: {
-              clusterIdentifier: true,
-            },
-            stepId: "cluster-info",
-            title: "Cluster Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east-1",
-            description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: KubernetesCluster,
@@ -2962,14 +2964,14 @@ const KubernetesClusterOverview: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Cluster Name",
+              title: "Display Name",
               fieldType: FieldType.Text,
             },
             {
               field: {
                 clusterIdentifier: true,
               },
-              title: "Cluster Identifier",
+              title: "Cluster Name (clusterName)",
               fieldType: FieldType.Text,
             },
             {
@@ -2991,8 +2993,20 @@ const KubernetesClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * chart (AgentVersion).
+               */
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.KubernetesAgent}
+                    version={item.agentVersion}
+                    placeholder="Not reported"
+                  />
+                );
+              },
             },
             {
               field: {

@@ -1164,16 +1164,50 @@ test.describe("Forms", () => {
     /*
      * The description editor has its toolbar, but no image upload: an
      * upload needs a signed-in user, and a submitter may be nobody.
+     *
+     * The toolbar keeps to one line (MarkdownToolbarLayout): the buttons
+     * that do not fit wait, in order, under More formatting, and this page
+     * is a reading column narrower than the whole toolbar. What the editor
+     * offers is its line and that menu together, so both are read.
      */
     const descriptionEditor: Locator = submitter.getByTestId(
       `form-field-${QUESTION_IDS.description}`,
     );
+    const toolbar: Locator = descriptionEditor.getByTestId(
+      "markdown-editor-toolbar",
+    );
+    await expect(toolbar.getByRole("button", { name: /^Bold/ })).toBeVisible();
+    const moreFormatting: Locator = toolbar.getByRole("button", {
+      name: "More formatting",
+      exact: true,
+    });
+    const formattingMenu: Locator = submitter.getByRole("menu", {
+      name: "More formatting",
+      exact: true,
+    });
+    if ((await moreFormatting.count()) > 0) {
+      await moreFormatting.click();
+      await expect(formattingMenu).toBeVisible();
+    }
     await expect(
-      descriptionEditor.getByRole("button", { name: "Link", exact: true }),
+      toolbar
+        .getByRole("button", { name: "Link", exact: true })
+        .or(
+          formattingMenu.getByRole("menuitem", { name: "Link", exact: true }),
+        ),
     ).toBeVisible();
+    await expect(toolbar.getByRole("button", { name: /Image/ })).toHaveCount(0);
     await expect(
-      descriptionEditor.getByRole("button", { name: "Image", exact: true }),
+      formattingMenu.getByRole("menuitem", { name: /Image/ }),
     ).toHaveCount(0);
+    // Nor a way to drop or pick a file: the editor has no file input at all.
+    await expect(descriptionEditor.locator('input[type="file"]')).toHaveCount(
+      0,
+    );
+    if ((await moreFormatting.count()) > 0) {
+      await submitter.keyboard.press("Escape");
+      await expect(formattingMenu).toHaveCount(0);
+    }
 
     // The form's own severity is preselected; the submitter may change it.
     await expect(form).toContainText(ctx.formSeverityName);
@@ -1519,7 +1553,13 @@ test.describe("Forms", () => {
       },
     );
     expect(notJson.status()).toBe(400);
-    expect(await notJson.text()).toContain(SUBMISSION_BODY_MESSAGE);
+    /*
+     * Read as JSON, not searched as text: the message quotes "data", and
+     * the response body escapes those quotes.
+     */
+    expect(((await notJson.json()) as JSONish)["message"]).toBe(
+      SUBMISSION_BODY_MESSAGE,
+    );
   });
 
   test("C4. an incident form link from before Forms opens the same form", async () => {
@@ -1769,7 +1809,7 @@ test.describe("Forms", () => {
     ).toHaveLength(2);
   });
 
-  test("D3. On Submit shows where each field comes from, and its settings save from the first step", async () => {
+  test("D3. On Submit shows where each field comes from, and a change on its first step saves from the last", async () => {
     test.setTimeout(240000);
     const page: Page = ctx.page;
 
@@ -1792,7 +1832,12 @@ test.describe("Forms", () => {
     await expect(severityRow).toContainText(ctx.formSeverityName);
     await expect(mapping.getByTestId("form-mapping-row-labels")).toBeVisible();
 
-    // Edit Settings: the Default Title, then Save Changes from that first step.
+    /*
+     * Edit Settings: the Default Title on the first step. Save Changes is on
+     * the last step only - the first shows a plain Next - and every step is
+     * filled in already, so the step list opens the last one (Owners) to
+     * save from.
+     */
     await mapping
       .getByRole("button", { name: "Edit Settings", exact: true })
       .click();
@@ -1801,6 +1846,16 @@ test.describe("Forms", () => {
     await modal
       .getByRole("textbox", { name: /^Default Title/ })
       .fill(defaultTitle);
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveCount(
+      0,
+    );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveText(
+      "Next",
+    );
+    await modal
+      .getByRole("navigation", { name: "Progress" })
+      .getByText("Owners", { exact: true })
+      .click();
     await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
       "Save Changes",
     );

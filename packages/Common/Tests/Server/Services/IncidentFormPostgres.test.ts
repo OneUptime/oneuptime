@@ -1,12 +1,24 @@
 import Entities from "../../../Models/DatabaseModels/Index";
+import File from "../../../Models/DatabaseModels/File";
 import Form from "../../../Models/DatabaseModels/Form";
 import FormSubmission from "../../../Models/DatabaseModels/FormSubmission";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import FileService, { FileFacts } from "../../../Server/Services/FileService";
 import FormService from "../../../Server/Services/FormService";
 import FormSubmissionService from "../../../Server/Services/FormSubmissionService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Email from "../../../Types/Email";
+import MimeType from "../../../Types/File/MimeType";
+import {
+  FORM_FAVICON_NOT_FOUND_MESSAGE,
+  FORM_LOGO_MAX_BYTES,
+  FORM_LOGO_NOT_FOUND_MESSAGE,
+  FORM_LOGO_TOO_LARGE_MESSAGE,
+  FORM_LOGO_TYPE_MESSAGE,
+  PublicFormImage,
+} from "../../../Types/Form/FormBranding";
+import { PublicForm } from "../../../Types/Form/FormPublic";
 import {
   FormField,
   FormFieldSource,
@@ -56,7 +68,14 @@ import { DataSource } from "typeorm";
  *   outside that schema, and the schema is dropped afterwards.
  *
  * The production FormService and FormSubmissionService run against the
- * clones; only realtime and workflow triggers are stubbed.
+ * clones; only realtime and workflow triggers are stubbed (and, for the
+ * public read, the plan check, which reads billing this suite has none of).
+ *
+ * A form's branding - its logo and favicon, Files - runs here too: the
+ * project an upload is stamped with, the check of the File a write names
+ * (its type, size and project, measured in Postgres), the public read that
+ * joins the form's own files in the one lookup and checks their project
+ * again, and that deleting a file only takes it off the form.
  */
 // describe.skip's type is the one both branches share.
 const describePostgres: typeof describe.skip =
@@ -67,6 +86,7 @@ const describePostgres: typeof describe.skip =
 const TABLES: Array<string> = [
   "Project",
   "User",
+  "File",
   "Incident",
   "ScheduledMaintenance",
   "IncidentCustomField",
@@ -268,6 +288,32 @@ describePostgres("Forms against a migrated Postgres", () => {
     });
   }
 
+  /*
+   * A File row, as an upload leaves it: private, with its bytes and the
+   * project it was uploaded in (null for none, as every file from before
+   * files recorded one).
+   */
+  async function seedFile(
+    fileType: string,
+    bytes: Buffer,
+    project: ObjectID | null = projectId,
+  ): Promise<ObjectID> {
+    const id: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."File"
+       ("_id", "name", "file", "fileType", "slug", "isPublic", "projectId", "version")
+       VALUES ($1, 'logo', $2, $3, $4, false, $5, 1)`,
+      [
+        id.toString(),
+        bytes,
+        fileType,
+        `logo-${id.toString()}`,
+        project ? project.toString() : null,
+      ],
+    );
+    return id;
+  }
+
   async function storedForm(id: ObjectID): Promise<Record<string, unknown>> {
     const rows: Array<Record<string, unknown>> = await database.query(
       `SELECT * FROM "${schema}"."Form" WHERE "_id" = $1`,
@@ -337,6 +383,9 @@ describePostgres("Forms against a migrated Postgres", () => {
         // confdeltype: c = CASCADE, n = SET NULL
         ["createdByUserId", "User", "n"],
         ["deletedByUserId", "User", "n"],
+        // A deleted logo or favicon only leaves the form without it.
+        ["faviconFileId", "File", "n"],
+        ["logoFileId", "File", "n"],
         ["projectId", "Project", "c"],
       ]);
     });
@@ -619,6 +668,253 @@ describePostgres("Forms against a migrated Postgres", () => {
 
       expect(after["fields"]).toEqual(before["fields"]);
       expect(after["version"]).toBe(before["version"]);
+    });
+  });
+
+  describe("branding", () => {
+    const LOGO: Buffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+    const FAVICON: Buffer = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg"/>',
+    );
+
+    test("a form keeps its logo and favicon, and its public page gets them inside the form", async () => {
+      jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true);
+
+      const logoId: ObjectID = await seedFile("image/png", LOGO);
+      const faviconId: ObjectID = await seedFile("image/svg+xml", FAVICON);
+
+      const form: Form = await createForm({
+        logoFileId: logoId,
+        logoAltText: "Acme Inc.",
+        faviconFileId: faviconId,
+      });
+      const row: Record<string, unknown> = await storedForm(form.id!);
+
+      expect(row["logoFileId"]).toBe(logoId.toString());
+      expect(row["faviconFileId"]).toBe(faviconId.toString());
+      expect(row["logoAltText"]).toBe("Acme Inc.");
+
+      // The real lookup: the form's own files, joined in the one query.
+      const told: PublicForm = await FormService.getPublicForm({
+        shareKey: String(row["shareKey"]),
+        clientIp: "203.0.113.7",
+      });
+
+      expect(told.logo).toEqual({
+        type: "image/png",
+        data: LOGO.toString("base64"),
+      } as PublicFormImage);
+      expect(told.logoAltText).toBe("Acme Inc.");
+      expect(told.favicon).toEqual({
+        type: "image/svg+xml",
+        data: FAVICON.toString("base64"),
+      } as PublicFormImage);
+
+      // The files themselves were never made public.
+      const files: Array<{ isPublic: boolean }> = await database.query(
+        `SELECT "isPublic" FROM "${schema}"."File" ORDER BY "createdAt"`,
+      );
+      expect(files).toEqual([{ isPublic: false }, { isPublic: false }]);
+    });
+
+    test("a form without branding tells its page nothing more than before", async () => {
+      jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true);
+
+      const form: Form = await createForm();
+      const told: PublicForm = await FormService.getPublicForm({
+        shareKey: String((await storedForm(form.id!))["shareKey"]),
+        clientIp: "203.0.113.7",
+      });
+
+      expect(Object.keys(told).sort()).toEqual(
+        ["fields", "isCaptchaRequired", "name"].sort(),
+      );
+    });
+
+    test("a file that is not an image is refused as a logo, and nothing is stored", async () => {
+      const pdfId: ObjectID = await seedFile(
+        "application/pdf",
+        Buffer.from("%PDF-1.7"),
+      );
+
+      await expect(createForm({ logoFileId: pdfId })).rejects.toThrow(
+        FORM_LOGO_TYPE_MESSAGE,
+      );
+
+      const rows: Array<{ count: string }> = await database.query(
+        `SELECT count(*)::text AS "count" FROM "${schema}"."Form"`,
+      );
+      expect(rows[0]!.count).toBe("0");
+    });
+
+    test("an upload is stamped with the request's project, never the one its body names", async () => {
+      const upload: (props: {
+        tenantId?: ObjectID;
+      }) => Promise<Record<string, unknown>> = async (props: {
+        tenantId?: ObjectID;
+      }): Promise<Record<string, unknown>> => {
+        const file: File = new File();
+        file.name = "logo.png";
+        file.file = LOGO;
+        file.fileType = MimeType.png;
+        file.isPublic = false;
+        (file as unknown as Record<string, unknown>)["projectId"] =
+          otherProjectId;
+
+        const created: File = await FileService.create({
+          data: file,
+          props: { isRoot: true, ...props },
+        });
+
+        const rows: Array<Record<string, unknown>> = await database.query(
+          `SELECT "projectId" FROM "${schema}"."File" WHERE "_id" = $1`,
+          [created.id!.toString()],
+        );
+
+        return rows[0]!;
+      };
+
+      expect((await upload({ tenantId: projectId }))["projectId"]).toBe(
+        projectId.toString(),
+      );
+      expect((await upload({}))["projectId"]).toBeNull();
+    });
+
+    test("a file's facts are its type, its size and its project, measured in Postgres", async () => {
+      const logoId: ObjectID = await seedFile("image/png", LOGO);
+      const unownedId: ObjectID = await seedFile("image/png", LOGO, null);
+
+      const facts: FileFacts | null = await FileService.getFileFacts(logoId);
+
+      expect(facts).toEqual({
+        fileType: "image/png",
+        size: LOGO.byteLength,
+        projectId: projectId,
+      });
+      expect((await FileService.getFileFacts(unownedId))?.projectId).toBeNull();
+      expect(await FileService.getFileFacts(ObjectID.generate())).toBeNull();
+
+      // A deleted file is no file.
+      await database.query(
+        `UPDATE "${schema}"."File" SET "deletedAt" = now() WHERE "_id" = $1`,
+        [logoId.toString()],
+      );
+      expect(await FileService.getFileFacts(logoId)).toBeNull();
+    });
+
+    test("a file of another project, or of none, is refused as one that does not exist", async () => {
+      const foreignId: ObjectID = await seedFile(
+        "image/png",
+        LOGO,
+        otherProjectId,
+      );
+      const unownedId: ObjectID = await seedFile("image/png", LOGO, null);
+
+      await expect(createForm({ logoFileId: foreignId })).rejects.toThrow(
+        FORM_LOGO_NOT_FOUND_MESSAGE,
+      );
+      await expect(createForm({ faviconFileId: unownedId })).rejects.toThrow(
+        FORM_FAVICON_NOT_FOUND_MESSAGE,
+      );
+      await expect(
+        createForm({ logoFileId: ObjectID.generate() }),
+      ).rejects.toThrow(FORM_LOGO_NOT_FOUND_MESSAGE);
+
+      // The same file is a fine logo for a form of its own project.
+      await expect(
+        createForm({ projectId: otherProjectId, logoFileId: foreignId }),
+      ).resolves.toBeDefined();
+    });
+
+    test("a logo's size is measured in Postgres: 512 KB passes, one byte more is refused", async () => {
+      const largest: ObjectID = await seedFile(
+        "image/png",
+        Buffer.alloc(FORM_LOGO_MAX_BYTES, 1),
+      );
+      const tooLarge: ObjectID = await seedFile(
+        "image/png",
+        Buffer.alloc(FORM_LOGO_MAX_BYTES + 1, 1),
+      );
+
+      await expect(createForm({ logoFileId: largest })).resolves.toBeDefined();
+      await expect(createForm({ logoFileId: tooLarge })).rejects.toThrow(
+        FORM_LOGO_TOO_LARGE_MESSAGE,
+      );
+    });
+
+    test("saving a form that already shows its logo passes; pointing it at another project's file does not", async () => {
+      const logoId: ObjectID = await seedFile("image/png", LOGO);
+      const foreignId: ObjectID = await seedFile(
+        "image/png",
+        LOGO,
+        otherProjectId,
+      );
+      const form: Form = await createForm({ logoFileId: logoId });
+
+      await FormService.updateOneById({
+        id: form.id!,
+        data: { logoFileId: logoId, logoAltText: "Acme Inc." },
+        props: { isRoot: true },
+      });
+
+      await expect(
+        FormService.updateOneById({
+          id: form.id!,
+          data: { logoFileId: foreignId },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(FORM_LOGO_NOT_FOUND_MESSAGE);
+
+      const row: Record<string, unknown> = await storedForm(form.id!);
+
+      expect(row["logoFileId"]).toBe(logoId.toString());
+      expect(row["logoAltText"]).toBe("Acme Inc.");
+    });
+
+    test("the public read hands over no file of another project, even when a row names one", async () => {
+      jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true);
+
+      const foreignId: ObjectID = await seedFile(
+        "image/png",
+        LOGO,
+        otherProjectId,
+      );
+      const unownedId: ObjectID = await seedFile(
+        "image/svg+xml",
+        FAVICON,
+        null,
+      );
+      const form: Form = await createForm({ logoAltText: "Someone Else" });
+
+      // Past every write check, as only SQL can.
+      await database.query(
+        `UPDATE "${schema}"."Form" SET "logoFileId" = $1, "faviconFileId" = $2 WHERE "_id" = $3`,
+        [foreignId.toString(), unownedId.toString(), form.id!.toString()],
+      );
+
+      const told: PublicForm = await FormService.getPublicForm({
+        shareKey: String((await storedForm(form.id!))["shareKey"]),
+        clientIp: "203.0.113.7",
+      });
+
+      expect(told.logo).toBeUndefined();
+      expect(told.logoAltText).toBeUndefined();
+      expect(told.favicon).toBeUndefined();
+      expect(JSON.stringify(told)).not.toContain(LOGO.toString("base64"));
+    });
+
+    test("deleting the logo's file only takes it off the form", async () => {
+      const logoId: ObjectID = await seedFile("image/png", LOGO);
+      const form: Form = await createForm({ logoFileId: logoId });
+
+      await database.query(`DELETE FROM "${schema}"."File" WHERE "_id" = $1`, [
+        logoId.toString(),
+      ]);
+
+      const row: Record<string, unknown> = await storedForm(form.id!);
+
+      expect(row["logoFileId"]).toBeNull();
+      expect(row["name"]).toBe(form.name);
     });
   });
 

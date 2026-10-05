@@ -29,6 +29,14 @@ import { consumePressForAnchoredPopup } from "Common/UI/Types/LayeredDismissal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -122,10 +130,19 @@ export interface ComponentProps {
    * without offering to change it.
    */
   readOnly?: boolean | undefined;
+  /*
+   * The id of the label the search input is named by - a form field's own
+   * label (CustomElementProps.ariaLabelledby). A step can hold two pickers,
+   * Declare Incident's Monitors and Other Affected Resources, and a screen
+   * reader tells them apart by their labels.
+   */
+  ariaLabelledby?: string | undefined;
 }
 
 interface ResourceConfig {
+  // English, translated where it is drawn.
   label: string;
+  pluralLabel: string;
   icon: IconProp;
   modelType: { new (): BaseModel };
   // The key holding this type's resources in ComponentProps and the payload.
@@ -143,6 +160,7 @@ interface ResourceConfig {
 const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   Monitor: {
     label: "Monitor",
+    pluralLabel: "Monitors",
     icon: IconProp.AltGlobe,
     modelType: Monitor,
     key: "monitors",
@@ -150,6 +168,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   Host: {
     label: "Host",
+    pluralLabel: "Hosts",
     icon: IconProp.Server,
     modelType: Host,
     key: "hosts",
@@ -157,6 +176,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   KubernetesCluster: {
     label: "Kubernetes Cluster",
+    pluralLabel: "Kubernetes Clusters",
     icon: IconProp.Kubernetes,
     modelType: KubernetesCluster,
     key: "kubernetesClusters",
@@ -164,6 +184,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   DockerHost: {
     label: "Docker Host",
+    pluralLabel: "Docker Hosts",
     icon: IconProp.Docker,
     modelType: DockerHost,
     key: "dockerHosts",
@@ -171,6 +192,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   PodmanHost: {
     label: "Podman Host",
+    pluralLabel: "Podman Hosts",
     icon: IconProp.Podman,
     modelType: PodmanHost,
     key: "podmanHosts",
@@ -178,6 +200,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   ProxmoxCluster: {
     label: "Proxmox Cluster",
+    pluralLabel: "Proxmox Clusters",
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
     key: "proxmoxClusters",
@@ -185,6 +208,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   VMwareVCenter: {
     label: "vCenter",
+    pluralLabel: "vCenters",
     icon: IconProp.VMware,
     modelType: VMwareVCenter,
     key: "vmwareVCenters",
@@ -192,6 +216,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   CephCluster: {
     label: "Ceph Cluster",
+    pluralLabel: "Ceph Clusters",
     icon: IconProp.Ceph,
     modelType: CephCluster,
     key: "cephClusters",
@@ -199,6 +224,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   DockerSwarmCluster: {
     label: "Docker Swarm Cluster",
+    pluralLabel: "Docker Swarm Clusters",
     icon: IconProp.DockerSwarm,
     modelType: DockerSwarmCluster,
     key: "dockerSwarmClusters",
@@ -206,6 +232,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   IoTFleet: {
     label: "IoT Fleet",
+    pluralLabel: "IoT Fleets",
     icon: IconProp.IoT,
     modelType: IoTFleet,
     key: "iotFleets",
@@ -213,6 +240,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   DatabaseServer: {
     label: "Database",
+    pluralLabel: "Databases",
     icon: IconProp.Database,
     modelType: DatabaseServer,
     key: "databaseServers",
@@ -220,6 +248,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   NetworkSite: {
     label: "Network Site",
+    pluralLabel: "Network Sites",
     icon: IconProp.BuildingOffice,
     modelType: NetworkSite,
     key: "networkSites",
@@ -231,6 +260,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
   Service: {
     label: "Service",
+    pluralLabel: "Services",
     icon: IconProp.SquareStack,
     modelType: Service,
     key: "services",
@@ -271,12 +301,15 @@ const MAX_VISIBLE_CHIPS: number = 50;
  */
 export const NAME_LOOKUP_BATCH_SIZE: number = 100;
 
-export const NAME_LOADING_PLACEHOLDER: string = "Loading...";
+// An English key: a chip still waiting for its name shows it translated.
+export const NAME_LOADING_PLACEHOLDER: string = translationKey("Loading...");
 
 export const getUnnamedResourceLabel: (type: AffectedResourceType) => string = (
   type: AffectedResourceType,
 ): string => {
-  return `Unnamed ${RESOURCE_CONFIG[type].label}`;
+  return translateTemplate("Unnamed {{type}}", {
+    type: translatableTerm(RESOURCE_CONFIG[type].label),
+  });
 };
 
 /*
@@ -287,7 +320,9 @@ export const getUnnamedResourceLabel: (type: AffectedResourceType) => string = (
 export const getUnknownResourceLabel: (type: AffectedResourceType) => string = (
   type: AffectedResourceType,
 ): string => {
-  return `Unknown ${RESOURCE_CONFIG[type].label}`;
+  return translateTemplate("Unknown {{type}}", {
+    type: translatableTerm(RESOURCE_CONFIG[type].label),
+  });
 };
 
 const getNameCacheKey: (type: AffectedResourceType, id: string) => string = (
@@ -586,6 +621,7 @@ const filterTypesByReadPermission: (types: Array<AffectedResourceType>) => {
 const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const requestedTypes: Array<AffectedResourceType> =
     props.resourceTypes && props.resourceTypes.length > 0
       ? props.resourceTypes
@@ -1314,7 +1350,10 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     } catch {
       setLabelLoadErrors(
         (prev: Record<string, string>): Record<string, string> => {
-          return { ...prev, [labelId]: "Failed to load resources." };
+          return {
+            ...prev,
+            [labelId]: translationKey("Failed to load resources."),
+          };
         },
       );
     } finally {
@@ -1461,13 +1500,18 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.placeholder ||
     (resourceTypes.length === ALL_TYPES.length
       ? "Search monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts, or services..."
-      : `Search ${resourceTypes
-          .map((t: AffectedResourceType): string => {
-            return RESOURCE_CONFIG[t].label.toLowerCase();
-          })
-          .join(", ")}...`);
-  const placeholder: string =
-    activeTab === "labels" ? "Search labels..." : resourcesPlaceholder;
+      : translator.translateTemplate("Search {{types}}...", {
+          types: resourceTypes
+            .map((t: AffectedResourceType): string => {
+              return translator.translateTerm(RESOURCE_CONFIG[t].label, {
+                inSentence: true,
+              });
+            })
+            .join(", "),
+        }));
+  const placeholder: string = translator.translateText(
+    activeTab === "labels" ? "Search labels..." : resourcesPlaceholder,
+  ) as string;
 
   /*
    * Resources already attached under a type the viewer cannot read. They get
@@ -1581,17 +1625,27 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             isEditable && (
               <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs">
                 <span className="text-gray-600">
-                  <span className="font-semibold text-gray-800">
-                    {selected.length.toLocaleString()}
-                  </span>{" "}
-                  resources selected
+                  <TranslatedSentence
+                    template={{
+                      one: "{{number}} resource selected",
+                      other: "{{number}} resources selected",
+                    }}
+                    count={selected.length}
+                    slots={{
+                      number: (
+                        <span className="font-semibold text-gray-800">
+                          {translator.formatNumber(selected.length)}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
                 <button
                   type="button"
                   onClick={clearAll}
                   className="font-medium text-red-600 hover:text-red-700 focus:outline-none focus:ring-1 focus:ring-red-500"
                 >
-                  Clear all
+                  {translator.translateText("Clear all")}
                 </button>
               </div>
             )}
@@ -1605,7 +1659,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 >
                   <Icon icon={cfg.icon} className="h-3.5 w-3.5 text-gray-500" />
                   <span className="text-xs uppercase tracking-wide text-gray-500">
-                    {cfg.label}
+                    {translator.translateText(cfg.label)}
                   </span>
                   <span
                     className={
@@ -1615,14 +1669,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                     }
                     aria-busy={item.isNameLoading ? true : undefined}
                   >
-                    {item.name}
+                    {item.isNameLoading
+                      ? translator.translateText(NAME_LOADING_PLACEHOLDER)
+                      : item.name}
                   </span>
                   {isEditable && (
                     <button
                       type="button"
-                      aria-label={`Remove ${
-                        item.isNameLoading ? cfg.label.toLowerCase() : item.name
-                      }`}
+                      aria-label={translator.translateTemplate(
+                        "Remove {{name}}",
+                        {
+                          name: item.isNameLoading
+                            ? translatableTerm(cfg.label, { inSentence: true })
+                            : item.name,
+                        },
+                      )}
                       onClick={() => {
                         removeItem(item);
                       }}
@@ -1654,8 +1715,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 className="inline-flex items-center gap-1 rounded-md border border-dashed border-gray-300 bg-white px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 {showAllChips
-                  ? "Show fewer"
-                  : `+ ${chipOverflow.toLocaleString()} more`}
+                  ? translator.translateText("Show fewer")
+                  : translator.translatePlural(
+                      { one: "+ {{count}} more", other: "+ {{count}} more" },
+                      chipOverflow,
+                    )}
               </button>
             )}
           </div>
@@ -1674,11 +1738,21 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
           />
           <span>
-            {hiddenCount.toLocaleString()}{" "}
-            {hiddenCount === 1 ? "resource" : "resources"} you don&apos;t have
-            permission to view {hiddenCount === 1 ? "is" : "are"} also attached
-            ({hiddenLabels.join(", ")}). {hiddenCount === 1 ? "It" : "They"}{" "}
-            will be kept.
+            {translator.translatePlural(
+              {
+                one: "{{count}} resource you don't have permission to view is also attached ({{types}}). It will be kept.",
+                other:
+                  "{{count}} resources you don't have permission to view are also attached ({{types}}). They will be kept.",
+              },
+              hiddenCount,
+              {
+                types: hiddenLabels
+                  .map((label: string): string => {
+                    return translator.translateText(label) as string;
+                  })
+                  .join(", "),
+              },
+            )}
           </span>
         </div>
       )}
@@ -1691,6 +1765,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           disabled={props.disabled}
           aria-autocomplete="list"
           aria-expanded={isOpen}
+          aria-labelledby={props.ariaLabelledby}
           role="combobox"
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             setSearchQuery(event.target.value);
@@ -1851,7 +1926,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   : "text-gray-600 hover:bg-white/60 hover:text-gray-800"
               }`}
             >
-              Resources
+              {translator.translateText("Resources")}
             </button>
             <button
               type="button"
@@ -1873,7 +1948,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               }`}
             >
               <Icon icon={IconProp.Tag} className="h-3.5 w-3.5" />
-              Labels
+              {translator.translateText("Labels")}
               {selectedLabelIds.length > 0 && (
                 <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
                   {selectedLabelIds.length}
@@ -1881,9 +1956,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               )}
             </button>
             <span className="ml-auto pr-1 text-[11px] text-gray-400">
-              {activeTab === "resources"
-                ? "Search and add individually"
-                : "Bulk-add by tag"}
+              {translator.translateText(
+                activeTab === "resources"
+                  ? "Search and add individually"
+                  : "Bulk-add by tag",
+              )}
             </span>
           </div>
 
@@ -1913,7 +1990,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                  <span>Searching...</span>
+                  <span>{translator.translateText("Searching...")}</span>
                 </div>
               )}
 
@@ -1921,7 +1998,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 searchQuery.trim() === "" &&
                 groupedAvailable.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No resources available. Type to search across all resources.
+                    {translator.translateText(
+                      "No resources available. Type to search across all resources.",
+                    )}
                   </div>
                 )}
 
@@ -1929,7 +2008,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 searchQuery.trim() !== "" &&
                 groupedAvailable.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No matching resources.
+                    {translator.translateText("No matching resources.")}
                   </div>
                 )}
 
@@ -1950,7 +2029,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       return (
                         <div key={group.type}>
                           <div className="bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            {cfg.label}s
+                            {translator.translateText(cfg.pluralLabel)}
                           </div>
                           {group.items.map((item: AffectedResourceItem) => {
                             flatIdx += 1;
@@ -2008,13 +2087,18 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
               {deniedTypes.length > 0 && (
                 <div className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
-                  You don&apos;t have permission to read:{" "}
-                  {deniedTypes
-                    .map((t: AffectedResourceType): string => {
-                      return RESOURCE_CONFIG[t].label;
-                    })
-                    .join(", ")}
-                  .
+                  {translator.translateTemplate(
+                    "You don't have permission to read: {{types}}.",
+                    {
+                      types: deniedTypes
+                        .map((t: AffectedResourceType): string => {
+                          return translator.translateText(
+                            RESOURCE_CONFIG[t].label,
+                          ) as string;
+                        })
+                        .join(", "),
+                    },
+                  )}
                 </div>
               )}
             </div>
@@ -2046,12 +2130,14 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                  <span>Loading labels...</span>
+                  <span>{translator.translateText("Loading labels...")}</span>
                 </div>
               )}
 
               {!isLoadingLabels && labelError !== "" && (
-                <div className="px-3 py-2 text-red-600">{labelError}</div>
+                <div className="px-3 py-2 text-red-600">
+                  {translator.translateText(labelError)}
+                </div>
               )}
 
               {!isLoadingLabels &&
@@ -2059,8 +2145,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 labelsLoaded &&
                 allLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels found in this project. Create labels first to use
-                    this shortcut.
+                    {translator.translateText(
+                      "No labels found in this project. Create labels first to use this shortcut.",
+                    )}
                   </div>
                 )}
 
@@ -2070,7 +2157,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 allLabels.length > 0 &&
                 filteredLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels match &ldquo;{searchQuery.trim()}&rdquo;.
+                    {translator.translateTemplate(
+                      "No labels match “{{query}}”.",
+                      {
+                        query: searchQuery.trim(),
+                      },
+                    )}
                   </div>
                 )}
 
@@ -2119,11 +2211,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                            */}
                           <button
                             type="button"
-                            aria-label={
+                            aria-label={translator.translateText(
                               isExpanded
                                 ? "Collapse resources"
-                                : "Expand resources"
-                            }
+                                : "Expand resources",
+                            )}
                             aria-expanded={isExpanded}
                             onMouseDown={(
                               event: React.MouseEvent<HTMLButtonElement>,
@@ -2196,7 +2288,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                               />
                             )}
                             <span className="truncate">
-                              {label.name || "Unnamed Label"}
+                              {label.name ||
+                                translator.translateText("Unnamed Label")}
                             </span>
                           </button>
                           {previewResources !== undefined && (
@@ -2234,16 +2327,22 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                                   />
                                 </svg>
-                                <span>Loading resources...</span>
+                                <span>
+                                  {translator.translateText(
+                                    "Loading resources...",
+                                  )}
+                                </span>
                               </div>
                             ) : previewError ? (
                               <div className="py-1 text-xs text-red-600">
-                                {previewError}
+                                {translator.translateText(previewError)}
                               </div>
                             ) : !previewResources ||
                               previewResources.length === 0 ? (
                               <div className="py-1 text-xs italic text-gray-500">
-                                No resources tagged with this label.
+                                {translator.translateText(
+                                  "No resources tagged with this label.",
+                                )}
                               </div>
                             ) : (
                               <div className="space-y-2">
@@ -2270,7 +2369,10 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                             className="h-3 w-3 text-gray-400"
                                           />
                                           <span>
-                                            {cfg.label}s ({items.length}
+                                            {translator.translateText(
+                                              cfg.pluralLabel,
+                                            )}{" "}
+                                            ({items.length}
                                             {items.length >=
                                             LABEL_PREVIEW_LIMIT_PER_TYPE
                                               ? "+"
@@ -2331,7 +2433,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                 disabled={isApplyingLabels}
                 className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
               >
-                Clear
+                {translator.translateText("Clear")}
               </button>
               <button
                 type="button"
@@ -2370,10 +2472,14 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   </svg>
                 )}
                 {isApplyingLabels
-                  ? "Adding..."
-                  : `Add resources from ${selectedLabelIds.length} label${
-                      selectedLabelIds.length === 1 ? "" : "s"
-                    }`}
+                  ? translator.translateText("Adding...")
+                  : translator.translatePlural(
+                      {
+                        one: "Add resources from {{count}} label",
+                        other: "Add resources from {{count}} labels",
+                      },
+                      selectedLabelIds.length,
+                    )}
               </button>
             </div>
           )}

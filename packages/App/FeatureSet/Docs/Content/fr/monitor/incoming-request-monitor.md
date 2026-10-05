@@ -163,7 +163,7 @@ Les chemins doivent commencer par le préfixe littéral `requestBody.`. Un chemi
 Un webhook ne décrit que ce qui figure dans cette charge utile : OneUptime ne résout donc jamais un incident parce que sa clé a cessé d'apparaître. Un incident n'est résolu que lorsqu'une charge utile dit explicitement que cette clé est rétablie. Deux conditions doivent être réunies :
 
 1. **Field that signals recovery** et **Value that means recovered** sont renseignés et correspondent à la charge utile. La comparaison est exacte et sensible à la casse — `Resolved` ne correspond pas à `resolved`.
-2. L'incident du critère a **Auto Resolve Incident** activé, sous **Advanced Options** dans le formulaire d'incident. Sans cela, les événements de rétablissement correspondants sont ignorés et les incidents restent ouverts. (Il en va de même pour les alertes et **Auto Resolve Alert**.)
+2. L'incident du critère a **Auto Resolve Incident** activé, sous **More fields** dans le formulaire d'incident. Sans cela, les événements de rétablissement correspondants sont ignorés et les incidents restent ouverts. (Il en va de même pour les alertes et **Auto Resolve Alert**.)
 
 **Max incidents per request** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont également invisibles pour le rétablissement : dans une charge utile portant plus de clés distinctes que le plafond, une alerte signalant `resolved` au-delà ne fermera pas son incident.
 

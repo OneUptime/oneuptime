@@ -109,7 +109,7 @@ OBI trekker ut flere signalfamilier fra den fangede trafikken. Alle er aktivert 
 | Signal                                  | Standard | Hva det legger til                                                                                                                                                       |
 | --------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | på       | HTTP/gRPC RED-metrikker — forespørselsrate, latenshistogrammer, feiltellinger — per tjeneste.                                                                            |
-| `ebpf.features.spanMetrics`             | på       | Span-attributtbaserte metrikker: forespørselsstørrelse, svarstørrelse, varighet brutt ned per rute/operasjon.                                                            |
+| `ebpf.features.spanMetrics`             | på       | Span-metrikker: antall kall og varighet per tjeneste, rute/operasjon, span-type og status — `traces.span.metrics.calls`, `traces.span.metrics.duration` (sekunder).      |
 | `ebpf.features.serviceGraph`            | på       | Tjeneste-til-tjeneste kantmetrikker (kaller → kallt forespørselsrate + latens). Driver tjenestekartet.                                                                   |
 | `ebpf.features.networkMetrics`          | på       | Pod-til-pod TCP/UDP-flyttellere for byte og pakker med k8s-metadata. Synliggjør hvert podpar som snakker sammen, inkludert de som kjører protokoller OBI ikke kan parse. |
 | `ebpf.features.networkInterZoneMetrics` | av       | Inter-sone-variant av nettverksmetrikker. Dobler kardinaliteten; bare verdt å aktivere hvis du faktisk bruker sonebasert planlegging.                                    |
@@ -149,7 +149,7 @@ Forbehold:
 | Valg                   | Standard                                              | Beskrivelse                                                                                                                              |
 | ---------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.enabled`         | `true`                                                | Hovedbryter. Sett til `false` for å hoppe over eBPF-DaemonSetet helt.                                                                    |
-| `ebpf.image.tag`       | `v0.13.0`                                             | OBI-bildetag. OBI er pre-1.0; fest til en kjent god versjon og test på nytt ved oppdateringer.                                           |
+| `ebpf.image.tag`       | `v0.14.0`                                             | OBI-bildetag. OBI er pre-1.0; fest til en kjent god versjon og test på nytt ved oppdateringer.                                           |
 | `ebpf.autoTargetExe`   | `*`                                                   | Glob av kjørbare filer som skal instrumenteres. Snevre inn dette (f.eks. `*/python,*/java`) hvis du vil avgrense auto-instrumenteringen. |
 | `ebpf.excludeExePaths` | (skall, kubelet, runc, containerd, otelcol, OBI selv) | Kommaseparerte globber som skal hoppes over.                                                                                             |
 | `ebpf.logLevel`        | `info`                                                | `debug`, `info`, `warn` eller `error`. Sett til `debug` under feilsøking.                                                                |
@@ -252,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 eller eldre** — dropp `--reuse-values` og send dine opprinnelige `--set`-flagg (eller `-f values.yaml`) eksplisitt. Nye kartstandarder vil gjelde for alt du ikke overstyrer.
 >
 > Hvis pods for en ny funksjon (f.eks. `kubernetes-agent-profiling-*`) ikke dukker opp etter oppgradering, er dette nesten alltid grunnen. `helm get values <release>` viser hva Helm faktisk har — felt som mangler i utdataene betyr at standardverdier ikke ble slått sammen for dem.
+
+> **eBPF-span-metrikker har fått nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene under navnene OBI beholder (de gamle har OBI avviklet). Et dashbord, et diagram eller en metrikk-monitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feilmelding — flytt det til det nye navnet, og oppdater også `filters.metrics`-oppføringer som nevner et gammelt navn.
 
 ## Avinstallering
 

@@ -26,6 +26,8 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import { getIncomingCallPolicyPhoneNumberText } from "./IncomingCallPolicyPhoneNumberUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // Available phone number from search
 interface AvailablePhoneNumber {
@@ -87,6 +89,7 @@ const COUNTRY_OPTIONS: Array<DropdownOption> = [
 const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   props: PhoneNumberPurchaseProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Main configuration modal state
   const [showConfigureModal, setShowConfigureModal] = useState<boolean>(false);
   const [configureStep, setConfigureStep] = useState<
@@ -219,7 +222,10 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setSelectedNumber(null);
       closeConfigureModal();
       setSuccessMessage(
-        `Phone number ${selectedNumber.phoneNumber} has been reserved and configured for this policy.`,
+        translator.translateTemplate(
+          "Phone number {{phoneNumber}} has been reserved and configured for this policy.",
+          { phoneNumber: selectedNumber.phoneNumber },
+        ),
       );
       setShowSuccessModal(true);
 
@@ -265,11 +271,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setIsLoading(false);
       setShowReleaseConfirmModal(false);
       const releasedPhoneNumber: string =
-        getIncomingCallPolicyPhoneNumberText(selectedPhoneNumber) ||
-        "The phone number";
+        getIncomingCallPolicyPhoneNumberText(selectedPhoneNumber);
       setPhoneNumberToRelease(null);
       setSuccessMessage(
-        `${releasedPhoneNumber} has been released back to Twilio.`,
+        releasedPhoneNumber
+          ? translator.translateTemplate(
+              "{{phoneNumber}} has been released back to Twilio.",
+              { phoneNumber: releasedPhoneNumber },
+            )
+          : (translator.translateText(
+              "The phone number has been released back to Twilio.",
+            ) as string),
       );
       setShowSuccessModal(true);
       props.onPhoneNumbersChanged?.();
@@ -352,7 +364,10 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       setSelectedOwnedNumber(null);
       closeConfigureModal();
       setSuccessMessage(
-        `Phone number ${selectedOwnedNumber.phoneNumber} has been assigned and configured for this policy.`,
+        translator.translateTemplate(
+          "Phone number {{phoneNumber}} has been assigned and configured for this policy.",
+          { phoneNumber: selectedOwnedNumber.phoneNumber },
+        ),
       );
       setShowSuccessModal(true);
 
@@ -377,10 +392,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             />
             <div>
               <p className="text-sm font-medium text-gray-900">
-                No Phone Numbers Configured
+                {translator.translateText("No Phone Numbers Configured")}
               </p>
               <p className="text-sm text-gray-600">
-                Add a phone number to enable incoming call routing.
+                {translator.translateText(
+                  "Add a phone number to enable incoming call routing.",
+                )}
               </p>
             </div>
           </div>
@@ -394,9 +411,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         data-testid="incoming-call-policy-phone-number-list"
       >
         <p className="text-sm text-gray-600">
-          {props.phoneNumbers.length === 1
-            ? "1 phone number routes calls to this policy."
-            : `${props.phoneNumbers.length} phone numbers route calls to this policy.`}
+          {translator.translatePlural(
+            {
+              one: "{{count}} phone number routes calls to this policy.",
+              other: "{{count}} phone numbers route calls to this policy.",
+            },
+            props.phoneNumbers.length,
+          )}
         </p>
         {props.phoneNumbers.map(
           (
@@ -419,14 +440,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                   />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900">
-                      Phone Number
+                      {translator.translateText("Phone Number")}
                     </p>
                     <p className="text-lg font-semibold text-green-700 break-all">
-                      {phoneNumberText || "Unknown phone number"}
+                      {phoneNumberText ||
+                        translator.translateText("Unknown phone number")}
                     </p>
                     {phoneNumber.countryCode ? (
                       <p className="text-xs text-gray-500">
-                        Country: {phoneNumber.countryCode}
+                        {translator.translateTemplate("Country: {{country}}", {
+                          country: phoneNumber.countryCode,
+                        })}
                       </p>
                     ) : (
                       <></>
@@ -455,7 +479,9 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     if (props.hideCard) {
       return (
         <div className="text-gray-500 text-sm">
-          Please link a Twilio configuration first.
+          {translator.translateText(
+            "Please link a Twilio configuration first.",
+          )}
         </div>
       );
     }
@@ -497,10 +523,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               </div>
               <div className="flex-1">
                 <h4 className="text-lg font-semibold text-gray-900">
-                  Use Existing Phone Number
+                  {translator.translateText("Use Existing Phone Number")}
                 </h4>
                 <p className="text-sm text-gray-500 mt-1">
-                  Select a phone number you already own in your Twilio account
+                  {translator.translateText(
+                    "Select a phone number you already own in your Twilio account",
+                  )}
                 </p>
               </div>
               <Icon
@@ -523,10 +551,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               </div>
               <div className="flex-1">
                 <h4 className="text-lg font-semibold text-gray-900">
-                  Reserve New Phone Number
+                  {translator.translateText("Reserve New Phone Number")}
                 </h4>
                 <p className="text-sm text-gray-500 mt-1">
-                  Search and reserve a new phone number from Twilio
+                  {translator.translateText(
+                    "Search and reserve a new phone number from Twilio",
+                  )}
                 </p>
               </div>
               <Icon
@@ -551,7 +581,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             }}
           >
             <Icon icon={IconProp.ChevronLeft} className="h-4 w-4 mr-1" />
-            Back to options
+            {translator.translateText("Back to options")}
           </button>
 
           {isLoadingOwned ? (
@@ -564,10 +594,12 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                 <Icon icon={IconProp.Call} className="h-8 w-8 text-gray-400" />
               </div>
               <p className="text-gray-600 mb-2">
-                No existing phone numbers found
+                {translator.translateText("No existing phone numbers found")}
               </p>
               <p className="text-sm text-gray-500 mb-4">
-                Your Twilio account doesn&apos;t have any phone numbers yet.
+                {translator.translateText(
+                  "Your Twilio account doesn't have any phone numbers yet.",
+                )}
               </p>
               <Button
                 title="Reserve a New Number Instead"
@@ -608,12 +640,16 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                       </p>
                       {isInUse && (
                         <p className="text-xs text-yellow-600 mt-1">
-                          Currently has a webhook configured
+                          {translator.translateText(
+                            "Currently has a webhook configured",
+                          )}
                         </p>
                       )}
                       {isAlreadyAttached ? (
                         <p className="text-xs text-green-600 mt-1">
-                          Already attached to this policy
+                          {translator.translateText(
+                            "Already attached to this policy",
+                          )}
                         </p>
                       ) : (
                         <></>
@@ -658,15 +694,16 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             }}
           >
             <Icon icon={IconProp.ChevronLeft} className="h-4 w-4 mr-1" />
-            Back to options
+            {translator.translateText("Back to options")}
           </button>
 
           {/* Search Form */}
           {availableNumbers.length === 0 && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 mb-4">
-                Search for available phone numbers in your preferred country.
-                The number will be reserved using your Twilio balance.
+                {translator.translateText(
+                  "Search for available phone numbers in your preferred country. The number will be reserved using your Twilio balance.",
+                )}
               </p>
               <Button
                 title="Search for Numbers"
@@ -684,7 +721,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-gray-700">
-                  {availableNumbers.length} Available Numbers
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} Available Number",
+                      other: "{{count}} Available Numbers",
+                    },
+                    availableNumbers.length,
+                  )}
                 </h4>
                 <Button
                   title="Search Again"
@@ -858,7 +901,20 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         {showReleaseConfirmModal ? (
           <ConfirmModal
             title="Release Phone Number"
-            description={`Are you sure you want to release ${phoneNumberToRelease ? getIncomingCallPolicyPhoneNumberText(phoneNumberToRelease) : "this phone number"}? This action will return the number to Twilio and it may not be available to reserve again.`}
+            description={
+              phoneNumberToRelease &&
+              getIncomingCallPolicyPhoneNumberText(phoneNumberToRelease)
+                ? translator.translateTemplate(
+                    "Are you sure you want to release {{phoneNumber}}? This action will return the number to Twilio and it may not be available to reserve again.",
+                    {
+                      phoneNumber:
+                        getIncomingCallPolicyPhoneNumberText(
+                          phoneNumberToRelease,
+                        ),
+                    },
+                  )
+                : "Are you sure you want to release this phone number? This action will return the number to Twilio and it may not be available to reserve again."
+            }
             error={error}
             submitButtonText="Release Number"
             submitButtonType={ButtonStyleType.DANGER}
@@ -878,7 +934,10 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         {showPurchaseConfirmModal && selectedNumber ? (
           <ConfirmModal
             title="Confirm Reservation"
-            description={`Are you sure you want to reserve ${selectedNumber.friendlyName}? This will be charged to your Twilio account.`}
+            description={translator.translateTemplate(
+              "Are you sure you want to reserve {{phoneNumber}}? This will be charged to your Twilio account.",
+              { phoneNumber: selectedNumber.friendlyName },
+            )}
             error={error}
             submitButtonText="Reserve"
             submitButtonType={ButtonStyleType.PRIMARY}
@@ -898,7 +957,17 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         {showAssignConfirmModal && selectedOwnedNumber ? (
           <ConfirmModal
             title="Assign Phone Number"
-            description={`Are you sure you want to use ${selectedOwnedNumber.friendlyName} for this policy? ${selectedOwnedNumber.voiceUrl ? "This number currently has a webhook configured which will be updated to point to OneUptime." : "The webhook will be configured automatically."}`}
+            description={
+              selectedOwnedNumber.voiceUrl
+                ? translator.translateTemplate(
+                    "Are you sure you want to use {{phoneNumber}} for this policy? This number currently has a webhook configured which will be updated to point to OneUptime.",
+                    { phoneNumber: selectedOwnedNumber.friendlyName },
+                  )
+                : translator.translateTemplate(
+                    "Are you sure you want to use {{phoneNumber}} for this policy? The webhook will be configured automatically.",
+                    { phoneNumber: selectedOwnedNumber.friendlyName },
+                  )
+            }
             error={error}
             submitButtonText="Assign Number"
             submitButtonType={ButtonStyleType.PRIMARY}
@@ -961,9 +1030,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="font-medium text-gray-900">Phone Numbers</p>
+              <p className="font-medium text-gray-900">
+                {translator.translateText("Phone Numbers")}
+              </p>
               <p className="text-sm text-gray-500">
-                Add one or more numbers that route calls to this policy.
+                {translator.translateText(
+                  "Add one or more numbers that route calls to this policy.",
+                )}
               </p>
             </div>
             {renderButtons()}

@@ -344,7 +344,7 @@ describe("the SMS a new SMS subscriber gets", () => {
       {
         createBy: { data: created, props: { isRoot: true } },
         // onBeforeCreate carries the page forward, read with isPublicStatusPage.
-        carryForward: page,
+        carryForward: { statusPage: page, replacedSubscriberIds: [] },
       },
       created,
     );

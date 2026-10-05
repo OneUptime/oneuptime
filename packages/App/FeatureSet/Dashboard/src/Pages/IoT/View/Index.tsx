@@ -5,6 +5,8 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import IoTDeviceModel from "Common/Models/DatabaseModels/IoTDevice";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getIoTFleetConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
@@ -54,6 +56,12 @@ import {
   displayNameForDevice,
   METRIC_STALE_MS,
 } from "../Utils/IoTDeviceUtils";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TemplateValues,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface GoldenStats {
   /* Latest-window aggregates across the device series in the fleet. */
@@ -63,10 +71,19 @@ interface GoldenStats {
   avgSignalDbm: number | null;
 }
 
+/*
+ * Why a device needs attention, as a sentence to translate when it is drawn
+ * (so a language switch rewords it without reloading the inventory).
+ */
+interface AtRiskReason {
+  template: string;
+  values?: TemplateValues | undefined;
+}
+
 interface AtRiskDevice {
   externalId: string;
   name: string;
-  reasons: Array<string>;
+  reasons: Array<AtRiskReason>;
   /* true = drives the red (offline) treatment, false = amber (warning). */
   isCritical: boolean;
 }
@@ -103,11 +120,12 @@ const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
 
 const REFRESH_STORAGE_KEY: string = "iot-overview-auto-refresh-interval";
 
-const ATTENTION_TITLE: string = "Devices needing attention";
+const ATTENTION_TITLE: string = translationKey("Devices needing attention");
 
 const IoTFleetOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [fleet, setFleet] = useState<IoTFleet | null>(null);
@@ -162,11 +180,11 @@ const IoTFleetOverview: FunctionComponent<
       for (const row of rows) {
         const name: string = displayNameForDevice(row);
         const externalId: string = row.externalId || "";
-        const reasons: Array<string> = [];
+        const reasons: Array<AtRiskReason> = [];
         let isCritical: boolean = false;
 
         if (row.isUp === false) {
-          reasons.push("Offline");
+          reasons.push({ template: translationKey("Offline") });
           isCritical = true;
         }
 
@@ -181,18 +199,22 @@ const IoTFleetOverview: FunctionComponent<
             row.latestBatteryPercent !== undefined &&
             Number(row.latestBatteryPercent) < LOW_BATTERY_PERCENT
           ) {
-            reasons.push(
-              `Battery ${Number(row.latestBatteryPercent).toFixed(0)}%`,
-            );
+            reasons.push({
+              template: translationKey("Battery {{percent}}%"),
+              values: {
+                percent: Number(row.latestBatteryPercent).toFixed(0),
+              },
+            });
           }
           if (
             row.latestSignalStrengthDbm !== null &&
             row.latestSignalStrengthDbm !== undefined &&
             Number(row.latestSignalStrengthDbm) < WEAK_SIGNAL_DBM
           ) {
-            reasons.push(
-              `Signal ${Number(row.latestSignalStrengthDbm).toFixed(0)} dBm`,
-            );
+            reasons.push({
+              template: translationKey("Signal {{dbm}} dBm"),
+              values: { dbm: Number(row.latestSignalStrengthDbm).toFixed(0) },
+            });
           }
         }
 
@@ -565,19 +587,21 @@ const IoTFleetOverview: FunctionComponent<
     if (totalDevices > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: `${onlineDevices}/${totalDevices} device${
-          totalDevices === 1 ? "" : "s"
-        } online`,
+        label: translator.translatePlural(
+          {
+            one: "{{online}}/{{count}} device online",
+            other: "{{online}}/{{count}} devices online",
+          },
+          totalDevices,
+          { online: onlineDevices },
+        ),
       });
     }
-    // The devices chip is a count; the agent version below is metadata.
+    /*
+     * The devices chip is a count. The agent version is metadata, drawn after
+     * it by AgentVersion, so it never earns the row an (i).
+     */
     const hasCountChips: boolean = specChips.length > 0;
-    if (fleet.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: `Agent ${String(fleet.agentVersion)}`,
-      });
-    }
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -614,7 +638,9 @@ const IoTFleetOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -623,7 +649,7 @@ const IoTFleetOverview: FunctionComponent<
               </div>
             </div>
 
-            {specChips.length > 0 && (
+            {(specChips.length > 0 || Boolean(fleet.agentVersion)) && (
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
@@ -644,6 +670,11 @@ const IoTFleetOverview: FunctionComponent<
                     );
                   },
                 )}
+                <AgentVersion
+                  kind={AgentKind.IoTExporter}
+                  version={fleet.agentVersion}
+                  variant="chip"
+                />
                 {/*
                  * One (i) for the devices-online chip; a row holding only
                  * the agent version chip is metadata and gets none.
@@ -765,7 +796,7 @@ const IoTFleetOverview: FunctionComponent<
       <Card
         title={
           <span className="inline-flex items-center gap-1.5">
-            {ATTENTION_TITLE}
+            {translator.translateText(ATTENTION_TITLE)}
             <InfoTooltip
               label={ATTENTION_TITLE}
               text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention}
@@ -809,13 +840,16 @@ const IoTFleetOverview: FunctionComponent<
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {item.name}
                       </span>
-                      {item.reasons.map((reason: string) => {
+                      {item.reasons.map((reason: AtRiskReason) => {
                         return (
                           <span
-                            key={reason}
+                            key={reason.template}
                             className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded border ${chipClass}`}
                           >
-                            {reason}
+                            {translator.translateTemplate(
+                              reason.template,
+                              reason.values,
+                            )}
                           </span>
                         );
                       })}

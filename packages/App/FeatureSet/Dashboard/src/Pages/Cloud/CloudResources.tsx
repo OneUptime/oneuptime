@@ -15,7 +15,14 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  followWithDisplayName,
+  getCloudEnvironmentNameFromFields,
+  getDisplayNameFormField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -39,6 +46,8 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import CloudDocumentationCard from "../../Components/Cloud/CloudDocumentationCard";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Picker options for the create form and the Platform filter. The label
@@ -65,6 +74,7 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
 const CloudResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -90,6 +100,16 @@ const CloudResources: FunctionComponent<
   if (count === null) {
     return <PageLoader isVisible={true} />;
   }
+
+  /*
+   * The create form asks for what an environment is matched on - its
+   * platform, account and region - on one page. The display name follows
+   * them ("AWS ECS · us-east-1 · 123456789012"), the way a discovered
+   * environment is named, and folds under Advanced with the description and
+   * the labels (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<CloudResource> =
+    getAdvancedFormSection<CloudResource>();
 
   return (
     <Fragment>
@@ -180,88 +200,73 @@ const CloudResources: FunctionComponent<
           description:
             "Managed cloud compute environments auto-discovered from OpenTelemetry — one per cloud.platform + account + region (AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner). Per-service breakdown lives under Services.",
         }}
-        formSteps={[
-          { title: "Environment", id: "environment" },
-          { title: "Details", id: "details" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: {
               cloudPlatform: true,
             },
             title: "Cloud Platform",
-            stepId: "environment",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: PLATFORM_DROPDOWN_OPTIONS,
             required: true,
             placeholder: "Select a platform",
             description:
               "The managed compute platform this environment runs on. Must equal the cloud.platform resource attribute your collector reports, or telemetry will never be matched to this environment.",
+            onChange: followWithDisplayName<CloudResource>({
+              fieldKey: "cloudPlatform",
+              getDefaultName: getCloudEnvironmentNameFromFields,
+            }),
           },
           {
             field: {
               cloudAccountId: true,
             },
             title: "Cloud Account ID",
-            stepId: "environment",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "123456789012",
             description:
               "AWS account id, GCP project id or Azure subscription id — exactly as the cloud.account.id resource attribute reports it. Leave blank if your collector does not report one.",
+            onChange: followWithDisplayName<CloudResource>({
+              fieldKey: "cloudAccountId",
+              getDefaultName: getCloudEnvironmentNameFromFields,
+            }),
           },
           {
             field: {
               cloudRegion: true,
             },
             title: "Cloud Region",
-            stepId: "environment",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "us-east-1",
             description:
               "The cloud.region resource attribute, e.g. us-east-1, europe-west1 or eastus. Leave blank if your collector does not report one.",
+            onChange: followWithDisplayName<CloudResource>({
+              fieldKey: "cloudRegion",
+              getDefaultName: getCloudEnvironmentNameFromFields,
+            }),
           },
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "details",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+          getDisplayNameFormField<CloudResource>({
+            getDefaultName: getCloudEnvironmentNameFromFields,
             placeholder: "AWS ECS · us-east-1 · 123456789012",
             description:
-              "A friendly name for this environment. Auto-discovered environments are named platform · region · account; following the same form keeps the list easy to scan.",
-          },
+              "Starts as platform · region · account, the way discovered environments are named. Type a name of your own to show it instead. Telemetry is still matched by the platform, account and region.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
             },
             title: "Description",
-            stepId: "details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production ECS cluster for the checkout stack",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<CloudResource>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {
@@ -335,7 +340,9 @@ const CloudResources: FunctionComponent<
                   </AppLink>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
-                      account {account}
+                      {translator.translateTemplate("account {{account}}", {
+                        account: account,
+                      })}
                     </div>
                   )}
                 </div>
@@ -360,7 +367,7 @@ const CloudResources: FunctionComponent<
                   <span>
                     {platform
                       ? getManagedCloudPlatformLabel(platform)
-                      : "unknown"}
+                      : translator.translateText("unknown")}
                   </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">

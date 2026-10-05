@@ -58,12 +58,22 @@ jobs:
       - name: Run App's Enterprise boundary guards with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
-      # Common's foreign `.hidden` guard walks ee/Dashboard and ee/AdminDashboard
-      # too, but the Common Test job deletes ee/ first, so only this run sees
-      # the Enterprise UI. It only reads files.
-      - name: Run Common's foreign .hidden guard with ee/ present
+      # App's UI source guards that walk ee/Dashboard and ee/AdminDashboard as
+      # well as the core frontends: every More (⋯) menu item has an icon, and
+      # a details card shows the record's own ID on its ID line. The App Test
+      # job deletes ee/ first, so only this run holds the Enterprise screens
+      # to them. They only read files.
+      - name: Run App's UI source guards with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts --forceExit
+      # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
+      # too - the foreign `.hidden` guard, and the create-form defaults guard,
+      # which lists the ee compliance rule form's Enabled switch - but the
+      # Common Test job deletes ee/ first, so only this run sees the Enterprise
+      # UI. They only read files (and load Common's models).
+      - name: Run Common's UI source guards with ee/ present
         working-directory: packages/Common
-        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:

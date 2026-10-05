@@ -294,7 +294,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title={"Monitor Details"}
             description={
-              "Here are the details of the request we will send to monitor your resource status."
+              "How the probes check this resource: what they connect to and the settings they use."
             }
             required={true}
             isHeading={true}

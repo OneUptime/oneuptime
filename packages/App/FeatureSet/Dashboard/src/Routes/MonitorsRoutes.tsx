@@ -12,6 +12,7 @@ import MonitorPage from "../Pages/Monitor/Monitors";
 import WorkspaceConnectionSlack from "../Pages/Monitor/WorkspaceConnectionSlack";
 
 import WorkspaceConnectionTeams from "../Pages/Monitor/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import MonitorViewMetrics from "../Pages/Monitor/View/Metrics";
 
@@ -35,7 +36,6 @@ import MonitorNotOperational from "../Pages/Monitor/NotOperationalMonitors";
 import MonitorDisabled from "../Pages/Monitor/DisabledMonitors";
 import MonitorArchived from "../Pages/Monitor/ArchivedMonitors";
 import MonitorViewCustomFields from "../Pages/Monitor/View/CustomFields";
-import MonitorViewInterval from "../Pages/Monitor/View/Interval";
 
 import MonitorViewDocumentation from "../Pages/Monitor/View/Documentation";
 
@@ -71,6 +71,16 @@ import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
 import MonitorModel from "Common/Models/DatabaseModels/Monitor";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+
+/*
+ * Where a monitor's Interval page used to be, relative to the monitor's own
+ * URL. The interval is on the Probes & Interval page now, with the probes
+ * that check the monitor and how many of them must agree, so nothing in the
+ * RouteMap points here any more; the URL is kept only so a bookmark or a
+ * link in a wiki still arrives somewhere.
+ */
+export const MOVED_MONITOR_INTERVAL_PATH: string = "interval";
 
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -164,6 +174,18 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               RouteMap[
                 PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               ] as Route
+            }
+          />
+        }
+      />
+
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTIONS] || ""}
+        element={
+          <WorkspaceConnectionsOverview
+            slackPage={PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK}
+            microsoftTeamsPage={
+              PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
             }
           />
         }
@@ -371,13 +393,8 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_INTERVAL)}
-          element={
-            <MonitorViewInterval
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route}
-            />
-          }
+          path={MOVED_MONITOR_INTERVAL_PATH}
+          element={<MovedPageRedirect pageMap={PageMap.MONITOR_VIEW_PROBES} />}
         />
 
         <PageRoute

@@ -14,6 +14,9 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
 import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
@@ -72,6 +75,11 @@ export interface ComponentProps {
   hideServices?: boolean | undefined;
   hideServiceLevelObjectives?: boolean | undefined;
   emptyMessage?: string | undefined;
+  /*
+   * The hint under emptyMessage. Left out, it asks for monitors, hosts,
+   * clusters or services to be attached, as an incident's card should.
+   */
+  emptyDescription?: string | undefined;
   /*
    * How many category sections sit side by side. Left out, the grid follows
    * the viewport: one column on phones, two from md up. That is right for a
@@ -145,6 +153,7 @@ const MAX_RENDER_PER_CATEGORY: number = 100;
 
 interface CategorySectionProps<T extends NamedResource> {
   icon: IconProp;
+  // English, translated here.
   label: string;
   iconBgClass: string;
   iconColorClass: string;
@@ -156,6 +165,7 @@ interface CategorySectionProps<T extends NamedResource> {
 function CategorySection<T extends NamedResource>(
   props: CategorySectionProps<T>,
 ): ReactElement {
+  const translator: Translator = useTranslator();
   const [showAll, setShowAll] = useState<boolean>(false);
   const headingId: string = useId();
   const listId: string = useId();
@@ -190,7 +200,7 @@ function CategorySection<T extends NamedResource>(
          */}
         <h3 id={headingId} className="flex min-w-0 flex-1 items-center gap-2">
           <span className="min-w-0 truncate text-sm font-medium text-gray-900">
-            {props.label}
+            {translator.translateText(props.label)}
           </span>{" "}
           <span
             data-testid="affected-resource-category-count"
@@ -238,9 +248,18 @@ function CategorySection<T extends NamedResource>(
             className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
           />
           <span>
-            Showing the first {MAX_RENDER_PER_CATEGORY.toLocaleString()} of{" "}
-            {total.toLocaleString()}. {truncatedCount.toLocaleString()} more
-            attached — edit affected resources to manage the full list.
+            {translator.translatePlural(
+              {
+                one: "Showing the first {{shown}} of {{total}}. {{count}} more attached — edit affected resources to manage the full list.",
+                other:
+                  "Showing the first {{shown}} of {{total}}. {{count}} more attached — edit affected resources to manage the full list.",
+              },
+              truncatedCount,
+              {
+                shown: translator.formatNumber(MAX_RENDER_PER_CATEGORY),
+                total: translator.formatNumber(total),
+              },
+            )}
           </span>
         </div>
       )}
@@ -259,7 +278,12 @@ function CategorySection<T extends NamedResource>(
             className="h-3 w-3"
           />
           <span>
-            {showAll ? "Show less" : `Show ${moreCount.toLocaleString()} more`}
+            {showAll
+              ? translator.translateText("Show less")
+              : translator.translatePlural(
+                  { one: "Show {{count}} more", other: "Show {{count}} more" },
+                  moreCount,
+                )}
           </span>
         </button>
       )}
@@ -279,6 +303,7 @@ function CategorySection<T extends NamedResource>(
 const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitors: Array<Monitor> = props.monitors || [];
   const hosts: Array<Host> = props.hosts || [];
   const kubernetesClusters: Array<KubernetesCluster> =
@@ -357,13 +382,20 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Server} className="h-5 w-5 text-gray-400" />
         </div>
         <p className="mt-3 text-sm font-medium text-gray-900">
-          {props.emptyMessage || "No resources affected."}
+          {translator.translateText(
+            props.emptyMessage || "No resources affected.",
+          )}
         </p>
         <p className="mt-1 max-w-xs text-xs leading-5 text-gray-500">
-          Attach monitors, hosts, clusters, or services to track which parts of
-          your infrastructure are impacted.
+          {props.emptyDescription
+            ? translator.translateText(props.emptyDescription)
+            : translator.translateText(
+                "Attach monitors, hosts, clusters, or services to track which parts of your infrastructure are impacted.",
+              )}
           {showsSlos
-            ? " SLOs are linked automatically when their burn rate rules fire."
+            ? ` ${translator.translateText(
+                "SLOs are linked automatically when their burn rate rules fire.",
+              )}`
             : ""}
         </p>
       </div>
@@ -416,10 +448,23 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           data-testid="affected-resources-summary"
           className="text-xs text-gray-500"
         >
-          <span className="font-semibold text-gray-900">
-            {totalCount.toLocaleString()} resources
-          </span>{" "}
-          across {categoryCount.toLocaleString()} categories
+          <TranslatedSentence
+            template={{
+              one: "{{resources}} across {{count}} category",
+              other: "{{resources}} across {{count}} categories",
+            }}
+            count={categoryCount}
+            slots={{
+              resources: (
+                <span className="font-semibold text-gray-900">
+                  {translator.translatePlural(
+                    { one: "{{count}} resource", other: "{{count}} resources" },
+                    totalCount,
+                  )}
+                </span>
+              ),
+            }}
+          />
         </p>
       )}
       <div

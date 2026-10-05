@@ -1,7 +1,9 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -14,12 +16,22 @@ import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser"
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
 import DashboardTemplateCard from "../../Components/Dashboard/DashboardTemplateCard";
+import {
+  addDashboardTemplateToMiscData,
+  fetchDashboardNames,
+  getDashboardCreateFormFields,
+  getDashboardCreateInitialValues,
+  getDashboardViewRoute,
+} from "../../Components/Dashboard/DashboardCreateForm";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import {
@@ -30,13 +42,46 @@ import {
   getDashboardTemplatesByCategory,
 } from "Common/Types/Dashboard/DashboardTemplates";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
+/*
+ * Create Dashboard opens the template picker; a picked card opens the create
+ * form with the dashboard's name filled in, and Create opens the new
+ * dashboard (Components/Dashboard/DashboardCreateForm.ts says why).
+ */
 const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // The card picked, for the create form it opened. Null once that closes.
   const [selectedTemplate, setSelectedTemplate] =
     useState<DashboardTemplateType | null>(null);
+  // What the create form starts with: the picked template's unique name.
+  const [createInitialValues, setCreateInitialValues] = useState<
+    FormValues<Dashboard> | undefined
+  >(undefined);
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
+  // The card picked while the project's dashboard names are still on the way.
+  const [loadingTemplate, setLoadingTemplate] =
+    useState<DashboardTemplateType | null>(null);
+
+  /*
+   * The names the project's dashboards already have, looked up when the
+   * picker opens - while the cards are read - so a picked card opens its
+   * form at once, with a name nothing has yet.
+   */
+  const dashboardNames: MutableRefObject<Promise<Array<string>> | null> =
+    useRef<Promise<Array<string>> | null>(null);
+
+  /*
+   * Counts picks. A card still waiting for the names opens its form only if
+   * nothing happened since: closing the picker, or picking another card,
+   * leaves it behind (the last card picked wins).
+   */
+  const latestPick: MutableRefObject<number> = useRef<number>(0);
+
+  const createFormFields: Array<ModelField<Dashboard>> = useMemo(() => {
+    return getDashboardCreateFormFields();
+  }, []);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Dashboard>({ modelType: Dashboard });
@@ -62,6 +107,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -73,9 +119,44 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     showLabelsFacet: true,
   });
 
-  const handleTemplateClick: (type: DashboardTemplateType) => void =
-    useCallback((type: DashboardTemplateType): void => {
+  const openTemplatePicker: () => void = useCallback((): void => {
+    latestPick.current += 1;
+    dashboardNames.current = fetchDashboardNames();
+    setLoadingTemplate(null);
+    setShowTemplateModal(true);
+  }, []);
+
+  const closeTemplatePicker: () => void = useCallback((): void => {
+    latestPick.current += 1;
+    setLoadingTemplate(null);
+    setShowTemplateModal(false);
+  }, []);
+
+  const handleTemplateClick: (type: DashboardTemplateType) => Promise<void> =
+    useCallback(async (type: DashboardTemplateType): Promise<void> => {
+      latestPick.current += 1;
+      const pick: number = latestPick.current;
+
+      setLoadingTemplate(type);
+
+      // A blank dashboard is named by its creator: no names to compare.
+      const existingNames: Array<string> =
+        type === DashboardTemplateType.Blank
+          ? []
+          : await (dashboardNames.current || fetchDashboardNames());
+
+      if (pick !== latestPick.current) {
+        return;
+      }
+
+      setLoadingTemplate(null);
       setSelectedTemplate(type);
+      setCreateInitialValues(
+        getDashboardCreateInitialValues({
+          templateType: type,
+          existingNames: existingNames,
+        }),
+      );
       setShowTemplateModal(false);
       setShowCreateForm(true);
     }, []);
@@ -86,9 +167,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <Modal
           title="Create from Template"
           description="Choose a template to quickly get started with a pre-configured dashboard."
-          onClose={() => {
-            setShowTemplateModal(false);
-          }}
+          onClose={closeTemplatePicker}
           modalWidth={ModalWidth.Large}
         >
           <div className="space-y-6">
@@ -115,6 +194,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
                               title={template.name}
                               description={template.description}
                               icon={template.icon}
+                              isLoading={loadingTemplate === template.type}
                               onClick={() => {
                                 handleTemplateClick(template.type);
                               }}
@@ -139,6 +219,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -148,11 +229,16 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
-        onCreateClick={() => {
-          setShowTemplateModal(true);
-        }}
+        onCreateClick={openTemplatePicker}
         onCreateEditModalClose={() => {
+          /*
+           * The picked template is kept until the form closes - not dropped
+           * when Create is pressed - so a create the server refuses (a name
+           * someone took meanwhile) can be sent again, and still builds it.
+           */
           setShowCreateForm(false);
+          setSelectedTemplate(null);
+          setCreateInitialValues(undefined);
         }}
         bulkActions={{
           buttons: [
@@ -164,48 +250,40 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Dashboards"
         isViewable={true}
         showCreateForm={showCreateForm}
+        createInitialValues={createInitialValues}
         cardProps={{
           title: "Dashboards",
           description:
             "Your own views of metrics, logs, traces, monitors and incidents, arranged the way your team wants them. Start from a template or an empty dashboard.",
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Dashboard Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-        ]}
+        formFields={createFormFields}
         onBeforeCreate={async (
           item: Dashboard,
           miscDataProps: JSONObject,
         ): Promise<Dashboard> => {
-          if (
-            selectedTemplate &&
-            selectedTemplate !== DashboardTemplateType.Blank
-          ) {
-            miscDataProps["dashboardTemplateType"] = selectedTemplate;
-          }
-          setSelectedTemplate(null);
-          setShowCreateForm(false);
+          addDashboardTemplateToMiscData({
+            miscDataProps: miscDataProps,
+            templateType: selectedTemplate,
+          });
           return item;
+        }}
+        /*
+         * The new dashboard opens: what the template built, or a blank
+         * canvas with its Add Widget button - rather than leaving the user
+         * on this list to find the new row.
+         */
+        onCreateSuccess={(
+          item: Dashboard,
+          modalType?: ModalType,
+        ): Promise<Dashboard> => {
+          if (modalType === ModalType.Create && item._id) {
+            Navigation.navigate(
+              getDashboardViewRoute(new ObjectID(item._id.toString())),
+            );
+          }
+
+          return Promise.resolve(item);
         }}
         saveFilterProps={{
           tableId: "all-dashboards-table",

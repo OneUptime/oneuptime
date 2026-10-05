@@ -17,14 +17,15 @@ Os monitores de logs pesquisam e contam logs que correspondem a filtros específ
 1. Vá para **Monitores** no Painel do OneUptime
 2. Clique em **Criar monitor**
 3. Selecione **Registros** como o tipo de monitor
-4. Selecione os serviços de telemetria para monitorar
-5. Configure filtros e critérios de log conforme necessário
+4. Escolha quais logs contar: o texto que contêm, a janela de tempo e os níveis de severidade
+5. Para restringi-los a serviços de telemetria, entidades de infraestrutura ou atributos, abra **Mais campos** abaixo desses filtros
+6. Configure os critérios conforme necessário
 
 ## Opções de Configuração
 
 ### Serviços de Telemetria
 
-Selecione um ou mais serviços para monitorar logs. Os serviços devem estar enviando logs para o OneUptime via OpenTelemetry.
+Selecione em **Mais campos** um ou mais serviços para monitorar logs. Deixe vazio para monitorar os logs de todos os serviços. Os serviços devem estar enviando logs para o OneUptime via OpenTelemetry.
 
 ### Filtros de Log
 

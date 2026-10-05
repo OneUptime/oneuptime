@@ -1799,7 +1799,7 @@ export default class Incident extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: IncidentState,
+    modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
       "Relation to Monitor Status Object. All monitors connected to this incident will be changed to this status when the incident is created.",

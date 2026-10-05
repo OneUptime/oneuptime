@@ -5,10 +5,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -30,6 +28,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberChannelOffPanel from "../../../Components/StatusPage/SubscriberChannelOffPanel";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -43,10 +43,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -60,7 +63,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   const [isSMSSubscribersEnabled, setIsSMSSubscribersEnabled] =
     React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  /*
+   * Loading from the first render: the list, and the channel's switch
+   * above it, are drawn once the status page has said whether the channel
+   * is on - not first as off, for a frame, on a page where it is on.
+   */
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -315,6 +323,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         stepId: "subscriber-info",
         required: false,
         doNotShowWhenEditing: true,
+        /*
+         * Off on purpose, though the column defaults to on: someone an admin
+         * adds is sent a "you have subscribed" message only when the admin
+         * asks for one (CreateFormDefaultsGuard lists why).
+         */
+        defaultValue: false,
       },
       {
         field: {
@@ -412,12 +426,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
       {!error && !isLoading ? (
         <>
-          {!isSMSSubscribersEnabled && (
-            <Alert
-              type={AlertType.DANGER}
-              title="SMS subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
-            />
-          )}
+          {/*
+           * The channel's own switch while it is off, where a red
+           * "not enabled" banner used to send people to another page.
+           */}
+          <SubscriberChannelOffPanel
+            statusPageId={modelId}
+            method={StatusPageSubscriberNotificationMethod.SMS}
+            isEnabled={isSMSSubscribersEnabled}
+          />
           <SubscriberNotificationWarnings statusPageId={modelId} />
           <TeamAddedSubscribersUnsubscribedNotice
             statusPageId={modelId}
@@ -461,15 +478,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             cardProps={{
               title: "SMS Subscribers",
               description:
-                "Here are the list of subscribers who have subscribed to the status page.",
+                "Phone numbers that get this status page's updates by text message. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",
                   buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.UserGroup,
                   onClick: () => {
                     setShowBulkAddModal(true);
                   },
-                } as CardButtonSchema,
+                },
               ],
             }}
             noItemsMessage={"No subscribers found."}
@@ -679,8 +697,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   {bulkActionInProgress ? (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500">
-                        Please wait while subscribers are being added. This may
-                        take a moment.
+                        {translator.translateText(
+                          "Please wait while subscribers are being added. This may take a moment.",
+                        )}
                       </p>
                       <ProgressBar
                         count={bulkProgress.completed}
@@ -700,11 +719,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Green}
                             />
                             <div className="ml-2 text-sm font-medium text-green-800">
-                              {bulkProgress.succeeded}{" "}
-                              {bulkProgress.succeeded === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              added successfully
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber added successfully",
+                                  other:
+                                    "{{count}} subscribers added successfully",
+                                },
+                                bulkProgress.succeeded,
+                              )}
                             </div>
                           </div>
                         )}
@@ -716,11 +738,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Red}
                             />
                             <div className="ml-2 text-sm font-medium text-red-800">
-                              {bulkProgress.failed.length}{" "}
-                              {bulkProgress.failed.length === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              failed
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber failed",
+                                  other: "{{count}} subscribers failed",
+                                },
+                                bulkProgress.failed.length,
+                              )}
                             </div>
                           </div>
                         )}
@@ -732,11 +756,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Yellow}
                             />
                             <div className="ml-2 text-sm font-medium text-yellow-800">
-                              {bulkProgress.skippedInvalid.length} invalid{" "}
-                              {bulkProgress.skippedInvalid.length === 1
-                                ? "phone number"
-                                : "phone numbers"}{" "}
-                              skipped
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} invalid phone number skipped",
+                                  other:
+                                    "{{count}} invalid phone numbers skipped",
+                                },
+                                bulkProgress.skippedInvalid.length,
+                              )}
                             </div>
                           </div>
                         )}

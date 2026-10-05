@@ -19,6 +19,8 @@ Project SCIM, identity providers को OneUptime projects के भीतर t
 
 ### Project SCIM सेट अप करना
 
+किसी प्रोजेक्ट का SCIM कनेक्शन जोड़ने या बदलने, या उसका Bearer टोकन देखने या रीसेट करने का अधिकार केवल प्रोजेक्ट ओनर को है: SCIM के ज़रिए आपका आइडेंटिटी प्रोवाइडर प्रोजेक्ट की किसी भी टीम में लोगों को जोड़ सकता है।
+
 1. **प्रोजेक्ट सेटिंग्स पर जाएं**
 
    - अपने OneUptime project पर जाएं
@@ -26,10 +28,9 @@ Project SCIM, identity providers को OneUptime projects के भीतर t
 
 2. **SCIM Settings Configure करें**
 
-   - IdP में assign होने पर users स्वचालित रूप से जोड़ने के लिए **उपयोगकर्ताओं को ऑटो प्रोविजन करें** सक्षम करें
-   - IdP में unassign होने पर users स्वचालित रूप से हटाने के लिए **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें** सक्षम करें
-   - **डिफ़ॉल्ट टीमें** चुनें जिनमें नए users जोड़े जाने चाहिए
-   - अपने IdP configuration के लिए **SCIM Base URL** और **Bearer Token** copy करें
+   - एक **नाम** दर्ज करें। **डिफ़ॉल्ट टीमें** आपके प्रोजेक्ट की सदस्य टीम से शुरू होती हैं: नए users इन टीमों में जोड़े जाते हैं
+   - **और फ़ील्ड** में **उपयोगकर्ताओं को ऑटो प्रोविजन करें** (IdP में assign होने पर users जोड़ें) और **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें** (IdP में unassign होने पर users हटाएँ) चालू हैं, और **पुश समूह सक्षम करें** बंद है। ज़रूरत हो तो इन्हें वहीं बदलें
+   - सहेजें। आपके IdP configuration के लिए **SCIM Base URL** और **Bearer Token** वाला dialog तुरंत खुल जाता है
 
 3. **अपना Identity Provider Configure करें**
    - SCIM Base URL उपयोग करें: `https://oneuptime.com/scim/v2/{scimId}`
@@ -75,9 +76,8 @@ Status Page SCIM, identity providers को private status pages के subscrib
 
 2. **SCIM Settings Configure करें**
 
-   - IdP में assign होने पर subscribers स्वचालित रूप से जोड़ने के लिए **उपयोगकर्ताओं को ऑटो प्रोविजन करें** सक्षम करें
-   - IdP में unassign होने पर subscribers स्वचालित रूप से हटाने के लिए **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें** सक्षम करें
-   - अपने IdP configuration के लिए **SCIM Base URL** और **Bearer Token** copy करें
+   - एक **नाम** दर्ज करें। **और फ़ील्ड** में **उपयोगकर्ताओं को ऑटो प्रोविजन करें** (IdP में assign होने पर subscribers जोड़ें) और **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें** (IdP में unassign होने पर subscribers हटाएँ) चालू हैं। ज़रूरत हो तो इन्हें वहीं बदलें
+   - सहेजें। आपके IdP configuration के लिए **SCIM Base URL** और **Bearer Token** वाला dialog तुरंत खुल जाता है
 
 3. **अपना Identity Provider Configure करें**
    - SCIM Base URL उपयोग करें: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -122,13 +122,12 @@ Microsoft Entra ID robust SCIM provisioning capabilities के साथ enterp
 2. **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **SCIM** पर जाएं
 3. **Create SCIM Configuration** पर क्लिक करें
 4. एक friendly नाम दर्ज करें (जैसे "Microsoft Entra ID Provisioning")
-5. निम्नलिखित options configure करें:
-   - **उपयोगकर्ताओं को ऑटो प्रोविजन करें**: users स्वचालित रूप से बनाने के लिए सक्षम करें
-   - **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें**: users स्वचालित रूप से हटाने के लिए सक्षम करें
-   - **डिफ़ॉल्ट टीमें**: वे teams चुनें जिनमें नए users जोड़े जाने चाहिए
-   - **पुश समूह सक्षम करें**: यदि आप Entra ID groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो सक्षम करें
+5. options जाँचें:
+   - **डिफ़ॉल्ट टीमें**: आपके प्रोजेक्ट की सदस्य टीम से शुरू होती हैं; नए users इन टीमों में जोड़े जाते हैं
+   - **उपयोगकर्ताओं को ऑटो प्रोविजन करें** और **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें**: **और फ़ील्ड** में चालू
+   - **पुश समूह सक्षम करें**: **और फ़ील्ड** में; यदि आप Entra ID groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो इसे चालू करें
 6. configuration सहेजें
-7. **SCIM Base URL** और **Bearer Token** copy करें - आपको Entra ID के लिए इनकी आवश्यकता होगी
+7. खुलने वाले dialog से **SCIM Base URL** और **Bearer Token** copy करें - आपको Entra ID के लिए इनकी आवश्यकता होगी
 
 #### चरण 2: Microsoft Entra ID में Enterprise Application बनाएं
 
@@ -224,13 +223,12 @@ Okta उत्कृष्ट SCIM support के साथ flexible identity ma
 2. **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **SCIM** पर जाएं
 3. **Create SCIM Configuration** पर क्लिक करें
 4. एक friendly नाम दर्ज करें (जैसे "Okta Provisioning")
-5. निम्नलिखित options configure करें:
-   - **उपयोगकर्ताओं को ऑटो प्रोविजन करें**: users स्वचालित रूप से बनाने के लिए सक्षम करें
-   - **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें**: users स्वचालित रूप से हटाने के लिए सक्षम करें
-   - **डिफ़ॉल्ट टीमें**: वे teams चुनें जिनमें नए users जोड़े जाने चाहिए
-   - **पुश समूह सक्षम करें**: यदि आप Okta groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो सक्षम करें
+5. options जाँचें:
+   - **डिफ़ॉल्ट टीमें**: आपके प्रोजेक्ट की सदस्य टीम से शुरू होती हैं; नए users इन टीमों में जोड़े जाते हैं
+   - **उपयोगकर्ताओं को ऑटो प्रोविजन करें** और **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें**: **और फ़ील्ड** में चालू
+   - **पुश समूह सक्षम करें**: **और फ़ील्ड** में; यदि आप Okta groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो इसे चालू करें
 6. configuration सहेजें
-7. **SCIM Base URL** और **Bearer Token** copy करें - आपको Okta के लिए इनकी आवश्यकता होगी
+7. खुलने वाले dialog से **SCIM Base URL** और **Bearer Token** copy करें - आपको Okta के लिए इनकी आवश्यकता होगी
 
 #### चरण 2: Okta Application बनाएं या Configure करें
 

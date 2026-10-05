@@ -17,6 +17,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -84,6 +85,7 @@ RunCron(
             episodeNumberWithPrefix: true,
             alertSeverity: {
               name: true,
+              color: true,
             },
           },
         });
@@ -202,9 +204,15 @@ RunCron(
           episodeNumber: episodeNumberStr,
           projectName: episodeStateTimeline.project!.name!,
           currentState: alertState!.name!,
-          currentStateColor: alertState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            alertState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           episodeDescription: await Markdown.convertToHTML(
             episode.description! || "",
@@ -216,6 +224,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           episodeSeverity: episode.alertSeverity?.name || "Not Set",
+          ...EmailColorUtil.getTemplateVariables(
+            "episodeSeverity",
+            episode.alertSeverity?.color,
+          ),
           episodeViewLink: (
             await AlertEpisodeService.getEpisodeLinkInDashboard(
               episodeStateTimeline.projectId!,

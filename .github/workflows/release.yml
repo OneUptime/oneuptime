@@ -21,6 +21,17 @@ permissions:
   contents: write
   packages: write
 
+# Every job checks out the commit that triggered the run (actions/checkout's
+# default), never the branch. `ref: ${{ github.ref }}` fetches the tip of
+# `release` as of the moment each job starts, and a run's jobs start hours
+# apart (they queue behind the organization's concurrent-job limit): after a
+# push to `release` mid-run, every job that started later built the newer
+# commit, still tagged with this run's version and GIT_SHA=${{ github.sha }},
+# so one release could publish images of two commits. A re-run of a failed
+# job did the same with whatever `release` was by then. No job needs the
+# tip: none pushes to this repository - helm-chart-deploy pushes to
+# OneUptime/helm-chart, from a clone of its own. Tests/Ops/ReleaseE2ePipeline.test.js
+# holds every checkout to this.
 jobs:
   generate-build-number:
     runs-on: ubuntu-latest
@@ -47,8 +58,6 @@ jobs:
       patch: ${{ steps.determine.outputs.patch }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - name: Check version and verify not already released
         id: determine
         env:
@@ -172,8 +181,6 @@ jobs:
         run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Lint and render the Helm charts
         working-directory: ./HelmChart/Public
@@ -208,8 +215,6 @@ jobs:
         run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name:  Build and Package Helm chart
         run: |
@@ -272,8 +277,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -313,8 +316,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -358,8 +359,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -399,8 +398,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -444,8 +441,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       # The home image is the biggest one (the blog repository's full
       # history is in it), so this asks for room - and frees it only on a
@@ -491,8 +486,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -536,8 +529,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -577,8 +568,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -622,8 +611,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -663,8 +650,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -708,8 +693,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -749,8 +732,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -794,8 +775,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -835,8 +814,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -880,8 +857,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -923,8 +898,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -968,8 +941,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1011,8 +982,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1056,8 +1025,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1099,8 +1066,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1144,8 +1109,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1187,8 +1150,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1239,8 +1200,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1280,8 +1239,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1334,8 +1291,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1375,8 +1330,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1420,8 +1373,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1461,8 +1412,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1687,8 +1636,6 @@ jobs:
       # Needed for ./Scripts/GHA/docker_login.sh below — without a checkout the
       # login step fails with "No such file or directory" (exit 127).
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -2209,6 +2156,35 @@ jobs:
           echo "GET /api/global-config/license:"
           curl -sS --max-time 15 http://localhost/api/global-config/license
           echo ""
+      # PHASE A, setup: wait for the trial. A brand-new install can read its
+      # license before the AddDefaultGlobalConfig data migration has created
+      # the GlobalConfig row its trial is stamped on; it then reports
+      # "missing", and serves that for LICENSE_INPUTS_CACHE_TTL_IN_MS (60s,
+      # ee/Server/License/LicenseSettings.ts) until a later read stamps the row
+      # (ee/Server/License/LicenseStore.ts) and the trial starts. So poll the
+      # public license endpoint - it awaits the reload - until it reports a
+      # usable license, as phase B polls for the lapse. This used to be
+      # covered only by accident: the e2e image was built or pulled between the
+      # boot and phase A, and that took longer than the cache.
+      - name: Wait for the trial to start (phase A setup)
+        run: |
+          set -uo pipefail
+          DEADLINE=$(( $(date +%s) + 180 ))
+          ATTEMPT=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            PAYLOAD="$(curl -sS --max-time 15 http://localhost/api/global-config/license || true)"
+            echo "attempt ${ATTEMPT}: ${PAYLOAD}"
+            STATUS="$(printf '%s' "$PAYLOAD" | jq -r '.status' 2>/dev/null || true)"
+            VALID="$(printf '%s' "$PAYLOAD" | jq -r '.licenseValid' 2>/dev/null || true)"
+            if [ "$VALID" = "true" ] && { [ "$STATUS" = "grace" ] || [ "$STATUS" = "valid" ]; }; then
+              echo "The license is usable after ${ATTEMPT} attempt(s)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::A fresh Enterprise install never started its trial within 180s of booting. Expected GET /api/global-config/license to report licenseValid=true with status=grace (or valid); the license inputs cache is 60s. The last payload is in this step's log above." >&2
+          exit 1
       # PHASE A. A fresh Enterprise install is inside its unlicensed 14-day
       # trial, so the license is usable and every enterprise feature is on.
       #
@@ -2328,8 +2304,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
       - name: "Build Changelog"
         id: build_changelog
@@ -2397,12 +2371,25 @@ jobs:
       # every attempt before it actually ran and failed, and the last one is
       # not `continue-on-error` — a genuine, persistent failure still fails the
       # job.
+      #
+      # `commit` is where the tag will point. A draft has no tag: GitHub cuts
+      # it when finalize-github-release publishes the draft, from the
+      # release's target_commitish, and without `commit` that is the default
+      # branch. So every tag landed on whatever master was at publish time:
+      # 14.0.11 on a master merge carrying 18 commits the release was not
+      # built from, 14.0.12 on one merged two minutes before the publish -
+      # and the release page's source archives followed the tag. github.sha
+      # is the commit this run stamps into its images (--git-sha). The action
+      # sends `commit` when it updates a draft as well as when it creates
+      # one, so a draft an earlier run left behind is corrected too. GitHub
+      # can refuse to create the tag there; see finalize-github-release.
       - name: Create draft release
         id: draft_release_1
         continue-on-error: true
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2421,6 +2408,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2437,6 +2425,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2488,8 +2477,6 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       # syft reads the manifest over the registry API using the credentials in
       # ~/.docker/config.json — no image pull, so this job stays small and fast.
@@ -2521,6 +2508,15 @@ jobs:
           bash ./Scripts/GHA/generate_sboms.sh \
             --version "${{needs.read-version.outputs.major_minor}}"
 
+      # target_commitish is for the draft softprops/action-gh-release may
+      # keep. Its lookup by tag skips drafts, so it creates a draft of its
+      # own, then switches to the oldest draft for the tag -
+      # draft-github-release's, which it leaves untouched - and deletes its
+      # own. If that switch finds nothing (it reads the newest 200 releases,
+      # three times a second apart), it uploads to the draft it created and
+      # keeps it, and that draft targets the default branch unless this says
+      # otherwise. finalize-github-release could then publish it. The other
+      # upload steps pass it for the same reason.
       - name: Attach SBOMs to release
         uses: softprops/action-gh-release@v2
         with:
@@ -2530,6 +2526,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
 
   infrastructure-agent-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
@@ -2538,8 +2535,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - name: Free disk space if the runner is short of it
         uses: ./.github/actions/free-disk-space
 
@@ -2574,7 +2569,8 @@ jobs:
       - name: Release MSI Images
         run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
 
-      # Upload binaries to github release
+      # Upload binaries to github release. target_commitish: see "Attach
+      # SBOMs to release".
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -2584,6 +2580,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
 
 
   # Build Android release APK and attach to GitHub Release.
@@ -2595,8 +2592,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2635,6 +2630,7 @@ jobs:
       - name: Rename APK
         run: mv packages/MobileApp/android/app/build/outputs/apk/release/*.apk packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
 
+      # target_commitish: see "Attach SBOMs to release".
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -2643,6 +2639,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{ needs.read-version.outputs.major_minor }}
+          target_commitish: ${{ github.sha }}
 
   # Build iOS release IPA and attach to GitHub Release.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
@@ -2653,8 +2650,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -2771,6 +2766,7 @@ jobs:
       - name: Rename IPA
         run: mv ${{ runner.temp }}/build/*.ipa ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
 
+      # target_commitish: see "Attach SBOMs to release".
       - name: Upload IPA to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -2779,6 +2775,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{ needs.read-version.outputs.major_minor }}
+          target_commitish: ${{ github.sha }}
 
       - name: Cleanup keychain
         if: always()
@@ -2834,6 +2831,11 @@ jobs:
                 throw new Error(`Release with tag ${tag} not found in repository ${context.repo.owner}/${context.repo.repo}`);
               }
 
+              // Publishing is when GitHub cuts the tag, from target_commitish.
+              // draft-github-release's `commit` has set it already; naming it
+              // again here holds whichever draft this finds to the run's own
+              // commit, including one an upload step created and kept (see
+              // "Attach SBOMs to release"). context.sha is github.sha.
               await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -2841,6 +2843,7 @@ jobs:
                 draft: false,
                 prerelease: false,
                 make_latest: 'true',
+                target_commitish: context.sha,
               });
             };
 
@@ -2851,6 +2854,18 @@ jobs:
                 break;
               } catch (error) {
                 const message = error.message ?? error;
+
+                // Not transient, so not retried. GITHUB_TOKEN may not create
+                // a ref at a commit whose .github/workflows differ from
+                // master's: test-release's build-number tag was refused this
+                // way (run 37040970616) moments after master changed a
+                // workflow. Creating the tag at context.sha can be refused
+                // the same way once master changes a workflow while a release
+                // is running. A person is not held to that, and the draft
+                // already targets this commit.
+                if (error.status === 403 && /Resource not accessible by integration/.test(message)) {
+                  throw new Error(`GitHub refused to create tag ${tag} at ${context.sha} (${message}). The likely cause is that master's .github/workflows have changed since this commit, and the workflow token may not create a ref at a commit whose workflows differ from master's. Re-running this job will not help. Publish the draft for ${tag} from the Releases page: it targets ${context.sha}, so the tag is created there.`);
+                }
 
                 if (attempt >= maxAttempts) {
                   throw new Error(`Failed to publish release for tag ${tag} after ${maxAttempts} attempts: ${message}`);
@@ -2876,8 +2891,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2946,8 +2959,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:

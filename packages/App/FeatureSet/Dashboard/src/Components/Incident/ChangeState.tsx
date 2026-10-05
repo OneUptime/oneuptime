@@ -1,9 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -28,6 +26,11 @@ import EventStatusPanel, {
   EventStateItem,
   EventStatusFact,
 } from "../EventView/EventStatusPanel";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  BulkStateChangeNoteType,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import {
   fillNoteTemplate,
@@ -35,7 +38,6 @@ import {
 } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 import { fetchIncidentNoteTemplateVariables } from "./IncidentNoteTemplateVariables";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import AIInvestigationHeaderStatus, {
@@ -45,6 +47,13 @@ import {
   scrollToAIInvestigationPanel,
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -81,6 +90,7 @@ export interface ComponentProps {
  * swap from the page skeleton nor the swap to the real header moves the page.
  */
 export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="status"
@@ -88,7 +98,9 @@ export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
       data-testid="incident-state-placeholder"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <span className="sr-only">Loading incident status</span>
+      <span className="sr-only">
+        {translator.translateText("Loading incident status")}
+      </span>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -118,6 +130,7 @@ export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const notifySubscribersByDefault: boolean =
@@ -385,7 +398,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     props.eventStartsAt || incidentStateTimelines[0]?.startsAt;
 
   let durationEndsAt: Date | undefined = undefined;
-  let durationPrefix: string = "Ongoing for";
+  let durationPrefix: string = translationKey("Ongoing for");
 
   if (currentIncidentState?.isResolvedState && resolvedState) {
     const resolvedTimeline: IncidentStateTimeline | undefined = [
@@ -405,7 +418,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
        * while the stat bar's "Resolved in" counts to the FIRST one, so a
        * reopened incident would show one label with two different numbers.
        */
-      durationPrefix = "Lasted";
+      durationPrefix = translationKey("Lasted");
     }
   }
 
@@ -440,25 +453,46 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       }
     };
 
-  let modalTitle: string =
-    "Mark Incident as " + (selectedIncidentState?.name || "");
-  let modalSubmitButtonText: string =
-    "Mark as " + (selectedIncidentState?.name || "");
-  let modalDescription: string =
-    "You are about to mark this incident as " +
-    (selectedIncidentState?.name || "") +
-    ".";
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedIncidentState?.name || "",
+  );
 
+  let modalTitle: string = translator.translateTemplate(
+    "Mark Incident as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalSubmitButtonText: string = translator.translateTemplate(
+    "Mark as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalDescription: string = translator.translateTemplate(
+    "You are about to mark this incident as {{state}}.",
+    { state: selectedStateName },
+  );
+
+  /*
+   * One sentence on what the change does. The optional note is not
+   * mentioned: it is the folded "Add a public note" line right under it.
+   * Acknowledging is what stops the incident's on-call escalation
+   * (Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions),
+   * so the confirm says so.
+   */
   if (selectedIncidentState?.isAcknowledgedState) {
-    modalTitle = "Acknowledge Incident";
-    modalSubmitButtonText = "Acknowledge";
-    modalDescription =
-      "This records an acknowledgement on the incident timeline. You can add an optional public note for status page subscribers.";
+    modalTitle = translationKey("Acknowledge Incident");
+    modalSubmitButtonText = translationKey("Acknowledge");
+    modalDescription = translationKey(
+      "This records an acknowledgement on the incident timeline and stops any on-call escalation for this incident.",
+    );
   } else if (selectedIncidentState?.isResolvedState) {
-    modalTitle = "Resolve Incident";
-    modalSubmitButtonText = "Resolve";
-    modalDescription =
-      "This marks the incident as resolved on the incident timeline. You can add an optional public note for status page subscribers.";
+    modalTitle = translationKey("Resolve Incident");
+    modalSubmitButtonText = translationKey("Resolve");
+    modalDescription = translationKey(
+      "This marks the incident as resolved on the incident timeline.",
+    );
   }
 
   return (
@@ -501,7 +535,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={IncidentStateTimeline}
           name={"create-incident-state-timeline"}
           title={modalTitle}
@@ -548,82 +581,29 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             name: "create-incident-state-timeline",
             modelType: IncidentStateTimeline,
             id: "create-incident-state-timeline",
-            fields: [
-              {
-                field: {
-                  publicNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<IncidentNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<IncidentStateTimeline>,
-                  ) => void,
-                ) => {
-                  // get note template by id
-                  const selectedTemplate: IncidentNoteTemplate | undefined =
-                    incidentNoteTemplates.find(
-                      (template: IncidentNoteTemplate) => {
-                        return template.id?.toString() === value;
-                      },
-                    );
-
-                  const note: string = fillNoteTemplate(
-                    selectedTemplate?.note || "",
-                    noteTemplateVariables,
-                  );
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      publicNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: incidentNoteTemplates.map(
-                  (template: IncidentNoteTemplate) => {
-                    return {
-                      value: template.id!.toString(),
-                      label: template.templateName || "",
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return incidentNoteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "publicNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
+            /*
+             * "Notify Status Page Subscribers", then the public note folded
+             * under "Add a public note" (EventView/StateChangeFormFields). A
+             * picked template's {{incident.*}} placeholders are filled with
+             * this incident's values.
+             */
+            fields: getStateChangeFormFields<IncidentStateTimeline>({
+              noteType: BulkStateChangeNoteType.Public,
+              noteDescription: translationKey(
+                "Post a public note about this state change to the status page.",
+              ),
+              noteTemplates: incidentNoteTemplates.map(
+                toBulkStateChangeNoteTemplate,
+              ),
+              fillTemplate: (note: string): string => {
+                return fillNoteTemplate(note, noteTemplateVariables);
               },
-              {
-                field: {
-                  publicNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description:
-                  "Post a public note about this state change to the status page.",
-                title: "Public Note",
-                required: false,
-                overrideFieldKey: "publicNote",
-                showEvenIfPermissionDoesNotExist: true,
+              notifySubscribers: {
+                byDefault: notifySubscribersByDefault,
+                quietDescription:
+                  PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
               },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotified: true,
-                },
-                fieldType: FormFieldSchemaType.Checkbox,
-                description: notifySubscribersByDefault
-                  ? "Notify subscribers of this state change."
-                  : PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
-                title: "Notify Status Page Subscribers",
-                required: false,
-                defaultValue: notifySubscribersByDefault,
-              },
-            ],
+            }),
             formType: FormType.Create,
           }}
         />

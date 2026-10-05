@@ -14,6 +14,7 @@ import MonitorSecretAccess, {
   MonitorSecretAccessUtil,
 } from "Common/Types/Monitor/MonitorSecretAccess";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -64,6 +65,7 @@ const MonitorSecrets: FunctionComponent<
         actionButtons={[
           {
             title: "Update Secret Value",
+            icon: IconProp.Key,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: async (
               item: MonitorSecret,
@@ -86,9 +88,6 @@ const MonitorSecrets: FunctionComponent<
             "Monitor secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with monitors.",
         }}
         documentationLink={Route.fromString("/docs/monitor/monitor-secrets")}
-        noItemsMessage={
-          'No monitor secret found. Click on the "Create" button to add a new monitor secret.'
-        }
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Secret", id: "secret" },

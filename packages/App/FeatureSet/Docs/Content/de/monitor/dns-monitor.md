@@ -45,7 +45,7 @@ DNS-Monitore fragen DNS-Server für bestimmte Eintragstypen ab und werten die Er
 | SRV         | Service-Locator-Einträge                     |
 | CAA         | Certificate-Authority-Authorization-Einträge |
 
-### Erweiterte Einstellungen
+### Weitere Felder
 
 | Feld                  | Beschreibung                                                                                 | Standard |
 | --------------------- | -------------------------------------------------------------------------------------------- | -------- |

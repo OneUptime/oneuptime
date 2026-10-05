@@ -138,7 +138,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         cardProps={{
           title: "Status Timeline",
-          description: "Here is the status timeline for this incident",
+          description:
+            "Each status this incident has been in, when it began and how long it lasted.",
         }}
         noItemsMessage={"No status timeline created for this incident so far."}
         formFields={[
@@ -154,6 +155,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {
@@ -273,7 +277,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="Here is more information about why the status changed for this incident."
+          description="What OneUptime recorded when this incident changed to this status, such as the monitor check that caused it."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

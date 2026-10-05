@@ -8,6 +8,8 @@ import React, {
   useState,
 } from "react";
 import { ChatProvider } from "./useAiChat";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   providers: Array<ChatProvider>;
@@ -51,6 +53,7 @@ function providerDescription(provider: ChatProvider): string | null {
 const ProviderPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
@@ -86,9 +89,12 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  // The provider's own name, or our word for one that has none.
   const triggerLabel: string = selected
-    ? providerLabel(selected)
-    : "Default provider";
+    ? selected.name ||
+      selected.modelName ||
+      (translator.translateText("Provider") as string)
+    : (translator.translateText("Default provider") as string);
 
   const triggerDescription: string | null = selected
     ? providerDescription(selected)
@@ -99,7 +105,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         disabled={props.disabled}
-        title="Choose AI provider"
+        title={translator.translateText("Choose AI provider")}
         onClick={() => {
           setIsOpen((open: boolean) => {
             return !open;
@@ -131,14 +137,15 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         <div className="absolute bottom-full left-0 z-50 mb-1.5 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="border-b border-gray-100 px-3 py-2">
             <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              AI provider
+              {translator.translateText("AI provider")}
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto overscroll-contain py-1">
             {props.providers.length === 0 && (
               <div className="px-3 py-3 text-xs text-gray-500">
-                No AI providers configured yet. Add one in Settings → AI → LLM
-                Providers.
+                {translator.translateText(
+                  "No AI providers configured yet. Add one in Settings → AI → LLM Providers.",
+                )}
               </div>
             )}
             {props.providers.map((provider: ChatProvider) => {
@@ -175,12 +182,12 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
                       </span>
                       {provider.isDefault && (
                         <span className="flex-shrink-0 rounded bg-emerald-50 px-1 py-px text-[9px] font-semibold uppercase text-emerald-600">
-                          Default
+                          {translator.translateText("Default")}
                         </span>
                       )}
                       {provider.isGlobal && (
                         <span className="flex-shrink-0 rounded bg-sky-50 px-1 py-px text-[9px] font-semibold uppercase text-sky-600">
-                          Global
+                          {translator.translateText("Global")}
                         </span>
                       )}
                     </div>

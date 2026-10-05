@@ -8,6 +8,8 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -29,6 +31,10 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+
+// Per-type options, folded at the end of Authentication.
+const advancedSection: FormFieldCollapsibleSection<DataSource> =
+  getAdvancedFormSection<DataSource>();
 
 const DataSourceView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -72,7 +78,6 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
         name="Data Source Details"
         cardProps={{
           title: "Data Source Details",
-          description: "Here are more details for this data source.",
           buttons: [
             {
               title: "Update Credentials",
@@ -96,6 +101,7 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
           ],
         }}
         isEditable={true}
+        // As on the create form: Advanced is folded into Authentication.
         formSteps={[
           {
             title: "Basic Info",
@@ -108,10 +114,6 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
           {
             title: "Authentication",
             id: "auth",
-          },
-          {
-            title: "Advanced",
-            id: "advanced",
           },
         ]}
         formFields={[
@@ -255,7 +257,8 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
               additionalOptions: true,
             },
             title: "Additional Options",
-            stepId: "advanced",
+            stepId: "auth",
+            collapsibleSection: advancedSection,
             fieldType: FormFieldSchemaType.JSON,
             required: false,
             description:

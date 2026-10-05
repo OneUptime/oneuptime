@@ -349,6 +349,8 @@ Etiketter matchas skiftlägesokänsligt, så en befintlig manuellt skapad `Produ
 
 ## Uppgradera agenten
 
+När agenten är äldre än din OneUptime visas en varningssymbol bredvid **Agentversion** i klustrets **Klusterdetaljer**. Välj den för att se det här kommandot.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -357,6 +359,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` behåller din befintliga konfiguration (förinställning, klusternamn, filter); skicka eventuella nya `--set`-åsidosättanden ovanpå den.
+
+> **eBPF:s span-mått har bytt namn.** `ebpf.features.spanMetrics` skickar nu `traces.span.metrics.calls` och `traces.span.metrics.duration` (sekunder) i stället för `traces_spanmetrics_calls_total` och `traces_spanmetrics_latency`: samma serier under de namn som OBI behåller (de gamla har OBI markerat som föråldrade). En instrumentpanel, ett diagram eller en måttbaserad monitor på ett gammalt namn får inga nya data efter uppgraderingen, utan något fel — flytta den till det nya namnet och uppdatera även `filters.metrics`-poster som nämner ett gammalt namn.
 
 ## Avinstallera agenten
 
@@ -413,7 +417,7 @@ Alla på som standard. Stäng av någon med `--set ebpf.features.<name>=false`:
 | `ebpf.features.*`         | Standard | Vad det lägger till                                            |
 | ------------------------- | -------- | -------------------------------------------------------------- |
 | `httpMetrics`             | på       | HTTP/gRPC RED-mått (begärandefrekvens, latens, fel) per tjänst |
-| `spanMetrics`             | på       | Begäran-/svarsstorlek och varaktighet per span                 |
+| `spanMetrics`             | på       | Antal anrop och varaktighet för spans (`traces.span.metrics.*`) |
 | `serviceGraph`            | på       | Kantmått anropare → anropad; driver tjänstekartan              |
 | `networkMetrics`          | på       | TCP/UDP-flödesräknare pod-till-pod                             |
 | `networkInterZoneMetrics` | av       | Inter-zonvariant av nätverksmått (dubblerar kardinalitet)      |
@@ -717,7 +721,7 @@ Den vanligaste anledningen — särskilt efter en ominstallation — är en **fe
 ### Inga mått visas
 
 1. Uteslut först en avvisad ingestnyckel — det är den vanligaste orsaken och är lätt att missa från agentsidan. Se [Agenten visar "Disconnected"](#agenten-visar-disconnected) ovan (eller kör bara diagnostikskriptet).
-2. Kontrollera att klusteridentifieraren matchar värdet du skickade som `clusterName`
+2. Kontrollera att klustrets **klusternamn (clusterName)** matchar värdet du skickade som `clusterName`. Det står på klustrets **Settings**-sida under **Cluster Details**; välj **Edit Details** och öppna **More fields** för att rätta det
 3. Verifiera RBAC-behörigheterna: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Kontrollera OTel-insamlarens loggar för exportfel
 

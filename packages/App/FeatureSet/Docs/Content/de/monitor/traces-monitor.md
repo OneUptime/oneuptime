@@ -17,14 +17,15 @@ Traces-Monitore suchen und zählen Spans, die bestimmten Filtern entsprechen. Di
 1. Gehen Sie zu **Monitore** im OneUptime-Dashboard
 2. Klicken Sie auf **Monitor erstellen**
 3. Wählen Sie **Traces** als Monitortyp
-4. Wählen Sie die zu überwachenden Telemetrie-Dienste aus
-5. Konfigurieren Sie bei Bedarf Span-Filter und Kriterien
+4. Legen Sie fest, welche Spans gezählt werden: den Span-Namen, das Zeitfenster und die Span-Status
+5. Um sie auf Telemetrie-Dienste, Infrastruktur-Entitäten oder Attribute einzugrenzen, öffnen Sie **Weitere Felder** unter diesen Filtern
+6. Konfigurieren Sie bei Bedarf die Kriterien
 
 ## Konfigurationsoptionen
 
 ### Telemetrie-Dienste
 
-Wählen Sie einen oder mehrere Dienste aus, von denen Traces überwacht werden sollen. Dienste müssen Traces über OpenTelemetry an OneUptime senden.
+Wählen Sie unter **Weitere Felder** einen oder mehrere Dienste aus, von denen Traces überwacht werden sollen. Lassen Sie das Feld leer, um Spans aller Dienste zu überwachen. Dienste müssen Traces über OpenTelemetry an OneUptime senden.
 
 ### Span-Filter
 

@@ -142,6 +142,8 @@
     "Monitor Secrets": "監控密鑰",
     "AI SRE": "AI SRE",
     "Schedule Timeline": "待命時間軸",
+    "Escalation Rules": "上報規則",
+    "On-Call Schedules": "待命排程",
     "Calendar Feeds": "行事曆訂閱源",
     "Incoming Call Policy": "來電原則",
     "Phone Number Whitelist": "電話號碼白名單",

@@ -60,6 +60,12 @@ const SIDE_MENU: Array<string> = [
   "SideMenu.tsx",
 ];
 
+const RESOURCE_FORM_FIELDS: Array<string> = [
+  "Components",
+  "StatusPage",
+  "StatusPageResourceFormFields.ts",
+];
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -728,14 +734,39 @@ describe("what the operator sees while nothing is on screen", () => {
  * over verbatim: it is the whole surface of a status page group, and a field
  * quietly dropped in a merge is a setting an operator can no longer reach at
  * all.
+ *
+ * It is one page now, rather than three steps: the group's name and parent,
+ * then Layout and Advanced folded (Common/Tests/UI/Components/Forms/
+ * StatusPageResourceFormsGuard.test.ts pins which field is where). Every
+ * field is still there.
  */
 describe("the group form survived the merge intact", () => {
-  test.each([
-    ["Group Details", "group-details"],
-    ["Layout", "layout"],
-    ["Advanced", "advanced"],
-  ])("keeps the %s step", (title: string, id: string) => {
-    expect(code).toContain(squash(`{ title: "${title}", id: "${id}", },`));
+  test("is one page, with no step list", () => {
+    expect(code).not.toContain("GROUP_FORM_STEPS");
+    expect(between("fields: getGroupFormFields(),", "}}")).not.toContain(
+      "steps",
+    );
+  });
+
+  test("folds the layout into a section of its own, and the rest under Advanced", () => {
+    const groupForm: string = between(
+      "const getGroupFormFields:",
+      "const getFooterForMonitor:",
+    );
+
+    expect(groupForm).toContain(
+      "const layoutSection: FormFieldCollapsibleSection<StatusPageGroup> = getStatusPageGroupLayoutSection();",
+    );
+    expect(groupForm).toContain(
+      "const advancedSection: FormFieldCollapsibleSection<StatusPageGroup> = getAdvancedFormSection<StatusPageGroup>();",
+    );
+    expect(
+      groupForm.split("collapsibleSection: layoutSection,").length - 1,
+    ).toBe(5);
+    expect(
+      groupForm.split("collapsibleSection: advancedSection,").length - 1,
+    ).toBe(5);
+    expect(groupForm).not.toContain("stepId");
   });
 
   test.each([
@@ -768,28 +799,34 @@ describe("the group form survived the merge intact", () => {
 });
 
 /*
- * The resource form was already on this page and is unchanged, but it shares
- * the page with the group form now — and two multi step ModelForms in one file
- * is exactly the shape where one quietly ends up rendering the other's fields.
+ * The resource form shares the page with the group form - and two ModelForms
+ * in one file is exactly the shape where one quietly ends up rendering the
+ * other's fields. It is one page now, built by the shared resource form
+ * (StatusPageResourceFormFields): the monitor and its display name, which
+ * follows the monitor's name, and the rest folded under Advanced.
  */
 describe("the resource form is still its own form", () => {
-  test.each([
-    ["Monitor Details", "monitor-details"],
-    ["Advanced", "advanced"],
-  ])("keeps the %s step", (title: string, id: string) => {
-    expect(code).toContain(squash(`{ title: "${title}", id: "${id}", },`));
+  test("is built by the shared resource form, not written out on the page", () => {
+    expect(code).toContain(
+      squash(
+        "getStatusPageResourceFormFields({ addMonitorGroup: addMonitorGroup, targetFooterElement: getFooterForMonitor(), })",
+      ),
+    );
   });
 
-  test("the pane is handed the resource fields and steps, not the group's", () => {
+  test("the pane is handed the resource fields, not the group's, and no steps", () => {
     const pane: string = between("<StatusPageResourcePanel", "/>");
 
     expect(pane).toContain("baseFormFields={formFields}");
-    expect(pane).toContain("formSteps={FORM_STEPS}");
+    expect(pane).not.toContain("formSteps");
+    expect(code).not.toContain("FORM_STEPS");
   });
 
   test("a monitor group can still be published instead of a monitor", () => {
-    expect(code).toContain("field: { monitorGroup: true, },");
-    expect(code).toContain("field: { monitor: true, },");
+    const resourceForm: string = readCode(...RESOURCE_FORM_FIELDS);
+
+    expect(resourceForm).toContain("field: { monitorGroup: true, },");
+    expect(resourceForm).toContain("field: { monitor: true, },");
     expect(code).toContain(
       "props.currentProject?.isFeatureFlagMonitorGroupsEnabled",
     );

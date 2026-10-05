@@ -4,6 +4,9 @@ import NetworkPathTrace, {
   TraceRouteHop,
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import React, { FunctionComponent, ReactElement } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   networkPathTrace: NetworkPathTrace;
@@ -20,26 +23,32 @@ export interface ComponentProps {
  * so nothing is said about the route; the trace's own failure message,
  * shown right after, says why.
  */
-type GetRouteVerdictFunction = (traceRoute: TraceRoute) => string;
+type GetRouteVerdictFunction = (
+  traceRoute: TraceRoute,
+  translator: Translator,
+) => string;
 
 const getRouteVerdict: GetRouteVerdictFunction = (
   traceRoute: TraceRoute,
+  translator: Translator,
 ): string => {
   const hops: Array<TraceRouteHop> = traceRoute.hops || [];
 
   if (hops.length === 0) {
-    return "No path was recorded.";
+    return translator.translateTemplate("No path was recorded.");
   }
 
   if (traceRoute.isComplete) {
-    return "Route reached the destination.";
+    return translator.translateTemplate("Route reached the destination.");
   }
 
   if (traceRoute.failedHop !== undefined) {
-    return `Route broke at hop ${traceRoute.failedHop}.`;
+    return translator.translateTemplate("Route broke at hop {{hop}}.", {
+      hop: traceRoute.failedHop,
+    });
   }
 
-  return "Route did not reach the destination.";
+  return translator.translateTemplate("Route did not reach the destination.");
 };
 
 /*
@@ -49,6 +58,7 @@ const getRouteVerdict: GetRouteVerdictFunction = (
 const NetworkPathView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const trace: NetworkPathTrace = props.networkPathTrace;
 
   if (!trace.dnsLookup && !trace.traceRoute) {
@@ -58,29 +68,49 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-md border-2 border-gray-100 p-4">
       <div className="text-sm font-medium text-gray-900 mb-1">
-        Network Path at Time of Failure
+        {translator.translateText("Network Path at Time of Failure")}
       </div>
       <div className="text-xs text-gray-500 mb-3">
-        Traceroute captured by the probe when this check failed.
+        {translator.translateText(
+          "Traceroute captured by the probe when this check failed.",
+        )}
       </div>
 
       {trace.dnsLookup && (
         <div className="mb-3 text-sm text-gray-700">
-          <span className="font-medium">DNS:</span>{" "}
+          <span className="font-medium">
+            {translator.translateText("DNS:")}
+          </span>{" "}
           {trace.dnsLookup.isSuccess ? (
             <span>
-              {trace.dnsLookup.hostName} resolved to{" "}
-              <span className="font-mono">
-                {trace.dnsLookup.resolvedAddresses.join(", ")}
-              </span>{" "}
-              in {trace.dnsLookup.resolvedInMS} ms
+              <TranslatedSentence
+                template="{{host}} resolved to {{addresses}} in {{time}} ms"
+                values={{
+                  host: trace.dnsLookup.hostName,
+                  time: trace.dnsLookup.resolvedInMS,
+                }}
+                slots={{
+                  addresses: (
+                    <span className="font-mono">
+                      {trace.dnsLookup.resolvedAddresses.join(", ")}
+                    </span>
+                  ),
+                }}
+              />
             </span>
           ) : (
             <span className="text-red-700">
-              Lookup for {trace.dnsLookup.hostName} failed
               {trace.dnsLookup.errorMessage
-                ? ` — ${trace.dnsLookup.errorMessage}`
-                : ""}
+                ? translator.translateTemplate(
+                    "Lookup for {{host}} failed — {{error}}",
+                    {
+                      host: trace.dnsLookup.hostName,
+                      error: trace.dnsLookup.errorMessage,
+                    },
+                  )
+                : translator.translateTemplate("Lookup for {{host}} failed", {
+                    host: trace.dnsLookup.hostName,
+                  })}
             </span>
           )}
         </div>
@@ -96,7 +126,7 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
 
       {trace.traceRoute && (
         <div className="mt-2 text-xs text-gray-500">
-          {getRouteVerdict(trace.traceRoute)}
+          {getRouteVerdict(trace.traceRoute, translator)}
           {trace.traceRoute.failureMessage
             ? ` ${trace.traceRoute.failureMessage}`
             : ""}

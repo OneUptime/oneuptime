@@ -1,7 +1,11 @@
 import IncidentCustomFieldSettingsCopy, {
   CUSTOM_FIELD_TYPE_LABELS,
+  CustomFieldFormCopy,
   CustomFieldsPageCopy,
+  MAPPED_CUSTOM_FIELD_SOURCE_COPY,
+  MappedCustomFieldSourceCopy,
 } from "../../FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS } from "Common/Types/CustomField/CustomFieldSavedViews";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -10,8 +14,10 @@ import path from "path";
 /*
  * The custom field settings pages' text - the field type names, the card's
  * description (and the one that says the fields can be dragged into order),
- * and the incident-only settings (show and require on create, subscriber
- * notifications, template variable) - reaches the screen by looking its
+ * the incident-only settings (show and require on create, subscriber
+ * notifications, template variable), the form's own text (where a value is
+ * copied from, the Advanced section and its "Configured" badge) and the
+ * Create Mapped Custom Field dialog's - reaches the screen by looking its
  * English text up in the Dashboard locale files. A string with no entry
  * silently stays English, so this pins:
  *
@@ -67,6 +73,18 @@ const STRINGS: Array<string> = Array.from(
     ...Object.values(CUSTOM_FIELD_TYPE_LABELS),
     ...Object.values(CustomFieldsPageCopy),
     ...Object.values(IncidentCustomFieldSettingsCopy),
+    ...Object.values(CustomFieldFormCopy),
+    ...Object.values(MAPPED_CUSTOM_FIELD_SOURCE_COPY).flatMap(
+      (copy: MappedCustomFieldSourceCopy): Array<string> => {
+        return Object.values(copy);
+      },
+    ),
+    // The folded section the form's rarely needed settings sit in.
+    MORE_FIELDS_SECTION_TITLE,
+    "Configured",
+    // The mapping help, opened from the card's More menu.
+    "Copying custom field values from a related resource",
+    "When and how a field's value is copied, and what copying will never do.",
   ]),
 );
 
@@ -110,7 +128,7 @@ function listSourceFiles(directory: string): Array<string> {
 
 describe("custom field settings strings in every Dashboard locale", () => {
   test("there are strings to check", () => {
-    expect(STRINGS.length).toBeGreaterThan(15);
+    expect(STRINGS.length).toBeGreaterThan(35);
   });
 
   test.each(STRINGS)("en.json maps %j to itself", (text: string) => {
@@ -172,12 +190,70 @@ describe("the settings pages render the shared strings", () => {
       "isRequiredOnCreateDescription",
       "includeInSubscriberNotificationsTitle",
       "includeInSubscriberNotificationsDescription",
-      "includeInSubscriberNotificationsColumnTitle",
-      "variableKeyColumnTitle",
-      "variableKeyColumnDescription",
     ]) {
       expect(source).toContain(`IncidentCustomFieldSettingsCopy.${key}`);
     }
+  });
+
+  test("the form, its Advanced section and the mapped field dialog take their text from the shared copy", () => {
+    const base: string = readSource(
+      "Pages",
+      "Settings",
+      "Base",
+      "CustomFieldsPageBase.tsx",
+    );
+    const dialog: string = readSource(
+      "Components",
+      "CustomFields",
+      "CreateMappedCustomFieldModal.tsx",
+    );
+
+    for (const key of [
+      "fieldTypeDescription",
+      "dropdownOptionsDescription",
+      "mapValueFromTitle",
+      "mapValueFromDescription",
+      "mapValueByHand",
+      "fieldToCopyFromTitle",
+      "fieldToCopyFromDescription",
+      "templateVariableTitle",
+      "templateVariableDescription",
+    ]) {
+      expect(base).toContain(`CustomFieldFormCopy.${key}`);
+    }
+
+    for (const key of ["createMappedFieldTitle", "createMappedFieldSubmit"]) {
+      expect(dialog).toContain(`CustomFieldFormCopy.${key}`);
+    }
+
+    for (const key of [
+      "dialogDescription",
+      "sourceFieldTitle",
+      "sourceFieldDescription",
+      "sourceFieldPlaceholder",
+      "noSourceFields",
+    ]) {
+      expect(dialog).toContain(`copy.${key}`);
+    }
+
+    // No English left behind in either.
+    for (const source of [base, dialog]) {
+      for (const text of Object.values(CustomFieldFormCopy)) {
+        expect(source).not.toContain(`"${text}"`);
+      }
+    }
+  });
+
+  /*
+   * The settings table lists a field's name and type only, so the copy has
+   * no column titles left to carry (CustomFieldTablesTwoColumns).
+   */
+  test("the shared copy carries no column of the settings table", () => {
+    expect(
+      Object.keys(IncidentCustomFieldSettingsCopy).filter((key: string) => {
+        return key.toLowerCase().includes("column");
+      }),
+    ).toEqual([]);
   });
 
   /*

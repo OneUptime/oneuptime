@@ -15,9 +15,13 @@ import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboar
  *
  *  - the application page composes health -> policy -> privacy -> install
  *    test -> targeted capture, with the two panels pinned to the
- *    application (settings-setup-17);
+ *    application (settings-setup-17), and opens on the health card with no
+ *    banner above it;
+ *  - replay retention is edited on the Replay Policy page only, and the
+ *    application's Settings page shows it read-only with a way there;
  *  - the project page no longer mounts the two panels and keeps the master
- *    switch and roster;
+ *    switch and roster, whose description says what lives on each
+ *    application's page;
  *  - the 0% + Always alert exists;
  *  - the RUM settings section is not collapsed and the two side-menu
  *    entries no longer share a name (settings-setup-5);
@@ -228,25 +232,99 @@ function topLevelDeclaration(source: string, opening: RegExp): string {
   return rest.slice(0, (end?.index ?? rest.length) + (end?.[0].length ?? 0));
 }
 
-describe("Application replay settings page composition", () => {
-  test("general RUM Settings and Replay Policy bind the same dedicated retention field", () => {
-    const retentionFieldPattern: RegExp = new RegExp(
-      "field\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true\\s*,?\\s*\\}",
-      "g",
-    );
-    const generalBindings: Array<string> =
-      GENERAL_RUM_SETTINGS_IMPLEMENTATION.match(retentionFieldPattern) || [];
-    const replayPolicyBindings: Array<string> =
-      APP_SETTINGS_PAGE.match(retentionFieldPattern) || [];
+const RETENTION_FIELD_PATTERN: RegExp = new RegExp(
+  "field\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true\\s*,?\\s*\\}",
+  "g",
+);
+const LIMITS_RETENTION_FIELD_PATTERN: RegExp = new RegExp(
+  '\\{\\s*field:\\s*\\{\\s*sessionReplayRetentionInDays:\\s*true\\s*\\},\\s*title:\\s*"Retention",\\s*stepId:\\s*"limits",\\s*fieldType:\\s*FormFieldSchemaType\\.Dropdown,\\s*dropdownOptions:\\s*SESSION_REPLAY_RETENTION_OPTIONS,',
+);
+const RETENTION_READ_PATTERN: RegExp = new RegExp(
+  "select:\\s*\\{\\s*sessionReplayRetentionInDays:\\s*true,?\\s*\\}",
+);
+const PAGE_RETURN_OPENING: RegExp = new RegExp(
+  "return \\(\\s*<Fragment>\\s*<RecordingHealthCard rumApplicationId=\\{modelId\\} />",
+);
 
-    /* Each surface has one editable field and one read-view field. */
-    expect(generalBindings).toHaveLength(2);
+describe("Application replay settings page composition", () => {
+  /*
+   * One setting, one place. Retention used to be editable twice: the policy
+   * form's Limits step and a card of its own on the application's Settings
+   * page, each with its own description of the same column. The policy form
+   * keeps it, next to the masking and consent it belongs with; the Settings
+   * page keeps showing it, read-only, and links to the policy.
+   */
+  test("replay retention is edited on Replay Policy only; RUM Settings shows it and links there", () => {
+    const generalBindings: Array<string> =
+      GENERAL_RUM_SETTINGS_IMPLEMENTATION.match(RETENTION_FIELD_PATTERN) || [];
+    const replayPolicyBindings: Array<string> =
+      APP_SETTINGS_PAGE.match(RETENTION_FIELD_PATTERN) || [];
+
+    /* Replay Policy: the Limits step's field and the read view's row. */
     expect(replayPolicyBindings).toHaveLength(2);
-    expect(GENERAL_RUM_SETTINGS_PAGE).toMatch(
-      new RegExp(
-        "SessionReplayRetentionSettingsCard|sessionReplayRetentionInDays",
-      ),
+    expect(APP_SETTINGS_PAGE).toMatch(LIMITS_RETENTION_FIELD_PATTERN);
+    expect(APP_SETTINGS_PAGE).toContain('{ title: "Limits", id: "limits" }');
+
+    /* RUM Settings: no field, no form, no edit dialog - one read and a link. */
+    expect(GENERAL_RUM_SETTINGS_PAGE).toContain(
+      "<SessionReplayRetentionSettingsCard rumApplicationId={modelId} />",
     );
+    expect(generalBindings).toHaveLength(0);
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).not.toContain("formFields");
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).not.toContain(
+      "FormFieldSchemaType",
+    );
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).not.toContain(
+      "CardModelDetail",
+    );
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).not.toContain("isEditable");
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).toMatch(RETENTION_READ_PATTERN);
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).toContain(
+      'title: "Edit on Replay Policy"',
+    );
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).toContain(
+      "RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]",
+    );
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).toContain(
+      'one: "Session replays are kept for {{count}} day."',
+    );
+    expect(GENERAL_RUM_SETTINGS_IMPLEMENTATION).toContain(
+      'other: "Session replays are kept for {{count}} days."',
+    );
+  });
+
+  /*
+   * The page used to open on a blue "Recording must also be allowed for the
+   * project" banner, every visit. The project switch is on unless someone
+   * turned it off, and when it is off the health card's diagnosis says so
+   * and offers "Turn it on" (disabled-project in SessionReplayHealth.ts).
+   */
+  test("opens on the health card, with no banner above it", () => {
+    const code: string = stripComments(APP_SETTINGS_PAGE);
+
+    expect(code).toMatch(PAGE_RETURN_OPENING);
+    expect(code).not.toContain(
+      "Recording must also be allowed for the project",
+    );
+    expect(code).not.toContain("AlertType.INFO");
+
+    const health: string = fs.readFileSync(
+      nodePath.join(
+        __dirname,
+        "../../../Common/Utils/Rum/SessionReplayHealth.ts",
+      ),
+      "utf8",
+    );
+    const projectOff: string = health.slice(
+      indexOfOrFail(health, "if (!policy.isProjectEnabled) {"),
+      indexOfOrFail(health, "if (!policy.isApplicationEnabled) {"),
+    );
+
+    expect(projectOff).toContain('state: "disabled-project"');
+    expect(projectOff).toContain(
+      'title: "Session replay is switched off for this project"',
+    );
+    expect(projectOff).toContain('action("Turn it on", "project-settings")');
   });
 
   test("composes health -> policy -> privacy summary -> install test -> targeted capture, in that order", () => {
@@ -689,15 +767,32 @@ describe("Project replay settings page", () => {
   });
 
   test("keeps the master switch and the roster, drops the two panels, and points at the application page", () => {
-    expect(PROJECT_SETTINGS_PAGE).toContain("<CardModelDetail<Project>");
+    // The master switch saves when it is flipped (SessionReplayAllowedCard).
+    expect(PROJECT_SETTINGS_PAGE).toContain("<SessionReplayAllowedCard");
+    expect(PROJECT_SETTINGS_PAGE).toContain(
+      "projectId={ProjectUtil.getCurrentProjectId()!}",
+    );
+    expect(PROJECT_SETTINGS_PAGE).not.toContain("CardModelDetail");
     expect(PROJECT_SETTINGS_PAGE).toContain("<ModelTable<RumApplication>");
     expect(PROJECT_SETTINGS_PAGE).not.toContain("InstallationTestPanel");
     expect(PROJECT_SETTINGS_PAGE).not.toContain("TargetedCapturePanel");
     expect(PROJECT_SETTINGS_PAGE).toContain(
-      'dataTestId="project-replay-pointer"',
-    );
-    expect(PROJECT_SETTINGS_PAGE).toContain(
       "PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
+    );
+  });
+
+  /*
+   * A blue banner between the switch and the roster asked "Looking for the
+   * installation test, recording health or targeted capture?" on every
+   * visit. The roster's own description says where those are.
+   */
+  test("the roster says what lives on each application's page; no banner says it again", () => {
+    const code: string = stripComments(PROJECT_SETTINGS_PAGE);
+
+    expect(code).not.toContain("<Alert");
+    expect(code).not.toContain("project-replay-pointer");
+    expect(code).toContain(
+      `"Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session."`,
     );
   });
 

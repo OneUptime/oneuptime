@@ -5,6 +5,8 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getDockerSwarmClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
@@ -32,6 +34,12 @@ import {
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -64,6 +72,7 @@ export interface SwarmCountTileProps {
 export const SwarmCountTile: FunctionComponent<SwarmCountTileProps> = (
   props: SwarmCountTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="relative rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-300 hover:shadow">
       <button
@@ -71,11 +80,15 @@ export const SwarmCountTile: FunctionComponent<SwarmCountTileProps> = (
         onClick={props.onOpen}
         className="absolute inset-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
       >
-        <span className="sr-only">{`View ${props.label}`}</span>
+        <span className="sr-only">
+          {translator.translateTemplate("View {{label}}", {
+            label: translatableTerm(props.label),
+          })}
+        </span>
       </button>
       <div className="flex items-center gap-1">
         <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          {props.label}
+          {translator.translateText(props.label)}
         </div>
         <InfoTooltip
           label={props.label}
@@ -123,6 +136,7 @@ interface InventorySummary {
 const DockerSwarmClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cluster, setCluster] = useState<DockerSwarmCluster | null>(null);
@@ -446,49 +460,61 @@ const DockerSwarmClusterOverview: FunctionComponent<
     if (nodesTotal > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
-        label: `${nodesReady}/${nodesTotal} node${
-          nodesTotal === 1 ? "" : "s"
-        } ready`,
-        name: "Nodes ready",
+        label: translator.translatePlural(
+          {
+            one: "{{ready}}/{{count}} node ready",
+            other: "{{ready}}/{{count}} nodes ready",
+          },
+          nodesTotal,
+          { ready: nodesReady },
+        ),
+        name: translationKey("Nodes ready"),
         description: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodes,
       });
     }
     if (managerCount > 0) {
       specChips.push({
         icon: IconProp.Star,
-        label: `${managerCount} manager${managerCount === 1 ? "" : "s"}`,
-        name: "Managers",
+        label: translator.translatePlural(
+          { one: "{{count}} manager", other: "{{count}} managers" },
+          managerCount,
+        ),
+        name: translationKey("Managers"),
         description: DOCKER_SWARM_METRIC_DESCRIPTIONS.managers,
       });
     }
     if (servicesTotal > 0) {
       specChips.push({
         icon: IconProp.Cube,
-        label: `${servicesTotal} service${servicesTotal === 1 ? "" : "s"}`,
-        name: "Services",
+        label: translator.translatePlural(
+          { one: "{{count}} service", other: "{{count}} services" },
+          servicesTotal,
+        ),
+        name: translationKey("Services"),
         description: DOCKER_SWARM_METRIC_DESCRIPTIONS.services,
       });
     }
     if (tasksTotal > 0) {
       specChips.push({
         icon: IconProp.List,
-        label: `${tasksRunning}/${tasksTotal} task${
-          tasksTotal === 1 ? "" : "s"
-        } running`,
-        name: "Tasks running",
+        label: translator.translatePlural(
+          {
+            one: "{{running}}/{{count}} task running",
+            other: "{{running}}/{{count}} tasks running",
+          },
+          tasksTotal,
+          { running: tasksRunning },
+        ),
+        name: translationKey("Tasks running"),
         description: DOCKER_SWARM_METRIC_DESCRIPTIONS.tasks,
       });
     }
     if (cluster.dockerVersion) {
       specChips.push({
         icon: IconProp.Info,
-        label: `Docker ${String(cluster.dockerVersion)}`,
-      });
-    }
-    if (cluster.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: `Agent ${String(cluster.agentVersion)}`,
+        label: translator.translateTemplate("Docker {{version}}", {
+          version: String(cluster.dockerVersion),
+        }),
       });
     }
 
@@ -539,7 +565,9 @@ const DockerSwarmClusterOverview: FunctionComponent<
                   </div>
                 )}
                 <div className="mt-1 text-xs text-gray-400">
-                  Last seen {lastSeenText}
+                  {translator.translateTemplate("Last seen {{time}}", {
+                    time: lastSeenText,
+                  })}
                 </div>
               </div>
             </div>
@@ -556,7 +584,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
             </div>
           </div>
 
-          {specChips.length > 0 && (
+          {(specChips.length > 0 || Boolean(cluster.agentVersion)) && (
             <div className="mt-4 flex flex-wrap gap-1.5">
               {specChips.map((chip: SpecChip, idx: number): ReactElement => {
                 return (
@@ -574,6 +602,16 @@ const DockerSwarmClusterOverview: FunctionComponent<
                   </span>
                 );
               })}
+              {/*
+               * The agent's version chip, last. A sign on it, when the
+               * agent is behind the collector this release pins, opens how
+               * to upgrade it.
+               */}
+              <AgentVersion
+                kind={AgentKind.DockerSwarmAgent}
+                version={cluster.agentVersion}
+                variant="chip"
+              />
             </div>
           )}
         </div>
@@ -633,44 +671,60 @@ const DockerSwarmClusterOverview: FunctionComponent<
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {renderCountTile(
-          "Nodes",
+          translationKey("Nodes"),
           nodesTotal,
-          nodesTotal > 0 ? `${nodesReady}/${nodesTotal} ready` : null,
+          nodesTotal > 0
+            ? translator.translateTemplate("{{ready}}/{{total}} ready", {
+                ready: nodesReady,
+                total: nodesTotal,
+              })
+            : null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES,
           DOCKER_SWARM_METRIC_DESCRIPTIONS.nodes,
         )}
         {renderCountTile(
-          "Services",
+          translationKey("Services"),
           servicesTotal,
           inventory && servicesTotal > 0
-            ? `${inventory.servicesConverged}/${servicesTotal} converged`
+            ? translator.translateTemplate(
+                "{{converged}}/{{total}} converged",
+                {
+                  converged: inventory.servicesConverged,
+                  total: servicesTotal,
+                },
+              )
             : null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES,
           DOCKER_SWARM_METRIC_DESCRIPTIONS.services,
         )}
         {renderCountTile(
-          "Tasks",
+          translationKey("Tasks"),
           tasksTotal,
-          tasksTotal > 0 ? `${tasksRunning}/${tasksTotal} running` : null,
+          tasksTotal > 0
+            ? translator.translateTemplate("{{running}}/{{total}} running", {
+                running: tasksRunning,
+                total: tasksTotal,
+              })
+            : null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS,
           DOCKER_SWARM_METRIC_DESCRIPTIONS.tasks,
         )}
         {renderCountTile(
-          "Stacks",
+          translationKey("Stacks"),
           stackCount,
           null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS,
           DOCKER_SWARM_METRIC_DESCRIPTIONS.stacks,
         )}
         {renderCountTile(
-          "Networks",
+          translationKey("Networks"),
           networkCount,
           null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS,
           DOCKER_SWARM_METRIC_DESCRIPTIONS.networks,
         )}
         {renderCountTile(
-          "Volumes",
+          translationKey("Volumes"),
           inventory?.volumeCount || 0,
           null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES,
@@ -690,8 +744,9 @@ const DockerSwarmClusterOverview: FunctionComponent<
               icon={IconProp.CheckCircle}
               className="h-4 w-4 text-emerald-500"
             />
-            Everything looks healthy — all reported nodes, services and tasks
-            are in a steady state.
+            {translator.translateText(
+              "Everything looks healthy — all reported nodes, services and tasks are in a steady state.",
+            )}
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
@@ -718,7 +773,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
                           {item.name}
                         </span>
                         <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                          {item.kind}
+                          {translator.translateText(item.kind)}
                         </span>
                       </div>
                       <div className="mt-0.5 ml-3.5 text-xs text-gray-500">

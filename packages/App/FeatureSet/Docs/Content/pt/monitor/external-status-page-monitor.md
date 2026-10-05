@@ -71,7 +71,7 @@ Se a página de status relata sobre múltiplos componentes, você pode opcionalm
 
 Quando um grupo de componentes também é definido, o filtro de nome de componente é aplicado **dentro** desse grupo, permitindo que você foque em um único componente dentro de um grupo maior. Quando nenhum dos filtros é especificado, todos os componentes dentro do escopo são monitorados.
 
-### Opções Avançadas
+### Mais campos
 
 #### Timeout
 

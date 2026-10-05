@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -25,7 +27,12 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -35,10 +42,13 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesDocumentationCard from "../../Components/Kubernetes/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -81,6 +91,7 @@ const KubernetesClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -121,6 +132,16 @@ const KubernetesClusters: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * The create form asks for the one thing a cluster cannot be created
+   * without: the clusterName its kubernetes-agent reports. The display name
+   * follows it - a cluster added here is named like a discovered one - and
+   * folds under Advanced with the description and the labels, so the form
+   * is two rows (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
+    getAdvancedFormSection<KubernetesCluster>();
+
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
@@ -128,6 +149,7 @@ const KubernetesClusters: FunctionComponent<
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -163,60 +185,37 @@ const KubernetesClusters: FunctionComponent<
             "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
         }}
         showViewIdButton={true}
-        formSteps={[
-          { title: "Cluster Info", id: "cluster-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "cluster-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-us-east",
-          },
-          {
+          getIdentityFormField<KubernetesCluster>({
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
-            stepId: "cluster-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Cluster Name (clusterName)",
             placeholder: "production-us-east-1",
             description:
-              "This should match the clusterName value in your kubernetes-agent Helm chart.",
-          },
+              "The clusterName you installed the kubernetes-agent Helm chart with, exactly. Telemetry is matched to this cluster by it.",
+          }),
+          getDisplayNameFormField<KubernetesCluster>({
+            getDefaultName:
+              getNameFromIdentityField<KubernetesCluster>("clusterIdentifier"),
+            placeholder: "Production US East",
+            description:
+              "Starts as the cluster name, the way discovered clusters are named. Type a name of your own to show it instead. Telemetry is still matched by the cluster name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
             },
             title: "Description",
-            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production cluster running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<KubernetesCluster>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         columns={[
           {
@@ -246,7 +245,7 @@ const KubernetesClusters: FunctionComponent<
             field: {
               clusterIdentifier: true,
             },
-            title: "Cluster Identifier",
+            title: "Cluster Name (clusterName)",
             type: FieldType.Text,
           },
           {
@@ -270,7 +269,9 @@ const KubernetesClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );

@@ -26,10 +26,13 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorGroupMonitors: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [monitorIds, setMonitorIds] = useState<Array<ObjectID> | null>(null);
@@ -98,6 +101,7 @@ const MonitorGroupMonitors: FunctionComponent<
           {
             buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
             title: "Unassign",
+            icon: IconProp.Close,
             onClick: (monitor: Monitor, onCompleteAction: VoidFunction) => {
               setSelectedMonitor(monitor);
               setShowUnassignModal(true);
@@ -117,7 +121,7 @@ const MonitorGroupMonitors: FunctionComponent<
           },
         ]}
         title={"Monitors in Group"}
-        description="List of monitors that are added to this monitor group."
+        description="The monitors in this group. The group shows the worst status among them."
         noItemsMessage={"No monitors added to this monitor group."}
       />
 
@@ -126,8 +130,9 @@ const MonitorGroupMonitors: FunctionComponent<
           title={`Unassign Monitor from Monitor Group`}
           description={
             <div>
-              Are you sure you want to unassign the monitor from this monitor
-              group?
+              {translator.translateText(
+                "Are you sure you want to unassign the monitor from this monitor group?",
+              )}
             </div>
           }
           error={unassignError || ""}

@@ -142,6 +142,8 @@
     "Monitor Secrets": "Secrets de surveillance",
     "AI SRE": "AI SRE",
     "Schedule Timeline": "Chronologie des astreintes",
+    "Escalation Rules": "Règles d'escalade",
+    "On-Call Schedules": "Plannings d'astreinte",
     "Calendar Feeds": "Flux de calendrier",
     "Incoming Call Policy": "Politique d'appels entrants",
     "Phone Number Whitelist": "Liste blanche de numéros",

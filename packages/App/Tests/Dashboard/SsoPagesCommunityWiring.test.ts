@@ -47,7 +47,15 @@ interface SsoPage {
   file: Array<string>;
   // Template literals the page prints for the identity provider, verbatim.
   printedUrls: Array<string>;
-  hasForceSsoCard: boolean;
+  /*
+   * How the page asks whether everyone must sign in with SSO: the project's
+   * "Require SSO for Login" switch, which saves on flip and asks first
+   * (Components/Project/RequireSsoForLoginCard), the status page's own
+   * "Require SSO for Login" switch, which does the same for its private
+   * users (Components/StatusPage/StatusPageRequireSsoCard), or not at all
+   * (OIDC pages).
+   */
+  requireSso: "switch" | "status-page-switch" | null;
 }
 
 const SSO_PAGES: Array<SsoPage> = [
@@ -59,7 +67,7 @@ const SSO_PAGES: Array<SsoPage> = [
       "`/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
       "`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`",
     ],
-    hasForceSsoCard: true,
+    requireSso: "switch",
   },
   {
     name: "Settings > OIDC",
@@ -67,9 +75,9 @@ const SSO_PAGES: Array<SsoPage> = [
     printedUrls: [
       "`/oidc-callback/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`",
       "`${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`",
-      "`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`",
+      "`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`",
     ],
-    hasForceSsoCard: false,
+    requireSso: null,
   },
   {
     name: "Status page > SSO",
@@ -79,7 +87,7 @@ const SSO_PAGES: Array<SsoPage> = [
       "`/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`",
       "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
-    hasForceSsoCard: true,
+    requireSso: "status-page-switch",
   },
   {
     name: "Status page > OIDC",
@@ -89,7 +97,7 @@ const SSO_PAGES: Array<SsoPage> = [
       "`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showOidcConfigId}`",
       "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
-    hasForceSsoCard: false,
+    requireSso: null,
   },
 ];
 
@@ -168,22 +176,50 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
     expect(countOf(code, "buttonStyleType: ButtonStyleType.NORMAL")).toBe(1);
   });
 
-  test('"Force SSO for Login" is editable with its usual description, on the SAML pages only', () => {
-    if (!page.hasForceSsoCard) {
+  test("requiring SSO is offered on the SAML pages only, and always changeable", () => {
+    if (page.requireSso === null) {
       expect(code).not.toContain("requireSsoForLogin");
       expect(code).not.toContain("CardModelDetail");
+      expect(code).not.toContain("RequireSsoForLoginCard");
       return;
     }
 
-    // The provider table's isEditable, and the card's.
-    expect(countOf(code, "isEditable={true}")).toBe(2);
-    expect(code).toContain('name="SSO Settings"');
+    if (page.requireSso === "switch") {
+      /*
+       * The project's switch, which saves on flip and asks before it locks
+       * people out. Only the provider table has an Edit dialog now, and the
+       * old card's "you you" typo is gone with it.
+       */
+      expect(code).toContain(
+        'import RequireSsoForLoginCard from "../../Components/Project/RequireSsoForLoginCard";',
+      );
+      expect(code).toContain(
+        "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+      );
+      expect(countOf(code, "isEditable={true}")).toBe(1);
+      expect(code).not.toContain("CardModelDetail");
+      expect(code).not.toContain("requireSsoForLogin");
+      expect(code).not.toContain("you you");
+      return;
+    }
+
+    /*
+     * The status page's switch: it saves on flip and asks, with a red
+     * button, before it turns off signing in with a password. Only the
+     * provider table has an Edit dialog, and the old "Force SSO for Login"
+     * card's "you you" typo is gone with it.
+     */
     expect(code).toContain(
-      'description: "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project."',
+      'import StatusPageRequireSsoCard from "../../../Components/StatusPage/StatusPageRequireSsoCard";',
     );
-    expect(code).toMatch(
-      /description: "Please test SSO before you enable this feature\. If SSO is not tested properly then you will be locked out of the (project|status page)\."/,
+    expect(code).toContain(
+      "<StatusPageRequireSsoCard statusPageId={modelId} />",
     );
+    expect(countOf(code, "isEditable={true}")).toBe(1);
+    expect(code).not.toContain("CardModelDetail");
+    expect(code).not.toContain("requireSsoForLogin");
+    expect(code).not.toContain("Force SSO for Login");
+    expect(code).not.toContain("you you");
   });
 
   test("prints the identity provider URLs byte for byte", () => {

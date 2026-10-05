@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -25,7 +27,12 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -38,6 +45,8 @@ import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface ResourceSummary {
   cores: number | undefined;
@@ -112,6 +121,7 @@ const parseIpString: (ipString: string) => Array<string> = (
 const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
   ipString: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (!props.ipString) {
@@ -143,7 +153,10 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
           }}
           className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
         >
-          +{rest.length} more
+          {translator.translatePlural(
+            { one: "+{{count}} more", other: "+{{count}} more" },
+            rest.length,
+          )}
         </button>
       )}
       {rest.length > 0 && isExpanded && (
@@ -163,7 +176,7 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
             }}
             className="mt-0.5 self-start text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
           >
-            Show less
+            {translator.translateText("Show less")}
           </button>
         </div>
       )}
@@ -172,6 +185,7 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
 };
 
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -250,6 +264,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -290,6 +305,16 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * The create form asks for the one thing a host cannot be created
+   * without: the host.name its telemetry reports. The display name follows
+   * it - a host added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<Host> =
+    getAdvancedFormSection<Host>();
+
   return (
     <Fragment>
       <ModelTable<Host>
@@ -300,6 +325,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: "hosts-table",
         }}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -342,60 +368,36 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Hosts being monitored in this project. Auto-discovered from any OTel telemetry that carries host.name plus a host signal (host.id, os.type, system.* metrics, etc).",
         }}
         showViewIdButton={true}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-host-1",
-          },
-          {
+          getIdentityFormField<Host>({
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Host Name (host.name)",
             placeholder: "host-prod-1",
             description:
-              "This should match the host.name attribute reported by the OTel collector.",
-          },
+              "Exactly as your OpenTelemetry Collector reports it. Telemetry is matched to this host by its host name.",
+          }),
+          getDisplayNameFormField<Host>({
+            getDefaultName: getNameFromIdentityField<Host>("hostIdentifier"),
+            placeholder: "Production web server",
+            description:
+              "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production host running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Host>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {
@@ -409,7 +411,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
+            title: "Host Name (host.name)",
             type: FieldType.Text,
           },
           {
@@ -483,7 +485,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span className="capitalize">{osType || "unknown"}</span>
+                  <span className="capitalize">
+                    {osType || translator.translateText("unknown")}
+                  </span>
                   {arch && (
                     <span className="ml-1.5 text-xs font-mono text-gray-500">
                       {arch}
@@ -543,7 +547,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <div>{parts.join(" · ") || "—"}</div>
                   {summary.processes !== undefined && (
                     <div className="text-xs text-gray-500">
-                      {summary.processes} processes
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} process",
+                          other: "{{count}} processes",
+                        },
+                        summary.processes,
+                      )}
                     </div>
                   )}
                 </div>

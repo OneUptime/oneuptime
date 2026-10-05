@@ -70,7 +70,7 @@ A client stays connected for as long as it is used. One that has not been used f
 
 ### Controlling Who Can Connect Clients
 
-Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team, go to **Block Permissions**, and add the **Authorize MCP Client** permission. Clients those members already connected stop working at once.
+Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team's **Permissions** page, open **More settings** at the bottom, and add the **Authorize MCP Client** permission under **Block Permissions**. Clients those members already connected stop working at once.
 
 If the project requires single sign-on, sign in to the project with SSO in your browser before you authorize a client. The client's connection lasts as long as that SSO sign-in does; when it lapses, connect the client again.
 
@@ -86,8 +86,9 @@ Use an API key for an agent that runs unattended - a scheduled job or a CI pipel
 2. Navigate to **Project Settings** → **API Keys**
 3. Click **Create API Key**
 4. Provide a name (e.g., "MCP Server")
-5. Select the appropriate permissions for your use case
-6. Copy the generated API key
+5. Under **Access**, pick **Viewer** for an agent that only reads, or **Project Admin** for one that also creates, updates and deletes (see [API Key Permissions](#api-key-permissions))
+6. Click **Create API Key**: the key's page opens
+7. Copy the API key
 
 API keys are project-scoped: the MCP server infers your project from the key, so create tools never need a `projectId` argument.
 
@@ -330,7 +331,7 @@ You can connect to the MCP server without an API key to access public tools:
 
 Public status page tools accept either a status page ID (UUID) or the status page domain name.
 
-Status page owners can turn off MCP access for an individual status page under **Status Page → Advanced Settings → MCP Server**. MCP access is enabled by default. When it is disabled, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed, and its public JSON API are unaffected, and the authenticated status page tools (`get_status_page`, `list_status_pages`, and so on) continue to work for the page's own project.
+Status page owners can turn off MCP access for an individual status page: switch off **Enable MCP Server** on **Status Pages → your page → AI → MCP**. The switch saves as soon as it is flipped. MCP access is enabled by default. When it is disabled, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed, and its public JSON API are unaffected, and the authenticated status page tools (`get_status_page`, `list_status_pages`, and so on) continue to work for the page's own project.
 
 ### Signing In (OAuth 2.1)
 
@@ -492,11 +493,11 @@ These queries work without authentication, using only the public status page too
 
 ### Read-Only Access
 
-For viewing data only, add read permissions for your API key.
+For viewing data only, pick **Viewer** under **Access** when you create the key, or add read permissions to it on its page.
 
 ### Full Access
 
-For full access to create, update, and delete resources, ensure your API key has Project Admin permissions.
+For full access to create, update, and delete resources, pick **Project Admin** under **Access** when you create the key, or add the Project Admin role to it on its page.
 
 ### Best Practices
 

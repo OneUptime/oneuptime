@@ -29,7 +29,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
   Fragment,
   FunctionComponent,
@@ -78,23 +78,10 @@ import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import Host from "Common/Models/DatabaseModels/Host";
-import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
-import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
-import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
-import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Service from "Common/Models/DatabaseModels/Service";
-import AffectedResourcesPicker, {
-  isAffectedResourcesPayload,
-} from "../../../Components/AffectedResources/AffectedResourcesPicker";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import {
+  getIncidentAffectedResourcesFormFields,
+  onBeforeIncidentAffectedResourcesUpdate,
+} from "../../../Components/Incident/IncidentAffectedResourcesFormFields";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import IncidentCreatedResend from "Common/Types/StatusPage/IncidentCreatedResend";
@@ -120,6 +107,11 @@ import {
   splitVisibleItems,
 } from "../../../Utils/EventOverview";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  INCIDENT_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -127,6 +119,11 @@ import AppLink from "../../../Components/AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -169,6 +166,7 @@ const MAX_HEADER_MONITORS: number = 2;
 const IncidentView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -449,8 +447,11 @@ const IncidentView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem<Incident>({
           id: modelId,
@@ -782,7 +783,8 @@ const IncidentView: FunctionComponent<
     return (
       <span>
         {monitorsToShow.visible.map((monitor: Monitor, index: number) => {
-          const monitorName: string = monitor.name || "Unnamed monitor";
+          const monitorName: string =
+            monitor.name || translator.translateTerm("Unnamed monitor");
 
           return (
             <Fragment key={monitor._id?.toString() || `monitor-${index}`}>
@@ -807,7 +809,11 @@ const IncidentView: FunctionComponent<
         })}
         {monitorsToShow.hiddenCount > 0 ? (
           <span className="font-normal text-gray-500">
-            {` +${monitorsToShow.hiddenCount} more`}
+            {" "}
+            {translator.translatePlural(
+              { one: "+{{count}} more", other: "+{{count}} more" },
+              monitorsToShow.hiddenCount,
+            )}
           </span>
         ) : (
           <></>
@@ -865,7 +871,10 @@ const IncidentView: FunctionComponent<
           className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0 break-words">
-            {`Could not refresh this incident. ${refreshError}`}
+            {translator.translateTemplate(
+              "Could not refresh this incident. {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -873,7 +882,7 @@ const IncidentView: FunctionComponent<
               onClick={refreshData}
               className="rounded-md text-sm font-semibold text-red-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Try again
+              {translator.translateText("Try again")}
             </button>
             <button
               type="button"
@@ -882,7 +891,7 @@ const IncidentView: FunctionComponent<
               }}
               className="rounded-md text-sm font-medium text-red-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Dismiss
+              {translator.translateText("Dismiss")}
             </button>
           </div>
         </div>
@@ -920,7 +929,10 @@ const IncidentView: FunctionComponent<
       >
         <EventStatTile
           variant="segment"
-          label={`${acknowledgeState?.name || "Acknowledged"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName:
+              acknowledgeState?.name || translatableTerm("Acknowledged"),
+          })}
           icon={IconProp.Check}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -932,7 +944,9 @@ const IncidentView: FunctionComponent<
         />
         <EventStatTile
           variant="segment"
-          label={`${resolvedState?.name || "Resolved"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: resolvedState?.name || translatableTerm("Resolved"),
+          })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -957,7 +971,11 @@ const IncidentView: FunctionComponent<
             )
           }
           description={
-            durationEndDate ? `Ended ${formatDate(durationEndDate)}` : undefined
+            durationEndDate
+              ? translator.translateTemplate("Ended {{date}}", {
+                  date: formatDate(durationEndDate) || "",
+                })
+              : undefined
           }
         />
       </EventStatBar>
@@ -1063,7 +1081,10 @@ const IncidentView: FunctionComponent<
                         title={"Metrics"}
                         description={
                           seriesSummary
-                            ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
+                            ? translator.translateTemplate(
+                                "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).",
+                                { seriesSummary: seriesSummary },
+                              )
                             : "Metrics related to this incident."
                         }
                         rightElement={snapshotWindowAlert}
@@ -1168,23 +1189,12 @@ const IncidentView: FunctionComponent<
               refreshData();
               refreshFeed();
             }}
-            formSteps={[
-              {
-                title: "Incident Details",
-                id: "incident-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Incident Title",
-                stepId: "incident-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Incident Title",
@@ -1200,32 +1210,18 @@ const IncidentView: FunctionComponent<
                 title: "Incident Severity",
                 description: "What type of incident is this?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "incident-details",
                 dropdownModal: {
                   type: IncidentSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Incident Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<Incident>(),
             ]}
             modelDetailProps={{
               selectMoreFields: {
@@ -1277,7 +1273,11 @@ const IncidentView: FunctionComponent<
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span className="text-gray-500">Unknown</span>;
+                    return (
+                      <span className="text-gray-500">
+                        {translator.translateText("Unknown")}
+                      </span>
+                    );
                   },
                 },
                 {
@@ -1349,7 +1349,8 @@ const IncidentView: FunctionComponent<
                            * each confirmed with who it reaches now: the
                            * pages of the incident's current scope - for a
                            * Retry, without the pages already sent it in
-                           * full, which it skips.
+                           * full, which it skips - or that it reaches no
+                           * one.
                            */
                           resendConfirmation={
                             canSendCreatedNotificationAgain
@@ -1366,6 +1367,7 @@ const IncidentView: FunctionComponent<
                                     <SubscriberAudienceSummary
                                       request={{ incidentId: modelId }}
                                       dataTestId="incident-created-resend-audience"
+                                      saysWhenNobodyIsNotified={true}
                                     />
                                   ),
                                   retryAudience: (
@@ -1376,6 +1378,7 @@ const IncidentView: FunctionComponent<
                                           true,
                                       }}
                                       dataTestId="incident-created-retry-audience"
+                                      saysWhenNobodyIsNotified={true}
                                     />
                                   ),
                                 }
@@ -1387,8 +1390,10 @@ const IncidentView: FunctionComponent<
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {"Could not resend notifications: " +
-                              resendNotificationError}
+                            {translator.translateTemplate(
+                              "Could not resend notifications: {{error}}",
+                              { error: resendNotificationError },
+                            )}
                           </p>
                         ) : (
                           <></>
@@ -1466,6 +1471,22 @@ const IncidentView: FunctionComponent<
             }}
           />
 
+          {/*
+           * The project's own measurements - time to mitigate, say - worked
+           * out for this incident, under its other facts. Drawn only when
+           * the project shows some on incident pages.
+           */}
+          <EventMeasurementsCard
+            source={INCIDENT_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(durationEndDate)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: incidentStateTimeline,
+              times: [incidentStartedAt],
+            })}
+            headerLayout="stacked"
+          />
+
           <IncidentMemberRoleAssignment
             incidentId={modelId}
             headerLayout="stacked"
@@ -1492,211 +1513,8 @@ const IncidentView: FunctionComponent<
             onSaveSuccess={() => {
               refreshFeed();
             }}
-            formFields={[
-              {
-                field: {
-                  monitors: true,
-                },
-                title: "",
-                description:
-                  "Search and attach monitors, hosts, clusters, container hosts, or services affected by this incident.",
-                fieldType: FormFieldSchemaType.CustomComponent,
-                required: false,
-                getCustomElement: (
-                  values: FormValues<Incident>,
-                  elementProps: CustomElementProps,
-                ) => {
-                  return (
-                    <AffectedResourcesPicker
-                      monitors={values.monitors as Array<Monitor>}
-                      hosts={values.hosts as Array<Host>}
-                      kubernetesClusters={
-                        values.kubernetesClusters as Array<KubernetesCluster>
-                      }
-                      dockerHosts={values.dockerHosts as Array<DockerHost>}
-                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                      proxmoxClusters={
-                        values.proxmoxClusters as Array<ProxmoxCluster>
-                      }
-                      vmwareVCenters={
-                        values.vmwareVCenters as Array<VMwareVCenter>
-                      }
-                      cephClusters={values.cephClusters as Array<CephCluster>}
-                      dockerSwarmClusters={
-                        values.dockerSwarmClusters as Array<DockerSwarmCluster>
-                      }
-                      iotFleets={values.iotFleets as Array<IoTFleet>}
-                      databaseServers={
-                        values.databaseServers as Array<DatabaseServer>
-                      }
-                      services={values.services as Array<Service>}
-                      resourceTypes={[
-                        "Monitor",
-                        "Host",
-                        "KubernetesCluster",
-                        "DockerHost",
-                        "PodmanHost",
-                        "ProxmoxCluster",
-                        "VMwareVCenter",
-                        "CephCluster",
-                        "DockerSwarmCluster",
-                        "IoTFleet",
-                        "DatabaseServer",
-                        "Service",
-                      ]}
-                      onChange={(payload: unknown) => {
-                        elementProps.onChange?.(payload);
-                      }}
-                    />
-                  );
-                },
-                onChange: (
-                  value: unknown,
-                  currentValues: FormValues<Incident>,
-                  setNewFormValues: (values: FormValues<Incident>) => void,
-                ) => {
-                  if (isAffectedResourcesPayload(value)) {
-                    const payload: typeof value = value;
-                    queueMicrotask(() => {
-                      setNewFormValues({
-                        ...currentValues,
-                        monitors: payload.monitors,
-                        hosts: payload.hosts,
-                        kubernetesClusters: payload.kubernetesClusters,
-                        dockerHosts: payload.dockerHosts,
-                        podmanHosts: payload.podmanHosts,
-                        proxmoxClusters: payload.proxmoxClusters,
-                        vmwareVCenters: payload.vmwareVCenters,
-                        cephClusters: payload.cephClusters,
-                        dockerSwarmClusters: payload.dockerSwarmClusters,
-                        iotFleets: payload.iotFleets,
-                        databaseServers: payload.databaseServers,
-                        services: payload.services,
-                      } as FormValues<Incident>);
-                    });
-                  }
-                },
-              },
-              /*
-               * Hidden registrations so ModelForm.getSelectFields includes
-               * hosts/kubernetesClusters/dockerHosts/services on load and submit.
-               */
-              {
-                field: { hosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { kubernetesClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { dockerHosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { podmanHosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { proxmoxClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { vmwareVCenters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { cephClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { dockerSwarmClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { iotFleets: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { databaseServers: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { services: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: {
-                  changeMonitorStatusTo: true,
-                },
-                title: "Change Monitor Status to",
-                description:
-                  "This will change the status of all the monitors attached to this incident.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownModal: {
-                  type: MonitorStatus,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Monitor Status",
-              },
-            ]}
+            onBeforeUpdate={onBeforeIncidentAffectedResourcesUpdate}
+            formFields={getIncidentAffectedResourcesFormFields()}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
               style: DetailStyle.Compact,

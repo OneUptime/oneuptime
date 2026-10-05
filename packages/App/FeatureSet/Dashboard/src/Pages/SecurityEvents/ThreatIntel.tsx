@@ -117,9 +117,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           description: ThreatIntelGuide.guideDescription,
           markdown: guideToMarkdown(ThreatIntelGuide),
         }}
-        noItemsMessage={
-          'No threat intel feeds found. Click on the "Create" button to subscribe a TAXII collection.'
-        }
         createInitialValues={{
           /*
            * Mirror the DB defaults (ThreatIntelFeed.ts): without these
@@ -306,6 +303,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Default from indicator confidence",
@@ -337,6 +337,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Default from indicator confidence",

@@ -21,6 +21,10 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  describeNestedControls,
+  findNestedControls,
+} from "../../Helpers/NestedControls";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -1710,6 +1714,35 @@ describe("event notes: templates", () => {
     expect(await screen.findAllByText("Identified")).not.toHaveLength(0);
   });
 
+  /*
+   * The menu used to call itself a listbox of options, each option holding
+   * the template's button: a screen reader read one control holding another
+   * and lost the button inside it, and the listbox promised arrow keys it
+   * never answered. It is a plain list of buttons, reached with Tab.
+   */
+  test("lists templates as plain buttons, none inside another control", async () => {
+    seedTemplates(3);
+    await renderPublic();
+
+    const trigger: HTMLElement = screen.getByTestId(
+      "note-template-menu-button",
+    );
+    expect(trigger).not.toHaveAttribute("aria-haspopup");
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const menu: HTMLElement = screen.getByTestId("note-template-menu");
+    await within(menu).findAllByText("Investigating");
+
+    expect(within(menu).queryByRole("listbox")).toBeNull();
+    expect(within(menu).queryByRole("option")).toBeNull();
+    expect(within(menu).getAllByRole("listitem")).toHaveLength(3);
+    for (const item of within(menu).getAllByRole("listitem")) {
+      expect(within(item).getAllByRole("button")).toHaveLength(1);
+    }
+    expect(describeNestedControls(findNestedControls(menu))).toEqual([]);
+  });
+
   test("a long list of templates can be filtered", async () => {
     seedTemplates(8);
     await renderPublic();
@@ -1721,7 +1754,7 @@ describe("event notes: templates", () => {
     fireEvent.change(filter, { target: { value: "template 7" } });
 
     const menu: HTMLElement = screen.getByTestId("note-template-menu");
-    expect(within(menu).getAllByRole("option")).toHaveLength(1);
+    expect(within(menu).getAllByRole("listitem")).toHaveLength(1);
     expect(within(menu).getAllByText("Template 7")).not.toHaveLength(0);
 
     fireEvent.change(filter, { target: { value: "zzz" } });

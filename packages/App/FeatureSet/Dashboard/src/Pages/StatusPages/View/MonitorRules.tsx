@@ -9,8 +9,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { Green, Red } from "Common/Types/BrandColors";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -24,6 +26,8 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const monitorRuleDocumentation: string = `
 ### How Status Page Monitor Rules Work
@@ -54,9 +58,19 @@ A rule only ever removes resources it added itself. A monitor you added to this 
 Disabling or deleting a rule removes the resources that rule added, and leaves everything else alone. A monitor that is already on the page is never added a second time, so rules and manual resources cannot produce duplicates.
 `;
 
+/*
+ * How each monitor a rule adds is shown: the same options a monitor added by
+ * hand has, at the rule's own defaults (StatusPageMonitorRule turns uptime on,
+ * where a hand-added resource leaves it off). Folded at the end of the Group
+ * step, where the monitors land, rather than on a step of their own.
+ */
+const advancedSection: FormFieldCollapsibleSection<StatusPageMonitorRule> =
+  getAdvancedFormSection<StatusPageMonitorRule>();
+
 const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const viewRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
     props,
     StatusPageMonitorRule,
@@ -192,7 +206,12 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             title: "Adds Monitors To",
             type: FieldType.Text,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
-              return <span>{item.statusPageGroup?.name || "Top of page"}</span>;
+              return (
+                <span>
+                  {item.statusPageGroup?.name ||
+                    translator.translateText("Top of page")}
+                </span>
+              );
             },
           },
           {
@@ -212,7 +231,6 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria" },
           { title: "Group", id: "group" },
-          { title: "Advanced", id: "advanced" },
         ]}
         formFields={[
           {
@@ -259,7 +277,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
           {
             field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -270,7 +288,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           },
           {
             field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -291,27 +309,29 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           {
             field: { showCurrentStatus: true },
             title: "Show Current Resource Status",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
             description:
               "Current resource status will be shown beside every monitor this rule adds.",
+            collapsibleSection: advancedSection,
           },
           {
             field: { showUptimePercent: true },
             title: "Show Uptime %",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
             description:
               "Show uptime percentage beside every monitor this rule adds.",
+            collapsibleSection: advancedSection,
           },
           {
             field: { uptimePercentPrecision: true },
             title: "Select Uptime Precision",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions:
               DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
@@ -320,16 +340,18 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             },
             defaultValue: UptimePrecision.ONE_DECIMAL,
             required: false,
+            collapsibleSection: advancedSection,
           },
           {
             field: { showStatusHistoryChart: true },
             title: "Show Status History Chart",
-            stepId: "advanced",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: true,
             description:
               "Show the status history chart for every monitor this rule adds.",
+            collapsibleSection: advancedSection,
           },
         ]}
         showRefreshButton={true}

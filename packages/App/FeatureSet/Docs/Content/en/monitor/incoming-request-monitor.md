@@ -178,7 +178,7 @@ Paths must start with the literal prefix `requestBody.`. A path without it — `
 A webhook describes only what is in that payload, so OneUptime never resolves an incident because its key stopped appearing. An incident is resolved only when a payload explicitly says that key recovered. Two things must both be true:
 
 1. **Field that signals recovery** and **Value that means recovered** are set, and match the payload. The comparison is exact and case-sensitive — `Resolved` does not match `resolved`.
-2. The criteria's incident has **Auto Resolve Incident** turned on, under **Advanced Options** in the incident form. Without it, matching recovery events are ignored and the incidents stay open. (The same applies to alerts and **Auto Resolve Alert**.)
+2. The criteria's incident has **Auto Resolve Incident** turned on, under **More fields** in the incident form. Without it, matching recovery events are ignored and the incidents stay open. (The same applies to alerts and **Auto Resolve Alert**.)
 
 **Max incidents per request** caps extraction, not just creation. Keys past the cap are invisible to recovery as well, so in a payload carrying more distinct keys than the cap, an alert reporting `resolved` beyond it will not close its incident.
 

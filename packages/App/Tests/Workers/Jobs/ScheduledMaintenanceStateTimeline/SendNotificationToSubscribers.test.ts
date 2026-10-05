@@ -8,7 +8,9 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import URL from "Common/Types/API/URL";
+import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -266,6 +268,15 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  fansOn,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -961,6 +972,8 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     });
     expect(args.select["scheduledMaintenanceState"]).toEqual({
       name: true,
+      // The default email paints the event state in its own colour.
+      color: true,
       isScheduledState: true,
     });
   });
@@ -1027,6 +1040,43 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
       unsubscribeUrl: UNSUBSCRIBE_URL,
       subscriberEmailNotificationFooterText: "Footer text",
     });
+  });
+
+  /*
+   * The default email paints the event's new state the way the owner emails
+   * paint theirs: a dot in the state's colour and the name in a readable
+   * shade of it. The other channels carry the name as before.
+   */
+  test("the default email paints the event state in its own colour", async () => {
+    pendingTimelines[0]!.scheduledMaintenanceState!.color = new Color(
+      "#22C55E",
+    );
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        eventState: STATE_NAME,
+        eventStateColor: "#22c55e",
+        eventStateTextColor: EmailColorUtil.getColorPair("#22c55e")!.textColor,
+      }),
+    );
+    expect(JSON.stringify(sentWebhooks())).not.toContain("#22c55e");
+    expect(sentSms().join(" ")).not.toContain("#22c55e");
+  });
+
+  test("an event state without a usable colour sends the plain name", async () => {
+    pendingTimelines[0]!.scheduledMaintenanceState!.color = new Color(
+      "#fff; background: url(https://evil.example/t.gif)",
+    );
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["eventState"]).toBe(STATE_NAME);
+    expect(vars).not.toHaveProperty("eventStateColor");
+    expect(vars).not.toHaveProperty("eventStateTextColor");
   });
 
   test("sends the webhook payload it always has, plus the description as written", async () => {
@@ -1522,14 +1572,30 @@ describe("ScheduledMaintenanceStateTimeline custom template variables", () => {
       (sentWebhooks()[0]!["data"] as JSONObject)["resourcesAffected"],
     ).toBe(GROUPED_RESOURCES_TEXT);
 
-    const args: { monitors: Array<Monitor>; select: JSONObject } = mock(
-      StatusPageResourceService.findByMonitors,
-    ).mock.calls[0]![0] as { monitors: Array<Monitor>; select: JSONObject };
+    const args: {
+      monitorIds: Array<ObjectID>;
+      statusPageIds: Array<ObjectID>;
+      select: JSONObject;
+    } = mock(StatusPageResourceService.findByMonitors).mock.calls[0]![0] as {
+      monitorIds: Array<ObjectID>;
+      statusPageIds: Array<ObjectID>;
+      select: JSONObject;
+    };
     expect(
-      args.monitors.map((monitor: Monitor): string => {
-        return monitor._id!.toString();
+      args.monitorIds.map((monitorId: ObjectID): string => {
+        return monitorId.toString();
       }),
     ).toEqual([MONITOR_ID.toString()]);
+    // Only the pages the event is on.
+    expect(
+      args.statusPageIds.map((statusPageId: ObjectID): string => {
+        return statusPageId.toString();
+      }),
+    ).toEqual(
+      PAGES.map((fixture: PageFixture): string => {
+        return fixture.id.toString();
+      }),
+    );
     expect(args.select["statusPageGroupId"]).toBe(true);
     expect(args.select["statusPageGroup"]).toEqual({ name: true });
   });
@@ -1884,6 +1950,75 @@ describe("ScheduledMaintenanceStateTimeline escapes plain values in email", () =
       expectNoHtmlEntities(message);
       expect(message).not.toContain("<br/>");
     }
+  });
+});
+
+/*
+ * Subscribers who chose resources, on a page that shows the event's monitor
+ * through a monitor group: whoever picked the group hears that the event
+ * started or ended, as whoever picked the monitor does.
+ */
+describe("ScheduledMaintenanceStateTimeline subscribers who picked a monitor group", () => {
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function givenSubscribers(subscribers: Array<StatusPageSubscriber>): void {
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue(subscribers as never);
+  }
+
+  beforeEach(() => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      lettingSubscribersChooseResources(statusPage()),
+    ] as never);
+    decideWithTheRealSubscriberPreferences(
+      StatusPageSubscriberService.shouldSendNotification,
+    );
+  });
+
+  test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+    const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+      pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      page.affectedResources as never,
+    );
+    givenSubscribers(page.subscribers);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(page.told);
+    expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+  });
+
+  test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+    const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+      pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      page.affectedResources as never,
+    );
+    givenSubscribers(page.subscribers);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(page.told);
+  });
+
+  test("nobody who picked only another group is told", async () => {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID)
+        .affectedResources as never,
+    );
+    givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.OtherGroup]));
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(0);
   });
 });
 

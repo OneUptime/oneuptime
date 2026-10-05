@@ -12,6 +12,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Alerts from "../Pages/Alerts/Alerts";
 
 import AlertCreate from "../Pages/Alerts/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 import AlertView from "../Pages/Alerts/View/Index";
 
 import AlertViewNotificationLogs from "../Pages/Alerts/View/NotificationLogs";
@@ -21,6 +22,7 @@ import AlertViewAILogs from "../Pages/Alerts/View/AILogs";
 import AlertsWorkspaceConnectionSlack from "../Pages/Alerts/WorkspaceConnectionSlack";
 
 import AlertsWorkspaceConnectionMicrosoftTeams from "../Pages/Alerts/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import AlertOnCallPolicyExecutionLogs from "../Pages/Alerts/View/OnCallPolicyExecutionLogs";
 
@@ -197,12 +199,26 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTIONS] || ""}
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_CREATE] || ""}
           element={
-            <AlertCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
-            />
+            <RemountOnAddressChange>
+              <AlertCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_CREATE] as Route}
+              />
+            </RemountOnAddressChange>
           }
         />
 

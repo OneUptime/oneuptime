@@ -29,6 +29,11 @@ function readSource(...relativePath: Array<string>): string {
 interface PageCase {
   name: string;
   file: Array<string>;
+  /*
+   * The file the edit form's fields are written in, when not the page's own
+   * (the announcement's are shared with Create Announcement).
+   */
+  formFile?: Array<string>;
   modelType: string;
   statusColumn: string;
   messageColumn: string;
@@ -39,6 +44,7 @@ const PAGES: Array<PageCase> = [
   {
     name: "Announcement view",
     file: ["Pages", "StatusPages", "AnnouncementView.tsx"],
+    formFile: ["Components", "Announcement", "AnnouncementFormFields.tsx"],
     modelType: "StatusPageAnnouncement",
     statusColumn: "subscriberNotificationStatusOnAnnouncementUpdated",
     messageColumn: "subscriberNotificationStatusMessageOnAnnouncementUpdated",
@@ -50,12 +56,15 @@ const PAGES: Array<PageCase> = [
  * The public note pages of incidents, scheduled maintenance events and
  * incident episodes are thin wrappers around the shared notes feed
  * (Components/EventNotes), which owns the edit form, the notification badges
- * and their retries for all of them.
+ * and their retries for all of them. Each hands it the event's public note
+ * kind (Components/EventNotes/NoteKinds).
  */
 interface NotePageCase {
   name: string;
   file: Array<string>;
   modelType: string;
+  kindFile: Array<string>;
+  kindFunction: string;
 }
 
 const NOTE_PAGES: Array<NotePageCase> = [
@@ -63,16 +72,37 @@ const NOTE_PAGES: Array<NotePageCase> = [
     name: "Incident public notes",
     file: ["Pages", "Incidents", "View", "PublicNote.tsx"],
     modelType: "IncidentPublicNote",
+    kindFile: [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentNoteKinds.tsx",
+    ],
+    kindFunction: "getIncidentPublicNoteKind",
   },
   {
     name: "Scheduled maintenance public notes",
     file: ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
     modelType: "ScheduledMaintenancePublicNote",
+    kindFile: [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "ScheduledMaintenanceNoteKinds.ts",
+    ],
+    kindFunction: "getScheduledMaintenancePublicNoteKind",
   },
   {
     name: "Incident episode public notes",
     file: ["Pages", "Incidents", "EpisodeView", "PublicNote.tsx"],
     modelType: "IncidentEpisodePublicNote",
+    kindFile: [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentEpisodeNoteKinds.ts",
+    ],
+    kindFunction: "getIncidentEpisodePublicNoteKind",
   },
 ];
 
@@ -80,9 +110,10 @@ const EVENT_NOTES_DIR: Array<string> = ["Components", "EventNotes"];
 
 describe.each(PAGES)("$name", (page: PageCase) => {
   const source: string = readSource(...page.file);
+  const formSource: string = readSource(...(page.formFile || page.file));
 
   test("offers the notify-about-this-update checkbox on its edit form", () => {
-    expect(source).toContain(
+    expect(formSource).toContain(
       `getNotifySubscribersOfUpdateFormField<${page.modelType}>(`,
     );
   });
@@ -149,12 +180,15 @@ describe.each(PAGES)("$name", (page: PageCase) => {
 
 describe.each(NOTE_PAGES)("$name", (page: NotePageCase) => {
   const source: string = readSource(...page.file);
+  const kinds: string = readSource(...page.kindFile);
 
   test("renders the shared public notes feed, which owns the edit form", () => {
-    expect(source).toMatch(
-      new RegExp(
-        `<EventNotes<${page.modelType}> [^>]*modelType=\\{${page.modelType}\\} visibility="public"`,
-      ),
+    expect(source).toContain(
+      `<EventNotes<${page.modelType}> key={modelId.toString()} {...${page.kindFunction}({`,
+    );
+    expect(kinds).toContain(`export function ${page.kindFunction}(`);
+    expect(kinds).toContain(
+      `modelType: ${page.modelType}, visibility: "public",`,
     );
   });
 });
@@ -256,18 +290,33 @@ describe("the announcement only offers the update checkbox when editing", () => 
     expect(
       readSource("Components", "Announcement", "AnnouncementsTable.tsx"),
     ).not.toContain("getNotifySubscribersOfUpdateFormField");
+
+    // The shared fields add it for the Edit only.
+    expect(
+      readSource("Components", "Announcement", "AnnouncementFormFields.tsx"),
+    ).toMatch(
+      /if \(kind === AnnouncementFormKind\.Edit\) \{ fields\.push\( getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(/,
+    );
+    expect(
+      readSource("Pages", "StatusPages", "AnnouncementView.tsx"),
+    ).toContain("return getAnnouncementFormFields(AnnouncementFormKind.Edit);");
   });
 
   test("the announcement edit form keeps its steps valid by placing the checkbox on a real step", () => {
     const source: string = readSource(
-      "Pages",
-      "StatusPages",
-      "AnnouncementView.tsx",
+      "Components",
+      "Announcement",
+      "AnnouncementFormFields.tsx",
     );
 
-    expect(source).toContain('id: "more"');
+    /*
+     * On the Announcement step, right under the description it is about,
+     * and drawn open: an edit that matters should not have to find it
+     * (Components/Announcement/AnnouncementFormFields).
+     */
+    expect(source).toContain('id: "announcement"');
     expect(source).toMatch(
-      /getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(\{ stepId: "more",/,
+      /getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(\{ stepId: "announcement", description: "[^"]+", \}\)/,
     );
   });
 });
@@ -319,11 +368,10 @@ describe("the update notification strings are translated", () => {
   }
 
   test("the pages and the feed use exactly these strings", () => {
-    const announcement: string = readRaw(
-      "Pages",
-      "StatusPages",
-      "AnnouncementView.tsx",
-    );
+    // The page draws the status; the shared fields hold the checkbox.
+    const announcement: string =
+      readRaw("Pages", "StatusPages", "AnnouncementView.tsx") +
+      readRaw("Components", "Announcement", "AnnouncementFormFields.tsx");
     const feed: string = readRaw(...EVENT_NOTES_DIR, "EventNotes.tsx");
     const util: string = readRaw(...EVENT_NOTES_DIR, "EventNotesUtil.ts");
 

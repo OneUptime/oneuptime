@@ -1,15 +1,15 @@
 # Opret et workflow
 
-For at oprette et workflow åbner du **Arbejdsgange** og klikker **Opret arbejdsgang**. En guide, der hedder **Create a workflow**, fører dig igennem: først **Start from**, dernæst **Navn**, og til sidst trinnet **Konfigurer**, som kun dukker op, når den skabelon, du valgte, selv beder om indstillinger.
+For at oprette et workflow åbner du **Arbejdsgange** og klikker **Opret arbejdsgang**. Dialogen **Opret en arbejdsgang** spørger først, hvordan du vil begynde, og derefter om et navn. En skabelon, der selv har brug for indstillinger, fx en Slack-webhook-URL, spørger om dem i et trin mere.
 
-På **Start from** vælger du, hvordan du vil begynde:
+Vælg, hvordan du vil begynde:
 
-- **Start fra bunden**, ved siden af søgefeltet, giver dig et tomt lærred.
-- En skabelon giver dig et workflow, der allerede virker, klar til at blive ændret. Trinnet åbner med nogle få skabeloner under **Anbefalet**. Resten ligger under deres kategorier, fx **Hændelser**, **Monitorer** og **Jira**, hver med antallet af skabeloner, og **Alle skabeloner** viser dem alle. En søgning kigger i dem alle: hvert ord, du skriver, skal passe, og hver kategori viser, hvor mange af dens skabeloner der passede.
+- **Start fra bunden**, øverst i dialogen, giver dig et tomt lærred. Det er her, de fleste workflows begynder.
+- **Eller start fra en skabelon** viser nogle få skabeloner under **Anbefalet**. Til resten vælger du en kategori ved siden af søgefeltet, fx **Hændelser**, **Monitorer** eller **Jira**, eller **Alle skabeloner**, eller du skriver i **Søg i skabeloner…**. Hvert ord, du skriver, skal passe.
 
-Klik på en skabelon for at se, hvad den gør, før du vælger den: dens trigger, de trin, den består af, og de indstillinger, den vil spørge om. **Brug denne skabelon** fører den videre til **Navn**, og det gør **Enter** og et dobbeltklik også. Piletasterne flytter rundt i listen, og `/` fører dig tilbage til søgefeltet.
+Klik på en skabelon for at se, hvad den gør: dens trigger, de blokke, den består af, og de indstillinger, den vil spørge om. Klik derefter på **Brug denne skabelon**, eller dobbeltklik på skabelonen. I søgefeltet vælger piletasterne en skabelon, og **Enter** bruger den. `/` fører dig tilbage til søgefeltet.
 
-Når det er oprettet, åbner du **Bygger** i menuen til venstre. Det er lærredet, hvor du designer workflowet.
+Arbejdsgange oprettes slået fra, så intet kører, før du slår dem til. Et nyt workflow åbner i **Bygger**, lærredet hvor du designer det.
 
 ## Lærredet
 
@@ -33,7 +33,7 @@ En ny blok lander under den nederste blok på lærredet, og en ny trigger tager 
 | Felt                            | Hvad det gør                                                                                                                                                                                                |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Identifier** (under **ID**)   | Det korte id, der står på blokken, for eksempel `log-1`. Det er sådan, andre blokke henviser til denne, så omdøber du det, ødelægger du alle de `{{local.components.…}}`-henvisninger, der peger på den. Blokkens overskrift er komponentens eget navn og kan ikke ændres. |
-| **Indstillinger**               | Det, blokken skal bruge for at gøre sit arbejde — en URL, en Slack-kanal, en beskedtekst. Valgfrie felter er mærket **(Optional)**; alt andet er påkrævet. Indstillinger, der bruges sjældnere, ligger bag en **Avanceret**-udfoldning. |
+| **Indstillinger**               | Det, blokken skal bruge for at gøre sit arbejde — en URL, en Slack-kanal, en beskedtekst. Valgfrie felter er mærket **(Optional)**; alt andet er påkrævet. Indstillinger, der bruges sjældnere, er klappet sammen under **Flere felter**, hvis overskrift nævner dem og viser dem, der er udfyldt. |
 | **Input**                       | Prikken på den øverste kant, hvor linjerne kommer ind fra tidligere blokke. Triggere har ingen — der kører ikke noget før dem.                                                                              |
 | **Outputs**                     | Prikkerne langs den nederste kant, mærket lige over dem, hvor linjerne går ud til de næste blokke. Mange blokke har hver sit **Succes**- og **Fejl**-output, så du kan håndtere begge tilfælde.             |
 

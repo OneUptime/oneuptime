@@ -11,6 +11,7 @@ import {
   getProjectSelectionNavigationDecision,
 } from "./Utils/ProjectNavigation";
 import RouteMap from "./Utils/RouteMap";
+import useSelectedProjectSwitches from "./Utils/UseSelectedProjectSwitches";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
@@ -374,6 +375,28 @@ const App: () => JSX.Element = () => {
       });
     }
   };
+
+  /*
+   * Monitor Groups (Settings -> Feature Flags) saves the moment its switch
+   * is flipped, and the menus read it off the selected project: take the
+   * new value into the selected project, the project list and ProjectUtil's
+   * copy (which a status page's menu reads), so the menus follow at once
+   * instead of after a reload. See Utils/SelectedProjectSwitches.
+   */
+  useSelectedProjectSwitches({
+    selectedProject: selectedProject,
+    onProjectUpdated: (updated: Project): void => {
+      setSelectedProject(updated);
+      setProjects((current: Array<Project>): Array<Project> => {
+        return current.map((project: Project): Project => {
+          return project._id?.toString() === updated._id?.toString()
+            ? updated
+            : project;
+        });
+      });
+      ProjectUtil.setCurrentProject(updated);
+    },
+  });
 
   useEffect(() => {
     GlobalEvents.addEventListener(

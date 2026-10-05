@@ -25,7 +25,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -36,6 +36,8 @@ import IoTDocumentationCard from "../../Components/IoT/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoTMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WI-18: while the project has no fleets yet, re-count on this cadence
@@ -45,6 +47,7 @@ import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoT
 const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
 
 const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [fleetCount, setFleetCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -87,6 +90,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -166,6 +170,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="iot-fleets-table"
         userPreferencesKey="iot-fleets-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -220,22 +225,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
             required: false,
             placeholder: "Production IoT fleet running in US East",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<IoTFleet>(),
         ]}
         columns={[
           {
@@ -282,7 +272,9 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -314,7 +306,10 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     allOnline ? "text-gray-900" : "text-red-700"
                   }`}
                 >
-                  {online}/{total} online
+                  {translator.translateTemplate("{{online}}/{{total}} online", {
+                    online: online,
+                    total: total,
+                  })}
                 </span>
               );
             },

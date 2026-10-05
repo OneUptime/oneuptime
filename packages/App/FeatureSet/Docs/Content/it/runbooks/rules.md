@@ -61,7 +61,7 @@ Puoi vedere tutte le esecuzioni scatenate da regole in **Runbook → Esecuzioni*
 
 ## Runbook disabilitati
 
-Se una regola fa riferimento a un runbook con `isEnabled = false`, la regola corrisponde comunque ma l'esecuzione viene saltata. Riabilita il runbook per ripristinare il flusso.
+Se una regola fa riferimento a un runbook disattivato (**Run this runbook** disattivato nella pagina **Settings** del runbook, `isEnabled = false`), la regola corrisponde comunque ma l'esecuzione viene saltata. Riattiva l'interruttore per ripristinare il flusso.
 
 ## Testare una regola
 

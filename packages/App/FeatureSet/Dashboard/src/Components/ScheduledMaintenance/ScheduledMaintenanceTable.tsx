@@ -7,6 +7,7 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -40,8 +41,14 @@ import React, {
 } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  CreateFromRecordAddress,
+  CreatedRecordKind,
+  getCreateFromRecordQuery,
+} from "../CreateFromRecord/CreateFromRecord";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
@@ -79,11 +86,24 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
+  /*
+   * The record whose Scheduled Maintenance tab this is - a host, a cluster,
+   * a network site: Create Scheduled Maintenance Event and Create from
+   * Template open the create page with it already picked
+   * (Components/CreateFromRecord).
+   */
+  createFrom?: CreateFromRecordAddress | undefined;
   viewPageRoute?: Route;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -225,6 +245,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -437,6 +458,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     };
 
+  // The record this tab belongs to, in the create page's address.
+  const createQuery: Dictionary<string> = getCreateFromRecordQuery(
+    CreatedRecordKind.ScheduledMaintenance,
+    props.createFrom,
+  );
+
   if (!props.disableCreate) {
     /*
      * These route to a dedicated create page instead of the table's built in
@@ -463,8 +490,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           title: "Create Scheduled Maintenance Event",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
+              RouteUtil.getPageRoute(
+                PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+                { query: createQuery },
               ),
             );
           },
@@ -497,6 +525,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         }}
         isDeleteable={false}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
@@ -926,21 +955,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       {scheduledMaintenanceTemplates.length === 0 &&
         showScheduledMaintenanceTemplateModal &&
         !isLoading && (
-          <ConfirmModal
-            title={`No Scheduled Maintenance Templates`}
-            description={`No scheduled maintenance templates have been created yet. You can create these in Project Settings > Scheduled Maintenance Templates.`}
-            submitButtonText={"Create Template"}
-            onSubmit={() => {
-              setShowScheduledMaintenanceTemplateModal(false);
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
-                  ] as Route,
-                ),
-              );
-            }}
-            closeButtonText={"Close"}
+          <NoTemplatesYetModal
+            title="No Scheduled Maintenance Templates"
+            description="This project has no scheduled maintenance templates yet. Create them in Scheduled Maintenance → Settings → Event Templates."
+            templatesRoute={RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_TEMPLATES
+              ] as Route,
+            )}
             onClose={() => {
               setShowScheduledMaintenanceTemplateModal(false);
             }}
@@ -973,19 +995,17 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               "scheduledMaintenanceTemplateId"
             ] as ObjectID;
 
-            // Navigate to create page with the template id
+            // The create page, filled in from the template.
             Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                new Route(
-                  (
-                    RouteMap[
-                      PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
-                    ] as Route
-                  ).toString(),
-                ).addQueryParams({
-                  scheduledMaintenanceTemplateId:
-                    scheduledMaintenanceTemplateId.toString(),
-                }),
+              RouteUtil.getPageRoute(
+                PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE,
+                {
+                  query: {
+                    ...createQuery,
+                    scheduledMaintenanceTemplateId:
+                      scheduledMaintenanceTemplateId.toString(),
+                  },
+                },
               ),
             );
           }}
@@ -1025,14 +1045,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           title="Change Scheduled Maintenance State"
           description="Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped."
           stateFieldKey="scheduledMaintenanceStateId"
-          stateOptions={scheduledMaintenanceStates.map(
-            (state: ScheduledMaintenanceState) => {
-              return {
-                label: state.name || "",
-                value: state.id?.toString() || "",
-              };
-            },
-          )}
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: scheduledMaintenanceStates,
+            labelField: "name",
+            valueField: "_id",
+          })}
           noteType={BulkStateChangeNoteType.Public}
           noteTitle="Public Note"
           noteDescription="Post a public note about this state change to the status page. The same note is added to every event you selected."

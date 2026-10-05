@@ -20,8 +20,12 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
    * (single source of truth). Called before the early return so the hook order
    * stays stable across show/hide.
    */
-  const { navItems, moreMenuItems, rightElement }: DashboardNavigationItems =
-    useDashboardNavigationItems();
+  const {
+    navItems,
+    moreMenuItems,
+    moreMenuCategoriesAlwaysOpen,
+    rightElement,
+  }: DashboardNavigationItems = useDashboardNavigationItems();
 
   if (!props.show) {
     return <></>;
@@ -41,6 +45,12 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       items={navItems}
       rightElement={rightElement}
       moreMenuItems={moreMenuItems}
+      /*
+       * The menu always opens on Essentials, which never fold; every other
+       * category is one line until it is opened (on a phone too). Search
+       * still finds every product.
+       */
+      moreMenuCategoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}
       moreMenuFooter={moreMenuFooter}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
       moreMenuNoResultsText={t("navbar.search.noResults")}

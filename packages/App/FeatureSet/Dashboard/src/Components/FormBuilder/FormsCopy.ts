@@ -2,7 +2,8 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 
 /*
  * The text of the Forms product's pages: the list of forms, the form
- * builder, the On Submit page, the Share page and the submissions.
+ * builder and its Branding section, the On Submit page, the Share page and
+ * the submissions.
  *
  * Kept in one module free of React and of the dashboard's UI code, so the
  * pages, the builder and App/Tests/Dashboard/FormsI18n all read these exact
@@ -56,6 +57,21 @@ export const FormsCopy: {
   noCustomFieldsScheduledMaintenance: string;
   manageCustomFields: string;
   newQuestionLabel: string;
+
+  // The Branding section, over the builder.
+  brandingDescription: string;
+  brandingSummaryDefault: string;
+  brandingSummaryDefaultLogo: string;
+  brandingSummaryDefaultFavicon: string;
+  editBranding: string;
+  logoDescription: string;
+  logoDefault: string;
+  logoAltTextDescription: string;
+  logoAltTextPlaceholder: string;
+  logoAltTextEmpty: string;
+  faviconDescription: string;
+  faviconDefault: string;
+  uploadFavicon: string;
 
   // A question on the canvas, and its settings.
   dragToReorder: string;
@@ -142,10 +158,8 @@ export const FormsCopy: {
   alwaysStatusPagesDescription: string;
   onCallPolicies: string;
   onCallPoliciesDescription: string;
-  ownerUsers: string;
-  ownerUsersDescription: string;
-  ownerTeams: string;
-  ownerTeamsDescription: string;
+  owners: string;
+  ownersDescription: string;
   showOnStatusPages: string;
   showOnStatusPagesDescription: string;
   notifySubscribers: string;
@@ -262,6 +276,27 @@ export const FormsCopy: {
   manageCustomFields: "Manage Custom Fields",
   newQuestionLabel: "Untitled question",
 
+  brandingDescription:
+    "Your logo at the top of the form's page, and your favicon in the browser tab.",
+  brandingSummaryDefault:
+    "The form shows the OneUptime logo and favicon until you upload your own.",
+  brandingSummaryDefaultLogo:
+    "The form shows the OneUptime logo until you upload yours.",
+  brandingSummaryDefaultFavicon:
+    "The form shows the OneUptime favicon until you upload yours.",
+  editBranding: "Edit Branding",
+  logoDescription:
+    "Shown at the top of the form's page, above its name, in place of the OneUptime logo. A PNG, JPEG, GIF, WebP or SVG image of 512 KB or less.",
+  logoDefault: "The OneUptime logo, until you upload yours.",
+  logoAltTextDescription:
+    "What the logo says, read out by screen readers: usually your organization's name. Leave it empty and screen readers skip the logo.",
+  logoAltTextPlaceholder: "Your organization's name",
+  logoAltTextEmpty: "None. Screen readers skip the logo.",
+  faviconDescription:
+    "The icon in the browser tab while the form is open, in place of the OneUptime favicon. A square PNG, SVG or ICO image of 128 KB or less works best.",
+  faviconDefault: "The OneUptime favicon, until you upload yours.",
+  uploadFavicon: "Upload favicon",
+
   dragToReorder: "Drag to move this question",
   moveUp: "Move Up",
   moveDown: "Move Down",
@@ -368,10 +403,8 @@ export const FormsCopy: {
     "The status pages the event belongs to, together with any the submitter chooses.",
   onCallPolicies: "On-Call Policies",
   onCallPoliciesDescription: "Executed for every incident the form declares.",
-  ownerUsers: "Owner Users",
-  ownerUsersDescription: "Own every submission, and are told about it.",
-  ownerTeams: "Owner Teams",
-  ownerTeamsDescription: "Own every submission, and are told about it.",
+  owners: "Owners",
+  ownersDescription: "Own every submission, and are told about it.",
   showOnStatusPages: "Show on Status Pages",
   showOnStatusPagesDescription:
     "Off: the event stays off its status pages until someone on your team shows it. Turn it on only when you trust everyone with the link.",

@@ -10,6 +10,8 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
+import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -19,7 +21,6 @@ import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
 import GlobalOIDCProject from "Common/Models/DatabaseModels/GlobalOidcProject";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ProjectScopedTeamsPicker, {
@@ -91,134 +92,10 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={"Edit Configuration"}
-          formSteps={[
-            { title: "Basic Info", id: "basic" },
-            { title: "Provider", id: "provider" },
-            { title: "Claims", id: "claims" },
-            { title: "More", id: "more" },
-          ]}
-          formFields={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              stepId: "basic",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Okta OIDC (Company-wide)",
-              validation: {
-                minLength: 2,
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              stepId: "basic",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Sign in with Okta",
-            },
-            {
-              field: {
-                discoveryURL: true,
-              },
-              title: "Discovery URL",
-              stepId: "provider",
-              fieldType: FormFieldSchemaType.URL,
-              required: true,
-              placeholder:
-                "https://accounts.google.com/.well-known/openid-configuration",
-            },
-            {
-              field: {
-                issuerURL: true,
-              },
-              title: "Issuer",
-              stepId: "provider",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "https://accounts.google.com",
-            },
-            {
-              field: {
-                clientId: true,
-              },
-              title: "Client ID",
-              stepId: "provider",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "1234567890-abcdefgh.apps.googleusercontent.com",
-            },
-            {
-              field: {
-                clientSecret: true,
-              },
-              title: "Client Secret",
-              stepId: "provider",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Paste your client secret here.",
-            },
-            {
-              field: {
-                scopes: true,
-              },
-              title: "Scopes",
-              stepId: "claims",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "openid email profile",
-            },
-            {
-              field: {
-                emailClaimName: true,
-              },
-              title: "Email Claim Name",
-              stepId: "claims",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "email",
-            },
-            {
-              field: {
-                nameClaimName: true,
-              },
-              title: "Name Claim Name",
-              stepId: "claims",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "name",
-            },
-            {
-              field: {
-                disableSignUpWithSso: true,
-              },
-              title: "Disable Sign Up with SSO",
-              stepId: "more",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
-                restrictToAttachedProjects: true,
-              },
-              title: "Restrict to Attached Projects",
-              stepId: "more",
-              description:
-                "When on, this provider only satisfies SSO enforcement for the projects attached below. Off by default, where attachments control provisioning only.",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              stepId: "more",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-          ]}
+          formSteps={getSsoProviderFormSteps<GlobalOIDC>()}
+          formFields={getOidcProviderFormFields<GlobalOIDC>({
+            withGlobalAccessSwitches: true,
+          })}
           modelDetailProps={{
             modelType: GlobalOIDC,
             id: "global-oidc-detail",
@@ -370,24 +247,17 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           noItemsMessage={"No projects attached to this provider."}
           showRefreshButton={true}
           filters={[]}
-          formSteps={
-            [
-              {
-                id: "project",
-                title: "Select Project",
-              },
-              {
-                id: "teams",
-                title: "Select Teams",
-              },
-            ] as Array<FormStep<GlobalOIDCProject>>
-          }
+          /*
+           * One page: the project, then its teams under it. The teams picker
+           * lists the teams of the project picked above it and starts on that
+           * project's members team, so people who sign in for the first time
+           * join the project as members unless other teams are picked.
+           */
           formFields={[
             {
               field: {
                 project: true,
               },
-              stepId: "project",
               title: "Project",
               description:
                 "The project federated users are provisioned into for this provider.",
@@ -404,7 +274,6 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               field: {
                 teams: true,
               },
-              stepId: "teams",
               title: "Teams",
               description:
                 "Users are added to these teams (from the project selected above) when they sign in.",

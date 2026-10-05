@@ -156,12 +156,16 @@ const readLocale: ReadLocaleFunction = (
  * sixteen languages rather than failing anywhere.
  */
 const NEW_STRINGS: Array<string> = [
-  "Here are more details for this Runner.",
-  "Here is more details on the connection status for this Runner.",
-  "Here is the list of teams that own this Runner. They will be alerted when this Runner's status changes.",
-  "Here is the list of users that own this Runner. They will be alerted when this Runner's status changes.",
-  "No teams associated with this Runner so far.",
-  "No users associated with this Runner so far.",
+  /*
+   * The Runner Details and Runner Status cards have no description: their
+   * titles say what they hold (CardDescriptionsSayWhatFor).
+   */
+  /*
+   * The Runner's owners are one Owners card now, people and teams together,
+   * in place of an owner-teams and an owner-users table.
+   */
+  "People and teams who own this runner. They are alerted when its status changes.",
+  "Add a teammate or a team so they are alerted when this runner's status changes.",
   "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
   "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure.",
   "No Runners.",
@@ -288,9 +292,14 @@ describe("no page decides liveness from connectionStatus", () => {
     ).toContain("lastAlive: true");
   });
 
+  /*
+   * And the name and posture, which say whether the Kubernetes agent chart
+   * installed the Runner - which decides how the version's upgrade dialog
+   * says to upgrade it (the chart, or the Runner image).
+   */
   test("the Runner Status card selects lastAlive", () => {
     expect(readCode(...RUNNER_VIEW)).toContain(
-      "selectMoreFields: { lastAlive: true }",
+      "selectMoreFields: { lastAlive: true, name: true, hostInfo: true }",
     );
   });
 
@@ -535,7 +544,8 @@ describe("capabilities render as pills", () => {
 
   test("it still handles a Runner with no capabilities", () => {
     expect(source).toContain("if (capabilities.length === 0)");
-    expect(source).toContain('translateString("None")');
+    // translateText answers with "None" itself when a locale has no wording.
+    expect(source).toContain('translator.translateText("None")');
   });
 
   test("the capability labels are translated", () => {

@@ -9,7 +9,7 @@
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Episode Title:" text=episodeTitle }}
 {{> DetailBoxField title="Episode Number:" text=episodeNumber }}
-{{> DetailBoxField title="Current Episode State: " text=currentState  }}
+{{> DetailBoxField title="Current Episode State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Alerts Added: " text=alertCount  }}
 {{> DetailBoxEnd this }}
 
@@ -27,7 +27,7 @@
               <td style="padding: 18px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
                 <p style="margin: 0 0 6px; font-size: 12px; line-height: 18px; font-weight: 600; color: #64748b;">Alert {{this.alertNumber}}</p>
                 <p style="margin: 0; font-size: 15px; line-height: 24px; font-weight: 600;"><a href="{{this.alertViewLink}}" style="color: #111111; text-decoration: underline; text-underline-offset: 3px;">{{this.alertTitle}}</a></p>
-                <p style="margin: 8px 0 0; font-size: 13px; line-height: 20px; color: #475569;"><strong style="font-weight: 600;">Severity:</strong> {{this.alertSeverity}}</p>
+                <p style="margin: 8px 0 0; font-size: 13px; line-height: 20px; color: #475569;"><strong style="font-weight: 600;">Severity:</strong> {{#if this.alertSeverityColor}}<span class="st-ColorDot" aria-hidden="true" style="display: inline-block; width: 6px; height: 6px; margin: 0 6px 0 0; border: 1px solid {{#if this.alertSeverityTextColor}}{{this.alertSeverityTextColor}}{{else}}{{this.alertSeverityColor}}{{/if}}; border-radius: 9999px; background-color: {{this.alertSeverityColor}}; vertical-align: middle;"></span><span class="st-ColorText" style="color: {{#if this.alertSeverityTextColor}}{{this.alertSeverityTextColor}}{{else}}{{this.alertSeverityColor}}{{/if}}; font-weight: 600;">{{this.alertSeverity}}</span>{{else}}{{this.alertSeverity}}{{/if}}</p>
                 <div style="margin: 4px 0 0; font-size: 13px; line-height: 20px; color: #64748b;"><strong style="font-weight: 500;">Added:</strong> {{{this.addedAt}}}</div>
               </td>
             </tr>

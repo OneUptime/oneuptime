@@ -4,7 +4,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../Types/Phone";
 import CreateBy from "../Types/Database/CreateBy";
-import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -17,6 +16,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import PositiveNumber from "../../Types/PositiveNumber";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -27,76 +28,90 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (createBy.data.isProjectDefault && createBy.data.projectId) {
-      await this.updateBy({
-        query: {
-          projectId: createBy.data.projectId,
-          isProjectDefault: true,
-        },
-        data: {
-          isProjectDefault: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    /*
+     * A project's first Twilio config becomes its default, so SMS and calls
+     * to the project's members go through it as soon as it is saved: adding
+     * your own Twilio account is asking for exactly that, and a config that
+     * nothing uses until someone finds a switch is a trap. Only when the
+     * caller leaves the choice out - an explicit false (the dashboard's
+     * switch turned off, an API call, Terraform, which always sends one) is
+     * kept. A project that already has a config keeps the one it uses.
+     */
+    if (
+      projectId &&
+      !this.isProjectDefaultChoiceGiven(createBy.data.isProjectDefault)
+    ) {
+      if (await this.isFirstConfigOfProject(projectId)) {
+        createBy.data.isProjectDefault = true;
+      }
     }
 
     return { createBy, carryForward: [] };
   }
 
+  /*
+   * A config saved as the project default takes the default from the
+   * project's other configs - only now that it exists, so a create that is
+   * refused or fails leaves the project's default where it was.
+   */
   @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      createdItem: createdItem,
+    });
+
+    return createdItem;
+  }
+
+  /*
+   * Whether a create says whether the config is the project default. Null
+   * says nothing either: DatabaseService stores the column default for it.
+   */
+  private isProjectDefaultChoiceGiven(
+    isProjectDefault: boolean | null | undefined,
+  ): boolean {
+    return isProjectDefault !== undefined && isProjectDefault !== null;
+  }
+
+  // Whether the project has no Twilio config yet, so this one is its first.
+  private async isFirstConfigOfProject(projectId: ObjectID): Promise<boolean> {
+    const configCount: PositiveNumber = await this.countBy({
+      query: {
+        projectId: projectId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return configCount.toNumber() === 0;
+  }
+
+  /*
+   * Making a config the default takes it from the others in its project, once
+   * the update has made it (so after every permission check), and only for
+   * the configs the update actually wrote.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    if (updateBy.data.isProjectDefault === true) {
-      const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
-      const projectIds: Set<string> = new Set();
-      const itemIds: Set<string> = new Set();
-      for (const item of itemsToUpdate) {
-        if (item.projectId) {
-          projectIds.add(item.projectId.toString());
-        }
-        if (item._id) {
-          itemIds.add(item._id);
-        }
-      }
-
-      for (const projectIdStr of projectIds) {
-        const projectId: ObjectID = new ObjectID(projectIdStr);
-        await this.updateBy({
-          query: {
-            projectId: projectId,
-            isProjectDefault: true,
-            _id: QueryHelper.notInOrNull(Array.from(itemIds)),
-          },
-          data: {
-            isProjectDefault: false,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-        });
-      }
-    }
-
-    return { updateBy, carryForward: null };
+    return onUpdate;
   }
 
   @CaptureSpan()

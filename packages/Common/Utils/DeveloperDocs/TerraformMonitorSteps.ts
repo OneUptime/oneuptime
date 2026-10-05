@@ -95,6 +95,12 @@ export interface MonitorStepsHclContext {
   variablePrefix: string;
   // How the monitor is called in variable descriptions.
   monitorLabel: string;
+  /*
+   * The name of the record an id stands for (a monitor status, a severity),
+   * written in a comment after it. Comments are not part of the value, so
+   * they never change what Terraform reads.
+   */
+  describeId?: ((id: string) => string | undefined) | undefined;
 }
 
 // `{_type: ..., value: {...}}` -> the inner object; anything else as it is.
@@ -148,14 +154,60 @@ function apiStringList(value: unknown): Array<string> | null {
 class AttributeList {
   public readonly attributes: Array<HclObjectAttribute> = [];
 
-  public add(key: string, value: HclExpression | null): void {
+  public constructor(
+    private readonly describeId?:
+      | ((id: string) => string | undefined)
+      | undefined,
+  ) {}
+
+  public add(
+    key: string,
+    value: HclExpression | null,
+    comment?: string | undefined,
+  ): void {
     if (value) {
-      this.attributes.push({ key, value });
+      this.attributes.push(comment ? { key, value, comment } : { key, value });
     }
   }
 
   public addString(key: string, value: string | null): void {
     this.add(key, value === null ? null : Hcl.string(value));
+  }
+
+  // An id, with the name of its record in a comment when it is known.
+  public addId(key: string, value: string | null): void {
+    this.add(
+      key,
+      value === null ? null : Hcl.string(value),
+      value === null ? undefined : this.describeId?.(value),
+    );
+  }
+
+  // A list of ids, each with the name of its record.
+  public addIdList(key: string, value: Array<string> | null): void {
+    if (value === null) {
+      return;
+    }
+
+    const names: Array<string | undefined> = value.map(
+      (id: string): string | undefined => {
+        return this.describeId?.(id);
+      },
+    );
+
+    if (value.length === 1) {
+      this.add(key, Hcl.tuple([Hcl.string(value[0] as string)]), names[0]);
+      return;
+    }
+
+    this.add(
+      key,
+      Hcl.tuple(
+        value.map((id: string, index: number) => {
+          return { value: Hcl.string(id), comment: names[index] };
+        }),
+      ),
+    );
   }
 
   public addBool(key: string, value: boolean | null): void {
@@ -283,19 +335,20 @@ function filterToHcl(
 function incidentOrAlertToHcl(
   value: unknown,
   kind: "incident" | "alert",
+  context: MonitorStepsHclContext,
 ): HclExpression | null {
   if (!isJSONObject(value)) {
     return null;
   }
 
   const template: JSONObject = unwrapEnvelope(value);
-  const attributes: AttributeList = new AttributeList();
+  const attributes: AttributeList = new AttributeList(context.describeId);
 
   attributes.addString("title", unwrapApiString(template["title"]));
   attributes.addString("description", unwrapApiString(template["description"]));
 
   if (kind === "incident") {
-    attributes.addString(
+    attributes.addId(
       "incident_severity_id",
       unwrapApiString(template["incidentSeverityId"]),
     );
@@ -304,7 +357,7 @@ function incidentOrAlertToHcl(
       apiBool(template["autoResolveIncident"]),
     );
   } else {
-    attributes.addString(
+    attributes.addId(
       "alert_severity_id",
       unwrapApiString(template["alertSeverityId"]),
     );
@@ -320,7 +373,7 @@ function incidentOrAlertToHcl(
   );
 
   for (const list of INCIDENT_AND_ALERT_ID_LISTS) {
-    attributes.addStringList(
+    attributes.addIdList(
       list.attributeName,
       apiStringList(template[list.apiKey]),
     );
@@ -364,7 +417,7 @@ function criteriaToHcl(
   }
 
   const criteria: JSONObject = unwrapEnvelope(value);
-  const attributes: AttributeList = new AttributeList();
+  const attributes: AttributeList = new AttributeList(context.describeId);
 
   attributes.addString("name", unwrapApiString(criteria["name"]));
   attributes.addString("description", unwrapApiString(criteria["description"]));
@@ -372,7 +425,7 @@ function criteriaToHcl(
     "filter_condition",
     unwrapApiString(criteria["filterCondition"]),
   );
-  attributes.addString(
+  attributes.addId(
     "monitor_status_id",
     unwrapApiString(criteria["monitorStatusId"]),
   );
@@ -396,13 +449,13 @@ function criteriaToHcl(
   attributes.add(
     "incidents",
     objectList(criteria["incidents"], (item: unknown): HclExpression | null => {
-      return incidentOrAlertToHcl(item, "incident");
+      return incidentOrAlertToHcl(item, "incident", context);
     }),
   );
   attributes.add(
     "alerts",
     objectList(criteria["alerts"], (item: unknown): HclExpression | null => {
-      return incidentOrAlertToHcl(item, "alert");
+      return incidentOrAlertToHcl(item, "alert", context);
     }),
   );
 

@@ -27,13 +27,14 @@ La integración SSO proporciona los siguientes beneficios:
    - Ingresa la **URL de inicio de sesión** de tu proveedor de identidad
    - Ingresa el **Emisor** (ID de entidad) de tu proveedor de identidad
    - Pega el **Certificado público** de tu proveedor de identidad
-   - Selecciona el **Algoritmo de firma** (por ejemplo, `RSA-SHA-256`)
-   - Selecciona el **Algoritmo de resumen** (por ejemplo, `SHA256`)
+   - En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: las personas que inician sesión por primera vez se unen a estos equipos. Solo se aceptan equipos a los que podrías invitar a alguien: un equipo que da más acceso del que tienes se indica bajo **Equipos**
+   - Todo lo demás se rellena en **Más campos**: el **Método de firma** (`RSA-SHA256`), el **Método de resumen** (`SHA256`) y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor de identidad lo necesita
 
 3. **Obtener los metadatos SSO de OneUptime**
-   - Después de guardar, haz clic en el botón **Ver configuración SSO**
+   - Al guardar se abre el diálogo **Configuración de SSO**. Puedes volver a abrirlo con el botón **Ver configuración SSO**
    - Copia el **Identificador (ID de entidad)**: es necesario en la configuración de tu IdP
    - Copia la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: es necesaria en la configuración de tu IdP
+   - Un proveedor nuevo empieza deshabilitado. Cuando tu IdP tenga estos dos valores, edita el proveedor y activa **Habilitado**
 
 ## Configuración SAML de Keycloak
 
@@ -54,8 +55,7 @@ Keycloak es una popular solución de código abierto para gestión de identidade
    - **URL de inicio de sesión**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Emisor**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificado**: Consulta el [Paso 2](#paso-2-obtener-el-certificado-de-keycloak) a continuación
-   - **Algoritmo de firma**: `RSA-SHA-256`
-   - **Algoritmo de resumen**: `SHA256`
+   - **Método de firma** y **Método de resumen**: ya configurados en **Más campos** (`RSA-SHA256` y `SHA256`)
 4. Guarda la configuración
 
 ### Paso 2: Obtener el certificado de Keycloak
@@ -121,8 +121,7 @@ Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nub
    - **URL de inicio de sesión**: La obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
    - **Emisor**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
    - **Certificado**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
-   - **Algoritmo de firma**: `RSA-SHA-256`
-   - **Algoritmo de resumen**: `SHA256`
+   - **Método de firma** y **Método de resumen**: ya configurados en **Más campos** (`RSA-SHA256` y `SHA256`)
 4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Entra ID
 
 ### Paso 2: Crear una aplicación empresarial en Microsoft Entra ID
@@ -206,8 +205,7 @@ Okta es una plataforma de identidad ampliamente utilizada que proporciona sólid
    - **URL de inicio de sesión**: La obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
    - **Emisor**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
    - **Certificado**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
-   - **Algoritmo de firma**: `RSA-SHA-256`
-   - **Algoritmo de resumen**: `SHA256`
+   - **Método de firma** y **Método de resumen**: ya configurados en **Más campos** (`RSA-SHA256` y `SHA256`)
 4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Okta
 
 ### Paso 2: Crear una aplicación SAML en Okta
@@ -287,8 +285,21 @@ La implementación SSO de OneUptime usa el protocolo SAML 2.0 y debería funcion
    - **URL de inicio de sesión** (punto de conexión SSO)
    - **Emisor** (ID de entidad del IdP)
    - **Certificado público** (certificado de firma X.509)
-4. Establece el **Algoritmo de firma** en `RSA-SHA-256` y el **Algoritmo de resumen** en `SHA256`
+4. El **Método de firma** (`RSA-SHA256`) y el **Método de resumen** (`SHA256`) ya están configurados en **Más campos**; cámbialos solo si tu proveedor de identidad firma de otra forma
+
+## OpenID Connect (OIDC)
+
+Un proyecto también puede iniciar sesión mediante un proveedor de OpenID Connect, como Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak.
+
+1. Registra una aplicación (un cliente OIDC) en tu proveedor de identidad y copia su **URL del emisor**, su **ID de cliente** y su **Secreto de cliente**.
+2. En OneUptime, ve a **Ajustes del proyecto** > **Seguridad** > **OIDC** y haz clic en **Crear OIDC**.
+3. Introduce un **Nombre** (lo que la gente ve en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
+4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás se rellena en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de los claims `email` y `name`, y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor lo necesita. Solo se aceptan equipos a los que podrías invitar a alguien: un equipo que da más acceso del que tienes se indica bajo **Equipos**.
+5. Guarda. Se abre el diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza deshabilitado; después, edítalo y activa **Habilitado**.
+6. Usa el enlace de la tarjeta **Probar OpenID Connect (OIDC)** para iniciar sesión con el proveedor antes de exigir SSO en el proyecto.
 
 ## Notas sobre SSO y roles
 
 OneUptime actualmente no admite la asignación de roles SAML desde tu proveedor de identidad. El control de acceso basado en roles debe configurarse por separado dentro de los **Ajustes del proyecto** > **SSO** de OneUptime, donde puedes asignar roles predeterminados para usuarios SSO.
+
+Los equipos de un proveedor deciden lo que pueden hacer las personas que inician sesión con él, así que un proveedor solo se guarda con equipos a los que la persona que lo guarda podría invitar a alguien. Cada vez que se guarda se vuelven a comprobar: un proveedor cuyos equipos dan más acceso del que tienes solo puede cambiarlo alguien cuyo acceso los abarque, como un propietario del proyecto. Los proveedores guardados antes de esta comprobación siguen añadiendo a las personas a sus equipos. Cualquier persona que pueda editar un proveedor puede desactivarlo igualmente, para que se pueda detener al instante.

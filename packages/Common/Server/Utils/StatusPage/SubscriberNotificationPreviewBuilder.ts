@@ -556,6 +556,8 @@ export default class SubscriberNotificationPreviewBuilder {
         },
         incidentSeverity: {
           name: true,
+          // The default email paints the severity in its own colour.
+          color: true,
         },
         currentIncidentState: {
           name: true,
@@ -595,6 +597,8 @@ export default class SubscriberNotificationPreviewBuilder {
         select: {
           _id: true,
           name: true,
+          // The default email paints the severity in its own colour.
+          color: true,
         },
         props: {
           isRoot: true,

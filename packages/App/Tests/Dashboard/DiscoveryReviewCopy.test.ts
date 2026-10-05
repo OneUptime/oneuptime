@@ -7,6 +7,10 @@ import {
   getDiscoveredHostFilterLabel,
   getDiscoveredHostFilterOptions,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredHostFilter";
+import {
+  createTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
 
@@ -90,6 +94,21 @@ function stripComments(source: string): string {
 /** The page with comments removed and whitespace squashed to single spaces. */
 function readCode(): string {
   return squash(stripComments(readSource()));
+}
+
+/*
+ * The Dashboard's English locale (src/Locales/en.json): every key
+ * `npm run i18n:extract` found, each mapped to itself. The dialog's copy is
+ * looked up in the reader's language (#4280), so a sentence pinned below
+ * that is not in here is one no locale can ever translate.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(DISCOVERY_PAGE, "..", "..", "..", "Locales", "en.json"),
+      "utf8",
+    ),
+  );
 }
 
 /*
@@ -200,6 +219,22 @@ function labelsOf(hosts: Array<DiscoveredNetworkDevice>): Array<string> {
       return option.label;
     },
   );
+}
+
+/*
+ * A reader whose language words two of the groups differently from English,
+ * as de.json does. Only the lookup is stubbed; the real translator fills
+ * everything in.
+ */
+function germanTranslator(): Translator {
+  const words: Record<string, string> = {
+    "No SNMP": "Kein SNMP",
+    All: "Alle",
+  };
+
+  return createTranslator((text: string): string | undefined => {
+    return words[text];
+  }, "de");
 }
 
 /*
@@ -338,12 +373,51 @@ describe("the group names", () => {
      * exactly the connection the filter exists to make for them. Read from
      * the page rather than trusted, because the pill is hand-written JSX and
      * the button label comes from the module.
+     *
+     * Both are in the reader's language since #4280, so "worded alike" has
+     * to hold there too. The pill looks its words up under the group's own
+     * label, and the button names the group through the same lookup — in a
+     * locale that words the group ("Kein SNMP"), a button left reading
+     * "No SNMP (2,890)" above rows marked "Kein SNMP" is the drift this
+     * test exists to stop.
      */
     const badgeText: string = getDiscoveredHostFilterLabel(
       DiscoveredHostFilter.NoSnmp,
     );
 
-    expect(pingOnlyBadgeSection()).toContain(`> ${badgeText} </span>`);
+    expect(pingOnlyBadgeSection()).toContain(
+      `> {translator.translateText(${JSON.stringify(badgeText)})} </span>`,
+    );
+
+    const german: Translator = germanTranslator();
+    const noSnmpButton: DiscoveredHostFilterOption | undefined =
+      getDiscoveredHostFilterOptions(
+        scanOf({ snmpCount: 2866, pingOnlyCount: 2890 }),
+        german,
+      ).find((option: DiscoveredHostFilterOption): boolean => {
+        return option.value === DiscoveredHostFilter.NoSnmp;
+      });
+
+    expect(noSnmpButton?.label).toEqual(
+      `${german.translateText(badgeText)} (2,890)`,
+    );
+    expect(noSnmpButton?.label).toEqual("Kein SNMP (2,890)");
+  });
+
+  test("every button is named in the reader's language, around the same count", () => {
+    /*
+     * The other groups follow the same rule, and the count is untouched by
+     * it: still the group's own size, still with the en-US separators an
+     * operator checks against the probe's tally.
+     */
+    expect(
+      getDiscoveredHostFilterOptions(
+        scanOf({ snmpCount: 2866, pingOnlyCount: 2890 }),
+        germanTranslator(),
+      ).map((option: DiscoveredHostFilterOption): string => {
+        return option.label;
+      }),
+    ).toEqual(["Alle (5,756)", "SNMP (2,866)", "Kein SNMP (2,890)"]);
   });
 });
 
@@ -598,7 +672,16 @@ interface ReviewDescriptionBranches {
 }
 
 /*
- * The two halves of the description's ternary, as literals.
+ * The two halves of the description's ternary: the English sentence each arm
+ * looks up in the reader's language.
+ *
+ * Since #4280 each arm is one whole sentence that opens with the scanned
+ * range — `translator.translateTemplate("Hosts that responded in {{range}}.
+ * ...", { range: ... })` — rather than an English fragment glued in between
+ * the range and the probe's summary, so a locale can word and order the
+ * paragraph its own way. The pattern pins both arms' `range` to the scan's
+ * own label with the dialog's fallback, so the sentences asserted below are
+ * exactly what the dialog fills in and shows.
  *
  * Same refusal-to-lie contract as sliceBetween: a regex that no longer matches
  * would otherwise hand back empty strings, and every `toContain` below would
@@ -606,9 +689,17 @@ interface ReviewDescriptionBranches {
  * description stops being a ternary on the scan's mode, this must be the thing
  * that fails, by name.
  */
+const SCANNED_RANGE_VALUES: string =
+  '\\{\\s*range:\\s*ScanNameUtil\\.getScanLabel\\(scanToReview\\)\\s*\\|\\|\\s*translatableTerm\\("the scanned address range"\\)\\s*,?\\s*\\}';
+
+// Not preceded by `!`, so arms swapped by a negated condition fail here.
+const REVIEW_DESCRIPTION_TERNARY: RegExp = new RegExp(
+  `(?<![!\\w.])isIcmpOnlyReview\\s*\\?\\s*translator\\.translateTemplate\\(\\s*"([^"]+)"\\s*,\\s*${SCANNED_RANGE_VALUES}\\s*,?\\s*\\)\\s*:\\s*translator\\.translateTemplate\\(\\s*"([^"]+)"\\s*,\\s*${SCANNED_RANGE_VALUES}\\s*,?\\s*\\)`,
+);
+
 function reviewDescriptionBranches(): ReviewDescriptionBranches {
   const match: RegExpMatchArray | null = descriptionSection().match(
-    /isIcmpOnlyReview \? "([^"]+)" : "([^"]+)"/,
+    REVIEW_DESCRIPTION_TERNARY,
   );
 
   if (!match || !match[1] || !match[2]) {
@@ -729,7 +820,7 @@ describe("the review dialog reads differently for a scan that only pinged", () =
      * description of it.
      */
     expect(reviewDescriptionBranches().icmpOnly).toEqual(
-      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents.",
+      "Hosts that responded in {{range}}. This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents.",
     );
   });
 
@@ -742,7 +833,40 @@ describe("the review dialog reads differently for a scan that only pinged", () =
      * one kind now.
      */
     expect(reviewDescriptionBranches().snmp).toEqual(
-      "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some.",
+      "Hosts that responded in {{range}}. Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some.",
+    );
+  });
+
+  test("both branches open with the scanned range and ask for nothing else", () => {
+    /*
+     * The range used to be glued on in front of whichever branch applied;
+     * it is now each branch's own opening sentence. So both open with the
+     * sentence the description always opened with, and {{range}} is the
+     * only value either asks for — a placeholder nobody fills is shown to
+     * the operator as "{{range}}". Both sentences are recorded for
+     * translation.
+     */
+    const placeholder: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
+    const english: Record<string, string> = readEnglishLocale();
+    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
+
+    for (const branch of [branches.icmpOnly, branches.snmp]) {
+      expect(branch.startsWith("Hosts that responded in {{range}}. ")).toBe(
+        true,
+      );
+      expect(branch.match(placeholder)).toEqual(["{{range}}"]);
+      expect(english[branch]).toEqual(branch);
+    }
+  });
+
+  test("the probe's summary closes the paragraph, one space after the branch", () => {
+    /*
+     * Most valuable when the list is empty. The description is the branch
+     * and then the summary, joined by one space, with nothing added when
+     * the probe reported none.
+     */
+    expect(descriptionSection()).toContain(
+      'scanToReview.statusMessage || "", ] .filter((sentence: string): boolean => { return sentence.length > 0; }) .join(" ")',
     );
   });
 
@@ -792,10 +916,9 @@ describe("the review dialog reads differently for a scan that only pinged", () =
 
   test("both branches are punctuated as the sentences they are", () => {
     /*
-     * They are concatenated into one paragraph with the scan's label before
-     * them and the probe's status message after them, so each has to end as a
-     * sentence and start as one. A branch that lost its full stop would run
-     * straight into the probe's summary.
+     * Each opens the paragraph and is followed by the probe's status
+     * message, so each has to end as a sentence and start as one. A branch
+     * that lost its full stop would run straight into the probe's summary.
      */
     const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
 

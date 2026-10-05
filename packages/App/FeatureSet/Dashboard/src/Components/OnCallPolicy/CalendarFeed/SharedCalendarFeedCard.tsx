@@ -38,6 +38,7 @@ import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -48,6 +49,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -125,6 +128,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -541,18 +545,19 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
               // load routes every failure into the error state.
             });
           }}
-          formSteps={[
-            { title: "Coverage Gaps", id: "coverage-gaps" },
-            { title: "Time Range", id: "time-range" },
-            { title: "Security", id: "security" },
-          ]}
+          /*
+           * One page, as the personal link's settings are: the link's few
+           * settings, which this card lists, edited where they are read.
+           * They were three steps (coverage gaps, time range, and one
+           * switch on a step of its own), so changing one meant finding its
+           * step first. The minimum gap shows only while gaps are shown.
+           */
           formFields={[
             {
               field: {
                 includeCoverageGaps: true,
               },
               title: "Show coverage gaps",
-              stepId: "coverage-gaps",
               description: COVERAGE_GAPS_DESCRIPTION,
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
@@ -562,11 +567,13 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 minimumGapMinutes: true,
               },
               title: "Minimum gap to show (minutes)",
-              stepId: "coverage-gaps",
               description:
                 "Gaps shorter than this are left out (1 to 10080 minutes).",
               fieldType: FormFieldSchemaType.Number,
               required: true,
+              showIf: (values: FormValues<SharedFeedModel>): boolean => {
+                return Boolean(values.includeCoverageGaps);
+              },
               validation: {
                 minValue: 1,
                 maxValue: 10080,
@@ -577,8 +584,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 pastDays: true,
               },
               title: "Days of past shifts",
-              stepId: "time-range",
-              description: `How many days back the calendar reaches (0 to ${MAX_PAST_DAYS}).`,
+              description: translator.translateTemplate(
+                "How many days back the calendar reaches (0 to {{max}}).",
+                { max: MAX_PAST_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -591,8 +600,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 futureDays: true,
               },
               title: "Days ahead",
-              stepId: "time-range",
-              description: `How far ahead the calendar reaches (${MIN_FUTURE_DAYS} to ${MAX_FUTURE_DAYS}).`,
+              description: translator.translateTemplate(
+                "How far ahead the calendar reaches ({{min}} to {{max}}).",
+                { min: MIN_FUTURE_DAYS, max: MAX_FUTURE_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -605,7 +616,6 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 rotateWhenMemberLeaves: true,
               },
               title: "Regenerate when someone leaves the project",
-              stepId: "security",
               description:
                 "Rotates this link automatically whenever a member is removed from the project, so a former colleague's calendar stops updating.",
               fieldType: FormFieldSchemaType.Toggle,

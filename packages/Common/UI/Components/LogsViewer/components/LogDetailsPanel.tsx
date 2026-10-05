@@ -7,6 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
@@ -234,6 +236,7 @@ export function splitTraceContextLogs(
 const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
   props: LogDetailsPanelProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [activeTab, setActiveTab] = useState<LogDetailTab>("details");
   const [contextBefore, setContextBefore] = useState<Array<ContextLog>>([]);
   const [contextAfter, setContextAfter] = useState<Array<ContextLog>>([]);
@@ -674,13 +677,13 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               {traceId && (
                 <span className={smallBadgeClass}>
                   <Icon icon={IconProp.Logs} className="h-3 w-3" />
-                  Trace
+                  {translator.translateText("Trace")}
                 </span>
               )}
               {spanId && (
                 <span className={smallBadgeClass}>
                   <Icon icon={IconProp.Terminal} className="h-3 w-3" />
-                  Span
+                  {translator.translateText("Span")}
                 </span>
               )}
             </div>
@@ -692,7 +695,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             type="button"
             onClick={props.onClose}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
-            title="Close details"
+            title={translator.translateText("Close details")}
           >
             <Icon icon={IconProp.Close} className="h-4 w-4" />
           </button>
@@ -708,7 +711,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             setActiveTab("details");
           }}
         >
-          Details
+          {translator.translateText("Details")}
         </button>
         {props.projectId && (
           <button
@@ -718,7 +721,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               setActiveTab("context");
             }}
           >
-            Context
+            {translator.translateText("Context")}
           </button>
         )}
       </div>
@@ -728,7 +731,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         <div className="mt-4 space-y-5 text-sm text-gray-700">
           <section className="space-y-3">
             <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
-              <span>Log Body</span>
+              <span>{translator.translateText("Log Body")}</span>
               <CopyTextButton
                 textToBeCopied={bodyDetails.raw}
                 size="xs"
@@ -756,7 +759,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               {traceId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                   <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
-                    <span>Trace ID</span>
+                    <span>{translator.translateText("Trace ID")}</span>
                     <CopyTextButton
                       textToBeCopied={traceId}
                       size="xs"
@@ -770,7 +773,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                       <Link
                         to={traceRoute}
                         className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
-                        title={`View trace ${traceId}`}
+                        title={translator.translateTemplate(
+                          "View trace {{id}}",
+                          { id: traceId },
+                        )}
                       >
                         {traceId}
                       </Link>
@@ -795,7 +801,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               {spanId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                   <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
-                    <span>Span ID</span>
+                    <span>{translator.translateText("Span ID")}</span>
                     <CopyTextButton
                       textToBeCopied={spanId}
                       size="xs"
@@ -809,7 +815,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                       <Link
                         to={effectiveSpanRoute}
                         className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
-                        title={`View span ${spanId}`}
+                        title={translator.translateTemplate(
+                          "View span {{id}}",
+                          { id: spanId },
+                        )}
                       >
                         {spanId}
                       </Link>
@@ -834,7 +843,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               {sessionId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                   <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
-                    <span>Session</span>
+                    <span>{translator.translateText("Session")}</span>
                     <CopyTextButton
                       textToBeCopied={sessionId}
                       size="xs"
@@ -848,7 +857,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                       <Link
                         to={sessionRoute}
                         className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
-                        title={`View session replay ${sessionId}`}
+                        title={translator.translateTemplate(
+                          "View session replay {{id}}",
+                          { id: sessionId },
+                        )}
                       >
                         {sessionId}
                       </Link>
@@ -876,7 +888,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             <section className="space-y-3">
               <header className="flex flex-wrap items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400">
-                  Attributes
+                  {translator.translateText("Attributes")}
                   <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
                     {attributeEntries.length}
                   </span>
@@ -923,7 +935,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           >
                             {entry.value || (
                               <span className="italic text-gray-400">
-                                empty
+                                {translator.translateText("empty")}
                               </span>
                             )}
                           </span>
@@ -932,7 +944,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                               <button
                                 type="button"
                                 className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
-                                title={`Filter by ${entry.key}: ${entry.value}`}
+                                title={translator.translateTemplate(
+                                  "Filter by {{key}}: {{value}}",
+                                  { key: entry.key, value: entry.value },
+                                )}
                                 onClick={() => {
                                   props.onFilterByAttribute!(
                                     entry.key,
@@ -951,7 +966,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                               size="xs"
                               variant="ghost"
                               iconOnly={true}
-                              title={`Copy ${entry.key}`}
+                              title={translator.translateTemplate(
+                                "Copy {{key}}",
+                                { key: entry.key },
+                              )}
                             />
                           </div>
                         </li>
@@ -981,7 +999,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   handleContextScopeChange("nearby");
                 }}
               >
-                Nearby (service + time)
+                {translator.translateText("Nearby (service + time)")}
               </button>
               <button
                 type="button"
@@ -995,27 +1013,29 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   handleContextScopeChange("trace");
                 }}
               >
-                This trace
+                {translator.translateText("This trace")}
               </button>
             </div>
           )}
           {contextLoading && (
             <div className="flex items-center justify-center py-8 text-xs text-gray-400">
-              Loading surrounding logs...
+              {translator.translateText("Loading surrounding logs...")}
             </div>
           )}
           {contextError && (
             <div className="rounded-md bg-red-50 p-3 text-xs text-red-600">
-              {contextError}
+              {translator.translateText(contextError)}
             </div>
           )}
           {!contextLoading && !contextError && contextLoaded && (
             <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               {contextBefore.length === 0 && contextAfter.length === 0 && (
                 <div className="px-3 py-6 text-center text-xs text-gray-400">
-                  {contextScope === "trace"
-                    ? "No other logs found for this trace."
-                    : "No surrounding logs found for this service."}
+                  {translator.translateText(
+                    contextScope === "trace"
+                      ? "No other logs found for this trace."
+                      : "No surrounding logs found for this service.",
+                  )}
                 </div>
               )}
               {contextBefore.map((ctxLog: ContextLog) => {

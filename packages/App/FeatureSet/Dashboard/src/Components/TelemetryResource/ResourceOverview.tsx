@@ -8,6 +8,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import AppLink from "../AppLink/AppLink";
+import EditInSettingsLink from "./EditInSettingsLink";
 
 export interface ResourceOverviewChip {
   icon: IconProp;
@@ -17,6 +18,12 @@ export interface ResourceOverviewChip {
 export interface ResourceOverviewDetailRow {
   label: string;
   value: string | undefined;
+  /*
+   * How the value is drawn when it is more than text - an agent version with
+   * its upgrade sign (AgentVersion). Drawn only while `value` is set, so an
+   * empty row still reads "—".
+   */
+  element?: ReactElement | undefined;
   mono?: boolean | undefined;
 }
 
@@ -95,6 +102,11 @@ export interface ResourceOverviewProps {
   quickLinks?: Array<ResourceOverviewQuickLink> | undefined;
   detailRows: Array<ResourceOverviewDetailRow>;
   labels?: Array<Label> | undefined;
+  /*
+   * The resource's Settings page, where its name, description and labels
+   * are edited (ResourceDetailsCard): the Details card links there.
+   */
+  settingsRoute?: Route | undefined;
 }
 
 const tileColorClasses: Record<
@@ -420,6 +432,16 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           props.description ||
           "Metadata captured from OpenTelemetry resource attributes."
         }
+        buttons={
+          props.settingsRoute
+            ? [
+                <EditInSettingsLink
+                  key="edit-in-settings"
+                  to={props.settingsRoute}
+                />,
+              ]
+            : undefined
+        }
       >
         <div className="border-t border-gray-200 divide-y divide-gray-100 -m-6 -mt-2">
           {props.detailRows.map(
@@ -437,7 +459,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                       row.mono === false ? "" : "font-mono"
                     }`}
                   >
-                    {row.value && row.value.length > 0 ? row.value : "—"}
+                    {row.value && row.value.length > 0
+                      ? row.element || row.value
+                      : "—"}
                   </dd>
                 </div>
               );

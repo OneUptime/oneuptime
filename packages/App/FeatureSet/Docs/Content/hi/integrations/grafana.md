@@ -25,7 +25,7 @@ Grafana का webhook payload Alertmanager shape follow करता है —
 
 1. **Monitors → Create Monitor** पर जाएँ और **Incoming Request** चुनें। इसे खोलें और URL कॉपी करने के लिए बाएँ मेनू में **Documentation** पर क्लिक करें।
 2. monitor के **Criteria** खोलें और **Filter Type** को `JavaScript Expression` तथा **Value** को `"{{requestBody.status}}" === "firing"` पर सेट करें।
-3. मेल खाने पर incident घोषित करें, पेज करने के लिए **On-Call Policies** चुनें, और **Advanced Options** में **Auto Resolve Incident** चालू करें।
+3. मेल खाने पर incident घोषित करें, पेज करने के लिए **On-Call Policies** चुनें, और **More fields** में **Auto Resolve Incident** चालू करें।
 4. **Settings** के अंतर्गत **Group incidents and alerts by a payload field** चालू करें और यह सेट करें:
 
    | Field                              | मान                                 |
@@ -89,7 +89,7 @@ Grafana का webhook payload Alertmanager shape follow करता है —
 ## समस्या निवारण
 
 - **कुछ भी नहीं पहुँच रहा** — पुष्टि करें कि Grafana उस URL तक पहुँच सकता है (Grafana के server logs देखें), और विकल्प 2 के लिए कि workflow **Enabled** है। OneUptime हर incoming request को validate करने से पहले ही खाली `200` लौटा देता है, इसलिए Grafana के logs में `200` इस बात की पुष्टि नहीं करता कि payload स्वीकार हुआ।
-- **Incidents खुलते हैं पर कभी बंद नहीं होते** — criteria पर recovery field और मान जाँचें, और यह भी कि incident के **Advanced Options** में **Auto Resolve Incident** चालू है। तुलना case-sensitive है।
+- **Incidents खुलते हैं पर कभी बंद नहीं होते** — criteria पर recovery field और मान जाँचें, और यह भी कि incident के **More fields** में **Auto Resolve Incident** चालू है। तुलना case-sensitive है।
 - **alerts से भरे payload के लिए सिर्फ़ एक incident** — आपने ऐसे label से group किया जो notification के भीतर नहीं बदलता। इसके बजाय `requestBody.alerts[*].fingerprint` से group करें।
 - **Incident के text में कच्चे `{{...}}` placeholders दिखते हैं** — path resolve नहीं हुआ, और unresolved placeholders खाली होने के बजाय वैसे ही छोड़ दिए जाते हैं। ऐसे fields संदर्भित करें जो आपके alerting version में मौजूद हों; यदि आपने विकल्प 2 इस्तेमाल किया है तो **Logs** टैब में trigger का output देखें।
 

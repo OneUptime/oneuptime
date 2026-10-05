@@ -35,9 +35,12 @@ import {
   WorkflowStepTraceEntry,
 } from "../../../Types/Workflow/StepTrace";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
-export const STEPS_TAB_NAME: string = "Steps";
-export const FULL_LOG_TAB_NAME: string = "Full Log";
+// Tab translates its name; these stay English so a caller can pick a tab.
+export const STEPS_TAB_NAME: string = translationKey("Steps");
+export const FULL_LOG_TAB_NAME: string = translationKey("Full Log");
 
 export interface ComponentProps {
   logs: string;
@@ -83,6 +86,7 @@ const TAB_TYPE_BY_ATTENTION: Record<TraceAttention, TabType> = {
 const WorkflowLogModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const steps: Array<WorkflowStepTraceEntry> = getTraceSteps(props.stepTrace);
 
   /*
@@ -116,8 +120,8 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
       ) : (
         <p className="text-sm text-gray-500">
           {props.isRunning
-            ? "Nothing has been logged yet."
-            : "This run did not log anything."}
+            ? translator.translateText("Nothing has been logged yet.")
+            : translator.translateText("This run did not log anything.")}
         </p>
       ),
     },
@@ -126,9 +130,7 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || "Workflow Run"}
-      description={
-        props.description || "Here is what happened when this workflow ran."
-      }
+      description={props.description}
       isLoading={false}
       modalWidth={ModalWidth.Large}
       /*
@@ -177,7 +179,7 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
                       : "text-gray-600"
                   }`}
                 >
-                  {props.statusMessage}
+                  {translator.translateText(props.statusMessage || undefined)}
                 </p>
               </div>
             ) : (

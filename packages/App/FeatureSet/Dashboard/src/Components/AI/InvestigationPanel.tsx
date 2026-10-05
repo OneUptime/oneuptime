@@ -58,6 +58,9 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ParsedInvestigationReport,
   parseInvestigationReport,
@@ -171,8 +174,13 @@ function useReportToHost<T>(
   }, [callbackRef, subjectKey, value]);
 }
 
-// The rating row's question, and the name of its two-answer group.
-export const VERDICT_QUESTION: string = "Was this analysis correct?";
+/*
+ * The rating row's question, and the name of its two-answer group. An
+ * English key, translated where it is drawn.
+ */
+export const VERDICT_QUESTION: string = translationKey(
+  "Was this analysis correct?",
+);
 
 /*
  * The AI Investigation card, shared by the incident and alert view pages:
@@ -189,6 +197,7 @@ export const VERDICT_QUESTION: string = "Was this analysis correct?";
 const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const subjectType: InvestigationSubjectType = props.subjectType;
   const subjectIdString: string = props.subjectId.toString();
   const subjectKey: string = `${subjectType}:${subjectIdString}`;
@@ -1183,19 +1192,25 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   return (
     <Card
-      title="AI Investigation"
       /*
-       * The status pill stays beside the title on a phone too, and ends at
-       * the edge the card's hairlines and the composer end at.
+       * The status pill is the header's right element: at the edge the
+       * card's hairlines and the composer end at, on the title's line - on a
+       * phone too, while the two fit (the default header).
        */
-      headerLayout="inline"
+      title="AI Investigation"
       bodyClassName="mt-6"
       description={
-        hasRun && runStatus === AIRunStatus.Completed
-          ? `OneUptime AI's root-cause report for this ${subjectType}.`
-          : hasRun && isActive
-            ? `OneUptime AI's live root-cause investigation for this ${subjectType}.`
-            : `OneUptime AI's root-cause investigation for this ${subjectType}.`
+        subjectType === "incident"
+          ? hasRun && runStatus === AIRunStatus.Completed
+            ? "OneUptime AI's root-cause report for this incident."
+            : hasRun && isActive
+              ? "OneUptime AI's live root-cause investigation for this incident."
+              : "OneUptime AI's root-cause investigation for this incident."
+          : hasRun && runStatus === AIRunStatus.Completed
+            ? "OneUptime AI's root-cause report for this alert."
+            : hasRun && isActive
+              ? "OneUptime AI's live root-cause investigation for this alert."
+              : "OneUptime AI's root-cause investigation for this alert."
       }
       rightElement={
         <InvestigationStatusBadge
@@ -1215,7 +1230,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         id={AI_INVESTIGATION_PANEL_ID}
         tabIndex={-1}
         role="region"
-        aria-label="AI Investigation"
+        aria-label={translator.translateText("AI Investigation")}
         aria-busy={isCheckingStatus}
         className="scroll-mt-32 space-y-6 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
       >
@@ -1269,8 +1284,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 }
                 title="Preparing the final report"
               >
-                The investigation is complete. OneUptime AI is organizing the
-                findings and evidence.
+                {translator.translateText(
+                  "The investigation is complete. OneUptime AI is organizing the findings and evidence.",
+                )}
               </InvestigationNotice>
             ) : (
               <InvestigationNotice
@@ -1282,10 +1298,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 }
                 title="No investigation report was published."
               >
-                The run finished without a final analysis.
                 {hasActivity
-                  ? " Its steps are under Investigation activity below."
-                  : ""}
+                  ? translator.translateText(
+                      "The run finished without a final analysis. Its steps are under Investigation activity below.",
+                    )
+                  : translator.translateText(
+                      "The run finished without a final analysis.",
+                    )}
               </InvestigationNotice>
             )}
 
@@ -1332,27 +1351,31 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
            * needs no frame or progress bar of its own.
            */
           <section
-            aria-label={
-              isFailed ? "Investigation activity" : "Live investigation"
-            }
+            aria-label={translator.translateText(
+              isFailed ? "Investigation activity" : "Live investigation",
+            )}
             className="space-y-4"
           >
             <div>
               <h3 className="text-sm font-semibold text-gray-900">
-                {isFailed
-                  ? "What the investigation got through"
-                  : "OneUptime AI is investigating"}
+                {translator.translateText(
+                  isFailed
+                    ? "What the investigation got through"
+                    : "OneUptime AI is investigating",
+                )}
               </h3>
               <p className="mt-1 text-sm leading-6 text-gray-500">
-                {isFailed
-                  ? "The steps this run completed before it stopped."
-                  : isQueued
-                    ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
-                    : clusterAccess.some((status: ClusterAccessNoticeRow) => {
-                          return status.isInvestigationReady;
-                        })
-                      ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
-                      : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
+                {translator.translateText(
+                  isFailed
+                    ? "The steps this run completed before it stopped."
+                    : isQueued
+                      ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
+                      : clusterAccess.some((status: ClusterAccessNoticeRow) => {
+                            return status.isInvestigationReady;
+                          })
+                        ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
+                        : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed.",
+                )}
               </p>
             </div>
             <ClusterAccessNotice
@@ -1369,9 +1392,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               />
             ) : (
               <p className="text-sm text-gray-500">
-                {isActive
-                  ? "Starting investigation…"
-                  : "No investigation steps were recorded."}
+                {translator.translateText(
+                  isActive
+                    ? "Starting investigation…"
+                    : "No investigation steps were recorded.",
+                )}
               </p>
             )}
             {/*
@@ -1414,10 +1439,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                   <div className="min-w-[12rem] flex-1">
                     <h3 className="text-sm font-semibold text-gray-900">
-                      Act on this investigation
+                      {translator.translateText("Act on this investigation")}
                     </h3>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Create a fix pull request with this report as context.
+                      {translator.translateText(
+                        "Create a fix pull request with this report as context.",
+                      )}
                     </p>
                   </div>
                   {fixTaskRunId ? (
@@ -1459,17 +1486,22 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                       indicator={noticeDoneIcon}
                       title="Fix task created"
                     >
-                      AI will open a pull request from this analysis.{" "}
-                      <Link
-                        className="font-medium text-indigo-600 hover:text-indigo-800"
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                          { modelId: fixTaskRunId },
-                        )}
-                      >
-                        View task progress
-                      </Link>
-                      .
+                      <TranslatedSentence
+                        template="AI will open a pull request from this analysis. {{taskLink}}."
+                        slots={{
+                          taskLink: (
+                            <Link
+                              className="font-medium text-indigo-600 hover:text-indigo-800"
+                              to={RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                                { modelId: fixTaskRunId },
+                              )}
+                            >
+                              {translator.translateText("View task progress")}
+                            </Link>
+                          ),
+                        }}
+                      />
                     </InvestigationNotice>
                   </div>
                 ) : fixTaskError ? (
@@ -1480,14 +1512,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                       indicator={noticeFailedIcon}
                       title="Could not create the fix task"
                     >
-                      {fixTaskError}{" "}
+                      {translator.translateText(fixTaskError)}{" "}
                       <Link
                         className="font-medium text-indigo-600 hover:text-indigo-800"
                         to={RouteUtil.populateRouteParams(
                           RouteMap[PageMap.AI_AGENT_TASKS] as Route,
                         )}
                       >
-                        View AI tasks
+                        {translator.translateText("View AI tasks")}
                       </Link>
                       .
                     </InvestigationNotice>
@@ -1515,11 +1547,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                   <div className="min-w-[12rem] flex-1">
                     <h3 className="text-sm font-semibold text-gray-900">
-                      {VERDICT_QUESTION}
+                      {translator.translateText(VERDICT_QUESTION)}
                     </h3>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Your verdict helps measure OneUptime AI&apos;s public
-                      accuracy.
+                      {translator.translateText(
+                        "Your verdict helps measure OneUptime AI's public accuracy.",
+                      )}
                     </p>
                   </div>
 
@@ -1539,8 +1572,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             className="h-3.5 w-3.5"
                           />
                           <span>
-                            You {isConfirmed ? "confirmed" : "rejected"} this
-                            analysis
+                            {translator.translateText(
+                              isConfirmed
+                                ? "You confirmed this analysis"
+                                : "You rejected this analysis",
+                            )}
                           </span>
                         </div>
                         <button
@@ -1550,13 +1586,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             setIsChangingVerdict(true);
                           }}
                         >
-                          Change
+                          {translator.translateText("Change")}
                         </button>
                       </div>
                     ) : (
                       <div
                         role="group"
-                        aria-label={VERDICT_QUESTION}
+                        aria-label={translator.translateText(VERDICT_QUESTION)}
                         className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 shadow-sm"
                       >
                         <button
@@ -1570,7 +1606,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                           }}
                         >
                           <Icon icon={IconProp.Check} className="h-4 w-4" />
-                          Confirmed
+                          {translator.translateText("Confirmed")}
                         </button>
                         <span
                           aria-hidden="true"
@@ -1587,7 +1623,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                           }}
                         >
                           <Icon icon={IconProp.Close} className="h-4 w-4" />
-                          Rejected
+                          {translator.translateText("Rejected")}
                         </button>
                       </div>
                     )}
@@ -1602,7 +1638,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                       indicator={noticeFailedIcon}
                       title="Could not save your verdict"
                     >
-                      {verdictError}
+                      {translator.translateText(verdictError)}
                     </InvestigationNotice>
                   </div>
                 ) : (

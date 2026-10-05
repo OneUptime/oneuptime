@@ -17,6 +17,7 @@ import BaseModelTable, {
   BaseTableProps,
   BulkActionProps,
   ModalType,
+  translateCreateAction,
 } from "./BaseModelTable";
 import {
   BulkActionButtonSchema,
@@ -34,7 +35,31 @@ import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  translatableTerm,
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
+
+/*
+ * The create dialog's title. A table's own verb ("Add", "Invite") gets its
+ * own phrase, so a locale can word each one; an unlisted verb goes through
+ * the verb-and-noun template.
+ */
+const CREATE_NEW_TEMPLATES: Record<string, string> = {
+  Add: translationKey("Add New {{itemName}}"),
+  Create: translationKey("Create New {{itemName}}"),
+  Declare: translationKey("Declare New {{itemName}}"),
+  Invite: translationKey("Invite New {{itemName}}"),
+  Link: translationKey("Link New {{itemName}}"),
+};
+
+const CREATE_NEW_TEMPLATE: string = translationKey(
+  "{{action}} New {{itemName}}",
+);
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
@@ -57,6 +82,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 ): ReactElement => {
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
@@ -267,6 +293,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
             onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
             onSuccess?: ((item: TBaseModel) => void) | undefined;
             onClose?: (() => void) | undefined;
+            existingItems?: Array<TBaseModel> | undefined;
           }): ReactElement => {
             const {
               modalType,
@@ -274,18 +301,21 @@ const ModelTable: <TBaseModel extends BaseModel>(
               onBeforeCreate,
               onSuccess,
               onClose,
+              existingItems,
             } = data;
 
             return (
               <ModelFormModal<TBaseModel>
                 modelAPI={props.modelAPI}
-                title={
-                  modalType === ModalType.Create
-                    ? `${props.createVerb || "Create"} New ${
-                        props.singularName || model.singularName
-                      }`
-                    : `Edit ${props.singularName || model.singularName}`
-                }
+                title={translateNamedAction(translator, {
+                  template:
+                    modalType === ModalType.Create
+                      ? CREATE_NEW_TEMPLATES[props.createVerb || "Create"] ||
+                        CREATE_NEW_TEMPLATE
+                      : "Edit {{itemName}}",
+                  itemName: props.singularName || model.singularName || "",
+                  values: { action: translatableTerm(props.createVerb || "") },
+                })}
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={
@@ -305,9 +335,11 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 onClose={onClose}
                 submitButtonText={
                   modalType === ModalType.Create
-                    ? `${props.createVerb || "Create"} ${
-                        props.singularName || model.singularName
-                      }`
+                    ? translateCreateAction(translator, {
+                        verb: props.createVerb,
+                        itemName:
+                          props.singularName || model.singularName || "",
+                      })
                     : `Save Changes`
                 }
                 onSuccess={onSuccess}
@@ -345,6 +377,9 @@ const ModelTable: <TBaseModel extends BaseModel>(
                     modalType === ModalType.Create
                       ? FormType.Create
                       : FormType.Update,
+                  // A colour picked for a new row is one no row uses yet.
+                  existingItems:
+                    modalType === ModalType.Create ? existingItems : undefined,
                 }}
                 modelIdToEdit={modelIdToEdit}
               />

@@ -9,6 +9,16 @@ import {
   buildSetupChecklist,
 } from "./ChecklistModel";
 import CalendarFeedAPI from "../../OnCallPolicy/CalendarFeed/CalendarFeedAPI";
+import ProjectNotificationChannelsStore, {
+  getProjectNotificationChannelsSelect,
+} from "../../NotificationMethods/ProjectNotificationChannels";
+import {
+  EnabledProjectChannels,
+  getDisabledProjectChannels,
+  ProjectNotificationChannel,
+  ProjectNotificationChannelColumn,
+  readEnabledProjectChannels,
+} from "../../NotificationMethods/ProjectNotificationChannelsCopy";
 import { FeedStatus } from "../../OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import { PERSONAL_FEED_CURRENT_PATH } from "../../OnCallPolicy/CalendarFeed/CalendarFeedUtil";
 import {
@@ -202,6 +212,14 @@ type LoadProjectSettingsFunction = (
  * this read is worth making at all: in a project that has never turned SMS on,
  * a responder whose only verified method is SMS is unreachable, and both the
  * headline and the deliverability row have to say so.
+ *
+ * Which column is which channel is the shared definition
+ * (NotificationMethods/ProjectNotificationChannelsCopy) that the method lists,
+ * their off panels and the project's Notification Channels card read, so
+ * this page and those cannot disagree about what is off. Its channel names
+ * are the readiness method types. The fallback flag rides along in the same
+ * read, and what was read is handed to the lists' store, so the Notification
+ * Methods page this checklist links to opens on the same answer.
  */
 const loadProjectSettings: LoadProjectSettingsFunction = async (
   projectId: ObjectID,
@@ -212,35 +230,33 @@ const loadProjectSettings: LoadProjectSettingsFunction = async (
       id: projectId,
       select: {
         disableOnCallNotificationFallback: true,
-        enableSmsNotifications: true,
-        enableCallNotifications: true,
-        enableWhatsAppNotifications: true,
-        enableTelegramNotifications: true,
+        ...getProjectNotificationChannelsSelect(),
       },
     });
 
-    const disabled: Array<string> = [];
+    /*
+     * A missing row reads as every switch at its default (off), as it did
+     * before the read was shared; only a row that came back is remembered
+     * for the lists.
+     */
+    const enabled: EnabledProjectChannels = readEnabledProjectChannels(
+      (project || {}) as Partial<
+        Record<ProjectNotificationChannelColumn, unknown>
+      >,
+    );
 
-    if (!project?.enableSmsNotifications) {
-      disabled.push("SMS");
-    }
-
-    if (!project?.enableCallNotifications) {
-      disabled.push("Call");
-    }
-
-    if (!project?.enableWhatsAppNotifications) {
-      disabled.push("WhatsApp");
-    }
-
-    if (!project?.enableTelegramNotifications) {
-      disabled.push("Telegram");
+    if (project) {
+      ProjectNotificationChannelsStore.record(projectId, enabled);
     }
 
     return {
       isKnown: true,
       isFallbackEnabled: !project?.disableOnCallNotificationFallback,
-      disabledMethodTypes: disabled,
+      disabledMethodTypes: getDisabledProjectChannels(enabled).map(
+        (channel: ProjectNotificationChannel): string => {
+          return channel;
+        },
+      ),
     };
   } catch {
     return {

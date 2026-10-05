@@ -28,6 +28,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Users > View > On-Call > Readiness — the section's overview, and the page the
@@ -43,9 +45,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  */
 
 const STATUS_LABELS: Record<ReadinessStatusValue, string> = {
-  Ready: "Ready",
-  PartiallyReady: "Needs setup",
-  NotReachable: "Unreachable",
+  Ready: translationKey("Ready"),
+  PartiallyReady: translationKey("Needs setup"),
+  NotReachable: translationKey("Unreachable"),
 };
 
 const STATUS_ICONS: Record<ReadinessStatusValue, IconProp> = {
@@ -64,63 +66,54 @@ interface NextStep {
   pageMapKey: PageMap;
   title: string;
   icon: IconProp;
-  getDescription: (context: UserOnCallContextValue) => string;
+  getDescription: (
+    context: UserOnCallContextValue,
+    translator: Translator,
+  ) => string;
 }
 
 /*
- * The five pages this one hands off to, in the order somebody fixing a broken
+ * The two pages this one hands off to, in the order somebody fixing a broken
  * responder needs them: a method first, because a rule with nothing to point at
- * is not a rule, and then the four rule types.
+ * is not a rule, and then the rules - one page with a tab per kind (incidents,
+ * incident episodes, alerts, alert episodes), as in the member's own User
+ * Settings.
  */
 const NEXT_STEPS: Array<NextStep> = [
   {
     pageMapKey: PageMap.USER_VIEW_NOTIFICATION_METHODS,
     title: "Notification methods",
     icon: IconProp.Bell,
-    getDescription: (context: UserOnCallContextValue): string => {
+    getDescription: (
+      context: UserOnCallContextValue,
+      translator: Translator,
+    ): string => {
       return context.isSelf
-        ? "The devices and addresses your rules can send to."
-        : `Add or remove the devices and addresses ${context.firstName}'s rules can send to.`;
+        ? translator.translateTemplate(
+            "The devices and addresses your rules can send to.",
+          )
+        : translator.translateTemplate(
+            "Add or remove the devices and addresses {{name}}'s rules can send to.",
+            { name: context.firstName },
+          );
     },
   },
   {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES,
-    title: "Incident on-call rules",
-    icon: IconProp.Alert,
-    getDescription: (context: UserOnCallContextValue): string => {
+    pageMapKey: PageMap.USER_VIEW_ON_CALL_RULES,
+    title: "On-call rules",
+    icon: IconProp.BellRinging,
+    getDescription: (
+      context: UserOnCallContextValue,
+      translator: Translator,
+    ): string => {
       return context.isSelf
-        ? "How you are notified when an incident is assigned to you."
-        : `How ${context.firstName} is notified when an incident is assigned to them.`;
-    },
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES,
-    title: "Incident episode on-call rules",
-    icon: IconProp.Squares,
-    getDescription: (context: UserOnCallContextValue): string => {
-      return context.isSelf
-        ? "How you are notified when an incident episode is assigned to you."
-        : `How ${context.firstName} is notified when an incident episode is assigned to them.`;
-    },
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_ALERT_ON_CALL_RULES,
-    title: "Alert on-call rules",
-    icon: IconProp.ExclaimationCircle,
-    getDescription: (context: UserOnCallContextValue): string => {
-      return context.isSelf
-        ? "How you are notified when an alert is assigned to you."
-        : `How ${context.firstName} is notified when an alert is assigned to them.`;
-    },
-  },
-  {
-    pageMapKey: PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES,
-    title: "Alert episode on-call rules",
-    icon: IconProp.Squares,
-    getDescription: (context: UserOnCallContextValue): string => {
-      return context.isSelf
-        ? "How you are notified when an alert episode is assigned to you."
-        : `How ${context.firstName} is notified when an alert episode is assigned to them.`;
+        ? translator.translateTemplate(
+            "How you are notified, for each severity, when an incident, an alert or one of their episodes is assigned to you.",
+          )
+        : translator.translateTemplate(
+            "How {{name}} is notified, for each severity, when an incident, an alert or one of their episodes is assigned to them.",
+            { name: context.firstName },
+          );
     },
   },
 ];
@@ -128,6 +121,7 @@ const NEXT_STEPS: Array<NextStep> = [
 const UserViewOnCallReadiness: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const context: UserOnCallContextValue = useUserOnCallContext();
 
   const {
@@ -186,16 +180,20 @@ const UserViewOnCallReadiness: FunctionComponent<
           <StatTile
             icon={STATUS_ICONS[readiness.status]}
             label="Status"
-            value={STATUS_LABELS[readiness.status]}
+            value={translator.translateTerm(STATUS_LABELS[readiness.status])}
             tone={STATUS_TONES[readiness.status]}
           />
           <StatTile
             icon={IconProp.Bell}
             label={
               readiness.methods.length > verifiedMethods.length
-                ? `Verified methods (${
-                    readiness.methods.length - verifiedMethods.length
-                  } unverified)`
+                ? translator.translatePlural(
+                    {
+                      one: "Verified methods ({{count}} unverified)",
+                      other: "Verified methods ({{count}} unverified)",
+                    },
+                    readiness.methods.length - verifiedMethods.length,
+                  )
                 : "Verified methods"
             }
             value={`${verifiedMethods.length}`}
@@ -206,13 +204,19 @@ const UserViewOnCallReadiness: FunctionComponent<
             label="Rule coverage"
             value={
               readiness.coverage.length > 0
-                ? `${coveredCount} of ${readiness.coverage.length}`
-                : "Not reported"
+                ? translator.translateTemplate("{{covered}} of {{total}}", {
+                    covered: coveredCount,
+                    total: readiness.coverage.length,
+                  })
+                : translator.translateTerm("Not reported")
             }
           />
           <StatTile
             icon={IconProp.Alert}
-            label={gaps.length === 1 ? "Gap" : "Gaps"}
+            label={translator.translatePlural(
+              { one: "Gap", other: "Gaps" },
+              gaps.length,
+            )}
             value={`${gaps.length}`}
             tone={gaps.length > 0 ? "warning" : "neutral"}
           />
@@ -233,10 +237,9 @@ const UserViewOnCallReadiness: FunctionComponent<
               className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
             />
             <p className="text-sm leading-relaxed text-amber-800">
-              On-call notification fallback is switched off for this project, so
-              a missing notification rule is not a late page — it is no page at
-              all. Every gap below is dropped rather than delivered on another
-              channel.
+              {translator.translateText(
+                "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap below is dropped rather than delivered on another channel.",
+              )}
             </p>
           </div>
         )}
@@ -280,7 +283,9 @@ const UserViewOnCallReadiness: FunctionComponent<
             className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
             <Icon icon={IconProp.Email} className="h-3.5 w-3.5" />
-            Email {firstName} the setup link
+            {translator.translateTemplate("Email {{name}} the setup link", {
+              name: firstName,
+            })}
           </a>
         )}
       </div>
@@ -302,10 +307,13 @@ const UserViewOnCallReadiness: FunctionComponent<
        */
       return (
         <p className="text-sm text-gray-500">
-          Coverage could not be loaded, so the grid is not shown.{" "}
           {canEdit
-            ? "The rule pages are still editable."
-            : "The rule pages still list the rules."}
+            ? translator.translateText(
+                "Coverage could not be loaded, so the grid is not shown. The rule pages are still editable.",
+              )
+            : translator.translateText(
+                "Coverage could not be loaded, so the grid is not shown. The rule pages still list the rules.",
+              )}
         </p>
       );
     }
@@ -322,9 +330,14 @@ const UserViewOnCallReadiness: FunctionComponent<
         description={
           isSelf
             ? "Whether a page routed to you would actually arrive right now."
-            : `Whether a page routed to ${
-                displayName || "this user"
-              } would actually arrive right now.`
+            : displayName
+              ? translator.translateTemplate(
+                  "Whether a page routed to {{name}} would actually arrive right now.",
+                  { name: displayName },
+                )
+              : translator.translateTemplate(
+                  "Whether a page routed to this user would actually arrive right now.",
+                )
         }
         buttons={[
           {
@@ -356,7 +369,10 @@ const UserViewOnCallReadiness: FunctionComponent<
         description={
           isSelf
             ? "A rule for every severity and rule type you can be paged for. A hole here is a page that does not arrive the way it was meant to."
-            : `A rule for every severity and rule type ${firstName} can be paged for. A hole here is a page that does not arrive the way it was meant to.`
+            : translator.translateTemplate(
+                "A rule for every severity and rule type {{name}} can be paged for. A hole here is a page that does not arrive the way it was meant to.",
+                { name: firstName },
+              )
         }
       >
         {getCoverageBody()}
@@ -372,7 +388,10 @@ const UserViewOnCallReadiness: FunctionComponent<
         description={
           isSelf
             ? "Your on-call configuration, one page per thing you can change."
-            : `${firstName}'s on-call configuration, one page per thing you can change.`
+            : translator.translateTemplate(
+                "{{name}}'s on-call configuration, one page per thing you can change.",
+                { name: firstName },
+              )
         }
       >
         <ul className="divide-y divide-gray-200">
@@ -392,10 +411,10 @@ const UserViewOnCallReadiness: FunctionComponent<
                   />
                   <span>
                     <span className="block text-sm font-medium text-gray-900">
-                      {step.title}
+                      {translator.translateText(step.title)}
                     </span>
                     <span className="block text-sm text-gray-500">
-                      {step.getDescription(context)}
+                      {step.getDescription(context, translator)}
                     </span>
                   </span>
                 </Link>

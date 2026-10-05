@@ -124,6 +124,8 @@ import Route from "../../../Types/API/Route";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../../Types/ObjectID";
+import Navigation from "../../../UI/Utils/Navigation";
+import type { SpyInstance } from "jest-mock";
 
 const POLICY_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
@@ -1758,6 +1760,58 @@ describe("ResponderReadinessCard", () => {
         screen.getByRole("button", { name: "Add a notification method" }),
       ).toBeInTheDocument();
     });
+
+    /*
+     * The rules are one On-Call Rules page with a tab per kind, so "fix it"
+     * means that page on the tab of the first hole: Jane's first gap is an
+     * alert rule, so the alerts tab, never the incidents one.
+     */
+    test("the signed-in user's button opens On-Call Rules on the tab of their first gap", async () => {
+      localStorage.setItem("user_id", SIGNED_IN_USER_ID);
+
+      const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {});
+
+      respondWith(
+        summaryJson([{ ...PARTIAL_USER, userId: SIGNED_IN_USER_ID }]),
+      );
+
+      await renderPolicyCard();
+
+      await screen.findByText("Jane Partial");
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Add the missing rules" }),
+      );
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+
+      const destination: string = String(navigateSpy.mock.calls[0]![0]);
+
+      expect(
+        destination.endsWith("/user-settings/on-call-rules?type=alerts"),
+      ).toBe(true);
+
+      navigateSpy.mockRestore();
+    });
+
+    test("another person's mail draft links On-Call Rules on the tab of their first gap", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderPolicyCard();
+
+      await screen.findByText("Jane Partial");
+
+      const href: string = decodeURIComponent(
+        cardRowFor("Jane Partial")
+          .querySelector('a[href^="mailto:"]')
+          ?.getAttribute("href") || "",
+      );
+
+      expect(href).toContain("/user-settings/on-call-rules?type=alerts");
+      expect(href).not.toContain("alert-on-call-rules");
+    });
   });
 });
 
@@ -2791,9 +2845,15 @@ describe("On-call readiness page", () => {
 
       filterToUnreachable();
 
+      // The page's sentence heads the table's filtered empty state.
       expect(
-        screen.getByText("No responders match these filters."),
+        screen.getByText("No responders match these filters"),
       ).toBeInTheDocument();
+      expect(
+        screen
+          .getByText("No responders match these filters")
+          .closest("[data-empty-state-kind]"),
+      ).toHaveAttribute("data-empty-state-kind", "filtered");
     });
 
     /*

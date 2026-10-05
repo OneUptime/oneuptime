@@ -35,23 +35,17 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Public or Private Note Templates for Incidents",
           description:
-            "Here is a list of all the public and private note templates for incidents.",
+            "Ready-made text for incident updates. Pick one when writing a public or private note on an incident or an episode, or when acknowledging or resolving one, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Note Details",
-            id: "note-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then the note.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -59,7 +53,6 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -72,7 +65,6 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -93,7 +85,6 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
              */
             templateVariables: noteTemplateVariables.groups,
             templateVariablesDescription: noteTemplateVariables.description,
-            stepId: "note-details",
             required: true,
             validation: {
               minLength: 2,

@@ -1,4 +1,13 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  DATABASE_MONITOR_MORE_FIELDS,
+  getMonitorOptionsMoreFieldsItems,
+} from "../MonitorMoreFields";
 import MonitorStepDatabaseMonitor, {
   DEFAULT_DATABASE_METRIC_GROUPS,
 } from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
@@ -22,10 +31,12 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   monitorStepDatabaseMonitor: MonitorStepDatabaseMonitor;
@@ -33,29 +44,37 @@ export interface ComponentProps {
 }
 
 const groupTitles: Record<DatabaseMetricGroup, string> = {
-  [DatabaseMetricGroup.Connections]: "Connections",
-  [DatabaseMetricGroup.Activity]: "Activity",
-  [DatabaseMetricGroup.Throughput]: "Throughput",
-  [DatabaseMetricGroup.Locks]: "Locks and Blocking",
-  [DatabaseMetricGroup.Storage]: "Storage",
-  [DatabaseMetricGroup.Replication]: "Replication",
-  [DatabaseMetricGroup.Maintenance]: "Maintenance",
+  [DatabaseMetricGroup.Connections]: translationKey("Connections"),
+  [DatabaseMetricGroup.Activity]: translationKey("Activity"),
+  [DatabaseMetricGroup.Throughput]: translationKey("Throughput"),
+  [DatabaseMetricGroup.Locks]: translationKey("Locks and Blocking"),
+  [DatabaseMetricGroup.Storage]: translationKey("Storage"),
+  [DatabaseMetricGroup.Replication]: translationKey("Replication"),
+  [DatabaseMetricGroup.Maintenance]: translationKey("Maintenance"),
 };
 
 const groupDescriptions: Record<DatabaseMetricGroup, string> = {
-  [DatabaseMetricGroup.Connections]:
+  [DatabaseMetricGroup.Connections]: translationKey(
     "Session counts, the configured connection ceiling and server uptime.",
-  [DatabaseMetricGroup.Activity]:
+  ),
+  [DatabaseMetricGroup.Activity]: translationKey(
     "Open transactions, and the age of the longest running query and transaction.",
-  [DatabaseMetricGroup.Throughput]:
+  ),
+  [DatabaseMetricGroup.Throughput]: translationKey(
     "Commits, rollbacks, rows read and written, and the cache hit ratio.",
-  [DatabaseMetricGroup.Locks]: "Held locks, blocked sessions and deadlocks.",
-  [DatabaseMetricGroup.Storage]:
+  ),
+  [DatabaseMetricGroup.Locks]: translationKey(
+    "Held locks, blocked sessions and deadlocks.",
+  ),
+  [DatabaseMetricGroup.Storage]: translationKey(
     "Database size on disk and work that spilled to temporary files.",
-  [DatabaseMetricGroup.Replication]:
+  ),
+  [DatabaseMetricGroup.Replication]: translationKey(
     "Replication lag and the number of connected replicas.",
-  [DatabaseMetricGroup.Maintenance]:
+  ),
+  [DatabaseMetricGroup.Maintenance]: translationKey(
     "Dead rows awaiting vacuum and transaction ID wraparound headroom.",
+  ),
 };
 
 /*
@@ -79,30 +98,32 @@ const getPrivilegeHint: GetPrivilegeHintFunction = (
       group === DatabaseMetricGroup.Throughput ||
       group === DatabaseMetricGroup.Storage
     ) {
-      return "Readable by any login that can connect.";
+      return translationKey("Readable by any login that can connect.");
     }
 
-    return "Needs the pg_monitor role.";
+    return translationKey("Needs the pg_monitor role.");
   }
 
   if (databaseType === SqlDatabaseType.MySQL) {
     if (group === DatabaseMetricGroup.Activity) {
-      return "Needs the PROCESS privilege.";
+      return translationKey("Needs the PROCESS privilege.");
     }
 
     // SHOW REPLICA STATUS raises 1227 without it, on a primary as well.
     if (group === DatabaseMetricGroup.Replication) {
-      return "Needs the REPLICATION CLIENT privilege.";
+      return translationKey("Needs the REPLICATION CLIENT privilege.");
     }
 
     if (
       group === DatabaseMetricGroup.Connections ||
       group === DatabaseMetricGroup.Locks
     ) {
-      return "Needs SELECT on performance_schema, and performance_schema switched on.";
+      return translationKey(
+        "Needs SELECT on performance_schema, and performance_schema switched on.",
+      );
     }
 
-    return "Readable by any login that can connect.";
+    return translationKey("Readable by any login that can connect.");
   }
 
   /*
@@ -111,11 +132,15 @@ const getPrivilegeHint: GetPrivilegeHintFunction = (
    * outright without the grant (issue #3913).
    */
   if (group === DatabaseMetricGroup.Storage) {
-    return "Database size is readable by any login that can connect; log space and tempdb free space need VIEW SERVER STATE (on Azure SQL Database, the Azure grants above).";
+    return translationKey(
+      "Database size is readable by any login that can connect; log space and tempdb free space need VIEW SERVER STATE (on Azure SQL Database, the Azure grants above).",
+    );
   }
 
   if (group === DatabaseMetricGroup.Replication) {
-    return "Needs VIEW SERVER STATE. Not collected on Azure SQL Database, which has no sys.dm_hadr_database_replica_states.";
+    return translationKey(
+      "Needs VIEW SERVER STATE. Not collected on Azure SQL Database, which has no sys.dm_hadr_database_replica_states.",
+    );
   }
 
   /*
@@ -123,7 +148,9 @@ const getPrivilegeHint: GetPrivilegeHintFunction = (
    * depends on the service tier (VIEW DATABASE STATE is not enough on
    * Basic, S0, S1 or an elastic pool), and the block above says so.
    */
-  return "Needs VIEW SERVER STATE (on Azure SQL Database, the Azure grants above).";
+  return translationKey(
+    "Needs VIEW SERVER STATE (on Azure SQL Database, the Azure grants above).",
+  );
 };
 
 type GetGrantBlockFunction = (databaseType: SqlDatabaseType) => string;
@@ -191,8 +218,7 @@ const isGroupCollectable: IsGroupCollectableFunction = (
 const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedOptions, setShowAdvancedOptions] =
-    useState<boolean>(false);
+  const translator: Translator = useTranslator();
 
   const databaseTypeOptions: Array<DropdownOption> =
     SqlDatabaseTypeUtil.getSupportedDatabaseTypes().map(
@@ -381,13 +407,16 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
             title="Password"
             description={
               <p>
-                Database password. We recommend referencing a monitor secret
-                with{" "}
-                <code className="bg-gray-100 px-1 rounded">
-                  {"{{monitorSecrets.name}}"}
-                </code>{" "}
-                instead of typing the password here, so it stays encrypted at
-                rest.{" "}
+                <TranslatedSentence
+                  template="Database password. We recommend referencing a monitor secret with {{secret}} instead of typing the password here, so it stays encrypted at rest."
+                  slots={{
+                    secret: (
+                      <code className="bg-gray-100 px-1 rounded">
+                        {"{{monitorSecrets.name}}"}
+                      </code>
+                    ),
+                  }}
+                />{" "}
                 <Link
                   className="underline"
                   openInNewTab={true}
@@ -395,7 +424,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
                     DOCS_URL.toString() + "/monitor/monitor-secrets",
                   )}
                 >
-                  Learn more about secrets.
+                  {translator.translateText("Learn more about secrets.")}
                 </Link>
               </p>
             }
@@ -447,40 +476,38 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <h4 className="text-sm font-medium text-blue-900 mb-2">
-          Privileges this monitor needs on {databaseType}
+          {translator.translateTemplate(
+            "Privileges this monitor needs on {{engine}}",
+            { engine: databaseType },
+          )}
         </h4>
         <p className="text-xs text-blue-700 mb-3">
-          OneUptime only reads. Anything it cannot read is reported as a missing
-          metric, never as an outage.
+          {translator.translateText(
+            "OneUptime only reads. Anything it cannot read is reported as a missing metric, never as an outage.",
+          )}
         </p>
         <pre className="text-xs text-blue-900 bg-white border border-blue-200 rounded p-3 overflow-x-auto whitespace-pre">
           {getGrantBlock(databaseType)}
         </pre>
         {databaseType === SqlDatabaseType.PostgreSQL && (
           <p className="text-xs text-blue-700 mt-3">
-            Without pg_monitor, PostgreSQL still answers every statistics query
-            — it just shows the monitoring session and nothing else, so
-            connection and lock counts would read as one and zero forever. The
-            probe checks for the role up front and reports those groups as
-            missing instead of recording numbers it knows are wrong.
+            {translator.translateText(
+              "Without pg_monitor, PostgreSQL still answers every statistics query — it just shows the monitoring session and nothing else, so connection and lock counts would read as one and zero forever. The probe checks for the role up front and reports those groups as missing instead of recording numbers it knows are wrong.",
+            )}
           </p>
         )}
         {databaseType === SqlDatabaseType.MySQL && (
           <p className="text-xs text-blue-700 mt-3">
-            performance_schema must also be switched on (performance_schema = ON
-            in my.cnf). Stock MySQL exposes no deadlock counter, so that metric
-            is never collected here.
+            {translator.translateText(
+              "performance_schema must also be switched on (performance_schema = ON in my.cnf). Stock MySQL exposes no deadlock counter, so that metric is never collected here.",
+            )}
           </p>
         )}
         {databaseType === SqlDatabaseType.MicrosoftSqlServer && (
           <p className="text-xs text-blue-700 mt-3">
-            Read access to your tables is not enough: without this grant SQL
-            Server refuses the server state views outright (&quot;The user does
-            not have permission to perform this action&quot;), and only database
-            size is collected. The probe detects Azure SQL Database and shows
-            its grant when one is missing. Azure SQL Database has no
-            sys.dm_hadr_database_replica_states, so Replication is not collected
-            there.
+            {translator.translateText(
+              'Read access to your tables is not enough: without this grant SQL Server refuses the server state views outright ("The user does not have permission to perform this action"), and only database size is collected. The probe detects Azure SQL Database and shows its grant when one is missing. Azure SQL Database has no sys.dm_hadr_database_replica_states, so Replication is not collected there.',
+            )}
           </p>
         )}
         {/*
@@ -497,7 +524,9 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
                 "/monitor/database-health-monitor#create-a-monitoring-user",
             )}
           >
-            Read the setup guide for the full statements for each platform.
+            {translator.translateText(
+              "Read the setup guide for the full statements for each platform.",
+            )}
           </Link>
         </p>
       </div>
@@ -515,9 +544,13 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
               group,
             );
 
+            // Two sentences of their own: what the group is, then its grant.
             const description: string = isCollectable
-              ? `${groupDescriptions[group]} ${getPrivilegeHint(databaseType, group)}`
-              : `${groupDescriptions[group]} ${databaseType} does not report these, so this group collects nothing here.`;
+              ? `${translator.translateText(groupDescriptions[group])} ${translator.translateText(getPrivilegeHint(databaseType, group))}`
+              : `${translator.translateText(groupDescriptions[group])} ${translator.translateTemplate(
+                  "{{engine}} does not report these, so this group collects nothing here.",
+                  { engine: databaseType },
+                )}`;
 
             return (
               <Toggle
@@ -534,22 +567,21 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {!showAdvancedOptions && (
-        <div className="mt-1 -ml-3">
-          <Button
-            title="Advanced: Timeouts"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            onClick={() => {
-              setShowAdvancedOptions(true);
-            }}
-          />
-        </div>
-      )}
-
-      {showAdvancedOptions && (
-        <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
-
+      {/*
+       * More fields, folded like every form's: options most monitors
+       * leave at their defaults. Its header names them and shows the
+       * ones changed.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
+        items={getMonitorOptionsMoreFieldsItems(
+          props.monitorStepDatabaseMonitor,
+          DATABASE_MONITOR_MORE_FIELDS,
+        )}
+        dataTestId="database-monitor-more-fields"
+      >
+        <div className="space-y-4">
           <div>
             <FieldLabelElement
               title="Connection Timeout (ms)"
@@ -588,7 +620,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      )}
+      </FoldedSection>
     </div>
   );
 };

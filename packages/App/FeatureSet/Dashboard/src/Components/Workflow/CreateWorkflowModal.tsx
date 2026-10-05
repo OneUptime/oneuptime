@@ -6,10 +6,20 @@
  * declares variables, so "Start from scratch" and the zero-config templates
  * stay two clicks away.
  *
- * The first step is the template picker (WorkflowTemplatePicker): a handful
- * of recommended templates, the rest under categories or a search, and a
- * preview of the highlighted one. Its state lives here, so stepping back
- * from Name finds the picker as it was left.
+ * The first step is the template picker (WorkflowTemplatePicker): Start from
+ * scratch first, then a few recommended templates with a search and a
+ * category select, and the details of a template once it is picked. Its
+ * state lives here, so stepping back from Name finds the picker as it was
+ * left.
+ *
+ * There is no progress rail beside the steps. A wizard of two steps, three
+ * at most, says enough with its footer - Back, and Next or Create Workflow -
+ * and the rail took a column of the dialog's width away from the picker,
+ * which the maintainer found showed too much at once already.
+ *
+ * Create Workflow, on the last step, is the wizard's one primary button.
+ * The ways on before it - Use this template, Next - are plain, like Cancel
+ * (Forms/Utils/SteppedFormFooter): they commit nothing.
  *
  * The order of writes at the end matters. The workflow is created through the
  * ordinary Workflow create path because that is what denormalizes the trigger
@@ -29,12 +39,14 @@ import React, {
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  SteppedModalFooter,
+  getSteppedModalFooter,
+} from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
-import Steps from "Common/UI/Components/Forms/Steps/Steps";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -42,6 +54,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
@@ -60,6 +73,7 @@ import {
   INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
   WorkflowTemplatePickerState,
   getActiveWorkflowTemplate,
+  withWorkflowTemplateSelected,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 import WorkflowTemplatePicker from "./WorkflowTemplatePicker";
 
@@ -75,37 +89,10 @@ enum WizardStep {
   Configure = "configure",
 }
 
-export type GetWorkflowWizardFormStepsFunction = (
-  showConfigureStep: boolean,
-) => Array<FormStep<JSONObject>>;
-
-export const getWorkflowWizardFormSteps: GetWorkflowWizardFormStepsFunction = (
-  showConfigureStep: boolean,
-): Array<FormStep<JSONObject>> => {
-  const steps: Array<FormStep<JSONObject>> = [
-    {
-      id: WizardStep.PickTemplate,
-      title: "Start from",
-    },
-    {
-      id: WizardStep.NameIt,
-      title: "Name",
-    },
-  ];
-
-  if (showConfigureStep) {
-    steps.push({
-      id: WizardStep.Configure,
-      title: "Configure",
-    });
-  }
-
-  return steps;
-};
-
 const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString, translateTemplate } = useTranslateValue();
   const [step, setStep] = useState<WizardStep>(WizardStep.PickTemplate);
   /*
    * null is a real choice here — it means "start from scratch" — so a separate
@@ -133,8 +120,11 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     return selectedTemplateId ? getWorkflowTemplate(selectedTemplateId) : null;
   }, [selectedTemplateId]);
 
-  // The template the picker has highlighted, which "Use this template" takes.
-  const highlightedTemplate: WorkflowTemplate | null = useMemo(() => {
+  /*
+   * The template the picker has picked, which "Use this template" takes.
+   * None until one is clicked, moved to with the arrow keys or searched for.
+   */
+  const pickedTemplate: WorkflowTemplate | null = useMemo(() => {
     return getActiveWorkflowTemplate(pickerState);
   }, [pickerState]);
 
@@ -142,8 +132,6 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     selectedTemplate?.variables || [];
 
   const showConfigureStep: boolean = variables.length > 0;
-  const wizardFormSteps: Array<FormStep<JSONObject>> =
-    getWorkflowWizardFormSteps(showConfigureStep);
 
   type ChooseStartFunction = (template: WorkflowTemplate | null) => void;
 
@@ -161,6 +149,20 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
 
     setHasChosen(true);
     setSelectedTemplateId(templateId);
+
+    /*
+     * The template taken stays picked in the picker, so Back shows it open,
+     * however it was reached: a search's best match is only picked while
+     * that search stands. Starting from scratch lets go of any template
+     * picked, so Back shows Start from scratch as the one chosen.
+     */
+    setPickerState(
+      (current: WorkflowTemplatePickerState): WorkflowTemplatePickerState => {
+        return template
+          ? withWorkflowTemplateSelected(current, template.id)
+          : { ...current, selectedTemplateId: null };
+      },
+    );
 
     if (!isSameStart) {
       setName(template ? template.workflowName : "");
@@ -321,7 +323,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
         onStartFromScratch={() => {
           chooseStart(null);
         }}
-        isStartFromScratchChosen={hasChosen && selectedTemplateId === null}
+        /*
+         * Marked as the start chosen after Back, until a template is picked
+         * instead: then that template is the one the step would go on with.
+         */
+        isStartFromScratchChosen={
+          hasChosen && selectedTemplateId === null && !pickedTemplate
+        }
       />
     );
   };
@@ -366,7 +374,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
             autoFocus={true}
             placeholder="What should this workflow be called?"
             dataTestId="workflow-name-input"
-            error={nameError}
+            // Kept in English, as its key, and looked up as it is shown.
+            error={translateString(nameError)}
             onChange={(value: string) => {
               setName(value);
 
@@ -401,102 +410,114 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   const renderConfigureStep: RenderConfigureStepFunction = (): ReactElement => {
     return (
       <div className="space-y-5">
+        {/*
+         * One sentence, translated whole. The template's name goes in as it
+         * is: template names are catalog content, written in English.
+         */}
         <p className="text-sm text-gray-600">
-          {selectedTemplate?.name} needs a few details before it can run. These
-          are saved as workflow variables, so you can change them later without
-          editing the workflow itself.
+          {translateTemplate(
+            "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+            { templateName: selectedTemplate?.name || "" },
+          )}
         </p>
 
-        {variables.map((variable: WorkflowTemplateVariable): ReactElement => {
-          const inputId: string = `workflow-variable-${variable.name}`;
+        {variables.map(
+          (variable: WorkflowTemplateVariable, index: number): ReactElement => {
+            const inputId: string = `workflow-variable-${variable.name}`;
 
-          return (
-            <div key={variable.name}>
-              <FieldLabelElement
-                title={variable.title}
-                htmlFor={inputId}
-                required={variable.required}
-                description={variable.description}
-              />
-              <Input
-                id={inputId}
-                type={variable.isSecret ? InputType.PASSWORD : InputType.TEXT}
-                autoComplete={variable.isSecret ? "new-password" : undefined}
-                disableSpellCheck={variable.isSecret}
-                value={variableValues[variable.name] || ""}
-                placeholder={variable.placeholder}
-                error={variableErrors[variable.name]}
-                dataTestId={inputId}
-                onChange={(value: string) => {
-                  setVariableValues(
-                    (
-                      current: WorkflowTemplateVariableValues,
-                    ): WorkflowTemplateVariableValues => {
-                      return { ...current, [variable.name]: value };
-                    },
-                  );
-
-                  if (variableErrors[variable.name]) {
-                    setVariableErrors(
+            return (
+              <div key={variable.name}>
+                <FieldLabelElement
+                  title={variable.title}
+                  htmlFor={inputId}
+                  required={variable.required}
+                  description={variable.description}
+                />
+                <Input
+                  id={inputId}
+                  // The step is for these fields: the first one is ready to type into.
+                  autoFocus={index === 0}
+                  type={variable.isSecret ? InputType.PASSWORD : InputType.TEXT}
+                  autoComplete={variable.isSecret ? "new-password" : undefined}
+                  disableSpellCheck={variable.isSecret}
+                  value={variableValues[variable.name] || ""}
+                  placeholder={variable.placeholder}
+                  error={variableErrors[variable.name]}
+                  dataTestId={inputId}
+                  onChange={(value: string) => {
+                    setVariableValues(
                       (
-                        current: WorkflowTemplateVariableErrors,
-                      ): WorkflowTemplateVariableErrors => {
-                        const next: WorkflowTemplateVariableErrors = {
-                          ...current,
-                        };
-                        delete next[variable.name];
-                        return next;
+                        current: WorkflowTemplateVariableValues,
+                      ): WorkflowTemplateVariableValues => {
+                        return { ...current, [variable.name]: value };
                       },
                     );
-                  }
-                }}
-              />
-            </div>
-          );
-        })}
+
+                    if (variableErrors[variable.name]) {
+                      setVariableErrors(
+                        (
+                          current: WorkflowTemplateVariableErrors,
+                        ): WorkflowTemplateVariableErrors => {
+                          const next: WorkflowTemplateVariableErrors = {
+                            ...current,
+                          };
+                          delete next[variable.name];
+                          return next;
+                        },
+                      );
+                    }
+                  }}
+                />
+              </div>
+            );
+          },
+        )}
       </div>
     );
   };
 
-  type SubmitTextFunction = () => string;
+  type PickStepNextFunction = (() => void) | undefined;
 
-  const submitButtonText: SubmitTextFunction = (): string => {
-    if (step === WizardStep.NameIt && showConfigureStep) {
-      return "Next";
-    }
+  /*
+   * The first step's way on in the footer, Use this template, is there only
+   * while a template is picked. Before that the step's way on is Start from
+   * scratch, at the top of it, and a disabled "Use this template" beside
+   * Cancel read as if a template had to be chosen.
+   */
+  const pickStepNext: PickStepNextFunction = pickedTemplate
+    ? (): void => {
+        chooseStart(pickedTemplate);
+      }
+    : undefined;
 
-    return "Create Workflow";
-  };
+  /*
+   * Create Workflow on the last step only - Name, or Configure when the
+   * template asks for settings - and a plain way on before it: Use this
+   * template on the picker, Next on Name. onSubmit checks Name and walks on
+   * to Configure, or checks the settings, before it creates anything.
+   */
+  const footer: SteppedModalFooter = getSteppedModalFooter({
+    hasSteps: true,
+    isOnLastStep:
+      step === WizardStep.Configure ||
+      (step === WizardStep.NameIt && !showConfigureStep),
+    onAction: onSubmit,
+    onNext: step === WizardStep.PickTemplate ? pickStepNext : onSubmit,
+    nextButtonText:
+      step === WizardStep.PickTemplate ? "Use this template" : undefined,
+  });
 
   return (
     <Modal
       title="Create a workflow"
-      description="Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on."
-      modalWidth={ModalWidth.Large}
+      description="Workflows are created switched off, so nothing runs until you turn them on."
+      modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       error={error || undefined}
       isLoading={isCreating}
-      submitButtonText={
-        step === WizardStep.PickTemplate
-          ? "Use this template"
-          : submitButtonText()
-      }
-      /*
-       * The picker's one way on, and the dialog's one primary button. Start
-       * from scratch is the other way, drawn plain beside the search.
-       */
-      onSubmit={
-        step === WizardStep.PickTemplate
-          ? () => {
-              if (highlightedTemplate) {
-                chooseStart(highlightedTemplate);
-              }
-            }
-          : onSubmit
-      }
-      disableSubmitButton={
-        step === WizardStep.PickTemplate && !highlightedTemplate
-      }
+      submitButtonText="Create Workflow"
+      onSubmit={footer.onSubmit}
+      secondaryButton={footer.secondaryButton}
       leftFooterElement={
         step === WizardStep.PickTemplate ? (
           <></>
@@ -512,35 +533,14 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
         )
       }
     >
-      <div className="flex">
-        {/*
-         * The rail keeps its width. The picker's rows are as wide as their
-         * longest description before they truncate, and with the rail free to
-         * shrink, "Start from" was squeezed onto two lines.
-         */}
-        <div
-          style={{ flex: "0 0 auto" }}
-          className="mr-10 max-lg:hidden lg:block"
-          data-testid="workflow-wizard-steps"
-        >
-          <Steps<JSONObject>
-            currentFormStepId={step}
-            steps={wizardFormSteps}
-            formValues={{}}
-            onClick={(formStep: FormStep<JSONObject>) => {
-              setStep(formStep.id as WizardStep);
-            }}
-          />
-        </div>
-        <div
-          className="w-auto min-w-0 pt-6"
-          style={{ flex: "1 1 auto" }}
-          data-testid="workflow-wizard-step-content"
-        >
-          {step === WizardStep.PickTemplate ? renderPickStep() : <></>}
-          {step === WizardStep.NameIt ? renderNameStep() : <></>}
-          {step === WizardStep.Configure ? renderConfigureStep() : <></>}
-        </div>
+      <div
+        className="min-w-0"
+        data-step={step}
+        data-testid="workflow-wizard-step-content"
+      >
+        {step === WizardStep.PickTemplate ? renderPickStep() : <></>}
+        {step === WizardStep.NameIt ? renderNameStep() : <></>}
+        {step === WizardStep.Configure ? renderConfigureStep() : <></>}
       </div>
     </Modal>
   );

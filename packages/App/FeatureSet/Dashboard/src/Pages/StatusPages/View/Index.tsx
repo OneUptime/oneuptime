@@ -6,7 +6,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
@@ -26,18 +26,7 @@ const StatusPageView: FunctionComponent<
         name="Status Page > Status Page Details"
         cardProps={{
           title: "Status Page Details",
-          description: "Here are more details for this status page.",
         }}
-        formSteps={[
-          {
-            title: "Status Page Info",
-            id: "status-page-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         isEditable={true}
         formFields={[
           {
@@ -45,7 +34,6 @@ const StatusPageView: FunctionComponent<
               name: true,
             },
             title: "Name",
-            stepId: "status-page-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Status Page Name",
@@ -57,29 +45,12 @@ const StatusPageView: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "status-page-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<StatusPage>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

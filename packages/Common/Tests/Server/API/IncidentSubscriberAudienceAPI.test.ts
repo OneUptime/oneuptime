@@ -769,17 +769,45 @@ describe("counts for an incident being declared", () => {
     ]);
   });
 
-  test("no monitors: nobody, and no page is reported as not listing them", async () => {
+  /*
+   * Status pages show an incident through its monitors, so on no monitor
+   * every picked page lists none of them. They are named: the dashboard
+   * warns about them under the status page picker, and no longer says "no
+   * monitors are attached" under 'Notify Status Page Subscribers'.
+   */
+  test("no monitors: nobody, and every picked page is reported as not listing them", async () => {
     useSitePages();
 
     const audience: IncidentSubscriberAudienceResult = await audienceFor(
-      draft([], [sitePageId(1)]),
+      draft([], [sitePageId(2), sitePageId(1)]),
     );
 
     expect(audience.hasMonitors).toBe(false);
+    expect(audience.isScoped).toBe(true);
     expect(audience.statusPages).toEqual([]);
-    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([]);
+    expect(audience.hiddenStatusPageCount).toBe(0);
+    expect(audience.excludedStatusPages).toEqual([]);
+    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([
+      { statusPageId: sitePageId(1), name: "Site 01" },
+      { statusPageId: sitePageId(2), name: "Site 02" },
+    ]);
     expect(IncidentSubscriberAudience.reachesAnyone(audience)).toBe(false);
+    expect(findByMonitors).not.toHaveBeenCalled();
+    expect(countActiveSubscribersByChannel).not.toHaveBeenCalled();
+  });
+
+  test("no monitors and no pages: nobody, and nothing to report", async () => {
+    useSitePages();
+
+    const audience: IncidentSubscriberAudienceResult = await audienceFor(
+      draft([], []),
+    );
+
+    expect(audience.hasMonitors).toBe(false);
+    expect(audience.isScoped).toBe(false);
+    expect(audience.statusPages).toEqual([]);
+    expect(audience.excludedStatusPages).toEqual([]);
+    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([]);
     expect(findByMonitors).not.toHaveBeenCalled();
   });
 
@@ -913,6 +941,20 @@ describe("status pages the caller cannot read", () => {
     expect(audience.hiddenStatusPageCount).toBe(0);
     expect(audience.excludedStatusPages).toEqual([]);
     expect(audience.selectedStatusPagesNotListingMonitors).toEqual([]);
+  });
+
+  test("picked pages on no monitor that the caller cannot read are not named", async () => {
+    useSitePages();
+    readablePageIds = [sitePageId(1)];
+
+    const audience: IncidentSubscriberAudienceResult = await audienceFor(
+      draft([], [sitePageId(1), sitePageId(2)]),
+    );
+
+    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([
+      { statusPageId: sitePageId(1), name: "Site 01" },
+    ]);
+    expect(audience.hiddenStatusPageCount).toBe(0);
   });
 
   test("a caller with no status page read access sees only a count", async () => {
@@ -1262,6 +1304,28 @@ describe("an incident that exists", () => {
 
     expect(audience.hasMonitors).toBe(false);
     expect(audience.statusPages).toEqual([]);
+    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([]);
+  });
+
+  test("an incident on no monitor that is limited to pages: those pages, as not listing its monitors", async () => {
+    useSitePages();
+    useIncident({
+      monitorIds: [],
+      scopedStatusPageIds: [sitePageId(3), LONELY_PAGE_ID],
+    });
+
+    const audience: IncidentSubscriberAudienceResult = await audienceFor({
+      incidentId: INCIDENT_ID,
+    });
+
+    expect(audience.hasMonitors).toBe(false);
+    expect(audience.isScoped).toBe(true);
+    expect(audience.statusPages).toEqual([]);
+    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([
+      { statusPageId: LONELY_PAGE_ID, name: "Lonely" },
+      { statusPageId: sitePageId(3), name: "Site 03" },
+    ]);
+    expect(IncidentSubscriberAudience.reachesAnyone(audience)).toBe(false);
   });
 });
 
@@ -1404,5 +1468,8 @@ describe("the request", () => {
     });
 
     expect(audience.hasMonitors).toBe(false);
+    expect(audience.selectedStatusPagesNotListingMonitors).toEqual([
+      { statusPageId: sitePageId(1), name: "Site 01" },
+    ]);
   });
 });

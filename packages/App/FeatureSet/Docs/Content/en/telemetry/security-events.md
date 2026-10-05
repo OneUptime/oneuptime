@@ -128,7 +128,7 @@ After worker downtime, or when you re-enable a disabled rule, the next window co
 
 ## Monitors
 
-The **Security Events** monitor type counts matching events (by severity, class, message, attributes, source service) over a sliding window and drives the standard criteria machinery — change monitor status, open alerts or incidents, route to on-call. **Security Events → Monitors** lists every monitor of this type.
+The **Security Events** monitor type counts matching events (by severity, class, message, attributes, source service) over a sliding window and drives the standard criteria machinery — change monitor status, open alerts or incidents, route to on-call. **Security Events → Monitors** lists every monitor of this type. On the monitor's form the message, time window, severity and event class filters are on screen; the telemetry service and attribute filters wait under **More fields**, whose folded header shows the ones a monitor uses.
 
 Detection rules and monitors overlap more than they first appear, but they are still not two flavors of one feature.
 

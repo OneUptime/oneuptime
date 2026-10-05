@@ -8,6 +8,7 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Docker agent install guide. The agent is one container
@@ -150,6 +151,23 @@ export function getDockerComposeFile(data: {
       options:
         max-size: "10m"
         max-file: "3"`;
+}
+
+/*
+ * Moving an installed agent to the newest image. The guide's "Upgrade or
+ * uninstall the agent" topic and the upgrade dialog beside an outdated agent
+ * version (Components/AgentVersion) both show this command, so the two never
+ * drift. With the Docker CLI it pulls the image and removes the running
+ * container; the `docker run` command then starts it again on the new image.
+ */
+export function getDockerAgentUpgradeCommand(
+  method: DockerInstallMethod,
+): string {
+  if (method === "docker-cli") {
+    return `docker pull ${DOCKER_AGENT_IMAGE}
+docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`;
+  }
+  return "docker compose pull\ndocker compose up -d";
 }
 
 function getAiAgentRunCommand(data: GuideData): string {
@@ -386,11 +404,7 @@ ${
       markdown: cli
         ? `**Upgrade** — pull the latest image and remove the running agent:
 
-${codeBlock(
-  "bash",
-  `docker pull ${DOCKER_AGENT_IMAGE}
-docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`,
-)}
+${codeBlock("bash", getDockerAgentUpgradeCommand("docker-cli"))}
 
 Then run the \`docker run\` command from step 2 again. Added the OneUptime AI agent? Upgrade it the same way: \`docker pull ${DOCKER_AI_AGENT_IMAGE}\`, remove it and start it again.
 
@@ -401,7 +415,7 @@ ${codeBlock("bash", `docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`)}
 If you added the OneUptime AI agent, remove it too: \`docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}\`.`
         : `**Upgrade** — in the folder that holds docker-compose.yml, pull the latest images and recreate the containers:
 
-${codeBlock("bash", "docker compose pull\ndocker compose up -d")}
+${codeBlock("bash", getDockerAgentUpgradeCommand("docker-compose"))}
 
 **Uninstall** — stop and remove everything the file started:
 
@@ -535,7 +549,10 @@ ${codeBlock(
 )}`,
     },
     {
-      title: `Host shows up as "${DOCKER_DEFAULT_HOST_NAME}" or a container ID`,
+      title: translateTemplate(
+        'Host shows up as "{{hostName}}" or a container ID',
+        { hostName: DOCKER_DEFAULT_HOST_NAME },
+      ),
       markdown: `The host's name comes from \`DOCKER_HOST_NAME\`. An agent started without it reports \`${DOCKER_DEFAULT_HOST_NAME}\`, so every host set up that way looks like the same host. Set \`DOCKER_HOST_NAME\` to a name of its own on each host and ${
         cli
           ? `recreate the agent — \`docker rm -f ${name}\`, then run the command from step 2 with the new name.`

@@ -7,26 +7,28 @@ import path from "path";
  *
  * The MAC Address field exists so the topology map can put a ping-only
  * device on the switch port its switch's forwarding table says it is on.
- * That only works if the column can be SET, and there are four places an
+ * That only works if the column can be SET, and there are three places an
  * operator sets anything on a device: the create form on the device list,
- * the Device Settings card, the Overview card and the topology map's "Add
- * to Monitoring" dialog. A surface that forgot the field is a surface from
+ * the Device Settings card (the one place an existing device's details are
+ * edited - the Overview card links there) and the topology map's "Add to
+ * Monitoring" dialog. A surface that forgot the field is a surface from
  * which the device can never be put on its port - and, worse, an operator
  * who typed the MAC on create and cannot see it on Settings has no way to
  * tell whether it was saved.
  *
- * All four render the field through ONE helper, getMacAddressFormField, so
+ * All three render the field through ONE helper, getMacAddressFormField, so
  * the title, the validator and the description cannot drift apart - the
  * same reason every SNMP form routes through getSnmpConfigFormFields, and
  * pinned the same way SnmpConfigFormFields.test.ts pins that: against the
  * sources, comments stripped, whitespace squashed. The App suite has no
  * React renderer and these pages are JSX with no extractable logic.
  *
- * Two things about the CALL matter as well as its presence. All four
+ * Two things about the CALL matter as well as its presence. All three
  * surfaces are stepped forms, and BasicForm places a field on a step purely
  * from its `stepId` - an unstamped field in a stepped form renders on no
- * step at all. The Overview card's edit form walks Device Details, Address
- * and Site & Labels, with the MAC on the Address step. And the field sits
+ * step at all. The Device Settings card's edit form walks Device Details
+ * (with the site, and the labels folded under Advanced), Address,
+ * Monitoring and SNMP, with the MAC on the Address step. And the field sits
  * beside the hostname on every surface, because it is the device's other
  * address: an operator who learns where it lives on one form finds it in
  * the same place on the next.
@@ -74,12 +76,6 @@ const SURFACES: Array<MacAddressSurface> = [
   {
     name: "the Device Settings card",
     parts: ["Pages", "NetworkDevice", "View", "Settings.tsx"],
-    // Its edit form, like the Overview card's, has an Address step.
-    stepId: "address",
-  },
-  {
-    name: "the device Overview card",
-    parts: ["Pages", "NetworkDevice", "View", "Index.tsx"],
     // Its edit form puts the hostname and the MAC on its Address step.
     stepId: "address",
   },
@@ -221,7 +217,7 @@ describe.each(SURFACES)(
 );
 
 /*
- * The list above is the whole inventory. A fifth NetworkDevice form that
+ * The list above is the whole inventory. A fourth NetworkDevice form that
  * appears without the field is caught by the create-entry-point tests only
  * if it is a create form; this guards the parse instead - every surface the
  * list names must still exist, so a moved page fails here rather than
@@ -234,7 +230,21 @@ describe("MAC Address field surfaces — inventory", () => {
     );
   });
 
-  test("covers all four forms that set a device's columns", () => {
-    expect(SURFACES).toHaveLength(4);
+  test("covers all three forms that set a device's columns", () => {
+    expect(SURFACES).toHaveLength(3);
+  });
+
+  // The Overview shows the MAC Address and links to Settings to change it.
+  test("the device Overview card edits nothing", () => {
+    const overview: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "View",
+      "Index.tsx",
+    );
+
+    expect(overview).not.toContain("getMacAddressFormField");
+    expect(overview).not.toContain("formFields=");
+    expect(overview).toContain('title: "MAC Address"');
   });
 });

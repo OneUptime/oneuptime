@@ -123,6 +123,7 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
+import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
@@ -139,6 +140,13 @@ import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import StatusPagesListingMonitors, {
+  StatusPagesListingMonitorsResult,
+} from "../../Types/StatusPage/StatusPagesListingMonitors";
+import StatusPagesListingMonitorsBuilder, {
+  StatusPagesListingMonitorsRequest,
+} from "../Utils/StatusPage/StatusPagesListingMonitorsBuilder";
+import FileOwnership from "../Utils/File/FileOwnership";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -184,6 +192,64 @@ const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
   }
 
   return statusPageId;
+};
+
+/*
+ * The images a status page shows: its logo, cover image and favicon, each a
+ * File the page points at by id.
+ */
+const STATUS_PAGE_IMAGES: Array<{
+  relation: "logoFile" | "coverImageFile" | "faviconFile";
+  id: "logoFileId" | "coverImageFileId" | "faviconFileId";
+}> = [
+  { relation: "logoFile", id: "logoFileId" },
+  { relation: "coverImageFile", id: "coverImageFileId" },
+  { relation: "faviconFile", id: "faviconFileId" },
+];
+
+// How a status page image is read for serving: its bytes, and its project.
+const SERVED_IMAGE_SELECT: {
+  file: true;
+  _id: true;
+  fileType: true;
+  name: true;
+  projectId: true;
+} = {
+  file: true,
+  _id: true,
+  fileType: true,
+  name: true,
+  projectId: true,
+};
+
+type KeepOwnStatusPageImagesFunction = (statusPage: StatusPage) => void;
+
+/*
+ * A status page's images as its public pages may show them: only files of
+ * the page's own project (FileOwnership). An image of another project, or
+ * of none, is left out as if the page had none - its id too, so the page
+ * does not ask for it. The page read must carry its projectId and each
+ * image's; neither is sent.
+ */
+export const keepOwnStatusPageImages: KeepOwnStatusPageImagesFunction = (
+  statusPage: StatusPage,
+): void => {
+  for (const image of STATUS_PAGE_IMAGES) {
+    const file: File | undefined = FileOwnership.keepProjectFile(
+      statusPage[image.relation],
+      statusPage.projectId,
+    );
+
+    if (file) {
+      delete file.projectId;
+      continue;
+    }
+
+    delete statusPage[image.relation];
+    delete statusPage[image.id];
+  }
+
+  delete statusPage.projectId;
 };
 
 export default class StatusPageAPI extends BaseAPI<
@@ -351,19 +417,21 @@ export default class StatusPageAPI extends BaseAPI<
                 isArchived: false,
               },
               select: {
-                faviconFile: {
-                  file: true,
-                  _id: true,
-                  fileType: true,
-                  name: true,
-                },
+                projectId: true,
+                faviconFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage || !statusPage.faviconFile) {
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const favicon: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.faviconFile,
+            statusPage?.projectId,
+          );
+
+          if (!statusPage || !favicon) {
             logger.debug(
               "Favicon file not found. Returning default favicon.",
               getLogAttributesFromRequest(req as any),
@@ -377,11 +445,11 @@ export default class StatusPageAPI extends BaseAPI<
           }
 
           logger.debug(
-            `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
+            `Favicon file found. Sending file: ${favicon.name}`,
             getLogAttributesFromRequest(req as any),
           );
 
-          return Response.sendFileResponse(req, res, statusPage.faviconFile);
+          return Response.sendFileResponse(req, res, favicon);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -413,19 +481,21 @@ export default class StatusPageAPI extends BaseAPI<
                 isArchived: false,
               },
               select: {
-                logoFile: {
-                  file: true,
-                  _id: true,
-                  fileType: true,
-                  name: true,
-                },
+                projectId: true,
+                logoFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage || !statusPage.logoFile) {
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const logo: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.logoFile,
+            statusPage?.projectId,
+          );
+
+          if (!logo) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -433,7 +503,7 @@ export default class StatusPageAPI extends BaseAPI<
             );
           }
 
-          return Response.sendFileResponse(req, res, statusPage.logoFile);
+          return Response.sendFileResponse(req, res, logo);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -465,19 +535,21 @@ export default class StatusPageAPI extends BaseAPI<
                 isArchived: false,
               },
               select: {
-                coverImageFile: {
-                  file: true,
-                  _id: true,
-                  fileType: true,
-                  name: true,
-                },
+                projectId: true,
+                coverImageFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage || !statusPage.coverImageFile) {
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const coverImage: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.coverImageFile,
+            statusPage?.projectId,
+          );
+
+          if (!coverImage) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -485,7 +557,7 @@ export default class StatusPageAPI extends BaseAPI<
             );
           }
 
-          return Response.sendFileResponse(req, res, statusPage.coverImageFile);
+          return Response.sendFileResponse(req, res, coverImage);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -953,6 +1025,26 @@ export default class StatusPageAPI extends BaseAPI<
     );
 
     /*
+     * The status pages that list some monitors, for the status page pickers
+     * of scheduled maintenance events and announcements to suggest (see
+     * StatusPagesListingMonitors). It only reads, and only names pages and
+     * looks up monitors the caller can read. A POST because the monitors
+     * travel in the body.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/listing-monitors`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getStatusPagesListingMonitors(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Sends the status page's report to an address the caller chooses, so it
      * is gated like editing the status page: an authenticated member of the
      * project that owns it who could update this particular page.
@@ -1095,6 +1187,8 @@ export default class StatusPageAPI extends BaseAPI<
 
           const select: Select<StatusPage> = {
             _id: true,
+            // Only to hold the page's images to its project; never sent.
+            projectId: true,
             slug: true,
             coverImageFileId: true,
             logoFileId: true,
@@ -1111,27 +1205,14 @@ export default class StatusPageAPI extends BaseAPI<
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             enableMasterPassword: true,
+            // Only to tell whether one is set; never sent (see below).
+            masterPassword: true,
             allowSubscribersToChooseResources: true,
             allowSubscribersToChooseEventTypes: true,
             requireSsoForLogin: true,
-            coverImageFile: {
-              file: true,
-              _id: true,
-              fileType: true,
-              name: true,
-            },
-            faviconFile: {
-              file: true,
-              _id: true,
-              fileType: true,
-              name: true,
-            },
-            logoFile: {
-              file: true,
-              _id: true,
-              fileType: true,
-              name: true,
-            },
+            coverImageFile: SERVED_IMAGE_SELECT,
+            faviconFile: SERVED_IMAGE_SELECT,
+            logoFile: SERVED_IMAGE_SELECT,
             showIncidentsOnStatusPage: true,
             showAnnouncementsOnStatusPage: true,
             showScheduledMaintenanceEventsOnStatusPage: true,
@@ -1177,6 +1258,28 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Not part of what the page renders.
           delete item.isArchived;
+
+          // Only images of the page's own project, and no project id.
+          keepOwnStatusPageImages(item);
+
+          /*
+           * Whether the page asks visitors for the master password, by the
+           * rule the server enforces (Types/StatusPage/StatusPageAccess): not
+           * public, the switch on and a password set. The switch alone said
+           * yes on a private page with no password set, and the app sent
+           * every visitor - private users included - to a password prompt
+           * that could never let anyone in, while the server treated the
+           * page as a sign-in page.
+           */
+          item.enableMasterPassword = isStatusPageMasterPasswordRequired({
+            isPublicStatusPage: Boolean(item.isPublicStatusPage),
+            enableMasterPassword: item.enableMasterPassword,
+            hasMasterPassword: Boolean(item.masterPassword),
+          });
+
+          // The password's hash and salt never leave the server.
+          delete item.masterPassword;
+          delete item.masterPasswordSalt;
 
           if (!allowStatusPageCustomizations) {
             /*
@@ -2341,6 +2444,50 @@ export default class StatusPageAPI extends BaseAPI<
           next(err);
         }
       },
+    );
+  }
+
+  /*
+   * POST /status-page/listing-monitors: which of the caller's readable status
+   * pages list some monitors (StatusPagesListingMonitorsBuilder).
+   */
+  private async getStatusPagesListingMonitors(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    /*
+     * The answer is for one project, and the reads it is built from are
+     * bounded by the caller's permissions in that project, so the request is
+     * never treated as multi-tenant.
+     */
+    const props: DatabaseCommonInteractionProps = {
+      ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+      isMultiTenantRequest: false,
+    };
+
+    /*
+     * A member of the project, or one of its API keys. What either may see
+     * is then bounded by the monitor and status page reads below.
+     */
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+    const request: StatusPagesListingMonitorsRequest =
+      StatusPagesListingMonitorsBuilder.parseRequest({
+        body: req.body,
+        projectId: projectId,
+        props: props,
+      });
+
+    const result: StatusPagesListingMonitorsResult =
+      await StatusPagesListingMonitorsBuilder.build(request);
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      StatusPagesListingMonitors.toJSON(result),
     );
   }
 
@@ -6109,6 +6256,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6120,18 +6269,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = announcement.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: announcement.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6232,6 +6378,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6243,17 +6391,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
+    // One of its files, uploaded in the page's own project.
     const attachment: File | undefined =
-      scheduledMaintenancePublicNote.attachments?.find((file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
+      await FileOwnership.findProjectAttachment({
+        files: scheduledMaintenancePublicNote.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
       });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6340,6 +6486,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6351,18 +6499,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = incident.postmortemAttachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: incident.postmortemAttachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6475,6 +6620,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6486,18 +6633,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = incidentPublicNote.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: incidentPublicNote.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6658,6 +6802,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6669,18 +6815,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = episodePublicNote.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: episodePublicNote.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 

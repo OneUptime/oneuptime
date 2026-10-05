@@ -25,7 +25,7 @@ Die Webhook-Payload von Grafana folgt der Alertmanager-Form – `status`, ein `a
 
 1. Gehen Sie zu **Monitore → Monitor erstellen** und wählen Sie **Eingehende Anfrage**. Öffnen Sie den Monitor und klicken Sie im linken Menü auf **Documentation**, um die URL zu kopieren.
 2. Öffnen Sie die **Criteria** des Monitors und setzen Sie **Filter Type** auf `JavaScript Expression` und **Value** auf `"{{requestBody.status}}" === "firing"`.
-3. Deklarieren Sie bei einem Treffer einen Vorfall, wählen Sie die zu alarmierenden **On-Call Policies** und aktivieren Sie **Auto Resolve Incident** unter **Advanced Options**.
+3. Deklarieren Sie bei einem Treffer einen Vorfall, wählen Sie die zu alarmierenden **On-Call Policies** und aktivieren Sie **Auto Resolve Incident** unter **More fields**.
 4. Aktivieren Sie unter **Settings** die Option **Group incidents and alerts by a payload field** und setzen Sie:
 
    | Feld                               | Wert                                |
@@ -47,7 +47,7 @@ Verwenden Sie das, wenn Sie Logik jenseits von „Alarm wird Vorfall" brauchen.
 
 ### Schritt 1 — Den OneUptime-Workflow erstellen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Grafana → Incidents`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Grafana → Incidents`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Webhook**-Auslöser hinzu und **kopieren Sie seine URL**. Benennen Sie den Block in `Grafana` um.
 3. Fügen Sie einen **Bedingungen**-Block verbunden mit dem Auslöser hinzu:
    - **Links**: `{{Grafana.Request Body.status}}`
@@ -89,7 +89,7 @@ Mit **Option 2** fügen Sie einen zweiten **Bedingungen**-Zweig hinzu (`status =
 ## Fehlerbehebung
 
 - **Es kommt nichts an** — bestätigen Sie, dass Grafana die URL erreichen kann (prüfen Sie Grafanas Serverlogs) und bei Option 2, dass der Workflow **Aktiviert** ist. OneUptime beantwortet jede eingehende Anfrage mit einem leeren `200`, bevor sie validiert wird, ein `200` in Grafanas Logs bestätigt also nicht, dass die Payload angenommen wurde.
-- **Vorfälle öffnen sich, schließen sich aber nie** — prüfen Sie das Wiederherstellungsfeld und seinen Wert im Kriterium sowie ob **Auto Resolve Incident** unter **Advanced Options** des Vorfalls aktiv ist. Der Vergleich unterscheidet Groß-/Kleinschreibung.
+- **Vorfälle öffnen sich, schließen sich aber nie** — prüfen Sie das Wiederherstellungsfeld und seinen Wert im Kriterium sowie ob **Auto Resolve Incident** unter **More fields** des Vorfalls aktiv ist. Der Vergleich unterscheidet Groß-/Kleinschreibung.
 - **Nur ein Vorfall für eine Payload voller Alarme** — Sie haben nach einem Label gruppiert, das innerhalb einer Benachrichtigung nicht variiert. Gruppieren Sie stattdessen nach `requestBody.alerts[*].fingerprint`.
 - **Der Vorfallstext zeigt rohe `{{...}}`-Platzhalter** — der Pfad hat sich nicht aufgelöst, und nicht aufgelöste Platzhalter bleiben stehen, statt geleert zu werden. Referenzieren Sie Felder, die es für Ihre Alerting-Version gibt; prüfen Sie die Trigger-Ausgabe im Tab **Protokolle**, falls Sie Option 2 verwendet haben.
 

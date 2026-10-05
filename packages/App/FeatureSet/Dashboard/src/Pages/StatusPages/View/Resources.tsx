@@ -1,7 +1,8 @@
 import AxisValuesInput from "../../../Components/StatusPage/AxisValuesInput";
 import ImportGroupsFromCsvModal from "../../../Components/StatusPage/ImportGroupsFromCsvModal";
 import StatusPageResourcePanel from "../../../Components/StatusPage/StatusPageResourcePanel";
-import { getStatusPageResourceAdvancedFields } from "../../../Components/StatusPage/StatusPageResourceFormFields";
+import { getStatusPageGroupLayoutSection } from "../../../Components/StatusPage/StatusPageGroupFormSections";
+import { getStatusPageResourceFormFields } from "../../../Components/StatusPage/StatusPageResourceFormFields";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -18,10 +19,13 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -37,8 +41,6 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageGroupHierarchyViewUtil from "Common/Utils/StatusPage/GroupHierarchyView";
@@ -60,32 +62,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
-
-const FORM_STEPS: Array<FormStep<StatusPageResource>> = [
-  {
-    title: "Monitor Details",
-    id: "monitor-details",
-  },
-  {
-    title: "Advanced",
-    id: "advanced",
-  },
-];
-
-const GROUP_FORM_STEPS: Array<FormStep<StatusPageGroup>> = [
-  {
-    title: "Group Details",
-    id: "group-details",
-  },
-  {
-    title: "Layout",
-    id: "layout",
-  },
-  {
-    title: "Advanced",
-    id: "advanced",
-  },
-];
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * One level of children is open on arrival - enough to show that the hierarchy
@@ -125,6 +103,7 @@ enum GroupFormMode {
 const StatusPageResources: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const projectId: ObjectID = new ObjectID(props.currentProject?._id || "");
 
@@ -772,9 +751,21 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   /* The group form, which is the whole surface of a status page group.  */
   /* ------------------------------------------------------------------ */
 
+  /*
+   * One page: the group's name and where it sits are what a group is made
+   * with. How its monitors are laid out (a list, unless it is a grid) and
+   * everything else it has a default for are folded - Layout opening by
+   * itself on a grid group, whose axes it holds (StatusPageGroupFormSections).
+   */
   const getGroupFormFields: () => Array<
     ModelField<StatusPageGroup>
   > = (): Array<ModelField<StatusPageGroup>> => {
+    const layoutSection: FormFieldCollapsibleSection<StatusPageGroup> =
+      getStatusPageGroupLayoutSection();
+
+    const advancedSection: FormFieldCollapsibleSection<StatusPageGroup> =
+      getAdvancedFormSection<StatusPageGroup>();
+
     return [
       {
         field: {
@@ -784,19 +775,6 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "Resource Group Name",
-        stepId: "group-details",
-      },
-      {
-        field: {
-          description: true,
-        },
-        title: "Group Description",
-        fieldType: FormFieldSchemaType.Markdown,
-        required: false,
-        stepId: "group-details",
-        description: MarkdownUtil.getMarkdownCheatsheet(
-          "Describe the status page group here",
-        ),
       },
       {
         field: {
@@ -809,16 +787,6 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         dropdownOptions: getParentGroupOptions(),
         required: false,
         placeholder: "No parent group (top level)",
-        stepId: "group-details",
-      },
-      {
-        field: {
-          isExpandedByDefault: true,
-        },
-        title: "Expand on Status Page by Default",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        stepId: "group-details",
       },
       {
         field: {
@@ -833,7 +801,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         ),
         required: false,
         defaultValue: StatusPageGroupViewMode.List,
-        stepId: "layout",
+        collapsibleSection: layoutSection,
       },
       {
         field: {
@@ -848,7 +816,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         showIf: (item: FormValues<StatusPageGroup>): boolean => {
           return item.viewMode === StatusPageGroupViewMode.Grid;
         },
-        stepId: "layout",
+        collapsibleSection: layoutSection,
       },
       {
         field: {
@@ -862,7 +830,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         showIf: (item: FormValues<StatusPageGroup>): boolean => {
           return item.viewMode === StatusPageGroupViewMode.Grid;
         },
-        stepId: "layout",
+        collapsibleSection: layoutSection,
         getCustomElement: (
           _values: FormValues<StatusPageGroup>,
           fieldProps: CustomElementProps,
@@ -892,7 +860,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         showIf: (item: FormValues<StatusPageGroup>): boolean => {
           return item.viewMode === StatusPageGroupViewMode.Grid;
         },
-        stepId: "layout",
+        collapsibleSection: layoutSection,
       },
       {
         field: {
@@ -906,7 +874,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         showIf: (item: FormValues<StatusPageGroup>): boolean => {
           return item.viewMode === StatusPageGroupViewMode.Grid;
         },
-        stepId: "layout",
+        collapsibleSection: layoutSection,
         getCustomElement: (
           _values: FormValues<StatusPageGroup>,
           fieldProps: CustomElementProps,
@@ -925,6 +893,33 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
       },
       {
         field: {
+          description: true,
+        },
+        title: "Group Description",
+        fieldType: FormFieldSchemaType.Markdown,
+        required: false,
+        description: MarkdownUtil.getMarkdownCheatsheet(
+          "Describe the status page group here",
+        ),
+        collapsibleSection: advancedSection,
+      },
+      {
+        field: {
+          isExpandedByDefault: true,
+        },
+        title: "Expand on Status Page by Default",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        /*
+         * The column's own default, written down so Edit knows it too: a
+         * group left expanded is at its default, and the folded Advanced
+         * section says "Configured" only for one published collapsed.
+         */
+        defaultValue: true,
+        collapsibleSection: advancedSection,
+      },
+      {
+        field: {
           showCurrentStatus: true,
         },
         title: "Show Current Group Status",
@@ -933,7 +928,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         defaultValue: true,
         description:
           "Current Status will be shown beside this group on your status page.",
-        stepId: "advanced",
+        collapsibleSection: advancedSection,
       },
       {
         field: {
@@ -945,13 +940,12 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         defaultValue: false,
         description:
           "Show uptime percentage beside this group on your status page. The number of days is configured in Status Page Settings.",
-        stepId: "advanced",
+        collapsibleSection: advancedSection,
       },
       {
         field: {
           uptimePercentPrecision: true,
         },
-        stepId: "advanced",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions:
           DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
@@ -961,6 +955,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         title: "Select Uptime Precision",
         defaultValue: UptimePrecision.ONE_DECIMAL,
         required: true,
+        collapsibleSection: advancedSection,
       },
     ];
   };
@@ -986,83 +981,26 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         <div>
           <p>
             {addMonitorGroup
-              ? "Add a Monitor instead."
-              : "Add a Monitor Group instead."}
+              ? translator.translateText("Add a Monitor instead.")
+              : translator.translateText("Add a Monitor Group instead.")}
           </p>
         </div>
       </Link>
     );
   };
 
+  /*
+   * Asks only for the monitor: the display name follows it until somebody
+   * types their own, and the rest is folded under Advanced
+   * (StatusPageResourceFormFields).
+   */
   const formFields: Array<ModelField<StatusPageResource>> = useMemo((): Array<
     ModelField<StatusPageResource>
   > => {
-    const resourceField: ModelField<StatusPageResource> = addMonitorGroup
-      ? {
-          field: {
-            monitorGroup: true,
-          },
-          title: "Monitor Group",
-          description:
-            "Select monitor group that will be shown on the status page.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownModal: {
-            type: MonitorGroup,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select Monitor Group",
-          stepId: "monitor-details",
-          footerElement: getFooterForMonitor(),
-        }
-      : {
-          field: {
-            monitor: true,
-          },
-          title: "Monitor",
-          description: "Select monitor that will be shown on the status page.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownModal: {
-            type: Monitor,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select Monitor",
-          stepId: "monitor-details",
-          footerElement: getFooterForMonitor(),
-        };
-
-    return [
-      resourceField,
-      {
-        field: {
-          displayName: true,
-        },
-        title: "Display Name",
-        description:
-          "This will be the name that will be shown on the status page",
-        fieldType: FormFieldSchemaType.Text,
-        required: true,
-        placeholder: "Display Name",
-        stepId: "monitor-details",
-      },
-      {
-        field: {
-          displayDescription: true,
-        },
-        title: "Description",
-        fieldType: FormFieldSchemaType.Markdown,
-        required: false,
-        placeholder: "",
-        stepId: "monitor-details",
-        description: MarkdownUtil.getMarkdownCheatsheet(
-          "Describe this resource here",
-        ),
-      },
-      ...getStatusPageResourceAdvancedFields(),
-    ];
+    return getStatusPageResourceFormFields({
+      addMonitorGroup: addMonitorGroup,
+      targetFooterElement: getFooterForMonitor(),
+    });
   }, [
     addMonitorGroup,
     props.currentProject?.isFeatureFlagMonitorGroupsEnabled,
@@ -1154,7 +1092,6 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
           }
         }}
         baseFormFields={formFields}
-        formSteps={FORM_STEPS}
         onResourceCountLoaded={onResourceCountLoaded}
         onBack={onBack}
       />
@@ -1172,7 +1109,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
             id="status-page-resource-group-search-label"
             className="sr-only"
           >
-            Search groups by name
+            {translator.translateText("Search groups by name")}
           </label>
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
@@ -1255,12 +1192,17 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
           className="mt-4 border-t border-gray-200 pt-3 text-xs text-gray-500 tabular-nums"
           data-testid="status-page-resource-stats"
         >
-          {groups.length.toLocaleString()}{" "}
-          {groups.length === 1 ? "group" : "groups"}
+          {translator.translatePlural(
+            { one: "{{count}} group", other: "{{count}} groups" },
+            groups.length,
+            { count: groups.length.toLocaleString() },
+          )}
           {countIndex.isComplete
-            ? ` · ${countIndex.totalCount.toLocaleString()} ${
-                countIndex.totalCount === 1 ? "resource" : "resources"
-              }`
+            ? ` · ${translator.translatePlural(
+                { one: "{{count}} resource", other: "{{count}} resources" },
+                countIndex.totalCount,
+                { count: countIndex.totalCount.toLocaleString() },
+              )}`
             : ""}
         </div>
       </Fragment>
@@ -1332,7 +1274,9 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         elementToBeShownInsteadOfButton={
           <button
             type="button"
-            aria-label="More status page resource actions"
+            aria-label={translator.translateText(
+              "More status page resource actions",
+            )}
             data-testid="status-page-resources-actions"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
@@ -1454,7 +1398,6 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
               modelType: StatusPageGroup,
               id: "create-StatusPageGroup-from",
               fields: getGroupFormFields(),
-              steps: GROUP_FORM_STEPS,
               formType:
                 groupFormMode === GroupFormMode.Create
                   ? FormType.Create
@@ -1467,7 +1410,13 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
 
         {groupToDelete ? (
           <ConfirmModal
-            title={`Delete ${groupToDelete.name || "Group"}`}
+            title={
+              groupToDelete.name
+                ? translator.translateTemplate("Delete {{name}}", {
+                    name: groupToDelete.name,
+                  })
+                : translator.translateTemplate("Delete Group")
+            }
             description={getDeleteDescription()}
             submitButtonText="Delete"
             submitButtonType={ButtonStyleType.DANGER}
@@ -1490,10 +1439,17 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
 
         {groupToShowIdFor ? (
           <ConfirmModal
-            title={`${groupToShowIdFor.name || "Group"} ID`}
-            description={`Status Page Group ID: ${
-              groupToShowIdFor._id?.toString() || ""
-            }`}
+            title={
+              groupToShowIdFor.name
+                ? translator.translateTemplate("{{name}} ID", {
+                    name: groupToShowIdFor.name,
+                  })
+                : translator.translateTemplate("Group ID")
+            }
+            description={translator.translateTemplate(
+              "Status Page Group ID: {{id}}",
+              { id: groupToShowIdFor._id?.toString() || "" },
+            )}
             submitButtonText="Close"
             submitButtonType={ButtonStyleType.NORMAL}
             onSubmit={() => {

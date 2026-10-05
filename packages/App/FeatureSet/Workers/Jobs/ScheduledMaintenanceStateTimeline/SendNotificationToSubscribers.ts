@@ -17,7 +17,7 @@ import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
 import SmsService from "Common/Server/Services/SmsService";
-import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
+import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -32,6 +32,7 @@ import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseMode
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -71,6 +72,7 @@ RunCron(
           scheduledMaintenanceStateId: true,
           scheduledMaintenanceState: {
             name: true,
+            color: true,
             isScheduledState: true,
           },
         },
@@ -193,13 +195,14 @@ RunCron(
           continue; // skip if not visible on status page.
         }
 
-        // get status page resources from monitors.
-
-        let statusPageResources: Array<StatusPageResource> = [];
-
-        if (event.monitors && event.monitors.length > 0) {
-          statusPageResources = await StatusPageResourceService.findByMonitors({
-            monitors: event.monitors,
+        /*
+         * The resources the event affects on each status page: its monitors,
+         * and the monitor groups that hold them.
+         */
+        const statusPageToResources: Dictionary<Array<StatusPageResource>> =
+          await AffectedStatusPageResources.findForMonitors({
+            monitors: event.monitors || [],
+            statusPages: event.statusPages || [],
             select: {
               _id: true,
               displayName: true,
@@ -210,23 +213,6 @@ RunCron(
               },
             },
           });
-        }
-
-        const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
-
-        for (const resource of statusPageResources) {
-          if (!resource.statusPageId) {
-            continue;
-          }
-
-          if (!statusPageToResources[resource.statusPageId?.toString()]) {
-            statusPageToResources[resource.statusPageId?.toString()] = [];
-          }
-
-          statusPageToResources[resource.statusPageId?.toString()]?.push(
-            resource,
-          );
-        }
 
         const statusPages: Array<StatusPage> =
           await StatusPageSubscriberService.getStatusPagesToSendNotification(
@@ -653,6 +639,11 @@ RunCron(
                       eventState:
                         scheduledEventStateTimeline.scheduledMaintenanceState
                           ?.name || "",
+                      ...EmailColorUtil.getTemplateVariables(
+                        "eventState",
+                        scheduledEventStateTimeline.scheduledMaintenanceState
+                          ?.color,
+                      ),
                       scheduledAt: scheduledAtString,
                       eventTitle: event.title || "",
                       unsubscribeUrl: unsubscribeUrl,

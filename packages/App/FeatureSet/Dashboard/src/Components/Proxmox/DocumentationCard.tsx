@@ -9,6 +9,7 @@ import {
   getProxmoxSetupGuide,
   resolveProxmoxConnectMethod,
 } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   title: string;
@@ -28,9 +29,12 @@ const ProxmoxDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Proxmox}
+      newKeyName={translationKey("Proxmox key")}
       optionsLabel="How do you want to connect your cluster?"
       options={PROXMOX_CONNECT_METHODS}
-      keyStepDescription="The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getProxmoxSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,

@@ -34,6 +34,7 @@ const MonitorGroupPage: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -54,6 +55,7 @@ const MonitorGroupPage: FunctionComponent<
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
@@ -73,7 +75,8 @@ const MonitorGroupPage: FunctionComponent<
         }}
         cardProps={{
           title: "Monitor Groups",
-          description: "Here is a list of monitors groups for this project.",
+          description:
+            "Monitors that together make up one service, such as Checkout. A group shows the worst status among its monitors, and a status page can show the whole group as one resource.",
         }}
         noItemsMessage={"No monitor groups found."}
         formFields={[
@@ -85,7 +88,7 @@ const MonitorGroupPage: FunctionComponent<
 
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Monitor Name",
+            placeholder: "Monitor Group Name",
             validation: {
               minLength: 2,
             },

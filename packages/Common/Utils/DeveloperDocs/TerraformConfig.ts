@@ -2,6 +2,7 @@ import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseM
 import { Hcl, HclBodyItem, HclExpression, printHclDocument } from "./Hcl";
 import { monitorStepsToHcl } from "./TerraformMonitorSteps";
 import {
+  canLookUpByName,
   getNameColumn,
   getTerraformAttributes,
   getTerraformTypeName,
@@ -13,14 +14,12 @@ import {
   isJSONObject,
   isSameJsonValue,
   jsonencodeWithSecretVariables,
-  jsonToHcl,
   TerraformSecretVariable,
   TerraformVariableCollector,
   toTerraformIdentifier,
   unwrapApiNumber,
 } from "./TerraformValues";
 import {
-  getExampleJsonValue,
   ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE,
   toSentenceCaseName,
 } from "./ExampleValues";
@@ -28,8 +27,10 @@ import {
 /*
  * Terraform configuration for the dashboard's Developer > Terraform pages:
  * the provider setup, one real resource written out as code (with the
- * `import` block that adopts it), a starter block for creating a new one,
- * and `import` blocks for every existing resource of a type.
+ * `import` block that adopts it, and the names of the records its ids point
+ * at in comments), and `import` blocks for every existing resource of a
+ * type. A new resource is written by ExampleBuilder, from the resource's
+ * profile.
  *
  * Which attributes a resource's configuration carries is decided so that,
  * once imported, `terraform plan` has nothing to change:
@@ -57,6 +58,8 @@ const MAX_LOCAL_NAME_LENGTH: number = 40;
 export enum TerraformOmissionReason {
   Secret = "secret",
   Hashed = "hashed",
+  // Named like a Terraform meta-argument (`provider`), so it cannot be written.
+  ReservedName = "reserved-name",
   ServerManaged = "server-managed",
   Unsupported = "unsupported",
   // Set only at creation, or only on update, and not configuration we can carry safely.
@@ -88,6 +91,8 @@ export interface TerraformResourceConfig {
   dataSourceHcl: string;
   variables: Array<TerraformSecretVariable>;
   omittedSecrets: Array<TerraformOmittedAttribute>;
+  // Attributes with a value that Terraform cannot set: see isReservedName.
+  omittedReserved: Array<TerraformOmittedAttribute>;
 }
 
 /*
@@ -271,9 +276,13 @@ function plainValue(
   }
 }
 
+// The name of the record an id stands for, written in a comment after it.
+export type TerraformIdDescriber = (id: string) => string | undefined;
+
 /*
  * The HCL value of an attribute, or null when it has no value to write (or a
- * value the provider could not read back the same way).
+ * value the provider could not read back the same way), with the comment
+ * that goes after it: the name of the record an id stands for.
  */
 function attributeValueToHcl(data: {
   descriptor: TerraformAttributeDescriptor;
@@ -281,21 +290,39 @@ function attributeValueToHcl(data: {
   variables: TerraformVariableCollector;
   localName: string;
   resourceLabel: string;
-}): HclExpression | null {
+  describeId?: TerraformIdDescriber | undefined;
+}): { value: HclExpression; comment?: string | undefined } | null {
   const { descriptor, value } = data;
+  const plain: (
+    expression: HclExpression | null,
+  ) => { value: HclExpression } | null = (
+    expression: HclExpression | null,
+  ): { value: HclExpression } | null => {
+    return expression ? { value: expression } : null;
+  };
 
   switch (descriptor.kind) {
     case TerraformValueKind.String:
     case TerraformValueKind.DateTime: {
       const text: string | null = apiString(value);
-      return text === null ? null : Hcl.string(text);
+
+      if (text === null) {
+        return null;
+      }
+
+      return {
+        value: Hcl.string(text),
+        comment: descriptor.relatedModelType
+          ? data.describeId?.(text)
+          : undefined,
+      };
     }
     case TerraformValueKind.Number: {
       const number: number | null = unwrapApiNumber(value);
-      return number === null ? null : Hcl.number(number);
+      return plain(number === null ? null : Hcl.number(number));
     }
     case TerraformValueKind.Bool:
-      return typeof value === "boolean" ? Hcl.bool(value) : null;
+      return plain(typeof value === "boolean" ? Hcl.bool(value) : null);
     case TerraformValueKind.IdSet: {
       if (!Array.isArray(value)) {
         return null;
@@ -307,13 +334,31 @@ function attributeValueToHcl(data: {
           return id !== null;
         });
 
-      return ids.length > 0
-        ? Hcl.tuple(
-            ids.map((id: string): HclExpression => {
-              return Hcl.string(id);
-            }),
-          )
-        : null;
+      if (ids.length === 0) {
+        return null;
+      }
+
+      const names: Array<string | undefined> = ids.map(
+        (id: string): string | undefined => {
+          return data.describeId?.(id);
+        },
+      );
+
+      // One id: its name after the list. Several: each after its own line.
+      if (ids.length === 1) {
+        return {
+          value: Hcl.tuple([Hcl.string(ids[0] as string)]),
+          comment: names[0],
+        };
+      }
+
+      return {
+        value: Hcl.tuple(
+          ids.map((id: string, index: number) => {
+            return { value: Hcl.string(id), comment: names[index] };
+          }),
+        ),
+      };
     }
     case TerraformValueKind.StringSet: {
       if (!Array.isArray(value)) {
@@ -326,13 +371,15 @@ function attributeValueToHcl(data: {
           return item !== null;
         });
 
-      return strings.length > 0
-        ? Hcl.tuple(
-            strings.map((item: string): HclExpression => {
-              return Hcl.string(item);
-            }),
-          )
-        : null;
+      return plain(
+        strings.length > 0
+          ? Hcl.tuple(
+              strings.map((item: string): HclExpression => {
+                return Hcl.string(item);
+              }),
+            )
+          : null,
+      );
     }
     case TerraformValueKind.Json: {
       /*
@@ -351,21 +398,26 @@ function attributeValueToHcl(data: {
         return null;
       }
 
-      return jsonencodeWithSecretVariables({
-        value,
-        variables: data.variables,
-        variablePrefix: `${data.localName}_${descriptor.attributeName}`,
-        describe: (key: string): string => {
-          return `The ${key} in the ${descriptor.title} of ${data.resourceLabel}.`;
-        },
-      });
+      return plain(
+        jsonencodeWithSecretVariables({
+          value,
+          variables: data.variables,
+          variablePrefix: `${data.localName}_${descriptor.attributeName}`,
+          describe: (key: string): string => {
+            return `The ${key} in the ${descriptor.title} of ${data.resourceLabel}.`;
+          },
+        }),
+      );
     }
     case TerraformValueKind.MonitorSteps:
-      return monitorStepsToHcl(value, {
-        variables: data.variables,
-        variablePrefix: data.localName,
-        monitorLabel: data.resourceLabel,
-      });
+      return plain(
+        monitorStepsToHcl(value, {
+          variables: data.variables,
+          variablePrefix: data.localName,
+          monitorLabel: data.resourceLabel,
+          describeId: data.describeId,
+        }),
+      );
     default:
       return null;
   }
@@ -463,6 +515,11 @@ export function getTerraformResourceConfig(data: {
   json: Record<string, unknown>;
   // The record's display name; read from the JSON's name column when left out.
   displayName?: string | null | undefined;
+  /*
+   * The names of the records its ids point at, for a comment after each id
+   * (`incident_severity_id = "..." # Critical Incident`).
+   */
+  describeId?: TerraformIdDescriber | undefined;
 }): TerraformResourceConfig | null {
   const typeName: string | null = getTerraformTypeName(data.modelType);
   const attributes: Array<TerraformAttributeDescriptor> =
@@ -490,6 +547,7 @@ export function getTerraformResourceConfig(data: {
     new TerraformVariableCollector();
   const body: Array<HclBodyItem> = [];
   const omittedSecrets: Array<TerraformOmittedAttribute> = [];
+  const omittedReserved: Array<TerraformOmittedAttribute> = [];
 
   for (const descriptor of orderAttributes(attributes, nameColumn)) {
     const value: unknown = data.json[descriptor.columnName];
@@ -533,6 +591,19 @@ export function getTerraformResourceConfig(data: {
       continue;
     }
 
+    /*
+     * `provider = "EKS"` in a resource block is Terraform's provider
+     * meta-argument, and fails validation: the value stays in OneUptime.
+     */
+    if (descriptor.isReservedName) {
+      omittedReserved.push({
+        attributeName: descriptor.attributeName,
+        title: descriptor.title,
+        reason: TerraformOmissionReason.ReservedName,
+      });
+      continue;
+    }
+
     const hasDefault: boolean = descriptor.defaultValue !== undefined;
 
     if (hasDefault && isDefaultValue(descriptor, value)) {
@@ -556,17 +627,40 @@ export function getTerraformResourceConfig(data: {
       continue;
     }
 
-    const hclValue: HclExpression | null = attributeValueToHcl({
+    const hclValue: {
+      value: HclExpression;
+      comment?: string | undefined;
+    } | null = attributeValueToHcl({
       descriptor,
       value,
       variables,
       localName,
       resourceLabel,
+      describeId: data.describeId,
     });
 
     if (hclValue) {
-      body.push(Hcl.attribute(descriptor.attributeName, hclValue));
+      body.push(
+        Hcl.attribute(
+          descriptor.attributeName,
+          hclValue.value,
+          hclValue.comment,
+        ),
+      );
     }
+  }
+
+  if (omittedReserved.length > 0) {
+    body.push(Hcl.blank());
+    body.push(
+      Hcl.comment(
+        `Not set here, because Terraform reserves the name: ${omittedReserved
+          .map((omitted: TerraformOmittedAttribute): string => {
+            return omitted.attributeName;
+          })
+          .join(", ")}.\nIt stays as it is in OneUptime.`,
+      ),
+    );
   }
 
   if (omittedSecrets.length > 0) {
@@ -618,110 +712,8 @@ export function getTerraformResourceConfig(data: {
     ]),
     variables: variables.variables,
     omittedSecrets,
+    omittedReserved,
   };
-}
-
-// An example value for a required attribute in a starter block.
-function getExampleValue(data: {
-  descriptor: TerraformAttributeDescriptor;
-  singularName: string;
-  isNameColumn: boolean;
-}): HclExpression {
-  const value: unknown = getExampleJsonValue(data);
-
-  if (data.descriptor.kind === TerraformValueKind.Json) {
-    return Hcl.call("jsonencode", [jsonToHcl(value)]);
-  }
-
-  return jsonToHcl(value);
-}
-
-/*
- * A resource block to start a new resource from: its name, what else must be
- * set (with example values to replace), and its description when it has one.
- */
-export function getTerraformStarterHcl(data: {
-  modelType: DatabaseBaseModelType;
-  singularName: string;
-  // Example values for attributes, by column name, used instead of the generic ones.
-  exampleValues?: Record<string, HclExpression> | undefined;
-}): string | null {
-  const typeName: string | null = getTerraformTypeName(data.modelType);
-  const attributes: Array<TerraformAttributeDescriptor> =
-    getTerraformAttributes(data.modelType);
-
-  if (!typeName || attributes.length === 0) {
-    return null;
-  }
-
-  const nameColumn: string | null = getNameColumn(data.modelType);
-  const shortTypeName: string = getTerraformShortTypeName(typeName);
-  const variables: TerraformVariableCollector =
-    new TerraformVariableCollector();
-  const localName: string = `my_${shortTypeName}`;
-
-  const body: Array<HclBodyItem> = [];
-
-  for (const descriptor of orderAttributes(attributes, nameColumn)) {
-    const isNameColumn: boolean = descriptor.columnName === nameColumn;
-    const isDescription: boolean = descriptor.columnName === "description";
-
-    if (!descriptor.isRequired && !isNameColumn && !isDescription) {
-      continue;
-    }
-
-    if (descriptor.kind === TerraformValueKind.Unsupported) {
-      continue;
-    }
-
-    if (descriptor.secretKind) {
-      body.push(
-        Hcl.attribute(
-          descriptor.attributeName,
-          variables.add(
-            `${localName}_${descriptor.attributeName}`,
-            `The ${descriptor.title} of the new ${toSentenceCaseName(data.singularName)}.`,
-          ),
-        ),
-      );
-      continue;
-    }
-
-    const example: HclExpression | undefined =
-      data.exampleValues?.[descriptor.columnName];
-
-    if (isDescription && !example) {
-      body.push(
-        Hcl.attribute(
-          descriptor.attributeName,
-          Hcl.string(`Managed with Terraform`),
-        ),
-      );
-      continue;
-    }
-
-    body.push(
-      Hcl.attribute(
-        descriptor.attributeName,
-        example ||
-          getExampleValue({
-            descriptor,
-            singularName: data.singularName,
-            isNameColumn,
-          }),
-      ),
-    );
-  }
-
-  const items: Array<HclBodyItem> = [];
-
-  for (const variable of variables.variables) {
-    items.push(variableBlock(variable), Hcl.blank());
-  }
-
-  items.push(Hcl.block("resource", [typeName, localName], body));
-
-  return printHclDocument(items);
 }
 
 export interface TerraformImportTarget {
@@ -782,14 +774,18 @@ export function getTerraformImportBlocksHcl(data: {
   return items.length > 0 ? printHclDocument(items) : null;
 }
 
-// A data source that looks a resource up by name.
+/*
+ * A data source that looks a resource up by name. Null for a resource the
+ * provider looks up by id only (one named by a `title`): see
+ * canLookUpByName.
+ */
 export function getTerraformDataSourceByNameHcl(data: {
   modelType: DatabaseBaseModelType;
   exampleName: string;
 }): string | null {
   const typeName: string | null = getTerraformTypeName(data.modelType);
 
-  if (!typeName) {
+  if (!typeName || !canLookUpByName(data.modelType)) {
     return null;
   }
 

@@ -1373,7 +1373,8 @@ describe("Incident Linked Alerts docs", () => {
           });
         }
 
-        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.triggerLabel}**`);
+        // The filter that lists them: the feed ⋯ menu's item, named as it is there.
+        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.filter}**`);
       }
     });
 
@@ -1796,24 +1797,32 @@ describe("Incident Linked Alerts docs", () => {
     });
 
     it("have a Settings page of their own, Linked Alerts, where the docs send readers, in every language", () => {
-      const cards: Array<string> = fs
-        .readFileSync(INCIDENT_LINKED_ALERTS_SETTINGS_FILE, "utf8")
-        .split("<CardModelDetail")
+      const settingsSource: string = fs.readFileSync(
+        INCIDENT_LINKED_ALERTS_SETTINGS_FILE,
+        "utf8",
+      );
+      const cards: Array<string> = settingsSource
+        .split("<ModelSwitchesCard<Project>")
         .slice(1);
 
-      // One card, holding both switches and nothing else it could overwrite on Update.
+      /*
+       * One card of switches, holding both and nothing else: each saves its
+       * own column the moment it is flipped (there is no Edit dialog that
+       * could write anything else).
+       */
       expect(cards).toHaveLength(1);
+      expect(settingsSource).not.toContain("<CardModelDetail");
 
       const card: string = cards[0] as string;
 
       for (const column of LINK_SWITCH_COLUMNS) {
-        expect(card).toContain(`${column}:`);
+        expect(card).toContain(`column: "${column}"`);
       }
 
       expect(card).not.toContain("NumberPrefix");
 
       const cardTitle: string | undefined = card.match(
-        /cardProps=\{\{\s*title:\s*"([^"]+)"/,
+        /cardTitle=\{translationKey\("([^"]+)"\)\}/,
       )?.[1];
 
       expect(cardTitle).toBe(LINKED_ALERTS_TITLE);
@@ -2343,7 +2352,9 @@ describe("Incident Linked Alerts docs", () => {
       const createPage: string = readSource(CREATE_INCIDENT_PAGE_FILE);
 
       expect(createPage).toContain("getAlertsKeepEscalatingNote(");
-      expect(createPage).toContain("${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}");
+      expect(createPage).toMatch(
+        /translator\.translateText\(\s*ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,?\s*\)/,
+      );
 
       const acknowledging: number = englishHeadingIndex(
         3,
@@ -2535,7 +2546,8 @@ describe("Incident Linked Alerts docs", () => {
             section.includes(`**${ReminderStopState.Acknowledged}**`),
           notRecalled: section.includes(NOT_RECALLED[language] as string),
           episode: section.includes(EPISODE_WORD[language] as string),
-          onCallStep: section.includes("**On-Call**"),
+          // The declare form's step with the on-call policies.
+          onCallStep: section.includes("**On-Call & Roles**"),
         }).toEqual({
           language: language,
           reminders: true,
@@ -2609,9 +2621,11 @@ describe("Incident Linked Alerts docs", () => {
       );
 
       // "(already linked to Incident INC-42)": the page's wording around each incident reference.
-      expect(createPage).toMatch(/\(already linked to\{" "\}/);
       expect(createPage).toContain(
-        "return `Incident ${incident.incidentNumberWithPrefix}`;",
+        'template="(already linked to {{incidents}})"',
+      );
+      expect(createPage).toMatch(
+        /return translateTemplate\("Incident \{\{number\}\}", \{\s*number: incident\.incidentNumberWithPrefix,\s*\}\);/,
       );
 
       // Each reference is a Link that opens in a new tab, which Link renders as target="_blank".

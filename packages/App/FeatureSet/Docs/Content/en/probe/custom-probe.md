@@ -304,6 +304,16 @@ The lookup needs no extra container capability and works from Kubernetes pod net
 
 If the probe is running successfully. It should show as `Connected` on your OneUptime dashboard. If it does not show as connected. You need to check logs of the container. If you're still having trouble. Please create an issue on [GitHub](https://github.com/oneuptime/oneuptime) or [contact support](https://oneuptime.com/support)
 
+### Check a monitor from the probe
+
+A probe checks only the monitors it is added to. A new monitor picks its probes on the **Probes & Interval** step of **Create Monitor**. For a monitor that already exists, open it and go to **Configuration → Probes & Interval**. The page has three cards:
+
+- **Monitoring Interval**: how often each of the monitor's probes checks it. Pick an interval and it is saved at once. Synthetic, Custom Code and SSL Certificate monitors are offered every 5 minutes or longer; one already on a shorter interval, or on a schedule set through the API, keeps it and shows it in the list.
+- **Probes**: click **Add Probe** and pick your custom probe. To stop a probe checking this monitor, turn it off with **Edit** in the row's menu, or delete the row.
+- **Probe Agreement**: how many of the monitor's probes must see the same result before its status changes, typed into the sentence "Change this monitor's status when ... probes agree". Leave the box empty for all of them. Only probes that are turned on and connected take part, so a number higher than that also means all of them. The number is saved when you leave the box or press **Enter**.
+
+Monitors that probes do not check (Manual, Incoming Request, Incoming Email, Server, Network Device and the telemetry monitors) have no Probes & Interval page.
+
 ### Diagnosing a Disconnected Probe
 
 A probe is flagged `Disconnected` when its requests to OneUptime stop succeeding. The probe's log says where each failed request got stuck, so you rarely have to guess.

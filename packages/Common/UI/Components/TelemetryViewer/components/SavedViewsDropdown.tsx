@@ -6,6 +6,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { SavedViewOption } from "../types";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Icon from "../../Icon/Icon";
@@ -44,6 +46,7 @@ const triggerButtonClassName: string =
 const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   props: SavedViewsDropdownProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
 
@@ -169,7 +172,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
           />
         ) : null}
         <span className="max-w-40 truncate">
-          {selectedView?.name || "Saved Views"}
+          {selectedView?.name || translator.translateText("Saved Views")}
         </span>
         <span
           className={`text-xs text-gray-400 ${
@@ -199,7 +202,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
          */
         <div
           role="dialog"
-          aria-label="Saved views"
+          aria-label={translator.translateText("Saved views")}
           className={`absolute z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl ${
             props.dropdownAlignment === "right" ? "right-0" : "left-0"
           }`}
@@ -223,7 +226,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                   ✕
                 </span>
                 <span className="truncate text-sm text-gray-600">
-                  Clear view
+                  {translator.translateText("Clear view")}
                 </span>
               </button>
             </div>
@@ -249,13 +252,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
           <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (
               <div className="px-3 py-6 text-center text-xs text-gray-400">
-                No saved views yet.
+                {translator.translateText("No saved views yet.")}
               </div>
             )}
 
             {props.savedViews.length > 0 && visible.views.length === 0 && (
               <div className="px-3 py-6 text-center text-xs text-gray-400">
-                No matches found
+                {translator.translateText("No matches found")}
               </div>
             )}
 
@@ -278,7 +281,11 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                      * rather than a bare token appended to the view name.
                      */
                     aria-label={
-                      view.isDefault ? `${view.name} (default)` : view.name
+                      view.isDefault
+                        ? translator.translateTemplate("{{name}} (default)", {
+                            name: view.name,
+                          })
+                        : view.name
                     }
                     /*
                      * The checkmark reads as a checkbox, so the row behaves
@@ -318,7 +325,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     </span>
                     {view.isDefault && (
                       <span className="shrink-0 text-[10px] text-gray-400">
-                        default
+                        {translator.translateText("default")}
                       </span>
                     )}
                   </button>
@@ -337,7 +344,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                           setIsComponentVisible(false);
                         }}
                       >
-                        Update
+                        {translator.translateText("Update")}
                       </button>
                     )}
                     {props.onEdit && (
@@ -352,7 +359,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                           setIsComponentVisible(false);
                         }}
                       >
-                        Edit
+                        {translator.translateText("Edit")}
                       </button>
                     )}
                     {props.onDelete && (
@@ -367,7 +374,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                           setIsComponentVisible(false);
                         }}
                       >
-                        Delete
+                        {translator.translateText("Delete")}
                       </button>
                     )}
                   </div>
@@ -406,7 +413,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                   setIsComponentVisible(false);
                 }}
               >
-                + Save Current View
+                {translator.translateText("+ Save Current View")}
               </button>
             </div>
           )}

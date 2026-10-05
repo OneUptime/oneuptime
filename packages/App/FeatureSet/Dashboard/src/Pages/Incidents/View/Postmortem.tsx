@@ -1,148 +1,72 @@
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import PageComponentProps from "../../PageComponentProps";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
-import Fields from "Common/UI/Components/Forms/Types/Fields";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import GenerateFromAIModal, {
   GenerateAIRequestData,
-  AITemplate,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
 import { POSTMORTEM_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  INCIDENT_POSTMORTEM_FORM_FIELDS,
+  INCIDENT_POSTMORTEM_FORM_STEPS,
+} from "../../../Components/Postmortem/IncidentPostmortemForm";
+import usePostmortemTemplates, {
+  PostmortemTemplatesState,
+} from "../../../Components/Postmortem/usePostmortemTemplates";
+import {
+  PostmortemTemplateOption,
+  toAITemplates,
+} from "../../../Components/Postmortem/PostmortemTemplates";
+import { getPostmortemCardButtons } from "../../../Components/Postmortem/PostmortemCardButtons";
+import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
 
-/*
- * What the postmortem says, then whether and when it goes on the status page.
- * Shared by the card's Edit form and the form a template or AI draft opens in.
- */
-const POSTMORTEM_FORM_STEPS: Array<FormStep<Incident>> = [
-  { title: "Postmortem", id: "postmortem" },
-  { title: "Status Page", id: "status-page" },
-];
-
-const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
-  {
-    field: {
-      postmortemNote: true,
-    },
-    title: "Postmortem Note",
-    stepId: "postmortem",
-    fieldType: FormFieldSchemaType.Markdown,
-    required: false,
-    placeholder: "Postmortem Note",
-    description: MarkdownUtil.getMarkdownCheatsheet(
-      "Capture what happened, impact, resolution, and follow-up actions.",
-    ),
-  },
-  {
-    field: {
-      postmortemAttachments: true,
-    },
-    title: "Postmortem Attachments",
-    stepId: "postmortem",
-    fieldType: FormFieldSchemaType.MultipleFiles,
-    required: false,
-    description:
-      "Upload supporting evidence (images, reports, timelines) that can be shared once the postmortem is public.",
-  },
-  {
-    field: {
-      postmortemPostedAt: true,
-    },
-    title: "Postmortem Published At",
-    stepId: "status-page",
-    fieldType: FormFieldSchemaType.DateTime,
-    required: false,
-    description: "Set the posted-on timestamp subscribers will see. ",
-    placeholder: "Select date and time",
-    getDefaultValue: () => {
-      return OneUptimeDate.getCurrentDate();
-    },
-  },
-  {
-    field: {
-      showPostmortemOnStatusPage: true,
-    },
-    title: "Publish on Status Page",
-    stepId: "status-page",
-    fieldType: FormFieldSchemaType.Toggle,
-    required: false,
-    description:
-      "Enable to display the postmortem note and attachments as the closing update for this incident on your status page.",
-    defaultValue: false,
-  },
-  {
-    field: {
-      notifySubscribersOnPostmortemPublished: true,
-    },
-    title: "Notify Subscribers",
-    stepId: "status-page",
-    fieldType: FormFieldSchemaType.Checkbox,
-    required: false,
-    description: "Notify subscribers when this postmortem is published.",
-    defaultValue: true,
-    showIf: (model: FormValues<Incident>) => {
-      return Boolean(model && model.showPostmortemOnStatusPage);
-    },
-  },
-];
+// Whether the postmortem is on the status page, and so what it says there.
+const isPublished: (item: Incident) => boolean = (item: Incident): boolean => {
+  return Boolean(item.showPostmortemOnStatusPage);
+};
 
 const IncidentPostmortem: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [incidentPostmortemTemplates, setIncidentPostmortemTemplates] =
-    useState<Array<IncidentPostmortemTemplate>>([]);
+  const postmortemTemplates: PostmortemTemplatesState =
+    usePostmortemTemplates();
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
-  const [showTemplateEditModal, setShowTemplateEditModal] =
-    useState<boolean>(false);
-  const [templateInitialValues, setTemplateInitialValues] =
-    useState<FormValues<Incident> | null>(null);
+  /*
+   * The note a template or AI wrote, while the postmortem's editor is open
+   * on it. Everything else in that editor is what the incident holds.
+   */
+  const [draftNote, setDraftNote] = useState<string | null>(null);
   const [showAIGenerateModal, setShowAIGenerateModal] =
     useState<boolean>(false);
-  const [aiTemplates, setAiTemplates] = useState<Array<AITemplate>>([]);
 
   const handleResendPostmortemNotification: () => Promise<void> =
     async (): Promise<void> => {
       try {
-        setIsLoading(true);
-
         // Reset the notification status to Pending so the worker can pick it up again
         await ModelAPI.updateById({
           id: modelId,
@@ -161,97 +85,8 @@ const IncidentPostmortem: FunctionComponent<
         });
       } catch (err) {
         setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
       }
     };
-
-  const fetchTemplates: () => Promise<void> = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const listResult: ListResult<IncidentPostmortemTemplate> =
-        await ModelAPI.getList<IncidentPostmortemTemplate>({
-          modelType: IncidentPostmortemTemplate,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            templateName: true,
-            postmortemNote: true,
-          },
-          sort: {},
-        });
-
-      setIncidentPostmortemTemplates(listResult.data);
-
-      // Also set AI templates format
-      const templates: Array<AITemplate> = listResult.data.map(
-        (template: IncidentPostmortemTemplate) => {
-          const templateItem: AITemplate = {
-            id: template._id?.toString() || "",
-            name: template.templateName || "Unnamed Template",
-          };
-          if (template.postmortemNote) {
-            templateItem.content = template.postmortemNote;
-          }
-          return templateItem;
-        },
-      );
-
-      setAiTemplates(templates);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  };
-
-  const applyTemplate: (templateId: ObjectID) => Promise<void> = async (
-    templateId: ObjectID,
-  ): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const template: IncidentPostmortemTemplate | null =
-        await ModelAPI.getItem<IncidentPostmortemTemplate>({
-          modelType: IncidentPostmortemTemplate,
-          id: templateId,
-          select: {
-            postmortemNote: true,
-          },
-        });
-
-      if (!template || !template.postmortemNote) {
-        setError("The selected template does not contain a postmortem note.");
-        setShowTemplateModal(false);
-        return;
-      }
-
-      setTemplateInitialValues({
-        postmortemNote: template.postmortemNote,
-      });
-      setShowTemplateModal(false);
-      setShowTemplateEditModal(true);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!showTemplateModal && !showAIGenerateModal) {
-      return;
-    }
-
-    fetchTemplates().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [showTemplateModal, showAIGenerateModal]);
 
   const handleGeneratePostmortemFromAI: (
     data: GenerateAIRequestData,
@@ -291,10 +126,20 @@ const IncidentPostmortem: FunctionComponent<
     generatedContent: string,
   ): void => {
     setShowAIGenerateModal(false);
-    setTemplateInitialValues({
-      postmortemNote: generatedContent,
-    });
-    setShowTemplateEditModal(true);
+    setDraftNote(generatedContent);
+  };
+
+  const handleTemplatePicked: (template: PostmortemTemplateOption) => void = (
+    template: PostmortemTemplateOption,
+  ): void => {
+    setShowTemplateModal(false);
+
+    if (!template.note.trim()) {
+      setError("The selected template does not contain a postmortem note.");
+      return;
+    }
+
+    setDraftNote(template.note);
   };
 
   return (
@@ -305,36 +150,30 @@ const IncidentPostmortem: FunctionComponent<
           title: "Postmortem Note",
           description:
             "Document the summary, learnings, and follow-ups for this incident.",
-          buttons: [
-            {
-              title: "Generate with AI",
-              icon: IconProp.Bolt,
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowAIGenerateModal(true);
-              },
+          buttons: getPostmortemCardButtons({
+            model: new Incident(),
+            hasTemplates: postmortemTemplates.templates.length > 0,
+            onGenerateWithAI: () => {
+              setShowAIGenerateModal(true);
             },
-            {
-              title: "Apply Template",
-              icon: IconProp.Template,
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowTemplateModal(true);
-              },
+            onApplyTemplate: () => {
+              setShowTemplateModal(true);
             },
-          ],
+          }),
         }}
         refresher={refreshToggle}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         editButtonText="Edit Postmortem Note"
+        // The dialog names what it edits, as the button does - not "Edit Incident".
+        editModalTitle="Edit Postmortem Note"
         onSaveSuccess={() => {
           setRefreshToggle((previous: boolean) => {
             return !previous;
           });
         }}
-        formSteps={POSTMORTEM_FORM_STEPS}
-        formFields={POSTMORTEM_FORM_FIELDS}
+        formSteps={INCIDENT_POSTMORTEM_FORM_STEPS}
+        formFields={INCIDENT_POSTMORTEM_FORM_FIELDS}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
@@ -342,6 +181,11 @@ const IncidentPostmortem: FunctionComponent<
           selectMoreFields: {
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
           },
+          /*
+           * The write-up and its files first, then the status page: whether
+           * the postmortem is on it and, only while it is, whether and when
+           * subscribers heard about it and the time it shows.
+           */
           fields: [
             {
               field: {
@@ -350,6 +194,49 @@ const IncidentPostmortem: FunctionComponent<
               title: "",
               placeholder: "No postmortem note documented for this incident.",
               fieldType: FieldType.Markdown,
+            },
+            {
+              field: {
+                postmortemAttachments: {
+                  _id: true,
+                  name: true,
+                  fileType: true,
+                  createdAt: true,
+                },
+              },
+              title: "Postmortem Attachments",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                const modelIdString: string | null = getModelIdString(item);
+
+                if (!item.postmortemAttachments?.length) {
+                  return (
+                    <div className="text-sm text-gray-500">
+                      {translator.translateText(
+                        "No postmortem attachments uploaded for this incident.",
+                      )}
+                    </div>
+                  );
+                }
+
+                if (!modelIdString) {
+                  return (
+                    <div className="text-sm text-gray-400 italic">
+                      {translator.translateText(
+                        "Attachments are available but the incident identifier is missing, so they cannot be displayed.",
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <AttachmentList
+                    modelId={modelIdString}
+                    attachments={item.postmortemAttachments}
+                    attachmentApiPath="/incident/postmortem/attachment"
+                  />
+                );
+              },
             },
             {
               field: {
@@ -364,9 +251,7 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Notify Subscribers",
               fieldType: FieldType.Boolean,
-              showIf: (item: Incident): boolean => {
-                return Boolean(item.showPostmortemOnStatusPage);
-              },
+              showIf: isPublished,
             },
             {
               field: {
@@ -374,6 +259,12 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Subscriber Notification Status",
               fieldType: FieldType.Element,
+              showIf: (item: Incident): boolean => {
+                return (
+                  isPublished(item) &&
+                  Boolean(item.notifySubscribersOnPostmortemPublished)
+                );
+              },
               getElement: (item: Incident): ReactElement => {
                 return (
                   <SubscriberNotificationStatus
@@ -395,66 +286,12 @@ const IncidentPostmortem: FunctionComponent<
               title: "Postmortem Published At",
               fieldType: FieldType.DateTime,
               placeholder: "-",
-            },
-            {
-              field: {
-                postmortemAttachments: {
-                  _id: true,
-                  name: true,
-                  fileType: true,
-                  createdAt: true,
-                },
-              },
-              title: "Postmortem Attachments",
-              fieldType: FieldType.Element,
-              getElement: (item: Incident): ReactElement => {
-                const modelIdString: string | null = getModelIdString(item);
-
-                if (!item.postmortemAttachments?.length) {
-                  return (
-                    <div className="text-sm text-gray-500">
-                      No postmortem attachments uploaded for this incident.
-                    </div>
-                  );
-                }
-
-                if (!modelIdString) {
-                  return (
-                    <div className="text-sm text-gray-400 italic">
-                      Attachments are available but the incident identifier is
-                      missing, so they cannot be displayed.
-                    </div>
-                  );
-                }
-
-                return (
-                  <AttachmentList
-                    modelId={modelIdString}
-                    attachments={item.postmortemAttachments}
-                    attachmentApiPath="/incident/postmortem/attachment"
-                  />
-                );
-              },
+              showIf: isPublished,
             },
           ],
           modelId: modelId,
         }}
       />
-
-      {showTemplateModal &&
-      incidentPostmortemTemplates.length === 0 &&
-      !isLoading ? (
-        <ConfirmModal
-          title={`No Postmortem Templates`}
-          description={`No postmortem templates have been created yet. You can create these in Project Settings > Incident > Postmortem Templates.`}
-          submitButtonText={"Close"}
-          onSubmit={() => {
-            setShowTemplateModal(false);
-          }}
-        />
-      ) : (
-        <></>
-      )}
 
       {error ? (
         <ConfirmModal
@@ -469,61 +306,29 @@ const IncidentPostmortem: FunctionComponent<
         <></>
       )}
 
-      {showTemplateModal && incidentPostmortemTemplates.length > 0 ? (
-        <BasicFormModal<JSONObject>
-          title="Apply Postmortem Template"
+      {showTemplateModal && postmortemTemplates.templates.length > 0 ? (
+        <ApplyPostmortemTemplateModal
           name="Incident > Apply Postmortem Template"
-          isLoading={isLoading}
-          submitButtonText="Apply Template"
+          templates={postmortemTemplates.templates}
+          onPick={handleTemplatePicked}
           onClose={() => {
             setShowTemplateModal(false);
-            setIsLoading(false);
-          }}
-          onSubmit={async (data: JSONObject) => {
-            await applyTemplate(
-              data["incidentPostmortemTemplateId"] as ObjectID,
-            );
-          }}
-          formProps={{
-            initialValues: {},
-            fields: [
-              {
-                field: {
-                  incidentPostmortemTemplateId: true,
-                },
-                title: "Select Template",
-                description:
-                  "Choose a postmortem template to populate the note.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
-                  {
-                    array: incidentPostmortemTemplates,
-                    labelField: "templateName",
-                    valueField: "_id",
-                  },
-                ),
-                required: true,
-                placeholder: "Select Template",
-              },
-            ],
           }}
         />
       ) : (
         <></>
       )}
 
-      {showTemplateEditModal ? (
+      {draftNote !== null ? (
         <ModelFormModal<Incident>
           title="Edit Postmortem Note"
           submitButtonText="Save Changes"
           modalWidth={ModalWidth.Large}
           onClose={() => {
-            setShowTemplateEditModal(false);
-            setTemplateInitialValues(null);
+            setDraftNote(null);
           }}
           onSuccess={() => {
-            setShowTemplateEditModal(false);
-            setTemplateInitialValues(null);
+            setDraftNote(null);
             setRefreshToggle((previous: boolean) => {
               return !previous;
             });
@@ -531,15 +336,22 @@ const IncidentPostmortem: FunctionComponent<
           name="incident-postmortem-note-from-template"
           modelType={Incident}
           modelIdToEdit={modelId}
-          initialValues={templateInitialValues || undefined}
           formProps={{
             id: "incident-postmortem-note-template-form",
-            steps: POSTMORTEM_FORM_STEPS,
-            fields: POSTMORTEM_FORM_FIELDS,
+            steps: INCIDENT_POSTMORTEM_FORM_STEPS,
+            fields: INCIDENT_POSTMORTEM_FORM_FIELDS,
             formType: FormType.Update,
             modelType: Incident,
             name: "Postmortem Note",
-            doNotFetchExistingModel: true,
+            /*
+             * The incident's postmortem as it is stored, with the drafted
+             * note in place of its note: a draft must not quietly change
+             * whether the postmortem is on the status page, when it was
+             * published or its attachments.
+             */
+            draftValues: {
+              postmortemNote: draftNote,
+            },
           }}
         />
       ) : (
@@ -555,7 +367,10 @@ const IncidentPostmortem: FunctionComponent<
           }}
           onGenerate={handleGeneratePostmortemFromAI}
           onSuccess={handleAIGenerationSuccess}
-          templates={[...POSTMORTEM_TEMPLATES, ...aiTemplates]}
+          templates={[
+            ...POSTMORTEM_TEMPLATES,
+            ...toAITemplates(postmortemTemplates.templates),
+          ]}
         />
       ) : (
         <></>

@@ -61,7 +61,7 @@ Runbooks:             [Capture pre-incident state]
 
 ## 已停用的 runbook
 
-如果某規則參照的 runbook 其 `isEnabled = false`，該規則仍會符合，但會略過該 runbook 執行。重新啟用該 runbook 即可恢復。
+如果某規則參照的 runbook 已關閉（runbook 的 **Settings** 頁面上 **Run this runbook** 已關閉，`isEnabled = false`），該規則仍會符合，但會略過該 runbook 執行。重新開啟該開關即可恢復。
 
 ## 測試規則
 

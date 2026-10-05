@@ -30,7 +30,7 @@ import {
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
@@ -212,6 +212,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -256,6 +257,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         userPreferencesKey="database-servers-table"
         isCreateable={true}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -324,7 +326,6 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         formSteps={[
           { title: "Connection", id: "connection" },
           { title: "Database Info", id: "database-info" },
-          { title: "Labels", id: "labels" },
         ]}
         formFields={[
           {
@@ -418,23 +419,9 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             required: false,
             placeholder: "Primary PostgreSQL cluster for the checkout stack",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<DatabaseServer>({
+            stepId: "database-info",
+          }),
         ]}
         filters={[]}
         columns={[

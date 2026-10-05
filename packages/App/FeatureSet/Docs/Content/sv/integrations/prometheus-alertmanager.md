@@ -71,7 +71,7 @@ Alertmanager skickar `Content-Type: application/json`, vilket OneUptime behöver
 
 - Slå på _When filters match, change monitor status_ och sätt den till **Offline** (eller Degraded).
 - Slå på _When filters match, declare an incident_. Ange **Title**, **Severity** och de **On-Call Policies** som ska larmas.
-- Under **Advanced Options** på den incidenten slår du på **Auto Resolve Incident**. Utan detta ignoreras återhämtningsnotifieringar och incidenter står öppna för alltid.
+- Under **More fields** på den incidenten slår du på **Auto Resolve Incident**. Utan detta ignoreras återhämtningsnotifieringar och incidenter står öppna för alltid.
 
 **Settings → Group incidents and alerts by a payload field**
 
@@ -203,7 +203,7 @@ route:
 ## Felsökning
 
 - **Ingenting kommer fram** — bekräfta att Alertmanager kan nå URL:en; kolla dess loggar efter leveransfel. OneUptime svarar på varje förfrågan med en tom `200` innan något valideras, så en `200` bekräftar inte att payloaden accepterades. Titta på monitorns tidslinje i stället.
-- **Incidenter öppnas men stängs aldrig** — kontrollera `send_resolved: true` i Alertmanager, återhämtningsfältet och värdet på kriteriet (jämförelsen skiljer på gemener och versaler), och **Auto Resolve Incident** under incidentens **Advanced Options**. Två subtilare orsaker: en payload med fler unika nycklar än **Max incidents per request** döljer även de bortom gränsen för återhämtning; och om det just är `resolved`-notifieringen som slås bort av sammanslagningen vid ingest (nedan) fastnar incidenten permanent, eftersom Alertmanager upprepar firing-notifieringar men inte resolved-notifieringar. Stäng dem för hand.
+- **Incidenter öppnas men stängs aldrig** — kontrollera `send_resolved: true` i Alertmanager, återhämtningsfältet och värdet på kriteriet (jämförelsen skiljer på gemener och versaler), och **Auto Resolve Incident** under incidentens **More fields**. Två subtilare orsaker: en payload med fler unika nycklar än **Max incidents per request** döljer även de bortom gränsen för återhämtning; och om det just är `resolved`-notifieringen som slås bort av sammanslagningen vid ingest (nedan) fastnar incidenten permanent, eftersom Alertmanager upprepar firing-notifieringar men inte resolved-notifieringar. Stäng dem för hand.
 - **Inga incidenter alls, monitorstatus oförändrad** — grupperingssökvägen måste börja med det bokstavliga `requestBody.`, och bara det första `[*]` i en sökväg är ett jokertecken. Båda misstagen misslyckas tyst.
 - **Incidenttexten visar råa `{{...}}`-platshållare** — sökvägen löstes inte upp, och OneUptime lämnar olösta platshållare på plats i stället för att tömma dem. Olika regler sätter olika annotationer, så referera till fält som faktiskt finns för dina regler (`commonAnnotations` kontra `annotations` per larm).
 - **Bara en incident för en payload full av larm** — du grupperade på en etikett som inte varierar inom en notifiering, oftast en som också finns i din routes `group_by`. Gruppera på `requestBody.alerts[*].fingerprint` i stället.

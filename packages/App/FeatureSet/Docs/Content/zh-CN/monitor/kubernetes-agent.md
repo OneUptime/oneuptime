@@ -109,7 +109,7 @@ OBI 从捕获的流量中提取多种信号家族。所有信号默认都已启�
 | 信号                                    | 默认 | 增加的内容                                                                                                       |
 | --------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------- |
 | `ebpf.features.httpMetrics`             | on   | 每个服务的 HTTP/gRPC RED 指标 —— 请求速率、延迟直方图、错误数量。                                                |
-| `ebpf.features.spanMetrics`             | on   | 以 span 属性为键的指标：请求大小、响应大小、按路由/操作细分的耗时。                                              |
+| `ebpf.features.spanMetrics`             | on   | Span 指标：按服务、路由/操作、span 类型和状态统计的调用次数与耗时 —— `traces.span.metrics.calls`、`traces.span.metrics.duration`（秒）。 |
 | `ebpf.features.serviceGraph`            | on   | 服务间边的指标（调用方 → 被调方的请求速率 + 延迟）。为服务图谱提供数据。                                         |
 | `ebpf.features.networkMetrics`          | on   | 带 k8s 元数据的 Pod 间 TCP/UDP 流字节和数据包计数器。展现每对相互通信的 Pod，包括运行 OBI 无法解析的协议的 Pod。 |
 | `ebpf.features.networkInterZoneMetrics` | off  | 网络指标的跨可用区版本。基数会加倍；只有在确实使用基于可用区调度时才值得启用。                                   |
@@ -149,7 +149,7 @@ OBI 还可以跨服务边界传播追踪上下文，使 pod B 端生成的 span 
 | 选项                   | 默认                                                    | 描述                                                                                             |
 | ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                  | 总开关。设为 `false` 可完全跳过 eBPF DaemonSet。                                                 |
-| `ebpf.image.tag`       | `v0.13.0`                                               | OBI 镜像标签。OBI 仍处于 1.0 之前；请固定到一个已知良好的版本，并在升级时重新测试。              |
+| `ebpf.image.tag`       | `v0.14.0`                                               | OBI 镜像标签。OBI 仍处于 1.0 之前；请固定到一个已知良好的版本，并在升级时重新测试。              |
 | `ebpf.autoTargetExe`   | `*`                                                     | 要进行埋点的可执行文件 glob 模式。如果想缩小自动埋点范围（例如 `*/python,*/java`），请收窄此项。 |
 | `ebpf.excludeExePaths` | （shell、kubelet、runc、containerd、otelcol、OBI 自身） | 要跳过的逗号分隔 glob 模式。                                                                     |
 | `ebpf.logLevel`        | `info`                                                  | `debug`、`info`、`warn` 或 `error`。排查问题时设为 `debug`。                                     |
@@ -252,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 或更早版本** —— 去掉 `--reuse-values`，显式传入原始的 `--set` 标志（或 `-f values.yaml`）。对于您未覆盖的所有项，将会应用新的 chart 默认值。
 >
 > 如果升级后某项新功能的 Pod（例如 `kubernetes-agent-profiling-*`）没有出现，几乎总是因为这个原因。`helm get values <release>` 显示 Helm 实际持有的内容 —— 输出中缺失的字段意味着没有为它们合并默认值。
+
+> **eBPF span 指标已更名。** `ebpf.features.spanMetrics` 现在发送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），不再发送 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：数据序列相同，只是改用 OBI 保留的名称（旧名称已被 OBI 弃用）。基于旧名称的仪表板、图表或指标监控器在升级后将收不到新数据，且不会报错——请将其改为新名称，并同时更新 `filters.metrics` 中引用旧名称的条目。
 
 ## 卸载
 

@@ -196,8 +196,13 @@ describe("describeFinishedRunKubectlUsage", () => {
     expect(usage?.text).toBe(
       "OneUptime AI tried 3 read-only kubectl commands, but none succeeded — kubectl returned an error for all 3 that ran. See Investigation activity for each result.",
     );
+    /*
+     * The commands that never ran are listed in brackets, one whole clause
+     * each, like the ones a run that succeeded lists: each clause and the
+     * sentence around them are translated whole.
+     */
     expect(usageText(activity({ executed: 1, succeeded: 0, notRun: 2 }))).toBe(
-      "OneUptime AI tried 3 read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran and 2 could not run. See Investigation activity for each result.",
+      "OneUptime AI tried 3 read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran (2 more could not run). See Investigation activity for each result.",
     );
   });
 
@@ -250,7 +255,7 @@ describe("describeFinishedRunKubectlUsage", () => {
     expect(
       usageText(activity({ executed: 1, succeeded: 0, notRun: 1, unknown: 1 })),
     ).toBe(
-      "OneUptime AI tried 3 read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran and 1 could not run and 1 returned no result (whether it ran is unknown). See Investigation activity for each result.",
+      "OneUptime AI tried 3 read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran (1 more could not run; 1 more returned no result, so whether it ran is unknown). See Investigation activity for each result.",
     );
     expect(
       describeFinishedRunKubectlUsage(

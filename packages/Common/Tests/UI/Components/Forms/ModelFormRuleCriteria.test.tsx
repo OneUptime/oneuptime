@@ -4,6 +4,12 @@ import RuleBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/R
 import AlertReminderRule from "../../../../Models/DatabaseModels/AlertReminderRule";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
+import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
+import NetworkSiteAssignmentRule from "../../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
+import NetworkDeviceAutoImportRule from "../../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import IncidentPrivacyRule from "../../../../Models/DatabaseModels/IncidentPrivacyRule";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION } from "../../../../Types/Rules/RuleCriteriaFieldRegistry";
 import type Field from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -181,7 +187,7 @@ describe("ModelForm rule criteria integration", () => {
     expect(criteriaField?.customValidation).toBeDefined();
   });
 
-  test("validates builder values before submitting the model form", () => {
+  test("validates builder values before submitting, in plain words", () => {
     const criteriaField: Field<any> | undefined =
       replaceLegacyRuleCriteriaFields(new RuleBaseModel(), ruleFields()).find(
         (field: Field<any>): boolean => {
@@ -196,6 +202,11 @@ describe("ModelForm rule criteria integration", () => {
           filterCondition: "All",
           filters: [
             {
+              field: "monitorLabels",
+              operator: "HasAnyOf",
+              value: ["dddddddd-dddd-4ddd-8ddd-dddddddddddd"],
+            },
+            {
               field: "monitorNamePattern",
               operator: "Contains",
               value: "",
@@ -203,7 +214,199 @@ describe("ModelForm rule criteria integration", () => {
           ],
         },
       }),
-    ).toContain("non-blank");
+    ).toBe("Condition 2: Enter a value.");
+
+    expect(
+      criteriaField?.customValidation?.({
+        criteria: {
+          schemaVersion: 1,
+          filterCondition: "All",
+          filters: [
+            {
+              field: "monitorNamePattern",
+              operator: "MatchesPattern",
+              value: "api-(01",
+            },
+          ],
+        },
+      }),
+    ).toBe(
+      "Condition 1: Enter a valid pattern: a regular expression such as ^api-.* or a * wildcard such as *api*.",
+    );
+  });
+
+  test("falls back to the API's own words for a payload no builder makes", () => {
+    const criteriaField: Field<any> | undefined =
+      replaceLegacyRuleCriteriaFields(new RuleBaseModel(), ruleFields()).find(
+        (field: Field<any>): boolean => {
+          return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+        },
+      );
+
+    expect(
+      criteriaField?.customValidation?.({
+        criteria: { schemaVersion: 2, filterCondition: "All", filters: [] },
+      }),
+    ).toBe("Rule criteria schemaVersion must be 1.");
+  });
+
+  test("names the field Conditions, on the match-criteria step, in plain words", () => {
+    const criteriaField: Field<any> | undefined =
+      replaceLegacyRuleCriteriaFields(new RuleBaseModel(), ruleFields()).find(
+        (field: Field<any>): boolean => {
+          return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+        },
+      );
+
+    expect(criteriaField?.title).toBe("Conditions");
+    // Its own words: without them the form falls back to the API column's.
+    expect(criteriaField?.description).toBe(
+      "Choose what this rule applies to.",
+    );
+    expect(criteriaField?.required).toBe(false);
+  });
+
+  test("lists exactly the rule kinds whose services refuse an empty condition list", () => {
+    expect([...RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION].sort()).toEqual([
+      "NetworkDeviceAutoImportRule",
+      "NetworkSiteAssignmentRule",
+      "ServiceLevelObjectiveMonitorRule",
+      "StatusPageMonitorRule",
+    ]);
+  });
+
+  test.each([
+    ["StatusPageMonitorRule", new StatusPageMonitorRule()],
+    [
+      "ServiceLevelObjectiveMonitorRule",
+      new ServiceLevelObjectiveMonitorRule(),
+    ],
+    ["NetworkSiteAssignmentRule", new NetworkSiteAssignmentRule()],
+    ["NetworkDeviceAutoImportRule", new NetworkDeviceAutoImportRule()],
+  ])(
+    "%s asks for at least one condition before the form is sent",
+    (_name: string, model: BaseModel) => {
+      const criteriaField: Field<any> | undefined =
+        replaceLegacyRuleCriteriaFields(model, ruleFields()).find(
+          (field: Field<any>): boolean => {
+            return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+          },
+        );
+      const required: Field<any>["required"] = criteriaField?.required;
+
+      expect(typeof required).toBe("function");
+      const isRequired: (values: Record<string, unknown>) => boolean =
+        required as (values: Record<string, unknown>) => boolean;
+
+      // A create form that never reached the step has no value: required.
+      expect(isRequired({})).toBe(true);
+      // A rule saved before conditions existed keeps working from its columns.
+      expect(isRequired({ criteria: null })).toBe(false);
+      expect(
+        isRequired({
+          criteria: { schemaVersion: 1, filterCondition: "All", filters: [] },
+        }),
+      ).toBe(true);
+
+      expect(
+        criteriaField?.customValidation?.({
+          criteria: { schemaVersion: 1, filterCondition: "All", filters: [] },
+        }),
+      ).toBe("Add at least one condition.");
+      expect(
+        criteriaField?.customValidation?.({
+          criteria: {
+            schemaVersion: 1,
+            filterCondition: "All",
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: "Contains",
+                value: "api",
+              },
+            ],
+          },
+        }),
+      ).toBeNull();
+
+      const element: ReactElement | undefined = criteriaField!
+        .getCustomElement!({}, { onChange: jest.fn() });
+      expect(
+        (element!.props as { requiresCondition?: boolean }).requiresCondition,
+      ).toBe(true);
+    },
+  );
+
+  test("a rule kind that matches everything without conditions saves none", () => {
+    const criteriaField: Field<any> | undefined =
+      replaceLegacyRuleCriteriaFields(
+        new IncidentPrivacyRule(),
+        ruleFields(),
+      ).find((field: Field<any>): boolean => {
+        return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+      });
+
+    expect(criteriaField?.required).toBe(false);
+    expect(
+      criteriaField?.customValidation?.({
+        criteria: { schemaVersion: 1, filterCondition: "All", filters: [] },
+      }),
+    ).toBeNull();
+
+    const element: ReactElement | undefined = criteriaField!.getCustomElement!(
+      {},
+      { onChange: jest.fn() },
+    );
+    expect(
+      (element!.props as { requiresCondition?: boolean }).requiresCondition,
+    ).toBe(false);
+  });
+
+  test("checks conditions against the fields the form shows right now", () => {
+    const fields: Fields<any> = [
+      ...ruleFields(),
+      {
+        field: { monitorDescriptionPattern: true },
+        title: "Monitor Description",
+        stepId: "match-criteria",
+        fieldType: FormFieldSchemaType.Text,
+        showIf: (values: Record<string, unknown>): boolean => {
+          return values["showDescription"] === true;
+        },
+      },
+    ];
+    const criteriaField: Field<any> | undefined =
+      replaceLegacyRuleCriteriaFields(new RuleBaseModel(), fields).find(
+        (field: Field<any>): boolean => {
+          return fieldName(field) === RULE_CRITERIA_FIELD_NAME;
+        },
+      );
+    const criteria: Record<string, unknown> = {
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [
+        {
+          field: "monitorDescriptionPattern",
+          operator: "Contains",
+          value: "prod",
+        },
+      ],
+    };
+
+    expect(
+      criteriaField?.customValidation?.({
+        criteria: criteria,
+        showDescription: true,
+      }),
+    ).toBeNull();
+    expect(
+      criteriaField?.customValidation?.({
+        criteria: criteria,
+        showDescription: false,
+      }),
+    ).toBe(
+      "Condition 1: This field is no longer available. Choose another one or remove this condition.",
+    );
   });
 
   test.each([undefined, null])(

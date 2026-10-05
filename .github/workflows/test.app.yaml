@@ -23,9 +23,10 @@ jobs:
     # (App/jest.config.json sets isolatedModules) and runs on jest's worker
     # pool, which took the whole suite to under three minutes of test time.
     #
-    # Nothing goes unchecked: the compile-app job in the Compile workflow has
-    # every App test file as a tsc program root, and checks the whole program
-    # once in about a minute rather than 338 times over.
+    # Nothing goes unchecked: the Compile workflow's Compile App step (in its
+    # compile-services job) has every App test file as a tsc program root, and
+    # checks the whole program once in about a minute rather than 338 times
+    # over.
     #
     # This cap is the tripwire. The suite has room to grow several times over
     # before it comes close, so if the job ever hits it something has regressed
@@ -135,7 +136,7 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
-  # Eighteen browser suites that each bundle real Dashboard or Status Page
+  # Nineteen browser suites that each bundle real Dashboard or Status Page
   # sources with esbuild and serve them against fixture data: no database or
   # Docker stack. They used to run one after another in a single 41-minute
   # job, the longest of every pull request's checks. They are independent -
@@ -176,6 +177,7 @@ jobs:
               test-exception-detail-ui
               test-alerts-ui
               test-pencil-button-ui
+              test-navigation-search-ui
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -282,6 +284,7 @@ jobs:
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/status-page-search/test-results
+            output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results
             output/playwright/code-editor-ui/*.png
             output/playwright/code-editor-ui/test-results

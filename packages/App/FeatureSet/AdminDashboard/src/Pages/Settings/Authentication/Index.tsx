@@ -1,18 +1,68 @@
+import AdminModelAPI from "../../../Utils/ModelAPI";
+import {
+  PROJECT_CREATION_SWITCH_TEST_ID,
+  REQUIRE_SSO_COPY,
+  REQUIRE_SSO_SWITCH_TEST_ID,
+  SIGN_UP_SWITCH_TEST_ID,
+} from "./AuthenticationSwitchesCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import Page from "Common/UI/Components/Page/Page";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
+/*
+ * Settings > Authentication: three instance-wide switches, each saving the
+ * moment it is flipped (the shared ModelSwitchCard, through AdminModelAPI).
+ * Each used to be a card whose Edit dialog held the one switch.
+ *
+ *   - Sign Up: "Let people sign up", on while GlobalConfig.disableSignup is
+ *     false. People invited to a project can create their account either
+ *     way (the /signup route lets them in), so it locks nobody out.
+ *   - Single Sign-On (SSO): "Require SSO for Login". Turning it on asks
+ *     first, with a red button: everyone but master admins is refused every
+ *     project until they sign in with SSO. Master admins are exempt, so it
+ *     can always be turned off again; turning it off saves at once.
+ *   - Project Creation: "Let users create projects", on while
+ *     GlobalConfig.disableUserProjectCreation is false. Master admins can
+ *     always create projects.
+ *
+ * The SSO card's strings are looked up by their English text, as the
+ * shared components look theirs up (AuthenticationSwitchesCopy). The other
+ * cards' come from this page's locale keys.
+ *
+ * GlobalConfig is one row, with the zero id.
+ */
+
+export const getRequireSsoConfirmation: (
+  isTurningOn: boolean,
+) => ModelSwitchConfirmation | undefined = (
+  isTurningOn: boolean,
+): ModelSwitchConfirmation | undefined => {
+  if (!isTurningOn) {
+    return undefined;
+  }
+
+  return {
+    title: REQUIRE_SSO_COPY.confirmTitle,
+    description: REQUIRE_SSO_COPY.confirmDescription,
+    submitButtonText: REQUIRE_SSO_COPY.confirmButton,
+    submitButtonType: ButtonStyleType.DANGER,
+  };
+};
+
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+
+  const globalConfigId: ObjectID = ObjectID.getZeroObjectID();
+
   return (
     <Page
       title={t("pages.settings.title")}
@@ -36,125 +86,59 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
-      <CardModelDetail
-        name="Authentication Settings"
-        cardProps={{
-          title: t("pages.settings.authentication.authCardTitle"),
-          description: t("pages.settings.authentication.authCardDescription"),
-        }}
-        isEditable={true}
-        editButtonText={t("pages.settings.authentication.authEditButton")}
-        formFields={[
-          {
-            field: {
-              disableSignup: true,
-            },
-            title: "Disable Sign Up",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Should we disable sign up of new users to OneUptime?",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-global-config",
-          fields: [
-            {
-              field: {
-                disableSignup: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Disable Sign Up",
-              placeholder: t("common.no"),
-              description:
-                "Should we disable sign up of new users to OneUptime?",
-            },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
-        }}
-      />
-
-      <CardModelDetail
-        name="SSO Settings"
-        cardProps={{
-          title: "Single Sign-On (SSO)",
-          description:
-            "Control whether users must sign in with SSO across this server.",
-        }}
-        isEditable={true}
-        editButtonText={"Edit SSO Settings"}
-        formFields={[
-          {
-            field: {
-              requireSsoForLogin: true,
-            },
-            title: "Require SSO for Login",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-sso-settings",
-          fields: [
-            {
-              field: {
-                requireSsoForLogin: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Require SSO for Login",
-              placeholder: t("common.no"),
-              description:
-                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.",
-            },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
-        }}
-      />
-
-      <CardModelDetail
-        name="Project Creation Settings"
-        cardProps={{
-          title: t("pages.settings.authentication.projectCreationCardTitle"),
-          description: t(
-            "pages.settings.authentication.projectCreationCardDescription",
-          ),
-        }}
-        isEditable={true}
-        editButtonText={t(
-          "pages.settings.authentication.projectCreationEditButton",
+      <ModelSwitchCard<GlobalConfig>
+        modelType={GlobalConfig}
+        modelId={globalConfigId}
+        column="disableSignup"
+        isInverted={true}
+        modelAPI={AdminModelAPI}
+        cardTitle={t("pages.settings.authentication.signUpCardTitle")}
+        cardDescription={t(
+          "pages.settings.authentication.signUpCardDescription",
         )}
-        formFields={[
-          {
-            field: {
-              disableUserProjectCreation: true,
-            },
-            title: "Restrict Project Creation to Admins Only",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "When enabled, only master admin users can create new projects.",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-project-creation",
-          fields: [
-            {
-              field: {
-                disableUserProjectCreation: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Restrict Project Creation to Admins Only",
-              placeholder: t("common.no"),
-              description:
-                "When enabled, only master admin users can create new projects.",
-            },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
+        title={t("pages.settings.authentication.signUpSwitchTitle")}
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? t("pages.settings.authentication.signUpSwitchOnDescription")
+            : t("pages.settings.authentication.signUpSwitchOffDescription");
         }}
+        dataTestId={SIGN_UP_SWITCH_TEST_ID}
+      />
+
+      <ModelSwitchCard<GlobalConfig>
+        modelType={GlobalConfig}
+        modelId={globalConfigId}
+        column="requireSsoForLogin"
+        modelAPI={AdminModelAPI}
+        cardTitle={REQUIRE_SSO_COPY.cardTitle}
+        cardDescription={REQUIRE_SSO_COPY.cardDescription}
+        title={REQUIRE_SSO_COPY.switchTitle}
+        note={REQUIRE_SSO_COPY.note}
+        getConfirmation={getRequireSsoConfirmation}
+        dataTestId={REQUIRE_SSO_SWITCH_TEST_ID}
+      />
+
+      <ModelSwitchCard<GlobalConfig>
+        modelType={GlobalConfig}
+        modelId={globalConfigId}
+        column="disableUserProjectCreation"
+        isInverted={true}
+        modelAPI={AdminModelAPI}
+        cardTitle={t("pages.settings.authentication.projectCreationCardTitle")}
+        cardDescription={t(
+          "pages.settings.authentication.projectCreationCardDescription",
+        )}
+        title={t("pages.settings.authentication.projectCreationSwitchTitle")}
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? t(
+                "pages.settings.authentication.projectCreationSwitchOnDescription",
+              )
+            : t(
+                "pages.settings.authentication.projectCreationSwitchOffDescription",
+              );
+        }}
+        dataTestId={PROJECT_CREATION_SWITCH_TEST_ID}
       />
     </Page>
   );

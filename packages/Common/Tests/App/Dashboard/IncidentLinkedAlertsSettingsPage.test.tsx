@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -18,7 +19,10 @@ import {
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import IncidentLinkedAlertsSettings, {
+  LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID,
   LINKED_ALERTS_FIELDS,
+  LINKED_ALERTS_RESOLVE_SWITCH_TEST_ID,
+  LINKED_ALERTS_SWITCHES_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
 import {
   getProjectColumnsPermissionMessage,
@@ -62,11 +66,13 @@ jest.mock("react-i18next", () => {
  *
  * So the two switches - acknowledge linked alerts when the incident is
  * acknowledged, resolve them when it is resolved - now have a Settings page
- * of their own, on for new projects. The real page is rendered here with the
+ * of their own, on for new projects. Each is a switch that saves the moment
+ * it is flipped, as the AI behaviours beside it are (they used to sit behind
+ * an Update button and a dialog). The real page is rendered here with the
  * model API and the permission snapshot stubbed: what it shows, what it
- * reads, what a save writes, and who gets a working Update button (the
- * switches take Project Owner or Project Admin, narrower than the Project
- * table's own update list).
+ * reads, what a flip writes, and who may flip them (the switches take
+ * Project Owner or Project Admin, narrower than the Project table's own
+ * update list).
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -95,6 +101,7 @@ const BASE_PERMISSIONS: Array<Permission> = [
 
 let project: Project;
 let getItemSpy: ReturnType<typeof jest.spyOn>;
+let updateByIdSpy: ReturnType<typeof jest.spyOn>;
 let createOrUpdateSpy: ReturnType<typeof jest.spyOn>;
 
 function grant(permissions: Array<Permission>, isMasterAdmin?: boolean): void {
@@ -138,114 +145,57 @@ async function card(): Promise<HTMLElement> {
   ) as HTMLElement;
 }
 
-// A detail row's title, as ModelDetail renders it.
-function detailTitle(title: string): HTMLElement {
-  return screen.getByText(title, { selector: "label > span" });
+async function flush(): Promise<void> {
+  await act(async () => {
+    for (let i: number = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+  });
 }
 
-// The value a detail row shows, by its title.
-function detailValue(title: string): string {
-  const row: HTMLElement | null =
-    detailTitle(title).closest("div.space-y-1")?.parentElement || null;
-  return row?.textContent || "";
-}
-
-async function expectValues(
-  acknowledge: string,
-  resolve: string,
-): Promise<void> {
-  await waitFor(
-    () => {
-      expect(detailValue(ACKNOWLEDGE_SWITCH)).toContain(acknowledge);
-      expect(detailValue(RESOLVE_SWITCH)).toContain(resolve);
-    },
-    { timeout: WAIT_TIMEOUT },
-  );
-}
-
-// The card's Update buttons, as buttons.
-async function updateButtons(): Promise<Array<HTMLElement>> {
-  const linkedAlertsCard: HTMLElement = await card();
-  await within(linkedAlertsCard).findByText(
-    "Update",
+async function acknowledgeSwitch(): Promise<HTMLElement> {
+  return await screen.findByTestId(
+    LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID,
     {},
     { timeout: WAIT_TIMEOUT },
   );
-
-  return within(linkedAlertsCard)
-    .getAllByText("Update")
-    .map((text: HTMLElement): HTMLElement => {
-      return text.closest("button") as HTMLElement;
-    });
 }
 
-async function openEditModal(): Promise<HTMLElement> {
-  const buttons: Array<HTMLElement> = await updateButtons();
-  expect(buttons).toHaveLength(1);
-  fireEvent.click(buttons[0]!);
-  return await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT });
-}
-
-/*
- * A form switch by its field title. The accessible name is the field label,
- * which also carries "(Optional)" for a field that is not required.
- */
-function switchName(title: string): RegExp {
-  return new RegExp(
-    `^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( \\(Optional\\))?$`,
-  );
-}
-
-async function waitForSwitch(
-  dialog: HTMLElement,
-  name: string,
-  checked: boolean,
-): Promise<HTMLElement> {
-  const toggle: HTMLElement = await within(dialog).findByRole(
-    "switch",
-    { name: switchName(name) },
+async function resolveSwitch(): Promise<HTMLElement> {
+  return await screen.findByTestId(
+    LINKED_ALERTS_RESOLVE_SWITCH_TEST_ID,
+    {},
     { timeout: WAIT_TIMEOUT },
   );
-  await waitFor(
-    () => {
-      expect(toggle).toHaveAttribute("aria-checked", String(checked));
+}
+
+// Where the two switches are, once the project is read.
+async function expectSwitches(
+  acknowledge: boolean,
+  resolve: boolean,
+): Promise<void> {
+  expect(await acknowledgeSwitch()).toHaveAttribute(
+    "aria-checked",
+    String(acknowledge),
+  );
+  expect(await resolveSwitch()).toHaveAttribute(
+    "aria-checked",
+    String(resolve),
+  );
+}
+
+async function press(control: HTMLElement): Promise<void> {
+  fireEvent.click(control);
+  await flush();
+}
+
+// Every update a flip sent, as the columns and values it wrote.
+function updates(): Array<Record<string, unknown>> {
+  return updateByIdSpy.mock.calls.map(
+    (call: Array<unknown>): Record<string, unknown> => {
+      return (call[0] as { data: Record<string, unknown> }).data;
     },
-    { timeout: WAIT_TIMEOUT },
   );
-  return toggle;
-}
-
-async function save(dialog: HTMLElement): Promise<void> {
-  fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-  await waitFor(
-    () => {
-      expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
-    },
-    { timeout: WAIT_TIMEOUT },
-  );
-}
-
-function postedProject(): Project {
-  return (createOrUpdateSpy.mock.calls[0]![0] as { model: Project }).model;
-}
-
-/*
- * The Project columns a saved model carries a value for, sorted, leaving
- * out its id: the columns the save writes.
- */
-function writtenColumns(model: Project): Array<string> {
-  const values: Record<string, unknown> = model as unknown as Record<
-    string,
-    unknown
-  >;
-
-  return Object.keys(values)
-    .filter((key: string): boolean => {
-      return (
-        key !== "_id" && model.isTableColumn(key) && values[key] !== undefined
-      );
-    })
-    .sort();
 }
 
 beforeEach(() => {
@@ -275,6 +225,11 @@ beforeEach(() => {
     .spyOn(ModelAPI, "count")
     .mockImplementation(async (): Promise<number> => {
       return 0;
+    });
+  updateByIdSpy = jest
+    .spyOn(ModelAPI, "updateById")
+    .mockImplementation(async (): Promise<never> => {
+      return {} as never;
     });
   createOrUpdateSpy = jest
     .spyOn(ModelAPI, "createOrUpdate")
@@ -356,38 +311,51 @@ describe("Incidents → Settings → Linked Alerts", () => {
   test("a new project shows both switches on", async () => {
     openPage();
 
-    await expectValues("Yes", "Yes");
+    await expectSwitches(true, true);
   });
 
-  test("a project that turned them off shows No for each", async () => {
+  test("a project that turned them off shows each off", async () => {
     project.acknowledgeLinkedAlertsWhenIncidentAcknowledged = false;
     project.resolveLinkedAlertsWhenIncidentResolved = false;
     openPage();
 
-    await expectValues("No", "No");
+    await expectSwitches(false, false);
   });
 
   test("shows each switch's own value", async () => {
     project.resolveLinkedAlertsWhenIncidentResolved = false;
     openPage();
 
-    await expectValues("Yes", "No");
+    await expectSwitches(true, false);
   });
 
   test("holds nothing but the two switches - the number prefixes stay where they were", async () => {
     openPage();
-
-    await expectValues("Yes", "Yes");
+    await expectSwitches(true, true);
 
     const linkedAlertsCard: HTMLElement = await card();
+
+    expect(within(linkedAlertsCard).getAllByRole("switch")).toHaveLength(2);
+    expect(screen.getByRole("switch", { name: ACKNOWLEDGE_SWITCH })).toBe(
+      await acknowledgeSwitch(),
+    );
+    expect(screen.getByRole("switch", { name: RESOLVE_SWITCH })).toBe(
+      await resolveSwitch(),
+    );
     expect(
-      Array.from(linkedAlertsCard.querySelectorAll("label > span")).map(
-        (title: Element): string => {
-          return title.textContent || "";
-        },
+      within(screen.getByTestId(LINKED_ALERTS_SWITCHES_TEST_ID)).getAllByRole(
+        "switch",
       ),
-    ).toEqual([ACKNOWLEDGE_SWITCH, RESOLVE_SWITCH]);
+    ).toHaveLength(2);
     expect(linkedAlertsCard.textContent || "").not.toMatch(/Number Prefix/);
+  });
+
+  test("the switches are the setting: no Update button, no dialog", async () => {
+    openPage();
+    await expectSwitches(true, true);
+
+    expect(screen.queryByText("Update")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   test("reads the project it is on, and only the two switches", async () => {
@@ -416,71 +384,76 @@ describe("Incidents → Settings → Linked Alerts", () => {
     }
   });
 
-  test("the edit form holds the two switches, showing the project's values", async () => {
-    project.resolveLinkedAlertsWhenIncidentResolved = false;
+  test("each switch says what it does", async () => {
     openPage();
+    await expectSwitches(true, true);
 
-    const dialog: HTMLElement = await openEditModal();
-
-    await waitForSwitch(dialog, ACKNOWLEDGE_SWITCH, true);
-    await waitForSwitch(dialog, RESOLVE_SWITCH, false);
-    expect(within(dialog).getAllByRole("switch")).toHaveLength(2);
-
-    // What each switch does, in the form.
     expect(
-      within(dialog).getByText(
-        /This stops those alerts' on-call escalations\./,
-      ),
-    ).toBeInTheDocument();
+      screen.getByTestId(`${LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID}-row`),
+    ).toHaveTextContent(/This stops those alerts' on-call escalations\./);
     expect(
-      within(dialog).getByText(
-        /except alerts that are still linked to another incident that is not resolved yet/,
-      ),
-    ).toBeInTheDocument();
-  });
-
-  test("a project owner turns the acknowledge switch off and saves exactly the two switches", async () => {
-    openPage();
-
-    const dialog: HTMLElement = await openEditModal();
-    const acknowledge: HTMLElement = await waitForSwitch(
-      dialog,
-      ACKNOWLEDGE_SWITCH,
-      true,
+      screen.getByTestId(`${LINKED_ALERTS_RESOLVE_SWITCH_TEST_ID}-row`),
+    ).toHaveTextContent(
+      /except alerts that are still linked to another incident that is not resolved yet/,
     );
-    await waitForSwitch(dialog, RESOLVE_SWITCH, true);
-
-    fireEvent.click(acknowledge);
-    await save(dialog);
-
-    const posted: Project = postedProject();
-    expect(posted.acknowledgeLinkedAlertsWhenIncidentAcknowledged).toBe(false);
-    expect(posted.resolveLinkedAlertsWhenIncidentResolved).toBe(true);
-    // Nothing else on the project rides along - the number prefixes least of all.
-    expect(writtenColumns(posted)).toEqual([...SWITCH_COLUMNS].sort());
-    expect(posted.incidentNumberPrefix).toBeUndefined();
-    expect(String(posted._id)).toBe(PROJECT_ID);
   });
 
-  test("a project that turned them off turns them back on the same way", async () => {
+  test("a project owner turns the acknowledge switch off, and exactly that column is saved", async () => {
+    openPage();
+
+    const acknowledge: HTMLElement = await acknowledgeSwitch();
+    await press(acknowledge);
+
+    expect(updates()).toEqual([
+      { acknowledgeLinkedAlertsWhenIncidentAcknowledged: false },
+    ]);
+    expect(
+      String((updateByIdSpy.mock.calls[0]![0] as { id: unknown }).id),
+    ).toBe(PROJECT_ID);
+    expect(
+      (updateByIdSpy.mock.calls[0]![0] as { modelType: unknown }).modelType,
+    ).toBe(Project);
+    expect(acknowledge).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByTestId(`${LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID}-status`),
+    ).toHaveTextContent("Saved");
+    // Nothing else on the project rides along - the number prefixes least of all.
+    expect(createOrUpdateSpy).not.toHaveBeenCalled();
+    expect(await resolveSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("a project that turned them off turns them back on, one flip each", async () => {
     project.acknowledgeLinkedAlertsWhenIncidentAcknowledged = false;
     project.resolveLinkedAlertsWhenIncidentResolved = false;
     openPage();
 
-    const dialog: HTMLElement = await openEditModal();
-    fireEvent.click(await waitForSwitch(dialog, ACKNOWLEDGE_SWITCH, false));
-    fireEvent.click(await waitForSwitch(dialog, RESOLVE_SWITCH, false));
-    await save(dialog);
+    await press(await acknowledgeSwitch());
+    await press(await resolveSwitch());
 
-    const posted: Project = postedProject();
-    expect(posted.acknowledgeLinkedAlertsWhenIncidentAcknowledged).toBe(true);
-    expect(posted.resolveLinkedAlertsWhenIncidentResolved).toBe(true);
-    expect(writtenColumns(posted)).toEqual([...SWITCH_COLUMNS].sort());
+    expect(updates()).toEqual([
+      { acknowledgeLinkedAlertsWhenIncidentAcknowledged: true },
+      { resolveLinkedAlertsWhenIncidentResolved: true },
+    ]);
+  });
+
+  test("a flip the server refuses moves the switch back, with why", async () => {
+    updateByIdSpy.mockImplementation(async (): Promise<never> => {
+      throw new Error("You do not have permission to update this Project.");
+    });
+    openPage();
+
+    const resolve: HTMLElement = await resolveSwitch();
+    await press(resolve);
+
+    expect(resolve).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId(`${LINKED_ALERTS_RESOLVE_SWITCH_TEST_ID}-row`),
+    ).toHaveTextContent("You do not have permission to update this Project.");
   });
 });
 
 describe("who may change the switches", () => {
-  test("the card is gated on exactly the two columns it writes", () => {
+  test("the switches are the two columns the page names", () => {
     expect(LINKED_ALERTS_FIELDS).toEqual(SWITCH_COLUMNS);
     expect(getProjectColumnsUpdatePermissions(LINKED_ALERTS_FIELDS)).toEqual([
       Permission.ProjectOwner,
@@ -489,7 +462,7 @@ describe("who may change the switches", () => {
   });
 
   test("is narrower than the Project table's update list", () => {
-    // Why the card cannot rely on CardModelDetail's table-level gate.
+    // Why each switch is gated on its column, not on the table.
     expect(new Project().getUpdatePermissions()).toEqual(
       expect.arrayContaining([
         Permission.EditProject,
@@ -504,80 +477,83 @@ describe("who may change the switches", () => {
     ).not.toContain(Permission.ManageProjectBilling);
   });
 
-  test("the locked button's reason names the permissions", () => {
+  test("the permissions they need, named the way a locked card names them", () => {
     expect(getProjectColumnsPermissionMessage(LINKED_ALERTS_FIELDS)).toBe(
       "Changing these needs one of these permissions: Project Owner, Project Admin.",
     );
   });
 
   test.each([[Permission.ProjectOwner], [Permission.ProjectAdmin]])(
-    "%s gets a working Update button",
+    "%s may flip both",
     async (permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       openPage();
 
-      const buttons: Array<HTMLElement> = await updateButtons();
-      expect(buttons).toHaveLength(1);
-      expect(buttons[0]).not.toBeDisabled();
+      expect(await acknowledgeSwitch()).not.toHaveAttribute("aria-disabled");
+      expect(await resolveSwitch()).not.toHaveAttribute("aria-disabled");
 
-      fireEvent.click(buttons[0]!);
-      expect(
-        await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT }),
-      ).toBeInTheDocument();
+      await press(await resolveSwitch());
+      expect(updates()).toEqual([
+        { resolveLinkedAlertsWhenIncidentResolved: false },
+      ]);
     },
   );
 
-  test("a master admin gets a working Update button", async () => {
+  test("a master admin may flip both", async () => {
     grant([], true);
     openPage();
 
-    const buttons: Array<HTMLElement> = await updateButtons();
-    expect(buttons).toHaveLength(1);
-    expect(buttons[0]).not.toBeDisabled();
+    expect(await acknowledgeSwitch()).not.toHaveAttribute("aria-disabled");
+    expect(await resolveSwitch()).not.toHaveAttribute("aria-disabled");
   });
 
   /*
    * The Project table's update list lets these two in, but the columns do
-   * not: the card's own gate would give them a save the server refuses.
+   * not: the switches are locked, and say which permissions they need.
    */
   test.each([[Permission.EditProject], [Permission.ManageProjectBilling]])(
-    "%s sees the Update button locked, and clicking it opens nothing",
+    "%s sees both switches locked, with the reason, and a press saves nothing",
     async (permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       openPage();
 
-      const buttons: Array<HTMLElement> = await updateButtons();
-      expect(buttons).toHaveLength(1);
-      expect(buttons[0]).toBeDisabled();
+      const acknowledge: HTMLElement = await acknowledgeSwitch();
 
-      fireEvent.click(buttons[0]!);
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(acknowledge).toHaveAttribute("aria-disabled", "true");
+      expect(await resolveSwitch()).toHaveAttribute("aria-disabled", "true");
+      expect(
+        screen.getByTestId(`${LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID}-row`),
+      ).toHaveTextContent("Project Owner, Project Admin");
+
+      await press(acknowledge);
+      expect(updateByIdSpy).not.toHaveBeenCalled();
       expect(createOrUpdateSpy).not.toHaveBeenCalled();
     },
   );
 
   test.each([[Permission.ProjectMember], [Permission.Viewer]])(
-    "%s reads the switches behind a locked button",
+    "%s reads the switches, locked",
     async (permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       openPage();
 
-      await expectValues("Yes", "Yes");
-
-      const buttons: Array<HTMLElement> = await updateButtons();
-      expect(buttons).toHaveLength(1);
-      expect(buttons[0]).toBeDisabled();
+      await expectSwitches(true, true);
+      expect(await acknowledgeSwitch()).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
     },
   );
 
-  test("offers no button before the permission snapshot has landed", async () => {
+  test("before the permission snapshot has landed they are locked, accusing nobody", async () => {
     grant([]);
     openPage();
 
-    const linkedAlertsCard: HTMLElement = await card();
-    await findText(CARD_DESCRIPTION);
+    const acknowledge: HTMLElement = await acknowledgeSwitch();
+
+    expect(acknowledge).toHaveAttribute("aria-disabled", "true");
     expect(
-      within(linkedAlertsCard).queryByText("Update"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId(`${LINKED_ALERTS_ACKNOWLEDGE_SWITCH_TEST_ID}-row`),
+    ).not.toHaveTextContent("You do not have permission");
   });
 });

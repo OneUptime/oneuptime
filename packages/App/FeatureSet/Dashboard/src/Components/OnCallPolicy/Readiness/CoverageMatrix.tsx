@@ -4,6 +4,13 @@ import IconProp from "Common/Types/Icon/IconProp";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The coverage grid: severities down, rule types across, one grid per severity
@@ -213,7 +220,8 @@ export const buildCoverageModel: (
       seenSeverityKeys.add(severityKey);
       section.severities.push({
         severityId: cell.severityId,
-        severityName: cell.severityName || "Unnamed severity",
+        severityName:
+          cell.severityName || translateTemplate("Unnamed severity"),
       });
     }
   }
@@ -271,16 +279,16 @@ export const getCoverageCellState: (
 };
 
 const COVERAGE_CELL_TITLES: Record<CoverageCellState, string> = {
-  Covered: "Covered - a notification rule exists",
-  Muted: "Muted - notifications intentionally turned off",
-  Gap: "No rule - pages here fall back to a verified method",
-  Unknown: "Not reported",
+  Covered: translationKey("Covered - a notification rule exists"),
+  Muted: translationKey("Muted - notifications intentionally turned off"),
+  Gap: translationKey("No rule - pages here fall back to a verified method"),
+  Unknown: translationKey("Not reported"),
 };
 
 const getCoverageCellVisual: (state: CoverageCellState) => ReactElement = (
   state: CoverageCellState,
 ): ReactElement => {
-  const title: string = COVERAGE_CELL_TITLES[state];
+  const title: string = translateTemplate(COVERAGE_CELL_TITLES[state]);
 
   if (state === "Covered") {
     return (
@@ -358,6 +366,7 @@ export interface CoverageSectionViewProps {
 const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
   props: CoverageSectionViewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [openSeverityId, setOpenSeverityId] = useState<string>("");
 
   const section: CoverageSection = props.section;
@@ -381,19 +390,21 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
   return (
     <div className="mb-5 last:mb-0">
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-        {section.title}
+        {translator.translateText(section.title)}
       </div>
 
       {/* Wide viewports: the matrix itself. */}
       <div className="max-md:hidden overflow-x-auto md:block">
         <table
-          aria-label={`${section.title} coverage`}
+          aria-label={translator.translateTemplate("{{section}} coverage", {
+            section: translatableTerm(section.title),
+          })}
           className="min-w-full border-separate border-spacing-0"
         >
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-gray-50 pb-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-400">
-                Severity
+                {translator.translateText("Severity")}
               </th>
               {section.ruleTypes.map(
                 (ruleType: NotificationRuleType): ReactElement => {
@@ -466,12 +477,14 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
                 <span className="flex items-center gap-2">
                   {severityGapCount > 0 ? (
                     <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                      {severityGapCount}{" "}
-                      {severityGapCount === 1 ? "gap" : "gaps"}
+                      {translator.translatePlural(
+                        { one: "{{count}} gap", other: "{{count}} gaps" },
+                        severityGapCount,
+                      )}
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                      Covered
+                      {translator.translateText("Covered")}
                     </span>
                   )}
                   <Icon
@@ -525,12 +538,15 @@ export interface CoverageMatrixProps {
 const CoverageMatrix: FunctionComponent<CoverageMatrixProps> = (
   props: CoverageMatrixProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const model: CoverageModel = props.model;
 
   if (model.sections.length === 0 && model.lifecycleCells.length === 0) {
     return (
       <div className="text-sm text-gray-500">
-        No coverage was reported for this responder.
+        {translator.translateText(
+          "No coverage was reported for this responder.",
+        )}
       </div>
     );
   }
@@ -549,7 +565,7 @@ const CoverageMatrix: FunctionComponent<CoverageMatrixProps> = (
       {model.lifecycleCells.length > 0 && (
         <div className="mt-4 border-t border-gray-200 pt-4">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            Shift changes
+            {translator.translateText("Shift changes")}
           </div>
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
             {model.lifecycleCells.map(

@@ -112,7 +112,8 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         cardProps={{
           title: "Status Timeline",
-          description: "Here is the status timeline for this alert",
+          description:
+            "Each status this alert has been in, when it began and how long it lasted.",
         }}
         noItemsMessage={"No status timeline created for this alert so far."}
         sortBy="startsAt"
@@ -130,6 +131,9 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
               type: AlertState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {
@@ -218,7 +222,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="Here is more information about why the status changed for this alert."
+          description="What OneUptime recorded when this alert changed to this status, such as the monitor check that caused it."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

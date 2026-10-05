@@ -18,6 +18,14 @@ export interface ComponentProps<TModel extends TelemetryRetentionModel> {
   modelId: ObjectID;
   resourceName: string;
   modelDetailIdPrefix: string;
+  /*
+   * Which of the resource's telemetry the retention covers, when that is not
+   * simply everything collected from it (a database's covers its engine
+   * metrics and logs, not the traces of the queries sent to it). English,
+   * whole sentences, wrapped in translationKey() where it is declared; the
+   * retention card shows it in its description.
+   */
+  scopeNote?: string | undefined;
 }
 
 /*
@@ -85,6 +93,7 @@ const TelemetryResourceRetentionSettings: <
     modelId: props.modelId,
     resourceName: props.resourceName,
     modelDetailIdPrefix: props.modelDetailIdPrefix,
+    scopeNote: props.scopeNote,
   };
 
   return (

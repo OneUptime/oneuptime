@@ -147,8 +147,14 @@ jest.mock(
   },
 );
 
+/*
+ * The job reads the resources an announcement affects through
+ * AffectedStatusPageResources, which asks findByMonitors - the lookup that
+ * also follows monitor groups - once per announcement, for all of its status
+ * pages.
+ */
 jest.mock("Common/Server/Services/StatusPageResourceService", () => {
-  return { __esModule: true, default: { findAllBy: jest.fn() } };
+  return { __esModule: true, default: { findByMonitors: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/MailService", () => {
@@ -241,6 +247,16 @@ import {
   hostileResources,
   recordedCompiles,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  fansOn,
+  groupResourceOn,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Announcement/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -324,7 +340,11 @@ let createdRows: Array<Row> = [];
 let updatedRows: Array<Row> = [];
 let skipRows: Array<Row> = [];
 
-// StatusPageResource rows returned for each status page id.
+/*
+ * The StatusPageResource rows each status page lists for the announcement's
+ * monitors. findByMonitors answers for the pages it is asked about, all at
+ * once.
+ */
 let resourcesByStatusPage: Record<string, Array<StatusPageResource>> = {};
 
 function announcement(overrides?: {
@@ -582,10 +602,22 @@ function variablesByChannel(): Record<string, Record<string, string>> {
   return byChannel;
 }
 
-function resourceLookups(): Array<{ query: JSONObject; select: JSONObject }> {
-  return mock(StatusPageResourceService.findAllBy).mock.calls.map(
-    (call: Array<unknown>): { query: JSONObject; select: JSONObject } => {
-      return call[0] as { query: JSONObject; select: JSONObject };
+interface ResourceLookup {
+  monitorIds: Array<ObjectID>;
+  statusPageIds: Array<ObjectID>;
+  select: JSONObject;
+}
+
+function idsOf(ids: Array<ObjectID>): Array<string> {
+  return ids.map((id: ObjectID): string => {
+    return id.toString();
+  });
+}
+
+function resourceLookups(): Array<ResourceLookup> {
+  return mock(StatusPageResourceService.findByMonitors).mock.calls.map(
+    (call: Array<unknown>): ResourceLookup => {
+      return call[0] as ResourceLookup;
     },
   );
 }
@@ -753,10 +785,18 @@ beforeEach(() => {
     STATUS_PAGE_URL as never,
   );
 
-  mock(StatusPageResourceService.findAllBy).mockImplementation(
+  // Answers only for the status pages it is asked about, as the real one does.
+  mock(StatusPageResourceService.findByMonitors).mockImplementation(
     async (args: unknown): Promise<Array<StatusPageResource>> => {
-      const query: JSONObject = (args as { query: JSONObject }).query;
-      return resourcesByStatusPage[String(query["statusPageId"])] || [];
+      const askedFor: Array<string> = idsOf(
+        (args as ResourceLookup).statusPageIds || [],
+      );
+
+      return askedFor.flatMap(
+        (statusPageId: string): Array<StatusPageResource> => {
+          return resourcesByStatusPage[statusPageId] || [];
+        },
+      );
     },
   );
 
@@ -1822,7 +1862,7 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
 
       const calls: Array<CompileTemplateCall> = compileTemplateCalls();
 
@@ -1869,11 +1909,9 @@ describe.each(TRIGGERS)(
 
       await runJob(trigger.job);
 
-      expect(
-        resourceLookups().map((lookup: { query: JSONObject }): string => {
-          return String(lookup.query["statusPageId"]);
-        }),
-      ).toEqual([
+      // One lookup answers every page; each page gets only its own.
+      expect(resourceLookups()).toHaveLength(1);
+      expect(idsOf(resourceLookups()[0]!.statusPageIds)).toEqual([
         STATUS_PAGE_ID.toString(),
         SECOND_STATUS_PAGE_ID.toString(),
         THIRD_STATUS_PAGE_ID.toString(),
@@ -1904,14 +1942,14 @@ describe.each(TRIGGERS)(
       ]);
     });
 
-    test("loads each page's resources for the announcement's monitors, with their group names", async () => {
+    test("looks up the resources the announcement's monitors affect, monitor groups included, with their group names", async () => {
       trigger.queue([scopedAnnouncement()]);
 
       await runJob(trigger.job);
 
-      const lookups: Array<{ query: JSONObject; select: JSONObject }> =
-        resourceLookups();
+      const lookups: Array<ResourceLookup> = resourceLookups();
 
+      // findByMonitors is the lookup that also follows monitor groups.
       expect(lookups).toHaveLength(1);
       expect(lookups[0]!.select).toEqual({
         _id: true,
@@ -1922,18 +1960,14 @@ describe.each(TRIGGERS)(
           name: true,
         },
       });
-      expect(lookups[0]!.query["statusPageId"]).toEqual(
-        new ObjectID(STATUS_PAGE_ID.toString()),
-      );
-
-      const monitorFilter: { objectLiteralParameters?: JSONObject } =
-        lookups[0]!.query["monitorId"] as unknown as {
-          objectLiteralParameters?: JSONObject;
-        };
-
-      expect(
-        Object.values(monitorFilter.objectLiteralParameters || {}),
-      ).toEqual([[API_MONITOR_ID.toString(), WEBSITE_MONITOR_ID.toString()]]);
+      expect(idsOf(lookups[0]!.monitorIds)).toEqual([
+        API_MONITOR_ID.toString(),
+        WEBSITE_MONITOR_ID.toString(),
+      ]);
+      // Only the pages the announcement is on.
+      expect(idsOf(lookups[0]!.statusPageIds)).toEqual([
+        STATUS_PAGE_ID.toString(),
+      ]);
     });
 
     test("keeps the default messages unchanged for an announcement scoped to resources", async () => {
@@ -2213,6 +2247,157 @@ describe.each(TRIGGERS)(
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
       }
+    });
+  },
+);
+
+/*
+ * Subscribers who chose resources, on a page that shows the announcement's
+ * monitor through a monitor group. The job used to look resources up by
+ * monitorId alone. A page that showed the monitor only through a group then
+ * had no affected resource, so the announcement went to everyone on it,
+ * subscribers of unrelated resources included; and a page that also listed
+ * the monitor by itself left out whoever had picked the group.
+ */
+describe.each(TRIGGERS)(
+  "Announcement subscribers who picked a monitor group ($name job)",
+  (trigger: TriggerCase) => {
+    function emailsSentTo(): Array<string> {
+      return sentMail().map(({ mail }: { mail: JSONObject }): string => {
+        return (mail["toEmail"] as Email).toString();
+      });
+    }
+
+    function givenSubscribers(subscribers: Array<StatusPageSubscriber>): void {
+      mock(
+        StatusPageSubscriberService.getSubscribersByStatusPage,
+      ).mockResolvedValue(subscribers as never);
+    }
+
+    beforeEach(() => {
+      givenStatusPages([lettingSubscribersChooseResources(statusPage())]);
+      decideWithTheRealSubscriberPreferences(
+        StatusPageSubscriberService.shouldSendNotification,
+      );
+    });
+
+    test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+    });
+
+    test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(emailsSentTo()).toEqual(page.told);
+      expect(sentSms()).toHaveLength(0);
+    });
+
+    test("lists the group among the resources affected", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+        pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = page.affectedResources;
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.Group]));
+      givenStatusPages([
+        lettingSubscribersChooseResources(statusPageWithCustomDelivery()),
+      ]);
+      useCustomTemplates({
+        body: "{{resourcesAffected}}",
+        subject: "{{resourcesAffected}}",
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentCustomEmails()).toEqual([
+        {
+          body: "Email|Checkout API, Payments",
+          subject: "Subject|Checkout API, Payments",
+        },
+      ]);
+    });
+
+    test("an announcement that names no monitor still tells everyone on the page", async () => {
+      const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+      trigger.queue([announcement()]);
+      givenSubscribers(page.subscribers);
+
+      await runJob(trigger.job);
+
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
+      expect(emailsSentTo()).toEqual(
+        [ResourceFan.Everything, ResourceFan.Group, ResourceFan.OtherGroup].map(
+          fanEmail,
+        ),
+      );
+    });
+
+    test("a failed lookup marks the notification Failed with the reason, and tells nobody", async () => {
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      givenSubscribers(
+        pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID).subscribers,
+      );
+      mock(StatusPageResourceService.findByMonitors).mockRejectedValue(
+        new Error("database went away") as never,
+      );
+
+      await runJob(trigger.job);
+
+      /*
+       * Without the affected resources the job cannot tell who picked them,
+       * so it sends nothing, rather than everything, and says why. Retry
+       * sends it again to every page.
+       */
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual(
+        trigger.name === "created"
+          ? {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Failed,
+              subscriberNotificationStatusMessage: "database went away",
+            }
+          : {
+              subscriberNotificationStatusOnAnnouncementUpdated:
+                StatusPageSubscriberNotificationStatus.Failed,
+              subscriberNotificationStatusMessageOnAnnouncementUpdated:
+                "database went away",
+            },
+      );
+    });
+
+    test("finishes with the 'no matching subscribers' message when nobody picked an affected resource", async () => {
+      trigger.queue([announcement({ monitorIds: [API_MONITOR_ID] })]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = [
+        groupResourceOn(STATUS_PAGE_ID),
+      ];
+      givenSubscribers(fansOn(STATUS_PAGE_ID, [ResourceFan.OtherGroup]));
+
+      await runJob(trigger.job);
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual(
+        expect.objectContaining({
+          [trigger.name === "created"
+            ? "subscriberNotificationStatusMessage"
+            : "subscriberNotificationStatusMessageOnAnnouncementUpdated"]:
+            "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+        }),
+      );
     });
   },
 );

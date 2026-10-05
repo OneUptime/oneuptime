@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -6,6 +7,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import React, {
   Fragment,
   FunctionComponent,
@@ -62,7 +64,7 @@ import {
   buildQueryConfigsFromSerializedQueries,
 } from "../../Components/Metrics/Utils/MetricConfigReconstruct";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -97,6 +99,8 @@ import {
   shouldDropDefaultMonitoringInterval,
   withDefaultMonitoringInterval,
 } from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -240,6 +244,7 @@ function buildThresholdCriteriaInstance(input: {
 const MonitorCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitorTemplateId: string | null =
     Navigation.getQueryStringByName("monitorTemplateId");
 
@@ -427,8 +432,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -719,8 +727,11 @@ const MonitorCreate: FunctionComponent<
           select: {
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -754,10 +765,19 @@ const MonitorCreate: FunctionComponent<
     }
 
     setInitialValues({
-      name: deviceName ? `${deviceName} Monitor` : "Network Device Monitor",
+      name: deviceName
+        ? translator.translateTemplate("{{deviceName}} Monitor", {
+            deviceName: deviceName,
+          })
+        : translator.translateTemplate("Network Device Monitor"),
       description: deviceName
-        ? `Alerts on the ${deviceName} network device.`
-        : "Alerts on a registered network device.",
+        ? translator.translateTemplate(
+            "Alerts on the {{deviceName}} network device.",
+            { deviceName: deviceName },
+          )
+        : translator.translateTemplate(
+            "Alerts on a registered network device.",
+          ),
       monitorType: MonitorType.NetworkDevice,
       monitorSteps: monitorSteps.toJSON(),
     });
@@ -798,8 +818,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -860,8 +883,11 @@ const MonitorCreate: FunctionComponent<
           skip: 0,
           select: {
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const operationalStatus: MonitorStatus | undefined =
@@ -1164,6 +1190,16 @@ const MonitorCreate: FunctionComponent<
                     "Search monitor types - try ping, ssl, k8s, postgres",
                   cardSelectCollapsibleGroups: true,
                 },
+                /*
+                 * Labels are folded under Advanced at the end of Monitor
+                 * Info rather than walked as a last step of their own: the
+                 * one step every monitor type shows, Manual included. A
+                 * template's labels fill it in, and the section then says
+                 * "Configured".
+                 */
+                getLabelsFormField<Monitor>({
+                  stepId: "monitor-info",
+                }),
                 {
                   field: {
                     monitorSteps: true,
@@ -1236,49 +1272,23 @@ const MonitorCreate: FunctionComponent<
                   title: "Monitoring Interval",
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
+                  /*
+                   * What the type is offered: no 1 or 2 minutes for
+                   * Synthetic, Custom Code and SSL monitors. A new monitor
+                   * keeps no interval its type is not offered, so nothing is
+                   * passed as current here.
+                   */
                   fetchDropdownOptions: (item: FormValues<Monitor>) => {
-                    let interval: Array<DropdownOption> = [
-                      ...MonitoringInterval,
-                    ];
-
-                    if (
-                      item &&
-                      (item.monitorType === MonitorType.SyntheticMonitor ||
-                        item.monitorType === MonitorType.CustomJavaScriptCode ||
-                        item.monitorType === MonitorType.SSLCertificate)
-                    ) {
-                      // remove the every minute option, every 2 mins, every 10 minutes
-                      interval = interval.filter((option: DropdownOption) => {
-                        return (
-                          option.value !== "* * * * *" &&
-                          option.value !== "*/2 * * * *"
-                        );
-                      });
-
-                      return Promise.resolve(interval);
-                    }
-
-                    return Promise.resolve(interval);
+                    return Promise.resolve(
+                      getMonitoringIntervalOptions({
+                        monitorType: item?.monitorType as
+                          | MonitorType
+                          | undefined,
+                      }),
+                    );
                   },
 
                   placeholder: "Select Monitoring Interval",
-                },
-                {
-                  field: {
-                    labels: true,
-                  },
-                  title: "Labels",
-                  stepId: "labels",
-                  description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Labels",
                 },
               ]}
               steps={[
@@ -1307,10 +1317,6 @@ const MonitorCreate: FunctionComponent<
                       values.monitorType as MonitorType,
                     );
                   },
-                },
-                {
-                  title: "Labels",
-                  id: "labels",
                 },
               ]}
               onBeforeCreate={async (item: Monitor): Promise<Monitor> => {

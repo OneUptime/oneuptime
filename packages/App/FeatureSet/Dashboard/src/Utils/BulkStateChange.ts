@@ -17,6 +17,28 @@ export interface BulkStateChangeNoteTemplate {
   note: string;
 }
 
+// A note template row as the API returns it (IncidentNoteTemplate & co).
+export interface NoteTemplateRow {
+  id?: { toString: () => string } | null | undefined;
+  templateName?: string | undefined;
+  note?: string | undefined;
+}
+
+/**
+ * The picker's view of a note template row: its id as a string, and empty
+ * strings for what the row leaves out, so a template is never shown as
+ * "undefined".
+ */
+export function toBulkStateChangeNoteTemplate(
+  template: NoteTemplateRow,
+): BulkStateChangeNoteTemplate {
+  return {
+    id: template.id?.toString() || "",
+    templateName: template.templateName || "",
+    note: template.note || "",
+  };
+}
+
 /**
  * The key the note travels under. It is not a column on the state timeline
  * model — the timeline services read it off `miscDataProps` and turn it into

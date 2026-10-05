@@ -9,6 +9,13 @@ import { useTranslation } from "react-i18next";
 export interface DashboardNavigationItems {
   navItems: NavItem[];
   moreMenuItems: MoreMenuItem[];
+  /*
+   * The categories the products menu always shows open: Essentials. They
+   * never fold. Every other category starts folded to one line until it is
+   * opened, so the menu opens on the core products rather than on every
+   * product at once.
+   */
+  moreMenuCategoriesAlwaysOpen: Array<string>;
   rightElement: NavItem;
 }
 
@@ -824,6 +831,18 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
   ];
 
+  /*
+   * The products menu always opens on Essentials, the products a problem
+   * flows through (see the top of the list), and they never fold: the
+   * maintainer asked to "always have Essentials expanded by default". The
+   * rest - observability, AI, code, resources, every infrastructure
+   * platform, dashboards and automation, settings - are each folded to one
+   * line that names what is inside, one click or a search away. The category
+   * of the page the user is on opens by itself, and what someone opens or
+   * folds among those is remembered on their browser.
+   */
+  const moreMenuCategoriesAlwaysOpen: Array<string> = [essentialsCategory];
+
   // Define the right element (User Settings)
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
@@ -835,7 +854,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     activeRoute: RouteMap[PageMap.USER_SETTINGS],
   };
 
-  return { navItems, moreMenuItems, rightElement };
+  return {
+    navItems,
+    moreMenuItems,
+    moreMenuCategoriesAlwaysOpen,
+    rightElement,
+  };
 }
 
 export default useDashboardNavigationItems;

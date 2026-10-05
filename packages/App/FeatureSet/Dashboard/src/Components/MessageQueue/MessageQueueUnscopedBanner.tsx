@@ -2,6 +2,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  Translator,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * What a queue's Overview, Traces and Metrics tabs show instead of their
@@ -17,19 +23,45 @@ export interface ComponentProps {
   signal?: string | undefined;
 }
 
-export const MESSAGE_QUEUE_UNSCOPED_TITLE: string = "No telemetry scope";
+export const MESSAGE_QUEUE_UNSCOPED_TITLE: string =
+  translationKey("No telemetry scope");
 
-/** The card's description for a signal ("traces", "metrics"). */
+// Whole sentences per signal, so a locale words each one its own way.
+const UNSCOPED_DESCRIPTIONS: Record<string, string> = {
+  telemetry: translationKey(
+    "This queue's identifier could not be read, so no telemetry can be matched to it.",
+  ),
+  traces: translationKey(
+    "This queue's identifier could not be read, so no traces can be matched to it.",
+  ),
+  metrics: translationKey(
+    "This queue's identifier could not be read, so no metrics can be matched to it.",
+  ),
+};
+
+/**
+ * The card's description for a signal ("traces", "metrics"): an English
+ * translation key the card translates, or, for any other signal, the
+ * sentence already in the reader's language.
+ */
 export function getMessageQueueUnscopedDescription(
   signal?: string | undefined,
 ): string {
   const what: string = signal || "telemetry";
-  return `This queue's identifier could not be read, so no ${what} can be matched to it.`;
+  return (
+    UNSCOPED_DESCRIPTIONS[what] ||
+    translateTemplate(
+      "This queue's identifier could not be read, so no {{signal}} can be matched to it.",
+      { signal: what },
+    )
+  );
 }
 
 const MessageQueueUnscopedBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <Card
       title={MESSAGE_QUEUE_UNSCOPED_TITLE}
@@ -47,10 +79,9 @@ const MessageQueueUnscopedBanner: FunctionComponent<ComponentProps> = (
             />
           </div>
           <p className="min-w-0 text-sm text-gray-700">
-            A queue&apos;s spans and broker metrics are matched by its messaging
-            system and destination, which ingest turns into one key per queue.
-            Delete this queue and let discovery find it again, or create it
-            again with its system and destination.
+            {translator.translateText(
+              "A queue's spans and broker metrics are matched by its messaging system and destination, which ingest turns into one key per queue. Delete this queue and let discovery find it again, or create it again with its system and destination.",
+            )}
           </p>
         </div>
       </div>

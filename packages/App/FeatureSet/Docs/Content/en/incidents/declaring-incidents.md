@@ -22,19 +22,28 @@ You can also declare an incident from alerts: **Declare Incident** on an alerts 
 
 ## Declaring one by hand
 
-Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over five steps: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** and **More**. When your project asks for some of its incident custom fields on create, a sixth step, **Details**, comes right after **Resources Affected**. The submit button at the end also reads **Declare Incident**.
+Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over three steps: **Incident Details**, **Resources Affected** and **On-Call & Roles**, then a summary to review. When your project asks for some of its incident custom fields on create, a fourth step, **Details**, comes right after **Resources Affected**.
 
-Only the first step has required fields, plus any custom field your admins marked **Required on Create**. If you are in a hurry, fill in **Incident Details** and submit — you can attach resources, assign roles and add on-call policies from the incident's own pages afterwards.
+**From a resource's own page.** **Declare Incident** on the **Incidents** tab of a monitor, a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an IoT fleet, a database or a service opens the same wizard with that resource already picked on **Resources Affected** (a monitor under **Monitors**, anything else under **Other Affected Resources**), ahead of anything a template adds — so a title and a severity are all it takes, and the incident shows on the tab you started from. **Create from Template** on that tab keeps the resource too. The breadcrumbs go back through the resource's tab, and once declared you land on the new incident, as from the incidents list. An inventory item's **Incidents** tab picks the host, service or Kubernetes cluster the item points at, and the breadcrumbs go back through that resource's tab. **Create Alert** on a resource's **Alerts** tab works the same way: from a monitor it fills in the alert's **Monitor**, from anything else **Other Affected Resources**. The resource is looked up with your own permissions: if you cannot read it, or it has been deleted, the form simply opens with nothing picked.
+
+Only the first step has required fields, plus any custom field your admins marked **Required on Create**, which the **Details** step asks for. Every step before the summary has a plain **Next**, and **Declare Incident** is on the summary, the last step. In a hurry, fill in **Incident Details** and press **Next** through the other steps without filling them in: attaching resources, adding on-call policies and assigning roles can also wait for the incident's own pages. Pressing **Enter** in a field walks on too; it never declares before the summary.
+
+**More fields.** The options most incidents never need wait under a **More fields** header at the end of their step, folded; click it to open them. While it is folded, the header names what is inside and shows each option that is set, with its value — set by a template, say, or by a private alert you are declaring from — and it opens by itself when something in it needs fixing. The summary lists one of those options only when it is set — except **Notify Status Page Subscribers**, which it always lists, with who will be notified.
 
 ### Step 1 — Incident Details
 
 - **Title** — required. The one-line summary everyone will see in the list, in Slack, and (if the incident is visible) on your status page. Placeholder: `Incident Title`.
-- **Description** — optional, written in Markdown. This is the field that renders on the status page, so write it for customers rather than for your team. You can edit it later from **Description** in the incident side menu.
-- **Declared At** — required in the form, defaulted to now. This is the timestamp every duration on the incident is measured from, so back-date it if you are recording something that started earlier.
 - **Incident Severity** — required. One of the severities configured for your project; new projects are seeded with **Critical Incident**, **Major Incident** and **Minor Incident**.
-- **Incident State** — optional. Leave it alone and the incident lands in the state flagged `isCreatedState`, which new projects seed as **Identified**. Set it only when you are recording an incident that was already past that point.
+- **Description** — optional, written in Markdown. This is the field that renders on the status page, so write it for customers rather than for your team. You can edit it later from **Description** in the incident side menu.
 
-**Writing in the Markdown editor.** The description — like notes, root cause, remediation and rich text custom fields — is written in the Markdown editor. It opens in visual mode, which shows the text formatted; **Markdown** on its toolbar switches to Markdown mode, which shows the Markdown source, and **Visual** switches back. In a list, **Indent** and **Outdent** on its toolbar, or Tab and Shift+Tab, nest an item under the one above it and move it back out; where there is nothing to nest under, and outside a list, Tab moves on to the next field as usual. In visual mode, **Code Block**, **Table** and **Task List** in the middle or at the end of a line split the line at the cursor and put the new block on lines of its own — at the edge of a bold word, a link or inline code too, without leaving empty formatting behind — and **Task List** in a list item adds its task to that item's list rather than as a sub-task. In Markdown mode, **Code Block** and **Table** go in at the cursor, so start a new line for them first, **Task List** turns the cursor's line into a task, and **Numbered List** numbers each level of a nested list from 1.
+Under **More fields**:
+
+- **Declared At** — starts at the moment you opened the page. This is the timestamp every duration on the incident is measured from, so back-date it if you are recording something that started earlier.
+- **Initial State** — optional, and empty to start with. Left empty, the incident starts in the state flagged `isCreatedState`, which new projects seed as **Identified** — or in the template's initial state, when you declare from a template. Pick a later state only when you are recording an incident that was already past that point, acknowledged or resolved.
+- **Labels** — optional. Labels group related incidents so you can filter by them, and a team whose permissions are restricted to labels only sees the incidents that carry one of its labels.
+- **Private Incident** — checkbox, off by default (`isPrivate`). A private incident is visible only to its owner users, the members of its owner teams, project admins and project owners — and it is hidden from every status page, regardless of any other setting, including the status pages it is limited to. The incidents list marks these with a red **Private** pill.
+
+**Writing in the Markdown editor.** The description — like notes, root cause, remediation and rich text custom fields — is written in the Markdown editor. It opens in visual mode, which shows the text formatted; **Markdown** on its toolbar switches to Markdown mode, which shows the Markdown source, and **Visual** switches back. In a list, **Indent** and **Outdent** on its toolbar, or Tab and Shift+Tab, nest an item under the one above it and move it back out; where there is nothing to nest under, and outside a list, Tab moves on to the next field as usual. In visual mode, **Code Block**, **Table** and **Task List** in the middle or at the end of a line split the line at the cursor and put the new block on lines of its own — at the edge of a bold word, a link or inline code too, without leaving empty formatting behind — and **Task List** in a list item adds its task to that item's list rather than as a sub-task. In Markdown mode, **Code Block** and **Table** go in at the cursor, so start a new line for them first, **Task List** turns the cursor's line into a task, and **Numbered List** numbers each level of a nested list from 1. The toolbar stays on one line: forms with the editor open in a wide dialog, so on most screens every button fits, and where they do not — on a phone, or in a narrow window — the buttons that do not fit are under **More formatting** (**⋯**) at the end of the toolbar, in the same order, and each one you pick there goes in where the cursor was. On the narrowest screens the **Markdown** switch moves under it too.
 
 **Undoing.** In visual mode, Ctrl+Z (Cmd+Z on a Mac) takes back your changes one at a time, newest first — what you typed and the editor's own edits alike: an indent or an outdent, a block it put into a line, a formatted or block paste — and Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y puts them back in the same order. In Markdown mode, Ctrl+Z takes back an indent or an outdent, a list button's change and a formatted paste, but not what the **Code Block**, **Table** and **Horizontal Rule** buttons put in.
 
@@ -42,15 +51,30 @@ Only the first step has required fields, plus any custom field your admins marke
 
 **Copying out of a note.** A code block copied from a note or a description pastes back as a code block in its language, and so does a line of one copied with its line break, as a triple-click copies it in Chrome, Edge and Safari. A word or part of a line copied out of a code block pastes as inline code. In Chrome, Edge and Safari, lines copied from a code view drawn as a table — the YAML tab of a Kubernetes resource, the frames of an exception's stack trace — paste as their plain text, indentation kept.
 
-**If the state dropdown gives you trouble.** If your project has no state carrying the `isCreatedState` flag, the create call fails and tells you to add a created incident state from settings. That normally only happens on a project whose states were edited heavily — see [Incident States & Severities](/docs/incidents/states-and-severities).
+**If the state gives you trouble.** If your project has no state carrying the `isCreatedState` flag, the create call fails and tells you to add a created incident state from settings. That normally only happens on a project whose states were edited heavily — see [Incident States & Severities](/docs/incidents/states-and-severities).
 
 ### Step 2 — Resources Affected
 
-- **Resources Affected** — a single search box that attaches monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. Under the hood these are separate relations on the incident (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` and more), but the form collapses them into one picker.
-- **Limit to these status pages** — optional. Left empty, the incident shows on, and notifies the subscribers of, every status page that lists its monitors. Pick pages here and only the picked pages among those are used; the **Labels** tab adds every page with a label at once. The form warns you when a picked page lists none of the incident's monitors. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
-- **Change Monitor Status to** — optional. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. A monitor's status is shared by every status page that lists it, so with status pages picked above, the form reminds you that the change also shows on the pages you did not pick.
+The monitors come first, on their own, because status pages see an incident through its monitors, and the status the monitors change to sits right under them.
+
+- **Monitors** — a search box that attaches the monitors the incident affects; its **Labels** tab adds every monitor with a label at once. A status page shows an incident, and notifies its subscribers about it, when it lists one of the incident's monitors, so these are what decide which status pages hear about it (`monitors` on the incident).
+- **Change Monitor Status to** — optional, and shown only once at least one monitor is picked. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. Declaring from a template that sets one starts with the template's status, shown as soon as you pick a monitor. With no monitor picked no status is saved, the template's included; remove the last monitor and the field goes away until you pick another, which brings your choice back. A monitor's status is shared by every status page that lists it, so with status pages picked under **More fields**, the form reminds you that the change also shows on the pages you did not pick.
+- **Other Affected Resources** — a second search box for everything else the incident affects: hosts, Kubernetes clusters, Docker and Podman hosts, Proxmox, Ceph and Docker Swarm clusters, vCenters, IoT fleets, databases and services — everything besides monitors that the incident's own **Affected Resources** card offers. Under the hood these are separate relations on the incident (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` and more), but the form collapses them into one picker.
+
+A monitor can say what it watches — **Monitor → Overview → Linked Resources**, the same kinds of resources as **Other Affected Resources**. Pick such a monitor and what it is linked to is added to **Other Affected Resources** right away, and a line under the field names what was added. Remove anything you do not want before you declare: nothing is added again for that monitor while you stay on the form, and taking the monitor off leaves what it added. The same happens when a monitor comes from a template or from the page you declared on, and on **Create Alert** and **Schedule Maintenance**.
+
+The incident's **Affected Resources** card asks the same way when you edit it later: **Monitors**, **Change Monitor Status to** once there is a monitor, then **Other Affected Resources**. Saving an incident with no monitor left keeps the status it had.
+
+Under **More fields**:
+
+- **Limit to these status pages** — optional. Left empty, the incident shows on, and notifies the subscribers of, every status page that lists its monitors. Pick pages here and only the picked pages among those are used; the **Labels** tab adds every page with a label at once. The form warns you when a picked page lists none of the incident's monitors, and when the incident is private, which hides it from every status page. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Folding it under **More fields** changes nothing it does: it still starts ticked, and the summary always lists it. Under it, and again on the summary before you submit, **Will notify** lists the status pages that will be told, with an "up to" subscriber count per channel, and the pages that will not be told and why. When nobody will be told (no monitor is attached, no status page lists the monitors, or the pages have no subscribers yet) it shows nothing, and it warns only when the incident's status page scope is the reason. On the summary, **Preview notification** shows the email each of those status pages' subscribers will get, and **Send test to me** sends it to your own account email; see [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent). Turn it off for internal noise you still want recorded. The incident then stays quiet by default: new public notes on it, and the state-change modal on its overview page (**Acknowledge**, **Resolve**, or picking another state), start with their own **Notify Status Page Subscribers** checkbox off. The manual form on the **State Timeline** page and the bulk **Change State** action in the incidents list still start with it on.
 
 **Attach monitors even when it feels redundant.** The link between an incident and a status page runs through the incident's monitors: a status page shows an incident, and notifies its subscribers about it, when one of its resources is one of the incident's monitors. **Limit to these status pages** can only narrow that list, never add to it, and a status page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. An incident with no monitors attached notifies no status page subscriber at all. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups).
+
+The **Should be visible on status page?** flag (`isVisibleOnStatusPage`) is not on the wizard; it defaults to true. Change it afterwards from **Settings** in the incident side menu, where it is labeled **Visible on Status Page**.
+
+**Declaring hidden and publishing later.** An incident that is hidden from status pages when it is created tells no subscriber, and its notification status reads **Skipped: hidden from status pages**. When you later turn **Visible on Status Page** on, the edit form offers **Notify subscribers that this incident was created**, so the routine of declaring hidden, working out who is affected and then publishing still tells them. It starts ticked while the incident is unresolved and unticked once it is resolved, so publishing an old incident for the record does not announce it as new. It is only offered when the incident was declared with **Notify Status Page Subscribers** on and is not private — so not for an incident reported through a [form](/docs/forms/on-submit), which is declared hidden with it off. Through the API, send `"miscDataProps": {"notifySubscribersOfIncidentCreatedOnPublish": true}` with the update that sets `isVisibleOnStatusPage` to `true`, or set `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself.
 
 ### Details — your incident custom fields
 
@@ -64,27 +88,14 @@ This step appears only when at least one incident custom field has **Show on Cre
 
 **Required on Create** is checked by the dashboard only, and so is a template's **Custom Fields on Create**. Incidents created by monitors, the API, Slack, Microsoft Teams or AI can leave a field empty, and every field stays optional on the incident's **Custom Fields** page afterwards, so fixing one value mid-outage never demands all the others. See [Custom fields](/docs/incidents/settings#custom-fields) for the field types and settings.
 
-### Step 3 — Incident Roles
-
-- **Assign Incident Roles** — assign team members to the roles your project defines. Some roles accept more than one user.
-
-Roles themselves are configured at **Incidents → Settings → Incident Roles**, where you define the roles that can be assigned during response — Incident Commander, Responder, and whatever else your process needs. If you skip this step, an Incident Commander is auto-assigned on the first state change if nobody holds the role yet.
-
-### Step 4 — On-Call
+### Step 3 — On-Call & Roles
 
 - **On-Call Policy** — a multi-select of the on-call duty policies to execute when this incident is created. This maps to `onCallDutyPolicies` on the incident.
+- **Assign Incident Roles** — who takes each role your project defines, one card per role. A role tagged **Primary** that you leave empty is yours: you take it when the incident is declared, and the summary says so. A role that takes one person says so once it has one; a role that takes several keeps its picker.
 
 This is the only place an on-call policy is attached to an incident directly. Severities do not carry an on-call policy — severity is a label, and it only influences paging as a *match criterion* inside an on-call rule. Rules configured at **Incidents → Rules → On-Call Rules** add their policies on top of whatever you pick here; the final set that runs is the deduplicated union of both.
 
-### Step 5 — More
-
-- **Labels** — optional and an advanced feature: team members with access to these labels are the ones who can access the incident.
-- **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Under it, and again on the summary before you submit, **Will notify** lists the status pages that will be told, with an "up to" subscriber count per channel, and the pages that will not be told and why. On the summary, **Preview notification** shows the email each of those status pages' subscribers will get, and **Send test to me** sends it to your own account email; see [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent). Turn it off for internal noise you still want recorded. The incident then stays quiet by default: new public notes on it, and the state-change modal on its overview page (**Acknowledge**, **Resolve**, or picking another state), start with their own **Notify Status Page Subscribers** checkbox off. The manual form on the **State Timeline** page and the bulk **Change State** action in the incidents list still start with it on.
-- **Private Incident** — checkbox, off by default (`isPrivate`). A private incident is visible only to its owner users, the members of its owner teams, project admins and project owners — and it is hidden from every status page, regardless of any other setting, including the status pages it is limited to. The incidents list marks these with a red **Private** pill.
-
-The **Should be visible on status page?** flag (`isVisibleOnStatusPage`) is not on the wizard; it defaults to true. Change it afterwards from **Settings** in the incident side menu, where it is labeled **Visible on Status Page**.
-
-**Declaring hidden and publishing later.** An incident that is hidden from status pages when it is created tells no subscriber, and its notification status reads **Skipped: hidden from status pages**. When you later turn **Visible on Status Page** on, the edit form offers **Notify subscribers that this incident was created**, so the routine of declaring hidden, working out who is affected and then publishing still tells them. It starts ticked while the incident is unresolved and unticked once it is resolved, so publishing an old incident for the record does not announce it as new. It is only offered when the incident was declared with **Notify Status Page Subscribers** on and is not private — so not for an incident reported through a [form](/docs/forms/on-submit), which is declared hidden with it off. Through the API, send `"miscDataProps": {"notifySubscribersOfIncidentCreatedOnPublish": true}` with the update that sets `isVisibleOnStatusPage` to `true`, or set `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself.
+Roles themselves are configured at **Incidents → Settings → Incident Roles**. A new project has one, Incident Commander; add Responder, Communications Lead or whatever else your process needs there. If you pick nobody for Incident Commander, you become it when the incident is declared.
 
 ## Declaring from a template
 
@@ -92,7 +103,7 @@ If you keep declaring the same shape of incident — the same title pattern, the
 
 Click **Create from Template** (the outline button next to **Declare Incident**) and a **Create Incident from Template** modal opens, with a **Select Incident Template** dropdown. Pick a template and the create form opens pre-filled; you can still change anything before submitting. If your project has no templates yet, you get a **No Incident Templates** modal instead, with a **Create Template** button that takes you to **Incidents → Settings → Incident Templates**.
 
-Templates are built with their own six-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call**, **Owners**, **Labels** — plus **Custom Fields** and **Custom Fields on Create** steps after **Resources Affected** when your project has incident custom fields. These are the fields:
+Templates are built with their own four-step wizard — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call** — plus **Custom Fields** and **Custom Fields on Create** steps after **Resources Affected** when your project has incident custom fields. The template's **Initial Incident State**, **Owners** and **Labels** are under **More fields** at the end of **Incident Details**. **Resources Affected** asks as the declare form does — **Monitors**, then **Change Monitor Status to**, then **Other Affected Resources**, with **Limit to these status pages** under **More fields** — except that a template always asks for the monitor status: it also applies to the monitors picked when an incident is declared from the template. These are the fields:
 
 | Field                           | Purpose                                                |
 | ------------------------------- | ------------------------------------------------------ |
@@ -101,13 +112,13 @@ Templates are built with their own six-step wizard — **Template Info**, **Inci
 | **Title**                       | The title pre-filled onto the incident.                |
 | **Description**                 | Markdown description pre-filled onto the incident.     |
 | **Incident Severity**           | Severity pre-filled onto the incident.                 |
-| **Initial Incident State**      | The state incidents from this template start in.       |
-| **Resources Affected**          | Monitors, hosts, clusters and services to attach.      |
+| **Initial Incident State**      | The state incidents from this template start in. Left empty, the usual starting state. |
+| **Monitors**                    | Monitors to attach.                                    |
+| **Change Monitor Status to**    | Monitor status to apply to the incident's monitors, including ones picked when it is declared. |
+| **Other Affected Resources**    | Hosts, clusters and services to attach.                |
 | **Limit to these status pages** | Status pages the incident is limited to.               |
-| **Change Monitor Status to**    | Monitor status to apply to the attached monitors.      |
 | **On-Call Policy**              | Policies to execute when the incident is created.      |
-| **Owner - Teams**               | Teams that own incidents created from this template.   |
-| **Owner - Users**               | Users that own incidents created from this template.   |
+| **Owners**                      | People and teams that own incidents created from this template, picked from one list. |
 | **Labels**                      | Labels applied to the incident.                        |
 | **Custom Fields**               | Values for the incident's custom fields.               |
 | **Custom Fields on Create**     | Which custom fields the **Details** step asks for, and which must be filled in. |
@@ -119,7 +130,7 @@ A few quick rules:
 - The **Details** step follows the template's **Custom Fields on Create**, as [described above](#details-your-incident-custom-fields).
 - Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
 - An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
-- The template's **Owner - Teams** and **Owner - Users** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the project's owners.
+- The template's **Owners** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the project's owners.
 
 ## Declaring automatically from monitor criteria
 
@@ -131,13 +142,15 @@ Each entry has:
 - **Severity** — required.
 - **Incident Description** — also templated.
 - **On-Call → On-Call Policies** — policies executed when this incident is created.
-- **Incident Roles** — pre-assign team members to roles.
-- **Ownership & Labels → Owner Teams**, **Owner Users**, **Labels**.
-- **Advanced Options → Auto Resolve Incident** (resolves the incident automatically when the criteria stop matching), **Show Incident on Status Page**, **Private Incident** and **Remediation Notes**.
+- **Incident Roles** — who takes each role on the incident, picked on the same cards as **Assign Incident Roles** on the declare form, one per role. Shown when your project has incident roles.
+- **Ownership & Labels → Owners** (people and teams, picked from one list), **Labels**.
+- **More fields → Auto Resolve Incident** (resolves the incident automatically when the criteria stop matching), **Show Incident on Status Page**, **Private Incident** and **Remediation Notes**.
 
 For the full list of `{{variable}}` placeholders you can use in the title, description and remediation notes, see [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
 
 Incidents created this way are tagged by the server: `isCreatedAutomatically` is set, `createdCriteriaId` records which criteria filter fired, and `createdByProbe` records which probe saw it. Everything else about them behaves exactly like a hand-declared incident.
+
+An incident a monitor declares is linked to what the monitor watches: whatever its configuration names (the host of a host monitor, the cluster of a Kubernetes monitor, the services of a logs monitor) and everything under its **Linked Resources**. A website or API monitor's configuration names no infrastructure, so link it to the cluster, hosts or database behind the site: its incidents are then on those resources' pages, and OneUptime AI can investigate them there and the cluster's or resource's AI fix can act on them (see [AI SRE](/docs/ai/ai-sre#which-incidents-a-clusters-fixes-act-on)). Alerts a monitor creates are linked the same way.
 
 ## Declaring through the API
 

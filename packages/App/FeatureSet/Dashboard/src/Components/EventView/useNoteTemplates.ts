@@ -6,7 +6,10 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useState } from "react";
-import { BulkStateChangeNoteTemplate } from "../../Utils/BulkStateChange";
+import {
+  BulkStateChangeNoteTemplate,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 
 type NoteTemplateModel = DatabaseBaseModel & {
   templateName?: string | undefined;
@@ -62,17 +65,7 @@ export default function useNoteTemplates<TTemplate extends NoteTemplateModel>(
           return;
         }
 
-        setNoteTemplates(
-          result.data.map(
-            (template: TTemplate): BulkStateChangeNoteTemplate => {
-              return {
-                id: template.id?.toString() || "",
-                templateName: template.templateName || "",
-                note: template.note || "",
-              };
-            },
-          ),
-        );
+        setNoteTemplates(result.data.map(toBulkStateChangeNoteTemplate));
       } catch {
         if (!isCancelled) {
           setNoteTemplates([]);

@@ -81,8 +81,12 @@ test.describe.skip("Project Creation", () => {
       .fill(projectName);
 
     if (IS_BILLING_ENABLED) {
-      // Click "Next" to go to the plan selection step
-      await modalSubmitButton.click();
+      /*
+       * Click "Next" to go to the plan selection step, the last one: Create
+       * Project is on it, not on Basic.
+       */
+      await expect(modalSubmitButton).toHaveCount(0);
+      await page.getByTestId("modal-footer-next-button").click();
 
       await selectProjectPlan({ page, submitButton: modalSubmitButton });
 

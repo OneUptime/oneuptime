@@ -67,7 +67,7 @@ Referenzieren Sie jede davon aus einem Baustein mit `{{global.variables.DYNAMICS
 
 Jede Ausführung holt ihr eigenes Token. Token halten 60–90 Minuten, und der Flow client credentials stellt nie ein Refresh Token aus, es gibt also nichts zwischenzuspeichern und nichts zu erneuern – ein zusätzlicher HTTP-Aufruf pro Ausführung ist der gesamte Aufwand.
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Dynamics 365`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Dynamics 365`, und öffnen Sie den **Editor**.
 2. Klicken Sie auf den gestrichelten Platzhalter, fügen Sie den Trigger **On Create Incident** hinzu und fordern Sie in dessen **Select Fields** die Spalten an, die Sie senden möchten:
 
    ```json
@@ -151,7 +151,7 @@ Ersetzen Sie die Account-GUID durch den Account, zu dem diese Cases gehören. **
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Schalten Sie den Workflow nun ein – **Übersicht → Workflow bearbeiten → Aktiviert** –, erklären Sie einen Test-Vorfall und lesen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Baustein `create-case` sollte einen `201` zeigen und einen Body, der die neue `incidentid` enthält. Änderungen auf der Arbeitsfläche speichern sich selbst; es gibt keinen Speichern-Knopf.
+Schalten Sie den Workflow nun ein – **Übersicht → Arbeitsablauf bearbeiten → Aktiviert** –, erklären Sie einen Test-Vorfall und lesen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Baustein `create-case` sollte einen `201` zeigen und einen Body, der die neue `incidentid` enthält. Änderungen auf der Arbeitsfläche speichern sich selbst; es gibt keinen Speichern-Knopf.
 
 ### Schweregrad und Status zuordnen
 
@@ -191,7 +191,7 @@ Die umgekehrte Richtung – die Dynamics-Case-ID am OneUptime-Vorfall zu speiche
 
 Bauen Sie das als **zweiten** Workflow, damit ein Fehler hier das Öffnen von Cases nicht verhindern kann.
 
-1. **Workflow erstellen**, benennen Sie ihn `Incident resolved → Close Dynamics case`, und fügen Sie den Trigger **On Update Incident** hinzu.
+1. **Arbeitsablauf erstellen**, benennen Sie ihn `Incident resolved → Close Dynamics case`, und fügen Sie den Trigger **On Update Incident** hinzu.
 2. Tragen Sie in **Listen on** des Triggers `{"currentIncidentStateId": true}` ein, damit der Workflow nur bei Zustandsänderungen aufwacht statt bei jeder Bearbeitung. Fordern Sie in **Select Fields** `{"_id": true, "currentIncidentState": {"name": true}}` an.
 3. Fügen Sie einen Baustein **If / Else** hinzu. **Input 1** ist `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** ist `==`, **Input 2** ist `Resolved` – oder wie auch immer der aufgelöste Zustand in Ihrem Projekt heißt. Siehe [Vorfallszustände & Schweregrade](/docs/incidents/states-and-severities).
 4. Wiederholen Sie vom Zweig **Ja** aus den Baustein `get-token` aus Schritt 4.
@@ -229,8 +229,8 @@ Nun die andere Richtung: Jemand schließt den Case in Dynamics, oder ein Agent f
 
 ### Zuerst den empfangenden Workflow bauen
 
-1. **Workflow erstellen**, benennen Sie ihn `Dynamics 365 → OneUptime`, und fügen Sie den Trigger **Webhook** hinzu.
-2. Öffnen Sie den **Builder** dieses Workflows, klicken Sie auf den Trigger **Webhook** und dann oben in seinen Einstellungen auf **URL kopieren**. Die URL sieht so aus:
+1. **Arbeitsablauf erstellen**, benennen Sie ihn `Dynamics 365 → OneUptime`, und fügen Sie den Trigger **Webhook** hinzu.
+2. Öffnen Sie den **Editor** dieses Workflows, klicken Sie auf den Trigger **Webhook** und dann oben in seinen Einstellungen auf **URL kopieren**. Die URL sieht so aus:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>

@@ -10,6 +10,8 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import NavBarItem from "./NavBarItem";
 import NavBarMenuModal from "./NavBarMenuModal";
+import NavBarMobileMenu from "./NavBarMobileMenu";
+import { isMoreMenuItemActive } from "./NavBarMenuCatalog";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Navigation from "../../Utils/Navigation";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -40,23 +42,26 @@ export interface MoreMenuItem {
 }
 
 /*
- * One menu item can own several route prefixes (e.g. a merged "Network" item
- * spanning /network-devices and /network-sites) — check them all.
+ * Whether a products-menu item is the page the user is on. It lives with the
+ * menu's other catalog rules in NavBarMenuCatalog.ts and is re-exported here,
+ * where callers have always imported it from.
  */
-export function isMoreMenuItemActive(item: MoreMenuItem): boolean {
-  const routesToCheck: Array<Route> = [
-    item.activeRoute || item.route,
-    ...(item.additionalActiveRoutes || []),
-  ];
-  return routesToCheck.some((route: Route) => {
-    return Navigation.isStartWith(route);
-  });
-}
+export { isMoreMenuItemActive };
 
 export interface ComponentProps {
   items?: NavItem[];
   rightElement?: NavItem;
   moreMenuItems?: MoreMenuItem[];
+  /*
+   * The categories the products menu always shows open: it opens on them,
+   * and they never fold, whatever the browser remembers. Every other
+   * category starts folded to one line (its name, how many products it holds
+   * and what they are called) until the user opens it; search still finds
+   * every product, and the category holding the current page opens by
+   * itself. Leave it unset to show every category open: a short menu has
+   * nothing to fold. See NavBarMenuCatalog.ts.
+   */
+  moreMenuCategoriesAlwaysOpen?: Array<string> | undefined;
   moreMenuTitle?: string; // Title for the more menu (default: "Products")
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
@@ -368,24 +373,15 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   : undefined
               }
             >
-              {allNavItems.map((item: any) => {
-                return (
-                  <div key={item.id} className="block w-full">
-                    <NavBarItem
-                      id={item.id}
-                      title={item.title}
-                      icon={item.icon}
-                      exact={item.exact ?? false}
-                      route={item.route}
-                      activeRoute={item.activeRoute}
-                      onClick={() => {
-                        return setIsMobileMenuOpen(false);
-                      }}
-                      isRenderedOnMobile={true}
-                    />
-                  </div>
-                );
-              })}
+              <NavBarMobileMenu
+                items={props.items}
+                moreMenuItems={props.moreMenuItems || []}
+                categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
+                rightElement={props.rightElement}
+                onNavigate={() => {
+                  return setIsMobileMenuOpen(false);
+                }}
+              />
             </nav>
           </div>
         )}
@@ -544,6 +540,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         createPortal(
           <NavBarMenuModal
             items={props.moreMenuItems}
+            categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             noResultsText={props.moreMenuNoResultsText}

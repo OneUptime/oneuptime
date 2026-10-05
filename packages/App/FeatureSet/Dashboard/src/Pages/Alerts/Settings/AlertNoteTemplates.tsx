@@ -30,23 +30,17 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Private Note Templates for Alerts",
           description:
-            "Here is a list of all the private note templates for alerts.",
+            "Ready-made text for alert updates. Pick one when writing a private note on an alert or an episode, or when acknowledging or resolving one, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Note Details",
-            id: "note-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then the note.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -54,7 +48,6 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -67,7 +60,6 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -81,7 +73,6 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
             title: NoteTemplateFormCopy.noteFieldTitle,
             description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
-            stepId: "note-details",
             required: true,
             validation: {
               minLength: 2,

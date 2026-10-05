@@ -5,15 +5,17 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember, {
   IncidentEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/IncidentEpisodeMember";
-import IncidentEpisodeOwnerUser from "../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
-import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeRoleMember from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import Label from "../../Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import GroupingRuleEpisodeOwners, {
+  LegacyAssigneeInProject,
+} from "../Utils/Rules/GroupingRuleEpisodeOwners";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -929,23 +931,64 @@ class IncidentGroupingEngineServiceClass {
       newEpisode.incidentSeverityId = incident.incidentSeverityId;
     }
 
-    // Set default ownership from rule
-    if (rule.defaultAssignToUserId) {
-      newEpisode.assignedToUserId = rule.defaultAssignToUserId;
+    /*
+     * The rule's default assignee, from before the rule asked for episode
+     * owners. Still copied for API readers of the episode - while it names
+     * the project's own team and a member - but no page, notification or
+     * worker reads it: owners are what make people responsible for the
+     * episode (below).
+     */
+    if (rule.defaultAssignToUserId || rule.defaultAssignToTeamId) {
+      const assignee: LegacyAssigneeInProject =
+        await GroupingRuleEpisodeOwners.getLegacyAssigneeInProject({
+          projectId: incident.projectId!,
+          userId: rule.defaultAssignToUserId,
+          teamId: rule.defaultAssignToTeamId,
+          ruleName: rule.name || rule.id?.toString(),
+        });
+
+      if (assignee.userId) {
+        newEpisode.assignedToUserId = assignee.userId;
+      }
+
+      if (assignee.teamId) {
+        newEpisode.assignedToTeamId = assignee.teamId;
+      }
     }
 
-    if (rule.defaultAssignToTeamId) {
-      newEpisode.assignedToTeamId = rule.defaultAssignToTeamId;
+    /*
+     * The rule's on-call policies and episode labels, copied onto the episode
+     * as root - only the project's own (see RuleRecordScope).
+     */
+    const ruleLogAttributes: LogAttributes = {
+      projectId: incident.projectId?.toString(),
+    };
+    const ruleDescription: string = `grouping rule ${rule.name || rule.id?.toString() || ""}`;
+
+    const onCallDutyPolicies: Array<OnCallDutyPolicy> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: incident.projectId!,
+        records: rule.onCallDutyPolicies,
+        modelType: OnCallDutyPolicy,
+        description: `on-call policies of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
+
+    if (onCallDutyPolicies.length > 0) {
+      newEpisode.onCallDutyPolicies = onCallDutyPolicies;
     }
 
-    // Copy on-call policies from rule
-    if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
-      newEpisode.onCallDutyPolicies = rule.onCallDutyPolicies;
-    }
+    const episodeLabels: Array<Label> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: incident.projectId!,
+        records: rule.episodeLabels,
+        modelType: Label,
+        description: `episode labels of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
 
-    // Copy episode labels from rule
-    if (rule.episodeLabels && rule.episodeLabels.length > 0) {
-      newEpisode.labels = rule.episodeLabels;
+    if (episodeLabels.length > 0) {
+      newEpisode.labels = episodeLabels;
     }
 
     try {
@@ -957,67 +1000,29 @@ class IncidentGroupingEngineServiceClass {
           },
         });
 
-      // Add episode owner users from rule
-      if (
-        rule.episodeOwnerUsers &&
-        rule.episodeOwnerUsers.length > 0 &&
-        createdEpisode.id
-      ) {
-        for (const user of rule.episodeOwnerUsers) {
-          if (!user.id) {
-            continue;
-          }
-          try {
-            const ownerUser: IncidentEpisodeOwnerUser =
-              new IncidentEpisodeOwnerUser();
-            ownerUser.projectId = incident.projectId!;
-            ownerUser.incidentEpisodeId = createdEpisode.id;
-            ownerUser.userId = user.id;
-            await OwnerRuleAssignment.createOwner({
-              ownerService: IncidentEpisodeOwnerUserService,
-              owner: ownerUser,
-              props: {
-                isRoot: true,
-              },
-            });
-          } catch (ownerError) {
-            logger.error(
-              `Error adding owner user ${user.id} to episode: ${ownerError}`,
-              { projectId: incident.projectId?.toString() } as LogAttributes,
-            );
-          }
-        }
-      }
-
-      // Add episode owner teams from rule
-      if (
-        rule.episodeOwnerTeams &&
-        rule.episodeOwnerTeams.length > 0 &&
-        createdEpisode.id
-      ) {
-        for (const team of rule.episodeOwnerTeams) {
-          if (!team.id) {
-            continue;
-          }
-          try {
-            const ownerTeam: IncidentEpisodeOwnerTeam =
-              new IncidentEpisodeOwnerTeam();
-            ownerTeam.projectId = incident.projectId!;
-            ownerTeam.incidentEpisodeId = createdEpisode.id;
-            ownerTeam.teamId = team.id;
-            await OwnerRuleAssignment.createOwner({
-              ownerService: IncidentEpisodeOwnerTeamService,
-              owner: ownerTeam,
-              props: {
-                isRoot: true,
-              },
-            });
-          } catch (ownerError) {
-            logger.error(
-              `Error adding owner team ${team.id} to episode: ${ownerError}`,
-              { projectId: incident.projectId?.toString() } as LogAttributes,
-            );
-          }
+      /*
+       * The rule's Episode Owners become owners of the episode - only the
+       * project's own teams and members, as when owners are added by hand
+       * (see GroupingRuleEpisodeOwners). Each one added is notified like any
+       * owner.
+       */
+      if (createdEpisode.id) {
+        try {
+          await GroupingRuleEpisodeOwners.addOwnersToEpisode({
+            projectId: incident.projectId!,
+            episodeId: createdEpisode.id,
+            episodeIdColumn: "incidentEpisodeId",
+            ownerUserService: IncidentEpisodeOwnerUserService,
+            ownerTeamService: IncidentEpisodeOwnerTeamService,
+            users: rule.episodeOwnerUsers,
+            teams: rule.episodeOwnerTeams,
+            ruleName: rule.name || rule.id?.toString(),
+          });
+        } catch (ownerError) {
+          logger.error(
+            `Error adding the grouping rule's owners to episode ${createdEpisode.id.toString()}: ${ownerError}`,
+            { projectId: incident.projectId?.toString() } as LogAttributes,
+          );
         }
       }
 

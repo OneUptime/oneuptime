@@ -21,7 +21,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -33,10 +33,13 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorGroupView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [currentGroupStatus, setCurrentGroupStatus] =
@@ -80,7 +83,9 @@ const MonitorGroupView: FunctionComponent<
           color: currentGroupStatus?.color?.toString() || Green.toString(),
         }}
       >
-        {uptimePercent}% uptime
+        {translator.translateTemplate("{{percent}}% uptime", {
+          percent: uptimePercent,
+        })}
       </div>
     );
   };
@@ -181,19 +186,8 @@ const MonitorGroupView: FunctionComponent<
       {/* MonitorGroup View  */}
       <CardModelDetail<MonitorGroup>
         name="MonitorGroup Details"
-        formSteps={[
-          {
-            title: "Monitor Group Info",
-            id: "monitor-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "Monitor Group Details",
-          description: "Here are more details for this monitor group.",
         }}
         isEditable={true}
         formFields={[
@@ -201,7 +195,6 @@ const MonitorGroupView: FunctionComponent<
             field: {
               name: true,
             },
-            stepId: "monitor-info",
             title: "Group Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -214,29 +207,12 @@ const MonitorGroupView: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "monitor-info",
             title: "Group Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels ",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<MonitorGroup>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -292,7 +268,7 @@ const MonitorGroupView: FunctionComponent<
 
       <Card
         title="Uptime Graph"
-        description="Here the 90 day uptime history of this monitor group."
+        description="This group's status over the last 90 days, one bar per day."
         rightElement={getUptimePercent()}
       >
         <MonitorUptimeGraph

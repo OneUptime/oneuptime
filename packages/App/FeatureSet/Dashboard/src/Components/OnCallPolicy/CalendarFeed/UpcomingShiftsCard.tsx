@@ -4,18 +4,24 @@ import {
   STANDING_ASSIGNMENTS_COPY,
   ShiftDayGroup,
   UPCOMING_SHIFTS_CARD_TITLE,
+  getCoverWindowForShift,
   getUpcomingShiftsWindow,
   groupShiftsByDay,
   isCoveringShift,
   translateInterpolated,
 } from "./CalendarFeedUtil";
 import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import RouteMap from "../../../Utils/RouteMap";
+import RouteParams from "../../../Utils/RouteParams";
 import Route from "Common/Types/API/Route";
 import { Blue500, Purple500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
+import {
+  UserOverrideCoverWindow,
+  getUserOverrideCoverQueryParams,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -80,15 +86,51 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  const overridesRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route,
-  );
+  /*
+   * "Get cover" opens Add User Override in the shift's own project, with
+   * you away for the shift's window (UserOverrideCoverRequest), so the one
+   * question left is who covers. A shift that exists only inside one policy
+   * - a policy-scoped override made it - is covered on that policy's page,
+   * or the cover would not apply to it. Not offered for a shift that has
+   * ended, or one you are covering for someone else (getCoverWindowForShift).
+   */
+  const getCoverRoute: (shift: MaterializedShiftJson) => Route | null = (
+    shift: MaterializedShiftJson,
+  ): Route | null => {
+    const window: UserOverrideCoverWindow | null = getCoverWindowForShift(
+      shift,
+      now,
+    );
+
+    if (!window) {
+      return null;
+    }
+
+    const policyId: string | undefined = shift.policyVariantOf?.policyId;
+
+    const route: Route = new Route(
+      (
+        RouteMap[
+          policyId
+            ? PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
+            : PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES
+        ] as Route
+      ).toString(),
+    ).addRouteParam(RouteParams.ProjectID, shift.projectId);
+
+    if (policyId) {
+      route.addRouteParam(RouteParams.ModelID, policyId);
+    }
+
+    return route.addQueryParams(getUserOverrideCoverQueryParams(window));
+  };
 
   const renderShift: (shift: MaterializedShiftJson) => ReactElement = (
     shift: MaterializedShiftJson,
   ): ReactElement => {
     const start: Date = OneUptimeDate.fromString(shift.start);
     const end: Date = OneUptimeDate.fromString(shift.end);
+    const coverRoute: Route | null = getCoverRoute(shift);
 
     return (
       <div
@@ -141,12 +183,14 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
-        <Link
-          to={overridesRoute}
-          className="text-sm text-indigo-600 hover:underline"
-        >
-          {translateString("Get cover")}
-        </Link>
+        {coverRoute && (
+          <Link
+            to={coverRoute}
+            className="text-sm text-indigo-600 hover:underline"
+          >
+            {translateString("Get cover")}
+          </Link>
+        )}
       </div>
     );
   };

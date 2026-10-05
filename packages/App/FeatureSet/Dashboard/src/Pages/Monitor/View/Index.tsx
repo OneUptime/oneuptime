@@ -3,6 +3,7 @@ import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSk
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import MonitorActivityCard from "../../../Components/Monitor/Overview/MonitorActivityCard";
 import MonitorConnectionCard from "../../../Components/Monitor/Overview/MonitorConnectionCard";
+import MonitorLinkedResourcesCard from "../../../Components/Monitor/Overview/MonitorLinkedResourcesCard";
 import MonitorManualGuideCard from "../../../Components/Monitor/Overview/MonitorManualGuideCard";
 import MonitorOpenWorkCard from "../../../Components/Monitor/Overview/MonitorOpenWorkCard";
 import MonitorOverviewDetailsCard from "../../../Components/Monitor/Overview/MonitorOverviewDetailsCard";
@@ -289,6 +290,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onRefresh={() => {
             data.refresh();
           }}
+          /*
+           * The hero's "Turn monitoring on" is an edit of the monitor: the
+           * hero and the feed show it as the details card's saves do.
+           */
+          onMonitoringTurnedOn={onDetailsSaved}
         />
       </div>
 
@@ -454,6 +460,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             refresher={data.manualRefreshCount % 2 === 1}
             onSaveSuccess={onDetailsSaved}
           />
+
+          <MonitorLinkedResourcesCard monitorId={modelId} />
 
           <OverviewCustomFields
             modelId={modelId}

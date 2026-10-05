@@ -8,19 +8,22 @@ Deze pagina behandelt beide: de vijf abonnementskanalen en hoe bezoekers zich aa
 
 ## Abonnementskanalen
 
-Een statuspagina ondersteunt vijf kanalen, elk met een eigen schakelaar op de statuspagina. Ga naar **Statuspagina's → jouw pagina → Abonnees → Abonneeinstellingen**:
+Een statuspagina ondersteunt vijf kanalen. Die en de pagina waarop bezoekers zich aanmelden, zet je op één plek aan: de kaart **Kanalen** onder **Statuspagina's → jouw pagina → Abonnees → Abonneeinstellingen**. Elke schakelaar wordt opgeslagen zodra je hem omzet:
 
-- **E-mailabonnees inschakelen** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
-- **SMS-abonnees inschakelen** (`enableSmsSubscribers`) — standaard uit.
-- **Slack-abonnees inschakelen** (`enableSlackSubscribers`) — standaard uit.
-- **Microsoft Teams-abonnees inschakelen** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
-- **Webhook-abonnees inschakelen** (`enableWebhookSubscribers`) — standaard uit.
+- **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) — standaard aan. Zet het item **Abonneren** in de navigatiebalk van de statuspagina, waar bezoekers zich aanmelden via de kanalen hieronder.
+- **E-mail** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
+- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft. Om het aan te zetten moet voor het project ook **SMS** aan staan, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+- **Slack** (`enableSlackSubscribers`) — standaard uit.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
+- **Webhook** (`enableWebhookSubscribers`) — standaard uit.
 
-Elk kanaal krijgt bovendien een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **MS Teams-abonnees** en **Webhook-abonnees**. Daar zie je wie zich heeft aangemeld, voeg je iemand met de hand toe, of laat je bij een bepaalde abonnee onder **Notities** (`internalNote`) een aantekening voor jezelf achter.
+De schakelaars bepalen hoe bezoekers zich zelf kunnen aanmelden: de statuspagina weigert een aanmelding via een kanaal dat uit staat. Meldingen stoppen ze niet: abonnees die je team via het dashboard, de API of een workflow toevoegt, krijgen updates, welke kanalen ook aan staan.
 
-**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt pas wanneer **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) aan staat *én* er minstens één kanaal is ingeschakeld. Zet je **E-mailabonnees inschakelen** aan maar laat je **Abonneepagina weergeven** uit, dan kunnen bezoekers het formulier nergens bereiken.
+Op OneUptime Cloud staat naast een schakelaar die je abonnement niet bevat de naam van het abonnement: **Growth** voor **SMS** en **Abonneepagina weergeven**, **Scale** voor **Slack**, **Microsoft Teams** en **Webhook**.
 
-Dezelfde vijf schakelaars staan een tweede keer in de kaart **Abonneeinstellingen** op **Geavanceerde instellingen**, naast **Abonneepagina weergeven**. Eronder zitten dezelfde kolommen — kies één scherm en blijf daar, en houd het bij voorkeur op de aparte pagina **Abonneeinstellingen**, want daar staat de rest van de abonneeconfiguratie ook.
+Elk kanaal krijgt bovendien een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **MS Teams-abonnees** en **Webhook-abonnees**. Daar zie je wie zich heeft aangemeld, voeg je iemand met de hand toe, of laat je bij een bepaalde abonnee onder **Notities** (`internalNote`) een aantekening voor jezelf achter. Zolang een kanaal uit staat, staat dat bovenaan de lijst, met de schakelaar van het kanaal er direct bij, zodat je het aanzet zonder de lijst te verlaten.
+
+**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt pas wanneer **Abonneepagina weergeven** aan staat *én* er minstens één kanaal aan staat. Zet je **E-mail** aan maar laat je **Abonneepagina weergeven** uit, dan kunnen bezoekers het formulier nergens bereiken.
 
 ## Wat een bezoeker op de pagina Abonneren ziet
 
@@ -40,6 +43,8 @@ Standaard krijgt een abonnee alles wat op de pagina staat. Twee schakelaars in d
 
 - **Abonnees toestaan resources te kiezen** (`allowSubscribersToChooseResources`) — standaard uit. Zet je hem aan, dan krijgt het aanmeldformulier er een schakelaar **Abonneren op alle bronnen** bij; haal je die weg, dan verschijnt **Selecteer bronnen om op te abonneren** zodat de bezoeker afzonderlijke resources kan aanvinken.
 - **Abonnees toestaan gebeurtenistypen te kiezen** (`allowSubscribersToChooseEventTypes`) — standaard uit. Zelfde patroon: een schakelaar **Abonneren op alle gebeurtenistypen**, met daaronder **Selecteer gebeurtenistypen om op te abonneren** zodra je die uitzet.
+
+Staat een van beide aan, dan blijft het formulier één pagina: deze keuzes staan onder **Voorkeuren**, ingeklapt onder waar updates naartoe gaan. Ingeklapt zegt het in één regel wat de bezoeker krijgt (alle updates van de statuspagina, zolang hij niets beperkt), dus wie alles wil, klikt gewoon op **Abonneren**. De pagina **Abonnement bijwerken** toont dezelfde keuzes uitgeklapt.
 
 De gebeurtenistypen zijn `Incident`, `Announcement` en `Scheduled Event`.
 
@@ -79,7 +84,7 @@ Abonnees horen over de drie gebeurtenistypen hierboven, maar elke bron heeft een
 
 ### Meldingen bij aankondigingen
 
-De aankondiging zelf draagt **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), op het aanmaakformulier zichtbaar als het vinkje **Statuspagina-abonnees op de hoogte stellen** en standaard aan. Noemt de aankondiging monitoren onder **Getroffen monitoren (optioneel)**, dan beperkt de melding zich tot die monitoren; laat je het leeg, dan krijgen alle abonnees bericht.
+De aankondiging zelf draagt **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), op het aanmaakformulier zichtbaar als het vinkje **Statuspagina-abonnees op de hoogte stellen** onder **Schema & meldingen** en standaard aan. Abonnees horen er één keer van, zodra de aankondiging wordt getoond; die keuze maak je dus bij het aanmaken, en een bewerking verandert haar niet. Noemt de aankondiging monitoren onder **Getroffen monitoren**, dan beperkt de melding zich tot die monitoren; laat je het leeg, dan krijgen alle abonnees bericht.
 
 ### Geplande onderhoudsgebeurtenissen
 
@@ -111,12 +116,14 @@ Een eigen SMTP is het waard om vroeg te regelen als je e-mailabonnees hebt: mail
 
 Een aankondiging is een record op projectniveau (het model `StatusPageAnnouncement`) dat je uitwaaiert naar een of meer statuspagina's, eventueel beperkt tot specifieke monitoren, met een venster waarin ze wordt getoond.
 
-Je maakt er een aan via **Statuspagina's → Meer → Aankondigingen**, of via **Aankondigingen** in het zijmenu van een afzonderlijke statuspagina. Het aanmaakformulier is een wizard van vier stappen:
+Je maakt er een aan via **Statuspagina's → Meer → Aankondigingen**, of via **Aankondigingen** in het zijmenu van een afzonderlijke statuspagina. Maak je haar aan vanaf een statuspagina, dan is die pagina al gekozen: een titel en een beschrijving zijn genoeg, en **Aankondiging aanmaken** brengt je terug naar de lijst **Aankondigingen** van die pagina (of naar de projectlijst, als je de pagina onderweg hebt uitgevinkt). Het aanmaakformulier heeft twee stappen en daarna een overzicht:
 
-1. **Basisinformatie** — **Aankondigingstitel** (verplicht, minstens twee tekens), **Beschrijving** (Markdown, optioneel) en **Bijlagen** voor bestanden die bij de aankondiging op de statuspagina beschikbaar moeten zijn.
-2. **Statuspagina's** — **Aankondiging weergeven op deze statuspagina's**, een verplichte meerkeuzelijst. Eén aankondiging kan meerdere pagina's tegelijk raken.
-3. **Getroffen middelen** — **Getroffen monitoren (optioneel)**. Selecteer je er geen, dan krijgen alle abonnees bericht.
-4. **Schema en instellingen** — **Aankondiging beginnen weer te geven om** (verplicht, standaard nu), **Stop met tonen aankondiging om** (optioneel) en **Statuspagina-abonnees op de hoogte stellen** (standaard aan).
+1. **Aankondiging** — **Titel** (verplicht, minstens twee tekens) en **Beschrijving** (Markdown, verplicht: de tekst die mensen op de statuspagina lezen). **Bijlagen**, voor bestanden die bij de aankondiging op de statuspagina beschikbaar moeten zijn, staan onder **Meer velden**.
+2. **Statuspagina's** — **Aankondiging weergeven op deze statuspagina's**, een verplichte meerkeuzelijst (één aankondiging kan meerdere pagina's tegelijk raken), en **Getroffen monitoren**: selecteer je er geen, dan krijgen alle abonnees bericht. Zodra je monitoren kiest, stelt het formulier onder de keuze van pagina's de statuspagina's voor die ze tonen: "Statuspagina's die de getroffen monitoren tonen:" met de naam van elke pagina. Klik op een naam om die pagina toe te voegen, of op **Alles toevoegen**; er wordt niets voor je gekozen. Daaronder is **Schema & meldingen** ingeklapt tot één regel die zegt wat er gebeurt: "Wordt nu getoond en blijft staan tot u deze beëindigt. Abonnees krijgen een melding zodra deze wordt getoond." Klap het onderdeel open om **Aankondiging beginnen weer te geven om** (standaard nu), **Stop met tonen aankondiging om** (leeg: de aankondiging blijft staan tot je een einde instelt) of **Statuspagina-abonnees op de hoogte stellen** (standaard aan) te wijzigen. De regel volgt je antwoorden. Het einde moet na het begin liggen en, bij een nieuwe aankondiging, nog moeten komen: een aankondiging die al voorbij is, zou nooit worden getoond.
+
+Het overzicht toont dezelfde regel. **Maken op basis van sjabloon** vult het formulier in vanuit een sjabloon; vanaf een statuspagina blijven de statuspagina's van het sjabloon naast die pagina staan.
+
+De pagina van de aankondiging zelf bewerkt haar in dezelfde twee stappen. **Abonnees op de hoogte stellen van deze update** staat onder de beschrijving, en **Schema** bevat het begin en het einde. Een einde instellen dat al voorbij is, is de manier om een aankondiging weg te halen.
 
 Bezoekers lezen aankondigingen op `/announcements`, opgesplitst in **Actieve aankondigingen** en **Vorige aankondigingen**, elk met een stempel **Aangekondigd op**. Aankondigingen die nu live zijn, staan bovendien vastgezet boven aan de overzichtspagina. Is er niets te tonen, dan leest de pagina *Geen aankondigingen*, met de opmerking dat er tot nu toe niets is geplaatst.
 
@@ -127,18 +134,18 @@ Bijlagen worden geserveerd via `GET {statusPageCrudPath}/status-page-announcemen
 **Show At** (`showAnnouncementAt`) en **End At** (`endAnnouncementAt`) sturen alles aan, maar de overzichtspagina en de aankondigingenlijst stellen elk een andere vraag, en dat verschil laat mensen struikelen.
 
 - **De overzichtspagina** toont een aankondiging wanneer `showAnnouncementAt` in het verleden ligt en `endAnnouncementAt` in de toekomst ligt of leeg is.
-- **De lijst `/announcements`** toont aankondigingen waarvan `showAnnouncementAt` binnen **Aankondigingsgeschiedenis weergeven (in dagen)** (`showAnnouncementHistoryInDays`, standaard 14) valt, en splitst ze daarna aan de clientkant in actief en verlopen.
+- **De lijst `/announcements`** toont aankondigingen waarvan `showAnnouncementAt` binnen het geschiedenisvenster van de aankondigingen (`showAnnouncementHistoryInDays`, standaard 14) valt, en splitst ze daarna aan de clientkant in actief en verlopen.
 
 Twee gevolgen waarop je maar beter kunt anticiperen:
 
 - **Een aankondiging zonder einddatum verloopt nooit.** Laat **Stop met tonen aankondiging om** leeg en ze blijft onbeperkt boven aan de overzichtspagina staan. Zet een einddatum op alles wat tijdgebonden is.
 - **Een oude maar nog actieve aankondiging kan uit de lijst verdwijnen.** Is ze langer dan `showAnnouncementHistoryInDays` geleden begonnen, dan valt ze van `/announcements` af terwijl ze op het overzicht blijft staan. Verruim het geschiedenisvenster als je langlopende mededelingen gebruikt.
 
-Of aankondigingen überhaupt verschijnen, bepaalt de kaart **Aankondigingsinstellingen** op **Geavanceerde instellingen**: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en **Aankondigingsgeschiedenis weergeven (in dagen)** (standaard 14). Staat **Aankondigingen weergeven** uit, dan weigert het endpoint voor aankondigingen het verzoek regelrecht.
+Of aankondigingen überhaupt verschijnen, stel je in de kaart **Wat uw statuspagina toont** op **Geavanceerde instellingen** in: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en daaronder **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14). Staat **Aankondigingen weergeven** uit, dan weigert het endpoint voor aankondigingen het verzoek regelrecht.
 
 ## Aankondigingssjablonen
 
-Plaats je steeds hetzelfde soort bericht — een maandelijkse onderhoudswaarschuwing, een terugkerende storing bij een derde partij — leg het dan van tevoren vast. **Statuspagina's → Instellingen → Aankondigings-sjablonen** bewaart het model `StatusPageAnnouncementTemplate`, en het formulier vraagt om **Sjabloonnaam**, **Sjabloonbeschrijving**, **Aankondigingstitel**, **Beschrijving**, **Aankondiging weergeven op deze statuspagina's**, **Getroffen monitoren (optioneel)** en **Abonnees op de hoogte stellen** — zo maak je de verspreiding en de meldkeuze één keer in plaats van elke keer opnieuw.
+Plaats je steeds hetzelfde soort bericht — een maandelijkse onderhoudswaarschuwing, een terugkerende storing bij een derde partij — leg het dan van tevoren vast. **Statuspagina's → Instellingen → Aankondigings-sjablonen** bewaart het model `StatusPageAnnouncementTemplate`. Het formulier loopt door **Sjablooninformatie** (**Sjabloonnaam**, **Sjabloonbeschrijving**) en daarna door de stappen van de aankondiging zelf: **Aankondiging** (**Titel**, **Beschrijving**) en **Statuspagina's** (**Aankondiging weergeven op deze statuspagina's**, **Getroffen monitoren** en **Statuspagina-abonnees op de hoogte stellen**, standaard aan) — zo maak je de verspreiding en de meldkeuze één keer in plaats van elke keer opnieuw. Een sjabloon heeft geen schema: een aankondiging die ermee wordt gemaakt, wordt getoond vanaf het aanmaken, tenzij je dat onder **Schema & meldingen** wijzigt.
 
 ## Webhook-abonnees en SSRF-bescherming
 

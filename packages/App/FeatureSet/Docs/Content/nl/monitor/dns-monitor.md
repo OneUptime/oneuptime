@@ -45,7 +45,7 @@ DNS-monitors sturen opvragen naar DNS-servers voor specifieke recordtypen en eva
 | SRV        | Service locator records                     |
 | CAA        | Certificate Authority Authorization records |
 
-### Geavanceerde instellingen
+### Meer velden
 
 | Veld            | Beschrijving                                                                 | Standaard |
 | --------------- | ---------------------------------------------------------------------------- | --------- |

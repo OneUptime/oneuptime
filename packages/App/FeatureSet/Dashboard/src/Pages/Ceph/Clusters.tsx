@@ -25,7 +25,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -36,6 +36,8 @@ import CephDocumentationCard from "../../Components/Ceph/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/CephMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
@@ -120,6 +122,7 @@ const renderCapacityBar: (
 const CephClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -162,6 +165,7 @@ const CephClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -242,6 +246,7 @@ const CephClusters: FunctionComponent<
         id="ceph-clusters-table"
         userPreferencesKey="ceph-clusters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -296,22 +301,7 @@ const CephClusters: FunctionComponent<
             required: false,
             placeholder: "Production Ceph cluster running in US East",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<CephCluster>(),
         ]}
         columns={[
           {
@@ -369,7 +359,9 @@ const CephClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -397,7 +389,10 @@ const CephClusters: FunctionComponent<
                     allUp ? "text-gray-900" : "text-amber-700"
                   }`}
                 >
-                  {up} up / {inCount} in / {total} total
+                  {translator.translateTemplate(
+                    "{{up}} up / {{in}} in / {{total}} total",
+                    { up: up, in: inCount, total: total },
+                  )}
                 </span>
               );
             },

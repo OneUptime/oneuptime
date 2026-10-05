@@ -170,7 +170,7 @@ describe("tsconfig paths send each plugin specifier to its Community stub", () =
     },
     // Common tests render Dashboard and AdminDashboard sources.
     { tsconfig: path.join(COMMON_DIR, "tsconfig.json"), frontends: FRONTENDS },
-    // App tests import them, and compile-app type-checks those tests.
+    // App tests import them, and CI's Compile App step type-checks those tests.
     { tsconfig: path.join(APP_DIR, "tsconfig.json"), frontends: FRONTENDS },
   ];
 

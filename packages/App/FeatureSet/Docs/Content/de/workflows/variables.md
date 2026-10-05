@@ -27,7 +27,7 @@ Variablen werden angelegt und gelöscht, nicht bearbeitet. In der Tabelle gibt e
 
 ## Lokale Workflow-Variablen
 
-Variablen, die nur für einen Workflow gelten und unter **Workflow-Variablen** im linken Menü dieses Workflows verwaltet werden. Referenzieren Sie sie mit:
+Variablen, die nur für einen Workflow gelten und unter **Arbeitsablaufvariablen** im linken Menü dieses Workflows verwaltet werden. Referenzieren Sie sie mit:
 
 ```
 {{local.variables.NAME}}
@@ -129,7 +129,7 @@ Zwei Dinge, auf die Sie achten sollten:
 - **Nutzen Sie die Auswahlfelder.** Sie fügen genau die Komponenten-, Rückgabewert- und Variablen-IDs ein, die der Runner erwartet, und halten Referenzen unabhängig von Anzeigebezeichnungen.
 - **Bei Variablennamen zählt Groß- und Kleinschreibung.** `{{global.variables.MyKey}}` und `{{global.variables.mykey}}` sind zwei verschiedene Dinge.
 - **Eine Referenz, die sich nicht auflösen lässt, bleibt stehen und wird nicht geleert.** Auf etwas zu verweisen, das es nicht gibt, ist kein Fehler – und Sie bekommen auch keine leere Zeichenkette: Die geschweiften Klammern werden unverändert durchgereicht. `{{local.components.api-get-1.returnValues.body}}` mit einer vertippten Schritt-ID landet also wörtlich in Ihrer Slack-Nachricht, Ihrer URL oder Ihrem Request-Body, und die Ausführung meldet trotzdem **Executed**. Das Ausführungsprotokoll enthält eine Warnzeile, die jede durchgerutschte Referenz benennt.
-- **Der Builder kann Variablennamen nicht prüfen.** Er markiert Komponentenreferenzen, die er nicht zuordnen kann – eine unbekannte Schritt-ID, einen unbekannten Rückgabewert, eine fehlerhafte Wurzel –, bevor Sie speichern. Ob eine Variable existiert, kann er nicht erkennen; eine umbenannte Variable fällt daher erst im Ausführungsprotokoll auf.
+- **Der Editor kann Variablennamen nicht prüfen.** Er markiert Komponentenreferenzen, die er nicht zuordnen kann – eine unbekannte Schritt-ID, einen unbekannten Rückgabewert, eine fehlerhafte Wurzel –, bevor Sie speichern. Ob eine Variable existiert, kann er nicht erkennen; eine umbenannte Variable fällt daher erst im Ausführungsprotokoll auf.
 - **Leerzeichen innerhalb der Klammern werden nicht entfernt.** `{{ local.variables.NAME }}` ist eine andere Suche als `{{local.variables.NAME}}` und löst sich nie auf. Die einzige Ausnahme ist innerhalb eines `{{#each}}`-Blocks, wo Namen getrimmt werden.
 
 ## Weiterführende Themen

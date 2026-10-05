@@ -27,14 +27,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - the page: what the card reads, which fields its edit form has once the
  *     incident is loaded (the added-pages checkbox only when the 'created'
  *     notification can go out), and what the picker's footer warns about -
- *     removing pages that were already told, clearing the scope, picking a
- *     page that lists none of the monitors, and having no status page to pick
- *     (the card itself is stubbed and its props recorded);
+ *     removing pages that were already told, clearing the scope, and picking
+ *     a page that lists none of the monitors - and nothing else: there is no
+ *     banner explaining an empty picker any more (the card itself is stubbed
+ *     and its props recorded);
  *   - the read-only view the card shows, including the deleted-pages warning;
  *   - the added-pages checkbox inside the real ModelForm: shown only while the
  *     edit adds a page, and sent as a misc data prop - never a column - only
- *     while ticked.
+ *     while ticked;
+ *   - the whole edit form inside the real ModelForm for an incident member,
+ *     who cannot read status pages: it opens, quietly, with an empty picker.
  */
+
+// The removed banner's opening words, and its test id.
+const REMOVED_BANNER_TEXT: RegExp = /No status pages to pick from/;
+const REMOVED_BANNER_TEST_ID: string = "status-page-picker-no-access";
 
 const recordedCards: Array<Record<string, unknown>> = [];
 let loadedIncident: unknown = null;
@@ -180,6 +187,7 @@ import ObjectID from "../../../Types/ObjectID";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentSubscriberAudience from "../../../Types/StatusPage/IncidentSubscriberAudience";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ModelForm, {
   FormType,
   ModelField,
@@ -218,6 +226,8 @@ interface ScopeShape {
   notifyOnCreate?: boolean | undefined;
   isVisible?: boolean | undefined;
   isPrivate?: boolean | undefined;
+  // Its monitors' ids; one monitor when left out.
+  monitorIds?: Array<string> | undefined;
 }
 
 // An incident on one monitor, limited to Site 03 and Site 07, told on Site 03.
@@ -239,9 +249,13 @@ function buildIncident(shape: ScopeShape = {}): Incident {
   incident.isVisibleOnStatusPage = shape.isVisible ?? true;
   incident.isPrivate = shape.isPrivate ?? false;
 
-  const monitor: Monitor = new Monitor();
-  monitor._id = MONITOR_ID;
-  incident.monitors = [monitor];
+  incident.monitors = (shape.monitorIds ?? [MONITOR_ID]).map(
+    (monitorId: string): Monitor => {
+      const monitor: Monitor = new Monitor();
+      monitor._id = monitorId;
+      return monitor;
+    },
+  );
 
   return incident;
 }
@@ -303,13 +317,25 @@ async function loadIncident(shape: ScopeShape = {}): Promise<void> {
 }
 
 // What the picker's footer says for these form values.
-async function renderFooter(statusPages: unknown): Promise<void> {
+async function renderFooter(statusPages: unknown): Promise<HTMLElement> {
   const footer: ReactElement | undefined = pickerField().getFooterElement!({
     statusPages: statusPages,
   } as FormValues<Incident>);
 
+  const container: HTMLElement = document.createElement("div");
+  document.body.appendChild(container);
+
   await act(async (): Promise<void> => {
-    render(<MemoryRouter>{footer}</MemoryRouter>);
+    render(<MemoryRouter>{footer}</MemoryRouter>, { container: container });
+  });
+
+  return container;
+}
+
+// The page's requests to count status pages.
+function statusPageCountRequests(): Array<unknown> {
+  return countMock.mock.calls.filter((call: Array<unknown>): boolean => {
+    return (call[0] as { modelType?: unknown }).modelType === StatusPage;
   });
 }
 
@@ -758,6 +784,76 @@ describe("the picker's warnings", () => {
     });
   });
 
+  /*
+   * Under 'Notify Status Page Subscribers', the dashboard used to say "No
+   * status page subscribers will be notified: no monitors are attached" on
+   * every incident without one. That is gone; what still matters - pages
+   * picked for an incident on no monitor, which none of them will show - is
+   * said here, under the picker.
+   */
+  test("an incident on no monitor: every picked page is named, as the server says", async () => {
+    postMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        IncidentSubscriberAudience.toJSON({
+          hasMonitors: false,
+          isScoped: true,
+          isHiddenFromStatusPages: false,
+          statusPages: [],
+          hiddenStatusPageCount: 0,
+          excludedStatusPages: [],
+          selectedStatusPagesNotListingMonitors: [
+            { statusPageId: SITE_03, name: "Site 03" },
+            { statusPageId: SITE_05, name: "Site 05" },
+          ],
+        }),
+        {},
+      ) as never,
+    );
+
+    await renderSettings();
+    await loadIncident({ monitorIds: [] });
+
+    await renderFooter([SITE_03, SITE_05]);
+
+    expect(
+      await screen.findByTestId("status-pages-not-listing-monitors"),
+    ).toHaveTextContent(
+      formatScopeText(IncidentStatusPageScopeCopy.notListingMonitorsWarning, {
+        names: "Site 03, Site 05",
+      }),
+    );
+
+    const body: JSONObject = (
+      postMock.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+    expect(body).toEqual({
+      monitorIds: [],
+      statusPageIds: [SITE_03, SITE_05],
+    });
+  });
+
+  /*
+   * Until the card has loaded the incident, its monitors are unknown, not
+   * none: asking then would name every picked page as one that lists none
+   * of them.
+   */
+  test("before the incident loads, the picker checks nothing against the monitors", async () => {
+    postMock.mockResolvedValue(
+      audienceResponse([{ statusPageId: SITE_03, name: "Site 03" }]) as never,
+    );
+
+    await renderSettings();
+
+    const footer: HTMLElement = await renderFooter([SITE_03]);
+    await new Promise((r: (value: unknown) => void) => {
+      setTimeout(r, 450);
+    });
+
+    expect(postMock).not.toHaveBeenCalled();
+    expect(footer).toBeEmptyDOMElement();
+  });
+
   test("no page picked: nothing to check against the monitors", async () => {
     await renderSettings();
     await loadIncident({ isScoped: false, statusPages: [], notified: [] });
@@ -770,38 +866,157 @@ describe("the picker's warnings", () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
-  test("with no status page to pick from, the picker says why", async () => {
+  /*
+   * Someone with no status page to pick from - an incident role cannot read
+   * status pages - used to get an information banner under the picker. It
+   * is gone: the picker is simply empty, and the footer only ever warns.
+   */
+  test("someone who cannot read status pages gets no banner under the picker", async () => {
     countMock.mockRejectedValue(
       new Error("You do not have permissions to read Status Page.") as never,
     );
 
     await renderSettings();
     await loadIncident();
-    await renderFooter([SITE_03]);
 
-    expect(
-      screen.getByTestId("status-page-picker-no-access"),
-    ).toHaveTextContent(IncidentStatusPageScopeCopy.pickerNoAccessHint);
+    // The pages it is limited to, unchanged: nothing to warn about either.
+    const footer: HTMLElement = await renderFooter([SITE_03, SITE_07]);
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalled();
+    });
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(screen.queryByTestId(REMOVED_BANNER_TEST_ID)).toBeNull();
+    expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
   });
 
-  test("a project whose visible status pages number zero gets the same hint", async () => {
+  test("a project with no status pages gets no banner either", async () => {
     countMock.mockResolvedValue(0 as never);
 
     await renderSettings();
-    await loadIncident();
-    await renderFooter([]);
+    await loadIncident({ isScoped: false, statusPages: [], notified: [] });
 
-    expect(
-      screen.getByTestId("status-page-picker-no-access"),
-    ).toBeInTheDocument();
+    const footer: HTMLElement = await renderFooter([]);
+
+    expect(footer).toBeEmptyDOMElement();
+    expect(screen.queryByRole("note")).toBeNull();
   });
 
-  test("with status pages to pick from, no hint", async () => {
+  test("a warning stands alone: no banner beside it", async () => {
+    countMock.mockRejectedValue(
+      new Error("You do not have permissions to read Status Page.") as never,
+    );
+
+    await renderSettings();
+    await loadIncident({ notified: [] });
+    await renderFooter([]);
+
+    expect(screen.getAllByRole("note")).toHaveLength(1);
+    expect(screen.getByRole("note")).toHaveAttribute(
+      "data-testid",
+      "incident-scope-clearing",
+    );
+    expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
+  });
+
+  test("the card never asks how many status pages the person can read", async () => {
     await renderSettings();
     await loadIncident();
     await renderFooter([SITE_03]);
 
-    expect(screen.queryByTestId("status-page-picker-no-access")).toBeNull();
+    expect(statusPageCountRequests()).toEqual([]);
+  });
+
+  test("the picker has no fixed footer of its own", async () => {
+    await renderSettings();
+    await loadIncident();
+
+    expect(pickerField().footerElement).toBeUndefined();
+  });
+});
+
+/*
+ * The whole edit form in the real ModelForm, as an incident member sees it.
+ * Incident roles cannot read status pages, so the picker's list is refused
+ * (422, as the API answers a NotAuthorizedException). The form opens all the
+ * same, without an error, with the picker there and empty - and nothing
+ * under it explaining why.
+ */
+describe("the Status Page Scope form for someone who cannot read status pages", () => {
+  const REFUSED_MESSAGE: string =
+    "You do not have permissions to read Status Page. You need one of these permissions: Project Owner, Project Admin, Status Page Viewer.";
+
+  async function renderScopeForm(): Promise<void> {
+    listMock.mockImplementation((async (request: {
+      modelType: unknown;
+    }): Promise<unknown> => {
+      if (request.modelType === StatusPage) {
+        throw new HTTPErrorResponse(422, { message: REFUSED_MESSAGE }, {});
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 0 };
+    }) as never);
+    countMock.mockRejectedValue(new Error(REFUSED_MESSAGE) as never);
+
+    await renderSettings();
+    await loadIncident();
+
+    // What the form reads back for the edit: the pages the card loaded.
+    loadedIncident = buildIncident();
+
+    await act(async (): Promise<void> => {
+      render(
+        <MemoryRouter>
+          <ModelForm<Incident>
+            id="incident-status-page-scope-form"
+            name="Status Page Scope"
+            modelType={Incident}
+            formType={FormType.Update}
+            modelIdToEdit={new ObjectID(INCIDENT_ID)}
+            fields={scopeCard().formFields}
+            submitButtonText="Save"
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    await screen.findByRole("button", { name: "Save" });
+  }
+
+  test("opens with the picker, and no banner, hint or error under it", async () => {
+    await renderScopeForm();
+
+    // The picker's list was asked for, and refused.
+    await waitFor(() => {
+      expect(
+        listMock.mock.calls.some((call: Array<unknown>): boolean => {
+          return (call[0] as { modelType?: unknown }).modelType === StatusPage;
+        }),
+      ).toBe(true);
+    });
+
+    expect(
+      screen.getByText(IncidentStatusPageScopeCopy.pickerTitle),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(REMOVED_BANNER_TEST_ID)).toBeNull();
+    expect(screen.queryByText(REMOVED_BANNER_TEXT)).toBeNull();
+    expect(screen.queryByText(/Ask a project admin/)).toBeNull();
+    expect(screen.queryByText(REFUSED_MESSAGE)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(statusPageCountRequests()).toEqual([]);
+  });
+
+  test("can still be saved", async () => {
+    await renderScopeForm();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    });
+
+    await waitFor(() => {
+      expect(savedRequests).toHaveLength(1);
+    });
   });
 });
 

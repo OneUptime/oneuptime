@@ -141,6 +141,8 @@
     "Incident & Alert Templating": "Incident & Alert Templating",
     "Monitor Secrets": "Monitor Secrets",
     "Schedule Timeline": "Schedule Timeline",
+    "Escalation Rules": "Escalation Rules",
+    "On-Call Schedules": "On-Call Schedules",
     "Calendar Feeds": "Calendar Feeds",
     "Incoming Call Policy": "Incoming Call Policy",
     "Phone Number Whitelist": "Phone Number Whitelist",

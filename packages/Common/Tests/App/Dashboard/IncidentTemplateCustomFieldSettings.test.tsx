@@ -74,6 +74,22 @@ jest.mock("../../../UI/Components/CustomFields/CustomFieldsDetail", () => {
   };
 });
 
+/*
+ * The template's owners: one Owners card, people and teams together, where
+ * an owner-teams and an owner-users table used to be.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Owners/OwnersCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): ReactElement => {
+        return React.createElement("div", { "data-testid": "owners-card" });
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentCustomFieldSettingsCard",
   () => {
@@ -629,6 +645,6 @@ describe("an incident template's page: the Custom Fields on Create card", () => 
 
     expect(valuesIndex).toBeGreaterThan(-1);
     expect(order[valuesIndex + 1]).toBe("custom-field-settings-card");
-    expect(order[valuesIndex + 2]).toBe("table-Incident Template > Owner Team");
+    expect(order[valuesIndex + 2]).toBe("owners-card");
   });
 });

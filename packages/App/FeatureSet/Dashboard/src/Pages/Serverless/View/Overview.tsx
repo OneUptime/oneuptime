@@ -35,6 +35,8 @@ import ResourceOverview, {
   ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -46,6 +48,8 @@ import {
   SpanMetrics,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServerlessMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -54,6 +58,7 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
 const ServerlessFunctionOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [serverlessFunction, setServerlessFunction] =
@@ -283,7 +288,11 @@ const ServerlessFunctionOverview: FunctionComponent<
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
-      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      sublabel: m
+        ? translator.translateTemplate("{{errors}} errored", {
+            errors: formatCompact(m.errors),
+          })
+        : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
       description: SERVERLESS_METRIC_DESCRIPTIONS.errorRate,
@@ -372,14 +381,23 @@ const ServerlessFunctionOverview: FunctionComponent<
   ];
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Function Identifier (faas.name)", value: fn.functionIdentifier },
+    { label: "Function Name (faas.name)", value: fn.functionIdentifier },
     { label: "Cloud Platform", value: fn.cloudPlatform },
     { label: "Cloud Provider", value: fn.cloudProvider },
     { label: "Cloud Region", value: fn.cloudRegion },
     { label: "Cloud Account ID", value: fn.cloudAccountId },
     { label: "Function Version (faas.version)", value: fn.functionVersion },
     { label: "Runtime", value: runtime },
-    { label: "Agent Version", value: fn.agentVersion },
+    {
+      label: "Agent Version",
+      value: fn.agentVersion,
+      element: (
+        <AgentVersion
+          kind={AgentKind.ServerlessSdk}
+          version={fn.agentVersion}
+        />
+      ),
+    },
   ];
 
   /*
@@ -438,6 +456,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         }
         quickLinks={quickLinks}
         detailRows={detailRows}
+        settingsRoute={populate(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS)}
         labels={fn.labels}
       />
     </TimeRangeZoomScope>

@@ -364,7 +364,6 @@ function editor(data: {
         alertSeverityDropdownOptions={[]}
         onCallPolicyDropdownOptions={[]}
         labelDropdownOptions={[]}
-        teamDropdownOptions={[]}
         userDropdownOptions={[]}
         allMonitorSteps={new MonitorSteps()}
         probes={[]}
@@ -394,7 +393,7 @@ function renderView(monitorType: MonitorType, step: MonitorStep): void {
 
 async function retryInput(expectedValue?: number): Promise<HTMLInputElement> {
   const advanced: HTMLElement = await screen.findByRole("button", {
-    name: "Advanced Options",
+    name: "More fields",
   });
 
   if (advanced.getAttribute("aria-expanded") === "false") {

@@ -45,7 +45,7 @@ Wenn Ihre Organisation Atlassians zentralisierte Benutzerverwaltung nutzt, gibt 
 
 ## Schritt 2 — Für jeden Vorfall ein Jira-Issue öffnen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Jira`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Jira`, und öffnen Sie den **Editor**.
 2. Klicken Sie auf den gestrichelten Platzhalter-Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Fordern Sie in dessen **Select Fields** die Spalten an, die Sie senden möchten:
 
    ```json
@@ -104,7 +104,7 @@ Wenn Ihre Organisation Atlassians zentralisierte Benutzerverwaltung nutzt, gibt 
 
 Die Beschreibung wirkt schwerfällig, weil die v3-API von Jira Cloud Rich Text als **Atlassian Document Format** entgegennimmt – einen Dokumentbaum, keine Zeichenkette. Die Form oben ist das minimal gültige Dokument: ein Absatz mit einem Textknoten. Dasselbe gilt für `environment` und für jedes mehrzeilige benutzerdefinierte Textfeld; einzeilige benutzerdefinierte Textfelder nehmen weiterhin eine einfache Zeichenkette entgegen.
 
-Schalten Sie den Workflow nun über **Übersicht → Workflow bearbeiten → Aktiviert** ein, erklären Sie einen Test-Vorfall und öffnen Sie **Protokolle → Ausführungen**. Der Baustein `create-issue` sollte einen `201` zeigen und einen Body, der `id`, `key` und `self` des neuen Issues enthält. Änderungen auf der Arbeitsfläche speichern sich selbst – es gibt keinen Speichern-Knopf, und ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
+Schalten Sie den Workflow nun über **Übersicht → Arbeitsablauf bearbeiten → Aktiviert** ein, erklären Sie einen Test-Vorfall und öffnen Sie **Protokolle → Ausführungen**. Der Baustein `create-issue` sollte einen `201` zeigen und einen Body, der `id`, `key` und `self` des neuen Issues enthält. Änderungen auf der Arbeitsfläche speichern sich selbst – es gibt keinen Speichern-Knopf, und ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
 
 Der Key des neuen Issues steht jedem Baustein nach diesem zur Verfügung:
 
@@ -170,7 +170,7 @@ gibt allen in Jira einen Weg zurück mit einem Klick. Fügen Sie dafür `project
 
 Bauen Sie das als **zweiten** Workflow, damit ein Fehler hier niemals das Öffnen von Issues verhindern kann.
 
-1. **Workflow erstellen**, benennen Sie ihn `Incident updates → Jira`, und fügen Sie den Trigger **On Update Incident** hinzu.
+1. **Arbeitsablauf erstellen**, benennen Sie ihn `Incident updates → Jira`, und fügen Sie den Trigger **On Update Incident** hinzu.
 2. Tragen Sie in **Listen on** `{"currentIncidentStateId": true}` ein. Der Trigger feuert dann nur bei Zustandsänderungen statt bei jeder Bearbeitung. Fordern Sie in **Select Fields** `{"_id": true, "currentIncidentState": {"name": true}}` an.
 3. Fügen Sie einen Baustein **If / Else** hinzu: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` – oder wie auch immer der aufgelöste Zustand in Ihrem Projekt heißt. Siehe [Vorfallszustände & Schweregrade](/docs/incidents/states-and-severities).
 
@@ -226,8 +226,8 @@ Nun die andere Richtung: Jemand zieht das Issue auf Done, und der OneUptime-Vorf
 
 ### Zuerst den empfangenden Workflow bauen
 
-1. **Workflow erstellen**, benennen Sie ihn `Jira → OneUptime`, und fügen Sie den Trigger **Webhook** hinzu.
-2. Öffnen Sie den **Builder** dieses Workflows, klicken Sie auf den Trigger **Webhook** und dann oben in seinen Einstellungen auf **URL kopieren**. Die URL sieht so aus:
+1. **Arbeitsablauf erstellen**, benennen Sie ihn `Jira → OneUptime`, und fügen Sie den Trigger **Webhook** hinzu.
+2. Öffnen Sie den **Editor** dieses Workflows, klicken Sie auf den Trigger **Webhook** und dann oben in seinen Einstellungen auf **URL kopieren**. Die URL sieht so aus:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>

@@ -21,7 +21,6 @@ const TeamViewIndex: FunctionComponent<
         name="Team Details"
         cardProps={{
           title: "Team Details",
-          description: "Here are more details for this team.",
         }}
         videoLink={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
         isEditable={true}

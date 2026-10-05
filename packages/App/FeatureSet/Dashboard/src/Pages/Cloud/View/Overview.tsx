@@ -66,6 +66,8 @@ import {
   isCloudResourceScoped,
 } from "../Utils/CloudResourceTelemetryScope";
 import { CLOUD_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -99,6 +101,7 @@ export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
 const CloudResourceOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [cloudResource, setCloudResource] = useState<CloudResource | null>(
@@ -411,7 +414,10 @@ const CloudResourceOverview: FunctionComponent<
       icon: IconProp.Cube,
       iconColor: "amber",
       loading: !instancesLoaded,
-      sublabel: `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`,
+      sublabel: translator.translateTemplate(
+        "live in the last {{minutes}} min",
+        { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
+      ),
       to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
       description: CLOUD_METRIC_DESCRIPTIONS.instances,
     },
@@ -430,7 +436,11 @@ const CloudResourceOverview: FunctionComponent<
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
-      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      sublabel: m
+        ? translator.translateTemplate("{{errors}} errored", {
+            errors: formatCompact(m.errors),
+          })
+        : undefined,
       percent: m ? m.errorRatePercent : null,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
@@ -600,6 +610,7 @@ const CloudResourceOverview: FunctionComponent<
         }
         quickLinks={quickLinks}
         detailRows={detailRows}
+        settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
       />
 

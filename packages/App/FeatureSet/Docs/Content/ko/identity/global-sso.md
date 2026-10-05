@@ -21,8 +21,8 @@ Global SSO를 사용하면 OneUptime **인스턴스 관리자**(마스터 관리
 2. **공급자 생성**
 
    - **Create Global SSO**를 클릭합니다.
-   - SAML의 경우: **Name**, ID 공급자의 **Sign On URL** 및 **Issuer**를 입력하고 **Public Certificate**를 붙여 넣습니다. **Signature** 및 **Digest** 방법을 선택합니다(확실하지 않은 경우 기본값 — `RSA-SHA256` / `SHA256` — 을 그대로 둡니다).
-   - OIDC의 경우: **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes**(반드시 `openid`을 포함해야 함), 그리고 **email** / **name** 클레임 이름을 입력합니다.
+   - SAML의 경우: **Name**, ID 공급자의 **Sign On URL** 및 **Issuer**를 입력하고 **Public Certificate**를 붙여 넣습니다. 나머지는 **More fields**에 자동으로 채워집니다: **Signature Method**(`RSA-SHA256`), **Digest Method**(`SHA256`), 설명(`Sign in with`와 이름). IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
+   - OIDC의 경우: **Name**, **Issuer URL**, 그리고 IdP에 등록한 앱의 **Client ID**와 **Client Secret**을 입력합니다. IdP의 discovery URL을 **Issuer URL**에 붙여 넣어도 됩니다. 나머지는 **More fields**에 자동으로 채워집니다: **Discovery URL**(발급자 뒤에 `/.well-known/openid-configuration`을 붙인 것), **Scopes**(`openid email profile`), `email` 및 `name` 클레임 이름, 설명(`Sign in with`와 이름). IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
 
 3. **OneUptime URL을 ID 공급자에 복사**
 
@@ -39,7 +39,7 @@ Global SSO를 사용하면 OneUptime **인스턴스 관리자**(마스터 관리
 
 - **연결된 프로젝트 없음 (default-all / 초대 우선):** 사용자는 공급자로 로그인하여 **이미 구성원으로 속해 있는 모든 프로젝트**에 접근할 수 있습니다. 신규 사용자는 자동으로 생성되지 **않습니다** — 사용자는 먼저 프로젝트에 초대되어야 합니다. 구성원 관리가 다른 곳에서 이루어지는 회사 전체 SSO에 이 방식을 사용하십시오.
 
-- **연결된 프로젝트 있음 (자동 프로비저닝):** 공급자를 열고 **Attached Projects** 테이블을 사용하여 각각 기본 팀 집합과 함께 하나 이상의 프로젝트를 연결합니다. 로그인하는 사용자는 해당 프로젝트에 **자동 프로비저닝**되며 첫 로그인 시 기본 팀에 추가됩니다. 목록을 구성하려면 한 번에 하나의 프로젝트 + 팀을 추가하십시오. 연결을 변경하려면 삭제한 후 다시 추가하십시오.
+- **연결된 프로젝트 있음 (자동 프로비저닝):** 공급자를 열고 **Attached Projects** 테이블을 사용하여 각각 기본 팀 집합과 함께 하나 이상의 프로젝트를 연결합니다. 로그인하는 사용자는 해당 프로젝트에 **자동 프로비저닝**되며 첫 로그인 시 기본 팀에 추가됩니다. 연결한 프로젝트는 처음에 해당 프로젝트의 멤버 팀이 선택되어 있습니다. 새 사용자에게 다른 접근 권한을 주려면 다른 팀을 고르세요. 목록을 구성하려면 한 번에 하나의 프로젝트 + 팀을 추가하십시오. 연결을 변경하려면 삭제한 후 다시 추가하십시오.
 
 프로젝트가 연결되어 있더라도 자동 계정 생성을 모두 방지하려면 공급자에서 **Disable Sign Up with SSO**를 활성화하십시오 — 그러면 사용자는 로그인하기 전에 초대를 받아야 합니다.
 

@@ -246,6 +246,8 @@ import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet
 import IncidentService from "Common/Server/Services/IncidentService";
 import Dictionary from "Common/Types/Dictionary";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import {
   StoredIncidentScope,
   allSites,
@@ -288,6 +290,14 @@ import {
   describeSubscriberDelivery,
 } from "../Fixtures/SubscriberDeliveryContract";
 import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeStateTimeline/SendNotificationToSubscribers";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -866,6 +876,8 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
     });
     expect(pendingQuery?.select["incidentState"]).toEqual({
       name: true,
+      // The default email paints the new state in its own colour.
+      color: true,
       isCreatedState: true,
     });
   });
@@ -1066,6 +1078,58 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
         StatusPageSubscriberNotificationStatus.Skipped,
       subscriberNotificationStatusMessage: row.message,
     });
+  });
+});
+
+/*
+ * The default email paints the episode's new state and its severity the way
+ * the owner emails do: a dot in each one's colour and the name in a readable
+ * shade of it. The other channels carry the names as before.
+ */
+describe("IncidentEpisodeStateTimeline default email colours", () => {
+  test("sends the state's and the severity's dot and name colours", async () => {
+    const timeline: IncidentEpisodeStateTimeline = stateTimeline();
+    timeline.incidentState!.color = Blue500;
+    pendingTimelines = [timeline];
+    storedEpisode!.incidentSeverity!.color = Yellow500;
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        episodeState: STATE_NAME,
+        ...EmailColorUtil.getTemplateVariables("episodeState", Blue500),
+        episodeSeverity: EPISODE_SEVERITY,
+        ...EmailColorUtil.getTemplateVariables("episodeSeverity", Yellow500),
+      }),
+    );
+    expect(sentMail()[0]!["vars"]).toHaveProperty(
+      "episodeSeverityTextColor",
+      EmailColorUtil.getColorPair(Yellow500)!.textColor,
+    );
+    expect(JSON.stringify(sentWebhooks())).not.toContain(Blue500.toString());
+  });
+
+  test("unusable colours are left out and the names stay plain", async () => {
+    const timeline: IncidentEpisodeStateTimeline = stateTimeline();
+    timeline.incidentState!.color = new Color("#fff; position: fixed");
+    pendingTimelines = [timeline];
+    storedEpisode!.incidentSeverity!.color = new Color("tomato");
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["episodeState"]).toBe(STATE_NAME);
+    expect(vars["episodeSeverity"]).toBe(EPISODE_SEVERITY);
+    for (const name of [
+      "episodeStateColor",
+      "episodeStateTextColor",
+      "episodeSeverityColor",
+      "episodeSeverityTextColor",
+    ]) {
+      expect(vars).not.toHaveProperty(name);
+    }
   });
 });
 
@@ -1529,7 +1593,7 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
       }
     ).select;
     expect(select["title"]).toBe(true);
-    expect(select["incidentSeverity"]).toEqual({ name: true });
+    expect(select["incidentSeverity"]).toEqual({ name: true, color: true });
 
     const calls: Array<CompileCall> = compileCalls();
     expect(calls).toHaveLength(5);
@@ -2400,4 +2464,63 @@ describeSubscriberDelivery({
   },
   sentMessage: "Notifications sent successfully to all subscribers.",
   retryScope: SubscriberNotificationRetryScope.EveryPage,
+});
+
+/*
+ * Subscribers who chose resources, on a page that shows the monitor of one
+ * of the episode's incidents through a monitor group. The episode reaches a
+ * page's resources through IncidentStatusPageScope, which reads them with
+ * the lookup that follows monitor groups (findByMonitors), so whoever picked
+ * the group is told, and whoever picked another group is not.
+ */
+describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers subscribers who picked a monitor group", () => {
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function givenThePage(
+    page: ReturnType<typeof pageShowingTheMonitorThroughAGroup>,
+  ): void {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      page.affectedResources as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue(page.subscribers as never);
+  }
+
+  beforeEach(() => {
+    pendingTimelines = [stateTimeline()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      lettingSubscribersChooseResources(statusPage()),
+    ] as never);
+    decideWithTheRealSubscriberPreferences(
+      StatusPageSubscriberService.shouldSendNotification,
+    );
+  });
+
+  test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+    const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+      pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+    givenThePage(page);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(page.told);
+    expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+  });
+
+  test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+    const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+      pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+    givenThePage(page);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(page.told);
+  });
 });

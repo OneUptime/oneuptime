@@ -78,6 +78,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { toHeadline } from "../../../UI/Components/Table/EmptyTableMessage";
 
 jest.mock("react-i18next", () => {
   return {
@@ -877,7 +878,7 @@ describe("the commands table", () => {
     openInsightsPage();
 
     expect(
-      await findText(getResourceCommandsEmptyMessage(CEPH)),
+      await findText(toHeadline(getResourceCommandsEmptyMessage(CEPH))),
     ).toBeInTheDocument();
     expect(screen.getAllByText("ceph commands").length).toBeGreaterThan(0);
   });
@@ -911,7 +912,7 @@ describe("every resource type", () => {
       openInsightsPage(descriptor);
 
       expect(
-        await findText(getResourceCommandsEmptyMessage(descriptor)),
+        await findText(toHeadline(getResourceCommandsEmptyMessage(descriptor))),
       ).toBeInTheDocument();
       expect(postsTo(INSIGHTS_ROUTE)[0]!["data"]).toEqual({
         resourceType: type,

@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime plays<br/>greeting message]
     D --> E[Load Escalation Rules]
     E --> F{Rule 1:<br/>Try On-Call User}
-    F -->|No Answer| G{Rule 2:<br/>Try Backup Team}
+    F -->|No Answer| G{Rule 2:<br/>Try Backup Engineer}
     F -->|Answered| H[Connect Caller<br/>to Engineer]
     G -->|No Answer| I{Rule 3:<br/>Try Manager}
     G -->|Answered| H
@@ -70,7 +70,7 @@ Incoming Call Policy feature इस तरह काम करता है:
 
 1. Twilio phone number पर incoming calls receive करना
 2. एक customizable greeting message play करना
-3. escalation rules (teams, schedules, या users) के माध्यम से call route करना
+3. escalation rules (ऑन-कॉल अनुसूचियाँ या लोग) के माध्यम से call route करना
 4. caller को पहले available on-call engineer से connect करना
 5. कोई answer नहीं होने पर अगले rule पर escalate करना
 
@@ -86,13 +86,14 @@ Incoming Call Policy feature इस तरह काम करता है:
 
 1. अपने OneUptime Dashboard में log in करें
 2. **प्रोजेक्ट सेटिंग्स** > **सूचनाएं** > **सूचना सेटिंग्स** पर जाएं
-3. **Create Custom Call/SMS Config** पर क्लिक करें
+3. **Twilio कॉन्फ़िगरेशन** में **Create Twilio Config** पर क्लिक करें
 4. निम्नलिखित fields भरें:
    - **नाम**: एक friendly name (जैसे "Production Twilio Config")
    - **विवरण**: वैकल्पिक description
    - **Twilio Account SID**: आपका Twilio Account SID (`AC` से शुरू होता है)
    - **Twilio Auth Token**: आपका Twilio Auth Token
    - **Twilio प्राथमिक फ़ोन नंबर**: outbound calls के लिए आपके Twilio account का phone number
+   - **प्रोजेक्ट डिफ़ॉल्ट के रूप में सेट करें**: प्रोजेक्ट के पहले Twilio कॉन्फ़िगरेशन के लिए चालू रहता है, इसलिए प्रोजेक्ट के सदस्यों के SMS और कॉल भी इसी खाते से जाते हैं। अगर यह खाता केवल इनकमिंग कॉल के लिए है, तो इसे बंद करें।
 5. **सहेजें** पर क्लिक करें
 
 ## चरण 3: Incoming Call Policy बनाएं
@@ -142,24 +143,26 @@ Phone number आपके Twilio account से खरीदा जाएगा 
 
 ## चरण 6: Escalation Rules Configure करें
 
-Escalation rules यह निर्धारित करते हैं कि calls कैसे route होती हैं:
+Escalation rules यह तय करते हैं कि जब कोई policy के नंबर पर कॉल करता है, तो list में ऊपर से नीचे किसे कॉल किया जाए:
 
 1. अपनी Incoming Call Policy खोलें
 2. **एस्केलेशन नियम** tab पर जाएं
-3. **Add Escalation Rule** पर क्लिक करें
-4. rule configure करें:
-   - **क्रम**: priority order (कम numbers पहले try किए जाते हैं)
-   - **इसके बाद एस्केलेट करें (सेकंड)**: escalate करने से पहले कितना इंतज़ार करें
-   - **ऑन-कॉल अनुसूची**: whoever is on-call पर route करने के लिए schedule चुनें
-   - **टीमें**: specific teams चुनें
-   - **उपयोगकर्ता**: specific users चुनें
-5. आवश्यकतानुसार additional escalation rules जोड़ें
+3. **एस्केलेशन नियम जोड़ें** पर क्लिक करें
+4. rule भरें। यह एक ही step है:
+   - **किसे कॉल करें**: एक ऑन-कॉल अनुसूची या एक व्यक्ति। अनुसूची, कॉल आने पर उस समय उसमें ऑन-कॉल व्यक्ति को कॉल करती है। लोग आपके project के सदस्य होते हैं।
+   - **घंटी बजने का समय (सेकंड में)**: कॉल के अगले rule पर जाने से पहले उनका फ़ोन कितनी देर बजता है। यह 30 सेकंड से शुरू होता है, और Twilio 5 से 600 तक लेता है।
+   - **नाम** और **विवरण** वैकल्पिक हैं तथा **और फ़ील्ड** के अंदर हैं। बिना नाम का rule list में अपनी जगह के अनुसार दिखता है: **Level 1**, **Level 2**।
+5. इसे save करें, और आगे try किए जाने वाले हर अनुसूची या व्यक्ति के लिए एक rule जोड़ें
 
-| Order | Escalate After | Target                     |
-| ----- | -------------- | -------------------------- |
-| 1     | 30 seconds     | Primary On-Call Schedule   |
-| 2     | 30 seconds     | Secondary On-Call Schedule |
-| 3     | 30 seconds     | Engineering Team Lead      |
+Rules list में ऊपर से नीचे कॉल किए जाते हैं, और नया rule अंत में जुड़ता है। क्रम बदलने के लिए rule को उसके ऊपर-बाएँ handle से drag करें; keyboard से handle पर focus करें, Space दबाएँ, arrow keys से उसे खिसकाएँ और फिर से Space दबाएँ।
+
+> **Voicemail का ध्यान रखें**: **घंटी बजने का समय** उस समय से कम रखें जितने में व्यक्ति का फ़ोन बिना उत्तर वाली कॉल को voicemail पर भेज देता है। अगर voicemail पहले उत्तर देता है, तो caller उससे जुड़ जाता है और कॉल अगले rule पर नहीं जाती। Twilio हर घंटी में अपने कुछ सेकंड जोड़ता है।
+
+| Level   | किसे कॉल करें                   | घंटी बजने का समय |
+| ------- | ------------------------------- | ---------------- |
+| Level 1 | Primary On-Call Schedule        | 30 सेकंड         |
+| Level 2 | Secondary On-Call Schedule      | 30 सेकंड         |
+| Level 3 | Engineering Team Lead (व्यक्ति) | 30 सेकंड         |
 
 ## चरण 7: Voice Messages Configure करें (वैकल्पिक)
 
@@ -186,13 +189,14 @@ callers जो messages सुनते हैं उन्हें customize �
 
 ### Escalation Rule Settings
 
-| Setting                | विवरण                                               |
-| ---------------------- | --------------------------------------------------- |
-| Order                  | Priority order (1 = highest priority)               |
-| Escalate After Seconds | अगला rule try करने से पहले wait time (default: 30s) |
-| On-Call Schedule       | currently on-call को route करें                     |
-| Teams                  | selected teams के सभी members को route करें         |
-| Users                  | specific users को route करें                        |
+| Setting                      | विवरण                                                                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| किसे कॉल करें                | एक ऑन-कॉल अनुसूची, जो उसमें ऑन-कॉल व्यक्ति को कॉल करती है, या एक व्यक्ति। हर rule इनमें से एक को कॉल करता है                |
+| घंटी बजने का समय (सेकंड में) | कॉल के अगले rule पर जाने से पहले फ़ोन कितनी देर बजता है (default: 30; 5 से 600 तक)                                            |
+| नाम और विवरण                 | वैकल्पिक, और फ़ील्ड के अंदर। बिना नाम का rule list में अपनी जगह के अनुसार Level 1, Level 2 आदि के रूप में दिखता है               |
+| Order                        | list में rule की जगह: rules ऊपर से नीचे कॉल किए जाते हैं। rules को drag करके बदलें; API से, बिना order वाला नया rule अंत में जाता है |
+
+API से, हर rule `onCallDutyPolicyScheduleId` या `userId` (इनमें से एक, दोनों कभी नहीं) और `escalateAfterSeconds` सेट करता है: घंटी बजने का समय, जो छोड़ने पर 30 होता है।
 
 ## Call Logs देखना
 
@@ -245,6 +249,7 @@ Users को incoming calls receive करने के लिए, उनके 
 - जांचें कि escalation rules ठीक से configured हैं
 - सुनिश्चित करें कि on-call schedules में वर्तमान समय के लिए users assigned हैं
 - सत्यापित करें कि policy enabled है
+- अगर calls किसी engineer के voicemail पर पहुँचती हैं, तो rule का **घंटी बजने का समय** उस समय से कम करें जितने में उनका फ़ोन voicemail पर चला जाता है
 
 ### Audio quality issues
 

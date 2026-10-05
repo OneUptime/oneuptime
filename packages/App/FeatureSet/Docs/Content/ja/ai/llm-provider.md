@@ -18,6 +18,8 @@ OneUptime の LLM プロバイダーは、インシデント管理ワークフ�
 
 独自の API キーや特定のプロバイダーをご利用の場合は、以下の手順に従ってカスタム LLM プロバイダーを設定することもできます。
 
+OneUptime SaaS から接続できるのは、パブリックインターネット上の LLM エンドポイントだけです。セルフホストの Ollama や vLLM サーバーなど、プライベートネットワーク上のモデルには接続できません。自分で運用しているモデルを使うには、そのモデルに到達できるネットワーク上で OneUptime をセルフホストするか、モデルをパブリックなエンドポイントで公開してください。詳しくは [セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください。
+
 ## サポートされているプロバイダー
 
 OneUptime は現在、以下の LLM プロバイダーをサポートしています。
@@ -98,28 +100,58 @@ Model Name: claude-3-5-sonnet-20241022
 Ollama を使用すると、オープンソースの LLM をローカルまたは独自のインフラストラクチャで実行できます。
 
 1. [ollama.ai](https://ollama.ai) から Ollama をインストールします
-2. 希望するモデルをプルします: `ollama pull llama2`
-3. Ollama が実行中でアクセス可能であることを確認します
+2. 希望するモデルをプルします: `ollama pull llama3.1`
+3. Ollama が実行中で、OneUptime サーバーから到達できることを確認します。ネイティブインストールは `127.0.0.1` でしか待ち受けないため、他のマシンやコンテナーからの接続を受け付けるには `OLLAMA_HOST=0.0.0.0:11434` を指定して起動します（公式の Docker イメージ `ollama/ollama` は最初からそうなっています）
 4. **LLM タイプ** として **Ollama** を選択します
-5. ベース URL を入力します（例: `http://localhost:11434`）
+5. ベース URL を入力します。OneUptime サーバーから見た Ollama サーバーのアドレスで、例えば `http://ollama:11434` です（`/api/chat` は OneUptime が付け足します）。`localhost` は使えません。[セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください
 6. プルしたモデル名を入力します
 
-**設定例:**
+**設定例（OneUptime の Docker Compose ネットワーク上で `ollama` という名前のサービスとして動く Ollama）:**
 
 ```
-Name: Local Ollama
+Name: Self-Hosted Ollama
 LLM Type: Ollama
-Base URL: http://localhost:11434
-Model Name: llama2
+Base URL: http://ollama:11434
+Model Name: llama3.1
 ```
+
+**コンテキストウィンドウを広げる。** 特に指定しない限り、Ollama は小さなコンテキストウィンドウ（現行リリースで 4096 トークン、古いリリースでは 2048）でモデルを動かし、収まらない部分を何も知らせずに切り捨てます。OneUptime の AI 機能はリクエストのたびにツール定義を送信し、それだけで数千トークンになることがあります。ツール定義が切り捨てられてもエラーは出ず、モデルは質問に使えるツールがないと答えるだけです。プロバイダーの **追加パラメーター** で、より大きな `num_ctx` を設定してください:
+
+```json
+{ "options": { "num_ctx": 16384 } }
+```
+
+OneUptime はこの `options` オブジェクトを Ollama に送るオプションにマージするため、変更したい設定だけを書けば十分です。コンテキストウィンドウを大きくするほどメモリーを多く使うので、モデルが対応し、ハードウェアが扱えるサイズを選んでください。代わりにすべてのクライアントの既定値を引き上げるには、Ollama サーバーで `OLLAMA_CONTEXT_LENGTH` を設定します。`GLOBAL_LLM_PROVIDER_*` 変数から登録されたグローバルプロバイダーの場合は、管理ダッシュボードの **設定** > **グローバルLLMプロバイダー** でこの項目を設定してください。起動時の同期はこの項目を変更しません。
 
 **人気の Ollama モデル:**
 
-- `llama2` - Meta の Llama 2 モデル
-- `llama3` - Meta の Llama 3 モデル
-- `mistral` - Mistral AI のモデル
-- `codellama` - コード特化の Llama モデル
-- `mixtral` - Mistral の Mixture of Experts モデル
+- `llama3.1` - Meta の Llama 3.1 モデル。ツール呼び出しに対応した最も古い Llama
+- `llama3.3` - Meta の Llama 3.3 モデル
+- `qwen2.5` - Alibaba の Qwen 2.5 モデル
+- `mistral-nemo` - Mistral AI の Nemo モデル
+
+> 注: OneUptime の AI 機能はエージェント型で、ツール呼び出しに大きく依存しています。`llama3.1` 以降（またはツール呼び出しに対応した別のモデル）を使用してください。小さなモデルやツール呼び出しに対応していないモデル（例: `llama2`、初代の `llama3`）では良い結果が得られません。モニター、インシデント、テレメトリーを照会できないため、調査結果が空になったり、事実に基づかない内容になったりします。
+
+### セルフホストモデルのベース URL の選び方
+
+セルフホストモデル（Ollama、vLLM、LM Studio、その他の OpenAI 互換サーバー）のベース URL は、**OneUptime サーバー** から到達できるアドレスでなければなりません。ブラウザーがこのアドレスに接続することはありません。
+
+**ループバックアドレスは常に拒否されます。** OneUptime は接続の前に、ベース URL のホスト名が解決されるすべてのアドレスを確認します。`localhost`、`127.0.0.1`、`[::1]`、`0.0.0.0`、およびリンクローカルアドレスや `169.254.169.254` のようなクラウドのメタデータのアドレスは、セルフホストを含むすべてのデプロイで拒否されます。これは意図的な設計です。プロバイダーのベース URL を使って OneUptime サーバー自身のサービスに到達できてはならないからです。そもそも Docker Compose や Kubernetes の中では、`localhost` はモデルを動かしているマシンではなく OneUptime のコンテナーを指します。
+
+代わりにプライベートアドレスか内部ホスト名を使用してください:
+
+| モデルサーバーの実行場所 | ベース URL |
+| --- | --- |
+| OneUptime の Docker Compose ネットワーク（`oneuptime`）上のサービス | サービス名。例: `http://ollama:11434` |
+| OneUptime と同じ Kubernetes クラスター | Service の DNS 名。例: `http://ollama.<namespace>.svc.cluster.local:11434`（[同梱の vLLM](#kubernetes-上のセルフホスト-vllmhelm) と同じパターン） |
+| ホストマシン上で直接（コンテナーの外） | ホストの LAN IP。例: `http://192.168.1.20:11434`。Docker Desktop では `http://host.docker.internal:11434` も使えます |
+| ネットワーク内の別のマシン | そのマシンのプライベート IP または内部ホスト名。例: `http://10.0.0.12:11434` |
+
+OpenAI 互換サーバーにも、それぞれのポートと `/v1` パスで同じルールが当てはまります。例えば `http://vllm:8000/v1`、LM Studio なら `http://192.168.1.20:1234/v1` です。LM Studio もネイティブインストールの Ollama と同じく、サーバー設定で **Serve on Local Network** をオンにするまでは `127.0.0.1` でしか待ち受けません。
+
+**セルフホスト環境ではプライベートアドレスを使えます。** セルフホストの OneUptime は、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10`、IPv6 の `fc00::/7` などのプライベートネットワークのアドレスに到達できます。ただし `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` を設定すると、OneUptime Cloud と同じようにこれらも拒否されます。
+
+**OneUptime Cloud（SaaS）はプライベートネットワークに到達できません。** すべての LLM プロバイダーについて、プライベートネットワークのアドレスと、そのアドレスに解決されるホスト名を拒否します。自分のインフラストラクチャで動くモデルを使うには、そのモデルに到達できるネットワーク上で OneUptime をセルフホストするか、モデルをパブリックに到達可能なエンドポイントで公開してください。公開エンドポイントは API キーで保護してください。**Ollama** プロバイダーは認証情報を送信しませんが、**OpenAI Compatible** は API キーを Bearer トークンとして送信します（Ollama は `/v1` で OpenAI 互換 API も提供しているため、キーを検証するリバースプロキシの背後に置くことができます）。
 
 ### OpenAI Compatible（vLLM、LocalAI、LM Studio など）
 
@@ -127,7 +159,7 @@ OpenAI の `/chat/completions` API を実装しているものの OpenAI 自体�
 
 1. OpenAI 互換サーバーを起動し、そのベース URL を確認します（通常は `/v1` で終わります）
 2. **LLM タイプ** として **OpenAI Compatible** を選択します
-3. **ベース URL**（必須）を入力します。例: `http://your-server:8000/v1`
+3. **ベース URL**（必須）を入力します。例: `http://your-server:8000/v1`。OneUptime サーバーから到達できる必要があるため、`localhost` は使えません。[セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください
 4. **モデル名**（必須）を入力します。サーバーが公開しているモデルと一致している必要があります
 5. サーバーが認証を必要とする場合のみ **API キー** を入力します。キー不要のサーバーの場合は空欄のままにします
 
@@ -161,7 +193,7 @@ Helm チャートで OneUptime をセルフホストしている場合、OpenAI 
 自動登録を無効化した場合（`vllm.globalProvider.enabled: false`）は、プロバイダーを手動で作成します:
 
 1. **LLM タイプ** として **OpenAI Compatible** を選択します（vLLM は OpenAI API に対応しています）
-2. クラスター内のベース URL を入力します: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+2. クラスター内のベース URL を入力します: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（`global.clusterDomain` を変更した場合は `cluster.local` を置き換えてください）
 3. モデル名を入力します: HuggingFace のモデル ID 全体（設定した場合は `vllm.servedModelName`）
 4. `vllm.apiKey` を設定した場合のみ API キーを入力します。キー不要の vLLM の場合は空欄のままにします
 
@@ -175,7 +207,7 @@ Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
 
-GPU スケジューリング、ゲート付きモデル、チューニングオプションについては、[Helm チャート README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) をご覧ください。
+GPU スケジューリング、ゲート付きモデル、チューニングオプションについては、[Helm チャートの vLLM ガイド](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) をご覧ください。
 
 ## カスタムベース URL の使用
 
@@ -197,8 +229,9 @@ GPU スケジューリング、ゲート付きモデル、チューニングオ�
 ### 接続の問題
 
 - **OpenAI/Anthropic**: API キーが有効で十分なクレジットがあることを確認します
-- **Ollama**: Ollama サーバーが稼働しており、ベース URL が正しいことを確認します
+- **Ollama**: Ollama サーバーが稼働しており、OneUptime サーバーから到達できるアドレスで待ち受けていること（ネイティブインストールでは `OLLAMA_HOST=0.0.0.0:11434`）、そしてベース URL がそのアドレスを指していることを確認します
 - **OpenAI Compatible**: ベース URL が `/v1` で終わっている（またはサーバーに合っている）こと、モデル名がサーバーが公開しているモデルと一致していること、サーバーが認証を必要とする場合のみ API キーを設定していることを確認します
+- **"…points to an address OneUptime is not allowed to connect to"**: ベース URL が拒否対象のアドレスに解決されています。`localhost` などのループバックアドレス、または OneUptime Cloud ではプライベートネットワークのアドレスです（OneUptime Cloud では、拒否されたホスト名は代わりに "…could not be reached" と報告されます）。[セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください
 - **ファイアウォール**: ネットワークがプロバイダーの API へのアウトバウンド接続を許可していることを確認します
 
 ### モデルが見つからない場合

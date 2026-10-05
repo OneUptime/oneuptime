@@ -5,6 +5,7 @@ import {
 } from "./Helpers/ProductOnboarding";
 import {
   clickCreateUntilMonitorView,
+  clickNext,
   createMonitor,
   fillDestination,
   selectMonitorLabels,
@@ -24,9 +25,10 @@ import URL from "Common/Types/API/URL";
  *    the Monitors list, whose empty state carries the Create Monitor button.
  *  - Menus say "Not Operational", never "Inoperational".
  *  - Getting Started's "Invite your team" lands where Invite User is.
- *  - An empty core list says "No X yet." with its Create button in place of
- *    the old "Refresh?" link - but a search that matched nothing does not
- *    offer to create anything.
+ *  - An empty core list shows a real empty state - "No X yet", what the
+ *    list is for, and its Create button - in place of the old grey sentence
+ *    and "Refresh?" link; a search that matched nothing says so, offers to
+ *    clear it, and does not offer to create anything.
  *  - A Website monitor created without touching "Monitoring Interval" is
  *    saved on every five minutes; an Incoming Request monitor, which has no
  *    interval step, is saved with no interval at all.
@@ -173,7 +175,13 @@ test.describe("First run: a brand-new project", () => {
     // The table draws its empty state in a block of its own, under the header.
     const emptyState: Locator = page.locator('[data-testid$="-no-items"]');
     await expect(emptyState).toBeVisible();
-    await expect(emptyState).toContainText("No monitors yet.");
+    await expect(
+      emptyState.getByRole("heading", { name: "No monitors yet", exact: true }),
+    ).toBeVisible();
+    // What the list is for, said in the empty state rather than twice.
+    await expect(
+      emptyState.getByTestId("table-empty-state-description"),
+    ).toContainText("Monitors check your websites");
 
     const create: Locator = page.getByTestId("empty-table-create-button");
     await expect(create).toHaveText("Create Monitor");
@@ -204,7 +212,12 @@ test.describe("First run: a brand-new project", () => {
 
     const emptyState: Locator = page.locator('[data-testid$="-no-items"]');
     await expect(emptyState).toBeVisible();
-    await expect(emptyState).toContainText("No on-call schedules yet.");
+    await expect(
+      emptyState.getByRole("heading", {
+        name: "No on-call schedules yet",
+        exact: true,
+      }),
+    ).toBeVisible();
 
     const create: Locator = page.getByTestId("empty-table-create-button");
     // Named for the page, not for its table (On-Call Duty Policy Schedule).
@@ -234,11 +247,18 @@ test.describe("First run: a brand-new project", () => {
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill(websiteMonitorName);
     await selectMonitorTypeCard({ page, cardValue: "Website" });
-    await page.getByTestId("Create Monitor").click();
+    // The labels wait under More fields on this first step.
+    await selectMonitorLabels({ page });
+    await clickNext({ page });
 
     await waitForCriteriaStepReady({ page });
     await fillDestination({ page, value: "https://example.com" });
-    await page.getByTestId("Create Monitor").click();
+    /*
+     * Every step after the criteria is optional, but Create Monitor is on
+     * the last step only: Next walks on to look at the interval.
+     */
+    await expect(page.getByTestId("Create Monitor")).toHaveCount(0);
+    await clickNext({ page });
 
     // The step opens on the default: nothing to choose.
     const interval: Locator = page.getByRole("combobox", {
@@ -251,8 +271,7 @@ test.describe("First run: a brand-new project", () => {
       }),
     ).toBeVisible();
 
-    await page.getByTestId("Create Monitor").click();
-    await selectMonitorLabels({ page });
+    // Probes & Interval is the last step: create from it.
     await clickCreateUntilMonitorView({ page, projectId });
 
     const monitorId: string =
@@ -332,10 +351,21 @@ test.describe("First run: a brand-new project", () => {
     await page.getByRole("button", { name: "Open search" }).first().click();
     await page.keyboard.type("zz-no-monitor-is-called-this");
 
-    await expect(page.locator('[data-testid$="-no-items"]')).toContainText(
-      "No monitors match your search or filters.",
+    const emptyState: Locator = page.locator('[data-testid$="-no-items"]');
+    await expect(emptyState).toContainText(
+      "No monitors match your search or filters",
       { timeout: 30000 },
     );
     await expect(page.getByTestId("empty-table-create-button")).toHaveCount(0);
+
+    // The way back: one click empties the search and the monitor is there.
+    const clear: Locator = emptyState.getByTestId(
+      "empty-table-clear-filters-button",
+    );
+    await expect(clear).toHaveText("Clear Search");
+    await clear.click();
+    await expect(page.getByText(websiteMonitorName).first()).toBeVisible({
+      timeout: 30000,
+    });
   });
 });

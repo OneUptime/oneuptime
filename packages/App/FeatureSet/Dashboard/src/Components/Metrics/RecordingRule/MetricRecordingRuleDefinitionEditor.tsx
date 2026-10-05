@@ -14,6 +14,9 @@ import Input from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import MetricRecordingRuleSourceEditor from "./MetricRecordingRuleSourceEditor";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   value: RecordingRuleDefinition | undefined;
@@ -38,6 +41,7 @@ const normalize: (
 const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [definition, setDefinition] = React.useState<RecordingRuleDefinition>(
     normalize(props.value),
   );
@@ -100,12 +104,13 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
         <div className="flex items-center justify-between mb-1">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Source Metrics
+              {translator.translateText("Source Metrics")}
             </h3>
             <p className="text-xs text-gray-500">
-              Each source is a metric + aggregation, given an alias you can
-              reference in the expression. Up to {RECORDING_RULE_MAX_SOURCES}{" "}
-              sources.
+              {translator.translateTemplate(
+                "Each source is a metric + aggregation, given an alias you can reference in the expression. Up to {{max}} sources.",
+                { max: RECORDING_RULE_MAX_SOURCES },
+              )}
             </p>
           </div>
           <span className="text-xs font-medium text-gray-500">
@@ -148,17 +153,24 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
 
       <section>
         <div className="mb-1">
-          <h3 className="text-sm font-semibold text-gray-900">Expression</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translator.translateText("Expression")}
+          </h3>
           <p className="text-xs text-gray-500">
-            Arithmetic over the aliases above. Operators{" "}
-            <code className="font-mono">+ - * /</code>, parentheses, and numbers
-            are allowed.
+            <TranslatedSentence
+              template="Arithmetic over the aliases above. Operators {{operators}}, parentheses, and numbers are allowed."
+              slots={{
+                operators: <code className="font-mono">+ - * /</code>,
+              }}
+            />
           </p>
         </div>
 
         {aliasChips.length > 0 && (
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-            <span className="text-xs text-gray-500">Available:</span>
+            <span className="text-xs text-gray-500">
+              {translator.translateText("Available:")}
+            </span>
             {aliasChips.map((a: string) => {
               return (
                 <code
@@ -180,22 +192,27 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
           }}
         />
         <p className="text-xs text-gray-500 mt-1">
-          Example: <code className="font-mono">A / B * 100</code> computes a
-          percentage from sources A and B.
+          <TranslatedSentence
+            template="Example: {{expression}} computes a percentage from sources A and B."
+            slots={{
+              expression: <code className="font-mono">A / B * 100</code>,
+            }}
+          />
         </p>
       </section>
 
       <section>
         <div className="mb-1">
           <h3 className="text-sm font-semibold text-gray-900">
-            Group By{" "}
+            {translator.translateText("Group By")}{" "}
             <span className="text-xs font-normal text-gray-500">
-              (Optional)
+              {translator.translateText("(Optional)")}
             </span>
           </h3>
           <p className="text-xs text-gray-500">
-            Attribute to split the result by. One derived data point is produced
-            per distinct value per evaluation bucket.
+            {translator.translateText(
+              "Attribute to split the result by. One derived data point is produced per distinct value per evaluation bucket.",
+            )}
           </p>
         </div>
         <FieldLabelElement title="Attribute Key" />

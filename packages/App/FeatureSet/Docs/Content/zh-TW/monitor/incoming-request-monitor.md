@@ -163,7 +163,7 @@ Alertmanager、Grafana 等工具會 POST 一份描述一則或多則警示的 JS
 webhook 只描述該次酬載中的內容，因此 OneUptime 絕不會因為某個鍵不再出現就解決一個事件。只有當某次酬載明確指出該鍵已復原時，事件才會被解決。以下兩點必須同時成立：
 
 1. **Field that signals recovery** 與 **Value that means recovered** 已設定，且與酬載相符。比較是精確且區分大小寫的——`Resolved` 不會相符於 `resolved`。
-2. 該條件的事件在事件表單的 **Advanced Options** 下已啟用 **Auto Resolve Incident**。否則相符的復原事件會被忽略，事件會一直開著。（警示與 **Auto Resolve Alert** 同理。）
+2. 該條件的事件在事件表單的 **More fields** 下已啟用 **Auto Resolve Incident**。否則相符的復原事件會被忽略，事件會一直開著。（警示與 **Auto Resolve Alert** 同理。）
 
 **Max incidents per request** 限制的是擷取，而不只是建立。超出上限的鍵對復原同樣看不見，因此在不同鍵數量超過上限的酬載中，超出部分回報 `resolved` 的警示不會關閉它的事件。
 

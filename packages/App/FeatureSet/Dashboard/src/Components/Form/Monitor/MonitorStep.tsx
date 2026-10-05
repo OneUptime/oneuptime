@@ -35,7 +35,13 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { getMonitorStepMoreFieldsItems } from "./MonitorMoreFields";
 import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
@@ -157,6 +163,9 @@ import {
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
   REQUEST_TIMEOUT_DESCRIPTION,
 } from "../../../Utils/MonitorRetryHelpText";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -181,7 +190,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   value?: undefined | MonitorStep;
@@ -203,6 +211,7 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [
     showAdvancedOptionsRequestBodyAndHeaders,
     setShowAdvancedOptionsRequestBodyAndHeaders,
@@ -692,19 +701,18 @@ return {
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
 
-  // Check if there are any advanced options configured
-  const hasAdvancedOptionsConfigured: boolean =
-    Boolean(
-      monitorStep.data?.requestHeaders &&
-        Object.keys(monitorStep.data.requestHeaders).length > 0,
-    ) ||
-    Boolean(monitorStep.data?.requestBody) ||
-    Boolean(monitorStep.data?.doNotFollowRedirects) ||
-    Boolean(monitorStep.data?.allowSelfSignedCertificates) ||
-    Boolean(monitorStep.data?.tlsClientCertificate) ||
-    Boolean(monitorStep.data?.tlsClientKey) ||
-    monitorStep.data?.requestTimeoutInMs !== undefined ||
-    monitorStep.data?.retryCount !== undefined;
+  /*
+   * What the monitor type's More fields section holds, for its folded
+   * header: the options by name, and the ones that are set as chips. The
+   * section starts folded, as every More fields section does - the chips
+   * say what is set - and stays open once someone opens it.
+   */
+  const moreFieldsItems: Array<FoldedSectionItem> =
+    getMonitorStepMoreFieldsItems({
+      monitorType: props.monitorType,
+      monitorStep: monitorStep,
+      usesClientCertificate: useTlsClientCertificate,
+    });
 
   const renderTimeoutAndRetryFields: () => ReactElement = (): ReactElement => {
     return (
@@ -870,25 +878,45 @@ return {
               <TinyFormDocumentation title="URL placeholder help">
                 <>
                   <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{timestamp}}"}
-                    </code>{" "}
-                    — replaced with current Unix timestamp
+                    <TranslatedSentence
+                      template="{{placeholder}} — replaced with current Unix timestamp"
+                      slots={{
+                        placeholder: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"{{timestamp}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{random}}"}
-                    </code>{" "}
-                    — replaced with a random unique string
+                    <TranslatedSentence
+                      template="{{placeholder}} — replaced with a random unique string"
+                      slots={{
+                        placeholder: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"{{random}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    Example:{" "}
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"https://example.com?cb={{timestamp}}"}
-                    </code>
+                    <TranslatedSentence
+                      template="Example: {{url}}"
+                      slots={{
+                        url: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"https://example.com?cb={{timestamp}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    Useful for busting CDN or proxy caches on each check.{" "}
+                    {translator.translateText(
+                      "Useful for busting CDN or proxy caches on each check.",
+                    )}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -899,7 +927,7 @@ return {
                             : "/monitor/website-monitor"),
                       )}
                     >
-                      Learn more.
+                      {translator.translateText("Learn more.")}
                     </Link>
                   </div>
                 </>
@@ -960,17 +988,15 @@ return {
         </Card>
       )}
 
-      {/* Advanced Options - Collapsible Section for API monitors */}
+      {/* More fields for API monitors: headers, body, redirects, TLS. */}
       {props.monitorType === MonitorType.API && (
-        <CollapsibleSection
-          title="Advanced Options"
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
           description="Request headers, body, and redirect settings"
-          badge={hasAdvancedOptionsConfigured ? "Configured" : undefined}
-          variant="card"
-          defaultCollapsed={
-            !hasAdvancedOptionsConfigured &&
-            !showAdvancedOptionsRequestBodyAndHeaders
-          }
+          items={moreFieldsItems}
+          defaultCollapsed={!showAdvancedOptionsRequestBodyAndHeaders}
+          dataTestId="monitor-step-more-fields"
           onToggle={(isCollapsed: boolean) => {
             if (!isCollapsed) {
               setShowAdvancedOptionsRequestBodyAndHeaders(true);
@@ -983,7 +1009,7 @@ return {
                 title={"Request Headers"}
                 description={
                   <p>
-                    Request Headers to send.{" "}
+                    {translator.translateText("Request Headers to send.")}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -991,7 +1017,7 @@ return {
                         DOCS_URL.toString() + "/monitor/monitor-secrets",
                       )}
                     >
-                      You can use secrets here.
+                      {translator.translateText("You can use secrets here.")}
                     </Link>
                   </p>
                 }
@@ -1016,7 +1042,9 @@ return {
                 title={"Request Body (in JSON)"}
                 description={
                   <p>
-                    Request Headers to send in JSON.{" "}
+                    {translator.translateText(
+                      "Request Headers to send in JSON.",
+                    )}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -1024,7 +1052,7 @@ return {
                         DOCS_URL.toString() + "/monitor/monitor-secrets",
                       )}
                     >
-                      You can use secrets here.
+                      {translator.translateText("You can use secrets here.")}
                     </Link>
                   </p>
                 }
@@ -1122,12 +1150,16 @@ return {
                     title={"Client Certificate (PEM)"}
                     description={
                       <p>
-                        Client certificate (mTLS). Paste the PEM-encoded
-                        certificate, or reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>
-                        .{" "}
+                        <TranslatedSentence
+                          template="Client certificate (mTLS). Paste the PEM-encoded certificate, or reference a monitor secret with {{secret}}."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />{" "}
                         <Link
                           className="underline"
                           openInNewTab={true}
@@ -1135,7 +1167,9 @@ return {
                             DOCS_URL.toString() + "/monitor/monitor-secrets",
                           )}
                         >
-                          Learn more about secrets.
+                          {translator.translateText(
+                            "Learn more about secrets.",
+                          )}
                         </Link>
                       </p>
                     }
@@ -1161,12 +1195,16 @@ return {
                     title={"Client Private Key (PEM)"}
                     description={
                       <p>
-                        Private key paired with the client certificate above.
-                        Reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>{" "}
-                        to keep the key encrypted at rest.
+                        <TranslatedSentence
+                          template="Private key paired with the client certificate above. Reference a monitor secret with {{secret}} to keep the key encrypted at rest."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />
                       </p>
                     }
                     required={true}
@@ -1212,30 +1250,18 @@ return {
 
             {renderTimeoutAndRetryFields()}
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       )}
 
-      {/* Advanced Options - Collapsible Section for Website monitors */}
+      {/* More fields for Website monitors: redirects, TLS, timeout. */}
       {props.monitorType === MonitorType.Website && (
-        <CollapsibleSection
-          title="Advanced Options"
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
           description="Redirect and TLS settings"
-          badge={
-            monitorStep.data?.doNotFollowRedirects ||
-            monitorStep.data?.allowSelfSignedCertificates ||
-            monitorStep.data?.tlsClientCertificate ||
-            monitorStep.data?.tlsClientKey
-              ? "Configured"
-              : undefined
-          }
-          variant="card"
-          defaultCollapsed={
-            !monitorStep.data?.doNotFollowRedirects &&
-            !monitorStep.data?.allowSelfSignedCertificates &&
-            !monitorStep.data?.tlsClientCertificate &&
-            !monitorStep.data?.tlsClientKey &&
-            !showDoNotFollowRedirects
-          }
+          items={moreFieldsItems}
+          defaultCollapsed={!showDoNotFollowRedirects}
+          dataTestId="monitor-step-more-fields"
           onToggle={(isCollapsed: boolean) => {
             if (!isCollapsed) {
               setShowDoNotFollowRedirects(true);
@@ -1299,12 +1325,16 @@ return {
                     title={"Client Certificate (PEM)"}
                     description={
                       <p>
-                        Client certificate (mTLS). Paste the PEM-encoded
-                        certificate, or reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>
-                        .{" "}
+                        <TranslatedSentence
+                          template="Client certificate (mTLS). Paste the PEM-encoded certificate, or reference a monitor secret with {{secret}}."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />{" "}
                         <Link
                           className="underline"
                           openInNewTab={true}
@@ -1312,7 +1342,9 @@ return {
                             DOCS_URL.toString() + "/monitor/monitor-secrets",
                           )}
                         >
-                          Learn more about secrets.
+                          {translator.translateText(
+                            "Learn more about secrets.",
+                          )}
                         </Link>
                       </p>
                     }
@@ -1338,12 +1370,16 @@ return {
                     title={"Client Private Key (PEM)"}
                     description={
                       <p>
-                        Private key paired with the client certificate above.
-                        Reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>{" "}
-                        to keep the key encrypted at rest.
+                        <TranslatedSentence
+                          template="Private key paired with the client certificate above. Reference a monitor secret with {{secret}} to keep the key encrypted at rest."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />
                       </p>
                     }
                     required={true}
@@ -1389,31 +1425,23 @@ return {
 
             {renderTimeoutAndRetryFields()}
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       )}
 
-      {/* Advanced Options - Collapsible Section for Ping/IP/Port/SSL monitors */}
+      {/* More fields for Ping, IP, Port and SSL monitors: timeout, retries. */}
       {(props.monitorType === MonitorType.Ping ||
         props.monitorType === MonitorType.IP ||
         props.monitorType === MonitorType.Port ||
         props.monitorType === MonitorType.SSLCertificate) && (
-        <CollapsibleSection
-          title="Advanced Options"
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
           description="Timeout and retry settings"
-          badge={
-            monitorStep.data?.requestTimeoutInMs !== undefined ||
-            monitorStep.data?.retryCount !== undefined
-              ? "Configured"
-              : undefined
-          }
-          variant="card"
-          defaultCollapsed={
-            monitorStep.data?.requestTimeoutInMs === undefined &&
-            monitorStep.data?.retryCount === undefined
-          }
+          items={moreFieldsItems}
+          dataTestId="monitor-step-more-fields"
         >
           <div className="space-y-4">{renderTimeoutAndRetryFields()}</div>
-        </CollapsibleSection>
+        </FoldedSection>
       )}
 
       {/* Telemetry Monitor Forms */}
@@ -1927,7 +1955,7 @@ return {
                     DOCS_URL.toString() + "/monitor/monitor-secrets",
                   )}
                 >
-                  You can use secrets here.
+                  {translator.translateText("You can use secrets here.")}
                 </Link>
               </p>
               {props.monitorType === MonitorType.SyntheticMonitor && (
@@ -1939,7 +1967,9 @@ return {
                       DOCS_URL.toString() + "/monitor/synthetic-monitor",
                     )}
                   >
-                    Read the OneUptime Synthetic Monitor documentation.
+                    {translator.translateText(
+                      "Read the OneUptime Synthetic Monitor documentation.",
+                    )}
                   </Link>
                 </p>
               )}
@@ -1992,13 +2022,15 @@ return {
         </Card>
       )}
 
-      {/* Synthetic Monitor Advanced Options */}
+      {/* More fields for Synthetic monitors: retries on error. */}
       {props.monitorType === MonitorType.SyntheticMonitor && (
-        <CollapsibleSection
-          title="Advanced Options"
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
           description="Retry settings and more"
-          variant="card"
+          items={moreFieldsItems}
           defaultCollapsed={!showSyntheticMonitorAdvancedOptions}
+          dataTestId="monitor-step-more-fields"
           onToggle={(isCollapsed: boolean) => {
             if (!isCollapsed) {
               setShowSyntheticMonitorAdvancedOptions(true);
@@ -2034,7 +2066,7 @@ return {
               type={InputType.NUMBER}
             />
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       )}
 
       {/* Test Monitor Card - only shown for probeable monitors */}
@@ -2073,7 +2105,6 @@ return {
           alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
           labelDropdownOptions={props.labelDropdownOptions}
-          teamDropdownOptions={props.teamDropdownOptions}
           userDropdownOptions={props.userDropdownOptions}
           incidentRoleOptions={props.incidentRoleOptions}
           value={monitorStep?.data?.monitorCriteria}

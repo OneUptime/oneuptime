@@ -12,14 +12,16 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import Recurring from "Common/Types/Events/Recurring";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import {
+  buildNewScheduleLayer,
+  getNewLayerName,
+} from "Common/Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import ScheduleShiftUtil, {
   ScheduleCoverageState,
   ScheduleCoverageStatus,
@@ -43,6 +45,8 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onCallDutyPolicyScheduleId: ObjectID;
@@ -52,6 +56,7 @@ export interface ComponentProps {
 const Layers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const [layers, setLayers] = React.useState<
@@ -252,33 +257,25 @@ const Layers: FunctionComponent<ComponentProps> = (
       const newOrder: number = maxOrder + 1;
 
       /*
-       * Pick a "Layer N" name that is not already taken. maxOrder+1 alone is not
-       * enough: after deleting a middle layer the server re-sequences orders but
-       * leaves names untouched, so "Layer 3" can still exist while maxOrder is 2.
+       * The layer every new layer starts as (ScheduleLayerDefaults), the same
+       * the server adds when a schedule is created with people to take
+       * turns: on call from now, handing off once a week, around the clock.
+       * Its name is "Layer N", skipping names still taken: after deleting a
+       * middle layer the server re-sequences orders but leaves names
+       * untouched, so "Layer 3" can still exist while maxOrder is 2.
        */
-      const existingNames: Set<string> = new Set<string>(
-        layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
-          return layer.name?.toString() || "";
+      const newLayer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
+        onCallDutyPolicyScheduleId: props.onCallDutyPolicyScheduleId,
+        projectId: props.projectId,
+        name: getNewLayerName({
+          order: newOrder,
+          existingNames: layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
+            return layer.name?.toString() || "";
+          }),
         }),
-      );
-      let nameIndex: number = newOrder;
-      while (existingNames.has(`Layer ${nameIndex}`)) {
-        nameIndex++;
-      }
-
-      const newLayer: OnCallDutyPolicyScheduleLayer =
-        new OnCallDutyPolicyScheduleLayer();
-      newLayer.onCallDutyPolicyScheduleId = props.onCallDutyPolicyScheduleId;
-      newLayer.projectId = props.projectId;
-      newLayer.name = `Layer ${nameIndex}`;
-      newLayer.order = newOrder;
-      newLayer.startsAt = OneUptimeDate.getCurrentDate();
-      newLayer.handOffTime = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        1,
-      );
-      newLayer.rotation = Recurring.getDefault();
-      newLayer.restrictionTimes = RestrictionTimes.getDefault();
+        order: newOrder,
+        timezone: scheduleTimezone,
+      });
 
       const response: HTTPResponse<
         | OnCallDutyPolicyScheduleLayer
@@ -666,14 +663,19 @@ const Layers: FunctionComponent<ComponentProps> = (
     let message: ReactElement = (
       <span>
         <span className="font-semibold">
-          {coverage.gaps.length === 1
-            ? "1 coverage gap"
-            : `${coverage.gaps.length} coverage gaps`}{" "}
-          in the next {windowLabel}.
+          {translator.translatePlural(
+            {
+              one: "{{count}} coverage gap in the next {{window}}.",
+              other: "{{count}} coverage gaps in the next {{window}}.",
+            },
+            coverage.gaps.length,
+            { window: windowLabel },
+          )}
         </span>{" "}
-        Someone is on call for {percent >= 100 ? 99 : percent}% of that window.
-        During the rest, alerts routed to this schedule will notify no one. See
-        the final schedule below for exactly when.
+        {translator.translateTemplate(
+          "Someone is on call for {{percent}}% of that window. During the rest, alerts routed to this schedule will notify no one. See the final schedule below for exactly when.",
+          { percent: percent >= 100 ? 99 : percent },
+        )}
       </span>
     );
 
@@ -681,10 +683,11 @@ const Layers: FunctionComponent<ComponentProps> = (
       message = (
         <span>
           <span className="font-semibold">
-            No users are assigned to any layer.
+            {translator.translateText("No users are assigned to any layer.")}
           </span>{" "}
-          Nobody is ever on call in this schedule, so every alert routed here
-          will go unanswered. Expand a layer below and add at least one user.
+          {translator.translateText(
+            "Nobody is ever on call in this schedule, so every alert routed here will go unanswered. Expand a layer below and add at least one user.",
+          )}
         </span>
       );
     }
@@ -755,8 +758,10 @@ const Layers: FunctionComponent<ComponentProps> = (
               saving={isSavingTimezone}
               icon={IconProp.Globe}
               placeholder="Not set — using server local time"
-              modalTitle="Set schedule timezone"
-              modalDescription="All rotation start, hand-off and active-hour times in this schedule are interpreted in this timezone. Changing it re-interprets the existing times in the new zone."
+              modalTitle={translationKey("Set schedule timezone")}
+              modalDescription={translationKey(
+                "All rotation start, hand-off and active-hour times in this schedule are interpreted in this timezone. Changing it re-interprets the existing times in the new zone.",
+              )}
               submitButtonText="Save timezone"
               dataTestId="schedule-timezone-button"
               onChange={(timezone: string | undefined) => {
@@ -767,11 +772,15 @@ const Layers: FunctionComponent<ComponentProps> = (
             />
             {scheduleTimezone ? (
               <span className="text-xs text-gray-500">
-                Click to change. Everything below is in this zone.
+                {translator.translateText(
+                  "Click to change. Everything below is in this zone.",
+                )}
               </span>
             ) : (
               <span className="text-xs text-amber-600">
-                No timezone set yet — click to choose one.
+                {translator.translateText(
+                  "No timezone set yet — click to choose one.",
+                )}
               </span>
             )}
           </div>
@@ -814,15 +823,21 @@ const Layers: FunctionComponent<ComponentProps> = (
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold leading-6 text-gray-900">
-            Rotation layers
+            {translator.translateText("Rotation layers")}
           </h2>
           <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
-            Layers are evaluated from the top down. The highest-priority layer
-            with someone on call is used, so put your primary rotation on top
-            and fall-back coverage below.
+            {translator.translateText(
+              "Layers are evaluated from the top down. The highest-priority layer with someone on call is used, so put your primary rotation on top and fall-back coverage below.",
+            )}
           </p>
         </div>
-        <div className="flex-shrink-0">{addLayerButton()}</div>
+        {/*
+          Under the description on a phone, at the right edge, as a card
+          header's actions always are; beside the title from sm up.
+        */}
+        <div className="flex-shrink-0 self-end sm:self-auto">
+          {addLayerButton()}
+        </div>
       </div>
 
       {/*
@@ -888,7 +903,7 @@ const Layers: FunctionComponent<ComponentProps> = (
           icon={isAddButtonLoading ? IconProp.Spinner : IconProp.Add}
           className="h-4 w-4"
         />
-        Add another layer
+        {translator.translateText("Add another layer")}
       </button>
 
       {/* Final schedule preview */}
@@ -896,14 +911,15 @@ const Layers: FunctionComponent<ComponentProps> = (
         <Card
           title={"Final schedule"}
           description={
-            "A combined preview of who is on call and when, after all layers and priorities are applied. " +
-            (scheduleTimezone
-              ? "Restriction windows are resolved in this schedule's timezone — " +
-                scheduleTimezone +
-                "."
-              : "Shown in your local timezone — " +
-                OneUptimeDate.getCurrentTimezoneString() +
-                ".")
+            scheduleTimezone
+              ? translator.translateTemplate(
+                  "A combined preview of who is on call and when, after all layers and priorities are applied. Restriction windows are resolved in this schedule's timezone — {{timezone}}.",
+                  { timezone: scheduleTimezone },
+                )
+              : translator.translateTemplate(
+                  "A combined preview of who is on call and when, after all layers and priorities are applied. Shown in your local timezone — {{timezone}}.",
+                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
+                )
           }
         >
           <LayersPreview
@@ -917,7 +933,13 @@ const Layers: FunctionComponent<ComponentProps> = (
 
       {layerToDelete && (
         <ConfirmModal
-          title={`Delete ${layerToDelete.name?.toString() || "layer"}?`}
+          title={
+            layerToDelete.name?.toString()
+              ? translator.translateTemplate("Delete {{name}}?", {
+                  name: layerToDelete.name.toString(),
+                })
+              : translator.translateTemplate("Delete layer?")
+          }
           description={
             "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone."
           }

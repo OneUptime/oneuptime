@@ -1,5 +1,6 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
+  CARD_HEADER_ACTION_CLASS_NAME,
   CardButtonSchema,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
@@ -18,6 +19,8 @@ import {
   isVisibleAtWidth,
   resolveDisplay,
 } from "../../ResponsiveVisibility";
+import { resolveFlex } from "../../ResponsiveFlexLayout";
+import { resolveSpacing } from "../../ResponsiveSpacing";
 
 describe("Card", () => {
   const props: ComponentProps = {
@@ -118,6 +121,20 @@ describe("Card", () => {
   });
 });
 
+/*
+ * "Why are edit buttons not on the right?" The overview pages' narrow
+ * column drew its cards' Edit under the description, at the left, at every
+ * width; a phone centred every card's buttons under its title; a status
+ * badge that did not fit went under the title, at the left. Every header
+ * now keeps what the card offers at its right edge, on the title's line,
+ * and moves it to the next line - still at the right edge - only when the
+ * two do not fit.
+ *
+ * jsdom has no stylesheet, so these tests read the classes the way the
+ * cascade would (ResponsiveFlexLayout / ResponsiveSpacing /
+ * ResponsiveVisibility). The browser half - real boxes on the real overview
+ * pages - is in E2E/EventOverview and E2E/MonitorOverview.
+ */
 describe("Card header layout", () => {
   const buttons: Array<CardButtonSchema> = [
     {
@@ -142,6 +159,19 @@ describe("Card header layout", () => {
     children: <div>body</div>,
   };
 
+  const WIDTHS: Array<number> = [
+    PHONE_WIDTH_IN_PX,
+    TABLET_WIDTH_IN_PX,
+    LAPTOP_WIDTH_IN_PX,
+    WIDE_DESKTOP_WIDTH_IN_PX,
+  ];
+
+  const DESKTOP_WIDTHS: Array<number> = [
+    TABLET_WIDTH_IN_PX,
+    LAPTOP_WIDTH_IN_PX,
+    WIDE_DESKTOP_WIDTH_IN_PX,
+  ];
+
   type RenderMarkupFunction = (props: ComponentProps) => string;
 
   const renderMarkup: RenderMarkupFunction = (
@@ -153,44 +183,49 @@ describe("Card header layout", () => {
     return markup;
   };
 
-  // The nearest ancestor of an element that matches a selector, or a throw.
-  type ClosestFunction = (element: HTMLElement, selector: string) => Element;
+  function header(): HTMLElement {
+    return screen.getByTestId("card-header");
+  }
 
-  const closest: ClosestFunction = (
-    element: HTMLElement,
-    selector: string,
-  ): Element => {
-    const match: Element | null = element.closest(selector);
+  function actions(): HTMLElement {
+    return screen.getByTestId("card-header-actions");
+  }
 
-    if (!match) {
-      throw new Error(`No ancestor matches ${selector}`);
-    }
+  function titleBlock(): HTMLElement {
+    return screen.getByTestId("card-header-title-block");
+  }
 
-    return match;
-  };
+  // The flex row the title and the actions share.
+  function titleRow(): HTMLElement {
+    return actions().parentElement!;
+  }
+
+  function classOf(element: Element): string {
+    return element.getAttribute("class") || "";
+  }
+
+  // margin-left: auto resolves to NaN: it has no length before layout.
+  function hasAutoLeftMargin(element: Element, width: number): boolean {
+    return Number.isNaN(resolveSpacing(classOf(element), width, "margin").left);
+  }
 
   describe("default", () => {
     /*
-     * Captured from Card before headerLayout existed. Every card in the app
-     * that does not opt in must keep rendering exactly this.
-     *
-     * One token has moved on purpose since: the description was `hidden
-     * md:block` and is now `max-md:hidden md:block`. The two paint the same
-     * at every width, but only the second survives a foreign
-     * `.hidden { display: none !important }` rule, which took the old
-     * description off desktops as well (see "Card description" below).
+     * Pinned whole: every card in the product that does not ask for another
+     * layout draws exactly this, so a change to it is a change to all of
+     * them and should be made on purpose.
      */
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div class="flex flex-col md:flex-row md:justify-between md:items-start"><div class="flex-1 min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div class="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center"><div class="mb-2 md:mb-0 md:mr-3"><span>right</span></div><div class="flex flex-wrap items-center gap-1.5"><div class="flex items-center"><a href="/docs">Docs</a></div></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:flex-1"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:flex-shrink-0"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     const GOLDEN_WITHOUT_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div class="flex flex-col md:flex-row md:justify-between md:items-start"><div class="w-full"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div></div></div></div>';
 
     test.each([
       ["left out", undefined],
       ["default", "default"],
     ] as Array<[string, "default" | undefined]>)(
-      "headerLayout %s renders the markup Card has always rendered",
+      "headerLayout %s renders this exact markup",
       (_label: string, headerLayout: "default" | undefined) => {
         expect(
           renderMarkup({
@@ -219,176 +254,217 @@ describe("Card header layout", () => {
       },
     );
 
-    test("leaving headerLayout out, or passing default, renders the same markup", () => {
-      const withoutProp: string = renderMarkup(baseProps);
-      const withDefault: string = renderMarkup({
-        ...baseProps,
-        headerLayout: "default",
-      });
-
-      expect(withDefault).toBe(withoutProp);
-    });
-
-    test("keeps the side-by-side header classes", () => {
+    test("the title block and the actions share one row, the actions last", () => {
       render(<Card {...baseProps} />);
 
-      const heading: HTMLElement = screen.getByTestId("card-details-heading");
-      const titleBlock: HTMLElement = heading.parentElement!;
-      const headerRow: HTMLElement = titleBlock.parentElement!;
-
-      expect(titleBlock).toHaveClass("flex-1", "min-w-0");
-      expect(headerRow).toHaveClass(
-        "flex",
-        "flex-col",
-        "md:flex-row",
-        "md:justify-between",
-        "md:items-start",
+      expect(header()).toHaveAttribute("data-header-layout", "default");
+      expect(Array.from(header().children)).toEqual([titleBlock(), actions()]);
+      expect(titleBlock()).toContainElement(
+        screen.getByTestId("card-details-heading"),
       );
+    });
 
-      const actions: HTMLElement = headerRow.children[1] as HTMLElement;
+    test.each(WIDTHS)(
+      "at %ipx the row runs left to right and the actions sit at its right edge",
+      (width: number) => {
+        render(<Card {...baseProps} />);
 
-      expect(actions).toHaveClass(
-        "flex",
-        "flex-col",
-        "md:flex-row",
-        "md:items-center",
-        "md:w-fit",
-        "mt-4",
-        "md:mt-0",
-        "md:ml-4",
-        "flex-shrink-0",
-      );
-      expect(actions.children[0]).toHaveClass("mb-2", "md:mb-0", "md:mr-3");
-      expect(actions.children[1]).toHaveClass(
-        "flex",
-        "flex-wrap",
-        "items-center",
-        "gap-1.5",
-      );
-      expect(screen.queryByTestId("card-header-actions")).toBeNull();
-      expect(screen.queryByTestId("card-header")).toBeNull();
+        expect(resolveFlex(classOf(header()), width, "flex-direction")).toBe(
+          "row",
+        );
+        expect(hasAutoLeftMargin(actions(), width)).toBe(true);
+        expect(resolveFlex(classOf(actions()), width, "justify-content")).toBe(
+          "flex-end",
+        );
+      },
+    );
+
+    test.each(DESKTOP_WIDTHS)(
+      "at %ipx the row never wraps: the actions stay beside the title, never under the description",
+      (width: number) => {
+        render(<Card {...baseProps} />);
+
+        expect(resolveFlex(classOf(header()), width, "flex-wrap")).toBe(
+          "nowrap",
+        );
+        // The description is in the title block, beside the actions.
+        expect(titleBlock()).toContainElement(
+          screen.getByTestId("card-description"),
+        );
+        // Their tops are level: the title's line, not the block's middle.
+        expect(resolveFlex(classOf(header()), width, "align-items")).toBe(
+          "flex-start",
+        );
+        // The title block gives way, never the actions.
+        expect(classOf(titleBlock())).toContain("md:flex-1");
+        expect(classOf(actions())).toContain("md:flex-shrink-0");
+      },
+    );
+
+    test("on a phone the title and the actions share a line while they fit, and the actions wrap - at the right edge - when they do not", () => {
+      render(<Card {...baseProps} />);
+
+      expect(
+        resolveFlex(classOf(header()), PHONE_WIDTH_IN_PX, "flex-wrap"),
+      ).toBe("wrap");
+      expect(
+        resolveFlex(classOf(header()), PHONE_WIDTH_IN_PX, "align-items"),
+      ).toBe("center");
+      // The description that would sit between them is not on a phone.
+      expect(
+        isVisibleAtWidth(
+          screen.getByTestId("card-description"),
+          PHONE_WIDTH_IN_PX,
+        ),
+      ).toBe(false);
+      /*
+       * The title keeps its whole width on a phone: no grow, no basis below
+       * md, so the actions wrap before the title would break to make room.
+       */
+      const tokens: Array<string> = classOf(titleBlock()).split(" ");
+      const FLEX_SIZING: RegExp = /^(grow|basis-|flex-1$|shrink)/;
+
+      expect(tokens).toContain("min-w-0");
+      expect(
+        tokens.filter((token: string): boolean => {
+          return FLEX_SIZING.test(token);
+        }),
+      ).toEqual([]);
     });
 
     test("a card with no actions gives the title block the full width", () => {
       render(<Card title="Only a title" description="And a description" />);
 
-      const titleBlock: HTMLElement = screen.getByTestId(
-        "card-details-heading",
-      ).parentElement!;
-
-      expect(titleBlock).toHaveClass("w-full");
-      expect(titleBlock).not.toHaveClass("flex-1");
+      expect(titleBlock()).toHaveClass("w-full", "min-w-0");
+      expect(titleBlock()).not.toHaveClass("grow");
+      expect(screen.queryByTestId("card-header-actions")).toBeNull();
+      expect(header().children).toHaveLength(1);
     });
   });
 
   describe("stacked", () => {
-    test("gives the title and description the full width", () => {
-      render(<Card {...baseProps} headerLayout="stacked" />);
+    const GOLDEN_WITH_ACTIONS: string =
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
-      const header: HTMLElement = screen.getByTestId("card-header");
-      const titleBlock: HTMLElement = screen.getByTestId(
-        "card-details-heading",
-      ).parentElement!;
-
-      expect(header).toHaveAttribute("data-header-layout", "stacked");
-      expect(titleBlock).toHaveClass("w-full", "min-w-0");
-      expect(titleBlock).not.toHaveClass("flex-1");
-      expect(titleBlock).toContainElement(
-        screen.getByTestId("card-description"),
-      );
-      // Nothing in the header lays the title out side by side any more.
-      expect(header).not.toHaveClass("md:flex-row");
-      expect(header.querySelector(".md\\:flex-row")).toBeNull();
-    });
-
-    test("puts the right element and the buttons on one row under the description", () => {
-      render(<Card {...baseProps} headerLayout="stacked" />);
-
-      const header: HTMLElement = screen.getByTestId("card-header");
-      const actions: HTMLElement = screen.getByTestId("card-header-actions");
-
-      expect(Array.from(header.children)).toEqual([
-        screen.getByTestId("card-details-heading").parentElement,
-        actions,
-      ]);
-      expect(actions).toHaveClass(
-        "mt-3",
-        "flex",
-        "flex-wrap",
-        "items-center",
-        "gap-2",
-      );
-      expect(actions).not.toHaveClass("justify-end");
-      expect(actions).not.toHaveClass("justify-between");
-
-      const description: HTMLElement = screen.getByTestId("card-description");
-
+    test("renders this exact markup", () => {
       expect(
-        description.compareDocumentPosition(actions) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-
-      // Right element first, then each button, all direct children of the row.
-      expect(actions.children).toHaveLength(3);
-      expect(actions.children[0]).toHaveTextContent("right element");
-      expect(
-        closest(
-          screen.getByText("Edit"),
-          "[data-testid='card-header-actions'] > div",
-        ),
-      ).toBe(actions.children[1]);
-      expect(
-        closest(
-          screen.getByText("Refresh"),
-          "[data-testid='card-header-actions'] > div",
-        ),
-      ).toBe(actions.children[2]);
-    });
-
-    test("buttons still work and keep their test ids", () => {
-      const onEdit: MockFunction = getJestMockFunction();
-
-      render(
-        <Card
-          title="Details"
-          headerLayout="stacked"
-          buttons={[
-            {
-              title: "Edit",
-              onClick: onEdit,
-              icon: IconProp.Edit,
-            },
-          ]}
-        />,
-      );
-
-      fireEvent.click(screen.getByText("Edit"));
-
-      expect(onEdit).toHaveBeenCalledTimes(1);
-      expect(screen.getAllByTestId("card-button")).toHaveLength(1);
-    });
-
-    test("renders React element buttons as they are", () => {
-      render(
-        <Card
-          title="Details"
-          headerLayout="stacked"
-          buttons={[
+        renderMarkup({
+          title: "Title",
+          description: "Desc",
+          rightElement: <span>right</span>,
+          buttons: [
             <a key="docs" href="/docs">
               Docs
             </a>,
-          ]}
+          ],
+          children: <div>body</div>,
+          className: "extra",
+          bodyClassName: "mt-0",
+          headerLayout: "stacked",
+        }),
+      ).toBe(GOLDEN_WITH_ACTIONS);
+    });
+
+    test("the title and the actions share the first row; the description follows it, across the whole width", () => {
+      render(<Card {...baseProps} headerLayout="stacked" />);
+
+      const description: HTMLElement = screen.getByTestId("card-description");
+
+      expect(header()).toHaveAttribute("data-header-layout", "stacked");
+      expect(titleRow()).toBe(screen.getByTestId("card-header-title-row"));
+      expect(Array.from(titleRow().children)).toEqual([
+        titleBlock(),
+        actions(),
+      ]);
+      expect(Array.from(header().children)).toEqual([titleRow(), description]);
+      expect(titleRow()).not.toContainElement(description);
+      expect(description).toHaveClass("w-full");
+    });
+
+    test.each(WIDTHS)(
+      "at %ipx the row runs left to right, wraps, and keeps the actions at its right edge",
+      (width: number) => {
+        render(<Card {...baseProps} headerLayout="stacked" />);
+
+        expect(resolveFlex(classOf(titleRow()), width, "flex-direction")).toBe(
+          "row",
+        );
+        expect(resolveFlex(classOf(titleRow()), width, "flex-wrap")).toBe(
+          "wrap",
+        );
+        expect(hasAutoLeftMargin(actions(), width)).toBe(true);
+        expect(resolveFlex(classOf(actions()), width, "justify-content")).toBe(
+          "flex-end",
+        );
+      },
+    );
+
+    test("centred on each other on a phone; from md up their tops are level, as in the default header", () => {
+      render(<Card {...baseProps} headerLayout="stacked" />);
+
+      expect(
+        resolveFlex(classOf(titleRow()), PHONE_WIDTH_IN_PX, "align-items"),
+      ).toBe("center");
+
+      for (const width of DESKTOP_WIDTHS) {
+        expect(resolveFlex(classOf(titleRow()), width, "align-items")).toBe(
+          "flex-start",
+        );
+      }
+    });
+
+    test("from md up the title takes what the actions leave, down to half the line, and wraps its own words before it gives up the line; on a phone it keeps its whole width", () => {
+      render(<Card {...baseProps} headerLayout="stacked" />);
+
+      const tokens: Array<string> = classOf(titleBlock()).split(" ");
+
+      expect(tokens).toEqual(
+        expect.arrayContaining(["min-w-0", "md:grow", "md:basis-1/2"]),
+      );
+      expect(tokens).not.toContain("grow");
+      expect(tokens).not.toContain("basis-1/2");
+      expect(screen.getByTestId("card-details-heading")).toHaveClass(
+        "text-balance",
+      );
+    });
+
+    test("without a title the row holds only the actions, still at the right edge", () => {
+      render(
+        <Card
+          description="Only a description."
+          headerLayout="stacked"
+          buttons={buttons}
         />,
       );
 
-      expect(
-        within(screen.getByTestId("card-header-actions")).getByRole("link", {
-          name: "Docs",
-        }),
-      ).toHaveAttribute("href", "/docs");
+      expect(screen.queryByTestId("card-header-title-block")).toBeNull();
+      expect(Array.from(titleRow().children)).toEqual([actions()]);
+      expect(hasAutoLeftMargin(actions(), LAPTOP_WIDTH_IN_PX)).toBe(true);
     });
 
-    test("renders no actions row when there is nothing to put in it", () => {
+    test("with neither a title nor actions there is no row, only the description", () => {
+      render(<Card description="Only a description." headerLayout="stacked" />);
+
+      expect(screen.queryByTestId("card-header-title-row")).toBeNull();
+      expect(Array.from(header().children)).toEqual([
+        screen.getByTestId("card-description"),
+      ]);
+    });
+
+    test("without a description there is nothing under the row", () => {
+      render(
+        <Card
+          title="Details"
+          headerLayout="stacked"
+          rightElement={<span>Completed</span>}
+        />,
+      );
+
+      expect(screen.queryByTestId("card-description")).toBeNull();
+      expect(header().children).toHaveLength(1);
+    });
+
+    test("with no actions there is no actions box", () => {
       render(
         <Card
           title="Details"
@@ -398,248 +474,160 @@ describe("Card header layout", () => {
         />,
       );
 
-      expect(screen.getByTestId("card-header")).toBeInTheDocument();
       expect(screen.queryByTestId("card-header-actions")).toBeNull();
-    });
-
-    test("a right element alone still gets the row", () => {
-      render(
-        <Card
-          title="Details"
-          headerLayout="stacked"
-          rightElement={<span>just me</span>}
-        />,
+      expect(screen.getByTestId("card-header-title-row").children).toHaveLength(
+        1,
       );
-
-      const actions: HTMLElement = screen.getByTestId("card-header-actions");
-
-      expect(actions.children).toHaveLength(1);
-      expect(actions).toHaveTextContent("just me");
-      expect(screen.queryByTestId("card-button")).toBeNull();
-    });
-
-    test("leaves the body, its default spacing and bodyClassName alone", () => {
-      const { rerender } = render(
-        <Card {...baseProps} headerLayout="stacked" />,
-      );
-
-      expect(screen.getByText("body").parentElement).toHaveClass("mt-4");
-
-      rerender(
-        <Card {...baseProps} headerLayout="stacked" bodyClassName="mt-0" />,
-      );
-
-      expect(screen.getByText("body").parentElement).toHaveClass("mt-0");
     });
   });
 
-  /*
-   * The default layout drops what is on the right under the title below md
-   * and centres it, and from md up holds it 12px short of the card's edge.
-   * That suits a row of buttons. A small status badge (the AI Investigation
-   * card's pill) ended up alone in the middle of a phone's card. "inline"
-   * keeps it beside the title at any width they both fit in.
-   */
-  describe("inline", () => {
-    function titleRow(): HTMLElement {
-      return screen.getByTestId("card-details-heading").parentElement!;
-    }
+  describe.each(["default", "stacked"] as Array<"default" | "stacked">)(
+    "both layouts (%s)",
+    (headerLayout: "default" | "stacked") => {
+      test("the right element comes first, then each button, each in a box of its own", () => {
+        render(<Card {...baseProps} headerLayout={headerLayout} />);
 
-    test("puts the title and what is on the right on one row that wraps", () => {
-      render(<Card {...baseProps} headerLayout="inline" />);
-
-      const header: HTMLElement = screen.getByTestId("card-header");
-      const actions: HTMLElement = screen.getByTestId("card-header-actions");
-
-      expect(header).toHaveAttribute("data-header-layout", "inline");
-      expect(titleRow().parentElement).toBe(header);
-      expect(titleRow()).toHaveClass(
-        "flex",
-        "flex-wrap",
-        "items-start",
-        "justify-between",
-        "gap-x-4",
-        "gap-y-2",
-      );
-      // The same row at every width: nothing switches at md.
-      expect(titleRow().className).not.toMatch(/(^|\s)(md|sm|lg):/);
-      expect(titleRow()).not.toHaveClass("flex-col");
-      expect(Array.from(titleRow().children)).toEqual([
-        screen.getByTestId("card-details-heading"),
-        actions,
-      ]);
-    });
-
-    test("the description is under the row, so its length cannot push the right element off it", () => {
-      render(<Card {...baseProps} headerLayout="inline" />);
-
-      const description: HTMLElement = screen.getByTestId("card-description");
-
-      expect(titleRow()).not.toContainElement(description);
-      expect(description.parentElement).toBe(screen.getByTestId("card-header"));
-      expect(titleRow().nextElementSibling).toBe(description);
-      expect(description).toHaveTextContent("Key facts about this incident.");
-    });
-
-    test("the title is never the one that gives way", () => {
-      render(<Card {...baseProps} headerLayout="inline" />);
-
-      const heading: HTMLElement = screen.getByTestId("card-details-heading");
-
-      /*
-       * With flex-1/min-w-0 on it the title shrank to make room and broke
-       * into two lines beside a long badge. Left at its own width, the row
-       * wraps instead and the badge goes under the title.
-       */
-      expect(heading).not.toHaveClass("flex-1");
-      expect(heading).not.toHaveClass("min-w-0");
-      expect(heading).not.toHaveClass("truncate");
-      expect(heading.className).toBe(
-        "text-lg font-semibold leading-6 text-gray-900",
-      );
-    });
-
-    test("what is on the right ends at the card's edge and is never centred", () => {
-      render(<Card {...baseProps} headerLayout="inline" />);
-
-      const actions: HTMLElement = screen.getByTestId("card-header-actions");
-
-      expect(actions).toHaveClass("flex", "flex-wrap", "items-center", "gap-2");
-      // None of the default layout's phone column or desktop margins.
-      for (const className of [
-        "flex-col",
-        "mt-4",
-        "md:mt-0",
-        "md:ml-4",
-        "md:w-fit",
-      ]) {
-        expect(actions).not.toHaveClass(className);
-      }
-      for (const child of Array.from(actions.children)) {
-        expect(child).not.toHaveClass("md:mr-3");
-        expect(child).not.toHaveClass("mb-2");
-      }
-    });
-
-    test("holds the right element first, then the buttons", () => {
-      render(<Card {...baseProps} headerLayout="inline" />);
-
-      const actions: HTMLElement = screen.getByTestId("card-header-actions");
-
-      expect(actions.children).toHaveLength(3);
-      expect(actions.children[0]).toHaveTextContent("right element");
-      expect(
-        within(actions)
-          .getAllByTestId("card-button")
-          .map((button: HTMLElement): string => {
-            return button.textContent || "";
-          }),
-      ).toEqual(["Edit", "Refresh"]);
-      // A button's side-by-side margin is cleared: the gap spaces them.
-      expect(actions).toHaveClass("[&_button]:ml-0", "[&_button]:md:ml-0");
-    });
-
-    test("buttons still work", () => {
-      const onClick: MockFunction = getJestMockFunction();
-
-      render(
-        <Card
-          title="Details"
-          headerLayout="inline"
-          buttons={[
-            {
-              title: "Edit",
-              buttonStyle: ButtonStyleType.NORMAL,
-              onClick: onClick,
-              icon: IconProp.Edit,
-            },
-          ]}
-        />,
-      );
-
-      fireEvent.click(screen.getByTestId("card-button"));
-
-      expect(onClick).toHaveBeenCalledTimes(1);
-    });
-
-    test("a right element alone is the whole right side", () => {
-      render(
-        <Card
-          title="AI Investigation"
-          headerLayout="inline"
-          rightElement={<span>Completed</span>}
-        />,
-      );
-
-      const actions: HTMLElement = screen.getByTestId("card-header-actions");
-
-      expect(actions.children).toHaveLength(1);
-      expect(actions).toHaveTextContent("Completed");
-      expect(screen.queryByTestId("card-button")).toBeNull();
-    });
-
-    test("a title alone renders no right side", () => {
-      render(<Card title="Only a title" headerLayout="inline" />);
-
-      expect(screen.getByTestId("card-header")).toBeInTheDocument();
-      expect(screen.queryByTestId("card-header-actions")).toBeNull();
-      expect(titleRow().children).toHaveLength(1);
-    });
-
-    test("without a description there is nothing under the row", () => {
-      render(
-        <Card
-          title="AI Investigation"
-          headerLayout="inline"
-          rightElement={<span>Completed</span>}
-        />,
-      );
-
-      expect(screen.queryByTestId("card-description")).toBeNull();
-      expect(screen.getByTestId("card-header").children).toHaveLength(1);
-    });
-
-    test("leaves the body, its default spacing and bodyClassName alone", () => {
-      const { rerender } = render(
-        <Card {...baseProps} headerLayout="inline" />,
-      );
-
-      expect(screen.getByText("body").parentElement).toHaveClass("mt-4");
-
-      rerender(
-        <Card {...baseProps} headerLayout="inline" bodyClassName="mt-6" />,
-      );
-
-      expect(screen.getByText("body").parentElement).toHaveClass("mt-6");
-      // The header is not part of the body.
-      expect(screen.getByText("body").parentElement).not.toContainElement(
-        screen.getByTestId("card-header"),
-      );
-    });
-
-    test("is opt-in: the other two layouts render what they always did", () => {
-      const inline: string = renderMarkup({
-        ...baseProps,
-        headerLayout: "inline",
+        expect(actions().children).toHaveLength(3);
+        expect(actions().children[0]).toHaveTextContent("right element");
+        expect(
+          within(actions())
+            .getAllByTestId("card-button")
+            .map((button: HTMLElement): string => {
+              return button.textContent || "";
+            }),
+        ).toEqual(["Edit", "Refresh"]);
+        expect(
+          screen
+            .getByText("Edit")
+            .closest("[data-testid='card-header-actions'] > div"),
+        ).toBe(actions().children[1]);
       });
 
-      expect(inline).not.toBe(renderMarkup(baseProps));
-      expect(inline).not.toBe(
-        renderMarkup({ ...baseProps, headerLayout: "stacked" }),
-      );
-      expect(renderMarkup(baseProps)).not.toContain(
-        'data-header-layout="inline"',
-      );
-      expect(
-        closest(
-          render(<Card {...baseProps} headerLayout="stacked" />).getByTestId(
-            "card-header",
-          ),
-          "[data-header-layout]",
-        ),
-      ).toHaveAttribute("data-header-layout", "stacked");
-    });
-  });
+      test("each button's box clears the button's own left margin, so the row's gap alone spaces them", () => {
+        render(<Card {...baseProps} headerLayout={headerLayout} />);
+
+        const boxes: Array<Element> = Array.from(actions().children).slice(1);
+
+        for (const box of boxes) {
+          expect(box.getAttribute("class")).toBe(CARD_HEADER_ACTION_CLASS_NAME);
+          expect(box).toHaveClass(
+            "[&>button]:ml-0",
+            "[&>button]:md:ml-0",
+            "[&>*>button]:ml-0",
+            "[&>*>button]:md:ml-0",
+          );
+        }
+
+        // Normal buttons carry md:ml-3, outline ones ml-1: both are cleared.
+        expect(screen.getByText("Edit").closest("button")).toHaveClass(
+          "md:ml-3",
+        );
+        expect(screen.getByText("Refresh").closest("button")).toHaveClass(
+          "ml-1",
+        );
+        expect(classOf(actions())).toContain("gap-x-3");
+      });
+
+      test("never centred, never in a column", () => {
+        render(<Card {...baseProps} headerLayout={headerLayout} />);
+
+        let node: HTMLElement | null = actions();
+
+        while (node && node !== header().parentElement) {
+          for (const width of WIDTHS) {
+            expect(
+              resolveFlex(classOf(node), width, "flex-direction"),
+            ).not.toBe("column");
+            expect(
+              resolveFlex(classOf(node), width, "justify-content"),
+            ).not.toBe("center");
+          }
+          expect(node).not.toHaveClass("mx-auto");
+          expect(node).not.toHaveClass("self-center");
+          node = node.parentElement;
+        }
+      });
+
+      test("buttons still work and keep their test ids", () => {
+        const onEdit: MockFunction = getJestMockFunction();
+
+        render(
+          <Card
+            title="Details"
+            headerLayout={headerLayout}
+            buttons={[
+              {
+                title: "Edit",
+                onClick: onEdit,
+                icon: IconProp.Edit,
+              },
+            ]}
+          />,
+        );
+
+        fireEvent.click(screen.getByText("Edit"));
+
+        expect(onEdit).toHaveBeenCalledTimes(1);
+        expect(screen.getAllByTestId("card-button")).toHaveLength(1);
+      });
+
+      test("renders React element buttons as they are", () => {
+        render(
+          <Card
+            title="Details"
+            headerLayout={headerLayout}
+            buttons={[
+              <a key="docs" href="/docs">
+                Docs
+              </a>,
+            ]}
+          />,
+        );
+
+        expect(
+          within(actions()).getByRole("link", {
+            name: "Docs",
+          }),
+        ).toHaveAttribute("href", "/docs");
+      });
+
+      test("a right element alone is the whole of the actions", () => {
+        render(
+          <Card
+            title="AI Investigation"
+            headerLayout={headerLayout}
+            rightElement={<span>Completed</span>}
+          />,
+        );
+
+        expect(actions().children).toHaveLength(1);
+        expect(actions()).toHaveTextContent("Completed");
+        expect(screen.queryByTestId("card-button")).toBeNull();
+        expect(hasAutoLeftMargin(actions(), PHONE_WIDTH_IN_PX)).toBe(true);
+      });
+
+      test("leaves the body, its default spacing and bodyClassName alone", () => {
+        const { rerender } = render(
+          <Card {...baseProps} headerLayout={headerLayout} />,
+        );
+
+        expect(screen.getByText("body").parentElement).toHaveClass("mt-4");
+
+        rerender(
+          <Card
+            {...baseProps}
+            headerLayout={headerLayout}
+            bodyClassName="mt-6"
+          />,
+        );
+
+        expect(screen.getByText("body").parentElement).toHaveClass("mt-6");
+        expect(screen.getByText("body").parentElement).not.toContainElement(
+          header(),
+        );
+      });
+    },
+  );
 });
 
 /*
@@ -658,10 +646,9 @@ describe("Card description", () => {
   test.each([
     ["default", "default"],
     ["stacked", "stacked"],
-    ["inline", "inline"],
-  ] as Array<[string, "default" | "stacked" | "inline"]>)(
+  ] as Array<[string, "default" | "stacked"]>)(
     "the %s layout holds it back on a phone and shows it from md up",
-    (_label: string, headerLayout: "default" | "stacked" | "inline") => {
+    (_label: string, headerLayout: "default" | "stacked") => {
       render(
         <Card title="Title" description="Desc" headerLayout={headerLayout} />,
       );

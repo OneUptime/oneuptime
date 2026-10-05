@@ -138,20 +138,24 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       const alertStatesResult: ListResult<AlertState> = await ModelAPI.getList({
         modelType: AlertState,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true },
+        select: { name: true, _id: true, color: true, order: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        sort: { name: SortOrder.Ascending },
+        sort: {
+          order: SortOrder.Ascending,
+        },
       });
       setAlertStates(alertStatesResult.data);
 
       const alertSevResult: ListResult<AlertSeverity> = await ModelAPI.getList({
         modelType: AlertSeverity,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true },
+        select: { name: true, _id: true, color: true, order: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        sort: { name: SortOrder.Ascending },
+        sort: {
+          order: SortOrder.Ascending,
+        },
       });
       setAlertSeverities(alertSevResult.data);
 
@@ -159,10 +163,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         {
           modelType: IncidentSeverity,
           query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true, color: true },
+          select: { name: true, _id: true, color: true, order: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          sort: { name: SortOrder.Ascending },
+          sort: {
+            order: SortOrder.Ascending,
+          },
         },
       );
       setIncidentSeverities(incSevResult.data);
@@ -171,10 +177,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         {
           modelType: IncidentState,
           query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true, color: true },
+          select: { name: true, _id: true, color: true, order: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          sort: { name: SortOrder.Ascending },
+          sort: {
+            order: SortOrder.Ascending,
+          },
         },
       );
       setIncidentStates(incStatesResult.data);

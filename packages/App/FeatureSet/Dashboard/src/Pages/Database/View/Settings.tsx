@@ -5,13 +5,13 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { useParams } from "react-router-dom";
 import {
   DatabaseViewOutletContext,
@@ -24,10 +24,16 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * engine metrics and logs its collector / Database Agent sends (ingest makes
  * the database their primary entity). The query spans applications send it
  * belong to the calling service and keep that service's retention, so the
- * page says which telemetry the setting covers before offering it.
+ * retention card says which telemetry the setting covers, in its
+ * description, right after "Set the default retention for telemetry
+ * collected from this database." It used to be a blue "Which telemetry this
+ * covers." banner above the cards, on every visit; banners are for
+ * exceptions someone has to act on
+ * (App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
  */
-export const DATABASE_RETENTION_SCOPE_NOTE: string =
-  "These settings apply to the engine metrics and logs collected from this database by the Database Agent or your OpenTelemetry Collector. The traces of the queries your applications send it belong to the calling services and follow their retention.";
+export const DATABASE_RETENTION_SCOPE_NOTE: string = translationKey(
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.",
+);
 
 /*
  * The name is not the identity: discovery keys a database by its endpoints
@@ -62,22 +68,11 @@ const DatabaseServerSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Database"
-        formSteps={[
-          {
-            title: "Database Info",
-            id: "database-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
-            stepId: "database-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -91,29 +86,12 @@ const DatabaseServerSettings: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "database-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Primary PostgreSQL cluster for the checkout stack",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<DatabaseServer>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -152,18 +130,12 @@ const DatabaseServerSettings: FunctionComponent<
           ],
         }}
       />
-      <Alert
-        type={AlertType.INFO}
-        strongTitle="Which telemetry this covers."
-        title={DATABASE_RETENTION_SCOPE_NOTE}
-        className="mb-5"
-        dataTestId="database-retention-scope-note"
-      />
       <TelemetryResourceRetentionSettings<DatabaseServer>
         modelType={DatabaseServer}
         modelId={modelId}
         resourceName="database"
         modelDetailIdPrefix="database-server"
+        scopeNote={DATABASE_RETENTION_SCOPE_NOTE}
       />
       <ArchiveResourceCard<DatabaseServer>
         modelType={DatabaseServer}

@@ -148,13 +148,17 @@ describe("Exceptions monitor form — environment filter", () => {
     jest.useRealTimers();
   });
 
-  test("offers an Environments field without opening the advanced options", () => {
+  test("offers an Environments field without opening More fields", () => {
     renderForm();
 
     expect(screen.getByText("Environments")).toBeInTheDocument();
     expect(environmentsInput()).toBeVisible();
     expect(environmentsInput().value).toBe("");
-    expect(screen.getByText("Show Advanced Options")).toBeInTheDocument();
+    // The filters most monitors leave alone wait, folded, below it.
+    expect(screen.getByRole("button", { name: "More fields" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   test("an unfiltered monitor previews every environment", () => {

@@ -28,6 +28,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const oidCollectionTemplateDocumentation: string = `
 ### What an OID Collection Template Is
@@ -133,6 +135,7 @@ const OidListFormField: FunctionComponent<OidListFormFieldProps> = (
 const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkDeviceOidTemplate>
@@ -196,13 +199,18 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
 
               if (oidCount === 0) {
                 return (
-                  <span className="text-sm text-gray-400">No OIDs yet</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No OIDs yet")}
+                  </span>
                 );
               }
 
               return (
                 <span className="text-sm text-gray-900">
-                  {oidCount} {oidCount === 1 ? "OID" : "OIDs"}
+                  {translator.translatePlural(
+                    { one: "{{count}} OID", other: "{{count}} OIDs" },
+                    oidCount,
+                  )}
                 </span>
               );
             },
@@ -211,15 +219,16 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
             },
           },
         ]}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "OIDs", id: "oids" },
-        ]}
+        /*
+         * One page: the name, the description and the OID list with its
+         * vendor-profile prefill. Three rows walk no steps
+         * (LongFormStepsGuard), and the list starts empty or from a profile
+         * picked right there.
+         */
         formFields={[
           {
             field: { name: true },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Core Routers",
@@ -230,7 +239,6 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           {
             field: { description: true },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -239,10 +247,12 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           {
             field: { oids: true },
             title: "OIDs",
-            stepId: "oids",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            description: `The OIDs every linked device polls, up to ${MAX_OIDS_PER_TEMPLATE}. Values are recorded as device metrics and can be alerted on through monitor criteria. Interface counters — bits in/out, errors, utilization, up/down — are already collected for every port and do not need to be listed here.`,
+            description: translator.translateTemplate(
+              "The OIDs every linked device polls, up to {{max}}. Values are recorded as device metrics and can be alerted on through monitor criteria. Interface counters — bits in/out, errors, utilization, up/down — are already collected for every port and do not need to be listed here.",
+              { max: MAX_OIDS_PER_TEMPLATE },
+            ),
             getCustomElement: (
               values: FormValues<NetworkDeviceOidTemplate>,
               elementProps: CustomElementProps,

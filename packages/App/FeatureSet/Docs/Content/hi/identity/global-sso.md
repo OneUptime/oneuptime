@@ -21,8 +21,8 @@ Global SSO, पूरे instance के "Require SSO for Login" टॉगल �
 2. **एक provider बनाएं**
 
    - **Create Global SSO** पर क्लिक करें।
-   - SAML के लिए: एक **नाम**, अपने identity provider से **साइन ऑन URL** और **जारीकर्ता** दर्ज करें, और **सार्वजनिक प्रमाणपत्र** paste करें। **Signature** और **Digest** methods चुनें (यदि आप अनिश्चित हैं तो defaults — `RSA-SHA256` / `SHA256` — रहने दें)।
-   - OIDC के लिए: **डिस्कवरी URL**, **जारीकर्ता**, **क्लाइंट ID**, **क्लाइंट सीक्रेट**, **दायरे** (इनमें `openid` शामिल होना चाहिए), और **email** / **name** claim names दर्ज करें।
+   - SAML के लिए: एक **नाम**, अपने identity provider से **साइन ऑन URL** और **जारीकर्ता** दर्ज करें, और **सार्वजनिक प्रमाणपत्र** paste करें। बाकी सब **और फ़ील्ड** में अपने आप भर जाता है: **हस्ताक्षर विधि** (`RSA-SHA256`), **डाइजेस्ट विधि** (`SHA256`) और एक विवरण (`Sign in with` और नाम)। इन्हें तभी बदलें जब आपके IdP को इसकी ज़रूरत हो। सहेजने पर प्रदाता का पेज खुल जाता है।
+   - OIDC के लिए: **नाम**, **जारीकर्ता URL**, और अपने IdP में पंजीकृत ऐप का **क्लाइंट ID** और **क्लाइंट सीक्रेट** दर्ज करें। आप अपने IdP का डिस्कवरी URL भी **जारीकर्ता URL** में चिपका सकते हैं। बाकी सब **और फ़ील्ड** में अपने आप भर जाता है: **डिस्कवरी URL** (जारीकर्ता के बाद `/.well-known/openid-configuration`), **दायरे** (`openid email profile`), `email` और `name` claim नाम, और एक विवरण (`Sign in with` और नाम)। इन्हें तभी बदलें जब आपके IdP को इसकी ज़रूरत हो। सहेजने पर प्रदाता का पेज खुल जाता है।
 
 3. **OneUptime URLs को अपने identity provider में copy करें**
 
@@ -39,7 +39,7 @@ Global SSO, पूरे instance के "Require SSO for Login" टॉगल �
 
 - **कोई project attached नहीं (default-all / invite-first):** उपयोगकर्ता provider से sign in कर सकते हैं और **किसी भी ऐसे project तक पहुँच सकते हैं जिसके वे पहले से ही member हैं**। नए उपयोगकर्ता स्वतः **नहीं** बनाए जाते — किसी उपयोगकर्ता को पहले किसी project में invite किया जाना चाहिए। इसका उपयोग company-wide SSO के लिए करें जहाँ memberships कहीं और प्रबंधित की जाती हैं।
 
-- **Projects attached (auto-provisioning):** provider खोलें और एक या अधिक projects attach करने के लिए **Attached Projects** table का उपयोग करें, प्रत्येक के लिए default teams के एक set के साथ। जो उपयोगकर्ता sign in करते हैं वे पहले login पर उन projects में **auto-provisioned** हो जाते हैं और default teams में जुड़ जाते हैं। list बनाने के लिए एक बार में एक project + teams जोड़ें; किसी attachment को बदलने के लिए, उसे delete करें और फिर से जोड़ें।
+- **Projects attached (auto-provisioning):** provider खोलें और एक या अधिक projects attach करने के लिए **Attached Projects** table का उपयोग करें, प्रत्येक के लिए default teams के एक set के साथ। जो उपयोगकर्ता sign in करते हैं वे पहले login पर उन projects में **auto-provisioned** हो जाते हैं और default teams में जुड़ जाते हैं। आप जो project attach करते हैं, वह शुरुआत में उसकी members team पर रहता है; अगर नए उपयोगकर्ताओं को अलग access से शुरू करना है तो दूसरी teams चुनें। list बनाने के लिए एक बार में एक project + teams जोड़ें; किसी attachment को बदलने के लिए, उसे delete करें और फिर से जोड़ें।
 
 यदि आप चाहते हैं कि projects attached होने पर भी किसी automatic account creation को रोका जाए, तो provider पर **Disable Sign Up with SSO** enable करें — फिर उपयोगकर्ताओं को sign in करने से पहले invite किया जाना चाहिए।
 

@@ -2,15 +2,13 @@ import RunnerInstallInstructions from "../../../Components/Runner/InstallInstruc
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
 import PageComponentProps from "../../PageComponentProps";
 import {
-  NO_RUNNER_FORM_RESTRICTIONS,
   RUNNER_FORM_STEPS,
-  RunnerFormRestrictions,
-  getRunnerFormRestrictions,
-  getRunnerTableFormFields,
+  getRunnerCreateFormFields,
 } from "./RunnerFormFields";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -35,19 +33,14 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
-  /*
-   * What the edit form leaves out for the row being edited: on a Runner the
-   * Kubernetes agent chart installed, the name and the runbook / code-fix
-   * switches, which the server refuses (RunnerFormFields). Set when Edit is
-   * clicked, before the form opens; the create form is never restricted.
-   */
-  const [editingRestrictions, setEditingRestrictions] =
-    useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   return (
     <Fragment>
@@ -63,7 +56,13 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         isDeleteable={true}
-        isEditable={true}
+        /*
+         * No Edit on the rows: a Runner is edited in one place, the Runner
+         * Details card on its own page (View), whose form follows the row -
+         * an in-cluster Runner the Kubernetes agent installed keeps its name
+         * and switches. This form is the Create form, never restricted.
+         */
+        isEditable={false}
         isCreateable={true}
         isViewable={true}
         showRefreshButton={true}
@@ -92,15 +91,12 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={RUNNER_FORM_STEPS}
-        onBeforeEdit={(item: Runner): Promise<Runner> => {
-          setEditingRestrictions(getRunnerFormRestrictions(item));
-          return Promise.resolve(item);
-        }}
-        formFields={getRunnerTableFormFields(editingRestrictions)}
+        formFields={getRunnerCreateFormFields()}
         searchableFields={["name", "description"]}
         actionButtons={[
           {
             title: "Show setup instructions",
+            icon: IconProp.CommandLine,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: Runner,
@@ -200,7 +196,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (!item.lastAlive) {
                 return (
                   <span className="text-gray-500">
-                    {translateString("Never") || "Never"}
+                    {translator.translateText("Never")}
                   </span>
                 );
               }
@@ -229,7 +225,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (capabilities.length === 0) {
                 return (
                   <span className="text-gray-500">
-                    {translateString("None") || "None"}
+                    {translator.translateText("None")}
                   </span>
                 );
               }

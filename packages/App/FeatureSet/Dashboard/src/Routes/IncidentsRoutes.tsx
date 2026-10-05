@@ -30,6 +30,7 @@ import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 import IncidentWorkspaceConnectionSlack from "../Pages/Incidents/WorkspaceConnectionSlack";
 
 import IncidentWorkspaceConnectionMicrosoftTeams from "../Pages/Incidents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import IncidentViewStateTimeline from "../Pages/Incidents/View/StateTimeline";
 
@@ -52,6 +53,7 @@ import IncidentViewPostmortem from "../Pages/Incidents/View/Postmortem";
 import IncidentViewDescription from "../Pages/Incidents/View/Description";
 
 import IncidentCreate from "../Pages/Incidents/Create";
+import RemountOnAddressChange from "../Components/CreateFromRecord/RemountOnAddressChange";
 
 // Settings Pages
 import IncidentSettingsState from "../Pages/Incidents/Settings/IncidentState";
@@ -146,16 +148,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedirect";
-import RouteParams from "../Utils/RouteParams";
-
-/*
- * Where incident forms lived before Forms replaced them (Incidents > Settings
- * > Forms), relative to the incidents mount. They forward to Forms.
- */
-export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
-  forms: "settings/forms",
-  formView: `settings/forms/${RouteParams.ModelID}`,
-};
+import { MOVED_INCIDENT_FORM_PATHS } from "./MovedPagePaths";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -260,12 +253,28 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTIONS] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
-            <IncidentCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
-            />
+            <RemountOnAddressChange>
+              <IncidentCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.INCIDENT_CREATE] as Route}
+              />
+            </RemountOnAddressChange>
           }
         />
 

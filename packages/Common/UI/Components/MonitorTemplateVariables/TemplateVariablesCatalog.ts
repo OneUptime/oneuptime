@@ -1,4 +1,5 @@
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import { translateTemplate } from "../../Utils/TranslateTemplate";
 import {
   TemplateVariable as EditorTemplateVariable,
   TemplateVariableGroup as EditorTemplateVariableGroup,
@@ -187,7 +188,10 @@ export default class TemplateVariablesCatalog {
       variables: keys.map((key: string): TemplateVariable => {
         return {
           key,
-          description: `Value of \`${key}\` for the series that breached the threshold.`,
+          description: translateTemplate(
+            "Value of `{{key}}` for the series that breached the threshold.",
+            { key: key },
+          ),
           example:
             key === "host.name"
               ? "prod-db-01"
@@ -260,6 +264,45 @@ export default class TemplateVariablesCatalog {
             {
               key: "incomingRequestReceivedAt",
               description: "Timestamp the request was received.",
+            },
+          ],
+        };
+
+      /*
+       * The cap in the description is MaxEmailValueLengthInTitle
+       * (Common/Server/Utils/Monitor/MonitorTemplateUtil.ts).
+       */
+      case MonitorType.IncomingEmail:
+        return {
+          title: "Incoming Email",
+          description:
+            "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.",
+          variables: [
+            {
+              key: "emailSubject",
+              description: "Subject of the email.",
+              example: "[FAILED] Nightly backup",
+            },
+            {
+              key: "emailFrom",
+              description: "Sender's email address.",
+              example: "alerts@example.com",
+            },
+            {
+              key: "emailTo",
+              description:
+                "Who the email was sent to. This monitor's own address is masked.",
+              example: "monitor-[REDACTED]@inbound.example.com",
+            },
+            {
+              key: "emailBody",
+              description: "Plain text body of the email.",
+            },
+            {
+              key: "emailReceivedAt",
+              description:
+                "When the email was received. Empty until the first email arrives.",
+              example: "2026-07-14T09:55:00.000Z",
             },
           ],
         };

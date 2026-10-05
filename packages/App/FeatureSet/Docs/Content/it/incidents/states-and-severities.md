@@ -97,7 +97,7 @@ Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di
 
 Ci sono quattro modi in cui un incidente cambia stato:
 
-- **I pulsanti dell'intestazione.** Aprite un incidente. Se il suo stato attuale precede lo stato di riconoscimento, avete **Acknowledge** e **Risolvi**; se sta tra i due, avete **Risolvi**. Ognuno apre una finestra di conferma — **Acknowledge Incident** o **Resolve Incident** — che offre anche **Seleziona modello di nota**, **Nota pubblica** e **Notifica gli iscritti alla pagina di stato**.
+- **I pulsanti dell'intestazione.** Aprite un incidente. Se il suo stato attuale precede lo stato di riconoscimento, avete **Riconosci** e **Risolvi**; se sta tra i due, avete **Risolvi**. Ognuno apre una breve conferma — **Riconosci incidente** o **Risolvi incidente** — con **Notifica gli iscritti alla pagina di stato** e, ripiegati sotto **Aggiungi una nota pubblica**, il campo facoltativo **Nota pubblica** e il selettore **Seleziona modello di nota** (se il progetto ha modelli di note). Il riconoscimento interrompe anche qualsiasi escalation di reperibilità dell'incidente.
 - **La cronologia di stato.** Aggiungete una riga a mano dalla pagina **Cronologia stato** dell'incidente, con **Stato dell'incidente**, **Inizia il** e **Notifica gli iscritti alla pagina di stato**.
 - **Il cambio di gruppo.** L'elenco degli incidenti ha un'azione di gruppo **Cambia stato** per spostarne diversi in una volta.
 - **In automatico.** Un criterio di monitor con **Risoluzione automatica dell'incidente** attiva risolve il suo incidente quando il criterio non è più soddisfatto, e l'API può aggiornare lo stato tramite `/api/incident-state-timeline`.

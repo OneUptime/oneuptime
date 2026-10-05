@@ -4,23 +4,26 @@ A status page is a place people go. Subscribers are the people who would rather 
 
 Announcements are the other half of the same job. A monitor can tell your visitors that checkout is returning 500s; no monitor can tell them that you are migrating databases on Saturday, that a third-party provider is having a bad day, or that the incident they read about yesterday is fully closed out. Announcements are the free-text channel for everything your checks cannot see, and they fan out to the same subscriber list.
 
-This page covers both: the five subscription channels and how visitors sign up, what subscribers can choose to hear about, the double opt-in and unsubscribe flows, and how announcements are written, scheduled and templated.
+This page covers both: the five subscription channels and how visitors sign up, what subscribers can choose to hear about, the double opt-in and unsubscribe flows, the email report subscribers can get every month, and how announcements are written, scheduled and templated.
 
 ## Subscription channels
 
-A status page supports five channels, each with its own toggle on the status page. Go to **Status Pages → your page → Subscribers → Subscriber Settings**:
+A status page supports five channels. They, and the page visitors sign up on, are switched in one place: the **Channels** card at **Status Pages → your page → Subscribers → Subscriber Settings**. Each switch saves as soon as you flip it:
 
-- **Enable Email Subscribers** (`enableEmailSubscribers`) — on by default. Everything else is off until you turn it on.
-- **Enable SMS Subscribers** (`enableSmsSubscribers`) — off by default.
-- **Enable Slack Subscribers** (`enableSlackSubscribers`) — off by default.
-- **Enable Microsoft Teams Subscribers** (`enableMicrosoftTeamsSubscribers`) — off by default.
-- **Enable Webhook Subscribers** (`enableWebhookSubscribers`) — off by default.
+- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — on by default. Puts the **Subscribe** item in the status page nav bar, where visitors sign up by the channels below.
+- **Email** (`enableEmailSubscribers`) — on by default. Everything else is off until you turn it on.
+- **SMS** (`enableSmsSubscribers`) — off by default. On OneUptime Cloud each text is paid from the project's SMS and call balance, unless the page has its own **Twilio Config** (see [below](#email-footer-custom-smtp-and-twilio)). Turning it on also needs **SMS** switched on for the project, in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings**.
+- **Slack** (`enableSlackSubscribers`) — off by default.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — off by default.
+- **Webhook** (`enableWebhookSubscribers`) — off by default.
 
-Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand, or leave yourself a **Notes** (`internalNote`) entry on a particular subscriber.
+The switches decide how visitors can sign themselves up, and the status page refuses a sign-up by a channel that is off. They do not stop notifications: subscribers your team adds on the dashboard, with the API or by a workflow get updates whichever channels are on.
 
-**One toggle is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) is on *and* at least one channel is enabled. If you turn on **Enable Email Subscribers** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
+On OneUptime Cloud, a switch your plan does not include has the plan's name beside it: **Growth** for **SMS** and **Show Subscriber Page**, **Scale** for **Slack**, **Microsoft Teams** and **Webhook**.
 
-The same five toggles appear a second time inside the **Subscriber Settings** card on **Advanced Settings**, alongside **Show Subscriber Page**. They are the same columns underneath — pick one screen and stay on it, and prefer the dedicated **Subscriber Settings** page since that is where the rest of the subscriber configuration lives.
+Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand, or leave yourself a **Notes** (`internalNote`) entry on a particular subscriber. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list.
+
+**One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
 ## What a visitor sees on the Subscribe page
 
@@ -41,9 +44,13 @@ By default a subscriber gets everything on the page. Two toggles in the **Advanc
 - **Allow Subscribers to Choose Resources** (`allowSubscribersToChooseResources`) — off by default. Turn it on and the subscribe form grows a **Subscribe to All Resources** toggle; clear it and **Select Resources to Subscribe** appears so the visitor can pick individual resources.
 - **Allow Subscribers to Choose Event Types** (`allowSubscribersToChooseEventTypes`) — off by default. Same shape: a **Subscribe to All Event Types** toggle, and **Select Event Types to Subscribe** underneath when it is cleared.
 
-With either of them on, a new subscription takes two steps: **Details** asks where to send updates (the email address, phone number, workspace or webhook), and **Next** opens **Preferences**, with the resource and event type choices and the **Subscribe** button. With both off, the form stays the single page described above.
+With either of them on, the subscribe form is still one page. Under where to send updates (the email address, phone number, workspace or webhook) comes **Preferences**, folded to one line that says what the visitor will get. Every resource and every kind of event are already chosen, so it starts as "You will get every update from this status page.", and a visitor who wants everything presses **Subscribe** without opening it. Anyone else opens **Preferences** and narrows the resources or event types down; folded again, the line follows what they picked ("You will get updates only about the resources you picked."). With both off, there is no **Preferences**: the form is where to send updates, then **Subscribe**.
+
+The **Update Subscription** page (see below) shows the same choices open, since changing them is what a subscriber goes there for.
 
 The event types are `Incident`, `Announcement` and `Scheduled Event`.
+
+**A monitor group stands for every monitor in it.** A resource on the page is either a monitor or a monitor group, and a subscriber who picks a monitor group hears about incidents, scheduled maintenance events (their notes included) and announcements on any monitor in the group, exactly as if they had picked that monitor, which is also how the status page shows them. Someone who picked only other resources is not told, and someone who picked a monitor and the group that holds it gets one notification, not two.
 
 The choices land on the subscriber record as **Is Subscribed to All Resources** (`isSubscribedToAllResources`, default true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, default true), **Subscribed to Resources** and **Subscribed to Event Types**.
 
@@ -89,7 +96,7 @@ Links in messages sent before the unsubscribe page existed keep working: an **Up
 
 Anyone who can read a mailbox can unsubscribe it. For an address somebody signed up themselves, that is the point. For one your team added, such as a site's mailing list like `site03-all@`, it means one reader can take everyone on the list off the page before the next outage. So:
 
-- **Add people by their own addresses where you can.** The **Add in Bulk** form and the email subscriber form say so.
+- **Add people by their own addresses where you can.** The **Add in Bulk** form and the email subscriber form say so, in the email field's description.
 - **The team is told.** A subscriber your team added is one added from the dashboard, with an API key (the REST API, Terraform, a script) or by a workflow; the API reads it as **Is Added By Team** (`isAddedByTeam`). When one unsubscribes, through its link or the **Update Subscription** page, the status page's owners (its owner users, and the members of its owner teams) each get one email naming the subscriber, with a link to the page's subscriber list. So does the teammate who added it, when a teammate did. A page with no owners emails only that teammate, so a subscriber an API key or a workflow added to a page with no owners is not reported. People who signed up themselves on the status page are never reported. Subscribers that an API key or a workflow added before OneUptime recorded this cannot be told apart from sign-ups, and are not reported either.
 - **The subscriber lists show it.** Above each list, a notice names the subscribers your team added that unsubscribed in the last 30 days.
 
@@ -101,22 +108,33 @@ Subscribers hear about the three event types above, but each source has its own 
 
 ### Announcement notifications
 
-The announcement itself carries **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposed on the create form as the **Notify Status Page Subscribers** checkbox and on by default. If the announcement names monitors under **Monitors affected (Optional)**, the notification is scoped to those monitors; leave it empty and all subscribers are notified.
+The announcement itself carries **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposed on the create form as the **Notify Status Page Subscribers** checkbox under **Schedule & Notifications**, and on by default. Subscribers are told once, when the announcement starts showing, so this is decided when the announcement is created; an edit cannot change it. If the announcement names monitors under **Monitors Affected**, the notification is scoped to those monitors: on a page where subscribers choose resources, it goes to the subscribers of those monitors, of the monitor groups that hold them, and of every resource. Leave it empty and all subscribers are notified. On a status page that lists none of those monitors, directly or through a group, the announcement is for everyone who reads that page, so every subscriber there who gets announcements is notified.
 
 ### Scheduled maintenance events
 
 A scheduled maintenance event has its own set of subscriber columns: **Should subscribers be notified when event is created?**, **Should subscribers be notified when event is changed to ongoing?**, **Should subscribers be notified when event is changed to ended?**, plus **Subscriber notifications before the event** and **Next subscriber notification before the event at?** for advance warnings. **Status Pages** on the event decides which pages it appears on, and **Should be visible on status page?** decides whether it appears at all.
 
-If an event is created with **Event Created: Notify Status Page Subscribers** turned off (on the **Subscribers** step of the create form), new public notes on it start with **Notify Status Page Subscribers** off, with a line under the checkbox explaining why. That applies on the event's **Public Notes** page and in **Add Public Note** on the **Scheduled Maintenance Feed**. Notes posted without an explicit choice follow the same **Event Created** setting: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. **Event Created** only turns off the announcement sent when the event is created. Reminders (**Subscriber notifications before the event**, set with **Send reminders to subscribers before the event** on the create form) and the notifications set by **Event Ongoing: Notify Status Page Subscribers** and **Event Ended: Notify Status Page Subscribers** are separate settings and still go out. If subscribers have already heard about the event that way, for example from a reminder or the ongoing notification, tick the box to notify them about the note.
+**Create Scheduled Maintenance Event** walks two steps, then a review, the way **Declare Incident** does:
 
-The **Mark Scheduled Maintenance as `<state name>`** modal, opened from the buttons at the top of the event's **Overview** page, has one **Notify Status Page Subscribers** checkbox that covers both the state change and the modal's **Public Note**. On an event created with **Event Created** on, it starts on, as before. On an event created with it off, it starts off, with the same line under it, except in two cases where it starts on, matching what the automatic state change would announce:
+1. **Event** — **Title**, **Description**, **Starts At** and **Ends At**. A new event starts at the next full hour on your clock and lasts an hour; change the times only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length, and the event has to end after it starts. **Owners** and **Labels** wait under **More fields**.
+2. **Resources Affected** — **Monitors** first, then **Change Monitor Status to** right under them once a monitor is picked: the monitors change to that status when the event starts, and back to operational when it ends. Then **Other Affected Resources**: the hosts, clusters, container hosts, databases, IoT fleets, network sites and services the maintenance touches. Then **Show event on these status pages**, then **Subscriber Notifications**, folded to one line that says what will happen. By default it reads "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends." Open it to change **When the event is scheduled**, **When the event starts**, **When the event ends** and **Reminders before the event**; the line follows what you tick, and the review step shows it too.
 
-- You move the event into an ongoing state and **Event Ongoing: Notify Status Page Subscribers** is on.
-- You move the event into an ended or completed state and **Event Ended: Notify Status Page Subscribers** is on.
+From the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** (and **Create from Template**) opens the same form with that resource already picked under **Other Affected Resources**, and the breadcrumbs go back to that tab. An inventory item's **Scheduled Maintenance** tab picks the host, service or Kubernetes cluster the item points at, and the breadcrumbs go back through that resource's tab.
+
+Only the title has to be typed: everything else has a default, so **Next** walks the other steps without asking for anything, and **Create Scheduled Maintenance Event** is on the review at the end. Nobody is notified until you pick a status page. The three **When the event…** settings are chosen when the event is created; the **Edit** button on the event's **Maintenance Details** card changes its title, window and labels (**Event**) and its status pages and reminders (**Status Pages**). The **Edit** button on its **Affected Resources** card asks for **Monitors** and **Other Affected Resources** apart, as the form does; the monitor status is set when the event is created, and applies to monitors added later too. Scheduled maintenance templates (**Settings → Event Templates**) use the same steps, with the template's name in front and its recurring schedule at the end. A template asks for **Change Monitor Status to** whether or not it names monitors, because its status also applies to the monitors picked when an event is scheduled from it.
+
+**Which status pages?** Once the event names monitors, the status pages that show them are suggested under **Show event on these status pages**: "Status pages that show the affected monitors:" followed by each page's name. Click a name to add that page, or **Add all** to add every one. A page counts when it lists one of the monitors, directly or through a monitor group. Only the status pages you can see are suggested, and archived pages and pages that do not show scheduled maintenance events are left out. Nothing is picked for you: a status page you pick shows the event and, with the default notifications, tells its subscribers, so that stays your choice. The **Status Pages** step of the event's **Edit** and the forms of a scheduled maintenance template suggest the same way, from the event's or the template's monitors.
+
+If an event is created with **When the event is scheduled** turned off (under **Subscriber Notifications** on the **Resources Affected** step of the create form), new public notes on it start with **Notify status page subscribers** off, with a line under the checkbox explaining why. That applies on the event's **Public Notes** page and in **Add Public Note** on the **Scheduled Maintenance Feed**, which opens the same note composer. Notes posted without an explicit choice follow the same **When the event is scheduled** setting: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. **When the event is scheduled** only turns off the announcement sent when the event is created. Reminders (**Subscriber notifications before the event**, set with **Reminders before the event** on the create form) and the notifications set by **When the event starts** and **When the event ends** are separate settings and still go out. If subscribers have already heard about the event that way, for example from a reminder or the ongoing notification, tick the box to notify them about the note.
+
+The **Mark Scheduled Maintenance as `<state name>`** modal, opened from the buttons at the top of the event's **Overview** page, has one **Notify Status Page Subscribers** checkbox that covers both the state change and the modal's **Public Note** (folded under **Add a public note**). On an event created with **When the event is scheduled** on, it starts on, as before. On an event created with it off, it starts off, with the same line under it, except in two cases where it starts on, matching what the automatic state change would announce:
+
+- You move the event into an ongoing state and **When the event starts** is on.
+- You move the event into an ended or completed state and **When the event ends** is on.
 
 The manual form on the event's **State Timeline** page and the **Change State** bulk action in the scheduled maintenance list do not look at these settings: their **Notify Status Page Subscribers** checkbox always starts on.
 
-Events created from a template take **Event Created: Notify Status Page Subscribers** from the template, along with its other subscriber settings. **Create from Template** fills in the create form with the template's values, and recurring events scheduled by a template under **Settings → Event Templates** copy them.
+Events created from a template take **When the event is scheduled** from the template, along with its other subscriber settings. **Create from Template** fills in the create form with the template's values, and recurring events scheduled by a template under **Settings → Event Templates** copy them.
 
 ### Incidents
 
@@ -154,7 +172,7 @@ The **Notification Logs** section in the status page side menu (`{id}/notificati
 
 An incident episode records whether subscribers were told it was created in `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated`. Episodes created with the **Create Episode** button or by **Grouping Rules** have it on; an API request can create one with it set to `false`.
 
-On an episode created with it set to `false`, new public notes start with **Notify Status Page Subscribers** off, with a line under it explaining why, on the episode's **Public Notes** page and in **Add Public Note** on the **Episode Feed**. You can still tick it. Notes posted without an explicit choice follow the same setting: Slack notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Only this setting counts: unlike an incident, making an episode private does not change where the checkbox starts.
+On an episode created with it set to `false`, new public notes start with **Notify status page subscribers** off, with a line under it explaining why, on the episode's **Public Notes** page and in **Add Public Note** on the **Episode Feed**, which opens the same note composer. You can still tick it. Notes posted without an explicit choice follow the same setting: Slack notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Only this setting counts: unlike an incident, making an episode private does not change where the checkbox starts.
 
 This covers public notes only. The episode's state changes (**Acknowledge**, **Resolve** and auto-resolve) still notify subscribers, because neither the episode's state change modal nor the form on its **State Timeline** page has a **Notify Status Page Subscribers** checkbox.
 
@@ -162,7 +180,7 @@ This covers public notes only. The episode's state changes (**Acknowledge**, **R
 
 Subscribers hear about an announcement or a public note once, when it is posted. Editing it afterwards changes what the status page shows but tells nobody, unless you ask for it on that edit.
 
-The edit form of an announcement, and of a public note on an incident, a scheduled maintenance event or an incident episode, has a **Notify subscribers about this update** checkbox. It starts unticked every time, so a typo fix stays quiet; tick it when the change matters — a new maintenance window, a revised impact, a corrected customer update. It is not on the create forms, which have their own **Notify Status Page Subscribers** choice.
+The edit form of an announcement, and of a public note on an incident, a scheduled maintenance event or an incident episode, has a **Notify subscribers about this update** checkbox. It starts unticked every time, so a typo fix stays quiet; tick it when the change matters — a new maintenance window, a revised impact, a corrected customer update. It is not on the create forms, which have their own **Notify Status Page Subscribers** choice. On an announcement it is on the **Announcement** step, right under the description.
 
 When you save with the box ticked, subscribers get the edited content marked as an update rather than as a new post:
 
@@ -234,6 +252,20 @@ A notification sent again is sent as things stand when it goes out: to the statu
 
 For an incident limited to specific status pages, one email or text message per person applies within each send, so a retry, which is a send of its own, can reach someone who got the first one. See [One email per person](/docs/status-pages/one-status-page-per-audience#one-email-per-person).
 
+## Email reports
+
+A status page can email its subscribers a report on a schedule: for each resource on the page, its uptime, its downtime and its incidents over a stretch of time. It is set in the **Email Reports** card at **Status Pages → your page → Advanced → Reports**.
+
+- **Send email reports** turns reports on and off, and saves as soon as you flip it. There is nothing to fill in either way.
+- **The first time reports are turned on**, the page gets a schedule: a report on the 1st of every month at 09:00, starting on the next 1st of the month, each covering the whole calendar month before it, so the report sent on 1 November covers October. 09:00 is in the report time zone, which is UTC unless you change it.
+- **While reports are on**, the card says when the next report goes out and the dates it covers, how often reports go out, what each one covers and the time zone. **Edit Schedule** changes them on one page: **How often**, and **First report on**, which every later report follows by how often you send them, at the same time of day. Under **More fields** are the **Report Timezone** and the **Reporting period**: the previous whole calendar period (a weekly report covers Monday to Sunday) or a rolling number of days that ends when the report is sent. The next report and its dates are worked out as you edit, before you save. If the card says **Not scheduled yet** while reports are on, save the schedule with **Edit Schedule**: that works out when the next report goes out.
+- **Turning reports off** keeps the schedule. Turned back on, reports go out on it again from its next date, so a page that was off for a month does not send the report it missed.
+- **Send Test Report**, under the card, emails a report to an address you give, so you can see what subscribers get, whether reports are on or not.
+
+Reports go to the page's email subscribers; SMS, Slack, Microsoft Teams and webhook subscribers do not get them. A **Subscriber Report** template linked to the page replaces the built-in email when the page has a **Custom SMTP Config** (see [Customizing notification templates](#customizing-notification-templates)). On OneUptime Cloud, reports need the **Growth** plan or above, and on a lower plan the switch has the plan's name beside it.
+
+**Through the API or Terraform**, turning `isReportEnabled` on without `reportStartDateTime` or `reportRecurringInterval` gives the page the same default schedule, instead of leaving reports on with nothing scheduled. A schedule you send with it is kept, and so is one the page already has. Send `reportRecurringInterval` without `reportStartDateTime` and the first report goes out at 09:00 at the start of the next period of that interval: the next day for a daily schedule, the next Monday for a weekly one, the 1st of next month for a monthly one and 1 January for a yearly one; an hourly schedule starts at the next full hour. The server works out `sendNextReportBy`, the time the next report goes out, and refuses a `reportStartDateTime` or `reportRecurringInterval` it cannot read.
+
 ## Customizing notification templates
 
 The **Notification Templates** card on **Subscriber Settings** lists the templates this status page uses, with columns **Template Name**, **Event Type** and **Notification Method** — so you can vary the wording per event type and per channel rather than accepting one house message for everything.
@@ -250,7 +282,7 @@ On OneUptime Cloud, subscriber notification templates are a **Scale** plan featu
 | **SMS**                            | a **Twilio Config**                                                            |
 | **Slack** and **Microsoft Teams**  | nothing more                                                                   |
 
-Without them the page sends its default email or SMS, and the **Notification Templates** tab warns you with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
+Without them the page sends its default email or SMS. When a linked Email or SMS template cannot be used for that reason, the **Notification Templates** tab says so with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
 
 None of this is needed to put incident custom fields into messages. Fields marked **Include in Subscriber Notifications** are in the default email, Slack, Microsoft Teams and webhook messages on every plan that has custom fields (see [Incident custom fields in notifications](#incident-custom-fields-in-notifications)). A custom template is for placing them yourself, anywhere in your own layout.
 
@@ -298,12 +330,14 @@ Custom SMTP is worth doing early if you have email subscribers: mail that comes 
 
 An announcement is a project-level record (the `StatusPageAnnouncement` model) that you fan out to one or more status pages, optionally scoped to specific monitors, with a window during which it is shown.
 
-You create one from **Status Pages → More → Announcements**, or from **Announcements** in an individual status page's side menu. The create form is a four-step wizard:
+You create one from **Status Pages → More → Announcements**, or from **Announcements** in an individual status page's side menu. Created from a status page, that page is already picked, so a title and a description are all it asks for: **Next** walks the rest, and **Create Announcement**, on the review, brings you back to the page's **Announcements** list (or to the project's list, if you unpicked that page on the way). The create form has two steps, then a review:
 
-1. **Basic Information** — **Announcement Title** (required, at least two characters), **Description** (Markdown, optional) and **Attachments** for files that should be available with the announcement on the status page.
-2. **Status Pages** — **Show announcement on these status pages**, a required multi-select. One announcement can target several pages at once.
-3. **Resources Affected** — **Monitors affected (Optional)**. If you select none, all subscribers are notified.
-4. **Schedule & Settings** — **Start Showing Announcement At** (required, defaults to now), **End Showing Announcement At** (optional) and **Notify Status Page Subscribers** (on by default).
+1. **Announcement** — **Title** (required, at least two characters) and **Description** (Markdown, required: it is the text people read on the status page). **Attachments**, for files that should be available with the announcement on the status page, wait under **More fields**.
+2. **Status Pages** — **Show announcement on these status pages**, a required multi-select (one announcement can target several pages at once), and **Monitors Affected**: if you select none, all subscribers are notified. Once monitors are picked, the status pages that show them are suggested under the status page picker ("Status pages that show the affected monitors:", then each page's name). Click a name to add that page, or **Add all**; nothing is picked for you. Below them, **Schedule & Notifications** is folded to one line that says what will happen: "Shows now and stays until you end it. Subscribers are notified when it starts showing." Open it to change **Start Showing Announcement At** (defaults to now), **End Showing Announcement At** (empty: the announcement stays up until you set an end) or **Notify Status Page Subscribers** (on by default). The line follows your answers. The end has to come after the start and, on a new announcement, still be to come: one that has already ended would never show.
+
+The review step shows the same line. **Create from Template** fills the form in from a template; created from a status page, the template's own status pages are kept beside that page.
+
+The announcement's own page edits it on the same two steps. **Notify subscribers about this update** sits under the description (see [Telling subscribers about an edit](#telling-subscribers-about-an-edit)), and **Schedule** holds the start and the end. Setting an end that has passed is how you take an announcement down.
 
 Visitors read announcements at `/announcements`, split into **Active Announcements** and **Past Announcements**, each stamped with **Announced at**. Currently live announcements are also pinned to the top of the overview page. When there is nothing to show, the page reads *No Announcement* with the note that none have been posted so far.
 
@@ -314,18 +348,18 @@ Attachments are served from `GET {statusPageCrudPath}/status-page-announcement/a
 **Show At** (`showAnnouncementAt`) and **End At** (`endAnnouncementAt`) drive everything, but the overview page and the announcements list ask different questions, and the difference trips people up.
 
 - **The overview page** shows an announcement when `showAnnouncementAt` is in the past and `endAnnouncementAt` is either in the future or empty.
-- **The `/announcements` list** shows announcements whose `showAnnouncementAt` falls within **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`, default 14), then splits them client-side into active and past.
+- **The `/announcements` list** shows announcements whose `showAnnouncementAt` falls within the announcements' history window (`showAnnouncementHistoryInDays`, default 14), then splits them client-side into active and past.
 
 Two consequences worth planning around:
 
 - **An announcement with no end date never expires.** Leave **End Showing Announcement At** empty and it stays pinned to the overview page indefinitely. Set an end date on anything time-bound.
 - **An old but still-active announcement can vanish from the list.** If it started more than `showAnnouncementHistoryInDays` ago it drops off `/announcements` while remaining on the overview. Raise the history window if you keep long-running notices.
 
-Whether announcements appear at all is controlled by the **Announcement Settings** card on **Advanced Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and **Show Announcement History (in days)** (default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
+Whether announcements appear at all is set in the **What your status page shows** card on **Advanced Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and, under it, **Show the last … days** (`showAnnouncementHistoryInDays`, default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
 
 ## Announcement templates
 
-If you post the same kind of notice repeatedly — a monthly maintenance heads-up, a recurring third-party degradation — pre-can it. **Status Pages → Settings → Announcement Templates** stores the `StatusPageAnnouncementTemplate` model, and its form asks for **Template Name**, **Template Description**, **Announcement Title**, **Description**, **Show announcement on these status pages**, **Monitors affected (Optional)** and **Notify Subscribers**, so the fan-out and the notify decision are made once instead of every time.
+If you post the same kind of notice repeatedly — a monthly maintenance heads-up, a recurring third-party degradation — pre-can it. **Status Pages → Settings → Announcement Templates** stores the `StatusPageAnnouncementTemplate` model. Its form walks **Template Info** (**Template Name**, **Template Description**), then the announcement's own steps: **Announcement** (**Title**, **Description**) and **Status Pages** (**Show announcement on these status pages**, **Monitors Affected** and **Notify Status Page Subscribers**, on by default), so the fan-out and the notify decision are made once instead of every time. A template holds no schedule: an announcement made from it starts showing when it is created, unless you change that under **Schedule & Notifications**.
 
 ## Webhook subscribers and SSRF protection
 

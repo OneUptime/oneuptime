@@ -45,7 +45,7 @@ Los monitores DNS consultan servidores DNS para tipos de registros específicos 
 | SRV              | Registros de localizador de servicios              |
 | CAA              | Registros de autorización de entidad certificadora |
 
-### Configuración avanzada
+### Más campos
 
 | Campo                 | Descripción                                                                     | Predeterminado |
 | --------------------- | ------------------------------------------------------------------------------- | -------------- |

@@ -10,7 +10,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTypeUtil from "../../../Utils/MonitorType";
 import MonitorType, {
@@ -18,13 +18,12 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
-import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
 import {
   CustomElementProps,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -124,10 +123,6 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               );
             },
           },
-          {
-            title: "Labels",
-            id: "labels",
-          },
         ]}
         formFields={[
           {
@@ -204,6 +199,16 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               "Search monitor types - try ping, ssl, k8s, postgres",
             cardSelectCollapsibleGroups: true,
           },
+          /*
+           * Folded under Advanced at the end of Monitor Defaults, where
+           * Create Monitor folds a monitor's own labels, rather than walked
+           * as a last step of its own.
+           */
+          getLabelsFormField<MonitorTemplate>({
+            stepId: "monitor-defaults",
+            description:
+              "Default labels applied to monitors created from this template.",
+          }),
           {
             field: {
               monitorSteps: true,
@@ -253,43 +258,15 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             title: "Monitoring Interval",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
+            // What Create Monitor offers the type.
             fetchDropdownOptions: (item: FormValues<MonitorTemplate>) => {
-              let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-              if (
-                item &&
-                (item.monitorType === MonitorType.SyntheticMonitor ||
-                  item.monitorType === MonitorType.CustomJavaScriptCode ||
-                  item.monitorType === MonitorType.SSLCertificate)
-              ) {
-                interval = interval.filter((option: DropdownOption) => {
-                  return (
-                    option.value !== "* * * * *" &&
-                    option.value !== "*/2 * * * *"
-                  );
-                });
-              }
-
-              return Promise.resolve(interval);
+              return Promise.resolve(
+                getMonitoringIntervalOptions({
+                  monitorType: item?.monitorType as MonitorType | undefined,
+                }),
+              );
             },
             placeholder: "Select Monitoring Interval",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Default labels applied to monitors created from this template.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         showRefreshButton={true}

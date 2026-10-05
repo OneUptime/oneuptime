@@ -116,7 +116,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         }}
         cardProps={{
           title: "Status Timeline",
-          description: "Here is the status timeline for this monitor",
+          description:
+            "Each status this monitor has been in, when it began and how long it lasted.",
         }}
         noItemsMessage={"No status timeline created for this monitor so far."}
         formFields={[
@@ -132,6 +133,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
           },
           {
@@ -220,7 +224,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="Here is more information about why the status changed for this monitor."
+          description="What OneUptime recorded when this monitor changed to this status, such as the check that caused it."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

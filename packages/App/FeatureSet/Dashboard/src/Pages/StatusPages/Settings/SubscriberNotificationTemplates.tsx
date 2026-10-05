@@ -30,10 +30,17 @@ import {
   getDefaultSubscriberNotificationTemplate,
   getDefaultTemplateLanguage,
 } from "../../../Utils/SubscriberNotificationTemplateDefaults";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The project's incident custom fields, read by the body's variables list
    * once an incident event's body is shown, and offered as variables.
@@ -62,16 +69,21 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
       StatusPageSubscriberNotificationMethod,
       string
     > = {
-      [StatusPageSubscriberNotificationMethod.Email]:
+      [StatusPageSubscriberNotificationMethod.Email]: translationKey(
         "Create custom email notification templates for status page subscribers. Use HTML for formatting.",
-      [StatusPageSubscriberNotificationMethod.SMS]:
+      ),
+      [StatusPageSubscriberNotificationMethod.SMS]: translationKey(
         "Create custom SMS notification templates for status page subscribers. Use plain text format.",
-      [StatusPageSubscriberNotificationMethod.Slack]:
+      ),
+      [StatusPageSubscriberNotificationMethod.Slack]: translationKey(
         "Create custom Slack notification templates for status page subscribers. Use Markdown for formatting.",
-      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+      ),
+      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: translationKey(
         "Create custom Microsoft Teams notification templates for status page subscribers. Use Markdown for formatting.",
-      [StatusPageSubscriberNotificationMethod.Webhook]:
+      ),
+      [StatusPageSubscriberNotificationMethod.Webhook]: translationKey(
         "Create custom Webhook payload templates for status page subscribers. Use JSON format.",
+      ),
     };
 
     const templateBodyFieldType: FormFieldSchemaType =
@@ -95,10 +107,17 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         isViewable={true}
         cardProps={{
-          title: `${notificationMethod} Templates`,
-          description: methodDescriptions[notificationMethod],
+          title: translator.translateTemplate("{{method}} Templates", {
+            method: translatableTerm(notificationMethod),
+          }),
+          description: translator.translateText(
+            methodDescriptions[notificationMethod],
+          ),
         }}
-        noItemsMessage={`No ${notificationMethod} notification templates found.`}
+        noItemsMessage={translator.translateTemplate(
+          "No {{method}} notification templates found.",
+          { method: translatableTerm(notificationMethod) },
+        )}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           notificationMethod: notificationMethod,
@@ -300,19 +319,18 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                   {defaults && (
                     <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                       <div className="text-sm font-semibold text-indigo-900 mb-1">
-                        Default Template
+                        {translator.translateText("Default Template")}
                       </div>
                       <p className="text-xs text-indigo-700 mb-3">
-                        This is the default {notificationMethod} template that
-                        is sent when no custom template is configured. It has
-                        been pre-filled above so you can tweak the wording,
-                        translate it, or use it as a starting point. Hover over
-                        the snippet to copy it.
+                        {translator.translateTemplate(
+                          "This is the default {{method}} template that is sent when no custom template is configured. It has been pre-filled above so you can tweak the wording, translate it, or use it as a starting point. Hover over the snippet to copy it.",
+                          { method: translatableTerm(notificationMethod) },
+                        )}
                       </p>
                       {defaults.subject && (
                         <div className="mb-3">
                           <div className="text-xs font-medium text-indigo-900 mb-1">
-                            Default Subject
+                            {translator.translateText("Default Subject")}
                           </div>
                           <CodeBlock
                             code={defaults.subject}
@@ -323,7 +341,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                       )}
                       <div>
                         <div className="text-xs font-medium text-indigo-900 mb-1">
-                          Default Body
+                          {translator.translateText("Default Body")}
                         </div>
                         <CodeBlock
                           code={defaults.body}

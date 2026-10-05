@@ -59,11 +59,11 @@ You can also use `{{random}}` for a unique string on every request:
 https://example.com/health?nocache={{random}}
 ```
 
-### Advanced Options
+### More fields
 
 #### Do Not Follow Redirects
 
-By default, OneUptime follows HTTP redirects (301, 302, etc.). Enable this option if you want to monitor the redirect response itself rather than the final destination.
+By default, OneUptime follows HTTP redirects (301, 302, etc.). Enable this option if you want to monitor the redirect response itself rather than the final destination. The [default criteria](#default-criteria) count a redirect response as online.
 
 #### Allow Self-Signed Certificates
 
@@ -97,6 +97,23 @@ You can configure criteria to determine when your website is considered online, 
 - **Response Time** - Monitor if response time exceeds a threshold
 - **Response Body** - Check if the response body contains or matches specific content
 - **Response Headers** - Verify specific response headers are present or match expected values
+
+**Add Criteria** adds a criteria that is already named after its filter, for example _Response Time (in ms) is above 3000_. The name changes with the filters until you type a name of your own. A description is optional: to add one, open the criteria's **Settings**.
+
+### Default Criteria
+
+A new website monitor starts with two criteria, so it works without changing anything:
+
+- **Offline** — the website does not answer, or answers with a status code of `400` or above (or below `200`). The monitor is marked **Offline** and an incident is created. The incident resolves itself when the website is back.
+- **Online** — the website answers with any `2xx` or `3xx` status code, such as `200`, `204` or `301`. The monitor is marked **Operational**.
+
+So a page that answers `204 No Content`, or a redirect you watch with **Do Not Follow Redirects** turned on, counts as up. If only one status code means healthy for you, change both criteria on the monitor's **Criteria** page: for example **Response Status Code** / **Equal To** / `200` in the online criteria and **Not Equal To** / `200` in the offline one.
+
+Criteria are checked from top to bottom, and the first one that matches decides what happens.
+
+When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **More fields**, below the criteria. The folded **More fields** header shows which status that is.
+
+Monitors created before OneUptime changed these defaults keep the criteria they were created with, which count only `200` as online. Monitors created through the API or Terraform use the criteria you send.
 
 ### Evaluating over a period of time
 

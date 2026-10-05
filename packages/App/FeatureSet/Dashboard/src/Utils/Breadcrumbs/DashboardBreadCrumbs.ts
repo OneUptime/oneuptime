@@ -44,6 +44,11 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "View Dashboard",
       "Branding",
     ]),
+    // Who can view the dashboard, at the old Authentication page's address.
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS,
+      ["Project", "Dashboards", "View Dashboard", "Sharing"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_OWNERS, [
       "Project",
       "Dashboards",

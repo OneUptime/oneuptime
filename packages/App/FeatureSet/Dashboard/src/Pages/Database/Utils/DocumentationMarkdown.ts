@@ -35,6 +35,7 @@ import {
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The in-app install guide for the OneUptime Database Agent — the product
@@ -320,7 +321,9 @@ export function getDatabaseDocumentationHeading(
 
   if (getDatabaseAgentEngine(database.dbSystem)) {
     return {
-      title: `Connect ${engineLabel} engine metrics`,
+      title: translateTemplate("Connect {{engine}} engine metrics", {
+        engine: engineLabel,
+      }),
       description:
         "Install the OneUptime Database Agent next to this database to add its engine metrics. Every value below is prefilled for this database, including its id.",
     };
@@ -331,13 +334,18 @@ export function getDatabaseDocumentationHeading(
     "embedded"
   ) {
     return {
-      title: `Monitor ${engineLabel}`,
-      description: `${engineLabel} runs inside your application's process, so this database's page fills in from the traces of the applications that use it.`,
+      title: translateTemplate("Monitor {{engine}}", { engine: engineLabel }),
+      description: translateTemplate(
+        "{{engine}} runs inside your application's process, so this database's page fills in from the traces of the applications that use it.",
+        { engine: engineLabel },
+      ),
     };
   }
 
   return {
-    title: `Connect ${engineLabel} engine metrics`,
+    title: translateTemplate("Connect {{engine}} engine metrics", {
+      engine: engineLabel,
+    }),
     description:
       "Send this database's engine metrics from your own OpenTelemetry Collector. Every value below is prefilled for this database, including its id.",
   };
@@ -1151,6 +1159,38 @@ ${[...words, "bash install.sh"].join(" ")}`;
 }
 
 /*
+ * Moving an installed agent to the current files. Running the current
+ * install script again is the upgrade: it reuses the agent's .env and
+ * replaces docker-compose.yml and otel-collector-config.yaml. The guide's
+ * "Upgrade or uninstall the agent" topic and the upgrade dialog beside an
+ * outdated agent version (Components/AgentVersion) both show this command,
+ * so the two never drift.
+ */
+export function getDatabaseAgentUpgradeCommand(): string {
+  return installScriptCommand([]);
+}
+
+/*
+ * The agent's two files for one engine, downloaded into the current folder:
+ * the Docker Compose install step, and the same files again to upgrade an
+ * agent installed that way.
+ */
+export function getDatabaseAgentDownloadCommand(
+  engine: DatabaseAgentEngine,
+): string {
+  return `curl -fsSL ${DATABASE_AGENT_RAW_URL}/docker-compose.yml -o docker-compose.yml
+curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${engine}.yaml -o otel-collector-config.yaml`;
+}
+
+/*
+ * Recreates the container so the collector reads its new config: a plain
+ * `docker compose up -d` keeps the running container when only the config
+ * file changed.
+ */
+export const DATABASE_AGENT_RECREATE_COMMAND: string =
+  "docker compose up -d --force-recreate";
+
+/*
  * The Docker Compose notes: where the agent connects versus what the
  * database is called, and how a hand-written `.env` holds the password.
  */
@@ -1513,11 +1553,7 @@ function getDockerComposeVariant(data: {
     label: "Docker Compose",
     markdown: [
       `Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from the [DatabaseAgent directory](${DATABASE_AGENT_DIRECTORY_URL}) into one folder:`,
-      codeBlock(
-        "bash",
-        `curl -fsSL ${DATABASE_AGENT_RAW_URL}/docker-compose.yml -o docker-compose.yml
-curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${data.engine}.yaml -o otel-collector-config.yaml`,
-      ),
+      codeBlock("bash", getDatabaseAgentDownloadCommand(data.engine)),
       `Create a \`.env\` file next to them (\`chmod 600 .env\` — it holds ${
         hasLogin(data.engine) ? "a password" : "your ingestion key"
       }):`,
@@ -1679,8 +1715,8 @@ function getUpgradeTopic(data: {
       "Move to the current config and keep your settings, monitor a second server, or remove the agent.",
     markdown: [
       `**Upgrade** by running the current install script again. It reuses your \`.env\`, replaces \`docker-compose.yml\` and \`otel-collector-config.yaml\` with the current versions and recreates the container; a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\`.`,
-      codeBlock("bash", installScriptCommand([])),
-      "After editing `.env` or `otel-collector-config.yaml` yourself, apply the change with `docker compose up -d --force-recreate` in the agent's folder: the collector reads its config only when it starts, and a plain `docker compose up -d` keeps the running container when only the config file changed.",
+      codeBlock("bash", getDatabaseAgentUpgradeCommand()),
+      `After editing \`.env\` or \`otel-collector-config.yaml\` yourself, apply the change with \`${DATABASE_AGENT_RECREATE_COMMAND}\` in the agent's folder: the collector reads its config only when it starts, and a plain \`docker compose up -d\` keeps the running container when only the config file changed.`,
       "**Monitor a second database server** with a second agent in a directory of its own — one agent monitors one server:",
       codeBlock("bash", secondAgent),
       "**Uninstall** the agent:",
@@ -1725,7 +1761,13 @@ function getAgentAdvancedTopics(data: {
 
   topics.push({
     title: "What the agent collects",
-    summary: `The ${engineLabel} metrics the collector's ${getCollectorReceiverComponentName(data.engine)} receiver reads.`,
+    summary: translateTemplate(
+      "The {{engine}} metrics the collector's {{receiver}} receiver reads.",
+      {
+        engine: engineLabel,
+        receiver: getCollectorReceiverComponentName(data.engine),
+      },
+    ),
     markdown: agentIntroParagraph(data.engine, engineLabel),
   });
 
@@ -2442,13 +2484,21 @@ function getOwnCollectorStepHeading(recipe: OwnCollectorRecipe): {
 } {
   if (recipe.source.kind === "receiver" && recipe.collector?.receiverName) {
     return {
-      title: `Add the ${recipe.collector.receiverName} receiver to your collector`,
-      description: `One config: the ${recipe.collector.receiverName} receiver, this database's identity and the exporter to OneUptime.`,
+      title: translateTemplate(
+        "Add the {{receiver}} receiver to your collector",
+        { receiver: recipe.collector.receiverName },
+      ),
+      description: translateTemplate(
+        "One config: the {{receiver}} receiver, this database's identity and the exporter to OneUptime.",
+        { receiver: recipe.collector.receiverName },
+      ),
     };
   }
   if (recipe.source.kind === "prometheus") {
     return {
-      title: `Scrape ${recipe.engineLabel}'s metrics endpoint`,
+      title: translateTemplate("Scrape {{engine}}'s metrics endpoint", {
+        engine: recipe.engineLabel,
+      }),
       description:
         "One config: the Prometheus scrape, this database's identity and the exporter to OneUptime.",
     };

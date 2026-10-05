@@ -7,8 +7,19 @@ import BulkUpdateForm, {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import { getEmptyTableMessage } from "./EmptyTableMessage";
+import TableEmptyState, {
+  TableEmptyStateKind,
+  TableEmptyStateProps,
+} from "./TableEmptyState";
+import { EmptyMessageParts, getEmptyTableTitle } from "./EmptyTableMessage";
+import {
+  getFilteredEmptyStateProps,
+  getLoadErrorStateProps,
+  getMessageEmptyStateParts,
+  hasFilterValues,
+} from "./TableEmptyStateBuilders";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
@@ -63,14 +74,23 @@ export interface ComponentProps<T extends GenericObject> {
   actionButtons?: undefined | Array<ActionButtonSchema<T>>;
   onRefreshClick?: undefined | (() => void);
 
+  /*
+   * What an empty table says. A sentence becomes the empty state's title
+   * (its first sentence) and description (the rest); an element is drawn as
+   * given, in place of the whole empty state.
+   */
   noItemsMessage?: undefined | string | ReactElement;
   /*
    * What to do about an empty table - typically the "Create X" button its
-   * header already has. Shown under the no-items message in place of the
-   * "Refresh?" link, which on an empty list read like a failed load and
-   * offered no way forward.
+   * header already has - drawn under the no-items message.
    */
   noItemsAction?: undefined | ReactElement;
+  /*
+   * The empty state, fully built: illustration, title, description and
+   * actions. BaseModelTable builds one for every model table; it wins over
+   * noItemsMessage and noItemsAction.
+   */
+  emptyStateProps?: TableEmptyStateProps | undefined;
 
   sortOrder: SortOrder;
   sortBy: keyof T | null;
@@ -158,6 +178,14 @@ const Table: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  /*
+   * The filter bar and the bulk-action bar are handed the English labels:
+   * each puts them into whole translated sentences of its own ("3 Monitors
+   * Selected"), which needs the English noun to find the sentence and to know
+   * whether the noun is translated. The pagination footer leaves the noun out
+   * of a translated sentence and takes the translated labels.
+   */
   const translatedSingularLabel: string =
     translateString(props.singularLabel) ?? props.singularLabel;
   const translatedPluralLabel: string =
@@ -240,24 +268,6 @@ const Table: TableFunction = <T extends GenericObject>(
   }, [props.bulkSelectedItems]);
 
   /*
-   * Width of the loading / error / "no items" row, in cells. It has to match
-   * what TableHeader actually renders or those messages sit under part of the
-   * table instead of spanning it: the Actions column is already one of
-   * `props.columns`, and the drag-handle and bulk-select cells are extra
-   * leading columns that only exist when those features are on.
-   */
-  let colspan: number = props.columns.length || 0;
-  if (props.enableDragAndDrop) {
-    colspan++;
-  }
-  if (isBulkActionsEnabled) {
-    colspan++;
-  }
-  if (colspan === 0) {
-    colspan = 1;
-  }
-
-  /*
    * A refetch with rows already on screen (pagination, sort, refresh - the
    * parent never clears `data` while fetching) keeps those rows visible and
    * dims them instead of tearing the layout down to placeholders. Skeletons
@@ -276,30 +286,133 @@ const Table: TableFunction = <T extends GenericObject>(
   const isEmptyResult: boolean =
     !props.isLoading && !props.error && props.data.length === 0;
 
+  /*
+   * A finished load that failed. Like the empty state it is drawn below the
+   * header row, not in a row spanning every column, and the rows (stale
+   * ones, on a refetch that failed) give way to it.
+   */
+  const isLoadError: boolean = !props.isLoading && Boolean(props.error);
+
+  /*
+   * Nothing to page through: the empty state already says there is nothing,
+   * and a footer reading "No monitors" under it said it twice. A page past
+   * the first keeps its footer, as the way back.
+   */
+  const isPaginationHidden: boolean =
+    Boolean(props.disablePagination) ||
+    ((isEmptyResult || isLoadError) &&
+      props.currentPageNumber <= 1 &&
+      !props.hasMore);
+
+  const translate: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
+  /*
+   * The rule under the header row the table body used to draw. A phone shows
+   * no header row, and the table's own container already draws that line,
+   * so a second one would sit right under it.
+   */
+  const stateBlockClassName: string = `${isMobile ? "" : "border-t border-gray-200 "}md:-mx-6 md:px-6`;
+
+  const getEmptyStateElement: GetReactElementFunction = (): ReactElement => {
+    if (props.emptyStateProps) {
+      return <TableEmptyState {...props.emptyStateProps} />;
+    }
+
+    // The page's own element, in the frame the old message had.
+    if (React.isValidElement(props.noItemsMessage)) {
+      return (
+        <div className="my-10 text-center text-sm text-gray-500">
+          {props.noItemsMessage}
+        </div>
+      );
+    }
+
+    /*
+     * The table's own filter form hides every row: what the page says about
+     * that, or the table's own "No X match your search or filters", with the
+     * way to clear them - never the way to create one.
+     */
+    if (
+      hasFilterValues(
+        props.filterData as { [key: string]: unknown } | undefined,
+      )
+    ) {
+      const filteredParts: EmptyMessageParts | undefined =
+        typeof props.noItemsMessage === "string" && props.noItemsMessage.trim()
+          ? getMessageEmptyStateParts({
+              pluralLabel: props.pluralLabel,
+              noItemsMessage: props.noItemsMessage,
+              translate: translate,
+              translator: translator,
+            })
+          : undefined;
+
+      return (
+        <TableEmptyState
+          {...getFilteredEmptyStateProps({
+            title:
+              filteredParts?.title ||
+              getEmptyTableTitle({
+                pluralLabel: props.pluralLabel,
+                isFiltered: true,
+                translate: translate,
+                translator: translator,
+              }),
+            description: filteredParts?.description,
+            onClear: props.onFilterChanged
+              ? (): void => {
+                  props.onFilterChanged?.({});
+                }
+              : undefined,
+          })}
+        />
+      );
+    }
+
+    const parts: EmptyMessageParts = getMessageEmptyStateParts({
+      pluralLabel: props.pluralLabel,
+      noItemsMessage:
+        typeof props.noItemsMessage === "string"
+          ? props.noItemsMessage
+          : undefined,
+      translate: translate,
+      translator: translator,
+    });
+
+    return (
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title={parts.title}
+        description={parts.description}
+        actionElement={props.noItemsAction}
+      />
+    );
+  };
+
   const getNoItemsElement: GetReactElementFunction = (): ReactElement => {
     return (
+      <div className={stateBlockClassName} data-testid={`${props.id}-no-items`}>
+        {getEmptyStateElement()}
+      </div>
+    );
+  };
+
+  const getLoadErrorElement: GetReactElementFunction = (): ReactElement => {
+    return (
       <div
-        /*
-         * The rule under the header row the table body used to draw. A phone
-         * shows no header row, and the table's own container already draws
-         * that line, so a second one would sit right under it.
-         */
-        className={`${isMobile ? "" : "border-t border-gray-200 "}px-6 md:-mx-6`}
-        data-testid={`${props.id}-no-items`}
+        className={stateBlockClassName}
+        data-testid={`${props.id}-load-error`}
       >
-        <ErrorMessage
-          message={
-            props.noItemsMessage ||
-            getEmptyTableMessage({
-              pluralLabel: props.pluralLabel,
-              isFiltered: false,
-              translate: (value: string): string => {
-                return translateString(value) ?? value;
-              },
-            })
-          }
-          onRefreshClick={props.onRefreshClick}
-          action={props.noItemsAction}
+        <TableEmptyState
+          {...getLoadErrorStateProps({
+            pluralLabel: props.pluralLabel,
+            error: props.error,
+            onRetry: props.onRefreshClick,
+            translate: translate,
+            translator: translator,
+          })}
         />
       </div>
     );
@@ -321,21 +434,11 @@ const Table: TableFunction = <T extends GenericObject>(
     /*
      * Loading still wins over error and empty (same priority as before the
      * skeletons): while a refetch is in flight the stale rows render, never a
-     * stale error or a premature "no items".
+     * stale error or a premature "no items". A finished load that failed is
+     * drawn below the table (getLoadErrorElement), so its body is empty.
      */
-    if (!props.isLoading && props.error) {
-      return (
-        <tbody>
-          <tr>
-            <td colSpan={colspan} className="pl-10 pr-10">
-              <ErrorMessage
-                message={props.error}
-                onRefreshClick={props.onRefreshClick}
-              />
-            </td>
-          </tr>
-        </tbody>
-      );
+    if (isLoadError) {
+      return <></>;
     }
 
     if (!props.isLoading && props.filterError) {
@@ -442,8 +545,8 @@ const Table: TableFunction = <T extends GenericObject>(
         filters={props.filters || []}
         onFilterModalClose={props.onFilterModalClose}
         onFilterModalOpen={props.onFilterModalOpen}
-        singularLabel={translatedSingularLabel}
-        pluralLabel={translatedPluralLabel}
+        singularLabel={props.singularLabel}
+        pluralLabel={props.pluralLabel}
         filterData={props.filterData}
         onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
@@ -468,8 +571,8 @@ const Table: TableFunction = <T extends GenericObject>(
             }
           }}
           selectedItems={bulkSelectedItems}
-          singularLabel={translatedSingularLabel}
-          pluralLabel={translatedPluralLabel}
+          singularLabel={props.singularLabel}
+          pluralLabel={props.pluralLabel}
           isAllItemsSelected={isAllItemsSelected}
           errorMessage={props.bulkSelectionError}
           isSelectingAllItems={props.isBulkSelectAllLoading}
@@ -590,8 +693,14 @@ const Table: TableFunction = <T extends GenericObject>(
           </div>
         </div>
         {isEmptyResult && getNoItemsElement()}
-        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
-          {!props.disablePagination && (
+        {isLoadError && getLoadErrorElement()}
+        {/*
+         * The footer sits flush on the card's rounded bottom edge. Clipped to
+         * the same curve, so the pagination bar's square white corners do not
+         * paint over the card's corners and border.
+         */}
+        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl overflow-hidden">
+          {!isPaginationHidden && (
             <Pagination
               singularLabel={translatedSingularLabel}
               pluralLabel={translatedPluralLabel}

@@ -283,6 +283,15 @@ describe("SSO requirement writes go through unchanged in every edition", () => {
         return query;
       },
     );
+    // The same checks, as DatabaseService asks them before the hooks.
+    getJestSpyOn(ModelPermission, "checkTableWritePermission").mockReturnValue(
+      undefined,
+    );
+    getJestSpyOn(ModelPermission, "getUpdatableQuery").mockImplementation(
+      async (_modelType: unknown, query: unknown): Promise<unknown> => {
+        return query;
+      },
+    );
 
     const auditLogService: { recordUpdate: () => Promise<void> } =
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires

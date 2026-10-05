@@ -29,7 +29,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Schritt 2 — Den Workflow erstellen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → GitHub Issues`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → GitHub Issues`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
 

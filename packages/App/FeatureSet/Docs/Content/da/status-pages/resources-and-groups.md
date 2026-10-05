@@ -22,23 +22,23 @@ Kortets beskrivelse skifter med din sides form. Har du grupper, står der, at de
 
 ## At tilføje en monitor
 
-Vælg den gruppe, ressourcen skal lande i (eller **Top of page** for en række uden gruppe), og klik så **Tilføj monitor**. Modalen hedder **Add a monitor to {group}** og har to trin: **Monitordetaljer** og **Avanceret**.
-
-På **Monitordetaljer**:
+Vælg den gruppe, ressourcen skal lande i (eller **Top of page** for en række uden gruppe), og klik så **Tilføj monitor**. Dialogen hedder **Add a monitor to {group}**, og den er én side, der kun spørger om én ting — monitoren:
 
 - **Overvågning** — rullelisten over monitorer i dit projekt, pladsholder **Vælg overvågning**. Påkrævet.
-- **Visningsnavn** — påkrævet. Det er den tekst, besøgende læser, og den gemmes adskilt fra monitorens eget navn, så du kan omdøbe den her uden at røre ved overvågningen.
-- **Beskrivelse** — valgfri markdown, der vises under rækken. God til en sætning om, hvad tjenesten faktisk gør.
+- **Visningsnavn** — den tekst, besøgende læser. Den udfyldes med monitorens navn, når du vælger den, og følger med, når du vælger en anden monitor, indtil du selv skriver et navn. Den gemmes adskilt fra monitorens eget navn, så du kan omdøbe den her uden at røre ved overvågningen.
+- **Flere felter** — klappet sammen. Den rummer **Beskrivelse** (valgfri markdown, der vises under rækken, god til en sætning om, hvad tjenesten faktisk gør) og [visningsindstillingerne](#visningsindstillinger-på-en-ressource). Lader du den være lukket, får ressourcen deres standardværdier.
+
+Vælg en monitor, klik **Tilføj monitor**, og rækken er på siden. I en gittergruppe spørger dialogen også om den række og den kolonne, monitoren skal stå i, over **Flere felter** — se [Listelayout kontra gitterlayout](#listelayout-kontra-gitterlayout).
 
 Har dit projekt monitorgrupper slået til, står der et link under rullelisten: **Add a Monitor Group instead.** — klik det, og rullelisten **Overvågning** byttes ud med en **Monitor Gruppe**-rulleliste (**Vælg overvågningsgruppe**). Linket vender så om til **Add a Monitor instead.**, så du kan gå tilbage. Brug en monitorgruppe, når én række på siden skal repræsentere flere tjek under ét.
 
 ### At tilføje flere ad gangen
 
-**Add Multiple** (også **Add multiple monitors** i **More actions**-menuen) åbner **Add Multiple Monitors**. Den har de samme to trin, men det første er en **Monitorer**-multivælger i stedet for én rulleliste, og de visningsindstillinger, du vælger på **Avanceret**, gælder alle de monitorer, du har valgt. Det er den hurtigste måde at fylde en ny side op på.
+**Add Multiple** (også **Add multiple monitors** i **More actions**-menuen) åbner **Add Multiple Monitors**. Den er også én side: en **Monitorer**-multivælger i stedet for én rulleliste, og derefter den samme sammenklappede **Flere felter**-sektion, hvis visningsindstillinger gælder alle de monitorer, du har valgt. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Add Monitors** tilføjer dem — der er ingen trin at gå igennem. Det er den hurtigste måde at fylde en ny side op på.
 
 ## Visningsindstillinger på en ressource
 
-Trinnet **Avanceret** er det samme på enkelt-formularen og i bulk-modalen. Alt her gælder per ressource — to rækker i samme gruppe kan sagtens være sat op forskelligt.
+Sektionen **Flere felter** er den samme på enkelt-formularen og i bulk-modalen. Den starter sammenklappet begge steder, og også i **Rediger ressource**, hvor dens sammenklappede overskrift viser, hvad i den der ikke står på sin standard. Alt her gælder per ressource — to rækker i samme gruppe kan sagtens være sat op forskelligt.
 
 | Felt                                                     | Formål                                                                                                       |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -48,11 +48,11 @@ Trinnet **Avanceret** er det samme på enkelt-formularen og i bulk-modalen. Alt 
 | **Vælg oppetidspræcision** (`uptimePercentPrecision`)    | Dukker først op, når **Vis oppetid %** er slået til. Påkrævet, standard er én decimal.                        |
 | **Vis statushistorikdiagram** (`showStatusHistoryChart`) | Slået til som standard. Viser dag-for-dag-søjlediagrammet over oppetidshistorik for ressourcen.               |
 
-**Visningsnavn** (`displayName`) og **Beskrivelse** (`displayDescription`) fra første trin er også rent visningsmæssige — de ændrer aldrig selve monitoren.
+**Visningsnavn** (`displayName`) og **Beskrivelse** (`displayDescription`) er også rent visningsmæssige — de ændrer aldrig selve monitoren.
 
 ## Oppetidsprocenter og historikdiagrammer
 
-Både **Vis oppetid %** og **Vis statushistorikdiagram** afhænger af en indstilling, der bor et helt andet sted. Det vindue, de dækker, er **Vis oppetidshistorik (i dage)** under **Statussider → din side → Avanceret → Avancerede indstillinger**, i kortet **Indstillinger for oppetidshistorik**. Det tager 1 til 90 dage og er 90 som standard.
+Både **Vis oppetid %** og **Vis statushistorikdiagram** afhænger af en indstilling, der bor et helt andet sted. Det vindue, de dækker, er **Oppetidshistorik** i kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger**. Det tager 1 til 90 dage og er 90 som standard.
 
 Rækkefølgen er altså: slå kontakterne til per ressource, og sæt så vinduet én gang for hele siden.
 
@@ -64,19 +64,18 @@ Farverne på historikdiagrammets søjler, og hvilke monitorstatusser der tæller
 
 ## Grupper
 
-Klik **New Group** for at åbne **Create New Status Page Group**. Formularen har tre trin: **Gruppedetaljer**, **Layout** og **Avanceret**.
-
-**Gruppedetaljer**:
+Klik **New Group** for at åbne **Create New Status Page Group**. Den er én side: to felter og derefter to sammenklappede sektioner.
 
 - **Gruppenavn** (`name`) — påkrævet. Det er den sektionsoverskrift, besøgende ser.
-- **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
-- **Parent Group** (`parentStatusPageGroupId`) — valgfri. Lad den stå på **No parent group (top level)** for at holde gruppen på øverste niveau.
-- **Udvid på statusside som standard** (`isExpandedByDefault`) — om sektionen starter åben eller sammenklappet for besøgende.
+- **Parent Group** (`parentStatusPageGroupId`) — valgfri. Lad den stå på **No parent group (top level)** for at holde gruppen på øverste niveau. **Add a sub group** udfylder den for dig.
+- **Layout** — klappet sammen, og dens overskrift siger **List** eller **Grid**. Den rummer **Visningstilstand** og et gitters akser (se [Listelayout kontra gitterlayout](#listelayout-kontra-gitterlayout)), og den åbner af sig selv på en gittergruppe.
+- **Flere felter** — klappet sammen. Den rummer resten og spejler ressourceindstillingerne på gruppeniveau:
+  - **Gruppebeskrivelse** (`description`) — valgfri markdown, vist under overskriften.
+  - **Udvid på statusside som standard** (`isExpandedByDefault`) — slået til som standard: om sektionen starter åben eller sammenklappet for besøgende.
+  - **Vis aktuel gruppestatus** (`showCurrentStatus`) — slået til som standard. Viser en status ved siden af gruppeoverskriften.
+  - **Vis oppetid %** (`showUptimePercent`) — slået fra som standard, med **Vælg oppetidspræcision** som dukker op, når den er slået til.
 
-**Avanceret** spejler ressourcekontakterne på gruppeniveau:
-
-- **Vis aktuel gruppestatus** (`showCurrentStatus`) — slået til som standard. Viser en status ved siden af gruppeoverskriften.
-- **Vis oppetid %** (`showUptimePercent`) — slået fra som standard, med **Vælg oppetidspræcision** som dukker op, når den er slået til.
+De fleste grupper behøver kun et navn: skriv det, og klik **Create Status Page Group**.
 
 Redigering fungerer på samme måde: **Edit Group** i rudens sidehoved, eller **Edit group** i navigatorrækkens menu, åbner **Edit Status Page Group** med en **Gem ændringer**-knap.
 
@@ -96,7 +95,7 @@ Indlejring gør størst nytte på store sider: en hostingudbyder med regioner in
 
 ## Listelayout kontra gitterlayout
 
-Trinnet **Layout** sætter **Visningstilstand** (`viewMode`) for gruppen, og det ændrer, hvordan gruppen vises offentligt.
+Sektionen **Layout** i gruppeformularen sætter **Visningstilstand** (`viewMode`) for gruppen, og det ændrer, hvordan gruppen vises offentligt.
 
 | Hvis du vil…                                                        | Vælg                     |
 | ------------------------------------------------------------------- | ------------------------ |
@@ -110,9 +109,9 @@ Vælger du **Grid**, dukker fire felter mere op:
 - **Etiket for kolonneakse** — kolonnedimensionen, pladsholder `Region`.
 - **Værdier for kolonneakse** — tilføjes med **Add Column** (pladsholder `e.g. US-East`).
 
-Hver monitor i en gittergruppe placeres derefter i en celle, så bulk-modalen spørger om rækken og kolonnen ved siden af monitorerne — med dine egne akseetiketter.
+Hver monitor i en gittergruppe placeres derefter i en celle, så **Tilføj monitor** og bulk-modalen spørger om rækken og kolonnen ved siden af monitoren — med dine egne akseetiketter.
 
-**Sæt akserne op, før du tilføjer monitorer.** En gittergruppe uden rækker eller kolonner viser en gul advarsel om, at der ikke er nogen steder at placere en monitor, før akserne findes, med en **Set up the grid**-knap — og **Tilføj monitor**-knappen er trukket tilbage, indtil du har gjort det.
+**Sæt akserne op, før du tilføjer monitorer.** En gittergruppe uden rækker eller kolonner viser en gul advarsel om, at der ikke er nogen steder at placere en monitor, før akserne findes, med en **Set up the grid**-knap, der åbner gruppens formular på dens **Layout**-sektion — og **Tilføj monitor**-knappen er trukket tilbage, indtil du har gjort det.
 
 ## At bestemme rækkefølgen besøgende ser
 

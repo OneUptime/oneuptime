@@ -102,10 +102,12 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * These tests drive the real ProjectScopedReferenceValidator through the
  * service hooks and only stub the lookups it makes, so a foreign or unknown id
- * has to be caught by the actual check. Rejections assert the record's name
- * as the lookup returned it: that name only exists on the record registered
- * under the right service, so validating labels against the monitor table
- * (say) cannot pass them.
+ * has to be caught by the actual check. A rejection names the field and the
+ * id the caller sent - never the record's name, which every foreign record
+ * here carries - and answers a foreign id like an unknown one. The tests that
+ * accept this project's own records are what pin each list to its table:
+ * those records are registered only under the right service, so validating
+ * labels against the monitor table (say) would refuse them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -405,10 +407,11 @@ async function expectEveryForeignResourceNamed(
     message = (err as Error).message;
   }
 
-  expect(message).toContain("belong to a different project: ");
+  expect(message).toContain("not in this project: ");
 
   for (const list of lists) {
-    expect(message).toContain(`${list.modelName} "${nameOf(list.foreignId)}"`);
+    expect(message).toContain(`${list.modelName} "${list.foreignId}"`);
+    expect(message).not.toContain(nameOf(list.foreignId));
   }
 }
 
@@ -540,7 +543,7 @@ function callHook(
 }
 
 function foreignMessage(modelName: string, id: string): string {
-  return `belong to a different project: ${modelName} "${nameOf(id)}"`;
+  return `not in this project: ${modelName} "${id}"`;
 }
 
 describe("cross-project relation guard on write", () => {
@@ -633,11 +636,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Monitor "${nameOf(
-          FOREIGN_MONITOR_ID,
-        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", On-Call Policy "${nameOf(
-          FOREIGN_POLICY_ID,
-        )}"`,
+        `not in this project: Monitor "${FOREIGN_MONITOR_ID}", Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -647,7 +646,7 @@ describe("cross-project relation guard on write", () => {
           data: incidentWith({ monitors: [stubOf(Monitor, UNKNOWN_ID)] }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Monitor "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Monitor "${UNKNOWN_ID}"`);
     });
 
     test("root creates are checked against the project on the payload", async () => {
@@ -758,7 +757,7 @@ describe("cross-project relation guard on write", () => {
           }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Status Page "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Status Page "${UNKNOWN_ID}"`);
     });
 
     test("status pages copied from an incident template are checked too", async () => {
@@ -832,7 +831,7 @@ describe("cross-project relation guard on write", () => {
           data: incidentWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Host "${UNKNOWN_ID}"`);
     });
 
     test("affected resources copied from an incident template are checked too", async () => {
@@ -958,9 +957,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Label "${nameOf(
-          FOREIGN_LABEL_ID,
-        )}", On-Call Policy "${nameOf(FOREIGN_POLICY_ID)}"`,
+        `not in this project: Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -1360,11 +1357,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Monitor "${nameOf(
-          FOREIGN_MONITOR_ID,
-        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", On-Call Policy "${nameOf(
-          FOREIGN_POLICY_ID,
-        )}"`,
+        `not in this project: Monitor "${FOREIGN_MONITOR_ID}", Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -1376,7 +1369,7 @@ describe("cross-project relation guard on write", () => {
           }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: On-Call Policy "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: On-Call Policy "${UNKNOWN_ID}"`);
     });
 
     test("root creates are checked against the project on the payload", async () => {
@@ -1475,7 +1468,7 @@ describe("cross-project relation guard on write", () => {
           data: alertWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Host "${UNKNOWN_ID}"`);
     });
 
     test("root creates check resources against the project on the payload", async () => {
@@ -1565,9 +1558,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Label "${nameOf(
-          FOREIGN_LABEL_ID,
-        )}", On-Call Policy "${nameOf(FOREIGN_POLICY_ID)}"`,
+        `not in this project: Label "${FOREIGN_LABEL_ID}", On-Call Policy "${FOREIGN_POLICY_ID}"`,
       );
     });
 
@@ -1947,7 +1938,7 @@ describe("cross-project relation guard on write", () => {
           }),
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow(`do not exist: Network Site "${UNKNOWN_ID}"`);
+      ).rejects.toThrow(`not in this project: Network Site "${UNKNOWN_ID}"`);
     });
 
     test("root creates check resources against the project on the payload", async () => {
@@ -2044,11 +2035,7 @@ describe("cross-project relation guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
-        `belong to a different project: Monitor "${nameOf(
-          FOREIGN_MONITOR_ID,
-        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", Status Page "${nameOf(
-          FOREIGN_STATUS_PAGE_ID,
-        )}"`,
+        `not in this project: Monitor "${FOREIGN_MONITOR_ID}", Label "${FOREIGN_LABEL_ID}", Status Page "${FOREIGN_STATUS_PAGE_ID}"`,
       );
     });
 
@@ -2271,13 +2258,11 @@ describe("cross-project relation guard on write", () => {
         }
 
         expect(message).toContain(
-          `This ${templateCase.subject} references records that belong to a different project: `,
+          `This ${templateCase.subject} references records that are not in this project: `,
         );
 
         for (const list of templateCase.lists) {
-          expect(message).toContain(
-            `${list.modelName} "${nameOf(list.foreignId)}"`,
-          );
+          expect(message).toContain(`${list.modelName} "${list.foreignId}"`);
         }
       });
 
@@ -2287,7 +2272,7 @@ describe("cross-project relation guard on write", () => {
             data: templateWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
             props: { tenantId: PROJECT_ID },
           }),
-        ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+        ).rejects.toThrow(`not in this project: Host "${UNKNOWN_ID}"`);
       });
 
       test("root creates are checked against the project on the payload", async () => {

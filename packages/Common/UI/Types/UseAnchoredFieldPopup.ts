@@ -16,7 +16,8 @@ import React, {
  *
  * It mirrors the menu placement rules used by EntityDropdown: prefer below the
  * anchor, flip above when there is not enough room, and clamp horizontally to
- * the viewport.
+ * the viewport. A popup whose anchor sits at the foot of what it works on can
+ * prefer above instead (preferredPlacement), with the same flip the other way.
  */
 
 const POPUP_GAP_PX: number = 4;
@@ -34,10 +35,52 @@ export interface AnchoredFieldPopupPosition {
   width: number;
 }
 
+export type AnchoredFieldPopupPlacement = "below" | "above";
+
+/*
+ * Whether the popup goes above its anchor. It goes on its preferred side
+ * unless that side leaves it less than a useful height and the other side has
+ * more room.
+ */
+export const shouldAnchoredPopupOpenAbove: (data: {
+  preferredPlacement: AnchoredFieldPopupPlacement;
+  spaceAbove: number;
+  spaceBelow: number;
+}) => boolean = (data: {
+  preferredPlacement: AnchoredFieldPopupPlacement;
+  spaceAbove: number;
+  spaceBelow: number;
+}): boolean => {
+  if (data.preferredPlacement === "above") {
+    return !(
+      data.spaceAbove < POPUP_MIN_USEFUL_HEIGHT_PX &&
+      data.spaceBelow > data.spaceAbove
+    );
+  }
+
+  return (
+    data.spaceBelow < POPUP_MIN_USEFUL_HEIGHT_PX &&
+    data.spaceAbove > data.spaceBelow
+  );
+};
+
 export interface AnchoredFieldPopupOptions {
   // Intrinsic width of the popup, used to clamp it inside the viewport.
   popupWidth: number;
   popupMaxHeight: number;
+  /*
+   * The side the popup opens on when it fits there: below the anchor unless
+   * said otherwise. "above" is for an anchor at the foot of what it works on -
+   * the template menu at the bottom of a note composer - so the popup covers
+   * the note rather than what comes after it.
+   */
+  preferredPlacement?: AnchoredFieldPopupPlacement | undefined;
+  /*
+   * Changes when the anchor may have moved while the popup stays open - the
+   * Owners page's add button moves along as owners are added in front of it -
+   * so the popup is placed against it again.
+   */
+  repositionKey?: string | number | undefined;
 }
 
 export interface AnchoredFieldPopup {
@@ -90,7 +133,9 @@ type UseAnchoredFieldPopupFunction = (
 const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
   options: AnchoredFieldPopupOptions,
 ): AnchoredFieldPopup => {
-  const { popupWidth, popupMaxHeight } = options;
+  const { popupWidth, popupMaxHeight, repositionKey } = options;
+  const preferredPlacement: AnchoredFieldPopupPlacement =
+    options.preferredPlacement || "below";
 
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const [popupPosition, setPopupPosition] =
@@ -236,8 +281,11 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       0,
       anchorRect.top - POPUP_GAP_PX - POPUP_VIEWPORT_PADDING_PX,
     );
-    const shouldOpenAbove: boolean =
-      spaceBelow < POPUP_MIN_USEFUL_HEIGHT_PX && spaceAbove > spaceBelow;
+    const shouldOpenAbove: boolean = shouldAnchoredPopupOpenAbove({
+      preferredPlacement,
+      spaceAbove,
+      spaceBelow,
+    });
     const availableHeight: number = shouldOpenAbove ? spaceAbove : spaceBelow;
 
     setPopupPosition({
@@ -249,7 +297,7 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       top: shouldOpenAbove ? undefined : anchorRect.bottom + POPUP_GAP_PX,
       width,
     });
-  }, [popupWidth, popupMaxHeight]);
+  }, [popupWidth, popupMaxHeight, preferredPlacement]);
 
   useLayoutEffect(() => {
     if (!isPopupOpen) {
@@ -285,7 +333,7 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
         window.cancelAnimationFrame(animationFrame);
       }
     };
-  }, [isPopupOpen, updatePopupPosition]);
+  }, [isPopupOpen, updatePopupPosition, repositionKey]);
 
   // Outside click. Portal aware: the popup is not a DOM child of the anchor.
   useEffect(() => {

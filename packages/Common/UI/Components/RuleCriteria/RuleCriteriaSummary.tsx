@@ -3,41 +3,28 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import RuleCriteria, {
   RuleCriteriaFilter,
 } from "../../../Types/Rules/RuleCriteria";
+import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
 import { isValidRuleCriteria } from "../../../Utils/Rules/RuleCriteriaMatcher";
 import React, { ReactElement } from "react";
 import Field from "../Forms/Types/Field";
 import {
   convertLegacyValuesToRuleCriteria,
-  getRuleCriteriaFieldName,
-  RULE_CRITERIA_OPERATOR_LABELS,
-} from "./RuleCriteriaBuilder";
+  findRuleCriteriaField,
+  getRuleCriteriaFieldTitle,
+  getRuleCriteriaOperatorLabel,
+} from "./RuleCriteriaFields";
 
 export interface RuleCriteriaSummaryData<TEntity> {
   fields: Array<Field<TEntity>>;
   item: TEntity;
 }
 
-function titleFromFieldName(fieldName: string): string {
-  return fieldName
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/^./, (character: string): string => {
-      return character.toUpperCase();
-    });
-}
-
-function getFieldTitle<TEntity>(
-  fields: Array<Field<TEntity>>,
-  fieldName: string,
-): string {
-  const field: Field<TEntity> | undefined = fields.find(
-    (candidate: Field<TEntity>): boolean => {
-      return getRuleCriteriaFieldName(candidate) === fieldName;
-    },
-  );
-
-  return field?.title || titleFromFieldName(fieldName);
-}
+// What a rule with no conditions does, which depends on the kind of rule.
+export const RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING: string =
+  "Matches everything (no conditions)";
+export const RULE_CRITERIA_SUMMARY_MATCHES_NOTHING: string =
+  "Matches nothing (no conditions)";
+export const RULE_CRITERIA_SUMMARY_INVALID: string = "Invalid match criteria";
 
 function formatValue(filter: RuleCriteriaFilter): string {
   if (Array.isArray(filter.value)) {
@@ -72,6 +59,17 @@ function getCriteria<TEntity>(
   });
 }
 
+function getEmptySummary<TEntity>(item: TEntity): string {
+  const tableName: unknown = (item as unknown as { tableName?: unknown })
+    .tableName;
+
+  return isRuleCriteriaConditionRequired(
+    typeof tableName === "string" ? tableName : null,
+  )
+    ? RULE_CRITERIA_SUMMARY_MATCHES_NOTHING
+    : RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING;
+}
+
 export function getRuleCriteriaSummaryText<TEntity>(
   data: RuleCriteriaSummaryData<TEntity>,
 ): string {
@@ -84,21 +82,27 @@ export function getRuleCriteriaSummaryText<TEntity>(
 
   if (!criteria) {
     return configuredCriteria !== undefined && configuredCriteria !== null
-      ? "Invalid match criteria"
-      : "Matches all resources";
+      ? RULE_CRITERIA_SUMMARY_INVALID
+      : getEmptySummary(data.item);
   }
 
   if (criteria.filters.length === 0) {
-    return "Matches all resources";
+    return getEmptySummary(data.item);
   }
 
   const connector: string =
     criteria.filterCondition === FilterCondition.All ? "all" : "any";
   const filters: Array<string> = criteria.filters.map(
     (filter: RuleCriteriaFilter): string => {
-      return `${getFieldTitle(data.fields, filter.field)} ${RULE_CRITERIA_OPERATOR_LABELS[
-        filter.operator
-      ].toLocaleLowerCase()} ${formatValue(filter)}`;
+      const field: Field<TEntity> | undefined = findRuleCriteriaField(
+        data.fields,
+        filter.field,
+      );
+
+      return `${getRuleCriteriaFieldTitle(field, filter.field)} ${getRuleCriteriaOperatorLabel(
+        field,
+        filter.operator,
+      ).toLocaleLowerCase()} ${formatValue(filter)}`;
     },
   );
 

@@ -8,19 +8,22 @@ Cette page couvre les deux : les cinq canaux d'abonnement et la façon dont les 
 
 ## Les canaux d'abonnement
 
-Une page de statut prend en charge cinq canaux, chacun avec sa propre bascule sur la page. Allez dans **Pages de statut → votre page → Abonnés → Paramètres des abonnés** :
+Une page de statut prend en charge cinq canaux. Eux et la page où les visiteurs s'inscrivent se règlent à un seul endroit : la carte **Canaux** dans **Pages de statut → votre page → Abonnés → Paramètres des abonnés**. Chaque bascule est enregistrée dès que vous la changez :
 
-- **Activer les abonnés par e-mail** (`enableEmailSubscribers`) — activé par défaut. Tout le reste est désactivé tant que vous ne l'activez pas.
-- **Activer les abonnés par SMS** (`enableSmsSubscribers`) — désactivé par défaut.
-- **Activer les abonnés Slack** (`enableSlackSubscribers`) — désactivé par défaut.
-- **Activer les abonnés Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — désactivé par défaut.
-- **Activer les abonnés Webhook** (`enableWebhookSubscribers`) — désactivé par défaut.
+- **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) — activé par défaut. Ajoute l'entrée **S'abonner** à la barre de navigation de la page de statut, où les visiteurs s'inscrivent via les canaux ci-dessous.
+- **E-mail** (`enableEmailSubscribers`) — activé par défaut. Tout le reste est désactivé tant que vous ne l'activez pas.
+- **SMS** (`enableSmsSubscribers`) — désactivé par défaut. Sur OneUptime Cloud, chaque SMS est payé sur le solde SMS et appels du projet, sauf si la page a sa propre **Configuration Twilio**. Pour l'activer, le projet doit aussi avoir **SMS** activé dans la carte **Canaux de notification**, dans **Paramètres du projet > Notifications > Paramètres de notification**.
+- **Slack** (`enableSlackSubscribers`) — désactivé par défaut.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — désactivé par défaut.
+- **Webhook** (`enableWebhookSubscribers`) — désactivé par défaut.
 
-Chaque canal reçoit aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés MS Teams** et **Abonnés au webhook**. C'est là que vous regardez qui est inscrit, que vous ajoutez quelqu'un à la main, ou que vous vous laissez une entrée **Notes** (`internalNote`) sur un abonné en particulier.
+Les bascules décident comment les visiteurs peuvent s'inscrire eux-mêmes : la page de statut refuse une inscription par un canal désactivé. Elles n'arrêtent pas les notifications : les abonnés que votre équipe ajoute depuis le tableau de bord, via l'API ou par un workflow reçoivent les mises à jour, quels que soient les canaux activés.
 
-**Une seule bascule ne suffit pas.** L'entrée **S'abonner** de la barre de navigation de la page de statut n'apparaît que si **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) est activé *et* qu'au moins un canal est activé. Si vous activez **Activer les abonnés par e-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
+Sur OneUptime Cloud, une bascule que votre forfait n'inclut pas affiche le nom du forfait à côté : **Growth** pour **SMS** et **Afficher la page des abonnés**, **Scale** pour **Slack**, **Microsoft Teams** et **Webhook**.
 
-Les cinq mêmes bascules apparaissent une seconde fois dans la carte **Paramètres des abonnés** des **Paramètres avancés**, aux côtés d'**Afficher la page des abonnés**. Ce sont les mêmes colonnes en dessous — choisissez un écran et tenez-vous-y, en privilégiant la page dédiée **Paramètres des abonnés**, puisque c'est là que vit le reste de la configuration des abonnés.
+Chaque canal reçoit aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés MS Teams** et **Abonnés au webhook**. C'est là que vous regardez qui est inscrit, que vous ajoutez quelqu'un à la main, ou que vous vous laissez une entrée **Notes** (`internalNote`) sur un abonné en particulier. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec la bascule du canal juste à côté : vous l'activez sans quitter la liste.
+
+**Une seule bascule ne suffit pas.** L'entrée **S'abonner** de la barre de navigation de la page de statut n'apparaît que si **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
 ## Ce que voit un visiteur sur la page S'abonner
 
@@ -40,6 +43,8 @@ Par défaut, un abonné reçoit tout ce qui se passe sur la page. Deux bascules 
 
 - **Permettre aux abonnés de choisir les ressources** (`allowSubscribersToChooseResources`) — désactivé par défaut. Activez-le et le formulaire d'abonnement gagne une bascule **S'abonner à toutes les ressources** ; décochez-la et **Sélectionner les ressources à suivre** apparaît, pour que le visiteur choisisse des ressources une par une.
 - **Permettre aux abonnés de choisir les types d'événements** (`allowSubscribersToChooseEventTypes`) — désactivé par défaut. Même forme : une bascule **S'abonner à tous les types d'événements**, et **Sélectionner les types d'événements à suivre** en dessous lorsqu'elle est décochée.
+
+Si l'une des deux est activée, le formulaire reste sur une seule page : ces choix se trouvent dans **Préférences**, replié sous l'endroit où envoyer les mises à jour. Replié, il indique en une ligne ce que le visiteur recevra (toutes les mises à jour de la page de statut, tant qu'il ne restreint rien), si bien qu'un visiteur qui veut tout clique simplement sur **S'abonner**. La page **Mettre à jour l'abonnement** montre les mêmes choix dépliés.
 
 Les types d'événements sont `Incident`, `Announcement` et `Scheduled Event`.
 
@@ -79,7 +84,7 @@ Les abonnés entendent parler des trois types d'événements ci-dessus, mais cha
 
 ### Notifications d'annonce
 
-L'annonce elle-même porte **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposé sur le formulaire de création sous la case **Notifier les abonnés de la page de statut**, cochée par défaut. Si l'annonce nomme des moniteurs sous **Moniteurs affectés (facultatif)**, la notification est limitée à ces moniteurs ; laissez le champ vide et tous les abonnés sont prévenus.
+L'annonce elle-même porte **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposé sur le formulaire de création sous la case **Notifier les abonnés de la page de statut** dans **Planification et notifications**, cochée par défaut. Les abonnés sont prévenus une seule fois, dès que l'annonce s'affiche : ce choix se fait donc à la création, et une modification ne le change pas. Si l'annonce nomme des moniteurs sous **Moniteurs affectés**, la notification est limitée à ces moniteurs ; laissez le champ vide et tous les abonnés sont prévenus.
 
 ### Événements de maintenance planifiée
 
@@ -111,12 +116,14 @@ Le SMTP personnalisé vaut la peine d'être mis en place tôt si vous avez des a
 
 Une annonce est un enregistrement au niveau du projet (le modèle `StatusPageAnnouncement`) que vous diffusez vers une ou plusieurs pages de statut, éventuellement limité à certains moniteurs, avec une fenêtre pendant laquelle il est affiché.
 
-Vous en créez une depuis **Pages de statut → Plus → Annonces**, ou depuis **Annonces** dans le menu latéral d'une page de statut donnée. Le formulaire de création est un assistant en quatre étapes :
+Vous en créez une depuis **Pages de statut → Plus → Annonces**, ou depuis **Annonces** dans le menu latéral d'une page de statut donnée. Créée depuis une page de statut, cette page est déjà sélectionnée : un titre et une description suffisent, et **Créer une annonce** vous ramène à la liste **Annonces** de cette page (ou à la liste du projet, si vous avez désélectionné la page en chemin). Le formulaire de création compte deux étapes, puis un récapitulatif :
 
-1. **Informations de base** — **Titre de l'annonce** (obligatoire, au moins deux caractères), **Description** (Markdown, facultative) et **Pièces jointes** pour les fichiers qui doivent accompagner l'annonce sur la page de statut.
-2. **Pages de statut** — **Afficher l'annonce sur ces pages de statut**, une sélection multiple obligatoire. Une même annonce peut viser plusieurs pages à la fois.
-3. **Ressources affectées** — **Moniteurs affectés (facultatif)**. Si vous n'en sélectionnez aucun, tous les abonnés sont prévenus.
-4. **Planification et paramètres** — **Commencer à afficher l'annonce à** (obligatoire, réglé sur maintenant par défaut), **Fin de l'affichage de l'annonce à** (facultatif) et **Notifier les abonnés de la page de statut** (activé par défaut).
+1. **Annonce** — **Titre** (obligatoire, au moins deux caractères) et **Description** (Markdown, obligatoire : c'est le texte qu'on lit sur la page de statut). Les **Pièces jointes**, pour les fichiers qui doivent accompagner l'annonce sur la page de statut, attendent sous **Plus de champs**.
+2. **Pages de statut** — **Afficher l'annonce sur ces pages de statut**, une sélection multiple obligatoire (une même annonce peut viser plusieurs pages à la fois), et **Moniteurs affectés** : si vous n'en sélectionnez aucun, tous les abonnés sont prévenus. Dès que des moniteurs sont choisis, le formulaire propose sous la sélection des pages les pages de statut qui les affichent : « Pages de statut qui affichent les moniteurs concernés : » suivi du nom de chaque page. Cliquez sur un nom pour ajouter cette page, ou sur **Tout ajouter** ; rien n'est choisi à votre place. En dessous, **Planification et notifications** est replié en une ligne qui dit ce qui va se passer : « S'affiche dès maintenant et reste affichée jusqu'à ce que vous y mettiez fin. Les abonnés sont notifiés dès qu'elle s'affiche. » Dépliez-la pour modifier **Commencer à afficher l'annonce à** (maintenant par défaut), **Fin de l'affichage de l'annonce à** (vide : l'annonce reste affichée jusqu'à ce que vous fixiez une fin) ou **Notifier les abonnés de la page de statut** (activé par défaut). La ligne suit vos réponses. La fin doit suivre le début et, pour une nouvelle annonce, être encore à venir : une annonce déjà terminée ne s'afficherait jamais.
+
+Le récapitulatif montre la même ligne. **Créer à partir d'un modèle** remplit le formulaire à partir d'un modèle ; depuis une page de statut, les pages de statut du modèle sont conservées à côté de cette page.
+
+La page de l'annonce la modifie avec les mêmes deux étapes. **Notifier les abonnés de cette mise à jour** se trouve sous la description, et **Planification** contient le début et la fin. Fixer une fin déjà passée est la façon de retirer une annonce.
 
 Les visiteurs lisent les annonces sur `/announcements`, réparties entre **Annonces actives** et **Annonces passées**, chacune datée d'un **Annoncé le**. Les annonces en cours sont en plus épinglées en haut de la page d'aperçu. Quand il n'y a rien à montrer, la page affiche *Aucune annonce* avec la mention qu'aucune n'a été publiée pour l'instant.
 
@@ -127,18 +134,18 @@ Les pièces jointes sont servies depuis `GET {statusPageCrudPath}/status-page-an
 **Show At** (`showAnnouncementAt`) et **End At** (`endAnnouncementAt`) commandent tout, mais la page d'aperçu et la liste des annonces ne posent pas la même question, et cette différence fait trébucher.
 
 - **La page d'aperçu** affiche une annonce quand `showAnnouncementAt` est dans le passé et que `endAnnouncementAt` est soit dans le futur, soit vide.
-- **La liste `/announcements`** affiche les annonces dont le `showAnnouncementAt` tombe dans la fenêtre **Afficher l'historique des annonces (en jours)** (`showAnnouncementHistoryInDays`, 14 par défaut), puis les répartit côté client entre actives et passées.
+- **La liste `/announcements`** affiche les annonces dont le `showAnnouncementAt` tombe dans la fenêtre d'historique des annonces (`showAnnouncementHistoryInDays`, 14 par défaut), puis les répartit côté client entre actives et passées.
 
 Deux conséquences à anticiper :
 
 - **Une annonce sans date de fin n'expire jamais.** Laissez **Fin de l'affichage de l'annonce à** vide et elle reste épinglée indéfiniment sur la page d'aperçu. Mettez une date de fin sur tout ce qui est limité dans le temps.
 - **Une annonce ancienne mais toujours active peut disparaître de la liste.** Si elle a commencé il y a plus de `showAnnouncementHistoryInDays`, elle sort de `/announcements` tout en restant sur l'aperçu. Élargissez la fenêtre d'historique si vous gardez des avis de longue durée.
 
-L'apparition même des annonces dépend de la carte **Paramètres de l'annonce** des **Paramètres avancés** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, activé par défaut) et **Afficher l'historique des annonces (en jours)** (14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
+L'apparition même des annonces se règle dans la carte **Ce que montre votre page de statut** des **Paramètres avancés** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, activé par défaut) et, en dessous, **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
 
 ## Les modèles d'annonce
 
-Si vous publiez le même genre d'avis à répétition — un rappel de maintenance mensuel, une dégradation récurrente chez un tiers — préparez-le à l'avance. **Pages de statut → Paramètres → Modèles d'annonce** stocke le modèle `StatusPageAnnouncementTemplate`, et son formulaire demande **Nom du modèle**, **Description du modèle**, **Titre de l'annonce**, **Description**, **Afficher l'annonce sur ces pages de statut**, **Moniteurs affectés (facultatif)** et **Notifier les abonnés** : la diffusion et la décision de notifier sont donc prises une fois pour toutes plutôt qu'à chaque fois.
+Si vous publiez le même genre d'avis à répétition — un rappel de maintenance mensuel, une dégradation récurrente chez un tiers — préparez-le à l'avance. **Pages de statut → Paramètres → Modèles d'annonce** stocke le modèle `StatusPageAnnouncementTemplate`. Son formulaire passe par **Informations du modèle** (**Nom du modèle**, **Description du modèle**), puis par les étapes de l'annonce elle-même : **Annonce** (**Titre**, **Description**) et **Pages de statut** (**Afficher l'annonce sur ces pages de statut**, **Moniteurs affectés** et **Notifier les abonnés de la page de statut**, activé par défaut) : la diffusion et la décision de notifier sont donc prises une fois pour toutes plutôt qu'à chaque fois. Un modèle n'a pas de planification : une annonce créée à partir de lui s'affiche dès sa création, sauf si vous changez cela sous **Planification et notifications**.
 
 ## Les abonnés webhook et la protection contre le SSRF
 

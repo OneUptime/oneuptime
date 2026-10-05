@@ -47,7 +47,7 @@ const RECORD_KEY_GLOBAL_PATTERN: RegExp =
   /CONTAINER_HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)/g;
 const COLUMN_START: string = '{ title: "';
 const RENDER_LIST_CALL_PATTERN: RegExp =
-  /renderList\( "([^"]+)", stats\.\w+, "(cpu|memory)", CONTAINER_HOST_METRIC_DESCRIPTIONS\.(\w+), \)/g;
+  /renderList\( translationKey\("([^"]+)"\), stats\.\w+, "(cpu|memory)", CONTAINER_HOST_METRIC_DESCRIPTIONS\.(\w+), \)/g;
 const RUNTIME_WORD_PATTERN: RegExp = /docker|podman/i;
 const COLUMN_TITLE_GLOBAL_PATTERN: RegExp = /\}, title: "([^"]*)",/g;
 const DOCKER_TITLE_CASE: RegExp = /Docker/g;
@@ -255,8 +255,14 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
 
     expect(skeleton).toContain("{renderTitle()}");
     expect(loaded).toContain("{renderTitle()}");
-    // The title is only ever drawn through renderTitle, so never without its (i).
-    expect(countOf(definition, "{params.title} </span>")).toBe(1);
+    /*
+     * The title is only ever drawn through renderTitle, so never without its
+     * (i) - in the reader's language, and nowhere as the bare English text.
+     */
+    expect(
+      countOf(definition, "{translator.translateText(params.title)} </span>"),
+    ).toBe(1);
+    expect(countOf(definition, "{params.title} </span>")).toBe(0);
   });
 
   test("the tiles and lists still use the window their texts describe", () => {
@@ -319,8 +325,9 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
     );
 
     expect(renderList).toContain("description: string,");
+    // The card title reads in the reader's language, with its (i) beside it.
     expect(renderList).toContain(
-      '<InfoTooltip label={title} text={description} iconClassName="h-4 w-4" />',
+      '{translator.translateText(title)} <InfoTooltip label={title} text={description} iconClassName="h-4 w-4" />',
     );
   });
 
@@ -453,8 +460,8 @@ describe("Docker and Podman pages stay identical", () => {
     "the %s host list shows no metric, so it carries no (i)",
     (runtime: string) => {
       /*
-       * Name, Host Identifier, connection Status, Last Seen, Labels and
-       * Owners are facts about the host record. The day a metric column
+       * Name, Host Name (host.name), connection Status, Last Seen, Labels
+       * and Owners are facts about the host record. The day a metric column
        * (containers, CPU, ...) is added it needs a headerTooltip from the
        * container host record, and this list needs updating.
        */
@@ -468,7 +475,7 @@ describe("Docker and Podman pages stay identical", () => {
 
       expect(titles).toEqual([
         "Name",
-        "Host Identifier",
+        "Host Name (host.name)",
         "Status",
         "Last Seen",
         "Labels",

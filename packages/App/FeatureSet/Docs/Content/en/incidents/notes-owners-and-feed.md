@@ -26,39 +26,40 @@ The two note types look similar in the dashboard and behave very differently.
 
 ## Posting a public note
 
-Open **Notes → Public Notes** in the incident side menu and create a note. The card explains that what you write here shows up on the status page; the empty state reads that no public notes have been created for this incident so far.
+Open **Notes → Public Notes** in the incident side menu and write in the composer above the notes. It says who will read the note before you post it: **Public · Visible on your status page**. The same composer opens in a dialog from **Add Public Note** in the **Actions** menu of the incident feed (see [The incident feed](#the-incident-feed)), so a note is written the same way from either place.
 
-| Field                              | Purpose                                                                                                                                       |
+| Control                            | Purpose                                                                                                                                       |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Public Incident Note**           | The body, in Markdown. Required. The form reminds you the note is visible on your status page and links a cheatsheet.                         |
-| **Attachments**                    | Files shared with subscribers on the status page. Optional.                                                                                   |
-| **Notify Status Page Subscribers** | Checkbox. On by default, unless the incident was declared without notifying subscribers — then it starts off. Turn it off to publish quietly. |
-| **Posted At**                      | Required date and time, defaulting to now, shown in your current timezone.                                                                    |
+| The note                           | The body, in Markdown. Required.                                                                                                              |
+| **Templates**                      | Puts one of your note templates into the note, after what you have already typed. See [Note templates](#note-templates).                      |
+| **Draft with AI**                  | Drafts the note from the incident, for you to edit. See [Generating a note with AI](#generating-a-note-with-ai).                              |
+| **Attach**                         | Files shared with subscribers on the status page. Optional.                                                                                   |
+| **Posted now**                     | When the note says it was posted: the moment you post it, unless you choose an earlier time here, in your current timezone.                   |
+| **Notify status page subscribers** | Checkbox. On by default, unless the incident was declared without notifying subscribers — then it starts off. Turn it off to publish quietly. |
+
+**Post update** posts the note, and so does Ctrl+Enter (⌘+Enter on a Mac).
 
 **Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created; making an episode private does not affect it.
 
-**See who the note will reach.** While **Notify Status Page Subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+**See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 **See what they will get.** Under the same checkbox, **Preview notification** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
 
-**Posted At is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, set **Posted At** to when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
+**The posting time is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, choose **Posted now** and set when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
-Each note shows who wrote it, its **Posted At**, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
+Each note shows who wrote it, its posting time, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
 
 ## Posting a private note
 
-**Notes → Private Notes** is deliberately plainer. There are only two fields:
+**Notes → Private Notes** is deliberately plainer. It is the same composer, saying **Private · Only your team can see this**, with the note, **Templates**, **Draft with AI** and **Attach** for files meant for the incident response team. **Add Private Note** in the incident feed's **Actions** menu opens it in a dialog.
 
-- **Private Incident Note** — Markdown body, required. The form says outright that this is private to your team and is not visible on the status page.
-- **Attachments** — files meant for the incident response team.
-
-No **Posted At**, no subscriber checkbox — the note is stamped when it is created.
+No posting time, no subscriber checkbox — the note is stamped when it is created.
 
 Both kinds of note are written in the Markdown editor, which nests list items with **Indent** and **Outdent** — or Tab and Shift+Tab — and keeps the lists, links and formatting of what you paste from Word, Google Docs or another OneUptime page. Ctrl+Z takes back an indent or an outdent, and in visual mode the blocks and pastes the editor put in too, in order with your typing. A code block copied from a note pastes back as a code block, and a word copied out of one as inline code. See [Declaring an Incident](/docs/incidents/declaring-incidents#step-1-incident-details).
 
 ## Attachments on notes
 
-Both note types accept file attachments through an **Attachments** field, and both render an attachment list under the note body with a per-file **Download attachment** link.
+Both note types accept file attachments through the composer's **Attach** button, and both render an attachment list under the note body with a per-file **Download attachment** link.
 
 Where they diverge is who can fetch the file:
 
@@ -69,7 +70,7 @@ That makes attachments the same public/private decision as the note text. A cust
 
 ## Generating a note with AI
 
-Both note pages carry a **Generate with AI** button. It sends the incident to your project's AI provider and drops the generated Markdown into the note editor, where you edit it before saving — nothing is published automatically.
+The composer has a **Draft with AI** button, on both note pages and in the feed's **Add Public Note** and **Add Private Note** dialogs. It sends the incident to your project's AI provider and drops the generated Markdown into the note, where you edit it before posting — nothing is published automatically.
 
 - **Generate Public Note with AI** — described as analyzing the incident data to produce a customer-facing note. Templates include **Status Update** and **Resolution Notice**.
 - **Generate Private Note with AI** — produces an internal technical note instead. Templates include **Investigation Update** and **Technical Analysis**.
@@ -78,13 +79,13 @@ Behind the button, the dashboard posts to `/incident/generate-note-from-ai/{inci
 
 ## Note templates
 
-If your team writes the same three updates every outage, save them once. Both note pages have a **Create from Template** button that opens a **Create Note from Template** picker with a **Select Note Template** dropdown.
+If your team writes the same three updates every outage, save them once. The composer's **Templates** menu lists them, on both note pages and in the feed's note dialogs, and picking one puts it into the note.
 
 Templates are shared between public and private notes: a single template list serves both, and the same template can be inserted into either kind of note.
 
 Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{incident.customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings#note-templates) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written. Read the filled-in note before posting a public one: `{{incident.affectedStatusPages}}` names every status page the incident reaches, and the subscribers of all of them read it.
 
-You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form has a **Template Info** step (**Template Name** and **Template Description**, both required) and a **Note Details** step for the body. If you click **Create from Template** before creating any, OneUptime tells you none exist yet; note that the message points at Project Settings, but the page actually lives under **Incidents → Settings → Note Templates**.
+You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form is one page: **Template Name** and **Template Description**, both required, then the body. Before you have any, the **Templates** menu says so and links there.
 
 ## Posting notes from Slack or Microsoft Teams
 
@@ -122,7 +123,7 @@ A public note's header tracks the whole journey with a badge. Click it for the n
 
 **Big pages and long sends.** A status page's subscribers are read 10,000 at a time until every one has been reached, and 20 messages are in flight at once. One notification stops starting new messages after 20 minutes: what it did not reach by then is listed, and it is marked **Notification failed**. A send that was interrupted part-way — its server restarted or stopped responding — is marked **Notification failed** too, with a message starting `Interrupted:`, once it has been **Notifying subscribers** for 40 minutes, so it never sits there forever. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 
-Click a note's notification badge to see what happened. A note whose notification failed offers **Retry notification**, and one whose notification went out offers **Resend notification**. Both ask first: the confirmation lists the status pages the note would reach now, with an "up to" count per channel, and says what happens. Either one puts the note back in the pending state so the next run picks it up, and sends it to every status page the incident reaches now, including the subscribers who already got it. If you changed the pages the incident is limited to since the note was posted, it goes to the pages it is limited to now. A note posted with **Notify Status Page Subscribers** unticked offers neither, because it was never meant to be sent, and neither is offered while a notification is still queued or being sent. Public notes on scheduled maintenance events and incident episodes keep **Retry notification** after a failure only.
+Click a note's notification badge to see what happened. A note whose notification failed offers **Retry notification**, and one whose notification went out offers **Resend notification**. Both ask first: the confirmation lists the status pages the note would reach now, with an "up to" count per channel, or says that it would reach nobody, and says what happens. Either one puts the note back in the pending state so the next run picks it up, and sends it to every status page the incident reaches now, including the subscribers who already got it. If you changed the pages the incident is limited to since the note was posted, it goes to the pages it is limited to now. A note posted with **Notify Status Page Subscribers** unticked offers neither, because it was never meant to be sent, and neither is offered while a notification is still queued or being sent. Public notes on scheduled maintenance events and incident episodes keep **Retry notification** after a failure only.
 
 Sending a note's notification again tells every subscriber what the note says, just as posting it did, so it needs the permission to post public notes that notify subscribers as well as the permission to edit public notes. Through the API it is the same update the dashboard makes, setting `subscriberNotificationStatusOnNoteCreated` back to `Pending`; it is refused for a caller without those permissions, for a note posted without notifying subscribers, and while the note's notification is being sent.
 
@@ -134,7 +135,7 @@ The actual message subscribers get is templated per status page and per channel 
 
 ## The incident feed
 
-The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. Items are sorted oldest first.
+The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. By default the newest items are at the top.
 
 Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages sent and failed on each channel and the subject its email went out with, followed, when it sent any, by the custom field values it put into a message, under **Custom fields sent**. Those show a **More Information** button that opens a **More Information** panel.
 
@@ -142,10 +143,16 @@ The card header also has an **Actions** menu so you can act without leaving the 
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
 - **Execute On-Call Policy** — page a policy on demand.
-- **Add Public Note** — the same four fields as the Public Notes page, in a modal.
-- **Add Private Note** — note body and attachments only.
+- **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview notification** are all there. The note is posted now; to backdate it, choose **Posted now**.
+- **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 
-Next to it, **Refresh** re-fetches the feed.
+Both are locked, naming the missing permission, for someone who may not write notes. After a note is posted the dialog closes and the feed shows it.
+
+Everything else is behind the **⋯** button next to it, the same **More options** button a table's card header has, so the header shows as few buttons as possible:
+
+- **Newest first** / **Oldest first** — the order the feed is read in. A tick marks the one in use, and your browser remembers the choice for every incident's feed.
+- **Filter by event type** — a dialog listing the feed's event types, each with the icon its items carry, and a search box when the list is long. Tick the ones to show and choose **Apply Filters**; with nothing ticked, every event type is shown. While the feed is filtered, a box above it says how many event types it shows, with a chip for each, **Edit Filters** and **Clear Filters**. The filter is not saved: leave the incident and its feed shows everything again.
+- **Refresh** — re-fetches the feed.
 
 **The feed is append-only, and it is not your audit log.** The API allows creating and reading feed items but not updating or deleting them, so nobody can quietly rewrite the history of an incident. It is not permanent either: on billed installations, feed rows older than three years are removed. For a durable record of who changed what, use **Audit → Audit Logs** in the incident side menu.
 
@@ -178,11 +185,13 @@ Open **Team → Owners** in the incident side menu. The **Owners** card shows a 
 
 Owner users and owner teams are separate records — adding a team makes every member of that team an owner for notification purposes without listing them individually.
 
+Only your project's own teams and members can be owners. The picker offers only them, and owners added through the API, Terraform or a workflow are held to the same: a team from another project, or someone who is not a member of the project, is refused.
+
 ## How owners get assigned
 
 There are four routes onto the owners list:
 
-- **From an incident template** — templates carry **Owner - Teams** and **Owner - Users** fields, described as the teams and users who own the incident and will be notified when it is created or updated. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
+- **From an incident template** — templates carry an **Owners** field: the people and teams who own the incident and will be notified when it is created or updated, picked from the same list as **Add owner**. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
 - **From Incident Owner Rules** — matching rules add owners automatically at creation time.
 - **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
 - **By hand** — the **Add owner** control on the **Owners** page, at any point during the incident.
@@ -195,7 +204,7 @@ Adding the same person twice is safe; owners already assigned are not duplicated
 
 The rule form has four steps — **Basic Info**, **Match Criteria**, **Owners** and **Inherit Owners**:
 
-- **Owners** — pick **Owner Teams** and **Owner Users**. When the rule matches, every selected user and team is added as an owner, and already-assigned owners are not duplicated.
+- **Owners** — **Add owner** opens one list of people and teams; click each one to add it, and remove a pick with the **×** on its chip. When the rule matches, every person and team picked is added as an owner, and already-assigned owners are not duplicated.
 - **Inherit Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
 
 A **Notify Owners** toggle controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.

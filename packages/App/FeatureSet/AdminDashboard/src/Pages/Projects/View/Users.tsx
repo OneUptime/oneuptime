@@ -1,4 +1,5 @@
 import AdminModelAPI from "../../../Utils/ModelAPI";
+import { findProjectDefaultTeam } from "../../../Utils/DefaultProjectTeam";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenuComponent from "./SideMenu";
@@ -19,6 +20,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import { InviteTeam } from "Common/UI/Utils/DefaultInviteTeam";
 import { JSONObject } from "Common/Types/JSON";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -31,6 +33,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,6 +45,42 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   const [showInviteUserModal, setShowInviteUserModal] =
     useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = useState<boolean>(false);
+
+  /*
+   * The team Invite User starts on: the project's members team, found by the
+   * same rule as the Dashboard's Invite User (Utils/DefaultProjectTeam).
+   * Looked up when the dialog is asked for, so it opens with the team picked;
+   * a lookup that fails or is slow only means it opens with nothing picked.
+   */
+  const [defaultInviteTeam, setDefaultInviteTeam] = useState<InviteTeam | null>(
+    null,
+  );
+  const [isPreparingInvite, setIsPreparingInvite] = useState<boolean>(false);
+
+  const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
+    setIsPreparingInvite(true);
+
+    const team: InviteTeam | null = await findProjectDefaultTeam({
+      projectId: projectId,
+    });
+
+    setDefaultInviteTeam(team);
+    setIsPreparingInvite(false);
+    setShowInviteUserModal(true);
+  };
+
+  // One object per lookup, so re-renders while typing hand the form the same.
+  const inviteInitialValues: FormValues<TeamMember> | undefined = useMemo(():
+    | FormValues<TeamMember>
+    | undefined => {
+    if (!defaultInviteTeam) {
+      return undefined;
+    }
+
+    return {
+      team: defaultInviteTeam.id,
+    } as FormValues<TeamMember>;
+  }, [defaultInviteTeam]);
 
   const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
     getRequestHeaders: () => {
@@ -109,8 +148,13 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 title: t("pages.projectUsers.inviteUser"),
                 buttonStyle: ButtonStyleType.NORMAL,
                 icon: IconProp.Add,
+                isLoading: isPreparingInvite,
                 onClick: () => {
-                  setShowInviteUserModal(true);
+                  if (isPreparingInvite) {
+                    return;
+                  }
+
+                  void openInviteUserModal();
                 },
               },
             ],
@@ -305,6 +349,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               setShowInviteUserModal(false);
             }}
             submitButtonText={t("pages.projectUsers.inviteUserSubmit")}
+            initialValues={inviteInitialValues}
             onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
               item.projectId = projectId;
               return Promise.resolve(item);
@@ -332,17 +377,20 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               modelType: TeamMember,
               modelAPI: AdminModelAPI,
               id: "invite-user-form",
-              steps: [
-                { title: "User", id: "user" },
-                { title: "Team", id: "team" },
-              ],
+              /*
+               * One page, as the Dashboard's Invite User is: the email (and a
+               * name when the address has no account yet), the team - the
+               * members team to start with, named in its description - and
+               * the master admin's auto-accept box. It was two steps (User,
+               * Team), whose Invite could be pressed on the first one without
+               * ever seeing which team the invitation was for.
+               */
               fields: [
                 {
                   field: {
                     user: true,
                   },
                   title: "Email",
-                  stepId: "user",
                   description:
                     "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
                   fieldType: FormFieldSchemaType.Email,
@@ -358,7 +406,6 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     user: true,
                   },
                   title: "Name",
-                  stepId: "user",
                   description:
                     "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
                   fieldType: FormFieldSchemaType.Text,
@@ -377,9 +424,15 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     team: true,
                   },
                   title: "Team",
-                  stepId: "team",
-                  description:
-                    "Select the team you would like to add this user to.",
+                  /*
+                   * Picked to start with (inviteInitialValues), so Invite
+                   * needs only the email.
+                   */
+                  description: defaultInviteTeam
+                    ? t("pages.projectUsers.inviteTeamDescriptionWithDefault", {
+                        teamName: defaultInviteTeam.name,
+                      })
+                    : "Select the team you would like to add this user to.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
                   fetchDropdownOptions: async (): Promise<
@@ -411,7 +464,6 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     hasAcceptedInvitation: true,
                   },
                   title: "Accept the invitation automatically",
-                  stepId: "team",
                   description:
                     "Add this user as a member right away instead of leaving them as invited until they accept. Only a master admin can do this - use it when you are setting a project up on someone's behalf.",
                   fieldType: FormFieldSchemaType.Checkbox,

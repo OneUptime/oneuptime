@@ -191,9 +191,22 @@ for (const width of [1440, 390]) {
         exact: true,
       }),
     ).toHaveValue(DESCRIPTION);
-    await expect(
-      dialog.getByRole("combobox", { name: "Labels (Optional)", exact: true }),
-    ).toBeVisible();
+    /*
+     * The labels fold under More fields, as on the create form, and the
+     * folded header shows how many this SLO has. This save leaves them folded: folded
+     * values are saved all the same, so the card keeps both labels.
+     */
+    const advanced: Locator = dialog.getByRole("button", {
+      name: "More fields",
+      exact: true,
+    });
+    const labels: Locator = dialog.getByRole("combobox", {
+      name: "Labels (Optional)",
+      exact: true,
+    });
+    await expect(advanced).toHaveAttribute("aria-expanded", "false");
+    await expect(advanced).toContainText("Labels: 2");
+    await expect(labels).toBeHidden();
     await dialog
       .getByRole("textbox", { name: "Name", exact: true })
       .fill("Purchase availability");
@@ -224,6 +237,20 @@ for (const width of [1440, 390]) {
     await expect(
       dialog.getByRole("textbox", { name: "Name", exact: true }),
     ).toHaveValue("Purchase availability");
+    // One click shows the labels that save kept, ready to change.
+    await expect(advanced).toContainText("Labels: 2");
+    await advanced.click();
+    await expect(advanced).toHaveAttribute("aria-expanded", "true");
+    await expect(labels).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Remove checkout", exact: true }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", {
+        name: "Remove customer-impact",
+        exact: true,
+      }),
+    ).toBeVisible();
     await dialog
       .getByRole("textbox", { name: "Name", exact: true })
       .fill("Discard this change");

@@ -1,12 +1,12 @@
-import UserCall from "../../../../Components/NotificationMethods/Call";
-import UserEmailMethods from "../../../../Components/NotificationMethods/Email";
-import UserPush from "../../../../Components/NotificationMethods/Push";
-import UserSMS from "../../../../Components/NotificationMethods/SMS";
-import UserTelegram from "../../../../Components/NotificationMethods/Telegram";
-import UserSlackMethods from "../../../../Components/NotificationMethods/Slack";
-import UserMicrosoftTeamsMethods from "../../../../Components/NotificationMethods/MicrosoftTeams";
-import UserWebhook from "../../../../Components/NotificationMethods/Webhook";
-import UserWhatsApp from "../../../../Components/NotificationMethods/WhatsApp";
+import NotificationMethodTabs from "../../../../Components/NotificationMethods/NotificationMethodTabs";
+import {
+  getProjectChannelState,
+  isCodeResendOffered,
+  ProjectChannelState,
+  ProjectNotificationChannels,
+  useProjectNotificationChannels,
+} from "../../../../Components/NotificationMethods/ProjectNotificationChannels";
+import { ProjectNotificationChannel } from "../../../../Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -28,7 +28,6 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -39,6 +38,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Users > View > Notification Methods — where a project owner or admin can set
@@ -118,6 +120,88 @@ const ADDABLE_CHANNELS: Array<DropdownOption> = [
   { value: AdminAddableChannel.Call, label: "Phone call" },
   { value: AdminAddableChannel.WhatsApp, label: "WhatsApp" },
 ];
+
+/*
+ * The project switch each addable channel needs (Project Settings ->
+ * Notification Settings -> Notification Channels). Email has none.
+ */
+const ADDABLE_CHANNEL_SWITCHES: Record<
+  AdminAddableChannel,
+  ProjectNotificationChannel | null
+> = {
+  [AdminAddableChannel.Email]: null,
+  [AdminAddableChannel.SMS]: ProjectNotificationChannel.SMS,
+  [AdminAddableChannel.Call]: ProjectNotificationChannel.Call,
+  [AdminAddableChannel.WhatsApp]: ProjectNotificationChannel.WhatsApp,
+};
+
+const ALL_ADDABLE_CHANNELS: Array<AdminAddableChannel> = [
+  AdminAddableChannel.Email,
+  AdminAddableChannel.SMS,
+  AdminAddableChannel.Call,
+  AdminAddableChannel.WhatsApp,
+];
+
+/*
+ * The channels the Add form offers: email always, and SMS, calls and
+ * WhatsApp while the project has them on. A channel that is off is not
+ * offered, because the server refuses the method ("SMS notifications are
+ * disabled for this project") - the commonest action of this page would be
+ * a refusal on every new project, where all three start off.
+ *
+ * A channel is only left out when it is KNOWN to be off. While the answer
+ * is on its way, or when it could not be read, every channel is offered as
+ * before and the server has the last word.
+ */
+export const getOfferedAddableChannels: (
+  channels: ProjectNotificationChannels,
+) => Array<AdminAddableChannel> = (
+  channels: ProjectNotificationChannels,
+): Array<AdminAddableChannel> => {
+  return ALL_ADDABLE_CHANNELS.filter(
+    (addable: AdminAddableChannel): boolean => {
+      const channel: ProjectNotificationChannel | null =
+        ADDABLE_CHANNEL_SWITCHES[addable];
+
+      if (!channel) {
+        return true;
+      }
+
+      return (
+        getProjectChannelState(channels, channel) !== ProjectChannelState.Off
+      );
+    },
+  );
+};
+
+export const getOfferedAddableChannelOptions: (
+  channels: ProjectNotificationChannels,
+) => Array<DropdownOption> = (
+  channels: ProjectNotificationChannels,
+): Array<DropdownOption> => {
+  const offered: Array<AdminAddableChannel> =
+    getOfferedAddableChannels(channels);
+
+  return ADDABLE_CHANNELS.filter((option: DropdownOption): boolean => {
+    return offered.includes(option.value as AdminAddableChannel);
+  });
+};
+
+/*
+ * The project channel behind a listed method, for the methods whose
+ * verification code the server will not send again while it is off.
+ */
+const getMethodChannel: (
+  methodType: string,
+) => ProjectNotificationChannel | null = (
+  methodType: string,
+): ProjectNotificationChannel | null => {
+  const channels: Array<string> = Object.values(ProjectNotificationChannel);
+
+  return channels.includes(methodType)
+    ? (methodType as ProjectNotificationChannel)
+    : null;
+};
 
 interface AdminMethodWire {
   methodId: string;
@@ -216,9 +300,17 @@ interface AddMethodFormValues {
 const UserViewNotificationMethods: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const context: UserOnCallContextValue = useUserOnCallContext();
 
   const { userId, firstName, displayName, isSelf, canManageMethods } = context;
+
+  /*
+   * Which of SMS, calls and WhatsApp the project has on, for what the Add
+   * form offers. The self view's own lists read it too, and share the read.
+   */
+  const projectChannels: ProjectNotificationChannels =
+    useProjectNotificationChannels();
 
   const [methods, setMethods] = useState<Array<AdminMethodWire>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -311,40 +403,7 @@ const UserViewNotificationMethods: FunctionComponent<
   if (isSelf) {
     return (
       <Fragment>
-        <Tabs
-          tabs={[
-            {
-              name: "Direct Contact",
-              children: (
-                <div className="space-y-4">
-                  <UserEmailMethods />
-                  <UserSMS />
-                  <UserCall />
-                  <UserWhatsApp />
-                  <UserTelegram />
-                </div>
-              ),
-            },
-            {
-              name: "Workspace Apps",
-              children: (
-                <div className="space-y-4">
-                  <UserSlackMethods />
-                  <UserMicrosoftTeamsMethods />
-                </div>
-              ),
-            },
-            {
-              name: "Push Notifications",
-              children: <UserPush />,
-            },
-            {
-              name: "Webhooks",
-              children: <UserWebhook />,
-            },
-          ]}
-          onTabChange={() => {}}
-        />
+        <NotificationMethodTabs />
       </Fragment>
     );
   }
@@ -517,7 +576,24 @@ const UserViewNotificationMethods: FunctionComponent<
       icon: IconProp.Email,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (method: AdminMethodWire): boolean => {
-        return canManageMethods && !method.isVerified && method.isAdminAddable;
+        if (!canManageMethods || method.isVerified || !method.isAdminAddable) {
+          return false;
+        }
+
+        /*
+         * An SMS or call code is not sent again while the project has that
+         * channel off: the server refuses, so the row does not offer it.
+         */
+        const channel: ProjectNotificationChannel | null = getMethodChannel(
+          method.methodType,
+        );
+
+        return channel
+          ? isCodeResendOffered(
+              channel,
+              getProjectChannelState(projectChannels, channel),
+            )
+          : true;
       },
       onClick: (method: AdminMethodWire, onCompleteAction: () => void) => {
         onCompleteAction();
@@ -585,16 +661,33 @@ const UserViewNotificationMethods: FunctionComponent<
           data-testid="no-methods-empty-state"
         >
           <p className="text-sm leading-relaxed text-gray-700">
-            <span className="font-semibold text-gray-900">
-              {displayName || "This user"}
-            </span>{" "}
-            has no notification methods at all, so every page routed to them is
-            dropped no matter what their notification rules say.
+            {displayName ? (
+              <TranslatedSentence
+                template="{{name}} has no notification methods at all, so every page routed to them is dropped no matter what their notification rules say."
+                slots={{
+                  name: (
+                    <span className="font-semibold text-gray-900">
+                      {displayName}
+                    </span>
+                  ),
+                }}
+              />
+            ) : (
+              translator.translateText(
+                "This user has no notification methods at all, so every page routed to them is dropped no matter what their notification rules say.",
+              )
+            )}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
             {canManageMethods
-              ? `Add one for ${firstName} and a verification code goes to that address or device. Only ${firstName} can enter it, so the method stays inactive until they do.`
-              : `Ask a project owner or admin for the "Manage User Notification Methods" permission, or send ${firstName} the setup link.`}
+              ? translator.translateTemplate(
+                  "Add one for {{name}} and a verification code goes to that address or device. Only {{name}} can enter it, so the method stays inactive until they do.",
+                  { name: firstName },
+                )
+              : translator.translateTemplate(
+                  'Ask a project owner or admin for the "Manage User Notification Methods" permission, or send {{name}} the setup link.',
+                  { name: firstName },
+                )}
           </p>
         </div>
       );
@@ -619,11 +712,16 @@ const UserViewNotificationMethods: FunctionComponent<
 
               {method.isVerified ? (
                 <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                  Verified
+                  {translator.translateText("Verified")}
                 </span>
               ) : (
                 <span className="ml-auto inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                  Waiting for {firstName} to verify
+                  {translator.translateTemplate(
+                    "Waiting for {{name}} to verify",
+                    {
+                      name: firstName,
+                    },
+                  )}
                 </span>
               )}
 
@@ -638,16 +736,78 @@ const UserViewNotificationMethods: FunctionComponent<
     );
   };
 
+  const offeredChannels: Array<AdminAddableChannel> =
+    getOfferedAddableChannels(projectChannels);
+
+  const isPhoneNumberOffered: boolean =
+    offeredChannels.includes(AdminAddableChannel.SMS) ||
+    offeredChannels.includes(AdminAddableChannel.Call);
+
+  const isWhatsAppOffered: boolean = offeredChannels.includes(
+    AdminAddableChannel.WhatsApp,
+  );
+
+  const isAnyChannelOff: boolean =
+    offeredChannels.length < ALL_ADDABLE_CHANNELS.length;
+
+  /*
+   * What the admin can add, said as what they CAN do: only the channels the
+   * project has on (each sentence whole, so a locale can word it its way).
+   */
+  const getWhatCanBeAddedSentence: () => string = (): string => {
+    if (isPhoneNumberOffered && isWhatsAppOffered) {
+      return translator.translateTemplate(
+        "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+        { name: firstName },
+      );
+    }
+
+    if (isPhoneNumberOffered) {
+      return translator.translateTemplate(
+        "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+        { name: firstName },
+      );
+    }
+
+    if (isWhatsAppOffered) {
+      return translator.translateTemplate(
+        "You can add an email address or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+        { name: firstName },
+      );
+    }
+
+    return translator.translateTemplate(
+      "You can add an email address for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+      { name: firstName },
+    );
+  };
+
   const getDeletionDescription: () => ReactElement = (): ReactElement => {
+    const identifierElement: ReactElement = (
+      <span className="font-medium text-gray-900">
+        {methodToDelete?.maskedIdentifier}
+      </span>
+    );
+
     return (
       <div className="space-y-2 text-sm text-gray-600">
         <p>
-          This removes the {methodToDelete?.methodType} method{" "}
-          <span className="font-medium text-gray-900">
-            {methodToDelete?.maskedIdentifier}
-          </span>{" "}
-          from {displayName || "this user"}&apos;s account, and every
-          notification rule that points at it goes with it.
+          {displayName ? (
+            <TranslatedSentence
+              template="This removes the {{methodType}} method {{identifier}} from {{name}}'s account, and every notification rule that points at it goes with it."
+              slots={{ identifier: identifierElement }}
+              values={{
+                methodType: methodToDelete?.methodType || "",
+                name: displayName,
+              }}
+            />
+          ) : (
+            <TranslatedSentence
+              template="This removes the {{methodType}} method {{identifier}} from this user's account, and every notification rule that points at it goes with it."
+              slots={{ identifier: identifierElement }}
+              values={{ methodType: methodToDelete?.methodType || "" }}
+            />
+          )}
         </p>
 
         {isLoadingPreview ? (
@@ -659,16 +819,31 @@ const UserViewNotificationMethods: FunctionComponent<
         {deletionPreview ? (
           <div data-testid="deletion-preview">
             <p>
-              {deletionPreview.rulesDeletedCount === 1
-                ? "1 notification rule will be deleted"
-                : `${deletionPreview.rulesDeletedCount} notification rules will be deleted`}
               {deletionPreview.coverageLostCount > 0
-                ? `, leaving ${
-                    deletionPreview.coverageLostCount === 1
-                      ? "1 severity"
-                      : `${deletionPreview.coverageLostCount} severities`
-                  } with no rule at all.`
-                : "."}
+                ? translator.translatePlural(
+                    {
+                      one: "{{count}} notification rule will be deleted, leaving {{severities}} with no rule at all.",
+                      other:
+                        "{{count}} notification rules will be deleted, leaving {{severities}} with no rule at all.",
+                    },
+                    deletionPreview.rulesDeletedCount,
+                    {
+                      severities: translator.translatePlural(
+                        {
+                          one: "{{count}} severity",
+                          other: "{{count}} severities",
+                        },
+                        deletionPreview.coverageLostCount,
+                      ),
+                    },
+                  )
+                : translator.translatePlural(
+                    {
+                      one: "{{count}} notification rule will be deleted.",
+                      other: "{{count}} notification rules will be deleted.",
+                    },
+                    deletionPreview.rulesDeletedCount,
+                  )}
             </p>
 
             {/*
@@ -678,8 +853,10 @@ const UserViewNotificationMethods: FunctionComponent<
              */}
             {deletionPreview.verifiedMethodCountAfterDeletion === 0 ? (
               <p className="mt-2 font-medium text-red-700">
-                {firstName} will have no verified notification method left, so
-                nothing will be able to page them until they add one.
+                {translator.translateTemplate(
+                  "{{name}} will have no verified notification method left, so nothing will be able to page them until they add one.",
+                  { name: firstName },
+                )}
               </p>
             ) : (
               <></>
@@ -687,8 +864,9 @@ const UserViewNotificationMethods: FunctionComponent<
 
             {deletionPreview.isTruncated ? (
               <p className="mt-2 text-xs text-gray-500">
-                These numbers are a lower bound — there were more rules than
-                could be read in one go.
+                {translator.translateText(
+                  "These numbers are a lower bound — there were more rules than could be read in one go.",
+                )}
               </p>
             ) : (
               <></>
@@ -698,7 +876,16 @@ const UserViewNotificationMethods: FunctionComponent<
           <></>
         )}
 
-        <p>{displayName || "This user"} is emailed about this removal.</p>
+        <p>
+          {displayName
+            ? translator.translateTemplate(
+                "{{name}} is emailed about this removal.",
+                { name: displayName },
+              )
+            : translator.translateText(
+                "This user is emailed about this removal.",
+              )}
+        </p>
       </div>
     );
   };
@@ -707,7 +894,10 @@ const UserViewNotificationMethods: FunctionComponent<
     <Fragment>
       <Card
         title="Notification methods"
-        description={`The devices and addresses ${firstName}'s on-call notification rules can send to.`}
+        description={translator.translateTemplate(
+          "The devices and addresses {{name}}'s on-call notification rules can send to.",
+          { name: firstName },
+        )}
         buttons={
           canManageMethods
             ? [
@@ -737,15 +927,13 @@ const UserViewNotificationMethods: FunctionComponent<
            */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <p className="text-sm leading-relaxed text-gray-700">
-              You can add an email address, phone number or WhatsApp number for{" "}
-              {firstName}, and remove any method they no longer use. Identifiers
-              are always shown masked.
+              {getWhatCanBeAddedSentence()}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              A method you add stays inactive until {firstName} verifies it —
-              the code goes to the address or device itself and only they can
-              enter it. Push devices, Telegram and webhooks have to be set up by{" "}
-              {firstName} on their own device.
+              {translator.translateTemplate(
+                "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.",
+                { name: firstName },
+              )}
             </p>
             {context.readiness ? (
               <a
@@ -753,7 +941,9 @@ const UserViewNotificationMethods: FunctionComponent<
                 className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
               >
                 <Icon icon={IconProp.Email} className="h-3.5 w-3.5" />
-                Email {firstName} the setup link
+                {translator.translateTemplate("Email {{name}} the setup link", {
+                  name: firstName,
+                })}
               </a>
             ) : (
               <></>
@@ -764,8 +954,20 @@ const UserViewNotificationMethods: FunctionComponent<
 
       {showAddModal ? (
         <BasicFormModal<AddMethodFormValues>
-          title={`Add a notification method for ${displayName || "this user"}`}
-          description={`A verification code is sent to the address or device you enter. ${firstName} has to enter that code before this method can notify them — you cannot verify it for them.`}
+          title={
+            displayName
+              ? translator.translateTemplate(
+                  "Add a notification method for {{name}}",
+                  { name: displayName },
+                )
+              : translator.translateTemplate(
+                  "Add a notification method for this user",
+                )
+          }
+          description={translator.translateTemplate(
+            "A verification code is sent to the address or device you enter. {{name}} has to enter that code before this method can notify them — you cannot verify it for them.",
+            { name: firstName },
+          )}
           isLoading={isSaving}
           error={addError}
           submitButtonText="Add"
@@ -782,10 +984,11 @@ const UserViewNotificationMethods: FunctionComponent<
             /*
              * Email is preselected rather than leaving the dropdown empty. It
              * is the channel with no per-project switch behind it — SMS, Call
-             * and WhatsApp can each be disabled in Project Settings, and a
-             * default that lands on a disabled channel turns the commonest
-             * action into a refusal — and preselecting it means the ordinary
-             * case is one field, typed and submitted.
+             * and WhatsApp can each be switched off in Project Settings, and
+             * a default that lands on a channel that is off turns the
+             * commonest action into a refusal — and preselecting it means the
+             * ordinary case is one field, typed and submitted. A channel that
+             * is off is not offered at all (getOfferedAddableChannels).
              */
             initialValues: {
               methodType: AdminAddableChannel.Email,
@@ -796,23 +999,45 @@ const UserViewNotificationMethods: FunctionComponent<
                   methodType: true,
                 },
                 title: "Method",
+                /*
+                 * Only the channels the project has on. Said once, so a
+                 * missing SMS is not read as a bug.
+                 */
+                ...(isAnyChannelOff
+                  ? {
+                      description:
+                        "Channels that are off in this project are not offered. A project owner can turn them on in Project Settings → Notification Settings.",
+                    }
+                  : {}),
                 fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: ADDABLE_CHANNELS,
+                dropdownOptions:
+                  getOfferedAddableChannelOptions(projectChannels),
                 required: true,
                 placeholder: "Email",
               },
-              {
-                field: {
-                  value: true,
-                },
-                title: "Email address or phone number",
-                description:
-                  "Phone numbers need the country code, for example +15551234567.",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "you@company.com or +15551234567",
-                disableSpellCheck: true,
-              },
+              isPhoneNumberOffered || isWhatsAppOffered
+                ? {
+                    field: {
+                      value: true,
+                    },
+                    title: "Email address or phone number",
+                    description:
+                      "Phone numbers need the country code, for example +15551234567.",
+                    fieldType: FormFieldSchemaType.Text,
+                    required: true,
+                    placeholder: "you@company.com or +15551234567",
+                    disableSpellCheck: true,
+                  }
+                : {
+                    field: {
+                      value: true,
+                    },
+                    title: "Email address",
+                    fieldType: FormFieldSchemaType.Text,
+                    required: true,
+                    placeholder: "you@company.com",
+                    disableSpellCheck: true,
+                  },
             ],
           }}
         />
@@ -822,7 +1047,10 @@ const UserViewNotificationMethods: FunctionComponent<
 
       {methodToDelete ? (
         <ConfirmModal
-          title={`Remove this ${methodToDelete.methodType} method?`}
+          title={translator.translateTemplate(
+            "Remove this {{methodType}} method?",
+            { methodType: methodToDelete.methodType },
+          )}
           description={getDeletionDescription()}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}
@@ -846,7 +1074,10 @@ const UserViewNotificationMethods: FunctionComponent<
       {resendMethod ? (
         <ConfirmModal
           title="Resend verification code"
-          description={`We will send a new verification code to ${resendMethod.maskedIdentifier}. Only ${firstName} can read it and enter it.`}
+          description={translator.translateTemplate(
+            "We will send a new verification code to {{identifier}}. Only {{name}} can read it and enter it.",
+            { identifier: resendMethod.maskedIdentifier, name: firstName },
+          )}
           submitButtonText="Resend code"
           isLoading={isSaving}
           error={resendError}
@@ -867,7 +1098,10 @@ const UserViewNotificationMethods: FunctionComponent<
       {showResentConfirmation ? (
         <ConfirmModal
           title="Code sent"
-          description={`A new verification code is on its way. ${firstName} needs to enter it in their own user settings before this method can page them.`}
+          description={translator.translateTemplate(
+            "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.",
+            { name: firstName },
+          )}
           submitButtonText="Close"
           onSubmit={() => {
             setShowResentConfirmation(false);

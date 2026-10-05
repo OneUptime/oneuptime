@@ -784,21 +784,27 @@ test.describe.skip("Queues Product", () => {
       .fill(DESTINATION);
 
     /*
-     * Three steps - Messaging System, Queue Info, Labels - with the footer's
-     * one submit button reading "Next" until the last.
+     * Two steps - Messaging System, then Queue Info (with the labels folded
+     * under More fields at its end). Only the first asks for anything, but
+     * Create Queue is on the last step only: the first shows a plain Next.
      */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-    await expect(submit).toHaveText("Next");
-    await submit.click();
+    const next: Locator = modal.getByTestId("modal-footer-next-button");
+    await expect(next).toHaveText("Next");
+    await expect(submit).toHaveCount(0);
+    await next.click();
 
-    // Queue Info. No name: the server names the queue after its destination.
+    /*
+     * Queue Info, the last step: nothing to walk on to. No name: the server
+     * names the queue after its destination.
+     */
     await expect(
       modal.getByPlaceholder("Order events", { exact: true }),
     ).toBeVisible({ timeout: 30000 });
-    await expect(submit).toHaveText("Next");
-    await submit.click();
-
-    // Labels, optional, and the last step.
+    await expect(
+      modal.getByRole("button", { name: "More fields", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(next).toHaveCount(0);
     await expect(submit).toHaveText("Create Queue");
     await submit.click();
     await expect(modal).toBeHidden({ timeout: 30000 });
@@ -944,7 +950,7 @@ test.describe.skip("Queues Product", () => {
         name: "Step 4: Check that this queue fills in",
       }),
     ).toBeVisible();
-    // How its telemetry finds it is folded under Advanced.
+    // How its telemetry finds it is folded under More fields.
     await page.getByTestId("setup-guide-advanced-toggle").click();
     await page
       .getByTestId("setup-guide-topic")
@@ -1083,11 +1089,11 @@ test.describe.skip("Queues Product", () => {
     ).toHaveValue(`Created from queue ${DESTINATION}.`);
 
     /*
-     * "Next" (the submit button keeps its "Create Monitor" test id on every
-     * step) opens the Metrics monitor's query: the metric, and the topic
+     * Next - Monitor Info is not the last step, so it shows Next, not Create
+     * Monitor - opens the Metrics monitor's query: the metric, and the topic
      * filter under "Filters & grouping", open because the query has one.
      */
-    await page.getByTestId("Create Monitor").click();
+    await form.getByRole("button", { name: "Next", exact: true }).click();
     await expect(
       form.getByText("Metric Monitor Configuration", { exact: true }).first(),
     ).toBeVisible({ timeout: 30000 });
@@ -1207,9 +1213,15 @@ test.describe.skip("Queues Product", () => {
     await modal
       .getByPlaceholder("orders.created", { exact: true })
       .fill(DESTINATION);
+
+    // The queue's name is on the optional Queue Info step: Next opens it.
+    await modal.getByTestId("modal-footer-next-button").click();
     await modal
       .getByPlaceholder("Order events", { exact: true })
       .fill(SERVICE_BUS_QUEUE_NAME);
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Create Queue",
+    );
     await modal.getByTestId("modal-footer-submit-button").click();
     await expect(modal).toBeHidden({ timeout: 30000 });
 

@@ -1,5 +1,9 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Color from "Common/Types/Color";
+import EmailColorUtil, {
+  EmailColorPair,
+} from "Common/Utils/Email/EmailColorUtil";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
@@ -318,6 +322,14 @@ import SubscriberIncidentEmailBuilder, {
   SubscriberIncidentEmailEvent,
   SubscriberIncidentStatusPageEmail,
 } from "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
+import {
+  ResourceFan,
+  decideWithTheRealSubscriberPreferences,
+  fanEmail,
+  lettingSubscribersChooseResources,
+  pageShowingTheMonitorThroughAGroup,
+  pageShowingTheMonitorTwice,
+} from "../Fixtures/MonitorGroupSubscriberFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
 import {
   afterEach,
@@ -3028,5 +3040,137 @@ describe("Incident:SendNotificationToSubscribers sends the builder's email", () 
         ...expected.envelope,
       },
     ]);
+  });
+});
+
+/*
+ * The subscriber's email paints the severity the way the owner emails do: a
+ * dot in its colour and the name in a readable shade of it. The job reads
+ * the colour with the name and the shared builder spreads it in; an unsafe
+ * or missing colour leaves the plain severity row.
+ */
+describe("Incident:SendNotificationToSubscribers paints the severity in its own colour", () => {
+  function notifyQuerySelect(): JSONObject {
+    const call: Array<unknown> | undefined = mock(
+      IncidentService.findAllBy,
+    ).mock.calls.find((candidate: Array<unknown>): boolean => {
+      const query: JSONObject = (candidate[0] as { query: JSONObject }).query;
+
+      return (
+        query["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"] === true
+      );
+    });
+
+    return (call![0] as { select: JSONObject }).select;
+  }
+
+  test("reads the severity's colour with its name", async () => {
+    await runJob();
+
+    expect(notifyQuerySelect()["incidentSeverity"]).toEqual({
+      name: true,
+      color: true,
+    });
+  });
+
+  test("the default email carries the dot colour and the readable name colour", async () => {
+    pendingIncidents[0]!.incidentSeverity!.color = Yellow500;
+
+    await runJob();
+
+    const pair: EmailColorPair = EmailColorUtil.getColorPair(Yellow500)!;
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        incidentSeverity: "Critical",
+        incidentSeverityColor: Yellow500.toString(),
+        incidentSeverityTextColor: pair.textColor,
+      }),
+    );
+    expect(pair.textColor).not.toBe(Yellow500.toString());
+  });
+
+  test("a colour that is not a hex or rgb() colour sends no colour at all", async () => {
+    pendingIncidents[0]!.incidentSeverity!.color = new Color(
+      "red; background: url(https://evil.example/t.gif)",
+    );
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["incidentSeverity"]).toBe("Critical");
+    expect(vars).not.toHaveProperty("incidentSeverityColor");
+    expect(vars).not.toHaveProperty("incidentSeverityTextColor");
+  });
+
+  test("an incident with no severity sends the placeholder and no colour", async () => {
+    delete (pendingIncidents[0] as unknown as JSONObject)["incidentSeverity"];
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["incidentSeverity"]).toBe(" - ");
+    expect(vars).not.toHaveProperty("incidentSeverityColor");
+  });
+});
+
+/*
+ * Subscribers who chose resources, on a page that shows the incident's
+ * monitor through a monitor group. An incident reaches a page's resources
+ * through IncidentStatusPageScope, which reads them with the lookup that
+ * follows monitor groups (findByMonitors), so whoever picked the group is
+ * told - as about an announcement or a scheduled maintenance event on that
+ * monitor - and whoever picked another group is not.
+ */
+describe("Incident:SendNotificationToSubscribers subscribers who picked a monitor group", () => {
+  function emailsSentTo(): Array<string> {
+    return sentMail().map((mail: JSONObject): string => {
+      return (mail["toEmail"] as Email).toString();
+    });
+  }
+
+  function givenThePage(
+    page: ReturnType<typeof pageShowingTheMonitorThroughAGroup>,
+  ): void {
+    mock(StatusPageResourceService.findByMonitors).mockResolvedValue(
+      page.affectedResources as never,
+    );
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue(page.subscribers as never);
+  }
+
+  beforeEach(() => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([
+      lettingSubscribersChooseResources(statusPage()),
+    ] as never);
+    decideWithTheRealSubscriberPreferences(
+      StatusPageSubscriberService.shouldSendNotification,
+    );
+  });
+
+  test("a page that shows the monitor only through a group tells the group's subscribers, and not another group's", async () => {
+    const page: ReturnType<typeof pageShowingTheMonitorThroughAGroup> =
+      pageShowingTheMonitorThroughAGroup(STATUS_PAGE_ID);
+    givenThePage(page);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(page.told);
+    expect(emailsSentTo()).not.toContain(fanEmail(ResourceFan.OtherGroup));
+  });
+
+  test("a page that lists the monitor and its group tells each of their subscribers once", async () => {
+    const page: ReturnType<typeof pageShowingTheMonitorTwice> =
+      pageShowingTheMonitorTwice(STATUS_PAGE_ID);
+    givenThePage(page);
+
+    await runJob();
+
+    expect(emailsSentTo()).toEqual(page.told);
   });
 });

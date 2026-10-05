@@ -8,6 +8,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import Label from "Common/Models/DatabaseModels/Label";
+import LabelsElement from "Common/UI/Components/Label/Labels";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   HOSTNAME_FIELD_DESCRIPTION,
@@ -59,6 +63,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The "Ping only" checkbox on the SNMP step is not a column: it blanks the
@@ -70,6 +76,7 @@ export const PING_ONLY_FIELD_KEY: string = "pingOnly";
 const NetworkDeviceSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   /*
@@ -362,6 +369,32 @@ const NetworkDeviceSettings: FunctionComponent<
             required: false,
             placeholder: "Core switch in the US East datacenter",
           },
+          /*
+           * The site and the labels are edited here too, now that this is
+           * the one place a device's details are edited: the Overview's
+           * Device Details card is read-only, with a link here. The labels
+           * fold under Advanced, last on the step.
+           */
+          {
+            field: {
+              site: true,
+            },
+            title: "Site",
+            stepId: "device-details",
+            description:
+              "The network site this device belongs to. Site health rolls up from its devices.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSite,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Site (optional)",
+          },
+          getLabelsFormField<NetworkDevice>({
+            stepId: "device-details",
+          }),
           {
             field: {
               hostname: true,
@@ -470,6 +503,25 @@ const NetworkDeviceSettings: FunctionComponent<
             },
             {
               field: {
+                site: {
+                  name: true,
+                },
+              },
+              title: "Site",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                if (!item.site?.name) {
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
+                  );
+                }
+                return <span>{item.site.name}</span>;
+              },
+            },
+            {
+              field: {
                 hostname: true,
               },
               title: "Hostname",
@@ -503,8 +555,12 @@ const NetworkDeviceSettings: FunctionComponent<
                     {NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
                       item.monitoringMethod,
                     )
-                      ? "Bound monitor — the bound monitor's status is this device's status"
-                      : "Probe — pinged by the assigned probe; walked over SNMP when credentials are set"}
+                      ? translator.translateText(
+                          "Bound monitor — the bound monitor's status is this device's status",
+                        )
+                      : translator.translateText(
+                          "Probe — pinged by the assigned probe; walked over SNMP when credentials are set",
+                        )}
                   </span>
                 );
               },
@@ -521,8 +577,9 @@ const NetworkDeviceSettings: FunctionComponent<
                 if (!item.snmpCredentialProfile?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — this device&apos;s own credentials, or its
-                      site&apos;s profile
+                      {translator.translateText(
+                        "None — this device's own credentials, or its site's profile",
+                      )}
                     </span>
                   );
                 }
@@ -555,7 +612,7 @@ const NetworkDeviceSettings: FunctionComponent<
                 if (!item.networkDeviceRole?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      Worked out from SNMP
+                      {translator.translateText("Worked out from SNMP")}
                     </span>
                   );
                 }
@@ -563,6 +620,23 @@ const NetworkDeviceSettings: FunctionComponent<
                   <span className="text-sm text-gray-900">
                     {item.networkDeviceRole.name}
                   </span>
+                );
+              },
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <LabelsElement
+                    labels={(item.labels as Array<Label> | undefined) || []}
+                  />
                 );
               },
             },
@@ -722,7 +796,9 @@ const NetworkDeviceSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.probe) {
-                  return <p>No probe assigned.</p>;
+                  return (
+                    <p>{translator.translateText("No probe assigned.")}</p>
+                  );
                 }
                 return <ProbeElement probe={item.probe} />;
               },
@@ -798,8 +874,13 @@ const NetworkDeviceSettings: FunctionComponent<
                   return (
                     <span>
                       {templateName
-                        ? `No health OIDs collected — ${templateName} is empty and this device adds none of its own.`
-                        : "No health OIDs configured."}
+                        ? translator.translateTemplate(
+                            "No health OIDs collected — {{templateName}} is empty and this device adds none of its own.",
+                            { templateName: templateName },
+                          )
+                        : translator.translateText(
+                            "No health OIDs configured.",
+                          )}
                     </span>
                   );
                 }
@@ -856,8 +937,10 @@ const NetworkDeviceSettings: FunctionComponent<
                             {isFromTemplate ? (
                               <span className="text-gray-500">
                                 {overriddenByDevice.has(oid.oid)
-                                  ? "from template, overridden by this device"
-                                  : "from template"}
+                                  ? translator.translateText(
+                                      "from template, overridden by this device",
+                                    )
+                                  : translator.translateText("from template")}
                               </span>
                             ) : (
                               <></>

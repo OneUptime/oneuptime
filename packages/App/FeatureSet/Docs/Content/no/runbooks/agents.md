@@ -64,6 +64,15 @@ Gå tilbake til **Runbooks → Runbook-agenter**. Innen ca. 60 sekunder skal age
 - Verifiser at verten når OneUptime-URL-en med `curl`.
 - Verifiser at ID og nøkkel ble kopiert uten mellomrom.
 
+### 5. Hold agenten oppdatert
+
+Når en agent kjører en eldre versjon enn din OneUptime, vises et varseltegn ved siden av dens **Versjon av runbook-agent** på siden dens. Velg det for å se hvordan du oppgraderer: hent det nye imaget og fjern containeren, og kjør deretter installasjonskommandoen fra steg 2 på nytt. En agent som Kubernetes-agentens chart installerte, oppgraderes i stedet med chartet.
+
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
+
 ## Pek et steg mot en agent
 
 Legg til et Bash- eller JavaScript-steg i runbook'et ditt. Skjemaet har en **Runbook-agent**-nedtrekksmeny som lister hver agent i det gjeldende prosjektet (med en connected/disconnected-indikator):

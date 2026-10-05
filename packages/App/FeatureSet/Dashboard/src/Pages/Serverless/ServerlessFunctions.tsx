@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -14,7 +16,12 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -25,10 +32,13 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ServerlessDocumentationCard from "../../Components/Serverless/ServerlessDocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ServerlessFunctions: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -54,6 +64,17 @@ const ServerlessFunctions: FunctionComponent<
   if (count === null) {
     return <PageLoader isVisible={true} />;
   }
+
+  /*
+   * The create form asks for the one thing a function cannot be created
+   * without: the faas.name its telemetry carries (on Azure Functions,
+   * ingest fills it in from service.name). The display name follows it - a
+   * function added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<ServerlessFunction> =
+    getAdvancedFormSection<ServerlessFunction>();
 
   return (
     <Fragment>
@@ -95,60 +116,39 @@ const ServerlessFunctions: FunctionComponent<
           description:
             "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
         }}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "checkout-handler",
-          },
-          {
+          getIdentityFormField<ServerlessFunction>({
             field: {
               functionIdentifier: true,
             },
-            title: "Function Identifier",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Function Name (faas.name)",
             placeholder: "checkout-handler",
             description:
-              "This should match the faas.name attribute reported by the OTel collector.",
-          },
+              "The faas.name your function's telemetry carries, exactly. On Azure Functions, that is the function app's OTEL_SERVICE_NAME. Telemetry is matched to this function by it.",
+          }),
+          getDisplayNameFormField<ServerlessFunction>({
+            getDefaultName:
+              getNameFromIdentityField<ServerlessFunction>(
+                "functionIdentifier",
+              ),
+            placeholder: "Checkout handler",
+            description:
+              "Starts as the function name, the way discovered functions are named. Type a name of your own to show it instead. Telemetry is still matched by the function name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Handles checkout events",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<ServerlessFunction>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {
@@ -162,7 +162,7 @@ const ServerlessFunctions: FunctionComponent<
             field: {
               functionIdentifier: true,
             },
-            title: "Function Identifier",
+            title: "Function Name (faas.name)",
             type: FieldType.Text,
           },
           {
@@ -229,7 +229,9 @@ const ServerlessFunctions: FunctionComponent<
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span className="font-mono">{platform || "unknown"}</span>
+                  <span className="font-mono">
+                    {platform || translator.translateText("unknown")}
+                  </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500">
                       {region}

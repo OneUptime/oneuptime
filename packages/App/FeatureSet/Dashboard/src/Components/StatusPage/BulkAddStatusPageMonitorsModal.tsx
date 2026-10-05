@@ -18,10 +18,12 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { BulkAddedLabel } from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import React, {
@@ -51,7 +53,8 @@ export interface ComponentProps {
 /**
  * Mirrors the single resource form, except the monitor picker is multi-select
  * and display name / description are not asked for - they are copied from each
- * monitor. Every other option applies to all of the resources created here.
+ * monitor. Every other option applies to all of the resources created here,
+ * and is folded under Advanced at its default, as on the single form.
  */
 export interface BulkAddStatusPageMonitorsFormValues {
   monitors?: Array<ObjectID | string> | undefined;
@@ -65,16 +68,13 @@ export interface BulkAddStatusPageMonitorsFormValues {
   showStatusHistoryChart?: boolean | undefined;
 }
 
-const FORM_STEPS: Array<FormStep<BulkAddStatusPageMonitorsFormValues>> = [
-  {
-    title: "Monitor Details",
-    id: "monitor-details",
-  },
-  {
-    title: "Advanced",
-    id: "advanced",
-  },
-];
+/*
+ * The display options, folded: they are the resource's own defaults, so the
+ * monitors are all this dialog asks for. Built once, for the field list's
+ * every render to hand the same section to its fields.
+ */
+const ADVANCED_SECTION: FormFieldCollapsibleSection<StatusPageResource> =
+  getAdvancedFormSection<StatusPageResource>();
 
 type CreateMonitorRuleFunction = (rule: StatusPageMonitorRule) => Promise<void>;
 
@@ -144,8 +144,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   const syncLabelsRef: MutableRefObject<Array<BulkAddedLabel>> = useRef<
     Array<BulkAddedLabel>
   >([]);
-  const [submitButtonText, setSubmitButtonText] =
-    useState<string>("Add Monitors");
 
   const formRef: MutableRefObject<any> = useRef<any>(null);
 
@@ -168,7 +166,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         },
         required: true,
         placeholder: "Select Monitors",
-        stepId: "monitor-details",
         onLabelsBulkAdded: (labels: Array<BulkAddedLabel>): void => {
           const merged: Map<string, BulkAddedLabel> = new Map<
             string,
@@ -208,7 +205,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         showIf: (): boolean => {
           return syncLabels.length > 0 && !props.gridPlacement;
         },
-        stepId: "monitor-details",
       },
     ];
 
@@ -228,7 +224,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           ),
           required: true,
           placeholder: `Select ${props.gridPlacement.rowLabel.toLowerCase()}`,
-          stepId: "monitor-details",
         },
         {
           field: {
@@ -244,7 +239,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           ),
           required: true,
           placeholder: `Select ${props.gridPlacement.columnLabel.toLowerCase()}`,
-          stepId: "monitor-details",
         },
       );
     }
@@ -252,13 +246,14 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     /*
      * The advanced fields are declared against StatusPageResource because the
      * single resource form uses them too. Their field keys are the same ones
-     * this form collects, so they render and validate identically here.
+     * this form collects, so they render and validate identically here -
+     * last, after the cell a grid group asks for, in one folded section.
      */
     return [
       ...fields,
-      ...(getStatusPageResourceAdvancedFields() as unknown as Array<
-        Field<BulkAddStatusPageMonitorsFormValues>
-      >),
+      ...(getStatusPageResourceAdvancedFields(
+        ADVANCED_SECTION,
+      ) as unknown as Array<Field<BulkAddStatusPageMonitorsFormValues>>),
     ];
   };
 
@@ -524,7 +519,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
       title="Add Multiple Monitors"
       description="Add monitors to this status page. Each resource gets its display name and description from its monitor."
       modalWidth={ModalWidth.Medium}
-      submitButtonText={submitButtonText}
+      submitButtonText="Add Monitors"
       submitButtonType={ButtonType.Submit}
       onClose={props.onClose}
       onSubmit={() => {
@@ -540,10 +535,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         name="Status Page > Add Multiple Monitors"
         hideSubmitButton={true}
         fields={getFields()}
-        steps={FORM_STEPS}
-        onIsLastFormStep={(isLastFormStep: boolean) => {
-          setSubmitButtonText(isLastFormStep ? "Add Monitors" : "Next");
-        }}
         onSubmit={(values: FormValues<BulkAddStatusPageMonitorsFormValues>) => {
           onSubmit(values).catch((err: Error) => {
             setError(API.getFriendlyMessage(err));

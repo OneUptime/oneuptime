@@ -536,9 +536,14 @@ describe("Zooming Into a Time Range docs: the words a reader meets on screen", (
       `${COMMON_UI}/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton.tsx`,
     );
 
-    expect(button).toContain('aria-label="Reset zoom"');
+    // Both in the reader's language, from the English the docs quote.
+    expect(button).toContain(
+      'aria-label={translator.translateText("Reset zoom")}',
+    );
     // The visible label, after the icon.
-    expect(button).toMatch(/\/> Reset zoom <\/button>/);
+    expect(button).toMatch(
+      /\/> \{translator\.translateText\("Reset zoom"\)\} <\/button>/,
+    );
 
     expect(readProse(ZOOM_PAGE)).toContain(
       "a **Reset zoom** button appears next to the page's time-range picker",
@@ -717,8 +722,13 @@ describe("Zooming Into a Time Range docs: what a click does", () => {
   it("the explorers' volume charts and the analytics charts hand the bucket width over and say so", () => {
     for (const host of CLICK_TO_ZOOM_HOSTS) {
       expect(histogramSelectionOptionsIn(host)).toMatch(/\bbucketIntervalMs:/);
-      expect(readCode(host)).toContain(
-        'selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"',
+      /*
+       * "Click or drag to zoom" where a click zooms. The logs Analytics view
+       * words each hint whole, with "double-click to reset" in the same
+       * string, so a locale translates it as one.
+       */
+      expect(readCode(host)).toMatch(
+        /selection\.canClickToZoom \?( zoomHandlers\.onTimeRangeReset \? "Click or drag to zoom · double-click to reset" :)? "Click or drag to zoom" :/,
       );
     }
 

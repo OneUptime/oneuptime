@@ -188,6 +188,14 @@ interface EventPage {
   detailsCard: string;
   // Field labels of the details card, in order.
   detailLabels: ReadonlyArray<string>;
+  // The record's own ID, on the small line the details card ends with.
+  recordId: string;
+  /*
+   * When the record was created, on that same line after the ID, for the
+   * cards that show it. An incident's card says when it was declared, as a
+   * field, instead.
+   */
+  recordCreated?: string | undefined;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -203,6 +211,8 @@ const INCIDENT_PAGE: EventPage = {
     "Communications Lead",
     "eu-west-1 probe",
     "4 resources",
+    // The Measurements card, which reads its own rows.
+    "Time to postmortem",
   ],
   state: "Resolved",
   severity: "SEV-2",
@@ -233,7 +243,12 @@ const INCIDENT_PAGE: EventPage = {
       description: "Ended Sep 14 2026, 06:12 PM GMT",
     },
   ],
-  rightColumn: ["Incident Details", "Incident Roles", "Affected Resources"],
+  rightColumn: [
+    "Incident Details",
+    "Measurements",
+    "Incident Roles",
+    "Affected Resources",
+  ],
   detailsCard: "Incident Details",
   detailLabels: [
     "Declared At",
@@ -244,8 +259,8 @@ const INCIDENT_PAGE: EventPage = {
     "Status Page Scope",
     "Labels",
     "Incident Number",
-    "Incident ID",
   ],
+  recordId: INCIDENT_ID,
 };
 
 const ALERT_PAGE: EventPage = {
@@ -261,6 +276,8 @@ const ALERT_PAGE: EventPage = {
     "Payments on-call",
     // Its monitor and its one service.
     "2 resources",
+    // The Measurements card, which reads its own rows.
+    "Time to resolve",
   ],
   state: "Resolved",
   severity: "High",
@@ -288,18 +305,18 @@ const ALERT_PAGE: EventPage = {
       description: "Ended Sep 14 2026, 06:15 PM GMT",
     },
   ],
-  rightColumn: ["Alert Details", "Affected Resources"],
+  rightColumn: ["Alert Details", "Measurements", "Affected Resources"],
   detailsCard: "Alert Details",
   detailLabels: [
-    "Created At",
     "Created By",
     "Monitor",
     "Episode",
     "On-Call Duty Policies",
     "Labels",
     "Alert Number",
-    "Alert ID",
   ],
+  recordId: ALERT_ID,
+  recordCreated: "Sep 14 2026, 06:06 PM GMT",
 };
 
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
@@ -314,6 +331,8 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Acme Internal Status",
     "4 resources",
     "Mark as Ongoing",
+    // The Measurements card, which reads its own rows.
+    "Maintenance duration",
   ],
   state: "Scheduled",
   duration: "Starts in 2 hours",
@@ -342,19 +361,19 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
       description: "Planned window · times in GMT",
     },
   ],
-  rightColumn: ["Maintenance Details", "Affected Resources"],
+  rightColumn: ["Maintenance Details", "Measurements", "Affected Resources"],
   detailsCard: "Maintenance Details",
   detailLabels: [
     "Starts At",
     "Ends At",
-    "Created At",
     "Shown on Status Pages",
     "Subscriber Reminders",
     "Subscriber Notifications",
     "Labels",
     "Scheduled Maintenance Number",
-    "Scheduled Maintenance ID",
   ],
+  recordId: SCHEDULED_MAINTENANCE_ID,
+  recordCreated: "Sep 10 2026, 09:00 AM GMT",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -395,10 +414,10 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
-    "Episode ID",
   ],
+  recordId: INCIDENT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:56 PM GMT",
 };
 
 const ALERT_EPISODE_PAGE: EventPage = {
@@ -439,10 +458,10 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Grouping Rule",
     "Created By",
     "On-Call Duty Policies",
-    "Created At",
     "Labels",
-    "Episode ID",
   ],
+  recordId: ALERT_EPISODE_ID,
+  recordCreated: "Sep 14 2026, 05:40 PM GMT",
 };
 
 const EVENT_PAGES: ReadonlyArray<EventPage> = [
@@ -688,6 +707,60 @@ async function expectAbove(
   );
 }
 
+/*
+ * Where a card header keeps what the card offers (Edit, Create, the ⋯ menu,
+ * a status pill): at the header's right edge, and under the title only when
+ * it does not fit beside it - never under the description, never at the
+ * left, never centred. "Why are edit buttons not on the right?"
+ */
+async function expectHeaderActionsOnTheRight(
+  cardLocator: Locator,
+  label: string,
+  options?: { onTitleLine?: boolean | undefined } | undefined,
+): Promise<void> {
+  const header: Locator = cardLocator.getByTestId("card-header").first();
+  const title: Box = await documentBox(
+    header.getByTestId("card-details-heading"),
+  );
+  const actions: Box = await documentBox(
+    header.getByTestId("card-header-actions"),
+  );
+  const headerBox: Box = await documentBox(header);
+  const isOnTitleLine: boolean =
+    actions.y < title.y + title.height && actions.y + actions.height > title.y;
+
+  expect(
+    Math.abs(headerBox.x + headerBox.width - (actions.x + actions.width)),
+    `${label} ends at the header's right edge`,
+  ).toBeLessThanOrEqual(1);
+
+  if (isOnTitleLine) {
+    expect(actions.x, `${label} sits right of the title`).toBeGreaterThan(
+      title.x + 1,
+    );
+  } else {
+    expect(
+      actions.y,
+      `${label} is under the title when it is not beside it`,
+    ).toBeGreaterThanOrEqual(title.y + title.height - 1);
+  }
+
+  if (options?.onTitleLine !== undefined) {
+    expect(isOnTitleLine, `${label} on the title's line`).toBe(
+      options.onTitleLine,
+    );
+  }
+
+  // Never under the description: that comes after the actions, or beside them.
+  const description: Locator = header.getByTestId("card-description");
+  if ((await description.count()) > 0 && (await description.isVisible())) {
+    const descriptionBox: Box = await documentBox(description);
+    expect(actions.y, `${label} is not under the description`).toBeLessThan(
+      descriptionBox.y + 1,
+    );
+  }
+}
+
 function sideMenu(page: Page): Locator {
   return page
     .locator("aside[role='navigation'][aria-label='Main navigation']")
@@ -749,8 +822,8 @@ type DetailsTabName = "Evidence" | "Activity";
 
 /*
  * A tab of the details (or its panel, which the tab names) by the start of
- * its name: every tab name ends with its count, and phones shorten
- * "Evidence checked" to "Evidence".
+ * its name: every tab name ends with its count. Phones draw a shorter
+ * "Evidence" label, but the name stays "Evidence checked".
  */
 function detailsTab(page: Page, name: DetailsTabName): Locator {
   return investigationDetails(page).getByRole("tab", {
@@ -3837,9 +3910,10 @@ test.describe("one AI card: the investigation and the conversation", () => {
     );
     const section: Box = await documentBox(conversation(page));
 
+    // The default header: no layout of its own is needed any more.
     await expect(investigation.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",
-      "inline",
+      "default",
     );
     // Beside the title, on its line.
     expect(pill.y).toBeLessThan(title.y + title.height);
@@ -5054,7 +5128,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await expectNoHorizontalOverflow(page);
     });
 
-    test("the status pill sits beside the title when it fits and under it when it does not", async ({
+    test("the status pill sits beside the title when it fits and under it, at the right edge, when it does not", async ({
       page,
     }: {
       page: Page;
@@ -5075,7 +5149,11 @@ test.describe("one AI card: the investigation and the conversation", () => {
       // At the card's content edge, not centred under the title.
       expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
 
-      // "Preparing report…" does not: it goes under the title, at its left.
+      /*
+       * "Preparing report…" may not: then it goes under the title - still at
+       * the card's right edge, as every card header's actions do - and never
+       * to the left or the middle.
+       */
       investigation = await openCardState(page, CARD_STATES[7]!);
       title = await documentBox(
         investigation.getByRole("heading", { level: 2 }),
@@ -5087,11 +5165,9 @@ test.describe("one AI card: the investigation and the conversation", () => {
 
       // The title is never the one that gives way.
       expect(title.height).toBeLessThanOrEqual(26);
-      expect(pill.x + pill.width).toBeLessThanOrEqual(
-        section.x + section.width + 1,
-      );
+      expect(pill.x + pill.width).toBeCloseTo(section.x + section.width, 0);
       if (pill.y >= title.y + title.height) {
-        expect(pill.x).toBeCloseTo(title.x, 0);
+        expect(pill.x).toBeGreaterThan(title.x);
       } else {
         expect(pill.x).toBeGreaterThan(title.x + title.width);
       }
@@ -5276,7 +5352,10 @@ async function expectRightColumn(
     expect(box.y, `${heading} order`).toBeGreaterThan(previousBottom);
     previousBottom = box.y + box.height - 1;
 
-    // Narrow column: the title gets the full width, actions go underneath.
+    /*
+     * Narrow column: the title and what the card offers share the first
+     * line, and the description runs under both, across the card's width.
+     */
     await expect(rightCard.getByTestId("card-header")).toHaveAttribute(
       "data-header-layout",
       "stacked",
@@ -5288,12 +5367,91 @@ async function expectRightColumn(
       .getByTestId("card-header-actions")
       .getByRole("button", { name: "Edit" }),
   ).toBeVisible();
-  await expectAbove(
-    details.getByRole("heading", { level: 2 }),
-    details.getByRole("button", { name: "Edit" }),
-    "Edit sits under the title",
+  // "Why are edit buttons not on the right?" On the title's line, at the right.
+  await expectHeaderActionsOnTheRight(
+    details,
+    `${eventPage.detailsCard}'s Edit`,
+    { onTitleLine: true },
   );
   expect(await detailLabels(details)).toEqual(eventPage.detailLabels);
+
+  /*
+   * The record's ID is not a field of the card any more: it is the small
+   * line the card ends with - "ID", the ID's first characters, and a copy
+   * button - with the whole ID in its text, clipped in the narrow column.
+   */
+  const idLine: Locator = details.getByTestId("detail-id-line");
+  const idValue: Locator = idLine.getByTestId("detail-id-value");
+  await expect(idLine).toBeVisible();
+  await expect(idLine.getByTestId("detail-id-label")).toHaveText("ID");
+  await expect(idValue).toHaveText(eventPage.recordId);
+  await expect(
+    idLine.getByRole("button", { name: "Copy ID to clipboard" }),
+  ).toBeVisible();
+  const idWidths: { shown: number; whole: number } = await idValue.evaluate(
+    (element: HTMLElement): { shown: number; whole: number } => {
+      return { shown: element.clientWidth, whole: element.scrollWidth };
+    },
+  );
+  expect(idWidths.shown, "the ID shows only its start").toBeLessThan(
+    idWidths.whole,
+  );
+  expect(idWidths.shown, "about nine characters wide").toBeLessThan(90);
+  await expectAbove(
+    details.locator("label").last(),
+    idLine,
+    "the ID line ends the card",
+  );
+
+  /*
+   * "Can you also show created along the same lines as ID so it doesn't
+   * take space up top." When the record was created is not a row of the
+   * card: it follows the ID on the same small line, and moves under the ID
+   * - whole - only when the narrow column has no room for both.
+   */
+  const recordLine: Locator = details.getByTestId("detail-record-line");
+  const created: Locator = recordLine.getByTestId("detail-created-at");
+  await expect(recordLine).toContainText("ID");
+  expect(await detailLabels(details)).not.toContain("Created At");
+  if (!eventPage.recordCreated) {
+    await expect(created).toHaveCount(0);
+    return;
+  }
+  await expect(created.getByTestId("detail-created-at-label")).toHaveText(
+    "Created",
+  );
+  await expect(created.getByTestId("detail-created-at-value")).toHaveText(
+    eventPage.recordCreated,
+  );
+  const lineBox: Box = await documentBox(recordLine);
+  const idBox: Box = await documentBox(idLine);
+  const createdBox: Box = await documentBox(created);
+  if (idBox.width + createdBox.width + 16 <= lineBox.width) {
+    expect(
+      Math.abs(
+        createdBox.y + createdBox.height / 2 - (idBox.y + idBox.height / 2),
+      ),
+      "Created sits level with the ID when both fit",
+    ).toBeLessThanOrEqual(2);
+    expect(createdBox.x, "after the ID").toBeGreaterThan(idBox.x + idBox.width);
+  } else {
+    expect(createdBox.y, "under the ID, whole").toBeGreaterThanOrEqual(
+      idBox.y + idBox.height - 1,
+    );
+    expect(
+      Math.abs(createdBox.x - idBox.x),
+      "flush with the ID",
+    ).toBeLessThanOrEqual(1);
+  }
+  // Inside the card, under its last field.
+  expect(createdBox.x + createdBox.width).toBeLessThanOrEqual(
+    lineBox.x + lineBox.width + 1,
+  );
+  await expectAbove(
+    details.locator("label").last(),
+    created,
+    "Created is on the line under the fields",
+  );
 }
 
 test.describe("incident and alert overview", () => {
@@ -5363,7 +5521,71 @@ test.describe("incident and alert overview", () => {
       expect(Math.abs(investigation.x - feed.x)).toBeLessThanOrEqual(1);
       await expectRightColumn(page, eventPage);
     });
+
+    test(`${eventPage.name} copies the whole ID from the details card's ID line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.addInitScript((): void => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async (text: string): Promise<void> => {
+              (window as unknown as { __copiedText?: string }).__copiedText =
+                text;
+            },
+          },
+        });
+      });
+      await openReady(page, eventPage);
+
+      const idLine: Locator = card(page, eventPage.detailsCard).getByTestId(
+        "detail-id-line",
+      );
+      const copiedText: () => Promise<string> = async (): Promise<string> => {
+        return page.evaluate((): string => {
+          return (
+            (window as unknown as { __copiedText?: string }).__copiedText || ""
+          );
+        });
+      };
+
+      // Hovering the clipped ID shows all of it.
+      await idLine.getByTestId("detail-id-value").hover();
+      await expect(page.getByRole("tooltip")).toHaveText(eventPage.recordId);
+
+      await idLine
+        .getByRole("button", { name: "Copy ID to clipboard" })
+        .click();
+      await expect.poll(copiedText).toBe(eventPage.recordId);
+      await expect(idLine.getByRole("status")).toHaveText(
+        "Copied to clipboard",
+      );
+    });
   }
+
+  test("alert-overview gives its creation time to the second on hover", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    const created: Locator = card(page, ALERT_PAGE.detailsCard).getByTestId(
+      "detail-created-at-value",
+    );
+
+    await expect(created).toHaveText("Sep 14 2026, 06:06 PM GMT");
+    await expect(created).toHaveAttribute(
+      "datetime",
+      "2026-09-14T18:06:00.000Z",
+    );
+    await created.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Sep 14 2026, 06:06:00 PM GMT",
+    );
+  });
 
   test("incident links in the hero facts open the monitors", async ({
     page,
@@ -5435,6 +5657,14 @@ test.describe("incident and alert overview", () => {
     await expect(dialog).toContainText(
       "This marks the incident as resolved on the incident timeline.",
     );
+    // A confirm: whether subscribers hear about it, and the note folded.
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Resolve", exact: true })
@@ -5491,6 +5721,19 @@ test.describe("incident and alert overview", () => {
       name: "Acknowledge Alert",
     });
     await expect(dialog).toBeVisible();
+    /*
+     * A plain confirm: one sentence, the private note folded, Cancel /
+     * Acknowledge - in the short dialog, not the wide editor one.
+     */
+    await expect(dialog).toContainText(
+      "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
+    );
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Acknowledge", exact: true })
@@ -5516,6 +5759,61 @@ test.describe("incident and alert overview", () => {
       ACKNOWLEDGED_ALERT_STATE_ID,
     );
     expect(await skeletonWasSeen(page)).toBe(false);
+  });
+
+  test("?state=created: the alert's folded note opens in the wide dialog and goes with the acknowledgement", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "state=created");
+
+    const actions: Locator = page.getByRole("group", { name: "Event actions" });
+    await actions.getByRole("button", { name: "Acknowledge" }).click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Alert",
+    });
+    await expect(dialog).toBeVisible();
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await noteFold.click();
+    await expect(noteFold).toHaveAttribute("aria-expanded", "true");
+
+    // Opened to write, the dialog grows so the toolbar keeps its one line.
+    const toolbar: Locator = dialog.getByTestId("markdown-editor-toolbar");
+    await expect(toolbar).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await dialog.boundingBox())!.width;
+      })
+      .toBeGreaterThan(1000);
+    await expect(toolbar.getByTitle("Bold (Ctrl+B)")).toBeVisible();
+
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the payments team.");
+
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "AlertStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    expect(JSON.stringify(creates[0]?.data)).toContain(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the payments team.",
+    );
+    await expectNoErrorStates(page);
   });
 
   test("?fail=resend keeps the incident page and shows why the resend failed", async ({
@@ -7481,6 +7779,13 @@ test.describe("scheduled maintenance overview", () => {
       name: "Mark Scheduled Maintenance as Ongoing",
     });
     await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("This updates the event timeline.");
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveAttribute("aria-expanded", "false");
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Mark as Ongoing", exact: true })
@@ -7746,9 +8051,15 @@ test.describe("episode overviews", () => {
           ? "Checkout incidents within 30 minutes"
           : "Payments webhook alerts",
       );
+      /*
+       * The episode's ID is no longer a full-width pill among the fields: it
+       * is the card's ID line, the whole ID in its text and one click from
+       * the clipboard.
+       */
       await expect(
         details.getByRole("button", { name: /^[0-9a-f-]{36}$/ }),
-      ).toHaveText(
+      ).toHaveCount(0);
+      await expect(details.getByTestId("detail-id-value")).toHaveText(
         eventPage === INCIDENT_EPISODE_PAGE
           ? INCIDENT_EPISODE_ID
           : ALERT_EPISODE_ID,
@@ -7857,6 +8168,321 @@ test.describe("episode overviews", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Notes from the feed
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * "Add Public Note" and "Add Private Note" in a feed's Actions menu open the
+ * event's Notes page composer in a dialog: one step, with templates, Draft
+ * with AI and who the note reaches. They used to open a two-step form with a
+ * Summary page and a required Posted At.
+ */
+interface FeedNoteCase {
+  eventPage: EventPage;
+  action: "Add Public Note" | "Add Private Note";
+  modelName: string;
+  parentIdField: string;
+  feedModelName: string;
+  submitLabel: string;
+}
+
+const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
+  {
+    eventPage: INCIDENT_PAGE,
+    action: "Add Public Note",
+    modelName: "IncidentPublicNote",
+    parentIdField: "incidentId",
+    feedModelName: "IncidentFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: INCIDENT_PAGE,
+    action: "Add Private Note",
+    modelName: "IncidentInternalNote",
+    parentIdField: "incidentId",
+    feedModelName: "IncidentFeed",
+    submitLabel: "Add note",
+  },
+  {
+    eventPage: ALERT_PAGE,
+    action: "Add Private Note",
+    modelName: "AlertInternalNote",
+    parentIdField: "alertId",
+    feedModelName: "AlertFeed",
+    submitLabel: "Add note",
+  },
+  {
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    action: "Add Public Note",
+    modelName: "ScheduledMaintenancePublicNote",
+    parentIdField: "scheduledMaintenanceId",
+    feedModelName: "ScheduledMaintenanceFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: INCIDENT_EPISODE_PAGE,
+    action: "Add Public Note",
+    modelName: "IncidentEpisodePublicNote",
+    parentIdField: "incidentEpisodeId",
+    feedModelName: "IncidentEpisodeFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: ALERT_EPISODE_PAGE,
+    action: "Add Private Note",
+    modelName: "AlertEpisodeInternalNote",
+    parentIdField: "alertEpisodeId",
+    feedModelName: "AlertEpisodeFeed",
+    submitLabel: "Add note",
+  },
+];
+
+async function openFeedNoteDialog(
+  page: Page,
+  noteCase: FeedNoteCase,
+): Promise<Locator> {
+  await card(page, noteCase.eventPage.feed)
+    .getByTestId("feed-actions-button")
+    .click();
+  await page
+    .getByRole("menuitem", { name: noteCase.action, exact: true })
+    .click();
+  const dialog: Locator = page.getByRole("dialog", { name: noteCase.action });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+async function feedReads(page: Page, modelName: string): Promise<number> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName === modelName;
+    },
+  ).length;
+}
+
+async function notesPosted(
+  page: Page,
+  modelName: string,
+): Promise<Array<RecordedWrite>> {
+  return (await fixture(page)).creates.filter(
+    (write: RecordedWrite): boolean => {
+      return write.modelName === modelName;
+    },
+  );
+}
+
+test.describe("notes from the feed", () => {
+  for (const noteCase of FEED_NOTES) {
+    test(`${noteCase.eventPage.name}: ${noteCase.action} is the Notes page composer, in one step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, noteCase.eventPage);
+      const readsBefore: number = await feedReads(page, noteCase.feedModelName);
+
+      const dialog: Locator = await openFeedNoteDialog(page, noteCase);
+      const composer: Locator = dialog.getByTestId("note-composer");
+      const submit: Locator = dialog.getByTestId("modal-footer-submit-button");
+
+      await expect(composer).toBeVisible();
+      await expect(dialog.getByTestId("note-audience")).toContainText(
+        noteCase.action === "Add Public Note"
+          ? "Visible on your status page"
+          : "Only your team can see this",
+      );
+      // No wizard, no Summary page, no Posted At up front.
+      await expect(
+        dialog.getByRole("button", { name: "Next", exact: true }),
+      ).toHaveCount(0);
+      await expect(dialog.getByText("Summary", { exact: true })).toHaveCount(0);
+      await expect(dialog.getByTestId("note-posted-at-input")).toHaveCount(0);
+      await expect(submit).toHaveText(noteCase.submitLabel);
+      await expect(submit).toBeDisabled();
+
+      // The cursor is in the note.
+      const editor: Locator = composer.locator('[contenteditable="true"]');
+      await expect(editor).toBeFocused();
+      await page.keyboard.type("Rolled back the deploy; watching p95.");
+      await expect(submit).toBeEnabled();
+      await submit.click();
+
+      await expect(dialog).toHaveCount(0);
+
+      const posted: Array<RecordedWrite> = await notesPosted(
+        page,
+        noteCase.modelName,
+      );
+      expect(posted).toHaveLength(1);
+      expect(posted[0]!.data!["note"]).toBe(
+        "Rolled back the deploy; watching p95.",
+      );
+      expect(
+        JSON.stringify(posted[0]!.data![noteCase.parentIdField]),
+      ).toContain(noteCase.eventPage.recordId);
+
+      if (noteCase.action === "Add Public Note") {
+        // Always sent, never left to the server; posted now.
+        expect(
+          typeof posted[0]!.data![
+            "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
+          ],
+        ).toBe("boolean");
+        expect(posted[0]!.data!["postedAt"]).toBeTruthy();
+      } else {
+        expect(
+          posted[0]!.data![
+            "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
+          ],
+        ).toBeUndefined();
+      }
+
+      // The feed reads itself again, in place.
+      await expect
+        .poll(async (): Promise<number> => {
+          return feedReads(page, noteCase.feedModelName);
+        })
+        .toBeGreaterThan(readsBefore);
+    });
+  }
+
+  test("the incident's public note says who it reaches and can be previewed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+    await expect(dialog.getByTestId("note-notify-checkbox")).toBeVisible();
+    await expect(
+      dialog.getByTestId("incident-public-note-audience"),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("incident-public-note-preview-notification"),
+    ).toBeVisible();
+    expect(
+      (await apiRequestsTo(page, "/incident/subscriber-audience")).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("the template menu opens over the dialog, whole and inside the window", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[1]!);
+
+    await dialog.getByTestId("note-template-menu-button").click();
+    const menu: Locator = page.getByTestId("note-template-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText("No note templates yet");
+
+    // Inside the window, top to bottom: nothing of it is cut off.
+    const edges: { top: number; bottom: number; windowHeight: number } =
+      await menu.evaluate(
+        (
+          element: Element,
+        ): { top: number; bottom: number; windowHeight: number } => {
+          const rect: DOMRect = element.getBoundingClientRect();
+          return {
+            top: rect.top,
+            bottom: rect.bottom,
+            windowHeight: window.innerHeight,
+          };
+        },
+      );
+    expect(edges.top).toBeGreaterThanOrEqual(0);
+    expect(edges.bottom).toBeLessThanOrEqual(edges.windowHeight);
+
+    // Nothing of the dialog paints over it.
+    const isOnTop: boolean = await menu.evaluate(
+      (element: Element): boolean => {
+        const rect: DOMRect = element.getBoundingClientRect();
+        const hit: Element | null = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        return Boolean(hit && element.contains(hit));
+      },
+    );
+    expect(isOnTop).toBe(true);
+
+    // Escape puts the menu away and leaves the note being written.
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+  });
+
+  test("Cancel with a draft asks before it is lost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[1]!);
+
+    await page.keyboard.type("Half a thought.");
+    await dialog.getByTestId("modal-footer-close-button").click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Discard this draft?",
+    });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Keep writing" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(dialog.locator('[contenteditable="true"]')).toContainText(
+      "Half a thought.",
+    );
+
+    await dialog.getByTestId("modal-footer-close-button").click();
+    await page
+      .getByRole("dialog", { name: "Discard this draft?" })
+      .getByRole("button", { name: "Discard draft" })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    expect(await notesPosted(page, "IncidentInternalNote")).toHaveLength(0);
+  });
+
+  test("someone who may not write incident notes sees them locked, with the reason", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Only the feed is waited for: an alert member does not see every card.
+    await openReady(page, INCIDENT_PAGE, "role=alert-member", [
+      "Rolling checkout-api back to 2026.09.14-1",
+    ]);
+
+    await card(page, "Incident Feed")
+      .getByTestId("feed-actions-button")
+      .click();
+    for (const action of ["Add Public Note", "Add Private Note"]) {
+      await expect(
+        page.getByRole("menuitem", { name: action, exact: true }),
+      ).toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the dialog fits the screen", async ({ page }: { page: Page }) => {
+      await openReady(page, INCIDENT_PAGE);
+      const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+      await expect(dialog.getByTestId("note-composer")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      const box: Box = await documentBox(dialog);
+      expect(box.width).toBeLessThanOrEqual(390);
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Navigation
  * ---------------------------------------------------------------------------
  */
@@ -7937,12 +8563,34 @@ test.describe("responsive", () => {
     await expectNoHorizontalOverflow(page);
 
     /*
-     * Phones shorten "Evidence checked" to "Evidence" so both tabs share one
-     * row; the count still follows the name.
+     * Phones draw the short "Evidence" so both tabs share one row. Both
+     * labels are whole translated strings, never "Evidence" plus a hidden
+     * " checked", so the short one is drawn from an attribute and kept out
+     * of the name: a screen reader still hears the whole name, and the
+     * count still follows it.
      */
     const evidenceTab: Locator = detailsTab(page, "Evidence");
     const activityTab: Locator = detailsTab(page, "Activity");
-    await expect(evidenceTab).toHaveAccessibleName("Evidence 10");
+    await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
+    const shortLabel: Locator = evidenceTab.locator("[data-short-label]");
+    await expect(shortLabel).toHaveAttribute("aria-hidden", "true");
+    expect(
+      await shortLabel.evaluate((element: Element): string => {
+        return window.getComputedStyle(element, "::before").content;
+      }),
+      "the tab draws the short label",
+    ).toBe('"Evidence"');
+    const shortLabelBox: Box = await documentBox(shortLabel);
+    expect(shortLabelBox.width, "the short label takes room").toBeGreaterThan(
+      0,
+    );
+    const fullLabelBox: Box = await documentBox(
+      evidenceTab.getByText("Evidence checked", { exact: true }),
+    );
+    expect(
+      Math.max(fullLabelBox.width, fullLabelBox.height),
+      "the whole name is for screen readers only",
+    ).toBeLessThanOrEqual(1);
     const evidenceBox: Box = await documentBox(evidenceTab);
     const activityBox: Box = await documentBox(activityTab);
     expect(
@@ -7951,6 +8599,48 @@ test.describe("responsive", () => {
     ).toBeLessThanOrEqual(1);
     expect(activityBox.x).toBeGreaterThan(evidenceBox.x + evidenceBox.width);
   });
+
+  /*
+   * "Why are edit buttons not on the right?" Every card on the page - the
+   * wide ones on the left, the narrow column on the right - keeps what it
+   * offers at its header's right edge: on the title's line on a desktop, and
+   * under the title, still at the right edge, only where the two do not fit.
+   * Never under the description, at the left, or in the middle.
+   */
+  for (const eventPage of EVENT_PAGES) {
+    for (const width of [1440, 1280, 390]) {
+      test(`${eventPage.name} keeps every card's actions at the right edge at ${width}px`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(page, eventPage);
+
+        const cards: Locator = page
+          .getByTestId("card")
+          .filter({ has: page.getByTestId("card-header-actions") })
+          .filter({ has: page.getByTestId("card-details-heading") });
+        const count: number = await cards.count();
+
+        expect(count, "cards with actions").toBeGreaterThan(1);
+
+        for (let index: number = 0; index < count; index++) {
+          const each: Locator = cards.nth(index);
+          const name: string = (
+            await each.getByTestId("card-details-heading").first().innerText()
+          ).trim();
+
+          await expectHeaderActionsOnTheRight(
+            each,
+            `${name} at ${width}px`,
+            width === 1440 ? { onTitleLine: true } : undefined,
+          );
+        }
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+  }
 
   for (const eventPage of EVENT_PAGES) {
     test(`${eventPage.name} right column is not cramped at 1280px`, async ({
@@ -7979,6 +8669,485 @@ test.describe("responsive", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Measurements
+ * ---------------------------------------------------------------------------
+ * "Someone who sets up 'Time to mitigate' opens an incident and finds it
+ * nowhere." Each event's page lists the project's measurements for it, in a
+ * card under its details: each one's name, what it measures, and what it
+ * reads - a number, a clock still running, or why there is none. The
+ * fixture works the values out with the real MeasurementEvaluator over its
+ * own timelines (see Fixture.js, Measurements).
+ */
+
+interface MeasurementRow {
+  name: string;
+  summary: string;
+  value: string;
+  reason: string | null;
+}
+
+function measurementsCard(page: Page): Locator {
+  return card(page, "Measurements");
+}
+
+async function measurementRows(page: Page): Promise<Array<MeasurementRow>> {
+  return measurementsCard(page)
+    .getByTestId("event-measurement")
+    .evaluateAll((rows: Array<Element>): Array<MeasurementRow> => {
+      return rows.map((row: Element): MeasurementRow => {
+        const text: (testId: string) => string | null = (
+          testId: string,
+        ): string | null => {
+          const element: Element | null = row.querySelector(
+            `[data-testid="${testId}"]`,
+          );
+          return element ? (element as HTMLElement).innerText.trim() : null;
+        };
+
+        return {
+          name: text("event-measurement-name") || "",
+          // The arrow is spaced by its margins, which innerText leaves out.
+          summary: (text("measurement-summary") || "")
+            .replace("→", " → ")
+            .replace(/\s+/g, " "),
+          value: text("event-measurement-value") || "",
+          reason: text("event-measurement-reason"),
+        };
+      });
+    });
+}
+
+// The ready text each page's Measurements card adds: a measurement's name.
+const MEASUREMENT_READY_TEXT: RegExp = /^(Time to|Maintenance duration)/;
+
+async function measurementRequests(
+  page: Page,
+): Promise<Array<RecordedModelRequest>> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName.includes("Measurement");
+    },
+  );
+}
+
+const INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
+  {
+    name: "Time to acknowledge",
+    summary: "Declared → Acknowledged",
+    value: "3 minutes",
+    reason: null,
+  },
+  {
+    name: "Time to mitigate",
+    summary: "Declared → Mitigated",
+    value: "Not measured",
+    reason: "Mitigated was skipped",
+  },
+  {
+    name: "Time to resolve",
+    summary: "Declared → Resolved",
+    value: "11 minutes",
+    reason: null,
+  },
+  {
+    name: "Time to postmortem",
+    summary: "Resolved → Postmortem published",
+    value: "Running for 8 minutes",
+    reason: null,
+  },
+];
+
+test.describe("measurements", () => {
+  test("incident-overview lists the incident's measurements under its details, in their order", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(measurementsCard(page)).toBeVisible();
+    await expect(measurementsCard(page)).toContainText(
+      "Your team's measurements, worked out for this incident.",
+    );
+    // Kept off incident pages, and switched off: neither is shown.
+    expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
+
+    // In the right-hand column, straight under the details card.
+    const details: Box = await documentBox(
+      card(page, INCIDENT_PAGE.detailsCard),
+    );
+    const measurements: Box = await documentBox(measurementsCard(page));
+    expect(Math.abs(measurements.x - details.x)).toBeLessThanOrEqual(1);
+    expect(measurements.y).toBeGreaterThan(details.y + details.height - 1);
+    await expectAbove(
+      measurementsCard(page),
+      card(page, "Incident Roles"),
+      "measurements before roles",
+    );
+    // Out of the hero and the stat bar.
+    await expectAbove(
+      page.getByRole("group", { name: INCIDENT_PAGE.statBar }),
+      measurementsCard(page),
+      "stat bar before measurements",
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("incident-overview asks for the measurements shown on incident pages, then this incident's values", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await expect(measurementsCard(page)).toBeVisible();
+
+    const requests: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+    const definitions: RecordedModelRequest | undefined = requests.find(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "IncidentMeasurement";
+      },
+    );
+    const values: RecordedModelRequest | undefined = requests.find(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "IncidentMeasurementValue";
+      },
+    );
+
+    expect(definitions?.query).toEqual({
+      isEnabled: true,
+      showOnIncidentView: true,
+    });
+    expect(definitions?.sort).toEqual({ order: "ASC" });
+    expect(JSON.stringify(values?.query)).toContain(INCIDENT_ID);
+    expect(Object.keys(values?.query || {})).toEqual(["incidentId"]);
+
+    /*
+     * Read once. The AI report arriving refreshes the feed, not the
+     * measurements: only a state change moves them. (A refresh is followed
+     * by one more read three seconds later, so wait past that.)
+     */
+    await expect(summarySection(page)).toContainText(INCIDENT_TLDR);
+    await page.waitForTimeout(3500);
+    expect(await measurementRequests(page)).toHaveLength(2);
+  });
+
+  test("alert-overview lists the alert's measurements, each in its own unit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    await expect(measurementsCard(page)).toContainText(
+      "Your team's measurements, worked out for this alert.",
+    );
+    expect(await measurementRows(page)).toEqual([
+      {
+        name: "Time to acknowledge",
+        summary: "Created → Acknowledged",
+        value: "2 minutes",
+        reason: null,
+      },
+      {
+        // Pinned to minutes.
+        name: "Time to resolve",
+        summary: "Created → Resolved",
+        value: "9 minutes",
+        reason: null,
+      },
+    ]);
+    await expectAbove(
+      measurementsCard(page),
+      card(page, "Affected Resources"),
+      "measurements before resources",
+    );
+  });
+
+  const MAINTENANCE_CASES: Array<{
+    sm: string;
+    values: Array<string>;
+  }> = [
+    // Starts in two hours: no clock has started.
+    {
+      sm: "scheduled",
+      values: ["Not started yet", "Not started yet", "Not started yet"],
+    },
+    // Still Scheduled 20 minutes after its start: running late.
+    {
+      sm: "overdue",
+      values: ["Running for 20 minutes", "Not started yet", "Not started yet"],
+    },
+    // Started on time, still Ongoing.
+    {
+      sm: "ongoing",
+      values: ["0 seconds", "Not started yet", "Running for 15 minutes"],
+    },
+    // Ended two minutes past its planned end.
+    { sm: "ended", values: ["0 seconds", "2 minutes", "1 hour, 2 minutes"] },
+  ];
+
+  for (const maintenance of MAINTENANCE_CASES) {
+    test(`scheduled-maintenance-overview ?sm=${maintenance.sm} reads its measurements`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        SCHEDULED_MAINTENANCE_PAGE,
+        `sm=${maintenance.sm}`,
+        ["Maintenance duration"],
+      );
+
+      const rows: Array<MeasurementRow> = await measurementRows(page);
+
+      expect(
+        rows.map((row: MeasurementRow): string => {
+          return row.name;
+        }),
+      ).toEqual(["Start delay", "Overrun", "Maintenance duration"]);
+      expect(
+        rows.map((row: MeasurementRow): string => {
+          return row.value;
+        }),
+      ).toEqual(maintenance.values);
+      expect(rows[0]!.summary).toBe("Scheduled start → Started");
+    });
+  }
+
+  test("?state=ongoing: clocks still running count from the declaration, and resolving turns them into numbers in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    expect(await measurementRows(page)).toEqual([
+      INCIDENT_MEASUREMENTS[0],
+      {
+        name: "Time to mitigate",
+        summary: "Declared → Mitigated",
+        value: "Running for 19 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to resolve",
+        summary: "Declared → Resolved",
+        value: "Running for 19 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to postmortem",
+        summary: "Resolved → Postmortem published",
+        value: "Not started yet",
+        reason: null,
+      },
+    ]);
+
+    const readsBefore: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+
+    await watchForSkeleton(page);
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Resolve", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return (await measurementRows(page)).map(
+          (row: MeasurementRow): string => {
+            return row.value;
+          },
+        );
+      })
+      .toEqual([
+        "3 minutes",
+        // The incident went straight to resolved.
+        "Not measured",
+        "19 minutes",
+        "Running for less than a minute",
+      ]);
+    expect(await skeletonWasSeen(page)).toBe(false);
+
+    /*
+     * One read of the values, and only them: the fixture works them out as
+     * the timeline entry is saved, so the first read already has values
+     * newer than the ones on screen, and the card stops waiting. (It would
+     * read again after 3 seconds otherwise: wait past that.)
+     */
+    await page.waitForTimeout(3500);
+
+    const readsAfter: Array<RecordedModelRequest> = (
+      await measurementRequests(page)
+    ).slice(readsBefore.length);
+
+    expect(
+      readsAfter.map((request: RecordedModelRequest): string => {
+        return request.modelName;
+      }),
+    ).toEqual(["IncidentMeasurementValue"]);
+    await expectNoErrorStates(page);
+  });
+
+  test("?state=created: an incident nobody has answered yet runs every clock it has started", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    expect(
+      (await measurementRows(page)).map((row: MeasurementRow): string => {
+        return row.value;
+      }),
+    ).toEqual([
+      "Running for 19 minutes",
+      "Running for 19 minutes",
+      "Running for 19 minutes",
+      "Not started yet",
+    ]);
+  });
+
+  test("?measurements=states: an end before its start is called out, and a measurement just changed is not worked out yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "measurements=states", [
+      "Time to close",
+    ]);
+
+    const rows: Array<MeasurementRow> = await measurementRows(page);
+
+    expect(rows.slice(0, 4)).toEqual(INCIDENT_MEASUREMENTS);
+    expect(rows.slice(4)).toEqual([
+      {
+        name: "Time to impact",
+        summary: "Declared → Impact started",
+        value: "Ends before it starts",
+        reason: "Impact Started At precedes Declared At by 3m",
+      },
+      {
+        name: "Time to close",
+        summary: "Declared → Resolved (last time)",
+        value: "Not worked out yet",
+        reason: "OneUptime works it out in the background.",
+      },
+    ]);
+
+    // The one worth fixing is drawn as a warning, the rest as states.
+    const values: Locator = measurementsCard(page).getByTestId(
+      "event-measurement-value",
+    );
+    await expect(values.nth(4)).toHaveCSS("color", "rgb(180, 83, 9)");
+    await expect(values.nth(5)).toHaveCSS("color", "rgb(107, 114, 128)");
+  });
+
+  for (const eventPage of [
+    INCIDENT_PAGE,
+    ALERT_PAGE,
+    SCHEDULED_MAINTENANCE_PAGE,
+  ]) {
+    test(`${eventPage.name} ?measurements=none draws no card and reads no values`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        eventPage,
+        "measurements=none",
+        eventPage.readyTexts.filter((text: string): boolean => {
+          return !MEASUREMENT_READY_TEXT.test(text);
+        }),
+      );
+      await expect(card(page, eventPage.feed)).toBeVisible();
+
+      await expect
+        .poll(async (): Promise<number> => {
+          return (await measurementRequests(page)).length;
+        })
+        .toBe(1);
+      await expect(measurementsCard(page)).toHaveCount(0);
+      await expect(page.getByTestId("event-measurements")).toHaveCount(0);
+    });
+  }
+
+  test("the card reads well in the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark&measurements=states", [
+      "Time to close",
+    ]);
+
+    const values: Locator = measurementsCard(page).getByTestId(
+      "event-measurement-value",
+    );
+
+    // Light text on the dark card: neither the light theme's grey-900 nor its amber.
+    for (const index of [0, 4, 5]) {
+      const color: string = await values
+        .nth(index)
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        });
+      const channels: Array<number> = (color.match(/\d+/g) || [])
+        .slice(0, 3)
+        .map(Number);
+      const brightness: number =
+        (channels[0]! * 299 + channels[1]! * 587 + channels[2]! * 114) / 1000;
+      expect(brightness, `value ${index} is light on dark`).toBeGreaterThan(
+        120,
+      );
+    }
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      measurementsCard(page),
+      "incident-measurements-dark",
+    );
+  });
+
+  test("a phone shows every measurement without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE);
+
+    expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      measurementsCard(page),
+      "incident-measurements-mobile",
+    );
+  });
+
+  test("screenshot of the incident's measurements", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "measurements=states", [
+      "Time to close",
+    ]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(measurementsCard(page), "incident-measurements");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Screenshots (pinned clock, synthetic data)
  * ---------------------------------------------------------------------------
  */
@@ -7999,6 +9168,26 @@ test.describe("screenshots", () => {
     await openReady(page, INCIDENT_PAGE);
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "incident-ai-report");
+  });
+
+  // The feed's Add Public Note: the Notes page composer, in a dialog.
+  test("incident feed note dialog", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+    await page.keyboard.type("We have rolled back the deploy.");
+    await expect(
+      dialog.getByTestId("incident-public-note-audience"),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshot(page, "incident-feed-public-note-dialog", {
+      fullPage: false,
+    });
+
+    await dialog.getByTestId("note-template-menu-button").click();
+    await expect(page.getByTestId("note-template-menu")).toBeVisible();
+    await screenshot(page, "incident-feed-public-note-dialog-templates", {
+      fullPage: false,
+    });
   });
 
   // Every state of the card, for review: one flat card in each.

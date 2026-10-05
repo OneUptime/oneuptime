@@ -163,7 +163,7 @@ criteria를 열고 **Settings** 를 펼친 뒤 **Group incidents and alerts by a
 webhook은 해당 페이로드에 담긴 내용만 기술하므로, OneUptime은 키가 더 이상 나타나지 않는다는 이유로 인시던트를 해결하지 않습니다. 인시던트는 페이로드가 그 키가 복구되었다고 명시적으로 알릴 때만 해결됩니다. 다음 두 가지가 모두 참이어야 합니다.
 
 1. **Field that signals recovery** 와 **Value that means recovered** 가 설정되어 있고 페이로드와 일치할 것. 비교는 정확하며 대소문자를 구분합니다 — `Resolved` 는 `resolved` 와 일치하지 않습니다.
-2. criteria의 인시던트에서 **Auto Resolve Incident** 가 켜져 있을 것(인시던트 양식의 **Advanced Options** 아래). 이것이 없으면 일치하는 복구 이벤트는 무시되고 인시던트는 계속 열려 있습니다. (알림과 **Auto Resolve Alert** 에도 동일하게 적용됩니다.)
+2. criteria의 인시던트에서 **Auto Resolve Incident** 가 켜져 있을 것(인시던트 양식의 **More fields** 아래). 이것이 없으면 일치하는 복구 이벤트는 무시되고 인시던트는 계속 열려 있습니다. (알림과 **Auto Resolve Alert** 에도 동일하게 적용됩니다.)
 
 **Max incidents per request** 는 생성뿐 아니라 추출도 제한합니다. 상한을 넘어선 키는 복구에도 보이지 않으므로, 상한보다 많은 서로 다른 키를 담은 페이로드에서는 상한 너머에서 `resolved` 를 알리는 알림이 자신의 인시던트를 닫지 못합니다.
 

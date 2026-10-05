@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -25,7 +27,12 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -35,8 +42,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DockerDocumentationCard from "../../Components/Docker/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -79,6 +89,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -119,6 +130,16 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * The create form asks for the one thing a Docker host cannot be created
+   * without: the host.name its agent reports. The display name follows it -
+   * a host added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
+   */
+  const advancedSection: FormFieldCollapsibleSection<DockerHost> =
+    getAdvancedFormSection<DockerHost>();
+
   return (
     <Fragment>
       <ModelTable<DockerHost>
@@ -126,6 +147,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="docker-hosts-table"
         userPreferencesKey="docker-hosts-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -159,60 +181,37 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Hosts being monitored in this project. Install the OneUptime Docker Agent to connect a host.",
         }}
         showViewIdButton={true}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "production-docker-host-1",
-          },
-          {
+          getIdentityFormField<DockerHost>({
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Host Name (host.name)",
             placeholder: "docker-host-prod-1",
             description:
-              "This should match the host.name attribute reported by the Docker Agent.",
-          },
+              "Exactly as the OneUptime Docker Agent reports it. Telemetry is matched to this host by its host name.",
+          }),
+          getDisplayNameFormField<DockerHost>({
+            getDefaultName:
+              getNameFromIdentityField<DockerHost>("hostIdentifier"),
+            placeholder: "Production Docker host",
+            description:
+              "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production Docker host running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<DockerHost>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         columns={[
           {
@@ -242,7 +241,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
+            title: "Host Name (host.name)",
             type: FieldType.Text,
           },
           {
@@ -266,7 +265,9 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );

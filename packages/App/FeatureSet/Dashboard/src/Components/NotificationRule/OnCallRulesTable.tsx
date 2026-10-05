@@ -2,8 +2,10 @@ import NotificationMethodView, {
   DeletionImpactModal,
 } from "../NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "./NotifyAfterMinutesDropdownOptions";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import type {
+  OnCallRuleSeverity,
+  SeverityForeignKeyColumn,
+} from "./OnCallRuleKinds";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -44,6 +46,8 @@ import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -51,29 +55,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-
-/*
- * One severity band on a project. Incidents and alerts each have their own
- * severity model, and this component has to work with either, so the union is
- * the widest thing it ever needs: both classes carry `name`, both carry `id`,
- * and nothing else here is read off them.
- */
-export type OnCallRuleSeverity = IncidentSeverity | AlertSeverity;
-
-/*
- * The column on UserNotificationRule that ties a rule to its severity band.
- *
- * This is the SECOND axis, and it is deliberately independent of the severity
- * model above rather than derived from it. The four rule types do not line up
- * the way the names suggest: the alert *episode* page reads AlertSeverity, the
- * incident *episode* page reads IncidentSeverity, so "is this an episode?" tells
- * you nothing about which column to write. Deriving one axis from the other is
- * how you end up writing `alertSeverityId` on a table that filters on
- * `incidentSeverityId` - which does not error, it just returns a table that
- * silently lists rules for EVERY severity, and pages the user for a Sev 4 the
- * same way it pages them for a Sev 1.
- */
-export type SeverityForeignKeyColumn = "incidentSeverityId" | "alertSeverityId";
 
 /*
  * One pickable notification method, described WITHOUT its underlying row.
@@ -273,8 +254,9 @@ const getSuppliedMethodSelect: GetSuppliedMethodSelect =
  * here" against "paged on a device this screen cannot name". An admin who reads
  * the second as the first deletes a working rule.
  */
-const UNRESOLVED_METHOD_LABEL: string =
-  "A notification method is set - its identifier is not shown here";
+const UNRESOLVED_METHOD_LABEL: string = translationKey(
+  "A notification method is set - its identifier is not shown here",
+);
 
 /*
  * The method cell for a table that is about somebody else, resolved from ids.
@@ -360,9 +342,12 @@ export interface ComponentProps {
    */
   userPreferencesKeyPrefix: string;
 
-  /* Card heading and blurb, given the severity's name. */
-  getTitle: (severityName: string) => string;
-  getDescription: (severityName: string) => string;
+  /*
+   * What every card on the table is for, already translated. A card's title
+   * is the severity itself (its colour and the name the project gave it), so
+   * all the words are here.
+   */
+  cardDescription: string;
 
   /*
    * Whose rules and whose notification methods these are. Defaults to the
@@ -411,8 +396,8 @@ export interface ComponentProps {
    * into that. Both doors are shut by the same `isViewerTheOwner` switch.
    *
    * The self-serve path is left exactly as it was because it is not the same
-   * question: those four settings pages are a person reading their own rows, the
-   * unmasked labels are theirs, and readiness is not fetched there at all.
+   * question: your own On-Call Rules page is a person reading their own rows,
+   * the unmasked labels are theirs, and readiness is not fetched there at all.
    */
   notificationMethods?: Array<NotificationMethodChoice> | undefined;
 
@@ -448,8 +433,15 @@ export interface ComponentProps {
   noItemsMessage?: string | undefined;
 }
 
-const DEFAULT_NO_ITEMS_MESSAGE: string =
-  "No notification rules found for this user. Please add one to receive notifications.";
+/*
+ * What a severity with no rule says on your own page: the card's title and
+ * the tab above already say which severity and which kind. An admin's view
+ * of a member passes its own message, which can say what the project's
+ * fallback does with a missing rule.
+ */
+const DEFAULT_NO_ITEMS_MESSAGE: string = translationKey(
+  "No rule for this severity yet. Add one to choose how you are notified.",
+);
 
 /*
  * What an opt-out row is, said in the one cell where its absence of a method
@@ -462,22 +454,60 @@ const DEFAULT_NO_ITEMS_MESSAGE: string =
  * full of "Email: j@example.com" concludes the row is corrupt and deletes it -
  * which silently re-enables paging the owner had asked to stop.
  */
-const OPT_OUT_LABEL: string = "Muted - notifications turned off for this rule";
+const OPT_OUT_LABEL: string = translationKey(
+  "Muted - notifications turned off for this rule",
+);
 
 /*
- * The on-call notification rules table, one per severity band.
+ * A card's title: the severity, as the project named and coloured it.
  *
- * This was four ~370-line pages (incident, alert, incident episode, alert
- * episode) that were ~95% identical and had already drifted apart: two of them
- * still carried a commented-out block for rule types the other two had dropped.
- * Every one of them fetched the same seven notification-method models the same
- * way, built the same dropdown, and rendered the same two columns. Phase 3 needs
- * a fifth caller - an admin looking at somebody else's configuration - and a
- * fifth copy was not a thing worth having.
+ * Not a sentence around the name. A project's severities are often named
+ * after the kind of thing they rate ("Critical Incident" is every new
+ * project's first), so "<severity> incidents" would read "Critical Incident
+ * incidents"; the tab above already says which kind the cards are for, and
+ * each card's description says the rest. The name is the project's own word,
+ * shown as written rather than looked up as something to translate.
+ */
+const SeverityCardTitle: FunctionComponent<{
+  severity: OnCallRuleSeverity;
+}> = (props: { severity: OnCallRuleSeverity }): ReactElement => {
+  const color: string | undefined = props.severity.color?.toString();
+
+  return (
+    <span
+      className="inline-flex items-center gap-2"
+      data-testid="on-call-rules-severity-title"
+    >
+      {color ? (
+        <span
+          aria-hidden="true"
+          className="h-3 w-3 flex-shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        ></span>
+      ) : (
+        <></>
+      )}
+      <span>{props.severity.name || ""}</span>
+    </span>
+  );
+};
+
+/*
+ * The on-call notification rules for ONE kind of rule (incident, incident
+ * episode, alert or alert episode): a card per severity band.
+ *
+ * This was four ~370-line pages that were ~95% identical and had already
+ * drifted apart: two of them still carried a commented-out block for rule
+ * types the other two had dropped. Every one of them fetched the same seven
+ * notification-method models the same way, built the same dropdown, and
+ * rendered the same two columns. It is drawn by OnCallRulesTabs, one tab per
+ * kind, on your own On-Call Rules page and on an admin's view of somebody
+ * else's.
  */
 const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [severities, setSeverities] = useState<Array<OnCallRuleSeverity>>([]);
@@ -611,21 +641,27 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    *
    * `singularName` is what ModelTable puts in the create button, the modal
    * title, the delete confirmation and the bulk labels, so setting it once
-   * carries the name to every one of those without a prop per surface. On the
-   * self-serve pages it stays undefined and the model's own "Notification Rule"
-   * is used, which keeps those four pages byte-identical to what shipped.
+   * carries the name to every one of those without a prop per surface. On
+   * your own page it stays undefined and the model's own "Notification Rule"
+   * is used.
    */
   const ruleSingularName: string | undefined = props.onBehalfOfName
-    ? `Notification Rule for ${props.onBehalfOfName}`
+    ? translator.translateTemplate("Notification Rule for {{name}}", {
+        name: props.onBehalfOfName,
+      })
     : undefined;
 
   const notifyAfterFieldTitle: string = props.onBehalfOfName
-    ? `Notify ${props.onBehalfOfName} after`
-    : "Notify me after";
+    ? translator.translateTemplate("Notify {{name}} after", {
+        name: props.onBehalfOfName,
+      })
+    : translator.translateTemplate("Notify me after");
 
   const notificationMethodFieldDescription: string = props.onBehalfOfName
-    ? `How should ${props.onBehalfOfName} be notified?`
-    : "How do you want to be notified?";
+    ? translator.translateTemplate("How should {{name}} be notified?", {
+        name: props.onBehalfOfName,
+      })
+    : translator.translateTemplate("How do you want to be notified?");
 
   /*
    * ==========================================================================
@@ -652,10 +688,10 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * still going to page you for that severity, and whether anyone is relying on
    * you answering.
    *
-   * THIS LIVES HERE, IN THE SHARED COMPONENT, and not on the four settings
-   * pages it shipped on. Those pages are now four calls into this file, so a
-   * guard left behind in them would be a guard nothing runs - four Delete
-   * buttons back on the generic "are you sure", with the counts silently gone.
+   * THIS LIVES HERE, IN THE SHARED COMPONENT, and not on the pages that draw
+   * it. They are calls into this file (one per tab), so a guard left behind in
+   * them would be a guard nothing runs - Delete buttons back on the generic
+   * "are you sure", with the counts silently gone.
    */
   const [ruleToDelete, setRuleToDelete] = useState<UserNotificationRule | null>(
     null,
@@ -908,8 +944,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         isEditable={isEditable}
         isCreateable={isEditable}
         cardProps={{
-          title: props.getTitle(severityName),
-          description: props.getDescription(severityName),
+          title: <SeverityCardTitle severity={severity} />,
+          description: props.cardDescription,
         }}
         noItemsMessage={props.noItemsMessage || DEFAULT_NO_ITEMS_MESSAGE}
         /*
@@ -994,13 +1030,17 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
                * turning somebody's paging back on.
                */
               if (item["isOptOut"]) {
-                return <p className="text-gray-500 italic">{OPT_OUT_LABEL}</p>;
+                return (
+                  <p className="text-gray-500 italic">
+                    {translator.translateText(OPT_OUT_LABEL)}
+                  </p>
+                );
               }
 
               /*
                * The owner reads their own identifiers unmasked, out of the
-               * relations selected above - unchanged, and the four self-serve
-               * pages are the whole reason it stays that way.
+               * relations selected above - unchanged, and your own On-Call
+               * Rules page is the whole reason it stays that way.
                */
               if (isViewerTheOwner) {
                 return (
@@ -1027,7 +1067,11 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               }
 
               if (suppliedLabel === UNRESOLVED_METHOD_LABEL) {
-                return <p className="text-gray-500 italic">{suppliedLabel}</p>;
+                return (
+                  <p className="text-gray-500 italic">
+                    {translator.translateText(suppliedLabel)}
+                  </p>
+                );
               }
 
               return <p>{suppliedLabel}</p>;
@@ -1051,9 +1095,19 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
               return (
                 <div>
-                  {item["notifyAfterMinutes"] === 0 && <p>Immediately</p>}
+                  {item["notifyAfterMinutes"] === 0 && (
+                    <p>{translator.translateText("Immediately")}</p>
+                  )}
                   {(item["notifyAfterMinutes"] as number) > 0 && (
-                    <p>{item["notifyAfterMinutes"] as number} minutes</p>
+                    <p>
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} minute",
+                          other: "{{count}} minutes",
+                        },
+                        item["notifyAfterMinutes"] as number,
+                      )}
+                    </p>
                   )}
                 </div>
               );
@@ -1072,80 +1126,92 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * the models enforce, so these reads are answered rather than refused. For any
    * other user the caller supplies the list instead; see `notificationMethods`
    * on ComponentProps for why the two paths cannot be the same one.
+   *
+   * All nine are asked for at once rather than one after another: they do not
+   * depend on each other, and on the On-Call Rules page each tab mounts its
+   * own table, so this runs every time a tab is opened.
    */
   const loadOwnNotificationMethods: PromiseVoidFunction =
     async (): Promise<void> => {
-      const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
-        modelType: UserEmail,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          email: true,
-        },
-        sort: {},
-      });
-
-      setUserEmails(userEmails.data);
-
-      const userSMSes: ListResult<UserSMS> = await ModelAPI.getList({
-        modelType: UserSMS,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          phone: true,
-        },
-        sort: {},
-      });
-
-      setUserSMSs(userSMSes.data);
-
-      const userCalls: ListResult<UserCall> = await ModelAPI.getList({
-        modelType: UserCall,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          phone: true,
-        },
-        sort: {},
-      });
-
-      setUserCalls(userCalls.data);
-
-      const userPushDevices: ListResult<UserPush> = await ModelAPI.getList({
-        modelType: UserPush,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          deviceName: true,
-          deviceType: true,
-        },
-        sort: {},
-      });
-
-      setUserPush(userPushDevices.data);
-
-      const userWhatsAppList: ListResult<UserWhatsApp> = await ModelAPI.getList(
-        {
+      const [
+        userEmails,
+        userSMSes,
+        userCalls,
+        userPushDevices,
+        userWhatsAppList,
+        userTelegramList,
+        userSlackList,
+        userMicrosoftTeamsList,
+        userWebhookList,
+      ]: [
+        ListResult<UserEmail>,
+        ListResult<UserSMS>,
+        ListResult<UserCall>,
+        ListResult<UserPush>,
+        ListResult<UserWhatsApp>,
+        ListResult<UserTelegram>,
+        ListResult<UserSlack>,
+        ListResult<UserMicrosoftTeams>,
+        ListResult<UserWebhook>,
+      ] = await Promise.all([
+        ModelAPI.getList<UserEmail>({
+          modelType: UserEmail,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            email: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserSMS>({
+          modelType: UserSMS,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            phone: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserCall>({
+          modelType: UserCall,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            phone: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserPush>({
+          modelType: UserPush,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            deviceName: true,
+            deviceType: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserWhatsApp>({
           modelType: UserWhatsApp,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1158,13 +1224,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             phone: true,
           },
           sort: {},
-        },
-      );
-
-      setUserWhatsApps(userWhatsAppList.data);
-
-      const userTelegramList: ListResult<UserTelegram> = await ModelAPI.getList(
-        {
+        }),
+        ModelAPI.getList<UserTelegram>({
           modelType: UserTelegram,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1178,31 +1239,23 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             telegramChatId: true,
           },
           sort: {},
-        },
-      );
-
-      setUserTelegrams(userTelegramList.data);
-
-      const userSlackList: ListResult<UserSlack> = await ModelAPI.getList({
-        modelType: UserSlack,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-          isVerified: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          slackUserName: true,
-          slackUserId: true,
-        },
-        sort: {},
-      });
-
-      setUserSlacks(userSlackList.data);
-
-      const userMicrosoftTeamsList: ListResult<UserMicrosoftTeams> =
-        await ModelAPI.getList({
+        }),
+        ModelAPI.getList<UserSlack>({
+          modelType: UserSlack,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            slackUserName: true,
+            slackUserId: true,
+          },
+          sort: {},
+        }),
+        ModelAPI.getList<UserMicrosoftTeams>({
           modelType: UserMicrosoftTeams,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -1216,32 +1269,38 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             microsoftTeamsUserId: true,
           },
           sort: {},
-        });
+        }),
+        /*
+         * Webhooks are the one method with no verification step - there is no
+         * device to confirm - so unlike the eight above this query has no
+         * `isVerified` filter. That asymmetry predates this component; it is
+         * carried over deliberately rather than "fixed", because adding the
+         * filter here would silently drop every existing webhook rule from the
+         * dropdown.
+         */
+        ModelAPI.getList<UserWebhook>({
+          modelType: UserWebhook,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            name: true,
+          },
+          sort: {},
+        }),
+      ]);
 
+      setUserEmails(userEmails.data);
+      setUserSMSs(userSMSes.data);
+      setUserCalls(userCalls.data);
+      setUserPush(userPushDevices.data);
+      setUserWhatsApps(userWhatsAppList.data);
+      setUserTelegrams(userTelegramList.data);
+      setUserSlacks(userSlackList.data);
       setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
-
-      /*
-       * Webhooks are the one method with no verification step - there is no
-       * device to confirm - so unlike the six above this query has no
-       * `isVerified` filter. That asymmetry predates this component; it is
-       * carried over deliberately rather than "fixed", because adding the
-       * filter here would silently drop every existing webhook rule from the
-       * dropdown.
-       */
-      const userWebhookList: ListResult<UserWebhook> = await ModelAPI.getList({
-        modelType: UserWebhook,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: targetUserId!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-        },
-        sort: {},
-      });
-
       setUserWebhooks(userWebhookList.data);
     };
 
@@ -1250,23 +1309,30 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
-      const severityList: ListResult<OnCallRuleSeverity> =
-        await ModelAPI.getList({
-          modelType: props.severityModelType,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            name: true,
-          },
-          sort: {},
-        });
-
-      if (isViewerTheOwner) {
-        await loadOwnNotificationMethods();
-      }
+      /*
+       * The severities and (on your own page) your methods, at the same time.
+       * Most severe first (order 1 is the most severe), the order the
+       * project's own severity settings list them in.
+       */
+      const [severityList]: [ListResult<OnCallRuleSeverity>, void] =
+        await Promise.all([
+          ModelAPI.getList({
+            modelType: props.severityModelType,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              name: true,
+              color: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+          }),
+          isViewerTheOwner ? loadOwnNotificationMethods() : Promise.resolve(),
+        ]);
 
       setSeverities(severityList.data);
     } catch (err) {
@@ -1282,11 +1348,10 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     });
     /*
      * The two things that change what this fetch returns: whose methods to load
-     * and which severity model to enumerate. On the four self-serve pages both
-     * are fixed for the life of the route, so this behaves exactly as the
-     * mount-once effect it replaces. The admin surface is the one that can hold
-     * a mounted instance and point it somewhere else, and a stale severity list
-     * there would render tables banded by the previous user's project.
+     * and which severity model to enumerate. Each tab mounts its own instance,
+     * so both are fixed for the life of a tab and this behaves as a mount-once
+     * effect. An instance that is pointed somewhere else would otherwise keep
+     * a stale severity list and render tables banded by the previous kind.
      */
   }, [targetUserId?.toString(), props.severityModelType]);
 

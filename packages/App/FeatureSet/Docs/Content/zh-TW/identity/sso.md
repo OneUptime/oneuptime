@@ -27,13 +27,14 @@ SSO 整合提供下列好處：
    - 輸入來自您身分提供者的 **登入 URL**
    - 輸入來自您身分提供者的 **簽發者**（Entity ID）
    - 貼上來自您身分提供者的 **公開憑證**
-   - 選擇 **Signature Algorithm**（例如 `RSA-SHA-256`）
-   - 選擇 **Digest Algorithm**（例如 `SHA256`）
+   - 在 **登入** 步驟中，**團隊** 預設為專案的成員團隊：首次登入的人會加入這些團隊。只接受您自己可以邀請他人加入的團隊：授予的存取權限超出您自身權限的團隊會在 **團隊** 下方註明
+   - 其餘內容會在 **更多欄位** 中自動填好：**簽章方法**（`RSA-SHA256`）、**摘要方法**（`SHA256`）以及描述（「Sign in with」加名稱）。僅在您的身分提供者需要時才變更
 
 3. **取得 OneUptime SSO 中繼資料**
-   - 儲存後，點選 **檢視 SSO 設定** 按鈕
+   - 儲存後會開啟 **SSO Configuration** 對話方塊。也可以透過 **檢視 SSO 設定** 按鈕再次開啟
    - 複製 **Identifier (Entity ID)** — 在您的 IdP 設定中會用到此項
    - 複製 **Reply URL (Assertion Consumer Service URL)** — 在您的 IdP 設定中會用到此項
+   - 新的提供者預設為關閉。在您的 IdP 設定好這兩個值後，請編輯此提供者並開啟 **已啟用**
 
 ## Keycloak SAML 設定
 
@@ -54,8 +55,7 @@ Keycloak 是熱門的開源身分與存取管理解決方案。請依照下列�
    - **登入 URL**：`https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **簽發者**：`https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **憑證**：請參閱下方的[步驟 2](#步驟-2取得-keycloak-憑證)
-   - **Signature Algorithm**：`RSA-SHA-256`
-   - **Digest Algorithm**：`SHA256`
+   - **簽章方法** 與 **摘要方法**：已在 **更多欄位** 中設定（`RSA-SHA256` 與 `SHA256`）
 4. 儲存此設定
 
 ### 步驟 2：取得 Keycloak 憑證
@@ -121,8 +121,7 @@ Microsoft Entra ID 是 Microsoft 以雲端為基礎的身分與存取管理服�
    - **登入 URL**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
    - **簽發者**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
    - **憑證**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
-   - **Signature Algorithm**：`RSA-SHA-256`
-   - **Digest Algorithm**：`SHA256`
+   - **簽章方法** 與 **摘要方法**：已在 **更多欄位** 中設定（`RSA-SHA256` 與 `SHA256`）
 4. 點選 **檢視 SSO 設定** 並複製 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)** — 您在 Entra ID 中會需要這些項目
 
 ### 步驟 2：在 Microsoft Entra ID 中建立企業應用程式
@@ -206,8 +205,7 @@ Okta 是廣為使用的身分平台，提供強大的 SAML SSO 能力。請依�
    - **登入 URL**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
    - **簽發者**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
    - **憑證**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
-   - **Signature Algorithm**：`RSA-SHA-256`
-   - **Digest Algorithm**：`SHA256`
+   - **簽章方法** 與 **摘要方法**：已在 **更多欄位** 中設定（`RSA-SHA256` 與 `SHA256`）
 4. 點選 **檢視 SSO 設定** 並複製 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)** — 您在 Okta 中會需要這些項目
 
 ### 步驟 2：在 Okta 中建立 SAML 應用程式
@@ -287,8 +285,21 @@ OneUptime 的 SSO 實作採用 SAML 2.0 協定，應可與任何相容的身分�
    - **登入 URL**（SSO 端點）
    - **簽發者**（IdP 的 Entity ID）
    - **公開憑證**（X.509 簽署憑證）
-4. 將 **Signature Algorithm** 設為 `RSA-SHA-256`，並將 **Digest Algorithm** 設為 `SHA256`
+4. **簽章方法**（`RSA-SHA256`）與 **摘要方法**（`SHA256`）已在 **更多欄位** 中設定；僅在您的身分提供者使用其他方式簽章時才變更
+
+## OpenID Connect (OIDC)
+
+專案也可以透過 OpenID Connect 提供者登入，例如 Google Workspace、Okta、Microsoft Entra ID、Auth0 或 Keycloak。
+
+1. 在您的身分提供者中註冊一個應用程式（OIDC 用戶端），並複製其 **簽發者 URL**、**用戶端 ID** 與 **用戶端密鑰**。
+2. 在 OneUptime 中，導覽至 **專案設定** > **安全性** > **OIDC**，然後點選 **建立OIDC**。
+3. 輸入 **名稱**（使用者在登入頁面上看到的內容）、**簽發者 URL**、**用戶端 ID** 與 **用戶端密鑰**。也可以把提供者的探索 URL 貼到 **簽發者 URL** 中。
+4. 在 **登入** 步驟中，**團隊** 已預先選好您專案的成員團隊：首次登入的人員會加入這些團隊。其餘內容會在 **更多欄位** 中自動填好：**探索 URL**（簽發者後接 `/.well-known/openid-configuration`）、**範圍**（`openid email profile`）、`email` 與 `name` 宣告名稱，以及描述（「Sign in with」加名稱）。僅在您的提供者需要時才變更。只接受您自己可以邀請他人加入的團隊：授予的存取權限超出您自身權限的團隊會在 **團隊** 下方註明。
+5. 儲存。**OIDC Configuration** 對話方塊會開啟並顯示 **Redirect URI**：請將其加入應用程式允許的重新導向 URI。新提供者預設為關閉，之後請編輯它並開啟 **已啟用**。
+6. 在為專案強制要求 SSO 之前，請使用 **Test OpenID Connect (OIDC)** 卡片上的連結透過該提供者登入。
 
 ## 關於 SSO 與角色的注意事項
 
 OneUptime 目前不支援從您的身分提供者對應 SAML 角色。以角色為基礎的存取必須在 OneUptime 的 **專案設定** > **SSO** 設定中個別設定，您可以在該處為 SSO 使用者指派預設角色。
+
+提供者的團隊決定了透過它登入的人員可以做什麼，因此只有儲存者可以邀請他人加入的團隊才能儲存到提供者上。每次儲存都會重新檢查：如果提供者的團隊授予的存取權限超出您自身的權限，則只有存取權限涵蓋這些團隊的人（例如專案擁有者）才能變更它。在此檢查之前儲存的提供者會繼續將人員加入其團隊。任何可以編輯提供者的人仍然可以將其關閉，因此可以立即停止它。

@@ -126,8 +126,8 @@ describe("the dashboard renders the shared strings", () => {
       source.indexOf("field: { monitors: true, }"),
     );
 
-    // The permission hint, and the three warnings.
-    expect(source).toContain("<StatusPagePickerAccessHint");
+    // The three warnings - and no banner explaining an empty picker.
+    expect(source).not.toContain("StatusPagePickerAccessHint");
     expect(source).toContain("<StatusPagesNotListingMonitorsWarning");
     expect(source).toContain(
       "IncidentStatusPageScopeCopy.changeMonitorStatusWarning",
@@ -136,12 +136,17 @@ describe("the dashboard renders the shared strings", () => {
       "IncidentStatusPageScopeCopy.privateIncidentWarning",
     );
 
-    // The audience on the last step, with the reasons nothing would be sent.
+    /*
+     * The audience on the More step and the last step. It no longer says
+     * that nothing will be sent because the box is off or the incident will
+     * be private: the boxes right there show it (see
+     * NoMonitorsSubscriberWarning.test.ts).
+     */
     expect(source).toContain("<SubscriberAudienceSummary");
-    expect(source).toContain(
-      "IncidentStatusPageScopeCopy.audiencePrivateIncident",
-    );
-    expect(source).toContain("IncidentStatusPageScopeCopy.audienceNotifyOff");
+    expect(source).not.toContain("audiencePrivateIncident");
+    expect(source).not.toContain("audienceNotifyOff");
+    expect(source).not.toContain("audienceNoMonitors");
+    expect(source).not.toContain("quietReason");
   });
 
   test("the Create page prefills the scope from a template", () => {
@@ -203,6 +208,10 @@ describe("the dashboard renders the shared strings", () => {
     );
     expect(source).toContain("statusPagesNotifiedOnCreation: true,");
     expect(source).toContain("<IncidentStatusPageScopeView");
+
+    // No banner explaining an empty picker.
+    expect(source).not.toContain("StatusPagePickerAccessHint");
+    expect(source).not.toContain("useStatusPagePickerAccess");
   });
 
   test("the added-pages checkbox takes its text from the shared constants", () => {
@@ -248,7 +257,9 @@ describe("the dashboard renders the shared strings", () => {
       expect(source).toContain(
         "description: IncidentStatusPageScopeCopy.templatePickerDescription,",
       );
-      expect(source).toContain("<StatusPagePickerAccessHint");
+      // No banner explaining an empty picker.
+      expect(source).not.toContain("StatusPagePickerAccessHint");
+      expect(source).not.toContain("useStatusPagePickerAccess");
     }
   });
 
@@ -262,34 +273,44 @@ describe("the dashboard renders the shared strings", () => {
     expect(source).toContain("buildStatusPageScopeFacet(),");
   });
 
+  /*
+   * The switch is on Advanced Settings, in the incidents row of the "What
+   * your status page shows" card, which reads its rows from this module.
+   */
   test("a status page can show only the incidents scoped to it", () => {
     const source: string = readSource(
-      "Pages",
-      "StatusPages",
-      "View",
-      "StatusPageSettings.tsx",
+      "Components",
+      "StatusPage",
+      "StatusPageDisplaySettingsCopy.ts",
     );
 
-    expect(source).toContain("onlyShowScopedIncidents: true,");
+    expect(source).toContain('column: "onlyShowScopedIncidents",');
     expect(source).toContain(
       "title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,",
+    );
+    expect(source).toContain(
+      "IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,",
     );
     expect(
       source.split("IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle")
         .length - 1,
-    ).toBe(2);
+    ).toBe(1);
   });
 
   test("the incident public note composer shows the audience", () => {
+    /*
+     * The incident's public note kind, read by its Public Notes page and the
+     * Incident Feed's "Add Public Note" dialog alike.
+     */
     const source: string = readSource(
-      "Pages",
-      "Incidents",
-      "View",
-      "PublicNote.tsx",
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentNoteKinds.tsx",
     );
 
     expect(source).toContain(
-      "audienceSummary: ( <SubscriberAudienceSummary request={{ incidentId: modelId }}",
+      "audienceSummary: ( <SubscriberAudienceSummary request={{ incidentId: incidentId }}",
     );
   });
 

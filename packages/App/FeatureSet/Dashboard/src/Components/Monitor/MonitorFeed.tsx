@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -12,12 +11,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -36,11 +34,11 @@ export interface ComponentProps {
 
 const DEFAULT_TITLE: string = "Monitor Feed";
 const DEFAULT_DESCRIPTION: string =
-  "This is the timeline and feed for this monitor. You can see all the updates and information about this monitor here.";
+  "Everything that has happened to this monitor, newest first.";
 
 /*
  * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match.
+ * filter's checklist (the feed's ⋯ menu), so the two always match.
  */
 export const MONITOR_FEED_ICONS: Record<MonitorFeedEventType, IconProp> = {
   [MonitorFeedEventType.MonitorCreated]: IconProp.AltGlobe,
@@ -149,25 +147,11 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card
+    <FeedCard
       title={props.title || DEFAULT_TITLE}
       description={props.description || DEFAULT_DESCRIPTION}
-      buttons={[
-        <FeedOptionsButton
-          key="monitor-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={refresh}
     >
       <div>
         {/*
@@ -192,7 +176,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         )}
         {loadMoreError && <ErrorMessage message={loadMoreError} />}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

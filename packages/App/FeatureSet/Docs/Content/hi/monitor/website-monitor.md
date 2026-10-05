@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### Advanced Options
+### और फ़ील्ड
 
 #### Redirects Follow न करें
 

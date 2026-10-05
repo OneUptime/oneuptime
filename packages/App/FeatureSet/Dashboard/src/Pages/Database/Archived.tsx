@@ -16,6 +16,8 @@ import {
   getDatabaseEndpointLabel,
   getDatabaseEngineLabel,
 } from "./Utils/DatabaseServerPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Archived databases. A discovered database that is not seen for a while is
@@ -26,6 +28,7 @@ import {
 const DatabaseArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { unarchiveBulkActions } = useBulkArchiveActions<DatabaseServer>({
     modelType: DatabaseServer,
   });
@@ -172,7 +175,7 @@ const DatabaseArchivedPage: FunctionComponent<
               if (item.autoArchivedAt) {
                 return (
                   <span className="text-sm text-gray-500">
-                    Automatically (not seen)
+                    {translator.translateText("Automatically (not seen)")}
                   </span>
                 );
               }

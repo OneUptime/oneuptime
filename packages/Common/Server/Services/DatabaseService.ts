@@ -108,6 +108,12 @@ import ListOrderMaintainer, {
 } from "../Utils/Database/ListOrderMaintainer";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import { toListOrderNumber } from "../../Utils/ListOrder";
+import FileOwnership, {
+  FileReferenceCheck,
+  FileReferenceColumn,
+  FileReferenceOwner,
+  normalizeFileId,
+} from "../Utils/File/FileOwnership";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -123,6 +129,15 @@ interface ColumnsByIdUpdateStatement {
   setSql: string;
   whereSql: string;
   params: Array<unknown>;
+}
+
+/*
+ * The query a write's hooks are handed in place of the one sent (see
+ * pinQueryToRows), and whether it names the rows themselves by _id.
+ */
+interface PinnedQuery<TBaseModel extends BaseModel> {
+  query: Query<TBaseModel>;
+  namesTheRows: boolean;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -336,6 +351,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * whatever the caller's permissions are (the permission entry points ask
    * the same question), so no hook - several of which write on the caller's
    * behalf - should have run for it first.
+   *
+   * And for a create, update or delete, whether the caller may write this
+   * table at all in the project the request is made in: the first question
+   * the full permission check asks after the hooks, asked here as well, so a
+   * hook never acts - unsetting the project's default, making room in an
+   * order, deleting child rows - for someone the write is refused to.
    */
   private checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
@@ -350,6 +371,336 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
+
+    if (
+      type === DatabaseRequestType.Create ||
+      type === DatabaseRequestType.Update ||
+      type === DatabaseRequestType.Delete
+    ) {
+      ModelPermission.checkTableWritePermission(this.modelType, props, type);
+    }
+  }
+
+  /*
+   * Before the hooks of an update or delete: the rows of it this caller may
+   * write. A service's onBeforeUpdate / onBeforeDelete reads the rows the
+   * write names to act on them - it unsets the other defaults of their
+   * project, closes the gap they leave in an order, deletes their child rows,
+   * carries them forward to the success hook - and it is handed the query the
+   * caller sent, before the permission check narrows it. So the query is
+   * narrowed here first, the same way that check narrows it, and the rows
+   * found are the only ones the hooks get to see:
+   *
+   *  - none: the write changes nothing, so it returns at once and no hook
+   *    runs - neither the before nor the success hook (the same 0 it
+   *    returned before, without anything done first);
+   *  - some: the query handed on names only them (see pinQueryToRows), so a
+   *    hook reading "the rows this write names" reads only those.
+   *
+   * The full check still runs after the hooks, on whatever they hand back.
+   * Root and master admin callers write any row, so nothing changes for
+   * them; nor with ignoreHooks, or for a service with no hook for this kind
+   * of write, where nothing runs that could act on the rows. Returns whether
+   * there is anything left to write.
+   */
+  private async keepRowsCallerMayWrite(
+    write: {
+      query: Query<TBaseModel>;
+      skip: PositiveNumber | number;
+      limit: PositiveNumber | number;
+      props: DatabaseCommonInteractionProps;
+    },
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    options: { withDeleted?: boolean } = {},
+  ): Promise<boolean> {
+    if (
+      write.props.isRoot ||
+      write.props.isMasterAdmin ||
+      write.props.ignoreHooks ||
+      !this.hasHooksFor(type)
+    ) {
+      return true;
+    }
+
+    const query: Query<TBaseModel> = this.getRuleCriteriaEffectiveEnabledQuery(
+      write.query,
+    );
+
+    const writableQuery: Query<TBaseModel> =
+      type === DatabaseRequestType.Delete
+        ? await ModelPermission.checkDeleteQueryPermission(
+            this.modelType,
+            query,
+            write.props,
+          )
+        : await ModelPermission.getUpdatableQuery(
+            this.modelType,
+            query,
+            write.props,
+          );
+
+    const rows: Array<TBaseModel> = await this._findBy(
+      {
+        query: writableQuery,
+        select: { _id: true } as Select<TBaseModel>,
+        skip: this.normalizePositiveNumber(write.skip) ?? 0,
+        limit: this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      options.withDeleted,
+    );
+
+    const rowIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        rowIds.push(row._id.toString());
+      }
+    }
+
+    if (rowIds.length === 0) {
+      return false;
+    }
+
+    const pinned: PinnedQuery<TBaseModel> | null = this.pinQueryToRows(
+      write.query,
+      rowIds,
+      write.props,
+    );
+
+    if (pinned) {
+      write.query = pinned.query;
+
+      /*
+       * A query that names the rows by _id needs no window but them. One that
+       * is only scoped to the project keeps the window it was sent with, so
+       * the write still covers the rows it covered.
+       */
+      if (pinned.namesTheRows) {
+        write.skip = 0;
+        write.limit = rowIds.length;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * A record may point only at its own files: a project's record at files
+   * uploaded in its project, a person at a picture they uploaded (see
+   * FileOwnership). Asked of every create and update that points one of the
+   * model's File columns at a file - root and hook-free writes too, since a
+   * workflow or an API call can carry any id - once the caller is known to
+   * be allowed the write, so a refusal tells nobody else anything. The
+   * refusal is the same for a file of another owner, of none, or one that
+   * does not exist.
+   */
+  private async assertFileReferencesOwnedOnCreate(
+    data: TBaseModel,
+  ): Promise<void> {
+    const columns: Array<FileReferenceColumn> =
+      FileOwnership.getFileReferenceColumns(this.model);
+
+    if (columns.length === 0) {
+      return;
+    }
+
+    const checks: Array<FileReferenceCheck> = [];
+    let owner: FileReferenceOwner | null | undefined = undefined;
+
+    for (const column of columns) {
+      const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
+        data,
+        column,
+      );
+
+      if (!fileIds || fileIds.length === 0) {
+        continue;
+      }
+
+      if (owner === undefined) {
+        // The record's project as it will be saved: the tenant is stamped.
+        owner = FileOwnership.getOwner(this.model, data);
+      }
+
+      if (owner === null) {
+        // A record outside any project (a global probe or AI agent).
+        return;
+      }
+
+      checks.push({ owner, column, fileIds });
+    }
+
+    await FileOwnership.assertOwned(checks);
+  }
+
+  /*
+   * The update's half of assertFileReferencesOwnedOnCreate, on the rows the
+   * update reads before it writes them - each row's project (the tenant
+   * column) and the files it points at now (the written columns, read as
+   * they are) - so the rows checked are the rows written. Only the files a
+   * row does not point at already are checked: nothing about a file can
+   * change once it is uploaded, and a record saved before files had owners
+   * keeps saving the file it has. Returns the checks; the caller runs them
+   * before it writes anything.
+   */
+  private getFileReferenceChecksOnUpdate(data: {
+    data: PartialEntity<TBaseModel>;
+    rows: Array<TBaseModel>;
+  }): Array<FileReferenceCheck> {
+    const columns: Array<FileReferenceColumn> =
+      FileOwnership.getFileReferenceColumns(this.model);
+
+    if (columns.length === 0) {
+      return [];
+    }
+
+    const written: Array<{
+      column: FileReferenceColumn;
+      fileIds: Array<ObjectID>;
+    }> = [];
+
+    for (const column of columns) {
+      const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
+        data.data,
+        column,
+      );
+
+      if (fileIds && fileIds.length > 0) {
+        written.push({ column, fileIds });
+      }
+    }
+
+    if (written.length === 0) {
+      return [];
+    }
+
+    const rows: Array<TBaseModel> = data.rows;
+
+    const checks: Array<FileReferenceCheck> = [];
+
+    for (const row of rows) {
+      const owner: FileReferenceOwner | null = FileOwnership.getOwner(
+        this.model,
+        row,
+      );
+
+      if (!owner) {
+        continue;
+      }
+
+      for (const { column, fileIds } of written) {
+        const held: Set<string> = FileOwnership.readStoredFileIds(row, column);
+
+        const added: Array<ObjectID> = fileIds.filter(
+          (fileId: ObjectID): boolean => {
+            return !held.has(normalizeFileId(fileId));
+          },
+        );
+
+        if (added.length > 0) {
+          checks.push({ owner, column, fileIds: added });
+        }
+      }
+    }
+
+    return checks;
+  }
+
+  /*
+   * Whether this service has a hook for an update or a delete - before it or
+   * after it - that could act on the rows it names.
+   */
+  private hasHooksFor(
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): boolean {
+    const hookNames: Array<string> =
+      type === DatabaseRequestType.Update
+        ? ["onBeforeUpdate", "onUpdateSuccess"]
+        : ["onBeforeDelete", "onDeleteSuccess"];
+
+    return hookNames.some((hookName: string): boolean => {
+      return (
+        (this as unknown as Record<string, unknown>)[hookName] !==
+        (DatabaseService.prototype as unknown as Record<string, unknown>)[
+          hookName
+        ]
+      );
+    });
+  }
+
+  /*
+   * The query a write's hooks are handed, so that it names only the rows the
+   * caller may write - in a shape hooks already read:
+   *
+   *  - a query naming its one row by a plain _id (updateOneById and
+   *    deleteOneById send that) is kept as it was sent;
+   *  - one that names rows by _id some other way gets _id set to them: a
+   *    plain id for one row, an "any of" for several;
+   *  - one that does not name _id gets the one row's plain id, when it
+   *    matched one row. When it matched several, _id is left out - hooks
+   *    that refuse a write without one, or read it as an id, keep doing what
+   *    they did - and it is scoped to the caller's project instead, in the
+   *    window it was sent with.
+   *
+   * null when none of these applies, and the query is left as it is.
+   */
+  private pinQueryToRows(
+    query: Query<TBaseModel>,
+    rowIds: Array<string>,
+    props: DatabaseCommonInteractionProps,
+  ): PinnedQuery<TBaseModel> | null {
+    const oneRowId: string | null = rowIds.length === 1 ? rowIds[0]! : null;
+
+    if (Array.isArray(query)) {
+      return {
+        query: {
+          _id: oneRowId || QueryHelper.any(rowIds),
+        } as Query<TBaseModel>,
+        namesTheRows: true,
+      };
+    }
+
+    const sentId: unknown = (query as Record<string, unknown>)["_id"];
+
+    if (sentId !== undefined && sentId !== null) {
+      if (
+        oneRowId &&
+        (typeof sentId === "string" || sentId instanceof ObjectID) &&
+        sentId.toString().toLowerCase() === oneRowId.toLowerCase()
+      ) {
+        return { query: query, namesTheRows: true };
+      }
+
+      return {
+        query: {
+          ...query,
+          _id: oneRowId || QueryHelper.any(rowIds),
+        } as Query<TBaseModel>,
+        namesTheRows: true,
+      };
+    }
+
+    if (oneRowId) {
+      return {
+        query: { ...query, _id: oneRowId } as Query<TBaseModel>,
+        namesTheRows: true,
+      };
+    }
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
+      return {
+        query: {
+          ...query,
+          [tenantColumn]: props.tenantId,
+        } as Query<TBaseModel>,
+        namesTheRows: false,
+      };
+    }
+
+    return null;
   }
 
   protected async onBeforeCreate(
@@ -366,11 +717,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     createBy: CreateBy<TBaseModel>,
   ): Promise<OnCreate<TBaseModel>> {
     // Private method that runs before create.
-    const projectIdColumn: string | null = this.model.getTenantColumn();
-
-    if (projectIdColumn && createBy.props.tenantId) {
-      (createBy.data as any)[projectIdColumn] = createBy.props.tenantId;
-    }
+    this.stampTenantOnCreate(createBy.data, createBy.props);
 
     return await this.onBeforeCreate(createBy);
   }
@@ -721,6 +1068,51 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<OnFind<TBaseModel>> {
     // A place holder method used for overriding.
     return Promise.resolve({ findBy, carryForward: null });
+  }
+
+  /*
+   * Runs on a create once the caller has passed the permission checks, just
+   * before the @UniqueColumnBy and @UniqueColumnsTogether checks, which
+   * refuse a clash with an existing row as "<Model> with the same <column>
+   * already exists.". Override it to refuse a clash in words of your own:
+   * the caller may create the row, so a refusal may say what exists (see
+   * DiscoveredResourceCreate.refuseClash). Skipped with ignoreHooks.
+   */
+  protected async onBeforeCreateUniqueCheck(
+    _createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
+  /*
+   * The same for an update: runs once the caller has passed the permission
+   * checks, with the query already narrowed to the rows they may write and
+   * before the data is serialized, so it may still adjust what is written.
+   * Unlike onBeforeUpdate - which runs before any check - a refusal here
+   * may say what exists (see DiscoveredResourceUpdate.checkMatchColumn).
+   * Skipped with ignoreHooks.
+   */
+  protected async onBeforeUpdateUniqueCheck(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
+  /*
+   * The last hook before an update is written: the caller has passed every
+   * permission check, the query is narrowed to the rows they may write, and
+   * the clash checks have run. A side effect the update must make before
+   * it is written - and must never make for an update that is refused -
+   * belongs here; one it may make afterwards belongs in onUpdateSuccess. A
+   * throw here refuses the update. Skipped with ignoreHooks.
+   */
+  protected async onUpdatePermitted(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
   }
 
   protected async onCreateSuccess(
@@ -1091,6 +1483,100 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     (data as Record<string, unknown>)[safetyPatternField] =
       RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
+  }
+
+  /*
+   * Whether this model's tenant column is its own primary key - true of
+   * Project alone (`@TenantColumn("_id")`). A project IS its tenant, so its
+   * reads, updates and deletes are scoped to the request's project by `_id`.
+   * A create is the exception: it mints a new tenant, and the request's
+   * tenant is some other project that already exists.
+   */
+  private isTenantColumnPrimaryKey(): boolean {
+    return this.model.getTenantColumn() === "_id";
+  }
+
+  /*
+   * Writes the request's tenant onto a row being created, so a create made in
+   * a project lands in that project whatever the payload said.
+   *
+   * Skipped for a model whose tenant column is its own primary key. There the
+   * stamp hands the new row the id of the project the request was made in,
+   * and save() takes an entity carrying an existing id as an UPDATE of that
+   * row: POST /api/project with a tenantid header answered 500 only because
+   * the stamped value was an ObjectID, which Postgres could not read as a
+   * uuid, instead of overwriting the project the header named.
+   *
+   * The tenant is ignored for that create, not refused. It names the project
+   * the caller is working in, which says nothing about a project that does
+   * not exist yet, and some callers cannot leave it off: an API key's or an
+   * MCP grant's tenant comes from the credential. Whether the caller may
+   * create a project at all is for the permission checks and ProjectService's
+   * hooks to answer. (The Dashboard sends no tenant for this create - see
+   * isMultiTenantRequest in ProjectPicker.)
+   */
+  private stampTenantOnCreate(
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const tenantColumn: string | null = this.model.getTenantColumn();
+
+    if (!tenantColumn || !props.tenantId || this.isTenantColumnPrimaryKey()) {
+      return;
+    }
+
+    data.setColumnValue(tenantColumn, props.tenantId);
+  }
+
+  /*
+   * The last check a create makes before save(), on the entity save() is
+   * actually handed. save() chooses between INSERT and UPDATE by that
+   * entity's primary key: one carrying the id of an existing row is loaded
+   * and UPDATEd in place, so a create that reaches it with an id rewrites a
+   * record nobody asked to change.
+   *
+   * create() refuses a caller-supplied id up front, but the hooks, the tenant
+   * stamp and the rest of the pipeline all write to the same entity after
+   * that check - the tenant stamp is how a new Project came to carry the id
+   * of the project the request was made in. So, once more, here:
+   *
+   *  - a non-root create may not carry an id, whatever put it there;
+   *  - no create, root included, of a model whose tenant column is its own
+   *    primary key may carry the request tenant's id. Root callers may
+   *    assign ids, but this one can only come from a generic tenant stamp -
+   *    workflow components create as root WITH a tenant, after
+   *    applyTenantColumn has written the tenant column - and it would make
+   *    the create an update of the caller's own project.
+   *
+   * The ids are compared as text, case-insensitively: the id may be an
+   * ObjectID or a plain string, and Postgres reads a uuid in either case.
+   */
+  private assertCreateWillInsert(
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const suppliedId: unknown = data._id;
+
+    if (!suppliedId) {
+      return;
+    }
+
+    if (!props.isRoot && !props.isMasterAdmin) {
+      throw new BadDataException(
+        `An id cannot be supplied when creating ${this.model.singularName}.`,
+      );
+    }
+
+    if (
+      this.isTenantColumnPrimaryKey() &&
+      props.tenantId &&
+      String(suppliedId).toLowerCase() ===
+        props.tenantId.toString().toLowerCase()
+    ) {
+      throw new BadDataException(
+        `A new ${this.model.singularName} cannot take the id of the ${this.model.singularName} this request is made in.`,
+      );
+    }
   }
 
   /*
@@ -1588,7 +2074,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * this guards every other non-root caller (custom routes, workflow
      * components) too. Root/internal seeding legitimately assigns ids and is
      * exempt. Only the top-level primary key is checked - nested relation
-     * `_id`s reference existing related rows and are fine.
+     * `_id`s reference existing related rows and are fine. Asked again just
+     * before save(), once the hooks and the tenant stamp have had their turn
+     * (assertCreateWillInsert).
      */
     if (
       !createBy.props.isRoot &&
@@ -1617,12 +2105,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     let data: TBaseModel = _createdBy.data;
 
-    // add tenantId if present.
-    const tenantColumnName: string | null = data.getTenantColumn();
-
-    if (tenantColumnName && _createdBy.props.tenantId) {
-      data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
-    }
+    // add tenantId if present, unless it is the row's own id. See the helper.
+    this.stampTenantOnCreate(data, _createdBy.props);
 
     /*
      * The tenant scalar has just been stamped to the request tenant, but the
@@ -1659,6 +2143,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       _createdBy.props,
     );
 
+    // Only the record's own files. See the helper.
+    await this.assertFileReferencesOwnedOnCreate(data);
+
     /*
      * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
      * its list, or to the place the caller asked for. Planned after the
@@ -1671,6 +2158,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     createBy.data = data;
 
+    // A service's own words for a clash, before the generic checks below.
+    if (!createBy.props.ignoreHooks) {
+      await this.onBeforeCreateUniqueCheck(createBy);
+    }
+
     // check uniqueColumns by:
     createBy = await this.checkUniqueColumnBy(createBy);
 
@@ -1681,6 +2173,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       createBy.data,
       createBy.props,
     )) as TBaseModel;
+
+    // Whatever has written to it since the top of create(), this must INSERT.
+    this.assertCreateWillInsert(createBy.data, createBy.props);
 
     try {
       createBy.data = await this.getRepository().save(createBy.data);
@@ -2807,6 +3302,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
+      /*
+       * Only the rows the caller may delete reach the hook. See the helper.
+       * A hard delete also purges soft-deleted rows, so they count too.
+       */
+      if (
+        !(await this.keepRowsCallerMayWrite(
+          deleteBy,
+          DatabaseRequestType.Delete,
+          { withDeleted: true },
+        ))
+      ) {
+        return 0;
+      }
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -2873,6 +3382,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
+      }
+
+      // Only the rows the caller may delete reach the hook. See the helper.
+      if (
+        !(await this.keepRowsCallerMayWrite(
+          deleteBy,
+          DatabaseRequestType.Delete,
+        ))
+      ) {
+        return 0;
       }
 
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
@@ -3508,6 +4027,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
+      // Only the rows the caller may update reach the hook. See the helper.
+      if (
+        !(await this.keepRowsCallerMayWrite(
+          updateBy,
+          DatabaseRequestType.Update,
+        ))
+      ) {
+        return 0;
+      }
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -3530,6 +4059,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.data,
         beforeUpdateBy.props,
       );
+
+      // A service's own words for a clash, now the caller may make the write.
+      if (!updateBy.props.ignoreHooks) {
+        await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
+        await this.onUpdatePermitted(beforeUpdateBy);
+      }
 
       const data: PartialEntity<TBaseModel> =
         (await this.sanitizeCreateOrUpdate(
@@ -3609,6 +4144,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             props: { isRoot: true, ignoreHooks: true },
           })
         : [];
+
+      /*
+       * Only each record's own files, checked on the very rows this write
+       * is about to write, as they are before it. See the helper.
+       */
+      await FileOwnership.assertOwned(
+        this.getFileReferenceChecksOnUpdate({ data: data, rows: items }),
+      );
 
       /*
        * save() has upsert semantics: if the located row is hard-deleted by a
@@ -3845,10 +4388,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
-       * onUpdateSuccess always fires — subclasses rely on it being called
-       * even when nothing matched — but it is handed only the rows the write
-       * actually affected, so a row deleted mid-update never appears as a
-       * phantom id that hooks would then fail to re-read.
+       * onUpdateSuccess fires whenever onBeforeUpdate did - even when nothing
+       * matched, which subclasses rely on - but it is handed only the rows
+       * the write actually affected, so a row deleted mid-update never
+       * appears as a phantom id that hooks would then fail to re-read. (For a
+       * caller who may write none of the rows a write names, neither hook
+       * runs: see keepRowsCallerMayWrite.)
        */
       if (!updateBy.props.ignoreHooks) {
         await this.onUpdateSuccess(

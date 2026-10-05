@@ -68,10 +68,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      concrete severity id, so a NULL row can never be counted, can never be
  *      executed, and can never page anybody. That is true by construction, not
  *      merely likely.
- *   2. Invisible. Both episode rule pages in the dashboard
- *      (UserSettings/EpisodeOnCallRules.tsx and
- *      UserSettings/IncidentEpisodeOnCallRules.tsx) scope their ModelTable by
- *      a severity id, exactly as the non-episode pages do. A row with no
+ *   2. Invisible. Both episode tabs of the dashboard's On-Call Rules page
+ *      (Components/NotificationRule/OnCallRuleKinds.ts) scope their ModelTable
+ *      by a severity id, exactly as the non-episode tabs do. A row with no
  *      severity renders in no table on any page.
  *
  * So the user can neither be paged by the row nor see it nor delete it. Left

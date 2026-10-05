@@ -3,13 +3,23 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * The extra numbers bought for other countries, which few installations
+ * have: folded under More fields, below the three values the Twilio console
+ * shows together.
+ */
+const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
+  getAdvancedFormSection<GlobalConfig>();
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -44,17 +54,18 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.callSms.editButton")}
-        formSteps={[
-          { title: "Twilio Account", id: "twilio-account" },
-          { title: "Phone Numbers", id: "phone-numbers" },
-        ]}
+        /*
+         * One page: the account SID, its auth token and the number to send
+         * from are copied out of the Twilio console together and only work
+         * together. It was two steps - the account, then the numbers - which
+         * split one copy-and-paste across a Next.
+         */
         formFields={[
           {
             field: {
               twilioAccountSID: true,
             },
             title: "Twilio Account SID",
-            stepId: "twilio-account",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             description: "You can find this in your Twilio console.",
@@ -68,7 +79,6 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioAuthToken: true,
             },
             title: "Twilio Auth Token",
-            stepId: "twilio-account",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             description: "You can find this in your Twilio console.",
@@ -82,7 +92,6 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioPrimaryPhoneNumber: true,
             },
             title: "Primary Twilio Phone Number",
-            stepId: "phone-numbers",
             fieldType: FormFieldSchemaType.Phone,
             required: true,
             description: "You can find this in your Twilio console.",
@@ -95,10 +104,14 @@ const Settings: FunctionComponent = (): ReactElement => {
             field: {
               twilioSecondaryPhoneNumbers: true,
             },
-            title: "Secondary Twilio Phone Number",
-            stepId: "phone-numbers",
+            title: "Secondary Twilio Phone Numbers",
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            /*
+             * Optional, as the server treats it: without extra numbers every
+             * call and SMS goes out from the primary number.
+             */
+            required: false,
+            collapsibleSection: advancedSection,
             description:
               "If you have bought more phone numbers from Twilio for specific countries, you can add them here.",
             placeholder: "+1234567890, +4444444444",

@@ -109,7 +109,7 @@ OBI extrait plusieurs familles de signaux du trafic capturé. Toutes sont activ�
 | Signal                                  | Par défaut | Ce qu'il ajoute                                                                                                                                                                                              |
 | --------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | activé     | Métriques RED HTTP/gRPC — taux de requêtes, histogrammes de latence, comptages d'erreurs — par service.                                                                                                      |
-| `ebpf.features.spanMetrics`             | activé     | Métriques indexées par attribut de span : taille de requête, taille de réponse, durée ventilée par route/opération.                                                                                          |
+| `ebpf.features.spanMetrics`             | activé     | Métriques de span : nombre d'appels et durée par service, route/opération, type de span et statut — `traces.span.metrics.calls`, `traces.span.metrics.duration` (secondes).                                  |
 | `ebpf.features.serviceGraph`            | activé     | Métriques de liens service-à-service (appelant → appelé, taux de requêtes + latence). Alimente la carte de services.                                                                                         |
 | `ebpf.features.networkMetrics`          | activé     | Compteurs d'octets et de paquets de flux TCP/UDP pod-à-pod avec métadonnées k8s. Fait apparaître chaque paire de pods qui communiquent, y compris ceux exécutant des protocoles qu'OBI ne peut pas analyser. |
 | `ebpf.features.networkInterZoneMetrics` | désactivé  | Variante inter-zones des métriques réseau. Double la cardinalité ; ne vaut la peine d'être activé que si vous utilisez réellement la planification basée sur les zones.                                      |
@@ -149,7 +149,7 @@ Mises en garde :
 | Option                 | Par défaut                                                 | Description                                                                                                                            |
 | ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.enabled`         | `true`                                                     | Interrupteur principal. Définir sur `false` pour ignorer entièrement le DaemonSet eBPF.                                                |
-| `ebpf.image.tag`       | `v0.13.0`                                                  | Tag d'image OBI. OBI est pré-1.0 ; épinglez à une version connue comme bonne et retestez lors des mises à jour.                        |
+| `ebpf.image.tag`       | `v0.14.0`                                                  | Tag d'image OBI. OBI est pré-1.0 ; épinglez à une version connue comme bonne et retestez lors des mises à jour.                        |
 | `ebpf.autoTargetExe`   | `*`                                                        | Glob des exécutables à instrumenter. Restreignez ceci (par exemple `*/python,*/java`) si vous voulez délimiter l'auto-instrumentation. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI lui-même) | Globs séparés par des virgules à ignorer.                                                                                              |
 | `ebpf.logLevel`        | `info`                                                     | `debug`, `info`, `warn` ou `error`. Définir sur `debug` lors du dépannage.                                                             |
@@ -252,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 ou antérieur** — supprimez `--reuse-values` et passez vos drapeaux `--set` d'origine (ou `-f values.yaml`) explicitement. Les nouvelles valeurs par défaut du chart s'appliqueront à tout ce que vous ne redéfinissez pas.
 >
 > Si les pods d'une nouvelle fonctionnalité (par exemple `kubernetes-agent-profiling-*`) n'apparaissent pas après la mise à niveau, c'est presque toujours la raison. `helm get values <release>` montre ce que Helm a réellement — les champs absents de la sortie signifient que les valeurs par défaut n'ont pas été fusionnées pour eux.
+
+> **Les métriques de span eBPF changent de nom.** `ebpf.features.spanMetrics` envoie désormais `traces.span.metrics.calls` et `traces.span.metrics.duration` (secondes) au lieu de `traces_spanmetrics_calls_total` et `traces_spanmetrics_latency` : les mêmes séries, sous les noms qu'OBI conserve (OBI a déprécié les anciens). Un tableau de bord, un graphique ou un moniteur de métriques basé sur un ancien nom ne reçoit plus de nouvelles données après la mise à niveau, sans aucune erreur : passez-le au nouveau nom, et mettez aussi à jour les entrées de `filters.metrics` qui citent un ancien nom.
 
 ## Désinstallation
 

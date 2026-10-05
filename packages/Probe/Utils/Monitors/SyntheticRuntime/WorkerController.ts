@@ -471,10 +471,20 @@ export default class WorkerController {
     let attemptsMade: number = 0;
     const attemptReports: string[] = [];
     const startedAtInMs: number = Date.now();
+    /*
+     * What the attempts so far have spent of the whole budget, retry delays
+     * included. It is read off the clock only once an attempt has ended:
+     * before the first one, nothing has been spent. Reading the clock again as
+     * the first attempt started charged it for whatever passed between the two
+     * readings -- a millisecond ticking over, a garbage-collection pause --
+     * and when the whole budget is exactly attempts x the per-attempt budget,
+     * as the production values are, that came off the attempt itself: its
+     * report said "of its 9999 ms budget" for a 10000 ms attempt.
+     */
+    let spentInMs: number = 0;
 
     for (let attempt: number = 1; attempt <= data.attempts; attempt++) {
-      const remainingBudgetInMs: number =
-        data.totalBudgetInMs - (Date.now() - startedAtInMs);
+      const remainingBudgetInMs: number = data.totalBudgetInMs - spentInMs;
       if (attempt > 1 && remainingBudgetInMs <= 0) {
         break;
       }
@@ -512,6 +522,7 @@ export default class WorkerController {
         if (attempt < data.attempts) {
           await this.delay(CONTROLLER_BOOTSTRAP_RETRY_DELAY_IN_MS);
         }
+        spentInMs = Date.now() - startedAtInMs;
       }
     }
 

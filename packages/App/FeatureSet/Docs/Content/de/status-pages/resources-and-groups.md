@@ -22,23 +22,23 @@ Die Beschreibung der Karte richtet sich nach der Form Ihrer Seite. Mit Gruppen s
 
 ## Einen Monitor hinzufügen
 
-Wählen Sie die Gruppe, in der die Ressource landen soll (oder **Top of page** für eine Zeile ohne Gruppe), und klicken Sie auf **Monitor hinzufügen**. Der Dialog heißt **Add a monitor to {group}** und hat zwei Schritte: **Monitordetails** und **Erweitert**.
-
-Im Schritt **Monitordetails**:
+Wählen Sie die Gruppe, in der die Ressource landen soll (oder **Top of page** für eine Zeile ohne Gruppe), und klicken Sie auf **Monitor hinzufügen**. Der Dialog heißt **Add a monitor to {group}** und ist eine einzige Seite, die nur nach einem fragt – dem Monitor:
 
 - **Überwachung** – das Dropdown der Monitore in Ihrem Projekt, Platzhalter **Überwachung auswählen**. Pflichtfeld.
-- **Anzeigename** – Pflichtfeld. Das ist der Text, den Besucher lesen; er wird getrennt vom eigenen Namen des Monitors gespeichert, Sie können ihn hier also ändern, ohne die Überwachung anzufassen.
-- **Beschreibung** – optionales Markdown, unter der Zeile angezeigt. Gut für einen Satz, der erklärt, was der Dienst eigentlich tut.
+- **Anzeigename** – der Text, den Besucher lesen. Er wird mit dem Namen des Monitors ausgefüllt, sobald Sie ihn auswählen, und wechselt mit, wenn Sie einen anderen Monitor wählen – bis Sie einen eigenen Namen eingeben. Er wird getrennt vom eigenen Namen des Monitors gespeichert, Sie können ihn hier also ändern, ohne die Überwachung anzufassen.
+- **Weitere Felder** – eingeklappt. Enthält **Beschreibung** (optionales Markdown, unter der Zeile angezeigt, gut für einen Satz, der erklärt, was der Dienst eigentlich tut) und die [Anzeigeoptionen](#anzeigeoptionen-an-einer-ressource). Bleibt der Abschnitt zu, bekommt die Ressource deren Standardwerte.
+
+Monitor auswählen, auf **Monitor hinzufügen** klicken, und die Zeile steht auf der Seite. In einer Grid-Gruppe fragt der Dialog oberhalb von **Weitere Felder** außerdem nach der Zeile und der Spalte, in die der Monitor gehört – siehe [Listen-Layout und Raster-Layout](#listen-layout-und-raster-layout).
 
 Sind in Ihrem Projekt Monitorgruppen aktiviert, steht unter dem Dropdown ein Link **Add a Monitor Group instead.** – klicken Sie ihn an, und das Dropdown **Überwachung** wird gegen ein Dropdown **Monitor Gruppe** getauscht (**Überwachungsgruppe auswählen**). Der Link wechselt dann zu **Add a Monitor instead.**, damit Sie zurückkönnen. Nehmen Sie eine Monitorgruppe, wenn eine Zeile auf der Seite mehrere zusammengefasste Prüfungen darstellen soll.
 
 ### Mehrere auf einmal hinzufügen
 
-**Add Multiple** (im Menü **More actions** auch **Add multiple monitors**) öffnet **Add Multiple Monitors**. Der Dialog hat dieselben zwei Schritte, aber der erste ist eine Mehrfachauswahl **Monitore** statt eines einzelnen Dropdowns, und die Anzeigeoptionen aus **Erweitert** gelten für jeden Monitor, den Sie ausgewählt haben. Das ist der schnellste Weg, eine neue Seite zu bestücken.
+**Add Multiple** (im Menü **More actions** auch **Add multiple monitors**) öffnet **Add Multiple Monitors**. Auch er ist eine einzige Seite: eine Mehrfachauswahl **Monitore** statt eines einzelnen Dropdowns, darunter derselbe eingeklappte Abschnitt **Weitere Felder**, dessen Anzeigeoptionen für jeden Monitor gelten, den Sie ausgewählt haben. Jede Ressource übernimmt Anzeigenamen und Beschreibung von ihrem Monitor, und **Monitore hinzufügen** fügt sie hinzu – es gibt keine Schritte zu durchlaufen. Das ist der schnellste Weg, eine neue Seite zu bestücken.
 
 ## Anzeigeoptionen an einer Ressource
 
-Der Schritt **Erweitert** ist im Einzelformular und im Massendialog derselbe. Alles hier gilt pro Ressource – zwei Zeilen in derselben Gruppe dürfen unterschiedlich konfiguriert sein.
+Der Abschnitt **Weitere Felder** ist im Einzelformular und im Massendialog derselbe. Er startet in beiden eingeklappt, ebenso unter **Ressource bearbeiten**, wo seine eingeklappte Kopfzeile zeigt, was darin vom Standard abweicht. Alles hier gilt pro Ressource – zwei Zeilen in derselben Gruppe dürfen unterschiedlich konfiguriert sein.
 
 | Feld                                                              | Zweck                                                                                              |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
@@ -48,11 +48,11 @@ Der Schritt **Erweitert** ist im Einzelformular und im Massendialog derselbe. Al
 | **Verfügbarkeitsgenauigkeit auswählen** (`uptimePercentPrecision`) | Erscheint erst, wenn **Verfügbarkeit % anzeigen** an ist. Pflichtfeld, Standard: eine Nachkommastelle. |
 | **Statusverlaufsdiagramm anzeigen** (`showStatusHistoryChart`)    | Standardmäßig an. Zeigt das tagesweise Verfügbarkeits-Balkendiagramm der Ressource.                 |
 
-Auch **Anzeigename** (`displayName`) und **Beschreibung** (`displayDescription`) aus dem ersten Schritt sind reine Anzeigefelder – sie ändern den Monitor selbst nie.
+Auch **Anzeigename** (`displayName`) und **Beschreibung** (`displayDescription`) sind reine Anzeigefelder – sie ändern den Monitor selbst nie.
 
 ## Verfügbarkeitsprozente und Verlaufsdiagramme
 
-Sowohl **Verfügbarkeit % anzeigen** als auch **Statusverlaufsdiagramm anzeigen** hängen an einer Einstellung, die woanders liegt. Der Zeitraum, den beide abdecken, ist **Verfügbarkeitsverlauf anzeigen (in Tagen)** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**, in der Karte **Einstellungen für Verfügbarkeitsverlauf**. Sie nimmt 1 bis 90 Tage und steht standardmäßig auf 90.
+Sowohl **Verfügbarkeit % anzeigen** als auch **Statusverlaufsdiagramm anzeigen** hängen an einer Einstellung, die woanders liegt. Der Zeitraum, den beide abdecken, ist **Verfügbarkeitsverlauf** in der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**. Er nimmt 1 bis 90 Tage und steht standardmäßig auf 90.
 
 Die Reihenfolge ist also: die Schalter pro Ressource einschalten, dann den Zeitraum einmal für die ganze Seite setzen.
 
@@ -64,19 +64,18 @@ Die Farben der Balken im Verlaufsdiagramm und die Frage, welche Monitorstatus al
 
 ## Gruppen
 
-Klicken Sie auf **New Group**, um **Create New Status Page Group** zu öffnen. Das Formular hat drei Schritte: **Gruppendetails**, **Layout** und **Erweitert**.
-
-**Gruppendetails**:
+Klicken Sie auf **New Group**, um **Create New Status Page Group** zu öffnen. Das Formular ist eine einzige Seite: zwei Felder, darunter zwei eingeklappte Abschnitte.
 
 - **Gruppenname** (`name`) – Pflichtfeld. Das ist die Abschnittsüberschrift, die Besucher sehen.
-- **Gruppenbeschreibung** (`description`) – optionales Markdown, unter der Überschrift angezeigt.
-- **Parent Group** (`parentStatusPageGroupId`) – optional. Lassen Sie das Feld auf **No parent group (top level)**, damit die Gruppe auf oberster Ebene bleibt.
-- **Auf Statusseite standardmäßig erweitern** (`isExpandedByDefault`) – ob der Abschnitt für Besucher offen oder eingeklappt startet.
+- **Parent Group** (`parentStatusPageGroupId`) – optional. Lassen Sie das Feld auf **No parent group (top level)**, damit die Gruppe auf oberster Ebene bleibt. **Add a sub group** füllt es für Sie aus.
+- **Layout** – eingeklappt; die Kopfzeile zeigt **List** oder **Grid**. Der Abschnitt enthält den **Ansichtsmodus** und die Achsen eines Rasters (siehe [Listen-Layout und Raster-Layout](#listen-layout-und-raster-layout)) und öffnet sich bei einer Grid-Gruppe von selbst.
+- **Weitere Felder** – eingeklappt. Enthält den Rest und spiegelt die Ressourcenoptionen auf Gruppenebene:
+  - **Gruppenbeschreibung** (`description`) – optionales Markdown, unter der Überschrift angezeigt.
+  - **Auf Statusseite standardmäßig erweitern** (`isExpandedByDefault`) – standardmäßig an: ob der Abschnitt für Besucher offen oder eingeklappt startet.
+  - **Aktuellen Gruppenstatus anzeigen** (`showCurrentStatus`) – standardmäßig an. Zeigt einen Status neben der Gruppenüberschrift.
+  - **Verfügbarkeit % anzeigen** (`showUptimePercent`) – standardmäßig aus; **Verfügbarkeitsgenauigkeit auswählen** erscheint, sobald der Schalter an ist.
 
-**Erweitert** spiegelt die Ressourcenschalter auf Gruppenebene:
-
-- **Aktuellen Gruppenstatus anzeigen** (`showCurrentStatus`) – standardmäßig an. Zeigt einen Status neben der Gruppenüberschrift.
-- **Verfügbarkeit % anzeigen** (`showUptimePercent`) – standardmäßig aus; **Verfügbarkeitsgenauigkeit auswählen** erscheint, sobald der Schalter an ist.
+Die meisten Gruppen brauchen nur einen Namen: eintippen und auf **Statusseitengruppe erstellen** klicken.
 
 Das Bearbeiten läuft genauso: **Edit Group** in der Kopfzeile des Bereichs oder **Edit group** im Zeilenmenü des Navigators öffnet **Edit Status Page Group** mit einer Schaltfläche **Änderungen speichern**.
 
@@ -96,7 +95,7 @@ Verschachtelung lohnt sich auf großen Seiten: ein Hosting-Anbieter mit Regionen
 
 ## Listen-Layout und Raster-Layout
 
-Der Schritt **Layout** setzt den **Ansichtsmodus** (`viewMode`) der Gruppe und verändert, wie die Gruppe öffentlich dargestellt wird.
+Der Abschnitt **Layout** des Gruppenformulars setzt den **Ansichtsmodus** (`viewMode`) der Gruppe und verändert, wie die Gruppe öffentlich dargestellt wird.
 
 | Wenn Sie …                                                                  | Wählen Sie             |
 | ----------------------------------------------------------------------------- | ---------------------- |
@@ -110,9 +109,9 @@ Wählen Sie **Grid**, erscheinen vier weitere Felder:
 - **Beschriftung der Spaltenachse** – die Spaltendimension, Platzhalter `Region`.
 - **Werte der Spaltenachse** – über **Add Column** hinzugefügt (Platzhalter `e.g. US-East`).
 
-Jeder Monitor in einer Grid-Gruppe sitzt dann in einer Zelle – der Massendialog fragt deshalb neben den Monitoren auch nach Zeile und Spalte und benutzt dabei Ihre eigenen Achsenbeschriftungen.
+Jeder Monitor in einer Grid-Gruppe sitzt dann in einer Zelle – **Monitor hinzufügen** und der Massendialog fragen deshalb neben dem Monitor auch nach Zeile und Spalte und benutzt dabei Ihre eigenen Achsenbeschriftungen.
 
-**Richten Sie die Achsen ein, bevor Sie Monitore hinzufügen.** Eine Grid-Gruppe ohne Zeilen und Spalten zeigt einen bernsteinfarbenen Hinweis, dass es keinen Platz für einen Monitor gibt, solange die Achsen fehlen, dazu eine Schaltfläche **Set up the grid** – und die Schaltfläche **Monitor hinzufügen** verschwindet, bis Sie das erledigt haben.
+**Richten Sie die Achsen ein, bevor Sie Monitore hinzufügen.** Eine Grid-Gruppe ohne Zeilen und Spalten zeigt einen bernsteinfarbenen Hinweis, dass es keinen Platz für einen Monitor gibt, solange die Achsen fehlen, dazu eine Schaltfläche **Set up the grid**, die das Formular der Gruppe beim Abschnitt **Layout** öffnet – und die Schaltfläche **Monitor hinzufügen** verschwindet, bis Sie das erledigt haben.
 
 ## Die Reihenfolge festlegen, die Besucher sehen
 

@@ -442,6 +442,7 @@ const HostProcesses: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<ProcessRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (row: ProcessRow): boolean => {
         return processViewRouteFor(row) !== null;

@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -12,12 +11,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -29,7 +27,7 @@ export interface ComponentProps {
 
 /*
  * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match.
+ * filter's checklist (the feed's ⋯ menu), so the two always match.
  */
 export const ON_CALL_DUTY_POLICY_FEED_ICONS: Record<
   OnCallDutyPolicyFeedEventType,
@@ -155,27 +153,13 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card
+    <FeedCard
       title={"On Call Duty Policy Feed"}
       description={
-        "This is the timeline and feed for this on call duty policy. You can see all the updates and information about this on call duty policy here."
+        "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs."
       }
-      buttons={[
-        <FeedOptionsButton
-          key="on-call-policy-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={refresh}
     >
       <div>
         {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
@@ -195,7 +179,7 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         )}
         {loadMoreError && <ErrorMessage message={loadMoreError} />}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

@@ -1,9 +1,10 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import { useDefaultSsoTeamsInitialValues } from "@oneuptime/dashboard/Components/Sso/UseDefaultSsoTeams";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
@@ -12,7 +13,6 @@ import API from "Common/UI/Utils/API/API";
 import { IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
-import Team from "Common/Models/DatabaseModels/Team";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
   Fragment,
@@ -24,6 +24,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import ProjectSCIMLogsTable from "../../Components/SCIMLogs/ProjectSCIMLogsTable";
+import {
+  getProjectScimFormFields,
+  withoutHiddenScimDefaultTeams,
+} from "../../ScimFormFields";
 import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
 import {
   EnterpriseLicenseMode,
@@ -36,7 +40,25 @@ import {
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
 } from "../../TightenOnly/TightenOnlyUpdates";
+import { canCurrentUserSaveScimConnections } from "../../ScimSaveAccess";
+import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
 
+/*
+ * Settings > SCIM: the project's SCIM connections and their logs.
+ *
+ * Adding one asks for its name and the teams newcomers join (the members
+ * team to start with); provisioning, deprovisioning, push groups and the
+ * description wait under Advanced at their defaults (../../ScimFormFields).
+ * Once it is saved, the dialog with the SCIM URLs and the bearer token to
+ * give the identity provider opens straight away: that is the next thing to
+ * do.
+ *
+ * A connection can change the members of any team, so only someone who
+ * could invite people to every team - a project owner - may add one, change
+ * one, or see or reset its bearer token (../../ScimSaveAccess; the server
+ * lets only a project owner read the token). Everyone else who can see the
+ * page is told so instead of being offered what the server would refuse.
+ */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
@@ -65,9 +87,15 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
 
+  // Adding, changing or resetting a connection: a project owner's to do.
+  const canSaveConnections: boolean = canCurrentUserSaveScimConnections();
+
   const [showResetSuccessModal, setShowResetSuccessModal] =
     useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
+
+  const createInitialValues: FormValues<ProjectSCIM> | undefined =
+    useDefaultSsoTeamsInitialValues<ProjectSCIM>();
 
   const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
     setIsResetLoading(true);
@@ -101,7 +129,11 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         mode={licenseMode}
         feature={LicensedFeature.SCIM}
       />
-      <ReadOnlyActionsNotice mode={licenseMode} />
+      {canSaveConnections ? (
+        <ReadOnlyActionsNotice mode={licenseMode} />
+      ) : (
+        <ScimSaveAccessNotice />
+      )}
       <Tabs
         tabs={[
           {
@@ -120,8 +152,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   tableId: "settings-project-scim-table",
                 }}
                 isDeleteable={true}
-                isEditable={!isReadOnly}
-                isCreateable={!isReadOnly}
+                isEditable={!isReadOnly && canSaveConnections}
+                isCreateable={!isReadOnly && canSaveConnections}
                 showRefreshButton={true}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
@@ -129,107 +161,24 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users from your identity provider.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
-                formSteps={[
-                  {
-                    title: "Basic Info",
-                    id: "basic",
-                  },
-                  {
-                    title: "Configuration",
-                    id: "configuration",
-                  },
-                  {
-                    title: "Teams",
-                    id: "teams",
-                    showIf: (item: FormValues<ProjectSCIM>): boolean => {
-                      return !item.enablePushGroups;
-                    },
-                  },
-                ]}
                 noItemsMessage={"No SCIM configuration found."}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                formFields={[
-                  {
-                    field: {
-                      name: true,
-                    },
-                    title: "Name",
-                    fieldType: FormFieldSchemaType.Text,
-                    required: true,
-                    description:
-                      "Friendly name to help you remember this SCIM configuration.",
-                    placeholder: "Okta SCIM",
-                    validation: {
-                      minLength: 2,
-                    },
-                    stepId: "basic",
-                  },
-                  {
-                    field: {
-                      description: true,
-                    },
-                    title: "Description",
-                    fieldType: FormFieldSchemaType.LongText,
-                    required: false,
-                    description:
-                      "Optional description for this SCIM configuration.",
-                    placeholder:
-                      "SCIM configuration for automatic user provisioning from Okta",
-                    stepId: "basic",
-                  },
-                  {
-                    field: {
-                      autoProvisionUsers: true,
-                    },
-                    title: "Auto Provision Users",
-                    fieldType: FormFieldSchemaType.Checkbox,
-                    required: false,
-                    description:
-                      "Automatically create users when they are added in your identity provider.",
-                    stepId: "configuration",
-                  },
-                  {
-                    field: {
-                      autoDeprovisionUsers: true,
-                    },
-                    title: "Auto Deprovision Users",
-                    fieldType: FormFieldSchemaType.Checkbox,
-                    required: false,
-                    description:
-                      "Automatically remove users from teams when they are removed from your identity provider.",
-                    stepId: "configuration",
-                  },
-                  {
-                    field: {
-                      enablePushGroups: true,
-                    },
-                    title: "Enable Push Groups",
-                    fieldType: FormFieldSchemaType.Checkbox,
-                    required: false,
-                    description:
-                      "Enable push groups provisioning instead of default teams. When enabled, users will not be added to default teams and team membership will be managed via push groups.",
-                    stepId: "configuration",
-                  },
-                  {
-                    field: {
-                      teams: true,
-                    },
-                    title: "Default Teams",
-                    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                    dropdownModal: {
-                      type: Team,
-                      labelField: "name",
-                      valueField: "_id",
-                    },
-                    required: false,
-                    description:
-                      "New users will be automatically added to these teams.",
-                    stepId: "teams",
-                    showIf: (item: FormValues<ProjectSCIM>): boolean => {
-                      return !item.enablePushGroups;
-                    },
-                  },
-                ]}
+                formFields={getProjectScimFormFields()}
+                createInitialValues={createInitialValues}
+                onBeforeCreate={(item: ProjectSCIM): Promise<ProjectSCIM> => {
+                  return Promise.resolve(withoutHiddenScimDefaultTeams(item));
+                }}
+                onCreateSuccess={(
+                  item: ProjectSCIM,
+                  modalType?: ModalType,
+                ): Promise<ProjectSCIM> => {
+                  if (modalType === ModalType.Create && item.id) {
+                    setCurrentSCIMConfig(item);
+                    setShowSCIMUrlId(item.id.toString());
+                  }
+
+                  return Promise.resolve(item);
+                }}
                 columns={[
                   {
                     field: {
@@ -261,7 +210,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                 ]}
                 selectMoreFields={{
-                  bearerToken: true,
+                  // Only a project owner may read the token at all.
+                  ...(canSaveConnections ? { bearerToken: true } : {}),
                   createdAt: true,
                   updatedAt: true,
                   enablePushGroups: true,
@@ -282,6 +232,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 actionButtons={[
                   {
                     title: "View SCIM URLs",
+                    icon: IconProp.Link,
                     buttonStyleType: ButtonStyleType.NORMAL,
                     onClick: async (
                       item: ProjectSCIM,
@@ -293,20 +244,24 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       setShowSCIMUrlId(item.id?.toString() || "");
                     },
                   },
-                  {
-                    title: "Reset Bearer Token",
-                    buttonStyleType: ButtonStyleType.OUTLINE,
-                    icon: IconProp.Refresh,
-                    onClick: async (
-                      item: ProjectSCIM,
-                      onCompleteAction: () => void,
-                      _onError: (error: Error) => void,
-                    ) => {
-                      onCompleteAction();
-                      setResetSCIMId(item.id?.toString() || "");
-                      setShowResetModal(true);
-                    },
-                  },
+                  ...(canSaveConnections
+                    ? [
+                        {
+                          title: "Reset Bearer Token",
+                          buttonStyleType: ButtonStyleType.OUTLINE,
+                          icon: IconProp.Refresh,
+                          onClick: async (
+                            item: ProjectSCIM,
+                            onCompleteAction: () => void,
+                            _onError: (error: Error) => void,
+                          ) => {
+                            onCompleteAction();
+                            setResetSCIMId(item.id?.toString() || "");
+                            setShowResetModal(true);
+                          },
+                        },
+                      ]
+                    : []),
                 ]}
               />
             ),
@@ -373,21 +328,26 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   </p>
                 </div>
 
-                <div className="border-t pt-4">
-                  <p className="font-medium text-gray-700 mb-1">
-                    Bearer Token:
-                  </p>
-                  <div className="mb-2">
-                    <HiddenText
-                      text={currentSCIMConfig.bearerToken || ""}
-                      isCopyable={true}
-                    />
+                {canSaveConnections && (
+                  <div
+                    className="border-t pt-4"
+                    data-testid="scim-bearer-token-section"
+                  >
+                    <p className="font-medium text-gray-700 mb-1">
+                      Bearer Token:
+                    </p>
+                    <div className="mb-2">
+                      <HiddenText
+                        text={currentSCIMConfig.bearerToken || ""}
+                        isCopyable={true}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Use this bearer token for authentication in your identity
+                      provider SCIM configuration.
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Use this bearer token for authentication in your identity
-                    provider SCIM configuration.
-                  </p>
-                </div>
+                )}
               </div>
             </div>
           }

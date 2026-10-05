@@ -17,6 +17,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const NETWORK_DEVICE_ID_ATTR: string = "networkDevice.id";
 
@@ -33,6 +36,7 @@ const LOG_ATTRIBUTE_DISPLAY_KEYS: Record<string, string> = {
 const NetworkDeviceLogs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [deviceName, setDeviceName] = useState<string>("");
@@ -119,21 +123,22 @@ const NetworkDeviceLogs: FunctionComponent<
         >
           <div className="space-y-3 text-sm text-gray-600">
             <p>
-              Device logs are collected by your <strong>probe</strong>. It
-              listens for <strong>SNMP traps</strong> on UDP port 162 and for{" "}
-              <strong>syslog</strong> messages on UDP port 5140 (syslog is off
-              by default — enable it with{" "}
-              <code>PROBE_SYSLOG_RECEIVER_ENABLED=true</code> on the probe).
-              Point this device&apos;s syslog and trap destinations at the
-              probe&apos;s IP address and messages will appear here within a few
-              minutes.
+              <TranslatedSentence
+                template="Device logs are collected by your {{probe}}. It listens for {{snmpTraps}} on UDP port 162 and for {{syslog}} messages on UDP port 5140 (syslog is off by default — enable it with {{setting}} on the probe). Point this device's syslog and trap destinations at the probe's IP address and messages will appear here within a few minutes."
+                slots={{
+                  probe: <strong>{translator.translateText("probe")}</strong>,
+                  snmpTraps: (
+                    <strong>{translator.translateText("SNMP traps")}</strong>
+                  ),
+                  syslog: <strong>{translator.translateText("syslog")}</strong>,
+                  setting: <code>PROBE_SYSLOG_RECEIVER_ENABLED=true</code>,
+                }}
+              />
             </p>
             <p className="text-gray-500">
-              On most routers and switches this is two steps: add a remote
-              syslog server pointing at the probe, then add the probe as an SNMP
-              trap receiver. Messages are matched to this device by the sender
-              IP address, which must equal this device&apos;s hostname/IP as
-              registered here.
+              {translator.translateText(
+                "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the sender IP address, which must equal this device's hostname/IP as registered here.",
+              )}
             </p>
           </div>
         </Card>

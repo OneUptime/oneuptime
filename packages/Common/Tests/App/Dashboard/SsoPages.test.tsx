@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -23,10 +24,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * On a self-hosted install (billing off) each page is the configuration
  * screen whatever the edition and whatever the Enterprise license says: the
- * provider table offers create, edit and delete, there is no "Disable" row
- * action and no license banner or notice, "Force SSO for Login" (on the two
- * SAML pages) is editable with its usual description, and the page never
- * asks the server for the license. On OneUptime Cloud (billing on) only the
+ * provider table offers create, edit and delete, there is no "Disable"
+ * row action and no license banner or notice, requiring SSO (on the two SAML
+ * pages) can always be changed - the project's and the status page's
+ * "Require SSO for Login" are switches that save on flip and ask first,
+ * with a red button - and the page never asks the server for the license. On OneUptime Cloud (billing on) only the
  * plan decides: a project below Scale, or one whose plan cannot be read,
  * sees the Scale plan upsell - never the Enterprise Edition one.
  *
@@ -35,8 +37,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * provider, so they are pinned byte for byte. The URL settings are pinned
  * too, so the expected values can be literal.
  *
- * ModelTable and CardModelDetail are stand-ins that print the props that
- * matter; everything else is real. Billing, the edition, the plan and the
+ * ModelTable, CardModelDetail and ModelSwitchCard are stand-ins that print
+ * the props that matter; everything else is real. Billing, the edition, the plan and the
  * license answer are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true.
  */
@@ -116,6 +118,37 @@ const mockProviderRow: { _id: string } = {
   _id: "33333333-3333-4333-8333-333333333333",
 };
 
+/*
+ * The team a project's new SAML or OIDC provider starts on
+ * (Utils/DefaultInviteTeam, looked up when Settings > SSO or Settings > OIDC
+ * opens). Stubbed so the pages make no request at all here; its own suite
+ * tests the lookup.
+ */
+const mockDefaultInviteTeam: {
+  team: { id: string; name: string } | null;
+  lookups: number;
+} = { team: null, lookups: 0 };
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam",
+    ) as Record<string, unknown>;
+
+    return {
+      ...actual,
+      findDefaultInviteTeam: async (): Promise<{
+        id: string;
+        name: string;
+      } | null> => {
+        mockDefaultInviteTeam.lookups++;
+        return mockDefaultInviteTeam.team;
+      },
+    };
+  },
+);
+
 interface MockActionButton {
   title: string;
   isVisible?: ((item: unknown) => boolean | undefined) | undefined;
@@ -135,6 +168,20 @@ interface MockCreatedItem {
   projectId?: { toString: () => string } | undefined;
 }
 
+type MockOnCreateSuccess = (
+  item: Record<string, unknown>,
+  modalType?: number,
+) => Promise<unknown>;
+
+/*
+ * What the real table hands onCreateSuccess as the dialog that was saved:
+ * ModalType.Create and ModalType.Edit (pinned against the enum below).
+ */
+const mockModalTypes: { create: number; edit: number } = {
+  create: 0,
+  edit: 1,
+};
+
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   const react: typeof React = jest.requireActual("react") as typeof React;
 
@@ -147,7 +194,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     refreshToggle?: string | undefined;
     actionButtons?: Array<MockActionButton>;
     formFields?: Array<MockFormField>;
+    formSteps?: Array<{ id: string; title: string }>;
     onBeforeCreate?: ((item: unknown) => Promise<unknown>) | undefined;
+    createInitialValues?: Record<string, unknown> | undefined;
+    onCreateSuccess?: MockOnCreateSuccess | undefined;
   }) => ReactElement = (props: {
     id: string;
     modelType: { new (): unknown };
@@ -157,7 +207,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     refreshToggle?: string | undefined;
     actionButtons?: Array<MockActionButton>;
     formFields?: Array<MockFormField>;
+    formSteps?: Array<{ id: string; title: string }>;
     onBeforeCreate?: ((item: unknown) => Promise<unknown>) | undefined;
+    createInitialValues?: Record<string, unknown> | undefined;
+    onCreateSuccess?: MockOnCreateSuccess | undefined;
   }): ReactElement => {
     const [created, setCreated] = react.useState<string>("");
 
@@ -184,6 +237,14 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
             return Object.keys(formField.field || {}).join(",");
           })
           .join("|")}
+        data-form-steps={(props.formSteps || [])
+          .map((step: { id: string; title: string }) => {
+            return `${step.id}: ${step.title}`;
+          })
+          .join("|")}
+        data-create-initial-values={JSON.stringify(
+          props.createInitialValues || null,
+        )}
       >
         {visibleActions.map((button: MockActionButton) => {
           return (
@@ -220,6 +281,37 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           <></>
         )}
         <div data-testid={`created-${props.id}`}>{created}</div>
+        {props.onCreateSuccess ? (
+          <>
+            {[true, false].map((isEnabled: boolean) => {
+              return (
+                <button
+                  key={String(isEnabled)}
+                  type="button"
+                  data-testid={`saved-${props.id}-${isEnabled ? "on" : "off"}`}
+                  onClick={async () => {
+                    await props.onCreateSuccess!(
+                      { _id: mockProviderRow._id, isEnabled },
+                      mockModalTypes.create,
+                    );
+                  }}
+                />
+              );
+            })}
+            <button
+              type="button"
+              data-testid={`edited-${props.id}`}
+              onClick={async () => {
+                await props.onCreateSuccess!(
+                  { _id: mockProviderRow._id, isEnabled: false },
+                  mockModalTypes.edit,
+                );
+              }}
+            />
+          </>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -273,6 +365,54 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   };
 });
 
+interface MockSwitchConfirmation {
+  submitButtonType?: unknown;
+}
+
+jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
+  const buttonModule: { ButtonStyleType: Record<string, unknown> } =
+    jest.requireActual("../../../UI/Components/Button/Button") as {
+      ButtonStyleType: Record<string, unknown>;
+    };
+
+  return {
+    __esModule: true,
+    default: (props: {
+      modelType: { new (): { tableName?: string | undefined } };
+      modelId: { toString: () => string };
+      column: string;
+      cardTitle: string;
+      title: string;
+      getConfirmation?:
+        | ((isTurningOn: boolean) => MockSwitchConfirmation | undefined)
+        | undefined;
+      dataTestId: string;
+    }): ReactElement => {
+      const turningOn: MockSwitchConfirmation | undefined =
+        props.getConfirmation?.(true);
+      const turningOff: MockSwitchConfirmation | undefined =
+        props.getConfirmation?.(false);
+
+      return (
+        <div
+          data-testid={`model-switch-card-${props.dataTestId}`}
+          data-model={new props.modelType().tableName || ""}
+          data-model-id={props.modelId.toString()}
+          data-column={props.column}
+          data-card-title={props.cardTitle}
+          data-title={props.title}
+          data-asks-turning-on={String(Boolean(turningOn))}
+          data-asks-turning-off={String(Boolean(turningOff))}
+          data-danger-turning-on={String(
+            turningOn?.submitButtonType ===
+              buttonModule.ButtonStyleType["DANGER"],
+          )}
+        />
+      );
+    },
+  };
+});
+
 import SettingsSSOPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SSO";
 import SettingsOIDCPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/OIDC";
 import StatusPageSSOPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO";
@@ -284,6 +424,7 @@ import Route from "../../../Types/API/Route";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
+import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
@@ -292,14 +433,43 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID: string = mockProviderRow._id;
 
-const FORCE_SSO_FORM_DESCRIPTION: string =
-  "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.";
+/*
+ * The "Require SSO for Login" switch cards, as the stand-in draws them: the
+ * project's (RequireSsoForLoginCard) and the status page's
+ * (StatusPageRequireSsoCard, which replaced its "Force SSO for Login" card).
+ */
+const REQUIRE_SSO_SWITCH_CARD: string =
+  "model-switch-card-project-require-sso-switch";
+const STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD: string =
+  "model-switch-card-status-page-require-sso-switch";
 
-interface ForceSsoCard {
+const REQUIRE_SSO_SWITCH_CARDS: Array<string> = [
+  REQUIRE_SSO_SWITCH_CARD,
+  STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
+];
+
+// A page's "Require SSO for Login" switch: the record it saves on.
+interface RequireSsoSwitch {
+  testId: string;
   model: string;
   modelId: string;
-  detailDescription: string;
 }
+
+// What the configuration dialog says while the provider is off.
+interface TurnOnNote {
+  testId: string;
+  text: string;
+}
+
+const SAML_TURN_ON_NOTE: TurnOnNote = {
+  testId: "sso-config-turn-on-note",
+  text: "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.",
+};
+
+const OIDC_TURN_ON_NOTE: TurnOnNote = {
+  testId: "oidc-config-turn-on-note",
+  text: "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.",
+};
 
 interface PageCase {
   name: string;
@@ -310,9 +480,12 @@ interface PageCase {
   modalTitle: string;
   // What the configuration dialog prints for the identity provider, exactly.
   printed: Array<string>;
+  turnOnNote: TurnOnNote;
+  // A project's provider: the teams newcomers join start on the members team.
+  startsOnMembersTeam: boolean;
   // The "test it before you force it" link, exactly.
   testLink: string;
-  forceSsoCard: ForceSsoCard | null;
+  requireSsoSwitch: RequireSsoSwitch | null;
   // Columns the create / edit form writes.
   formFields: Array<string>;
   // Status pages attach new providers to the page and its project.
@@ -335,23 +508,25 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/identity/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: SAML_TURN_ON_NOTE,
+    startsOnMembersTeam: true,
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
-    forceSsoCard: {
+    requireSsoSwitch: {
+      testId: REQUIRE_SSO_SWITCH_CARD,
       model: "Project",
       modelId: PROJECT_ID,
-      detailDescription:
-        "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
     },
+    // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
-      "description",
       "signOnURL",
       "issuerURL",
       "publicCertificate",
+      "teams",
+      "isEnabled",
       "signatureMethod",
       "digestMethod",
-      "isEnabled",
-      "teams",
+      "description",
     ],
     attachesToStatusPage: false,
     upsellTitle: "Single Sign On (SSO)",
@@ -369,20 +544,23 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/identity/oidc-callback/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
-    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/oidc`,
-    forceSsoCard: null,
+    turnOnNote: OIDC_TURN_ON_NOTE,
+    startsOnMembersTeam: true,
+    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
+    requireSsoSwitch: null,
+    // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
-      "description",
-      "discoveryURL",
       "issuerURL",
       "clientId",
       "clientSecret",
+      "teams",
+      "isEnabled",
+      "discoveryURL",
       "scopes",
       "emailClaimName",
       "nameClaimName",
-      "isEnabled",
-      "teams",
+      "description",
     ],
     attachesToStatusPage: false,
     upsellTitle: "OpenID Connect (OIDC)",
@@ -400,22 +578,23 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/identity/status-page-idp-login/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: SAML_TURN_ON_NOTE,
+    startsOnMembersTeam: false,
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
-    forceSsoCard: {
+    requireSsoSwitch: {
+      testId: STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
       model: "StatusPage",
       modelId: STATUS_PAGE_ID,
-      detailDescription:
-        "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.",
     },
     formFields: [
       "name",
-      "description",
       "signOnURL",
       "issuerURL",
       "publicCertificate",
+      "isEnabled",
       "signatureMethod",
       "digestMethod",
-      "isEnabled",
+      "description",
     ],
     attachesToStatusPage: true,
     upsellTitle: "Status Page SSO",
@@ -433,19 +612,21 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/identity/status-page-oidc-callback/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: OIDC_TURN_ON_NOTE,
+    startsOnMembersTeam: false,
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
-    forceSsoCard: null,
+    requireSsoSwitch: null,
     formFields: [
       "name",
-      "description",
-      "discoveryURL",
       "issuerURL",
       "clientId",
       "clientSecret",
+      "isEnabled",
+      "discoveryURL",
       "scopes",
       "emailClaimName",
       "nameClaimName",
-      "isEnabled",
+      "description",
     ],
     attachesToStatusPage: true,
     upsellTitle: "Status Page OIDC",
@@ -522,30 +703,42 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
   expect(table).toHaveAttribute("data-actions", pageCase.viewAction);
   expect(table).toHaveAttribute("data-refresh-toggle", "false");
 
-  if (pageCase.forceSsoCard) {
-    const card: HTMLElement = screen.getByTestId(
-      "card-model-detail-SSO Settings",
+  // No page keeps an Edit dialog for requiring SSO ("Force SSO for Login").
+  expect(
+    screen.queryByTestId("card-model-detail-SSO Settings"),
+  ).not.toBeInTheDocument();
+
+  if (pageCase.requireSsoSwitch) {
+    /*
+     * The page's switch - the project's, or the status page's for its
+     * private users: it saves when flipped, asks with a red button before
+     * it locks people out, and never asks to turn it off.
+     */
+    const requireSso: HTMLElement = screen.getByTestId(
+      pageCase.requireSsoSwitch.testId,
     );
 
-    expect(card).toHaveAttribute("data-editable", "true");
-    expect(card).toHaveAttribute("data-edit-button-text", "Edit Settings");
-    expect(card).toHaveAttribute("data-model", pageCase.forceSsoCard.model);
-    expect(card).toHaveAttribute(
+    expect(requireSso).toHaveAttribute(
+      "data-model",
+      pageCase.requireSsoSwitch.model,
+    );
+    expect(requireSso).toHaveAttribute(
       "data-model-id",
-      pageCase.forceSsoCard.modelId,
+      pageCase.requireSsoSwitch.modelId,
     );
-    expect(card).toHaveAttribute(
-      "data-form-descriptions",
-      `Force SSO for Login: ${FORCE_SSO_FORM_DESCRIPTION}`,
-    );
-    expect(card).toHaveAttribute(
-      "data-detail-descriptions",
-      `Force SSO for Login: ${pageCase.forceSsoCard.detailDescription}`,
-    );
-  } else {
-    expect(
-      screen.queryByTestId("card-model-detail-SSO Settings"),
-    ).not.toBeInTheDocument();
+    expect(requireSso).toHaveAttribute("data-column", "requireSsoForLogin");
+    expect(requireSso).toHaveAttribute("data-card-title", "SSO Settings");
+    expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+    expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
+    expect(requireSso).toHaveAttribute("data-danger-turning-on", "true");
+    expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
+  }
+
+  // The other page's switch is not here.
+  for (const testId of REQUIRE_SSO_SWITCH_CARDS) {
+    if (testId !== pageCase.requireSsoSwitch?.testId) {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
   }
 
   for (const testId of LICENSE_TEST_IDS) {
@@ -584,6 +777,10 @@ const expectPlanUpsell: (pageCase: PageCase) => void = (
   expect(
     screen.queryByTestId("card-model-detail-SSO Settings"),
   ).not.toBeInTheDocument();
+
+  for (const testId of REQUIRE_SSO_SWITCH_CARDS) {
+    expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+  }
 };
 
 const pinCloud: (plan: string | null) => void = (plan: string | null): void => {
@@ -605,6 +802,8 @@ beforeEach(() => {
   currentPlanForTest = null;
   currentPlanThrows = false;
   licenseAnswer = null;
+  mockDefaultInviteTeam.team = null;
+  mockDefaultInviteTeam.lookups = 0;
   clearPlugins();
 
   getJestSpyOn(ProjectUtil, "getCurrentPlan").mockImplementation(
@@ -830,4 +1029,201 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
       expectConfigurationScreen(pageCase);
     },
   );
+});
+
+/*
+ * Adding a provider - SAML or OIDC - asks for what the identity provider
+ * gives on a Provider step (SAML: name, sign-on URL, issuer, certificate;
+ * OIDC: name, issuer, client ID and secret), and keeps the rest on a Sign-in
+ * step, filled in (Common/UI/Components/Sso/SamlProviderFormFields and
+ * OidcProviderFormFields; their own tests pin the fields). Once a provider
+ * is saved, the dialog with what to give the identity provider opens
+ * straight away - the Entity ID and Reply URL, or the redirect URI - and
+ * says the provider is off until it is turned on. A project's provider
+ * starts on the team the project's members join.
+ */
+const MEMBERS_TEAM_ID: string = "44444444-4444-4444-8444-444444444444";
+
+test("the stand-in table saves dialogs the way the real one names them", () => {
+  expect(mockModalTypes).toEqual({
+    create: ModalType.Create,
+    edit: ModalType.Edit,
+  });
+});
+
+describe.each(PAGE_CASES)("$name: adding a provider", (pageCase: PageCase) => {
+  test("walks Provider, then Sign-in", () => {
+    renderPage(pageCase);
+
+    expect(providerTable(pageCase)).toHaveAttribute(
+      "data-form-steps",
+      "provider: Provider|sign-in: Sign-in",
+    );
+  });
+
+  test("opens what to give the identity provider as soon as one is saved, and says it is off", async () => {
+    renderPage(pageCase);
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-off`));
+    });
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      pageCase.modalTitle,
+    );
+
+    for (const printed of pageCase.printed) {
+      expect(
+        within(modal).getByText(printed, { exact: true }),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      within(modal).getByTestId(pageCase.turnOnNote.testId),
+    ).toHaveTextContent(pageCase.turnOnNote.text);
+
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("a provider saved switched on has nothing left to turn on", async () => {
+    renderPage(pageCase);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-on`));
+    });
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(modal).getByText(pageCase.printed[0]!)).toBeInTheDocument();
+    expect(
+      within(modal).queryByTestId(pageCase.turnOnNote.testId),
+    ).not.toBeInTheDocument();
+  });
+
+  test("saving an edit opens nothing", async () => {
+    renderPage(pageCase);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`edited-${pageCase.table}`));
+    });
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("the dialog opened from a row that is off says so too", () => {
+    renderPage(pageCase);
+
+    fireEvent.click(screen.getByRole("button", { name: pageCase.viewAction }));
+
+    expect(
+      within(screen.getByTestId("modal")).getByTestId(
+        pageCase.turnOnNote.testId,
+      ),
+    ).toHaveTextContent(pageCase.turnOnNote.text);
+  });
+});
+
+/*
+ * The two dialogs say the same thing about a provider that is off, each
+ * naming what its identity provider is given.
+ */
+test("the SAML and OIDC dialogs word the provider that is off alike", () => {
+  expect(
+    SAML_TURN_ON_NOTE.text.replace("the Entity ID and Reply URL", "X"),
+  ).toBe(OIDC_TURN_ON_NOTE.text.replace("the redirect URI", "X"));
+});
+
+describe.each(
+  PAGE_CASES.filter((pageCase: PageCase): boolean => {
+    return pageCase.startsOnMembersTeam;
+  }),
+)(
+  "$name: a project's new provider starts on the members team",
+  (pageCase: PageCase) => {
+    test("looked up once as the page opens, and handed to the Create form", async () => {
+      mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
+
+      renderPage(pageCase);
+
+      await waitFor(() => {
+        expect(providerTable(pageCase)).toHaveAttribute(
+          "data-create-initial-values",
+          JSON.stringify({ teams: [MEMBERS_TEAM_ID] }),
+        );
+      });
+
+      expect(mockDefaultInviteTeam.lookups).toBe(1);
+    });
+
+    test("with nothing picked when the project has no team to start on", async () => {
+      renderPage(pageCase);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(mockDefaultInviteTeam.lookups).toBe(1);
+      expect(providerTable(pageCase)).toHaveAttribute(
+        "data-create-initial-values",
+        "null",
+      );
+    });
+
+    test("behind the plan upsell, nothing is looked up", async () => {
+      pinCloud(PlanType.Growth);
+
+      renderPage(pageCase);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expectPlanUpsell(pageCase);
+      expect(mockDefaultInviteTeam.lookups).toBe(0);
+    });
+  },
+);
+
+describe.each(
+  PAGE_CASES.filter((pageCase: PageCase): boolean => {
+    return !pageCase.startsOnMembersTeam;
+  }),
+)("$name: a status page's provider has no teams", (pageCase: PageCase) => {
+  test("so nothing is looked up", async () => {
+    mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
+
+    renderPage(pageCase);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockDefaultInviteTeam.lookups).toBe(0);
+    expect(providerTable(pageCase)).toHaveAttribute(
+      "data-create-initial-values",
+      "null",
+    );
+    expect(
+      providerTable(pageCase).getAttribute("data-form-fields"),
+    ).not.toMatch(/teams/);
+  });
+});
+
+test("every provider page is one of those two kinds", () => {
+  expect(
+    PAGE_CASES.map((pageCase: PageCase): string => {
+      return `${pageCase.name}: ${pageCase.startsOnMembersTeam}`;
+    }),
+  ).toEqual([
+    "Settings > SSO: true",
+    "Settings > OIDC: true",
+    "Status page > SSO: false",
+    "Status page > OIDC: false",
+  ]);
 });

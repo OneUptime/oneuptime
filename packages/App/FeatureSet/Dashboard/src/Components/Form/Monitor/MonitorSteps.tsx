@@ -6,6 +6,11 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
@@ -13,15 +18,20 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import API from "Common/UI/Utils/API/API";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import Color from "Common/Types/Color";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -29,11 +39,17 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ProjectUser from "../../../Utils/ProjectUser";
+import {
+  INCIDENT_ROLE_CHOICE_SELECT,
+  toIncidentRoleChoice,
+} from "../../IncidentRole/IncidentRoleAssignments";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorCriteriaAlignmentUtil, {
   CriteriaSeedIds,
   MonitorStepsAlignmentResult,
 } from "../../../Utils/Form/Monitor/MonitorCriteriaAlignment";
+import MonitorRecommendationSeverityMapper from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
+import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -49,6 +65,8 @@ export interface ComponentProps extends CustomElementProps {
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   const [monitorStatusDropdownOptions, setMonitorStatusDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
 
@@ -62,10 +80,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     React.useState<Array<DropdownOption>>([]);
 
   const [labelDropdownOptions, setLabelDropdownOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
-
-  const [teamDropdownOptions, setTeamDropdownOptions] = React.useState<
     Array<DropdownOption>
   >([]);
 
@@ -93,6 +107,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   >(undefined);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
+  /*
+   * Whether the statuses and the rest have been fetched at least once.
+   * isLoading alone cannot say: it starts out false, before the fetch has
+   * even begun, when every status still looks missing.
+   */
+  const [hasLoadedOptions, setHasLoadedOptions] =
+    React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();
 
   /*
@@ -108,6 +130,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   // The monitor type the criteria currently on screen have been aligned to.
   const alignedMonitorTypeRef: React.MutableRefObject<MonitorType | undefined> =
     React.useRef<MonitorType | undefined>(undefined);
+
+  // Whether criteria that arrived without a name have been given one.
+  const hasNamedUnnamedCriteriaRef: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
+
+  /*
+   * The "More fields" section under the criteria, which holds the status
+   * the monitor falls back to when no criteria match. Folded: a new monitor
+   * falls back to its operational status, and the header says which status
+   * it is, so nobody has to open it to know.
+   */
+  const [isAdvancedCollapsed, setIsAdvancedCollapsed] =
+    React.useState<boolean>(true);
 
   useEffect(() => {
     setError(props.error);
@@ -125,20 +160,28 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
+            color: true,
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
 
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
+      /*
+       * Statuses, severities and labels are offered with their colours, the
+       * way every other picker of them shows them: "Change monitor status to"
+       * reads as red for Offline before the name is read.
+       */
       if (monitorStatusList.data) {
         setMonitorStatusDropdownOptions(
-          monitorStatusList.data.map((i: MonitorStatus) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-            };
+          DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: monitorStatusList.data,
+            labelField: "name",
+            valueField: "_id",
           }),
         );
 
@@ -168,6 +211,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
+            color: true,
             order: true,
           },
           sort: {
@@ -183,6 +227,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
+            color: true,
             order: true,
           },
           sort: {
@@ -204,11 +249,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       if (incidentSeverityList.data) {
         setIncidentSeverityDropdownOptions(
-          incidentSeverityList.data.map((i: IncidentSeverity) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-            };
+          DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: incidentSeverityList.data,
+            labelField: "name",
+            valueField: "_id",
           }),
         );
 
@@ -225,11 +269,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       if (alertSeverityList.data) {
         setAlertSeverityDropdownOptions(
-          alertSeverityList.data.map((i: AlertSeverity) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-            };
+          DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: alertSeverityList.data,
+            labelField: "name",
+            valueField: "_id",
           }),
         );
 
@@ -272,39 +315,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       if (labelList.data) {
         setLabelDropdownOptions(
-          labelList.data.map((i: Label) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-            };
+          DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: labelList.data,
+            labelField: "name",
+            valueField: "_id",
           }),
         );
       }
 
-      // Fetch teams
-      const teamList: ListResult<Team> = await ModelAPI.getList({
-        modelType: Team,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
-
-      if (teamList.data) {
-        setTeamDropdownOptions(
-          teamList.data.map((i: Team) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-            };
-          }),
-        );
-      }
+      /*
+       * Owners are picked with the people picker, which searches the
+       * project's people and teams itself.
+       */
 
       // Fetch users
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -314,19 +336,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setUserDropdownOptions(userOptions);
       }
 
-      // Fetch incident roles
+      /*
+       * Fetch incident roles, once for every rule's incidents: each draws
+       * the declare form's role picker, which reads what it shows of a role
+       * - its icon and whether it is primary too.
+       */
       const incidentRoleList: ListResult<IncidentRole> = await ModelAPI.getList(
         {
           modelType: IncidentRole,
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            canAssignMultipleUsers: true,
-          },
+          select: INCIDENT_ROLE_CHOICE_SELECT,
           sort: {
             isPrimaryRole: SortOrder.Descending,
             name: SortOrder.Ascending,
@@ -335,16 +356,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       );
 
       if (incidentRoleList.data) {
-        setIncidentRoleOptions(
-          incidentRoleList.data.map((i: IncidentRole) => {
-            return {
-              id: i._id!,
-              name: i.name || "Unknown Role",
-              color: i.color?.toString(),
-              canAssignMultipleUsers: i.canAssignMultipleUsers || false,
-            };
-          }),
-        );
+        setIncidentRoleOptions(incidentRoleList.data.map(toIncidentRoleChoice));
       }
 
       const operationalMonitorStatusId: ObjectID | undefined =
@@ -364,6 +376,24 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         alertSeverityList.data[0]?.id || undefined;
 
       /*
+       * The "expires soon" alert a new SSL Certificate or Domain monitor
+       * starts with is a heads-up, so it takes the project's Warning alert
+       * severity - the second one, "Low" on a new project - rather than the
+       * most severe one every other default alert takes. The list is sorted
+       * by order, so its position is its rank.
+       */
+      const warningAlertSeverityId: ObjectID | undefined =
+        MonitorRecommendationSeverityMapper.getMappingFromRankedIds(
+          alertSeverityList.data
+            .map((alertSeverity: AlertSeverity) => {
+              return alertSeverity.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return Boolean(id);
+            }),
+        ).Warning || alertSeverityId;
+
+      /*
        * Remember what the out-of-the-box criteria for a monitor type would
        * be seeded with, so the alignment effect below can tell criteria the
        * user has edited from criteria that are still untouched defaults.
@@ -379,6 +409,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           offlineMonitorStatusId: offlineStatusId,
           defaultIncidentSeverityId: incidentSeverityId,
           defaultAlertSeverityId: alertSeverityId,
+          warningAlertSeverityId: warningAlertSeverityId,
         };
       }
 
@@ -394,6 +425,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             offlineMonitorStatusId: offlineStatusId!,
             defaultIncidentSeverityId: incidentSeverityId!,
             defaultAlertSeverityId: alertSeverityId!,
+            warningAlertSeverityId: warningAlertSeverityId,
           }),
         );
       }
@@ -404,6 +436,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     }
 
+    setHasLoadedOptions(true);
     setIsLoading(false);
   };
   useAsyncEffect(async () => {
@@ -468,9 +501,91 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     }
   }, [props.monitorType, isLoading, monitorSteps]);
 
+  /*
+   * A criteria cannot be saved without a name, and one can arrive without:
+   * the API never asked for one. Name those after their filters, once, when
+   * the form has loaded - the same name "Add Criteria" gives a new one.
+   *
+   * Once only, never on later changes: a user clearing the name field to
+   * type a new one must not get the old one back mid-edit. And through the
+   * updater form, so it lands on top of whatever the alignment above has
+   * just set in the same pass instead of overwriting it.
+   */
+  useEffect(() => {
+    if (
+      !hasLoadedOptions ||
+      isLoading ||
+      !monitorSteps ||
+      hasNamedUnnamedCriteriaRef.current
+    ) {
+      return;
+    }
+
+    hasNamedUnnamedCriteriaRef.current = true;
+
+    setMonitorSteps((current: MonitorSteps | undefined) => {
+      if (!current) {
+        return current;
+      }
+
+      return CriteriaNameUtil.nameUnnamedCriteria(current).monitorSteps;
+    });
+  }, [hasLoadedOptions, isLoading, monitorSteps]);
+
+  /*
+   * The status picked for when no criteria match, as one of the status
+   * options. Missing when none is picked, or when the one picked has since
+   * been deleted - either way the monitor cannot be saved until a status is
+   * chosen, so the section opens by itself to show the field.
+   */
+  const defaultMonitorStatusOption: DropdownOption | undefined =
+    monitorStatusDropdownOptions.find((i: DropdownOption) => {
+      return i.value === monitorSteps?.data?.defaultMonitorStatusId?.toString();
+    });
+
+  const isDefaultMonitorStatusMissing: boolean = !defaultMonitorStatusOption;
+
+  useEffect(() => {
+    if (hasLoadedOptions && !isLoading && isDefaultMonitorStatusMissing) {
+      setIsAdvancedCollapsed(false);
+    }
+  }, [hasLoadedOptions, isLoading, isDefaultMonitorStatusMissing]);
+
   if (isLoading) {
     return <ComponentLoader></ComponentLoader>;
   }
+
+  const defaultMonitorStatusColor: string | undefined =
+    defaultMonitorStatusOption?.color
+      ? new Color(defaultMonitorStatusOption.color).toString()
+      : undefined;
+
+  // The line under the folded section's title: the status, in its colour.
+  const defaultMonitorStatusSummary: ReactElement = (
+    <span
+      className="inline-flex max-w-full items-center gap-2"
+      data-testid="monitor-default-status-summary"
+    >
+      {defaultMonitorStatusColor ? (
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 flex-none rounded-full"
+          style={{
+            backgroundColor: defaultMonitorStatusColor,
+          }}
+        ></span>
+      ) : (
+        <></>
+      )}
+      <span className="truncate">
+        {defaultMonitorStatusOption
+          ? translator.translateTemplate("When no criteria match: {{status}}", {
+              status: translatableTerm(defaultMonitorStatusOption.label),
+            })
+          : translator.translateText("No default monitor status")}
+      </span>
+    </span>
+  );
 
   return (
     <div>
@@ -487,7 +602,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               labelDropdownOptions={labelDropdownOptions}
-              teamDropdownOptions={teamDropdownOptions}
               userDropdownOptions={userDropdownOptions}
               incidentRoleOptions={incidentRoleOptions}
               value={i}
@@ -569,34 +683,60 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 }}
             /> */}
 
-      <HorizontalRule />
-
-      <div className="mt-4">
-        <FieldLabelElement
-          title="Default Monitor Status"
-          description="What should the monitor status be when none of the above criteria is met?"
-          required={true}
-        />
-
-        <Dropdown
-          value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
-            return (
-              i.value ===
-                monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
-              undefined
-            );
-          })}
-          options={monitorStatusDropdownOptions}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            monitorSteps?.setDefaultMonitorStatusId(
-              value ? new ObjectID(value.toString()) : undefined,
-            );
-            setMonitorSteps(
-              MonitorSteps.clone(monitorSteps || new MonitorSteps()),
-            );
+      {/*
+       * Rarely changed, so folded under More fields: what the monitor shows
+       * when none of the criteria above match. It used to sit open under
+       * every criteria list as a required field, already filled in.
+       *
+       * Drawn once the statuses are in, so its header never flashes "No
+       * default monitor status" on the frame before they are fetched.
+       */}
+      {hasLoadedOptions ? (
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
+          // The gap MonitorStep leaves between its own sections (space-y-6).
+          className="mt-6"
+          isCollapsed={isAdvancedCollapsed}
+          onToggle={(isCollapsed: boolean) => {
+            setIsAdvancedCollapsed(isCollapsed);
           }}
-        />
-      </div>
+          summary={defaultMonitorStatusSummary}
+          dataTestId="monitor-criteria-more-fields"
+        >
+          <div data-testid="monitor-default-status-field">
+            <FieldLabelElement
+              title="Default Monitor Status"
+              description="What should the monitor status be when none of the above criteria is met?"
+              required={true}
+            />
+
+            <Dropdown
+              value={defaultMonitorStatusOption}
+              options={monitorStatusDropdownOptions}
+              error={
+                isDefaultMonitorStatusMissing
+                  ? translator.translateText(
+                      "Pick the status the monitor shows when no criteria match.",
+                    )
+                  : undefined
+              }
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                monitorSteps?.setDefaultMonitorStatusId(
+                  value ? new ObjectID(value.toString()) : undefined,
+                );
+                setMonitorSteps(
+                  MonitorSteps.clone(monitorSteps || new MonitorSteps()),
+                );
+              }}
+            />
+          </div>
+        </FoldedSection>
+      ) : (
+        <></>
+      )}
 
       {error ? (
         <div className="mt-4">

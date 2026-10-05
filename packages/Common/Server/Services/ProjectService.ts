@@ -58,13 +58,10 @@ import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
   Black,
-  Blue500,
-  Gray500,
   Green,
   Moroon500,
   Purple500,
   Red,
-  Teal500,
   Yellow,
   Yellow500,
 } from "../../Types/BrandColors";
@@ -651,6 +648,8 @@ export class ProjectService extends DatabaseService<Model> {
 
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
 
+    await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
+
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
     }
@@ -767,84 +766,6 @@ export class ProjectService extends DatabaseService<Model> {
 
     if (IsBillingEnabled) {
       if (
-        updateBy.data.businessDetails ||
-        updateBy.data.businessDetailsCountry ||
-        updateBy.data.financeAccountingEmail ||
-        updateBy.data.sendInvoicesByEmail !== undefined
-      ) {
-        logger.debug(
-          `[Invoice Email] ProjectService.onBeforeUpdate - syncing billing details to Stripe`,
-        );
-        logger.debug(
-          `[Invoice Email] Fields being updated - businessDetails: ${Boolean(updateBy.data.businessDetails)}, businessDetailsCountry: ${Boolean(updateBy.data.businessDetailsCountry)}, financeAccountingEmail: ${Boolean(updateBy.data.financeAccountingEmail)}, sendInvoicesByEmail: ${updateBy.data.sendInvoicesByEmail}`,
-        );
-
-        // Sync to Stripe.
-        const project: Model | null = await this.findOneById({
-          id: new ObjectID(updateBy.query._id! as string),
-          select: {
-            paymentProviderCustomerId: true,
-            financeAccountingEmail: true,
-            sendInvoicesByEmail: true,
-          },
-          props: { isRoot: true },
-        });
-
-        logger.debug(
-          `[Invoice Email] Project found - paymentProviderCustomerId: ${project?.paymentProviderCustomerId}, existing sendInvoicesByEmail: ${(project as any)?.sendInvoicesByEmail}`,
-        );
-
-        if (project?.paymentProviderCustomerId) {
-          try {
-            const sendInvoicesByEmailValue: boolean | null =
-              updateBy.data.sendInvoicesByEmail !== undefined
-                ? (updateBy.data.sendInvoicesByEmail as boolean)
-                : (project as any).sendInvoicesByEmail || null;
-
-            logger.debug(
-              `[Invoice Email] Calling BillingService.updateCustomerBusinessDetails with sendInvoicesByEmail: ${sendInvoicesByEmailValue}`,
-            );
-
-            await BillingService.updateCustomerBusinessDetails(
-              project.paymentProviderCustomerId,
-              (updateBy.data.businessDetails as string) || "",
-              (updateBy.data.businessDetailsCountry as string) || null,
-              (updateBy.data.financeAccountingEmail as string) ||
-                (project as any).financeAccountingEmail ||
-                null,
-              sendInvoicesByEmailValue,
-            );
-
-            logger.debug(
-              `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
-            );
-          } catch (err) {
-            logger.error(
-              `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
-              { projectId: updateBy.query._id?.toString() } as LogAttributes,
-            );
-          }
-        } else {
-          logger.debug(
-            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
-          );
-        }
-      }
-      if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
-        await NotificationService.rechargeIfBalanceIsLow(
-          new ObjectID(updateBy.query._id! as string),
-          {
-            autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-              .autoRechargeSmsOrCallByBalanceInUSD as number,
-            autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-              .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-            enableAutoRechargeSmsOrCallBalance: updateBy.data
-              .enableAutoRechargeSmsOrCallBalance as boolean,
-          },
-        );
-      }
-
-      if (
         updateBy.data.paymentProviderPlanId &&
         !updateBy.props.ignoreHooks &&
         !updateBy.props.isRoot
@@ -856,6 +777,128 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  /*
+   * Turning auto recharge on tops the SMS and call balance up at once when it
+   * is already below the threshold. A charge is never made for a change that
+   * is refused, so it is made here: once the caller has passed every
+   * permission check (the auto recharge columns need Manage Billing), for
+   * the projects the update is narrowed to - and still before the write, so
+   * a charge that fails (no card, say) refuses the change, as it always has.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (
+      !IsBillingEnabled ||
+      !updateBy.data.enableAutoRechargeSmsOrCallBalance
+    ) {
+      return;
+    }
+
+    // The same rows, and the same window of them, the update writes.
+    const projects: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+      },
+      limit:
+        updateBy.limit instanceof PositiveNumber
+          ? updateBy.limit.toNumber()
+          : updateBy.limit,
+      skip:
+        updateBy.skip instanceof PositiveNumber
+          ? updateBy.skip.toNumber()
+          : updateBy.skip,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      await NotificationService.rechargeIfBalanceIsLow(project.id, {
+        autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
+          .autoRechargeSmsOrCallByBalanceInUSD as number,
+        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
+          .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
+        enableAutoRechargeSmsOrCallBalance: updateBy.data
+          .enableAutoRechargeSmsOrCallBalance as boolean,
+      });
+    }
+  }
+
+  /*
+   * The invoice details the payment provider holds follow the project's once
+   * an update of them has been made - so after every permission check (they
+   * need Manage Billing) and only for the projects the update wrote. The
+   * provider is sent what the project now holds. A failure is logged and
+   * does not undo the update.
+   */
+  private async syncInvoiceDetailsToPaymentProvider(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const invoiceDetailColumns: Array<string> = [
+      "businessDetails",
+      "businessDetailsCountry",
+      "financeAccountingEmail",
+      "sendInvoicesByEmail",
+    ];
+
+    if (
+      !IsBillingEnabled ||
+      !invoiceDetailColumns.some((column: string): boolean => {
+        return updateData[column] !== undefined;
+      })
+    ) {
+      return;
+    }
+
+    for (const projectId of updatedItemIds) {
+      try {
+        const project: Model | null = await this.findOneById({
+          id: projectId,
+          select: {
+            paymentProviderCustomerId: true,
+            businessDetails: true,
+            businessDetailsCountry: true,
+            financeAccountingEmail: true,
+            sendInvoicesByEmail: true,
+          },
+          props: { isRoot: true },
+        });
+
+        if (!project?.paymentProviderCustomerId) {
+          logger.debug(
+            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
+          );
+          continue;
+        }
+
+        await BillingService.updateCustomerBusinessDetails(
+          project.paymentProviderCustomerId,
+          project.businessDetails || "",
+          project.businessDetailsCountry || null,
+          project.financeAccountingEmail || null,
+          project.sendInvoicesByEmail ?? null,
+        );
+
+        logger.debug(
+          `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
+        );
+      } catch (err) {
+        logger.error(
+          `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
+          { projectId: projectId.toString() } as LogAttributes,
+        );
+      }
+    }
   }
 
   /*
@@ -2202,6 +2245,24 @@ These are no longer recorded against the project and have to be cancelled by han
     return createdItem;
   }
 
+  /*
+   * A new project starts with one incident role: Incident Commander, the
+   * person in charge of the response. It is the primary role: declaring an
+   * incident from the dashboard puts the declarer in it when nobody else was
+   * picked, and an incident still without one gets the first person to
+   * change its state (IncidentStateTimelineService). So it is the one role
+   * that cannot be deleted, and it is always held by one person
+   * (IncidentRoleService refuses both).
+   *
+   * Projects used to start with Responder, Communications Lead and Observer
+   * too. The maintainer: "To make things simple, can we remove all the roles
+   * except Incident Commander by default? People can add more roles if they
+   * feel like." Projects that already have those roles keep them: nothing
+   * here, or anywhere else, removes a role.
+   *
+   * Public because the AddDefaultIncidentRolesToExistingProjects data
+   * migration seeds projects that have no roles at all through it.
+   */
   public async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
 
@@ -2222,58 +2283,6 @@ These are no longer recorded against the project and have to be cancelled by han
 
       await IncidentRoleService.create({
         data: incidentCommander,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Responder")) {
-      const responder: IncidentRole = new IncidentRole();
-      responder.name = "Responder";
-      responder.description =
-        "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
-      responder.color = Blue500;
-      responder.roleIcon = IconProp.Wrench;
-      responder.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: responder,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Communications Lead")) {
-      const communicationsLead: IncidentRole = new IncidentRole();
-      communicationsLead.name = "Communications Lead";
-      communicationsLead.description =
-        "Handles stakeholder communication and status updates during an incident.";
-      communicationsLead.color = Teal500;
-      communicationsLead.roleIcon = IconProp.Announcement;
-      communicationsLead.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: communicationsLead,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Observer")) {
-      const observer: IncidentRole = new IncidentRole();
-      observer.name = "Observer";
-      observer.description =
-        "Read-only participant who monitors the incident without active involvement.";
-      observer.color = Gray500;
-      observer.roleIcon = IconProp.Activity;
-      observer.projectId = projectId;
-      observer.canAssignMultipleUsers = true;
-
-      await IncidentRoleService.create({
-        data: observer,
         props: {
           isRoot: true,
         },

@@ -24,6 +24,8 @@ import {
   isNoteBlank,
   toDateTimeInputValue,
 } from "./EventNotesUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface NoteComposerValues {
   note: string;
@@ -43,8 +45,21 @@ export interface NotifyOption {
   uncheckedDescription: string;
 }
 
+/*
+ * card:   the composer is a card of its own, with Cancel and its submit
+ *         button in its footer - inline on the Notes page and in a note being
+ *         edited.
+ * dialog: the composer is the body of a dialog that brings the frame and the
+ *         Cancel and submit buttons (EventNoteComposer's dialog, from the
+ *         overview feed's "Add ... Note"). Everything else is the same: who
+ *         reads it, the editor, templates, AI, attachments, the posting time
+ *         and who it notifies.
+ */
+export type NoteComposerVariant = "card" | "dialog";
+
 export interface ComponentProps {
   mode: "create" | "edit";
+  variant?: NoteComposerVariant | undefined;
   visibility: NoteVisibility;
   copy: NotesCopy;
   values: NoteComposerValues;
@@ -129,10 +144,20 @@ export const AudienceBadge: FunctionComponent<{
 const NoteComposer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { translateString } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+
+  const isDialog: boolean = props.variant === "dialog";
+
+  /*
+   * The card pads its own sections. In a dialog the dialog's body already
+   * does, so the sections line up with its title instead.
+   */
+  const inset: string = isDialog ? "" : "px-4";
+  const insetBox: string = isDialog ? "" : "mx-4";
 
   const editorLabelId: string = useId();
   const notifyId: string = useId();
@@ -180,15 +205,23 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
   ]);
 
   const postedAtLabel: string = props.values.postedAt
-    ? OneUptimeDate.getDateAsLocalShortDateTimeString(props.values.postedAt)
-    : tx("now");
+    ? translator.translateTemplate("Posted {{time}}", {
+        time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+          props.values.postedAt,
+        ),
+      })
+    : tx("Posted now");
 
   return (
     <form
       ref={containerRef}
       data-testid={props.dataTestId}
       aria-busy={props.isSubmitting}
-      className="rounded-xl border border-gray-200 bg-white shadow-sm focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-50"
+      className={
+        isDialog
+          ? "bg-white"
+          : "rounded-xl border border-gray-200 bg-white shadow-sm focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-50"
+      }
       onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -223,11 +256,17 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         }
       }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-2.5">
+      <div
+        className={
+          isDialog
+            ? "flex flex-wrap items-center justify-between gap-2 pb-3"
+            : "flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-2.5"
+        }
+      >
         <span id={editorLabelId} className="sr-only">
           {props.mode === "create"
-            ? tx(`New ${props.copy.noteNoun}`)
-            : tx(`Edit ${props.copy.noteNoun}`)}
+            ? tx(props.copy.newNoteLabel)
+            : tx(props.copy.editNoteLabel)}
         </span>
         <AudienceBadge visibility={props.visibility} copy={props.copy} />
         {props.mode === "edit" && (
@@ -237,7 +276,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div className="px-4 pt-3">
+      <div className={isDialog ? "" : "px-4 pt-3"}>
         <MarkdownEditor
           key={props.editorKey}
           initialValue={props.values.note}
@@ -251,7 +290,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.isAttachmentsEnabled && isAttachmentPickerOpen && (
-        <div className="px-4 pt-3" data-testid="note-attachment-picker">
+        <div className={`${inset} pt-3`} data-testid="note-attachment-picker">
           <FilePicker
             /*
              * The picker keeps its own list and ignores an emptied value, so
@@ -292,7 +331,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
            * "Attach" opens the picker to add or remove files.
            */
           <ul
-            className="flex flex-wrap gap-2 px-4 pt-3"
+            className={`flex flex-wrap gap-2 ${inset} pt-3`}
             data-testid="note-attachment-summary"
             aria-label={tx("Attached files")}
           >
@@ -316,7 +355,9 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         )}
 
       {props.isPostedAtEditable && isPostedAtOpen && (
-        <div className="mx-4 mt-3 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+        <div
+          className={`${insetBox} mt-3 flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3`}
+        >
           <div>
             <label
               htmlFor={postedAtId}
@@ -353,7 +394,9 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
           </button>
           <p className="mb-1 basis-full text-xs text-gray-500">
             {tx("Shown on the status page as the time of this update.")}{" "}
-            {tx("Times are in")} {OneUptimeDate.getCurrentTimezoneString()}.
+            {translator.translateTemplate("Times are in {{timezone}}.", {
+              timezone: OneUptimeDate.getCurrentTimezoneString(),
+            })}
           </p>
         </div>
       )}
@@ -362,7 +405,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         <div
           role="alert"
           data-testid="note-composer-error"
-          className="mx-4 mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className={`${insetBox} mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800`}
         >
           <Icon icon={IconProp.Error} className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{props.error}</span>
@@ -370,7 +413,9 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
       )}
 
       {props.notifyOption && (
-        <div className="mx-4 mt-3 flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+        <div
+          className={`${insetBox} mt-3 flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5`}
+        >
           <input
             id={notifyId}
             type="checkbox"
@@ -416,8 +461,21 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="mt-3 flex flex-col gap-3 rounded-b-xl border-t border-gray-100 bg-gray-50/70 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-1">
+      <div
+        className={
+          isDialog
+            ? "mt-3"
+            : "mt-3 flex flex-col gap-3 rounded-b-xl border-t border-gray-100 bg-gray-50/70 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+        }
+      >
+        <div
+          className={
+            isDialog
+              ? "-mx-2.5 flex flex-wrap items-center gap-1"
+              : "flex flex-wrap items-center gap-1"
+          }
+          data-testid="note-composer-tools"
+        >
           {props.leadingActions}
           {props.isAttachmentsEnabled && (
             <button
@@ -457,44 +515,51 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
               }`}
             >
               <Icon icon={IconProp.Clock} className="h-4 w-4" />
-              <span>
-                {tx("Posted")} {postedAtLabel}
-              </span>
+              <span>{postedAtLabel}</span>
             </button>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2">
-          {props.onCancel && (
-            <button
-              type="button"
-              onClick={props.onCancel}
-              disabled={props.isSubmitting}
-              className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
-            >
-              {tx("Cancel")}
-            </button>
-          )}
-          <button
-            type="submit"
-            data-testid="note-submit"
-            disabled={isSubmitDisabled}
-            title={
-              isBlank
-                ? tx("Write something first")
-                : `${tx(props.submitLabel || props.copy.submitLabel)} (${submitShortcut})`
-            }
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-indigo-300"
-          >
-            {props.isSubmitting && (
-              <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
+        {/*
+         * A dialog draws Cancel and the submit button in its own footer, where
+         * every dialog has them.
+         */}
+        {!isDialog && (
+          <div className="flex items-center justify-end gap-2">
+            {props.onCancel && (
+              <button
+                type="button"
+                onClick={props.onCancel}
+                disabled={props.isSubmitting}
+                className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+              >
+                {tx("Cancel")}
+              </button>
             )}
-            <span>{tx(props.submitLabel || props.copy.submitLabel)}</span>
-            <kbd className="max-sm:hidden rounded bg-white/15 px-1.5 py-0.5 font-sans text-[11px] font-medium text-indigo-50 sm:inline">
-              {submitShortcut}
-            </kbd>
-          </button>
-        </div>
+            <button
+              type="submit"
+              data-testid="note-submit"
+              disabled={isSubmitDisabled}
+              title={
+                isBlank
+                  ? tx("Write something first")
+                  : `${tx(props.submitLabel || props.copy.submitLabel)} (${submitShortcut})`
+              }
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-indigo-300"
+            >
+              {props.isSubmitting && (
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-4 w-4 animate-spin"
+                />
+              )}
+              <span>{tx(props.submitLabel || props.copy.submitLabel)}</span>
+              <kbd className="max-sm:hidden rounded bg-white/15 px-1.5 py-0.5 font-sans text-[11px] font-medium text-indigo-50 sm:inline">
+                {submitShortcut}
+              </kbd>
+            </button>
+          </div>
+        )}
       </div>
     </form>
   );

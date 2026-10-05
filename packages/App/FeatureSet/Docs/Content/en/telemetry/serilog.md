@@ -14,11 +14,11 @@ There is no OneUptime-specific package to install — the sink talks to the same
 
 After you sign up to OneUptime and create a project, click on "Products" in the navigation bar and click on "Project Settings".
 
-On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token.
+On the Telemetry Ingestion Key page, click on "Create Ingestion Key". The dialog has the key's name filled in and **Server** picked — the kind of key an application or a collector sends with — so click "Create Ingestion Key" to create it, or rename it first.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Once you have created a token, click on "View" to view the token.
+The new key opens on its own page, where you can copy the token.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 

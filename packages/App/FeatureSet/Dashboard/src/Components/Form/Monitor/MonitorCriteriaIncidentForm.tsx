@@ -1,7 +1,4 @@
-import {
-  CriteriaIncident,
-  IncidentMemberRoleAssignment,
-} from "Common/Types/Monitor/CriteriaIncident";
+import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -12,10 +9,19 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from "react";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import OwnersPicker, {
+  OwnersPickerValue,
+} from "Common/UI/Components/PeoplePicker/OwnersPicker";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SECTION_ICON,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -24,14 +30,23 @@ import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariable
 import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
-import { hasIncidentAdvancedOptions } from "./CriteriaAdvancedOptions";
+import { getIncidentMoreFieldsItems } from "./MonitorMoreFields";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import IncidentRoleFormField from "../../Incident/IncidentRoleFormField";
+import {
+  assignmentsToCriteriaRoles,
+  criteriaRolesToAssignments,
+  IncidentRoleChoice,
+  keepKnownRoles,
+  RoleAssignment,
+} from "../../IncidentRole/IncidentRoleAssignments";
 
-export interface IncidentRoleOption {
-  id: string;
-  name: string;
-  color?: string | undefined;
-  canAssignMultipleUsers?: boolean | undefined;
-}
+/*
+ * A project's incident role, as the monitor form reads it once for every
+ * rule (MonitorSteps) and hands it to the role picker.
+ */
+export type IncidentRoleOption = IncidentRoleChoice;
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
@@ -39,7 +54,7 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
+  // The project's people, for the incident roles.
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   /**
@@ -59,6 +74,7 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [criteriaIncident, setCriteriaIncident] =
     React.useState<CriteriaIncident>(
       props.initialValue || {
@@ -72,6 +88,8 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     props.onChange?.(criteriaIncident);
   }, [criteriaIncident]);
+
+  const ownersLabelId: string = `${useId()}-owners-label`;
 
   const updateField: <K extends keyof CriteriaIncident>(
     field: K,
@@ -96,90 +114,22 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaIncident.onCallPolicyIds?.length,
   );
-  // Only what the user chose: a default rule's auto-resolve does not count.
-  const hasAdvancedOptions: boolean =
-    hasIncidentAdvancedOptions(criteriaIncident);
-  const hasIncidentTeam: boolean = Boolean(
-    criteriaIncident.incidentMemberRoles?.length,
-  );
-
-  // Helper to get user for a single-user role
-  const getUserForRole: (roleId: string) => ObjectID | undefined = (
-    roleId: string,
-  ): ObjectID | undefined => {
-    const assignment: IncidentMemberRoleAssignment | undefined =
-      criteriaIncident.incidentMemberRoles?.find(
-        (a: IncidentMemberRoleAssignment) => {
-          return a.roleId.toString() === roleId;
-        },
-      );
-    return assignment?.userId;
-  };
-
-  // Helper to get all users for a multi-user role
-  const getUsersForRole: (roleId: string) => Array<ObjectID> = (
-    roleId: string,
-  ): Array<ObjectID> => {
-    const assignments: Array<IncidentMemberRoleAssignment> =
-      criteriaIncident.incidentMemberRoles?.filter(
-        (a: IncidentMemberRoleAssignment) => {
-          return a.roleId.toString() === roleId;
-        },
-      ) || [];
-    return assignments.map((a: IncidentMemberRoleAssignment) => {
-      return a.userId;
-    });
-  };
-
-  // Helper to set user for a single-user role
-  const setUserForRole: (
-    roleId: string,
-    userId: ObjectID | undefined,
-  ) => void = (roleId: string, userId: ObjectID | undefined): void => {
-    const existingRoles: Array<IncidentMemberRoleAssignment> =
-      criteriaIncident.incidentMemberRoles || [];
-
-    // Remove existing assignment for this role
-    const filteredRoles: Array<IncidentMemberRoleAssignment> =
-      existingRoles.filter((a: IncidentMemberRoleAssignment) => {
-        return a.roleId.toString() !== roleId;
-      });
-
-    // Add new assignment if userId is provided
-    if (userId) {
-      filteredRoles.push({
-        roleId: new ObjectID(roleId),
-        userId: userId,
-      });
-    }
-
-    updateField("incidentMemberRoles", filteredRoles);
-  };
-
-  // Helper to set multiple users for a multi-user role
-  const setUsersForRole: (roleId: string, userIds: Array<ObjectID>) => void = (
-    roleId: string,
-    userIds: Array<ObjectID>,
-  ): void => {
-    const existingRoles: Array<IncidentMemberRoleAssignment> =
-      criteriaIncident.incidentMemberRoles || [];
-
-    // Remove all existing assignments for this role
-    const filteredRoles: Array<IncidentMemberRoleAssignment> =
-      existingRoles.filter((a: IncidentMemberRoleAssignment) => {
-        return a.roleId.toString() !== roleId;
-      });
-
-    // Add new assignments for each userId
-    for (const userId of userIds) {
-      filteredRoles.push({
-        roleId: new ObjectID(roleId),
-        userId: userId,
-      });
-    }
-
-    updateField("incidentMemberRoles", filteredRoles);
-  };
+  /*
+   * The More fields section's options, by name, the ones the user chose
+   * as chips: a default rule's auto-resolve does not count.
+   */
+  const moreFieldsItems: Array<FoldedSectionItem> =
+    getIncidentMoreFieldsItems(criteriaIncident);
+  /*
+   * Who the rule names for each role, as the role picker holds it. Set only
+   * for roles the project still has: a row for a deleted role names nobody
+   * who can be assigned, and no card shows it.
+   */
+  const roleAssignments: Array<RoleAssignment> = useMemo(() => {
+    return criteriaRolesToAssignments(criteriaIncident.incidentMemberRoles);
+  }, [criteriaIncident.incidentMemberRoles]);
+  const hasIncidentTeam: boolean =
+    keepKnownRoles(roleAssignments, props.incidentRoleOptions || []).length > 0;
 
   /*
    * The variables this monitor's incident description and remediation notes
@@ -204,7 +154,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       }}
       className="underline text-blue-600 hover:text-blue-800"
     >
-      Learn about dynamic templates
+      {translator.translateText("Learn about dynamic templates")}
     </button>
   );
 
@@ -227,7 +177,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Incident Title"
             description={
-              <span>Title for the incident. {templateDocsLink}</span>
+              <span>
+                {translator.translateText("Title for the incident.")}{" "}
+                {templateDocsLink}
+              </span>
             }
             required={true}
           />
@@ -263,11 +216,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Description - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="Description"
         description="Optional incident description"
         badge={hasDescription ? "Set" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasDescription}
       >
         <div>
@@ -287,14 +239,13 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
       {/* On-Call - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="On-Call"
         description="Configure on-call policy escalation"
         badge={hasNotifications ? "Configured" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasNotifications}
       >
         <div>
@@ -329,177 +280,70 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             placeholder="Select On-Call Policies"
           />
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
-      {/* Incident Roles - Collapsible */}
+      {/*
+       * Incident Roles - collapsible. The declare form's role picker, with
+       * the roles and people this form read once for every rule; the rule
+       * keeps one { roleId, userId } row per person, as it always has.
+       */}
       {props.incidentRoleOptions && props.incidentRoleOptions.length > 0 && (
-        <CollapsibleSection
+        <FoldedSection
           title="Incident Roles"
           description="Pre-assign team members to incident roles"
           badge={hasIncidentTeam ? "Configured" : undefined}
-          variant="bordered"
           defaultCollapsed={!hasIncidentTeam}
+          dataTestId="criteria-incident-roles"
         >
           <div className="space-y-4">
             <p className="text-sm text-gray-500">
-              Optionally assign users to incident roles. These users will be
-              automatically assigned when the incident is created.
+              {translator.translateText(
+                "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
+              )}
             </p>
-            {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
-              if (role.canAssignMultipleUsers) {
-                // Multi-user role
-                const selectedUserIds: Array<ObjectID> = getUsersForRole(
-                  role.id,
+            <IncidentRoleFormField
+              roles={props.incidentRoleOptions}
+              users={props.userDropdownOptions}
+              initialValue={roleAssignments}
+              onChange={(assignments: Array<RoleAssignment>) => {
+                updateField(
+                  "incidentMemberRoles",
+                  assignmentsToCriteriaRoles(assignments),
                 );
-                return (
-                  <div key={role.id}>
-                    <FieldLabelElement
-                      title={role.name}
-                      description={
-                        <span>
-                          Assign multiple users to the {role.name} role{" "}
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
-                            Multiple
-                          </span>
-                        </span>
-                      }
-                    />
-                    <Dropdown
-                      value={props.userDropdownOptions.filter(
-                        (i: DropdownOption) => {
-                          return selectedUserIds.some((id: ObjectID) => {
-                            return id.toString() === i.value;
-                          });
-                        },
-                      )}
-                      options={props.userDropdownOptions}
-                      onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null,
-                      ) => {
-                        if (Array.isArray(value)) {
-                          setUsersForRole(
-                            role.id,
-                            value.map((v: DropdownValue) => {
-                              return new ObjectID(v.toString());
-                            }),
-                          );
-                        } else {
-                          setUsersForRole(role.id, []);
-                        }
-                      }}
-                      isMultiSelect={true}
-                      placeholder={`Select ${role.name}...`}
-                    />
-                  </div>
-                );
-              }
-              // Single-user role
-              const selectedUserId: ObjectID | undefined = getUserForRole(
-                role.id,
-              );
-              return (
-                <div key={role.id}>
-                  <FieldLabelElement
-                    title={role.name}
-                    description={`Assign a user to the ${role.name} role`}
-                  />
-                  <Dropdown
-                    value={
-                      selectedUserId
-                        ? props.userDropdownOptions.find(
-                            (i: DropdownOption) => {
-                              return i.value === selectedUserId.toString();
-                            },
-                          )
-                        : undefined
-                    }
-                    options={props.userDropdownOptions}
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      setUserForRole(
-                        role.id,
-                        value ? new ObjectID(value.toString()) : undefined,
-                      );
-                    }}
-                    placeholder={`Select ${role.name}...`}
-                  />
-                </div>
-              );
-            })}
+              }}
+            />
           </div>
-        </CollapsibleSection>
+        </FoldedSection>
       )}
 
       {/* Ownership & Labels - Collapsible */}
-      <CollapsibleSection
+      <FoldedSection
         title="Ownership & Labels"
         description="Assign owners and labels to the incident"
         badge={hasOwnershipOrLabels ? "Configured" : undefined}
-        variant="bordered"
         defaultCollapsed={!hasOwnershipOrLabels}
       >
         <div className="space-y-4">
           <div>
             <FieldLabelElement
-              title="Owner Teams"
-              description="Teams that will own and be notified about this incident"
+              id={ownersLabelId}
+              title="Owners"
+              description="People and teams who will own this incident and be notified about it"
             />
-            <Dropdown
-              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerTeamIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.teamDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerTeamIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerTeamIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Teams"
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Owner Users"
-              description="Users that will own and be notified about this incident"
-            />
-            <Dropdown
-              value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerUserIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.userDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerUserIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerUserIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Users"
-            />
+            <div className="mt-2">
+              <OwnersPicker
+                ariaLabelledby={ownersLabelId}
+                userIds={criteriaIncident.ownerUserIds}
+                teamIds={criteriaIncident.ownerTeamIds}
+                onChange={(owners: OwnersPickerValue) => {
+                  setCriteriaIncident({
+                    ...criteriaIncident,
+                    ownerUserIds: owners.userIds,
+                    ownerTeamIds: owners.teamIds,
+                  });
+                }}
+              />
+            </div>
           </div>
 
           <div>
@@ -533,15 +377,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
 
-      {/* Advanced Options - Collapsible */}
-      <CollapsibleSection
-        title="Advanced Options"
+      {/*
+       * More fields - folded, like every form's: what most rules never
+       * change. Its header names the options and shows the ones chosen.
+       */}
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        icon={MORE_SECTION_ICON}
         description="Auto-resolve and remediation settings"
-        badge={hasAdvancedOptions ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasAdvancedOptions}
+        items={moreFieldsItems}
+        dataTestId="criteria-incident-more-fields"
       >
         <div className="space-y-4">
           <div>
@@ -595,7 +442,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-      </CollapsibleSection>
+      </FoldedSection>
     </div>
   );
 };

@@ -7,9 +7,11 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -18,15 +20,128 @@ import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import TwilioConfigDefaultCopy, {
+  TwilioConfigDefaultState,
+  getDefaultSwitchDescription,
+  getTwilioConfigCardDescription,
+  getTwilioConfigDefaultState,
+  isDefaultSwitchOnWhenCreating,
+} from "./TwilioConfigDefaultCopy";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 
+/*
+ * What the create form starts with for the project's first config: the
+ * default switch on, as the server would store it if the switch were left
+ * out (TwilioConfigDefaultCopy says why).
+ */
+const FIRST_CONFIG_INITIAL_VALUES: FormValues<ProjectCallSMSConfig> = {
+  isProjectDefault: true,
+};
+
 const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
+  /*
+   * Whether the project has a Twilio config, and whether one of them is the
+   * default: what the card says, and what the create form starts with.
+   * Counted apart from the table's own list, which filters can narrow.
+   */
+  const [defaultState, setDefaultState] = useState<TwilioConfigDefaultState>(
+    TwilioConfigDefaultState.Unknown,
+  );
+  const [refreshToggle, setRefreshToggle] = useState<string>("0");
+
+  // Only the latest read may set the state: an older one can answer last.
+  const latestDefaultStateRead: MutableRefObject<number> = useRef<number>(0);
+
+  const readDefaultState: () => Promise<void> = async (): Promise<void> => {
+    latestDefaultStateRead.current += 1;
+    const read: number = latestDefaultStateRead.current;
+
+    let nextState: TwilioConfigDefaultState = TwilioConfigDefaultState.Unknown;
+
+    try {
+      const [configCount, defaultCount]: [number, number] = await Promise.all([
+        ModelAPI.count<ProjectCallSMSConfig>({
+          modelType: ProjectCallSMSConfig,
+          query: {},
+        }),
+        ModelAPI.count<ProjectCallSMSConfig>({
+          modelType: ProjectCallSMSConfig,
+          query: {
+            isProjectDefault: true,
+          },
+        }),
+      ]);
+
+      nextState = getTwilioConfigDefaultState({ configCount, defaultCount });
+    } catch {
+      // Claims nothing: the form starts the switch off, the card says the rule.
+      nextState = TwilioConfigDefaultState.Unknown;
+    }
+
+    if (read === latestDefaultStateRead.current) {
+      setDefaultState(nextState);
+    }
+  };
+
+  const createInitialValues: FormValues<ProjectCallSMSConfig> | undefined =
+    useMemo((): FormValues<ProjectCallSMSConfig> | undefined => {
+      return isDefaultSwitchOnWhenCreating(defaultState)
+        ? FIRST_CONFIG_INITIAL_VALUES
+        : undefined;
+    }, [defaultState]);
+
+  /*
+   * Making a config the default writes one column, which a role may be
+   * allowed to edit or not: the row action is locked, with the reason, for
+   * someone who may not, and hidden while the permissions are still loading.
+   */
+  const setDefaultGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+    new ProjectCallSMSConfig(),
+    "isProjectDefault",
+  );
+
+  const makeProjectDefault: (
+    item: ProjectCallSMSConfig,
+    onCompleteAction: VoidFunction,
+    onError: ErrorFunction,
+  ) => Promise<void> = async (
+    item: ProjectCallSMSConfig,
+    onCompleteAction: VoidFunction,
+    onError: ErrorFunction,
+  ): Promise<void> => {
+    try {
+      // The server takes the default from the config that had it.
+      await ModelAPI.updateById<ProjectCallSMSConfig>({
+        modelType: ProjectCallSMSConfig,
+        id: new ObjectID(item["_id"]?.toString() || ""),
+        data: {
+          isProjectDefault: true,
+        },
+      });
+
+      onCompleteAction();
+
+      setRefreshToggle((value: string): string => {
+        return String(Number(value) + 1);
+      });
+    } catch (err) {
+      onCompleteAction();
+      onError(err as Error);
+    }
+  };
+
   const [showCallTestModal, setShowCallTestModal] = useState<boolean>(false);
   const [showCallSuccessModal, setCallShowSuccessModal] =
     useState<boolean>(false);
@@ -53,6 +168,28 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
         modelType={ProjectCallSMSConfig}
         id="call-sms-table"
         userPreferencesKey="call-sms-table"
+        refreshToggle={refreshToggle}
+        onFetchSuccess={(
+          _items: Array<ProjectCallSMSConfig>,
+          totalCount: number,
+        ): void => {
+          /*
+           * A row on screen means the project has a config, so the next
+           * create form is not its first's - before the count says so too.
+           */
+          if (totalCount > 0) {
+            setDefaultState(
+              (current: TwilioConfigDefaultState): TwilioConfigDefaultState => {
+                return current === TwilioConfigDefaultState.NoConfigs
+                  ? TwilioConfigDefaultState.Unknown
+                  : current;
+              },
+            );
+          }
+
+          void readDefaultState();
+        }}
+        createInitialValues={createInitialValues}
         actionButtons={[
           {
             title: "Send Test SMS",
@@ -94,6 +231,27 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               }
             },
           },
+          {
+            /*
+             * One click to send the project's SMS and calls through this
+             * config instead: on every row but the default's, in the ⋯
+             * menu, so the test buttons stay the row's own.
+             */
+            title: TwilioConfigDefaultCopy.setDefaultTitle,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Check,
+            placement: ActionButtonPlacement.MoreMenu,
+            disabled: !setDefaultGate.isAllowed,
+            tooltip: setDefaultGate.disabledReason,
+            isVisible: (item: ProjectCallSMSConfig): boolean => {
+              return (
+                !item.isProjectDefault &&
+                (setDefaultGate.isAllowed ||
+                  Boolean(setDefaultGate.disabledReason))
+              );
+            },
+            onClick: makeProjectDefault,
+          },
         ]}
         isDeleteable={true}
         createVerb="Create Twilio Config"
@@ -101,8 +259,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
         isCreateable={true}
         cardProps={{
           title: "Twilio Config",
-          description:
-            "Configure your Twilio account to send SMS and make calls.",
+          description: getTwilioConfigCardDescription(defaultState),
         }}
         formSteps={[
           {
@@ -207,12 +364,15 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             field: {
               isProjectDefault: true,
             },
-            title: "Set as Project Default",
+            title: TwilioConfigDefaultCopy.setDefaultTitle,
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            description:
-              "When enabled, all SMS and Calls sent to project team members (on-call notifications, alerts, phone verification, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. Status pages are unaffected — they continue to use the config explicitly assigned to each status page.",
+            /*
+             * On for the project's first config (createInitialValues), with
+             * help that says why; off, where its column starts, for any other.
+             */
+            description: getDefaultSwitchDescription(defaultState),
           },
         ]}
         showRefreshButton={true}

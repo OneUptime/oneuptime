@@ -109,7 +109,7 @@ OBI는 캡처된 트래픽에서 여러 시그널 패밀리를 추출합니다. 
 | 시그널                                  | 기본값 | 추가되는 내용                                                                                                                                                      |
 | --------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | on     | HTTP/gRPC RED 메트릭 — 서비스별 요청률, 지연 히스토그램, 오류 카운트.                                                                                              |
-| `ebpf.features.spanMetrics`             | on     | 스팬 속성 기반 메트릭: 라우트/오퍼레이션별로 분류된 요청 크기, 응답 크기, 지속 시간.                                                                               |
+| `ebpf.features.spanMetrics`             | on     | 스팬 메트릭: 서비스, 라우트/오퍼레이션, 스팬 종류, 상태별 호출 수와 지속 시간 — `traces.span.metrics.calls`, `traces.span.metrics.duration`(초).                   |
 | `ebpf.features.serviceGraph`            | on     | 서비스 간 엣지 메트릭(호출자 → 피호출자 요청률 및 지연). 서비스 맵을 구동합니다.                                                                                   |
 | `ebpf.features.networkMetrics`          | on     | k8s 메타데이터가 포함된 파드 간 TCP/UDP 플로우 바이트 및 패킷 카운터. OBI가 파싱할 수 없는 프로토콜을 사용하는 파드를 포함하여 통신하는 모든 파드 쌍을 표시합니다. |
 | `ebpf.features.networkInterZoneMetrics` | off    | 네트워크 메트릭의 존 간 변형. 카디널리티가 두 배가 됩니다; 실제로 존 기반 스케줄링을 사용하는 경우에만 활성화할 가치가 있습니다.                                   |
@@ -149,7 +149,7 @@ OBI는 서비스 경계 전반에 걸쳐 트레이스 컨텍스트를 전파할 
 | 옵션                   | 기본값                                                 | 설명                                                                                              |
 | ---------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | `ebpf.enabled`         | `true`                                                 | 마스터 스위치. eBPF DaemonSet 전체를 건너뛰려면 `false`로 설정하십시오.                           |
-| `ebpf.image.tag`       | `v0.13.0`                                              | OBI 이미지 태그. OBI는 1.0 이전 버전이므로, 검증된 버전에 고정하고 업데이트 시 재테스트하십시오.  |
+| `ebpf.image.tag`       | `v0.14.0`                                              | OBI 이미지 태그. OBI는 1.0 이전 버전이므로, 검증된 버전에 고정하고 업데이트 시 재테스트하십시오.  |
 | `ebpf.autoTargetExe`   | `*`                                                    | 계측할 실행 파일의 글로브 패턴. 자동 계측 범위를 좁히려면 이를 좁히십시오(예: `*/python,*/java`). |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI 자체) | 건너뛸 글로브 패턴(쉼표로 구분).                                                                  |
 | `ebpf.logLevel`        | `info`                                                 | `debug`, `info`, `warn` 또는 `error`. 문제 해결 시 `debug`로 설정하십시오.                        |
@@ -252,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 이하** — `--reuse-values`를 제거하고 원래의 `--set` 플래그(또는 `-f values.yaml`)를 명시적으로 전달하십시오. 재정의하지 않은 모든 항목에 대해 새 차트 기본값이 적용됩니다.
 >
 > 업그레이드 후 새로운 기능의 파드(예: `kubernetes-agent-profiling-*`)가 나타나지 않는다면 거의 항상 이것이 원인입니다. `helm get values <release>`로 Helm이 실제로 가지고 있는 값을 확인할 수 있습니다 — 출력에 누락된 필드는 해당 필드에 대해 기본값이 병합되지 않았음을 의미합니다.
+
+> **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 시계열은 같고, 이름만 OBI가 유지하는 이름으로 바뀝니다(이전 이름은 OBI에서 지원 중단됨). 이전 이름을 쓰는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못하므로 새 이름으로 옮기고, 이전 이름이 들어 있는 `filters.metrics` 항목도 수정하십시오.
 
 ## 제거
 

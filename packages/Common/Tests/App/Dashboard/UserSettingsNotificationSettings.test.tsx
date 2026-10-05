@@ -8,7 +8,9 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import NotificationSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
+import NotificationSettings, {
+  getShownChannelKeys,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import Route from "../../../Types/API/Route";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -20,6 +22,8 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 /*
  * User Settings > Notification Settings: the per-event, per-channel matrix,
@@ -45,6 +49,18 @@ describe("user settings > notification settings", () => {
   let getList: jest.SpyInstance;
 
   beforeEach(() => {
+    /*
+     * The Slack and Teams columns are there only for the workspaces the
+     * project has connected; both are, unless a test says otherwise. The
+     * store is answered here rather than through ModelAPI.getList, whose
+     * calls these tests read as the matrix's own.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setFetcher(async (): Promise<Array<WorkspaceType>> => {
+      return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    });
+
     rows = Object.values(NotificationSettingEventType).map(
       (
         eventType: NotificationSettingEventType,
@@ -100,6 +116,8 @@ describe("user settings > notification settings", () => {
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+    ConnectedWorkspaces.setFetcher(null);
+    ConnectedWorkspaces.reset();
   });
 
   function renderPage(): void {
@@ -332,6 +350,159 @@ describe("user settings > notification settings", () => {
           ).getByRole("switch", { name: /^Email:/ }),
         ).toHaveAttribute("aria-checked", "true");
       });
+    });
+
+    test("every channel has a column when both workspaces are connected", async () => {
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident created");
+
+      for (const channel of [
+        "Email",
+        "SMS",
+        "Call",
+        "Push",
+        "WhatsApp",
+        "Telegram",
+        "Slack",
+        "Teams",
+        "Webhook",
+      ]) {
+        expect(
+          within(row).getByRole("switch", {
+            name: new RegExp(`^${channel}:`),
+          }),
+        ).toBeInTheDocument();
+      }
+    });
+
+    test.each([
+      [[WorkspaceType.Slack], "Slack", "Teams"],
+      [[WorkspaceType.MicrosoftTeams], "Teams", "Slack"],
+    ])(
+      "with only %j connected, the %s column is there and the %s one is not",
+      async (
+        connected: Array<WorkspaceType>,
+        shown: string,
+        hidden: string,
+      ) => {
+        ConnectedWorkspaces.setFetcher(
+          async (): Promise<Array<WorkspaceType>> => {
+            return connected;
+          },
+        );
+
+        renderPage();
+        const row: HTMLElement = await findEventRow("Incident created");
+
+        expect(
+          within(row).getByRole("switch", { name: new RegExp(`^${shown}:`) }),
+        ).toBeInTheDocument();
+        expect(
+          within(row).queryByRole("switch", {
+            name: new RegExp(`^${hidden}:`),
+          }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getAllByRole("columnheader").map((header: HTMLElement) => {
+            return header.textContent;
+          }),
+        ).not.toContain(hidden);
+      },
+    );
+
+    test("with neither connected, the matrix offers the seven other channels", async () => {
+      ConnectedWorkspaces.setFetcher(
+        async (): Promise<Array<WorkspaceType>> => {
+          return [];
+        },
+      );
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident created");
+
+      expect(within(row).getAllByRole("switch")).toHaveLength(7);
+      expect(
+        within(row).queryByRole("switch", { name: /^Slack:/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(row).queryByRole("switch", { name: /^Teams:/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("if asking which are connected fails, both columns stay, as before", async () => {
+      ConnectedWorkspaces.setFetcher(
+        async (): Promise<Array<WorkspaceType>> => {
+          throw new Error("Permission denied");
+        },
+      );
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident created");
+
+      expect(within(row).getAllByRole("switch")).toHaveLength(9);
+    });
+
+    test("on a first visit the matrix keeps its loader until it knows, rather than dropping columns under the reader", async () => {
+      ConnectedWorkspaces.setFetcher((): Promise<Array<WorkspaceType>> => {
+        return new Promise<Array<WorkspaceType>>((): void => {});
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(getList).toHaveBeenCalled();
+      });
+      expect(screen.getAllByTestId("component-loader").length).toBeGreaterThan(
+        0,
+      );
+      expect(screen.queryAllByRole("switch")).toHaveLength(0);
+    });
+
+    test("a hidden column keeps what was saved: a toggle elsewhere writes only its own column", async () => {
+      ConnectedWorkspaces.setFetcher(
+        async (): Promise<Array<WorkspaceType>> => {
+          return [];
+        },
+      );
+      for (const row of rows) {
+        row.alertBySlack = true;
+      }
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident note posted");
+      fireEvent.click(within(row).getByRole("switch", { name: /^Email:/ }));
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      expect(updateById.mock.calls[0][0].data).toEqual({ alertByEmail: false });
+    });
+
+    test("getShownChannelKeys drops only the workspaces that are not offered", () => {
+      expect(getShownChannelKeys([])).toEqual([
+        "alertByEmail",
+        "alertBySMS",
+        "alertByCall",
+        "alertByPush",
+        "alertByWhatsApp",
+        "alertByTelegram",
+        "alertByWebhook",
+      ]);
+      expect(getShownChannelKeys([WorkspaceType.MicrosoftTeams])).toContain(
+        "alertByMicrosoftTeams",
+      );
+      expect(getShownChannelKeys([WorkspaceType.MicrosoftTeams])).not.toContain(
+        "alertBySlack",
+      );
+      expect(
+        getShownChannelKeys([
+          WorkspaceType.Slack,
+          WorkspaceType.MicrosoftTeams,
+        ]),
+      ).toHaveLength(9);
     });
 
     test("switching projects re-reads every row against the new project", async () => {

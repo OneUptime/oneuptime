@@ -8,19 +8,22 @@ Denne siden dekker begge deler: de fem abonnementskanalene og hvordan besøkende
 
 ## Abonnementskanaler
 
-En statusside støtter fem kanaler, hver med sin egen bryter på statussiden. Gå til **Statussider → siden din → Abonnenter → Abonnentsinnstillinger**:
+En statusside støtter fem kanaler. De og siden der besøkende melder seg på, slås på ett sted: kortet **Kanaler** under **Statussider → siden din → Abonnenter → Abonnentsinnstillinger**. Hver bryter lagres så snart du slår den om:
 
-- **Aktiver e-postabonnenter** (`enableEmailSubscribers`) — på som standard. Alt annet er av til du slår det på.
-- **Aktiver SMS-abonnenter** (`enableSmsSubscribers`) — av som standard.
-- **Aktiver Slack-abonnenter** (`enableSlackSubscribers`) — av som standard.
-- **Aktiver Microsoft Teams-abonnenter** (`enableMicrosoftTeamsSubscribers`) — av som standard.
-- **Aktiver webhook-abonnenter** (`enableWebhookSubscribers`) — av som standard.
+- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — på som standard. Legger punktet **Abonner** i navigasjonslinjen på statussiden, der besøkende melder seg på via kanalene nedenfor.
+- **E-post** (`enableEmailSubscribers`) — på som standard. Alt annet er av til du slår det på.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betales hver SMS fra prosjektets saldo for SMS og anrop, med mindre siden har sin egen **Twilio-konfigurasjon**. For å slå den på må **SMS** også være på for prosjektet, i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+- **Slack** (`enableSlackSubscribers`) — av som standard.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
+- **Webhook** (`enableWebhookSubscribers`) — av som standard.
 
-Hver kanal får også sin egen liste i sidemenyen på statussiden under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som har meldt seg på, legger til noen manuelt, eller legger igjen en **Notater**-oppføring (`internalNote`) på en bestemt abonnent.
+Bryterne avgjør hvordan besøkende kan melde seg på selv: statussiden avviser en påmelding via en kanal som er av. De stopper ikke varsler: abonnenter som teamet ditt legger til i dashbordet, via API-et eller med en arbeidsflyt, får oppdateringer uansett hvilke kanaler som er på.
 
-**Én bryter er ikke nok.** Punktet **Abonner** i navigasjonslinjen på statussiden dukker bare opp når **Vis abonnentside** (`showSubscriberPageOnStatusPage`) er på *og* minst én kanal er aktivert. Slår du på **Aktiver e-postabonnenter**, men lar **Vis abonnentside** stå av, har de besøkende ingen vei fram til skjemaet.
+På OneUptime Cloud står navnet på planen ved siden av en bryter som planen din ikke inkluderer: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**.
 
-De samme fem bryterne dukker opp en gang til i kortet **Abonnentsinnstillinger** på **Avanserte innstillinger**, ved siden av **Vis abonnentside**. Det er de samme kolonnene under panseret — velg ett skjermbilde og hold deg der, og bruk helst den egne siden **Abonnentsinnstillinger**, siden det er der resten av abonnentoppsettet ligger.
+Hver kanal får også sin egen liste i sidemenyen på statussiden under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som har meldt seg på, legger til noen manuelt, eller legger igjen en **Notater**-oppføring (`internalNote`) på en bestemt abonnent. Så lenge en kanal er av, står det øverst i listen dens, med kanalens bryter rett ved siden av, så du kan slå den på uten å forlate listen.
+
+**Én bryter er ikke nok.** Punktet **Abonner** i navigasjonslinjen på statussiden dukker bare opp når **Vis abonnentside** er på *og* minst én kanal er på. Slår du på **E-post**, men lar **Vis abonnentside** stå av, har de besøkende ingen vei fram til skjemaet.
 
 ## Hva en besøkende ser på abonnementssiden
 
@@ -40,6 +43,8 @@ Som standard får en abonnent alt på siden. To brytere i kortet **Avanserte abo
 
 - **Tillat abonnenter å velge ressurser** (`allowSubscribersToChooseResources`) — av som standard. Slår du den på, får abonnementsskjemaet en bryter for **Abonner på alle ressurser**; skru den av, og **Velg ressurser å abonnere på** dukker opp så den besøkende kan plukke enkeltressurser.
 - **Tillat abonnenter å velge hendelsestyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samme form: en bryter for **Abonner på alle hendelsestyper**, og **Velg hendelsestyper å abonnere på** under når den skrus av.
+
+Med en av dem slått på er skjemaet fortsatt én side: Disse valgene ligger under **Preferanser**, foldet sammen under hvor oppdateringene skal sendes. Sammenfoldet sier den på én linje hva den besøkende får (alle oppdateringer fra statussiden, til noe snevres inn), så den som vil ha alt, trykker bare på **Abonner**. Siden **Oppdater abonnement** viser de samme valgene foldet ut.
 
 Hendelsestypene er `Incident`, `Announcement` og `Scheduled Event`.
 
@@ -79,7 +84,7 @@ Abonnentene hører om de tre hendelsestypene over, men hver kilde har sin egen b
 
 ### Varsler om kunngjøringer
 
-Selve kunngjøringen bærer **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), som i opprettelsesskjemaet vises som avkrysningsboksen **Varsle statussideabonnenter** og står på som standard. Navngir kunngjøringen overvåkinger under **Berørte overvåkinger (valgfritt)**, avgrenses varselet til de overvåkingene; la feltet stå tomt, så varsles alle abonnenter.
+Selve kunngjøringen bærer **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), som i opprettelsesskjemaet vises som avkrysningsboksen **Varsle statussideabonnenter** under **Tidsplan og varsler** og står på som standard. Abonnentene får høre om den én gang, når kunngjøringen begynner å vises, så valget gjøres når den opprettes, og en redigering endrer det ikke. Navngir kunngjøringen overvåkinger under **Berørte monitorer**, avgrenses varselet til de overvåkingene; la feltet stå tomt, så varsles alle abonnenter.
 
 ### Planlagte vedlikeholdshendelser
 
@@ -111,12 +116,14 @@ Egendefinert SMTP er verdt å gjøre tidlig hvis du har e-postabonnenter: e-post
 
 En kunngjøring er en oppføring på prosjektnivå (modellen `StatusPageAnnouncement`) som du sprer til én eller flere statussider, eventuelt avgrenset til bestemte overvåkinger, med et vindu den vises i.
 
-Du oppretter en fra **Statussider → Mer → Kunngjøringer**, eller fra **Kunngjøringer** i sidemenyen til en enkelt statusside. Opprettelsesskjemaet er en veiviser i fire trinn:
+Du oppretter en fra **Statussider → Mer → Kunngjøringer**, eller fra **Kunngjøringer** i sidemenyen til en enkelt statusside. Opprettet fra en statusside er den siden allerede valgt, så en tittel og en beskrivelse er alt som trengs, og **Opprett kunngjøring** tar deg tilbake til sidens liste **Kunngjøringer** (eller til prosjektets liste, hvis du valgte bort siden underveis). Opprettelsesskjemaet har to trinn og deretter en oppsummering:
 
-1. **Grunnleggende informasjon** — **Kunngjøringstittel** (påkrevd, minst to tegn), **Beskrivelse** (Markdown, valgfritt) og **Vedlegg** for filer som skal være tilgjengelige sammen med kunngjøringen på statussiden.
-2. **Statussider** — **Vis kunngjøring på disse statussidene**, et påkrevd flervalg. Én kunngjøring kan treffe flere sider samtidig.
-3. **Berørte ressurser** — **Berørte overvåkinger (valgfritt)**. Velger du ingen, varsles alle abonnenter.
-4. **Tidsplan og innstillinger** — **Begynn å vise kunngjøring fra** (påkrevd, standard nå), **Slutt å vise kunngjøring kl.** (valgfritt) og **Varsle statussideabonnenter** (på som standard).
+1. **Kunngjøring** — **Tittel** (påkrevd, minst to tegn) og **Beskrivelse** (Markdown, påkrevd: det er teksten folk leser på statussiden). **Vedlegg** for filer som skal være tilgjengelige sammen med kunngjøringen på statussiden, ligger under **Flere felt**.
+2. **Statussider** — **Vis kunngjøring på disse statussidene**, et påkrevd flervalg (én kunngjøring kan treffe flere sider på en gang), og **Berørte monitorer**: velger du ingen, varsles alle abonnenter. Når du har valgt monitorer, foreslår skjemaet under valget av sider statussidene som viser dem: "Statussider som viser de berørte monitorene:" fulgt av navnet på hver side. Klikk på et navn for å legge til siden, eller på **Legg til alle**; ingenting velges for deg. Under dem er **Tidsplan og varsler** brettet sammen til én linje som sier hva som vil skje: "Vises nå og blir stående til du avslutter den. Abonnenter varsles når den begynner å vises." Brett den ut for å endre **Begynn å vise kunngjøring fra** (som standard nå), **Slutt å vise kunngjøring kl.** (tom: kunngjøringen blir stående til du angir en slutt) eller **Varsle statussideabonnenter** (på som standard). Linjen følger svarene dine. Slutten må komme etter starten og, for en ny kunngjøring, fortsatt ligge fram i tid: en kunngjøring som allerede er over, ville aldri blitt vist.
+
+Oppsummeringen viser den samme linjen. **Opprett fra mal** fyller ut skjemaet fra en mal; opprettet fra en statusside beholdes malens egne statussider ved siden av den siden.
+
+Kunngjøringens egen side redigerer den i de samme to trinnene. **Varsle abonnenter om denne oppdateringen** står under beskrivelsen, og **Tidsplan** inneholder start og slutt. Å sette en slutt som har passert, er måten å ta ned en kunngjøring på.
 
 Besøkende leser kunngjøringer på `/announcements`, delt i **Aktive kunngjøringer** og **Tidligere kunngjøringer**, hver stemplet med **Kunngjort den**. Kunngjøringer som er aktive akkurat nå, festes i tillegg øverst på oversiktssiden. Når det ikke er noe å vise, står det *Ingen kunngjøringer* på siden, med merknaden om at ingen er publisert så langt.
 
@@ -127,18 +134,18 @@ Vedlegg serveres fra `GET {statusPageCrudPath}/status-page-announcement/attachme
 **Show At** (`showAnnouncementAt`) og **End At** (`endAnnouncementAt`) styrer alt, men oversiktssiden og kunngjøringslisten stiller hvert sitt spørsmål, og forskjellen feller folk.
 
 - **Oversiktssiden** viser en kunngjøring når `showAnnouncementAt` ligger i fortiden og `endAnnouncementAt` enten ligger i framtiden eller er tom.
-- **Listen `/announcements`** viser kunngjøringer der `showAnnouncementAt` faller innenfor **Vis kunngjøringshistorikk (i dager)** (`showAnnouncementHistoryInDays`, standard 14), og deler dem så i aktive og tidligere på klientsiden.
+- **Listen `/announcements`** viser kunngjøringer der `showAnnouncementAt` faller innenfor historikkvinduet for kunngjøringer (`showAnnouncementHistoryInDays`, standard 14), og deler dem så i aktive og tidligere på klientsiden.
 
 To konsekvenser det er verdt å planlegge rundt:
 
 - **En kunngjøring uten sluttdato utløper aldri.** Lar du **Slutt å vise kunngjøring kl.** stå tom, blir den værende festet til oversiktssiden på ubestemt tid. Sett en sluttdato på alt som er tidsbegrenset.
 - **En gammel, men fortsatt aktiv kunngjøring kan forsvinne fra listen.** Startet den for mer enn `showAnnouncementHistoryInDays` siden, faller den ut av `/announcements` samtidig som den blir stående på oversikten. Øk historikkvinduet hvis du har varsler som løper lenge.
 
-Om kunngjøringer vises i det hele tatt, styres av kortet **Kunngjøringsinnstillinger** på **Avanserte innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og **Vis kunngjøringshistorikk (i dager)** (standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen på flekken.
+Om kunngjøringer vises i det hele tatt, stilles inn i kortet **Hva statussiden din viser** på **Avanserte innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og under den **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen på flekken.
 
 ## Kunngjøringsmaler
 
-Publiserer du den samme typen melding gang på gang — et månedlig vedlikeholdsvarsel, en tilbakevendende tredjepartsdegradering — så lag den ferdig på forhånd. **Statussider → Innstillinger → Kunngjøringsmaler** lagrer modellen `StatusPageAnnouncementTemplate`, og skjemaet der spør etter **Malnavn**, **Malbeskrivelse**, **Kunngjøringstittel**, **Beskrivelse**, **Vis kunngjøring på disse statussidene**, **Berørte overvåkinger (valgfritt)** og **Varsle abonnenter**, slik at spredningen og varslingsvalget gjøres én gang i stedet for hver gang.
+Publiserer du den samme typen melding gang på gang — et månedlig vedlikeholdsvarsel, en tilbakevendende tredjepartsdegradering — så lag den ferdig på forhånd. **Statussider → Innstillinger → Kunngjøringsmaler** lagrer modellen `StatusPageAnnouncementTemplate`. Skjemaet der går gjennom **Malinformasjon** (**Malnavn**, **Malbeskrivelse**) og deretter kunngjøringens egne trinn: **Kunngjøring** (**Tittel**, **Beskrivelse**) og **Statussider** (**Vis kunngjøring på disse statussidene**, **Berørte monitorer** og **Varsle statussideabonnenter**, på som standard), slik at spredningen og varslingsvalget gjøres én gang i stedet for hver gang. En mal har ingen tidsplan: en kunngjøring laget fra den vises fra den opprettes, med mindre du endrer det under **Tidsplan og varsler**.
 
 ## Webhook-abonnenter og SSRF-beskyttelse
 

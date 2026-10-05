@@ -18,6 +18,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
@@ -59,12 +60,14 @@ RunCron(
         alertSeverityId: true,
         alertSeverity: {
           name: true,
+          color: true,
         },
         labels: {
           _id: true,
         },
         currentAlertState: {
           name: true,
+          color: true,
         },
         /*
          * The series a grouped monitor raised this alert for, named in the
@@ -225,6 +228,10 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       alertNumber: alertNumberStr,
       projectName: alert.project!.name!,
       currentState: currentStateName,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        alert.currentAlertState?.color,
+      ),
       openDuration: openDuration,
       createdAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
         date: openedAt,
@@ -236,6 +243,10 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       ),
       resourcesAffected: resourcesAffected,
       alertSeverity: alert.alertSeverity?.name || "",
+      ...EmailColorUtil.getTemplateVariables(
+        "alertSeverity",
+        alert.alertSeverity?.color,
+      ),
       alertViewLink: alertViewLink,
     };
 

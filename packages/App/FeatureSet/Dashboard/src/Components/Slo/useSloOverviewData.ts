@@ -10,10 +10,12 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import { subscribeToModelSwitchSaved } from "Common/UI/Components/ModelSwitch/ModelSwitchEvents";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { isRollingWindowNotYetFull } from "Common/Utils/Slo/SloHealth";
+import { SLO_EVALUATION_SWITCH_COLUMN } from "./SloEvaluationSwitchCopy";
 import {
   MutableRefObject,
   useCallback,
@@ -344,9 +346,26 @@ const useSloOverviewData: (options: {
 
     document.addEventListener("visibilitychange", onVisibilityChange);
 
+    /*
+     * Evaluation switched on or off on this page - the banner's "Turn
+     * evaluation on" - changes what the hero says about the SLO: read it
+     * again now, not at the next poll.
+     */
+    const unsubscribeEvaluation: () => void = subscribeToModelSwitchSaved({
+      modelType: ServiceLevelObjective,
+      modelId: options.sloId,
+      column: SLO_EVALUATION_SWITCH_COLUMN,
+      onSaved: (): void => {
+        fetchData(true).catch(() => {
+          // fetchData records its own errors.
+        });
+      },
+    });
+
     return () => {
       clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      unsubscribeEvaluation();
       // Orphan any load still in flight for this SLO.
       generationRef.current += 1;
     };

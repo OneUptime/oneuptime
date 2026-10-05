@@ -6,7 +6,49 @@ import LabelElement from "../Label/Label";
 import Link from "../../../Types/Link";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
+/*
+ * A page drawn inside a Page can put its own trail where the Page's
+ * breadcrumbs are. A layout's Page knows only the address: Project >
+ * Incidents > Declare New Incident. The create page inside it knows it was
+ * opened from a monitor's Incidents tab, once it has looked the monitor up,
+ * and its trail goes back through that tab (Dashboard
+ * Components/CreateFromRecord). usePageBreadcrumbLinks hands that trail up
+ * to the nearest Page, and takes it back when the page inside goes; null
+ * leaves the Page's own breadcrumbs.
+ */
+export type SetPageBreadcrumbLinks = (links: Array<Link> | null) => void;
+
+export const PageBreadcrumbsContext: React.Context<SetPageBreadcrumbLinks | null> =
+  React.createContext<SetPageBreadcrumbLinks | null>(null);
+
+export const usePageBreadcrumbLinks: (links: Array<Link> | null) => void = (
+  links: Array<Link> | null,
+): void => {
+  const setLinks: SetPageBreadcrumbLinks | null = useContext(
+    PageBreadcrumbsContext,
+  );
+
+  useEffect(() => {
+    // Outside a Page there is nowhere to draw it.
+    if (!setLinks) {
+      return;
+    }
+
+    setLinks(links);
+
+    return () => {
+      setLinks(null);
+    };
+  }, [setLinks, links]);
+};
 
 export interface ComponentProps {
   title?: string | undefined;
@@ -35,11 +77,18 @@ const Page: FunctionComponent<ComponentProps> = (
     props.description,
   );
 
+  // A trail the page inside handed up (usePageBreadcrumbLinks), while it has one.
+  const [innerBreadcrumbLinks, setInnerBreadcrumbLinks] =
+    useState<Array<Link> | null>(null);
+
+  const breadcrumbLinks: Array<Link> | undefined =
+    innerBreadcrumbLinks || props.breadcrumbLinks;
+
   useEffect(() => {
-    if (props.breadcrumbLinks && props.breadcrumbLinks.length > 0) {
+    if (breadcrumbLinks && breadcrumbLinks.length > 0) {
       Analytics.capture(
         "Page View: " +
-          props.breadcrumbLinks
+          breadcrumbLinks
             .map((link: Link) => {
               return link.title;
             })
@@ -47,7 +96,7 @@ const Page: FunctionComponent<ComponentProps> = (
             .toString() || "",
       );
     }
-  }, [props.breadcrumbLinks]);
+  }, [breadcrumbLinks]);
 
   /*
    * Give each page a unique, descriptive document title (WCAG 2.4.2 Page
@@ -58,8 +107,8 @@ const Page: FunctionComponent<ComponentProps> = (
    */
   useEffect(() => {
     const breadcrumbTitle: string | undefined =
-      props.breadcrumbLinks && props.breadcrumbLinks.length > 0
-        ? props.breadcrumbLinks
+      breadcrumbLinks && breadcrumbLinks.length > 0
+        ? breadcrumbLinks
             .map((link: Link) => {
               return translateString(link.title);
             })
@@ -74,11 +123,18 @@ const Page: FunctionComponent<ComponentProps> = (
     if (pageTitle) {
       document.title = `OneUptime | ${pageTitle}`;
     }
-  }, [translatedTitle, props.breadcrumbLinks]);
+  }, [translatedTitle, breadcrumbLinks]);
 
   if (props.error) {
     return <ErrorMessage message={props.error} />;
   }
+
+  // What the page holds, able to hand its own trail up to this Page.
+  const children: ReactElement = (
+    <PageBreadcrumbsContext.Provider value={setInnerBreadcrumbLinks}>
+      {props.children}
+    </PageBreadcrumbsContext.Provider>
+  );
 
   return (
     <div
@@ -86,12 +142,11 @@ const Page: FunctionComponent<ComponentProps> = (
         props.className || "mb-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 h-max"
       }
     >
-      {((props.breadcrumbLinks && props.breadcrumbLinks.length > 0) ||
-        props.title) && (
+      {((breadcrumbLinks && breadcrumbLinks.length > 0) || props.title) && (
         <div className="mb-5">
-          {props.breadcrumbLinks && props.breadcrumbLinks.length > 0 && (
+          {breadcrumbLinks && breadcrumbLinks.length > 0 && (
             <div className="mt-2">
-              <Breadcrumbs links={props.breadcrumbLinks} />
+              <Breadcrumbs links={breadcrumbLinks} />
             </div>
           )}
           {props.title && (
@@ -115,7 +170,7 @@ const Page: FunctionComponent<ComponentProps> = (
                 {props.labels && props.labels.length > 0 && (
                   <div className="max-sm:hidden sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                     <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
-                      {translateString("Labels") || "Labels"}
+                      {translateString("Labels")}
                     </span>
                     <div className="flex flex-wrap items-center gap-2 justify-end">
                       {props.labels
@@ -150,7 +205,7 @@ const Page: FunctionComponent<ComponentProps> = (
             {props.sideMenu}
 
             {!props.isLoading && (
-              <div className="space-y-6 flex-1 min-w-0">{props.children}</div>
+              <div className="space-y-6 flex-1 min-w-0">{children}</div>
             )}
             {props.isLoading && (
               <div className="flex-1 min-w-0">
@@ -161,7 +216,7 @@ const Page: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {!props.sideMenu && !props.isLoading && props.children}
+      {!props.sideMenu && !props.isLoading && children}
       {!props.sideMenu && props.isLoading && <PageLoader isVisible={true} />}
     </div>
   );

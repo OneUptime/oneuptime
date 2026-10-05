@@ -934,4 +934,130 @@ describe("BasicForm never re-seeds a form the user has edited", () => {
     expect(submitted["name"]).toBe("Default Team");
     expect(submitted["description"]).toBe("Derived default");
   });
+
+  /*
+   * A field drawn by a custom element that writes what it holds as soon as
+   * it is drawn - an effect calling onChange, as the metric pipeline rule's
+   * filters editor did - runs before the form fills in its defaults, and
+   * the form took that write for the user's own. It then filled in no
+   * default at all: a switch drawn on (its default) was sent off, and a
+   * field hidden until later never had its default sent. What the element
+   * wrote, and anything typed, is kept; only the fields still empty get
+   * their defaults.
+   */
+  test("still applies default values when a field writes its own value as it is drawn", async () => {
+    const onSubmit: MockFunction = getJestMockFunction();
+
+    const SelfFillingField: React.FunctionComponent<{
+      onChange: (value: string) => void;
+    }> = (props: { onChange: (value: string) => void }): React.ReactElement => {
+      React.useEffect(() => {
+        props.onChange("written as drawn");
+      }, []);
+
+      return <p>Self-filling field</p>;
+    };
+
+    render(
+      <BasicForm
+        id="self-filling-form"
+        initialValues={{}}
+        fields={[
+          {
+            field: { name: true },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: NAME_PLACEHOLDER,
+          },
+          {
+            field: { filters: true },
+            title: "Filters",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            // Its own default never wins over what it wrote.
+            defaultValue: "the field's default",
+            getCustomElement: (
+              _values: FormValues<any>,
+              elementProps: {
+                onChange?: ((value: unknown) => void) | undefined;
+              },
+            ): React.ReactElement => {
+              return (
+                <SelfFillingField
+                  onChange={(value: string) => {
+                    elementProps.onChange?.(value);
+                  }}
+                />
+              );
+            },
+          },
+          {
+            field: { isEnabled: true },
+            title: "Enabled",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+          },
+          {
+            field: { filterCondition: true },
+            title: "Filter Condition",
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: true,
+            defaultValue: "All",
+            radioButtonOptions: [
+              { title: "All", value: "All" },
+              { title: "Any", value: "Any" },
+            ],
+            // Hidden: its default is all it is ever sent with.
+            showIf: (): boolean => {
+              return false;
+            },
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "Describe it",
+            getDefaultValue: (): string => {
+              return "Derived default";
+            },
+          },
+        ]}
+        onSubmit={(values: FormValues<any>) => {
+          onSubmit(values);
+        }}
+        submitButtonText="Save"
+        footer={<></>}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(NAME_PLACEHOLDER)).toBeTruthy();
+    });
+
+    // The switch shows its default...
+    expect(screen.getByRole("switch", { name: "Enabled" })).toBeChecked();
+
+    // ...and something typed after the defaults is kept as typed.
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Typed name" },
+    });
+
+    await userEvent.click(screen.getByText("Save"));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalled();
+    });
+
+    const submitted: FormValues<any> = onSubmit.mock.calls[0]![0];
+
+    // ...and is sent as it shows.
+    expect(submitted["isEnabled"]).toBe(true);
+    expect(submitted["filterCondition"]).toBe("All");
+    expect(submitted["description"]).toBe("Derived default");
+    expect(submitted["filters"]).toBe("written as drawn");
+    expect(submitted["name"]).toBe("Typed name");
+  });
 });

@@ -97,7 +97,7 @@ Wo ein Schweregrad mehr tut, als nur zu beschreiben: Unter **Vorfälle → Regel
 
 Es gibt vier Wege, wie ein Vorfall den Status wechselt:
 
-- **Die Header-Schaltflächen.** Öffnen Sie einen Vorfall. Liegt sein aktueller Status vor dem bestätigten Status, erhalten Sie **Acknowledge** und **Beheben**; liegt er zwischen beiden, erhalten Sie **Beheben**. Jede öffnet einen Bestätigungsdialog – **Acknowledge Incident** oder **Resolve Incident** –, der außerdem **Notizvorlage auswählen**, **Öffentliche Notiz** und **Statusseiten-Abonnenten benachrichtigen** anbietet.
+- **Die Header-Schaltflächen.** Öffnen Sie einen Vorfall. Liegt sein aktueller Status vor dem bestätigten Status, erhalten Sie **Bestätigen** und **Beheben**; liegt er zwischen beiden, erhalten Sie **Beheben**. Jede öffnet eine kurze Bestätigung – **Vorfall bestätigen** oder **Vorfall beheben** – mit **Statusseiten-Abonnenten benachrichtigen** und, eingeklappt unter **Öffentliche Notiz hinzufügen**, dem optionalen Feld **Öffentliche Notiz** samt der Auswahl **Notizvorlage auswählen** (wenn das Projekt Notizvorlagen hat). Das Bestätigen stoppt außerdem jede Bereitschaftseskalation für den Vorfall.
 - **Die Zustands-Zeitachse.** Fügen Sie auf der Seite **Zustands-Zeitachse** des Vorfalls von Hand eine Zeile mit **Vorfallstatus**, **Beginnt am** und **Statusseiten-Abonnenten benachrichtigen** hinzu.
 - **Massenänderung.** Die Vorfallliste hat die Massenaktion **Status ändern**, um mehrere Vorfälle auf einmal zu bewegen.
 - **Automatisch.** Ein Monitor-Kriterium mit aktiviertem **Vorfall automatisch beheben** behebt seinen Vorfall, sobald das Kriterium nicht mehr erfüllt ist, und die API kann den Status über `/api/incident-state-timeline` aktualisieren.

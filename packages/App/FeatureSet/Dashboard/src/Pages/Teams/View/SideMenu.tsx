@@ -68,6 +68,10 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Team,
         },
         {
+          /*
+           * What the team can do, and - folded under Advanced at the bottom
+           * of the page - what it can never do (block permissions).
+           */
           link: {
             title: "Permissions",
             to: RouteUtil.populateRouteParams(
@@ -76,16 +80,6 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Lock,
-        },
-        {
-          link: {
-            title: "Block Permissions",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.ShieldExclamation,
         },
       ],
     },

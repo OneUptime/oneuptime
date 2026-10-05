@@ -54,6 +54,12 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
+import {
+  getMetricResultsState,
+  MetricResultsState,
+} from "./Utils/MetricResultsState";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -203,6 +209,14 @@ interface MetricViewBodyProps {
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
   // Fired when a results fetch starts/finishes (drives host refresh UI).
   onIsFetchingResultsChange?: ((isFetching: boolean) => void) | undefined;
+  /*
+   * Told what the charts have to show each time that changes: Loading, then
+   * HasData, Empty (the queries came back without a single data point) or
+   * Error. A host that explains an empty view, such as a setup hint for a
+   * scrape that is off, shows it on Empty only: never while loading, and
+   * never on an error, when nobody knows whether there is data.
+   */
+  onResultsStateChange?: ((state: MetricResultsState) => void) | undefined;
 }
 
 /*
@@ -270,6 +284,7 @@ const getNextUnusedVariable: (input: {
 const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   props: MetricViewBodyInternalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
   const [
@@ -589,7 +604,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
       });
     } catch (err) {
       setTelemetryAttributesError(
-        `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
+        translator.translateTemplate(
+          "We couldn't load metric attributes. {{error}}",
+          { error: API.getFriendlyErrorMessage(err as Error) },
+        ),
       );
     } finally {
       setLoadingMetricAttributes((prev: Set<string>) => {
@@ -904,6 +922,34 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   );
 
   /*
+   * What the charts have to show, for a host that explains an empty view
+   * (see onResultsStateChange). Read from the same state the render below
+   * draws, so the host is never told "empty" while a loader, an error or a
+   * chart with data is on screen.
+   */
+  const resultsState: MetricResultsState = getMetricResultsState({
+    isCatalogLoading: isPageLoading,
+    catalogError: pageError,
+    isFetching: isMetricResultsLoading,
+    fetchError: metricResultsError,
+    hasFetchedOnce: hasFetchedResultsOnce,
+    hasAnySelectedMetric: hasAnySelectedMetric,
+    results: metricResults,
+  });
+
+  const onResultsStateChangeRef: React.MutableRefObject<
+    ((state: MetricResultsState) => void) | undefined
+  > = useRef<((state: MetricResultsState) => void) | undefined>(
+    props.onResultsStateChange,
+  );
+  onResultsStateChangeRef.current = props.onResultsStateChange;
+
+  // Once per change, whatever the host's callback identity does.
+  useEffect(() => {
+    onResultsStateChangeRef.current?.(resultsState);
+  }, [resultsState]);
+
+  /*
    * The view's own "Reset zoom" goes in the heading row above the charts
    * when the query builder is shown. Without the builder there is no such
    * row, so it floats on the charts instead (see below).
@@ -925,7 +971,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
           icon={IconProp.Refresh}
           className="h-3 w-3 animate-spin text-gray-400"
         />
-        Refreshing
+        {translator.translateText("Refreshing")}
       </div>
     );
   };
@@ -947,7 +993,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
             <div className="-mt-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Time Range
+                  {translator.translateText("Time Range")}
                 </span>
               </div>
               <StartAndEndDate
@@ -970,7 +1016,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
         {!props.hideQueryElements && (
           <div>
             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              <span>Queries</span>
+              <span>{translator.translateText("Queries")}</span>
               {props.data.queryConfigs.length > 1 && (
                 <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
                   {props.data.queryConfigs.length}
@@ -1262,7 +1308,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 }}
               >
                 <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
-                <span>Add Metric</span>
+                <span>{translator.translateText("Add Metric")}</span>
               </button>
               <button
                 type="button"
@@ -1280,7 +1326,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 }}
               >
                 <Icon icon={IconProp.Calculator} className="h-3.5 w-3.5" />
-                <span>Add Formula</span>
+                <span>{translator.translateText("Add Formula")}</span>
               </button>
             </div>
           </div>
@@ -1319,12 +1365,14 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 />
               </div>
               <p className="mt-4 text-sm font-medium text-gray-900">
-                Select a metric to get started
+                {translator.translateText("Select a metric to get started")}
               </p>
               <p className="mt-1 text-xs text-gray-500">
-                {props.hideQueryElements
-                  ? "No metric is configured for this view."
-                  : "Pick a metric in the query editor above and its chart will appear here."}
+                {translator.translateText(
+                  props.hideQueryElements
+                    ? "No metric is configured for this view."
+                    : "Pick a metric in the query editor above and its chart will appear here.",
+                )}
               </p>
               {!props.hideQueryElements && (
                 <div className="mt-4 flex justify-center">
@@ -1356,7 +1404,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
             <div>
               {!props.hideQueryElements && (
                 <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  <span>Charts</span>
+                  <span>{translator.translateText("Charts")}</span>
                   {/*
                    * Panel count, not result count: a query flagged
                    * overlayWithPreviousQuery draws on the previous query's
@@ -1411,8 +1459,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     className="h-4 w-4 shrink-0 text-red-500"
                   />
                   <span>
-                    Couldn&apos;t refresh — showing previously loaded data.{" "}
-                    {metricResultsError}
+                    {translator.translateTemplate(
+                      "Couldn't refresh — showing previously loaded data. {{error}}",
+                      { error: metricResultsError },
+                    )}
                   </span>
                 </div>
               )}

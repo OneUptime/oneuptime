@@ -1,3 +1,5 @@
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -7,6 +9,7 @@ export interface ComponentProps {
 const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (props.gitHubAppInstallationId) {
     return (
       <div className="flex items-center space-x-2">
@@ -20,7 +23,7 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
           </svg>
         </div>
         <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-          GitHub App
+          {translator.translateText("GitHub App")}
         </span>
       </div>
     );
@@ -45,7 +48,7 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
         </svg>
       </div>
       <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-        Access Token
+        {translator.translateText("Access Token")}
       </span>
     </div>
   );

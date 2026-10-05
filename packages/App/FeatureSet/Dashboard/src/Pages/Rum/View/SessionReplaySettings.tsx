@@ -42,6 +42,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE settings page for one application's session replay.
@@ -57,6 +59,18 @@ import React, {
  * capture, before anything is uploaded. So loosening masking cannot be
  * undone for recordings already taken, and tightening it does not scrub
  * recordings already stored.
+ *
+ * The page opens on the health card, with no banner above it. The project's
+ * switch is on unless someone turned it off (Project.isSessionReplayAllowed
+ * defaults to true), and when it is off the health card says "Session replay
+ * is switched off for this project" with a "Turn it on" action - the
+ * disabled-project diagnosis in Common/Utils/Rum/SessionReplayHealth.ts. A
+ * blue "Recording must also be allowed for the project" banner used to sit
+ * here on every visit, saying so in the case nothing was wrong.
+ *
+ * This is also the one place an application's replay retention is edited
+ * (Edit Policy > Limits). The application's Settings page shows the value
+ * and links here (SessionReplayRetentionSettingsCard).
  */
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
@@ -183,6 +197,7 @@ export function describeSameOriginTracePropagation(
 const RumApplicationSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route is ":id/session-replay-settings", so the model id is one segment
    * before the end. Same as Pages/Rum/View/Clients.tsx.
@@ -217,12 +232,6 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
   return (
     <Fragment>
-      <Alert
-        type={AlertType.INFO}
-        strongTitle="Recording must also be allowed for the project"
-        title="These settings only take effect while session replay is allowed project-wide. That master switch lives under Real User Monitoring > Settings > Session Replay; the health card below says whether it is on."
-      />
-
       <RecordingHealthCard rumApplicationId={modelId} />
 
       {recordsNothing && (
@@ -548,7 +557,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   ) {
                     return (
                       <span className="text-sm text-gray-500">
-                        not set (defaults to 100%)
+                        {translator.translateText("not set (defaults to 100%)")}
                       </span>
                     );
                   }
@@ -577,8 +586,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   if (origins.length === 0) {
                     return (
                       <span className="text-sm text-amber-700">
-                        Any origin the ingestion key allows - list your domains
-                        before production
+                        {translator.translateText(
+                          "Any origin the ingestion key allows - list your domains before production",
+                        )}
                       </span>
                     );
                   }
@@ -780,7 +790,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
                   return (
                     <span className="text-sm text-gray-900">
-                      {gb && gb > 0 ? `${gb} GB` : "No ceiling (0 or blank)"}
+                      {gb && gb > 0
+                        ? `${gb} GB`
+                        : translator.translateText("No ceiling (0 or blank)")}
                     </span>
                   );
                 },

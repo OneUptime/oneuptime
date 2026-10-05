@@ -51,7 +51,12 @@ const ActiveAlerts: FunctionComponent<
         isDeleteable={false}
         query={{
           currentAlertState: {
-            order: 1,
+            /*
+             * In the state new ones start in - not "the state numbered
+             * 1": states are dragged into any order, and the first one
+             * need not be where new ones start.
+             */
+            isCreatedState: true,
           },
         }}
         fetchRequestOptions={
@@ -71,9 +76,13 @@ const ActiveAlerts: FunctionComponent<
         cardProps={{
           title: "Active Alerts",
           description:
-            "Here is a list of active alerts for all of the projects you are a part of.",
+            "Alerts nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
         }}
-        noItemsMessage={"No alert found."}
+        emptyState={{
+          isAllClear: true,
+          title: "No active alerts",
+          description: "Nice work! Every alert is resolved.",
+        }}
         singularName="Active Alert"
         pluralName="Active Alerts"
         onViewPage={(item: Alert): Promise<Route> => {

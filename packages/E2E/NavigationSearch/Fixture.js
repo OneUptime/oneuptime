@@ -11,6 +11,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import NavBarMenuModal from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Navigation from "Common/UI/Utils/Navigation";
+import DashboardCommandPalette from "../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
 import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import { useDashboardNavigationItems } from "../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
 import en from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
@@ -31,10 +32,25 @@ function Fixture() {
   const [showNavbar] = useState(
     () => new URLSearchParams(location.search).get("navbar") === "true",
   );
+  // The Dashboard's Search (Cmd/Ctrl+K), on its own: ?palette=true.
+  const [showPalette] = useState(
+    () => new URLSearchParams(location.search).get("palette") === "true",
+  );
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
-  const { moreMenuItems } = useDashboardNavigationItems();
+  const { moreMenuItems, moreMenuCategoriesAlwaysOpen } =
+    useDashboardNavigationItems();
+
+  if (showPalette) {
+    return (
+      <main className="p-6">
+        <p data-testid="current-route">{location.pathname}</p>
+        <p data-testid="current-search">{location.search}</p>
+        <DashboardCommandPalette />
+      </main>
+    );
+  }
 
   if (showNavbar) {
     const projectPath = location.pathname.split("/").slice(0, 3).join("/");
@@ -63,6 +79,8 @@ function Fixture() {
       {isOpen && (
         <NavBarMenuModal
           items={moreMenuItems}
+          // As the Dashboard's NavBar passes it: Essentials, always open.
+          categoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}
           onClose={() => setIsOpen(false)}
           showCommandKShortcutHint={false}
         />

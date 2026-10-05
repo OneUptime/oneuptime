@@ -1,24 +1,30 @@
 /*
- * The "Start from" step of the create-a-workflow wizard.
+ * The first step of the create-a-workflow wizard: how to start.
  *
- * It used to show every template at once, as a grid of large cards that all
- * looked equally important: forty-odd choices before anything could happen.
- * Now the step offers two ways in. "Start from scratch" sits beside the
- * search for anyone who already knows what they want to build. Everyone else
- * starts on a handful of recommended templates, with the rest one click away
- * under a short list of categories, each with its count, or found by typing.
+ * The maintainer, about the version before this one: "This select template
+ * for workflow is extremely hard to use because it shows a lot of
+ * information on the modal ... 'Start from scratch' should be more visible
+ * as well because that's the most commonly used option." That version had a
+ * search box with a plain Start from scratch button beside it, a column of
+ * twelve categories with counts, the list, and a preview column that was
+ * always open.
  *
- * Templates are compact rows. Picking one previews it on the right before
- * anything is created: what starts it, the blocks it is made of, and the
- * settings it will ask for. The wizard's one primary button, "Use this
- * template", then takes it to the Name step; so do Enter and a double-click.
- * On a narrow screen the preview takes the list's place, with a way back.
+ * So the step now reads top to bottom, and shows little until asked:
  *
- * The keyboard works the way the command palette's does. The search box is a
- * combobox over the list: the arrow keys move the highlight while typing,
- * and Enter uses the highlighted template. The list itself takes the arrow
- * keys, Home and End once it has focus, the categories are a radio group,
- * and "/" jumps back to the search from anywhere in the step.
+ * - Start from scratch, first and largest. One click goes on to Name.
+ * - "Or start from a template": a few recommended templates as one-line
+ *   rows, with a search box and a category select beside the heading.
+ * - A template's details - what starts it, what it is made of, what it will
+ *   ask for - open inside its row once it is picked, and nowhere else.
+ * - The dialog's one primary button, Use this template, is in its footer,
+ *   and only there while a template is picked (see CreateWorkflowModal).
+ *
+ * The keyboard works as the command palette's does. The search box is a
+ * combobox over the list: the arrow keys pick while typing, Enter uses what
+ * is picked, and a search picks its best match on its own. The list takes
+ * the arrow keys, Home and End once it has the focus, and "/" jumps to the
+ * search from anywhere in the step. Start from scratch is a button, and is
+ * where the focus starts.
  *
  * Everything it remembers is held by the wizard (see
  * WorkflowTemplatePickerState), so Back from Name finds it as it was left.
@@ -32,11 +38,6 @@ import React, {
   useRef,
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
-import KeyboardShortcut, {
-  KeyboardKey,
-  KeyboardShortcutSize,
-  KeyboardShortcutVariant,
-} from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
@@ -56,15 +57,14 @@ import {
   WorkflowTemplatePreviewBlock,
   getActiveWorkflowTemplate,
   getMovedWorkflowTemplateId,
-  getWorkflowTemplateCategoryLabel,
   getWorkflowTemplateHighlightSegments,
   getWorkflowTemplatePickerCounts,
   getWorkflowTemplatePickerList,
-  getWorkflowTemplatePickerViewInfo,
   getWorkflowTemplatePickerViews,
   getWorkflowTemplatePreview,
   getWorkflowTemplateSearchTokens,
   withWorkflowTemplateSearch,
+  withWorkflowTemplateSelected,
   withWorkflowTemplateView,
   workflowTemplateCountText,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
@@ -80,20 +80,23 @@ export interface ComponentProps {
   isStartFromScratchChosen: boolean;
 }
 
+export const WORKFLOW_START_FROM_SCRATCH_ID: string =
+  "workflow-start-from-scratch";
 export const WORKFLOW_TEMPLATE_SEARCH_INPUT_ID: string =
   "workflow-template-search";
+export const WORKFLOW_TEMPLATE_VIEW_SELECT_ID: string =
+  "workflow-template-view-select";
 export const WORKFLOW_TEMPLATE_LISTBOX_ID: string = "workflow-template-listbox";
-const PREVIEW_BACK_BUTTON_ID: string = "workflow-template-preview-back";
+const LIST_HEADING_ID: string = "workflow-template-list-heading";
+const SCRATCH_DESCRIPTION_ID: string =
+  "workflow-start-from-scratch-description";
 
 /*
- * The product's plain secondary button, drawn here rather than through Button
- * so it can say aria-pressed. Never filled: the dialog's one primary action
- * is "Use this template", in its footer.
+ * The product's plain secondary button, for the two ways out of an empty
+ * search. Never filled: the dialog's one primary action is in its footer.
  */
-const SECONDARY_BUTTON_BASE_CLASS_NAME: string =
-  "inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-md border bg-white px-3 py-2 text-sm font-medium shadow-sm transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
-
-const SECONDARY_BUTTON_CLASS_NAME: string = `${SECONDARY_BUTTON_BASE_CLASS_NAME} border-gray-300 text-gray-700`;
+const SECONDARY_BUTTON_CLASS_NAME: string =
+  "inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 type OptionDomIdFunction = (templateId: string) => string;
 
@@ -103,27 +106,7 @@ export const workflowTemplateOptionDomId: OptionDomIdFunction = (
   return `workflow-template-option-${templateId}`;
 };
 
-type ViewDomIdFunction = (view: WorkflowTemplatePickerView) => string;
-
-// The DOM id, and test id, of a view's entry in the list of categories.
-export const workflowTemplateViewDomId: ViewDomIdFunction = (
-  view: WorkflowTemplatePickerView,
-): string => {
-  return `workflow-template-view-${String(view)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")}`;
-};
-
 type TranslateFunction = (value: string) => string;
-
-/*
- * workflowTemplateCountText lives in the picker's React-free half: App has no
- * react, and a node test that wants it must be able to import it without
- * pulling this component - and the whole component graph - into App's
- * program. Re-exported here so importers of the component are unchanged.
- * See Utils/Workflow/WorkflowTemplatePickerUtil.
- */
-export { workflowTemplateCountText } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 
 interface HighlightedTextProps {
   text: string;
@@ -164,15 +147,161 @@ const HighlightedText: FunctionComponent<HighlightedTextProps> = (
   );
 };
 
+interface BlockChipProps {
+  block: WorkflowTemplatePreviewBlock;
+  isTrigger: boolean;
+  tx: TranslateFunction;
+}
+
+// One block as the builder's canvas names it: its icon and its title.
+const BlockChip: FunctionComponent<BlockChipProps> = (
+  props: BlockChipProps,
+): ReactElement => {
+  return (
+    <div
+      className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+      data-testid={
+        props.isTrigger
+          ? "workflow-template-details-trigger"
+          : "workflow-template-details-step"
+      }
+    >
+      <Icon
+        icon={props.block.icon}
+        className={`h-3.5 w-3.5 flex-shrink-0 ${
+          props.isTrigger ? "text-indigo-600" : "text-gray-400"
+        }`}
+      />
+      <span className="min-w-0 truncate">
+        {props.isTrigger ? (
+          <span className="sr-only">{`${props.tx("Trigger")}: `}</span>
+        ) : (
+          <></>
+        )}
+        {props.block.title}
+      </span>
+    </div>
+  );
+};
+
+interface TemplateDetailsProps {
+  preview: WorkflowTemplatePreview;
+  tx: TranslateFunction;
+}
+
+/*
+ * What a picked template's row opens to show, before anything is created:
+ * how it works - what starts it, then the kinds of block it is made of, as
+ * the canvas names them - and what the next steps will ask for. Two short
+ * lines, where the old preview was a column of its own.
+ */
+const TemplateDetails: FunctionComponent<TemplateDetailsProps> = (
+  props: TemplateDetailsProps,
+): ReactElement => {
+  const preview: WorkflowTemplatePreview = props.preview;
+  const tx: TranslateFunction = props.tx;
+
+  return (
+    <dl className="mt-3 space-y-2.5" data-testid="workflow-template-details">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
+        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-36 sm:flex-shrink-0 sm:pt-1">
+          {tx("How It Works")}
+        </dt>
+        <dd className="min-w-0 flex-1">
+          <ul
+            className="flex flex-wrap items-center gap-1.5"
+            data-testid="workflow-template-details-blocks"
+          >
+            <li className="flex max-w-full items-center gap-1.5">
+              <BlockChip block={preview.trigger} isTrigger={true} tx={tx} />
+              <Icon
+                icon={IconProp.ArrowRight}
+                className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+              />
+            </li>
+            {preview.steps.map(
+              (block: WorkflowTemplatePreviewBlock): ReactElement => {
+                return (
+                  <li key={block.componentId} className="flex max-w-full">
+                    <BlockChip block={block} isTrigger={false} tx={tx} />
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </dd>
+      </div>
+
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
+        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-36 sm:flex-shrink-0 sm:pt-0.5">
+          {tx("What you'll need")}
+        </dt>
+        <dd className="min-w-0 flex-1">
+          {preview.settings.length > 0 ? (
+            <ul
+              className="flex flex-wrap gap-x-4 gap-y-1"
+              data-testid="workflow-template-details-settings"
+            >
+              {preview.settings.map(
+                (variable: WorkflowTemplateVariable): ReactElement => {
+                  return (
+                    <li
+                      key={variable.name}
+                      className="flex items-center gap-1.5 text-sm text-gray-700"
+                      data-testid={`workflow-template-details-setting-${variable.name}`}
+                    >
+                      {/* A lock marks a secret. */}
+                      {variable.isSecret ? (
+                        <Icon
+                          icon={IconProp.Lock}
+                          className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                        />
+                      ) : (
+                        <></>
+                      )}
+                      <span className="min-w-0">
+                        {variable.title}
+                        {variable.isSecret ? (
+                          <span className="sr-only">{`, ${tx("Secret")}`}</span>
+                        ) : (
+                          <></>
+                        )}
+                        {variable.required ? (
+                          <></>
+                        ) : (
+                          <span className="ml-1 text-gray-400">
+                            ({tx("Optional")})
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          ) : (
+            <p
+              className="text-sm text-gray-600"
+              data-testid="workflow-template-details-no-settings"
+            >
+              {tx("Nothing to fill in.")}
+            </p>
+          )}
+        </dd>
+      </div>
+    </dl>
+  );
+};
+
 interface TemplateOptionProps {
   template: WorkflowTemplate;
   isActive: boolean;
+  /** The picked template's details, shown in its row. */
+  preview: WorkflowTemplatePreview | null;
   tokens: Array<string>;
   typoTokens: Array<string>;
-  /** Shown when the list mixes categories, so each row says where it is from. */
-  showCategory: boolean;
   tx: TranslateFunction;
-  onActivate: () => void;
+  onPick: () => void;
   onUse: () => void;
 }
 
@@ -180,261 +309,67 @@ const TemplateOption: FunctionComponent<TemplateOptionProps> = (
   props: TemplateOptionProps,
 ): ReactElement => {
   const template: WorkflowTemplate = props.template;
+  const optionId: string = workflowTemplateOptionDomId(template.id);
 
   return (
     <div
-      id={workflowTemplateOptionDomId(template.id)}
+      id={optionId}
       role="option"
       aria-selected={props.isActive}
-      data-testid={workflowTemplateOptionDomId(template.id)}
-      onClick={props.onActivate}
+      aria-labelledby={`${optionId}-name`}
+      aria-describedby={`${optionId}-description`}
+      data-testid={optionId}
+      onClick={props.onPick}
       onDoubleClick={props.onUse}
-      className={`flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 transition-colors duration-100 ${
-        props.isActive
-          ? "bg-indigo-50 ring-1 ring-inset ring-indigo-200"
-          : "hover:bg-gray-50"
+      className={`cursor-pointer scroll-my-2 px-3 py-3 transition-colors duration-100 sm:px-4 ${
+        props.isActive ? "bg-indigo-50/60" : "hover:bg-gray-50"
       }`}
     >
-      <div
-        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
-          props.isActive
-            ? "bg-white text-indigo-600 ring-1 ring-indigo-200"
-            : "bg-gray-100 text-gray-500"
-        }`}
-      >
-        <Icon icon={template.icon} className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium leading-5 text-gray-900">
-          <HighlightedText
-            text={template.name}
-            tokens={props.tokens}
-            typoTokens={props.typoTokens}
-          />
-        </div>
-        <div className="mt-0.5 truncate text-xs leading-5 text-gray-500">
-          <HighlightedText
-            text={template.description}
-            tokens={props.tokens}
-            typoTokens={props.typoTokens}
-          />
-        </div>
-      </div>
-      {props.showCategory ? (
-        <span
-          data-testid="workflow-template-row-category"
-          className={`mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-gray-600 max-sm:hidden sm:inline-flex ${
-            props.isActive ? "bg-white" : "bg-gray-100"
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+            props.isActive
+              ? "bg-white text-indigo-600 ring-1 ring-indigo-200"
+              : "bg-gray-100 text-gray-500"
           }`}
         >
-          {props.tx(getWorkflowTemplateCategoryLabel(template.category))}
-        </span>
-      ) : (
-        <></>
-      )}
-    </div>
-  );
-};
-
-interface PreviewBlockRowProps {
-  block: WorkflowTemplatePreviewBlock;
-  isTrigger: boolean;
-}
-
-// One block as the canvas will show it: its icon and its name.
-const PreviewBlockRow: FunctionComponent<PreviewBlockRowProps> = (
-  props: PreviewBlockRowProps,
-): ReactElement => {
-  return (
-    <li
-      className="flex items-center gap-2.5"
-      data-testid={
-        props.isTrigger
-          ? "workflow-template-preview-trigger"
-          : "workflow-template-preview-step"
-      }
-    >
-      <div
-        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${
-          props.isTrigger
-            ? "bg-indigo-100 text-indigo-600"
-            : "bg-white text-gray-500 ring-1 ring-gray-200"
-        }`}
-      >
-        <Icon icon={props.block.icon} className="h-3.5 w-3.5" />
-      </div>
-      <span className="min-w-0 flex-1 text-sm text-gray-800">
-        {props.block.title}
-      </span>
-    </li>
-  );
-};
-
-interface TemplatePreviewProps {
-  preview: WorkflowTemplatePreview;
-  tx: TranslateFunction;
-  onBack: () => void;
-}
-
-const TemplatePreview: FunctionComponent<TemplatePreviewProps> = (
-  props: TemplatePreviewProps,
-): ReactElement => {
-  const preview: WorkflowTemplatePreview = props.preview;
-  const template: WorkflowTemplate = preview.template;
-  const tx: TranslateFunction = props.tx;
-
-  return (
-    <section
-      aria-labelledby="workflow-template-preview-title"
-      data-testid="workflow-template-preview"
-      className="rounded-xl bg-gray-50 p-4 sm:p-5"
-    >
-      <button
-        type="button"
-        id={PREVIEW_BACK_BUTTON_ID}
-        data-testid="workflow-template-preview-back"
-        onClick={props.onBack}
-        className="-ml-1 mb-3 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 md:hidden"
-      >
-        <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
-        {tx("Back to templates")}
-      </button>
-
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-          <Icon icon={template.icon} className="h-5 w-5" />
+          <Icon icon={template.icon} className="h-4 w-4" />
         </div>
-        <div className="min-w-0">
-          <h3
-            id="workflow-template-preview-title"
-            className="text-base font-semibold leading-6 text-gray-900"
+        <div className="min-w-0 flex-1">
+          <div
+            id={`${optionId}-name`}
+            className="text-sm font-medium leading-5 text-gray-900"
           >
-            {template.name}
-          </h3>
-          <p
-            className="mt-0.5 text-xs text-gray-500"
-            data-testid="workflow-template-preview-meta"
+            <HighlightedText
+              text={template.name}
+              tokens={props.tokens}
+              typoTokens={props.typoTokens}
+            />
+          </div>
+          {/*
+           * One line while the row is closed, so the list reads at a glance;
+           * all of it once the template is picked.
+           */}
+          <div
+            id={`${optionId}-description`}
+            className={`mt-0.5 text-sm leading-5 text-gray-500 ${
+              props.isActive ? "" : "truncate"
+            }`}
           >
-            {[
-              tx(getWorkflowTemplateCategoryLabel(template.category)),
-              template.subcategory ? tx(template.subcategory) : "",
-              workflowTemplateCountText(
-                tx,
-                preview.blockCount,
-                "1 block",
-                "{count} blocks",
-              ),
-            ]
-              .filter((part: string) => {
-                return part.length > 0;
-              })
-              .join(" · ")}
-          </p>
-        </div>
-      </div>
-
-      <p className="mt-3 text-sm leading-6 text-gray-600">
-        {template.description}
-      </p>
-
-      <h4 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {tx("How It Works")}
-      </h4>
-      {/*
-       * What starts it, then the other blocks it is made of: the shape of the
-       * workflow the builder will open with, named as its canvas names them.
-       */}
-      <dl
-        className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2"
-        data-testid="workflow-template-preview-blocks"
-      >
-        <dt className="pt-1.5 text-xs font-medium text-gray-500">
-          {tx("Trigger")}
-        </dt>
-        <dd>
-          <ul>
-            <PreviewBlockRow block={preview.trigger} isTrigger={true} />
-          </ul>
-        </dd>
-        <dt className="pt-1.5 text-xs font-medium text-gray-500">
-          {tx("Steps")}
-        </dt>
-        <dd>
-          <ul className="space-y-2">
-            {preview.steps.map(
-              (block: WorkflowTemplatePreviewBlock): ReactElement => {
-                return (
-                  <PreviewBlockRow
-                    key={block.componentId}
-                    block={block}
-                    isTrigger={false}
-                  />
-                );
-              },
-            )}
-          </ul>
-        </dd>
-      </dl>
-
-      <h4 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {tx("What you'll need")}
-      </h4>
-      {preview.settings.length > 0 ? (
-        <ul
-          className="mt-2 space-y-1.5"
-          data-testid="workflow-template-preview-settings"
-        >
-          {preview.settings.map(
-            (variable: WorkflowTemplateVariable): ReactElement => {
-              return (
-                <li
-                  key={variable.name}
-                  className="flex items-start gap-2 text-sm text-gray-700"
-                  data-testid={`workflow-template-preview-setting-${variable.name}`}
-                >
-                  {/* A lock marks a secret; anything else is a plain bullet. */}
-                  {variable.isSecret ? (
-                    <Icon
-                      icon={IconProp.Lock}
-                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
-                    />
-                  ) : (
-                    <div
-                      aria-hidden="true"
-                      className="flex h-5 w-4 flex-shrink-0 items-center justify-center"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                    </div>
-                  )}
-                  <span className="min-w-0">
-                    {variable.title}
-                    {variable.isSecret ? (
-                      <span className="sr-only">, {tx("Secret")}</span>
-                    ) : (
-                      <></>
-                    )}
-                    {variable.required ? (
-                      <></>
-                    ) : (
-                      <span className="ml-1 text-gray-400">
-                        ({tx("Optional")})
-                      </span>
-                    )}
-                  </span>
-                </li>
-              );
-            },
+            <HighlightedText
+              text={template.description}
+              tokens={props.tokens}
+              typoTokens={props.typoTokens}
+            />
+          </div>
+          {props.isActive && props.preview ? (
+            <TemplateDetails preview={props.preview} tx={props.tx} />
+          ) : (
+            <></>
           )}
-        </ul>
-      ) : (
-        <p
-          className="mt-2 text-sm text-gray-600"
-          data-testid="workflow-template-preview-no-settings"
-        >
-          {tx("Nothing to fill in.")}
-        </p>
-      )}
-    </section>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -446,40 +381,17 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
     return translateString(value) || value;
   };
 
+  const scratchButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
   const searchInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
-  const listColumnRef: React.RefObject<HTMLDivElement> =
+  const listboxRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
-  const returnFocusToListRef: React.MutableRefObject<boolean> =
+  // Set when the keyboard picks a row, so it is brought into view once drawn.
+  const scrollPickedIntoViewRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
   const state: WorkflowTemplatePickerState = props.state;
-
-  /*
-   * On a narrow screen the preview takes the list's place, and the list that
-   * had focus is gone with it. Focus follows: to the preview's way back when
-   * it opens, and to the list again when that is used. Where both are shown
-   * side by side, focus stays where it was.
-   */
-  useEffect(() => {
-    if (state.isPreviewOpen) {
-      const listColumn: HTMLDivElement | null = listColumnRef.current;
-
-      if (
-        listColumn &&
-        window.getComputedStyle(listColumn).display === "none"
-      ) {
-        document.getElementById(PREVIEW_BACK_BUTTON_ID)?.focus();
-      }
-
-      return;
-    }
-
-    if (returnFocusToListRef.current) {
-      returnFocusToListRef.current = false;
-      document.getElementById(WORKFLOW_TEMPLATE_LISTBOX_ID)?.focus();
-    }
-  }, [state.isPreviewOpen]);
 
   const views: Array<WorkflowTemplatePickerViewInfo> = useMemo(() => {
     return getWorkflowTemplatePickerViews();
@@ -488,10 +400,6 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
   const list: WorkflowTemplatePickerList = useMemo(() => {
     return getWorkflowTemplatePickerList(state);
   }, [state]);
-
-  const counts: Map<WorkflowTemplatePickerView, number> = useMemo(() => {
-    return getWorkflowTemplatePickerCounts(state.search);
-  }, [state.search]);
 
   const tokens: Array<string> = useMemo(() => {
     return getWorkflowTemplateSearchTokens(state.search);
@@ -505,11 +413,54 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
     return activeTemplate ? getWorkflowTemplatePreview(activeTemplate) : null;
   }, [activeTemplate]);
 
-  const viewInfo: WorkflowTemplatePickerViewInfo =
-    getWorkflowTemplatePickerViewInfo(list.view);
+  // Only read for an empty search narrowed to one category.
+  const allMatchCount: number = useMemo(() => {
+    if (!list.isSearching || list.templates.length > 0) {
+      return 0;
+    }
+
+    return (
+      getWorkflowTemplatePickerCounts(state.search).get(
+        WorkflowTemplateCollection.All,
+      ) || 0
+    );
+  }, [list, state.search]);
 
   /*
-   * "/" goes back to the search from anywhere in the step, as it does in the
+   * Where the focus starts. When the dialog opens that is Start from scratch,
+   * the first thing in it and the most common choice, so Enter takes it (the
+   * dialog puts its focus there too). Back from Name returns to what was
+   * chosen: the list, with the template picked, or Start from scratch.
+   */
+  useEffect(() => {
+    if (activeTemplate && !props.isStartFromScratchChosen) {
+      listboxRef.current?.focus();
+      return;
+    }
+
+    scratchButtonRef.current?.focus();
+    // Only on arrival: afterwards the focus is the person's own.
+  }, []);
+
+  // A row the keyboard picked is brought into view, details and all.
+  useEffect(() => {
+    if (!scrollPickedIntoViewRef.current || !activeTemplate) {
+      return;
+    }
+
+    scrollPickedIntoViewRef.current = false;
+
+    const row: HTMLElement | null = document.getElementById(
+      workflowTemplateOptionDomId(activeTemplate.id),
+    );
+
+    if (row && typeof row.scrollIntoView === "function") {
+      row.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeTemplate?.id]);
+
+  /*
+   * "/" goes to the search from anywhere in the step, as it does in the
    * builder's Add Component panel. Not while typing somewhere else.
    */
   useEffect(() => {
@@ -563,28 +514,24 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
 
   type MoveFunction = (move: WorkflowTemplateMove) => void;
 
-  const moveActive: MoveFunction = (move: WorkflowTemplateMove): void => {
+  const movePick: MoveFunction = (move: WorkflowTemplateMove): void => {
     const nextId: string | null = getMovedWorkflowTemplateId(state, move);
 
     if (!nextId) {
       return;
     }
 
-    change({ ...state, activeTemplateId: nextId });
-
-    // The row is already on the page; only its highlight moves.
-    const row: HTMLElement | null = document.getElementById(
-      workflowTemplateOptionDomId(nextId),
-    );
-
-    if (row && typeof row.scrollIntoView === "function") {
-      row.scrollIntoView({ block: "nearest" });
-    }
+    scrollPickedIntoViewRef.current = true;
+    change(withWorkflowTemplateSelected(state, nextId));
   };
 
-  type ChooseActiveFunction = () => void;
+  type StartFromPickedFunction = () => void;
 
-  const chooseActiveTemplate: ChooseActiveFunction = (): void => {
+  /*
+   * Not a hook, so not named like one: React reads any use + capital name as
+   * a hook, and this one is called from a key handler.
+   */
+  const startFromPickedTemplate: StartFromPickedFunction = (): void => {
     if (activeTemplate) {
       props.onUseTemplate(activeTemplate);
     }
@@ -605,28 +552,28 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
-        moveActive(WorkflowTemplateMove.Next);
+        movePick(WorkflowTemplateMove.Next);
         return;
       case "ArrowUp":
         event.preventDefault();
-        moveActive(WorkflowTemplateMove.Previous);
+        movePick(WorkflowTemplateMove.Previous);
         return;
       case "Home":
         // In the search box, Home and End move the caret.
         if (!isInSearch) {
           event.preventDefault();
-          moveActive(WorkflowTemplateMove.First);
+          movePick(WorkflowTemplateMove.First);
         }
         return;
       case "End":
         if (!isInSearch) {
           event.preventDefault();
-          moveActive(WorkflowTemplateMove.Last);
+          movePick(WorkflowTemplateMove.Last);
         }
         return;
       case "Enter":
         event.preventDefault();
-        chooseActiveTemplate();
+        startFromPickedTemplate();
         return;
       case " ":
         // The list does not scroll the dialog on Space.
@@ -657,80 +604,31 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
     change(withWorkflowTemplateView(state, view));
   };
 
-  type CategoryKeyDownFunction = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ) => void;
-
-  // A radio group: the arrow keys move between categories, and choose as they go.
-  const onCategoryKeyDown: CategoryKeyDownFunction = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ): void => {
-    let nextIndex: number | null = null;
-
-    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-      nextIndex = (index + 1) % views.length;
-    } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-      nextIndex = (index - 1 + views.length) % views.length;
-    } else if (event.key === "Home") {
-      nextIndex = 0;
-    } else if (event.key === "End") {
-      nextIndex = views.length - 1;
-    }
-
-    if (nextIndex === null) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const next: WorkflowTemplatePickerViewInfo = views[nextIndex]!;
-
-    selectView(next.view);
-    document.getElementById(workflowTemplateViewDomId(next.view))?.focus();
-  };
-
-  const isSearching: boolean = list.isSearching;
-  const resultCount: number = list.templates.length;
-  const allMatchCount: number = counts.get(WorkflowTemplateCollection.All) || 0;
   const resultCountText: string = workflowTemplateCountText(
     tx,
-    resultCount,
+    list.templates.length,
     "1 result",
     "{count} results",
   );
-
-  /*
-   * A row names its category only in search results that mix categories,
-   * where it says why the row is there. Elsewhere a heading already says it,
-   * or it is one more word on every row of a list meant to be calm.
-   */
-  const showCategoryOnRows: boolean =
-    isSearching &&
-    (list.view === WorkflowTemplateCollection.All ||
-      list.view === WorkflowTemplateCollection.Recommended);
 
   type RenderOptionFunction = (template: WorkflowTemplate) => ReactElement;
 
   const renderOption: RenderOptionFunction = (
     template: WorkflowTemplate,
   ): ReactElement => {
+    const isActive: boolean = activeTemplate?.id === template.id;
+
     return (
       <TemplateOption
         key={template.id}
         template={template}
-        isActive={activeTemplate?.id === template.id}
+        isActive={isActive}
+        preview={isActive ? preview : null}
         tokens={tokens}
         typoTokens={list.typoTokens}
-        showCategory={showCategoryOnRows}
         tx={tx}
-        onActivate={() => {
-          change({
-            ...state,
-            activeTemplateId: template.id,
-            isPreviewOpen: true,
-          });
+        onPick={() => {
+          change(withWorkflowTemplateSelected(state, template.id));
         }}
         onUse={() => {
           props.onUseTemplate(template);
@@ -741,368 +639,238 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="workflow-template-picker">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative min-w-0 flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+      {/*
+       * The most common way to start, so it comes first and stands out: the
+       * one card in the step, with the brand's colour on its icon. One click
+       * goes on to Name. Not a filled button - the dialog's one primary
+       * action is Use this template, in its footer.
+       */}
+      <button
+        ref={scratchButtonRef}
+        id={WORKFLOW_START_FROM_SCRATCH_ID}
+        type="button"
+        data-testid="workflow-start-from-scratch"
+        aria-describedby={SCRATCH_DESCRIPTION_ID}
+        aria-current={props.isStartFromScratchChosen ? "true" : undefined}
+        onClick={props.onStartFromScratch}
+        className={`group flex w-full items-center gap-4 rounded-xl border p-4 text-left shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+          props.isStartFromScratchChosen
+            ? "border-indigo-500 bg-indigo-50/50 ring-1 ring-indigo-500"
+            : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
+        }`}
+      >
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200">
+          <Icon icon={IconProp.Add} className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold leading-5 text-gray-900">
+            {tx("Start from scratch")}
           </div>
-          <input
-            ref={searchInputRef}
-            id={WORKFLOW_TEMPLATE_SEARCH_INPUT_ID}
-            data-testid="workflow-template-search"
-            type="text"
-            role="combobox"
-            aria-expanded={true}
-            aria-autocomplete="list"
-            aria-controls={WORKFLOW_TEMPLATE_LISTBOX_ID}
-            aria-activedescendant={
-              activeTemplate
-                ? workflowTemplateOptionDomId(activeTemplate.id)
-                : undefined
-            }
-            aria-label={tx("Search templates…")}
-            placeholder={tx("Search templates…")}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            autoFocus={true}
-            value={state.search}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setSearch(event.target.value);
-            }}
-            onKeyDown={onListKeys}
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-            {state.search.length > 0 ? (
-              <button
-                type="button"
-                data-testid="workflow-template-search-clear"
-                aria-label={tx("Clear search")}
-                title={tx("Clear search")}
-                onClick={() => {
-                  setSearch("");
-                  searchInputRef.current?.focus();
-                }}
-                className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <KeyboardShortcut
-                keys={["/"]}
-                size={KeyboardShortcutSize.ExtraSmall}
-                variant={KeyboardShortcutVariant.Ghost}
-                className="pointer-events-none max-sm:hidden sm:inline-flex"
-              />
+          <div
+            id={SCRATCH_DESCRIPTION_ID}
+            className="mt-0.5 text-sm leading-5 text-gray-600"
+          >
+            {tx(
+              "Begin with an empty canvas and add your own trigger and steps.",
             )}
           </div>
         </div>
-        {/*
-         * Drawn like the product's plain secondary button, never filled: the
-         * dialog's one primary action is "Use this template". Pressed when an
-         * empty canvas is the start already chosen, so Back shows what was
-         * picked.
-         */}
-        <button
-          type="button"
-          data-testid="workflow-start-from-scratch"
-          aria-pressed={props.isStartFromScratchChosen}
-          onClick={props.onStartFromScratch}
-          className={
+        <Icon
+          icon={
             props.isStartFromScratchChosen
-              ? `${SECONDARY_BUTTON_BASE_CLASS_NAME} border-indigo-500 text-indigo-700`
-              : SECONDARY_BUTTON_CLASS_NAME
+              ? IconProp.Check
+              : IconProp.ArrowRight
           }
-        >
-          <Icon
-            icon={
-              props.isStartFromScratchChosen ? IconProp.Check : IconProp.Add
-            }
-            className={`h-4 w-4 ${
-              props.isStartFromScratchChosen
-                ? "text-indigo-600"
-                : "text-gray-500"
-            }`}
-          />
-          {tx("Start from scratch")}
-        </button>
-      </div>
+          className="h-5 w-5 flex-shrink-0 text-indigo-600 transition-transform duration-150 group-hover:translate-x-0.5"
+        />
+      </button>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[11.5rem_minmax(0,1fr)_19rem] xl:gap-6">
+      <div className="mt-7">
         {/*
-         * The categories, as a column beside the list where there is room for
-         * one. Narrower screens choose them from the select over the list
-         * instead: as a wrapping row of chips they took three lines.
+         * The heading, then search and categories, kept small: they are there
+         * for whoever needs more than the few the list opens on. One row where
+         * there is room. On a phone the select stays beside the heading and
+         * the search takes a row of its own, wide enough to read its prompt.
          */}
-        <div
-          role="radiogroup"
-          aria-label={tx("Template categories")}
-          data-testid="workflow-template-categories"
-          className="max-xl:hidden xl:sticky xl:top-0 xl:flex xl:flex-col xl:gap-0.5 xl:self-start"
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2.5 sm:grid-cols-[minmax(0,1fr)_14rem_auto]">
+          <h3
+            id={LIST_HEADING_ID}
+            className="col-start-1 row-start-1 min-w-0 text-sm font-semibold text-gray-900"
+          >
+            {tx("Or start from a template")}
+          </h3>
+          <div className="relative col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              ref={searchInputRef}
+              id={WORKFLOW_TEMPLATE_SEARCH_INPUT_ID}
+              data-testid="workflow-template-search"
+              type="text"
+              role="combobox"
+              aria-expanded={true}
+              aria-autocomplete="list"
+              aria-controls={WORKFLOW_TEMPLATE_LISTBOX_ID}
+              aria-activedescendant={
+                activeTemplate
+                  ? workflowTemplateOptionDomId(activeTemplate.id)
+                  : undefined
+              }
+              aria-label={tx("Search templates…")}
+              placeholder={tx("Search templates…")}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              value={state.search}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setSearch(event.target.value);
+              }}
+              onKeyDown={onListKeys}
+              className="block w-full rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-8 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            {state.search.length > 0 ? (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-1.5">
+                <button
+                  type="button"
+                  data-testid="workflow-template-search-clear"
+                  aria-label={tx("Clear search")}
+                  title={tx("Clear search")}
+                  onClick={() => {
+                    setSearch("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+          <select
+            id={WORKFLOW_TEMPLATE_VIEW_SELECT_ID}
+            data-testid="workflow-template-view-select"
+            aria-label={tx("Template categories")}
+            value={String(list.view)}
+            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+              selectView(event.target.value as WorkflowTemplatePickerView);
+            }}
+            className="col-start-2 row-start-1 rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:col-start-3"
+          >
+            {views.map((info: WorkflowTemplatePickerViewInfo): ReactElement => {
+              return (
+                <option key={String(info.view)} value={String(info.view)}>
+                  {tx(info.label)}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        <p
+          className="sr-only"
+          aria-live="polite"
+          data-testid="workflow-template-result-count"
         >
-          {views.map(
-            (
-              info: WorkflowTemplatePickerViewInfo,
-              index: number,
-            ): ReactElement => {
-              const isSelected: boolean = info.view === list.view;
-              const count: number = counts.get(info.view) || 0;
-              const isEmpty: boolean = isSearching && count === 0;
+          {list.isSearching ? resultCountText : ""}
+        </p>
+
+        <div
+          ref={listboxRef}
+          id={WORKFLOW_TEMPLATE_LISTBOX_ID}
+          role="listbox"
+          aria-labelledby={LIST_HEADING_ID}
+          aria-activedescendant={
+            activeTemplate
+              ? workflowTemplateOptionDomId(activeTemplate.id)
+              : undefined
+          }
+          tabIndex={0}
+          data-testid={WORKFLOW_TEMPLATE_LISTBOX_ID}
+          onKeyDown={onListKeys}
+          className={`mt-3 overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+            list.templates.length > 0
+              ? "divide-y divide-gray-200 border border-gray-200"
+              : ""
+          }`}
+        >
+          {list.sections.map(
+            (section: WorkflowTemplatePickerSection): ReactElement => {
+              if (!section.title) {
+                return (
+                  <div key={section.id} className="divide-y divide-gray-100">
+                    {section.templates.map(renderOption)}
+                  </div>
+                );
+              }
 
               return (
-                <button
-                  key={String(info.view)}
-                  id={workflowTemplateViewDomId(info.view)}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  aria-label={`${tx(info.label)} (${count})`}
-                  // A long translated name is cut short; this says it whole.
-                  title={tx(info.label)}
-                  tabIndex={isSelected ? 0 : -1}
-                  data-testid={workflowTemplateViewDomId(info.view)}
-                  onClick={() => {
-                    selectView(info.view);
-                  }}
-                  onKeyDown={(
-                    event: React.KeyboardEvent<HTMLButtonElement>,
-                  ) => {
-                    onCategoryKeyDown(event, index);
-                  }}
-                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isSelected
-                      ? "bg-indigo-50 font-medium text-indigo-700"
-                      : `hover:bg-gray-50 ${
-                          isEmpty ? "text-gray-400" : "text-gray-700"
-                        }`
-                  } ${index === 1 || index === views.length - 1 ? "mt-2" : ""}`}
+                <div
+                  key={section.id}
+                  role="group"
+                  aria-label={tx(section.title)}
+                  data-testid={`workflow-template-section-${section.id}`}
+                  className="divide-y divide-gray-100"
                 >
-                  <Icon
-                    icon={info.icon}
-                    className={`h-4 w-4 flex-shrink-0 ${
-                      isSelected ? "text-indigo-600" : "text-gray-400"
-                    }`}
-                  />
-                  <span className="min-w-0 flex-1 truncate">
-                    {tx(info.label)}
-                  </span>
-                  <span
-                    className={`flex-shrink-0 text-xs tabular-nums ${
-                      isSelected ? "text-indigo-600" : "text-gray-400"
-                    }`}
+                  <div
+                    aria-hidden="true"
+                    className="bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:px-4"
                   >
-                    {count}
-                  </span>
-                </button>
+                    {tx(section.title)}
+                  </div>
+                  {section.templates.map(renderOption)}
+                </div>
               );
             },
           )}
         </div>
 
-        <div
-          ref={listColumnRef}
-          className={`min-w-0 ${state.isPreviewOpen ? "max-md:hidden" : ""}`}
-          data-testid="workflow-template-list-column"
-        >
-          <div className="mb-2 px-1">
-            <div className="flex items-center justify-between gap-3 xl:hidden">
-              <label
-                htmlFor="workflow-template-view-select"
-                className="sr-only"
-              >
-                {tx("Template categories")}
-              </label>
-              <select
-                id="workflow-template-view-select"
-                data-testid="workflow-template-view-select"
-                value={String(list.view)}
-                onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                  selectView(event.target.value as WorkflowTemplatePickerView);
-                }}
-                className="min-w-0 max-w-full rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              >
-                {views.map(
-                  (info: WorkflowTemplatePickerViewInfo): ReactElement => {
-                    return (
-                      <option key={String(info.view)} value={String(info.view)}>
-                        {`${tx(info.label)} (${counts.get(info.view) || 0})`}
-                      </option>
-                    );
-                  },
-                )}
-              </select>
-              {isSearching ? (
-                <span className="flex-shrink-0 text-xs text-gray-500">
-                  {resultCountText}
-                </span>
-              ) : (
-                <></>
-              )}
-            </div>
-            <h3
-              id="workflow-template-list-heading"
-              className="text-sm font-semibold text-gray-900 max-xl:sr-only"
-            >
-              {isSearching ? resultCountText : tx(viewInfo.label)}
-            </h3>
-            <p
-              className={`mt-0.5 text-xs text-gray-500 max-xl:mt-2 ${
-                isSearching ? "max-xl:hidden" : ""
-              }`}
-            >
-              {isSearching ? tx(viewInfo.label) : tx(viewInfo.description)}
-            </p>
-          </div>
-
-          <p
-            className="sr-only"
-            aria-live="polite"
-            data-testid="workflow-template-result-count"
-          >
-            {isSearching ? resultCountText : ""}
-          </p>
-
+        {list.templates.length === 0 ? (
           <div
-            id={WORKFLOW_TEMPLATE_LISTBOX_ID}
-            role="listbox"
-            aria-labelledby="workflow-template-list-heading"
-            aria-activedescendant={
-              activeTemplate
-                ? workflowTemplateOptionDomId(activeTemplate.id)
-                : undefined
-            }
-            tabIndex={0}
-            data-testid={WORKFLOW_TEMPLATE_LISTBOX_ID}
-            onKeyDown={onListKeys}
-            className="space-y-0.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center"
+            data-testid="workflow-template-empty"
           >
-            {list.sections.map(
-              (section: WorkflowTemplatePickerSection): ReactElement => {
-                if (!section.title) {
-                  return (
-                    <React.Fragment key={section.id}>
-                      {section.templates.map(renderOption)}
-                    </React.Fragment>
-                  );
-                }
-
-                return (
-                  <div
-                    key={section.id}
-                    role="group"
-                    aria-label={tx(section.title)}
-                    data-testid={`workflow-template-section-${section.id}`}
-                    className="pt-3 first:pt-0"
-                  >
-                    <div
-                      aria-hidden="true"
-                      className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-500"
-                    >
-                      <span>{tx(section.title)}</span>
-                      <span className="font-normal tabular-nums text-gray-400">
-                        {section.templates.length}
-                      </span>
-                    </div>
-                    {section.templates.map(renderOption)}
-                  </div>
-                );
-              },
-            )}
-          </div>
-
-          {resultCount === 0 ? (
-            <div
-              className="flex flex-col items-center px-4 py-10 text-center"
-              data-testid="workflow-template-empty"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-                <Icon
-                  icon={IconProp.Search}
-                  className="h-5 w-5 text-gray-400"
-                />
-              </div>
-              <p className="mt-3 text-sm font-medium text-gray-900">
-                {tx("No templates match your search.")}
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                {tx("Try other words, or start from scratch.")}
-              </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {list.view !== WorkflowTemplateCollection.All &&
-                allMatchCount > 0 ? (
-                  <button
-                    type="button"
-                    data-testid="workflow-template-search-everywhere"
-                    onClick={() => {
-                      selectView(WorkflowTemplateCollection.All);
-                    }}
-                    className={SECONDARY_BUTTON_CLASS_NAME}
-                  >
-                    {`${tx("Search all templates")} (${allMatchCount})`}
-                  </button>
-                ) : (
-                  <></>
-                )}
+            <p className="text-sm font-medium text-gray-900">
+              {tx("No templates match your search.")}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              {tx("Try other words, or start from scratch.")}
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {list.view !== WorkflowTemplateCollection.All &&
+              allMatchCount > 0 ? (
                 <button
                   type="button"
-                  data-testid="workflow-template-empty-clear"
+                  data-testid="workflow-template-search-everywhere"
                   onClick={() => {
-                    setSearch("");
-                    searchInputRef.current?.focus();
+                    selectView(WorkflowTemplateCollection.All);
                   }}
                   className={SECONDARY_BUTTON_CLASS_NAME}
                 >
-                  {tx("Clear search")}
+                  {`${tx("Search all templates")} (${allMatchCount})`}
                 </button>
-              </div>
+              ) : (
+                <></>
+              )}
+              <button
+                type="button"
+                data-testid="workflow-template-empty-clear"
+                onClick={() => {
+                  setSearch("");
+                  searchInputRef.current?.focus();
+                }}
+                className={SECONDARY_BUTTON_CLASS_NAME}
+              >
+                {tx("Clear search")}
+              </button>
             </div>
-          ) : (
-            <div
-              aria-hidden="true"
-              className="mt-3 items-center gap-4 px-1 text-xs text-gray-400 max-md:hidden md:flex"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <KeyboardShortcut
-                  keys={[KeyboardKey.ArrowUp, KeyboardKey.ArrowDown]}
-                  size={KeyboardShortcutSize.ExtraSmall}
-                  variant={KeyboardShortcutVariant.Ghost}
-                />
-                {tx("to move")}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <KeyboardShortcut
-                  keys={[KeyboardKey.Enter]}
-                  size={KeyboardShortcutSize.ExtraSmall}
-                  variant={KeyboardShortcutVariant.Ghost}
-                />
-                {tx("to use")}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div
-          className={`min-w-0 md:sticky md:top-0 md:self-start ${
-            state.isPreviewOpen ? "" : "max-md:hidden"
-          }`}
-          data-testid="workflow-template-preview-column"
-        >
-          {/* Nothing to preview when a search finds nothing: the list says so. */}
-          {preview ? (
-            <TemplatePreview
-              preview={preview}
-              tx={tx}
-              onBack={() => {
-                returnFocusToListRef.current = true;
-                change({ ...state, isPreviewOpen: false });
-              }}
-            />
-          ) : (
-            <></>
-          )}
-        </div>
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );

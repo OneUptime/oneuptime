@@ -55,16 +55,57 @@ import {
   RevenueEventName,
   RevenueFunnelStage,
 } from "Common/Types/Analytics/RevenueEvent";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  InviteTeam,
+  findDefaultInviteTeam,
+} from "../../Utils/DefaultInviteTeam";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showInviteUserModal, setShowInviteUserModal] =
     React.useState<boolean>(false);
   const [showScimErrorModal, setShowScimErrorModal] =
     React.useState<boolean>(false);
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+
+  /*
+   * The team Invite User starts on: the project's members team, when the
+   * person inviting may invite to it (Utils/DefaultInviteTeam). Looked up
+   * when the dialog is asked for, so the form opens with it picked.
+   */
+  const [defaultInviteTeam, setDefaultInviteTeam] =
+    React.useState<InviteTeam | null>(null);
+  const [isPreparingInvite, setIsPreparingInvite] =
+    React.useState<boolean>(false);
+
+  const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
+    setIsPreparingInvite(true);
+
+    const team: InviteTeam | null = await findDefaultInviteTeam({
+      projectId: ProjectUtil.getCurrentProjectId(),
+    });
+
+    setDefaultInviteTeam(team);
+    setIsPreparingInvite(false);
+    setShowInviteUserModal(true);
+  };
+
+  // One object per lookup, so re-renders while typing hand the form the same.
+  const inviteInitialValues: FormValues<TeamMember> | undefined =
+    React.useMemo((): FormValues<TeamMember> | undefined => {
+      if (!defaultInviteTeam) {
+        return undefined;
+      }
+
+      return {
+        team: defaultInviteTeam.id,
+      } as FormValues<TeamMember>;
+    }, [defaultInviteTeam]);
 
   const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
     getRequestHeaders: () => {
@@ -176,10 +217,10 @@ const Users: FunctionComponent<PageComponentProps> = (
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
-    hasActiveFilters,
   } = useResourceOwners<TeamMember>({
     persistKey: "settings-users-table",
     showOwnerFacet: false,
@@ -254,6 +295,7 @@ const Users: FunctionComponent<PageComponentProps> = (
         isCreateable={false}
         isViewable={true}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
@@ -290,21 +332,28 @@ const Users: FunctionComponent<PageComponentProps> = (
               title: "Invite User",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
+              isLoading: isPreparingInvite,
               onClick: () => {
+                if (isPreparingInvite) {
+                  return;
+                }
+
                 if (isPushGroupsManaged) {
                   setShowScimErrorModal(true);
                 } else {
-                  setShowInviteUserModal(true);
+                  void openInviteUserModal();
                 }
               },
             },
           ],
         }}
-        noItemsMessage={
-          hasActiveFilters
-            ? "No users found"
-            : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
-        }
+        /*
+         * No noItemsMessage: the table's own "No users yet.", then the card's
+         * description and Invite User. It said "Please wait, we are
+         * refreshing the list of users for this project. Please try again in
+         * sometime." - which nothing was doing - under the one list a project
+         * is never without, since its owners are on it.
+         */
         query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
         } as Query<TeamMember>)}
@@ -330,7 +379,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             type: FieldType.Element,
             getElement: (item: TeamMember) => {
               if (!item.user) {
-                return <p>User not found</p>;
+                return <p>{translator.translateText("User not found")}</p>;
               }
               return <UserElement user={item.user!} />;
             },
@@ -348,7 +397,7 @@ const Users: FunctionComponent<PageComponentProps> = (
               const teams: Array<Team> = (item as ProjectUserRow).teamsForUser;
 
               if (!teams || teams.length === 0) {
-                return <p>No team assigned</p>;
+                return <p>{translator.translateText("No team assigned")}</p>;
               }
 
               return <TeamsElement teams={teams} />;
@@ -402,9 +451,13 @@ const Users: FunctionComponent<PageComponentProps> = (
                   <Pill text="Member" color={Green} />
                   {pendingTeamCount > 0 && (
                     <Pill
-                      text={`${pendingTeamCount} Invitation${
-                        pendingTeamCount === 1 ? "" : "s"
-                      } Pending`}
+                      text={translator.translatePlural(
+                        {
+                          one: "{{count}} Invitation Pending",
+                          other: "{{count}} Invitations Pending",
+                        },
+                        pendingTeamCount,
+                      )}
                       color={Yellow}
                     />
                   )}
@@ -424,6 +477,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             setShowInviteUserModal(false);
           }}
           submitButtonText="Invite"
+          initialValues={inviteInitialValues}
           onSuccess={(teamMember: TeamMember | null) => {
             if (teamMember) {
               UiAnalytics.captureRevenueEvent(
@@ -489,8 +543,12 @@ const Users: FunctionComponent<PageComponentProps> = (
                   team: true,
                 },
                 title: "Team",
-                description:
-                  "Select the team you would like to add this user to.",
+                description: defaultInviteTeam
+                  ? translator.translateTemplate(
+                      "Their team decides what they can do in this project. {{teamName}} is picked to start with; choose another team to give them different access.",
+                      { teamName: defaultInviteTeam.name },
+                    )
+                  : "Their team decides what they can do in this project.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 dropdownModal: {

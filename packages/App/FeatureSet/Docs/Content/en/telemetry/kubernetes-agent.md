@@ -292,19 +292,66 @@ On clusters with Windows node pools, `daemonset` mode covers only Linux nodes �
 
 ### Enable Control Plane Monitoring
 
-For self-managed clusters (not EKS / GKE / AKS), you can enable control plane metrics:
+The cluster's **Control Plane** page charts etcd, the API server, the scheduler and the controller manager. The agent scrapes all four when `controlPlane.enabled` is `true`:
 
 ```bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --create-namespace \
-  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
-  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster" \
+  --reuse-values \
   --set controlPlane.enabled=true
 ```
 
-> Managed Kubernetes services (EKS, GKE, AKS) typically do not expose control plane metrics. Only enable this for self-managed clusters.
+Each component is scraped at the addresses in its own list: `controlPlane.etcd.endpoints`, `controlPlane.apiServer.endpoints`, `controlPlane.scheduler.endpoints` and `controlPlane.controllerManager.endpoints`. The scrape runs in the agent's pod, which has no host network, so the defaults (`https://localhost:<port>/metrics`) point at that pod itself: set each list to an address the pod can reach. Inside any cluster the API server answers at `https://kubernetes.default.svc:443/metrics`:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set controlPlane.enabled=true \
+  --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
+```
+
+`controlPlane.enabled` turns on all four scrapes at once. Where a component cannot be reached at its endpoints (etcd, the scheduler and the controller manager on a managed cluster, or at their `localhost` defaults), its scrape fails on every interval: the collector logs a scrape error and reports the target as down, and nothing else changes.
+
+The agent scrapes over HTTPS only, with the service account's token and no client certificate. So:
+
+- **etcd** needs an HTTPS metrics address that does not ask for a client certificate. etcd's usual metrics ports are out of reach: plain HTTP on `2381` (kubeadm's `--listen-metrics-urls`) is scraped as HTTPS and fails, and `2379` requires client certificates.
+- **The scheduler** (`10259`) and **the controller manager** (`10257`) serve HTTPS and accept the token, but kubeadm binds them to `127.0.0.1` on the control-plane nodes; they need a `--bind-address` the agent's pod can reach.
+
+> Managed Kubernetes services (EKS, GKE, AKS) do not expose etcd, the scheduler or the controller manager, so those tabs stay empty there.
+
+Until a tab's metrics arrive, the Control Plane page shows what to set in place of that tab's charts, with the command to copy.
+
+### Enable CoreDNS Metrics
+
+The **CoreDNS** tab of the Control Plane page charts DNS queries, latency, the cache and forwarding. Collecting them is off by default:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set coreDns.enabled=true
+```
+
+The agent scrapes port `9153` of the pods labelled `k8s-app=kube-dns` in `kube-system`, which is how CoreDNS runs on kubeadm clusters, EKS and AKS. If yours runs elsewhere, also set `coreDns.namespace`, `coreDns.service` (the `k8s-app` label) and `coreDns.port`. GKE runs kube-dns (dnsmasq) or Cloud DNS instead of CoreDNS, so the tab stays empty there.
+
+### Enable Service Mesh Metrics
+
+The cluster's **Service Mesh** page charts Istio and Linkerd. The agent scrapes one mesh, the one `serviceMesh.provider` names (`istio` or `linkerd`):
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set serviceMesh.enabled=true \
+  --set serviceMesh.provider=istio
+```
+
+For Istio it reads the Envoy statistics of every `istio-proxy` sidecar (port `15090`). For Linkerd it reads the admin port of every `linkerd-proxy`. Neither mesh's control plane is scraped: istiod (the **Pilot** card) and Linkerd's identity, destination and proxy-injector components (the **Control Plane** card) serve their metrics on admin ports of their own, so those cards say so in place of their charts.
+
+### Metrics the Agent Does Not Collect
+
+Some charts show metrics the agent has no scrape for: **kube-proxy** on the Control Plane page; **Cilium** (with Hubble) on the Service Mesh page; and on the Istio and Linkerd tabs, the meshes' own control planes (**istiod**, and Linkerd's identity, destination and proxy-injector components). They fill in when those metrics reach OneUptime another way, for example from your own [OpenTelemetry Collector](/docs/telemetry/open-telemetry) scraping them, with the resource attribute `k8s.cluster.name` set to the cluster's name (the agent's `clusterName`). Clusters that run without kube-proxy have no kube-proxy metrics at all.
 
 ### Enable Cost Observability
 
@@ -359,7 +406,7 @@ Labels are matched case-insensitively, so an existing manually-created `Producti
 
 When an incident or alert is raised on this cluster, OneUptime AI investigates it. The chart's **Kubernetes AI agent** gives it a terminal: it runs read-only `kubectl` the way an on-call engineer would (describe the failing pod, read its events, tail the crashing container's logs, check node capacity) and cites every command on the incident page.
 
-The agent is **on by default** and **read-only**: one small Deployment (`kubernetes-agent-ai-agent`, pod label `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) whose ServiceAccount may only read. It registers itself with the same `oneuptime.apiKey` and `clusterName` the collector uses, so there is nothing to set up in the dashboard: the cluster's **AI agent** page (Kubernetes → cluster → AI → Agent) shows it as Connected within a minute, and its **Test connection** button runs `kubectl version` and `kubectl auth can-i --list` through it. What AI did with it is on the cluster's **AI Insights** page (AI → Insights). The agent ships a pinned kubectl (v1.36.4). It is not a Runner and never appears under Runbooks → Runners: OneUptime never hands it a credential, never runs runbooks on it, and it is never accepted as an auto-remediation rule's command Runner.
+The agent is **on by default** and **read-only**: one small Deployment (`kubernetes-agent-ai-agent`, pod label `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) whose ServiceAccount may only read. It registers itself with the same `oneuptime.apiKey` and `clusterName` the collector uses, so there is nothing to set up in the dashboard: the cluster's **AI agent** page (Kubernetes → cluster → AI → Agent) shows it as Connected within a minute, and **Test connection**, in the **⋯** menu next to that status, runs `kubectl version` and `kubectl auth can-i --list` through it. What AI did with it is on the cluster's **AI Insights** page (AI → Insights). The agent ships a pinned kubectl (v1.36.4). It is not a Runner and never appears under Runbooks → Runners: OneUptime never hands it a credential, never runs runbooks on it, and it is never accepted as an auto-remediation rule's command Runner.
 
 On an agent installed before the AI agent existed, refresh your chart index first, then upgrade (on a self-hosted OneUptime, upgrade OneUptime first — see [Upgrading the Agent](#upgrading-the-agent)):
 
@@ -438,9 +485,11 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **A refusal that clears on its own** — a previous agent pod that still reports in (a pod replaced without a clean shutdown), or the old in-cluster Runner still shutting down during an upgrade. The agent retries after the wait the server names.
 - **A refusal that needs you** — an empty or too-long `clusterName`, or a project that has reached its limit of AI agents; the log names what to change. If an agent never connects and its log says `Another Kubernetes AI agent for cluster "<name>" is online`, two installs share one `clusterName` (the AI agent page warns about it too): the one already connected keeps it for as long as it runs, so give each cluster its own `clusterName` or remove the extra release. An ingestion key with a **Pinned Service Name** cannot register the agent — give the chart a key without one.
 
-**Reset agent** on the AI agent page makes the server forget the agent's key (a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it); the pod reconnects on its own within a few minutes. The agent's readiness does not depend on OneUptime, so a misconfigured AI agent never fails `helm upgrade --wait` — only a pod that cannot pull its image does.
+**Reset agent**, in the **⋯** menu next to the agent's status on the AI agent page, makes the server forget the agent's key once you confirm it (a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it); the pod reconnects on its own within a few minutes. The agent's readiness does not depend on OneUptime, so a misconfigured AI agent never fails `helm upgrade --wait` — only a pod that cannot pull its image does.
 
 ## Upgrading the Agent
+
+When the agent is older than your OneUptime, a warning sign appears beside **Agent Version** in the cluster's **Cluster Details**. Select it to see this command.
 
 ```bash
 helm repo update
@@ -452,6 +501,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 `--reuse-values` keeps your existing configuration (preset, cluster name, filters); pass any new `--set` overrides on top of it. It never picks up defaults a newer chart added, though — on Helm 3.14+ use `--reset-then-reuse-values` instead, which keeps your overrides and fills in the new defaults for everything else.
 
 If the upgrade fails with `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set "aiAgent.remediation.namespaces={web}"`), or with `--set-json 'aiAgent.remediation.namespaces=[]'` to go back to the cluster-wide binding. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`, so it fails with the same error.
+
+> **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 
 ### Upgrading to the Kubernetes AI agent
 
@@ -545,7 +596,7 @@ All on by default. Turn any off with `--set ebpf.features.<name>=false`:
 | `ebpf.features.*`         | Default | What it adds                                                      |
 | ------------------------- | ------- | ----------------------------------------------------------------- |
 | `httpMetrics`             | on      | HTTP/gRPC RED metrics (request rate, latency, errors) per service |
-| `spanMetrics`             | on      | Per-span request/response size and duration                       |
+| `spanMetrics`             | on      | Span call count and duration (`traces.span.metrics.*`)            |
 | `serviceGraph`            | on      | Caller → callee edge metrics; drives the service map              |
 | `networkMetrics`          | on      | Pod-to-pod TCP/UDP flow counters                                  |
 | `networkInterZoneMetrics` | off     | Inter-zone variant of network metrics (doubles cardinality)       |
@@ -849,7 +900,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
 ### No metrics appearing
 
 1. First rule out a rejected ingestion key — it's the most common cause and is easy to miss from the agent side. See [Agent shows "Disconnected"](#agent-shows-disconnected) above (or just run the diagnostic script).
-2. Check that the cluster identifier matches the value you passed as `clusterName`
+2. Check that the cluster's **Cluster Name (clusterName)** matches the value you passed as `clusterName`. It is on the cluster's **Settings** page, in **Cluster Details**; to correct it, choose **Edit Details** and open **More fields**
 3. Verify the RBAC permissions: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Check the OTel collector logs for export errors
 

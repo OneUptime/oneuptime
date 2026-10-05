@@ -395,6 +395,90 @@ export default abstract class GlobalCache {
     return typeof result === "string" && result ? result : null;
   }
 
+  /*
+   * Adds one to a counter and returns the new count. The first add also
+   * sets the counter's expiry, in the same atomic evaluation, so a counter
+   * is never left without one - the primitive for a fixed-window budget
+   * whose key names its window.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async incrementWithExpiry(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions,
+  ): Promise<number> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local count = redis.call('INCR', KEYS[1]) " +
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end " +
+        "return count",
+      1,
+      `${namespace}-${key}`,
+      String(options.expiresInSeconds),
+    );
+
+    const count: number = Number(result);
+
+    if (!Number.isFinite(count)) {
+      throw new BadDataException("The cache counter is not a number");
+    }
+
+    return count;
+  }
+
+  /*
+   * Adds one to a counter only while it is below limit, and returns the new
+   * count - or null, adding nothing, once the counter has reached limit. As
+   * with incrementWithExpiry, the first add sets the expiry in the same
+   * atomic evaluation.
+   *
+   * A refusal adds nothing. That is what lets several limits share one
+   * counter: callers that may only take the first few units of a window and
+   * callers that may take all of them can count against the same key, and
+   * the ones refused at the lower limit do not use up what the others still
+   * may take.
+   */
+  @CaptureSpan()
+  public static async incrementIfBelow(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions & { limit: number },
+  ): Promise<number | null> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local current = tonumber(redis.call('GET', KEYS[1]) or '0') " +
+        "if current >= tonumber(ARGV[1]) then return -1 end " +
+        "local count = redis.call('INCR', KEYS[1]) " +
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end " +
+        "return count",
+      1,
+      `${namespace}-${key}`,
+      String(Math.floor(options.limit)),
+      String(options.expiresInSeconds),
+    );
+
+    const count: number = Number(result);
+
+    if (!Number.isFinite(count)) {
+      throw new BadDataException("The cache counter is not a number");
+    }
+
+    return count < 0 ? null : count;
+  }
+
   @CaptureSpan()
   public static async deleteKey(namespace: string, key: string): Promise<void> {
     const client: ClientType | null = Redis.getClient();

@@ -34,7 +34,7 @@ Use quando: a página for só interna ou ainda estiver sendo montada. Desative *
 
 **Páginas de status → sua página → Marca → Cabeçalho** (`{id}/header-style`). Apesar do nome no menu lateral, é aqui que ficam os seus dois maiores ativos de marca.
 
-O primeiro cartão se chama **Logotipo, Capa e Favicon** e tem um botão **Edit Images**:
+O primeiro cartão se chama **Logotipo e Imagem de Capa** e tem um botão **Edit Images**:
 
 - **Logotipo** — upload de imagem, placeholder `Upload logo`.
 - **Logo Alt Text** — placeholder `Logo of My Company`. Se você deixar em branco, o título da página de status é usado no lugar.
@@ -64,7 +64,7 @@ Links jurídicos, de privacidade e de termos pertencem aqui. Links de cabeçalho
 - **Cor Padrão da Barra do Gráfico de Histórico** — **Edit Default Bar Color** abre o seletor **Cor Padrão da Barra**, a cor usada quando nenhuma regra corresponde.
 - **Porcentagem de tempo de atividade geral** — **Edit Settings** abre a chave **Mostrar percentual geral de tempo de atividade** e um menu **Selecionar Precisão de Disponibilidade**, que vem com duas casas decimais por padrão (`99.99% (Two Decimal)`).
 
-**Quantos dias o gráfico cobre não se define aqui.** Isso é **Mostrar histórico de tempo de atividade (em dias)**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`), válido de 1 a 90.
+**Quantos dias o gráfico cobre não se define aqui.** Isso é **Histórico de tempo de atividade**, no cartão **O que sua página de status mostra** em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`), de 1 a 90 dias.
 
 ## HTML, CSS e JavaScript personalizados
 
@@ -152,7 +152,7 @@ Se uma linha ficar parada em "Action Required: Please add your CNAME record." mu
 
 ## Powered by OneUptime
 
-A linha "Powered by OneUptime" não é uma configuração da seção de marca. Ela fica em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`), no cartão **Marca "Powered By OneUptime"**, como uma única chave: **Ocultar a marca Powered By OneUptime**. **Edit Settings** a abre, como em todos os outros cartões daquela tela.
+A linha "Powered by OneUptime" não é uma configuração da seção de marca. Ela é a última chave do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; isso é salvo na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**.
 
 ## Onde ler a seguir
 

@@ -4,7 +4,11 @@ import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import { CustomElementProps } from "../Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "../Forms/Types/Field";
+import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
 import ConditionEditor from "./Condition/ConditionEditor";
 import CronScheduleField from "./CronScheduleField";
@@ -59,6 +63,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translatableTerm,
+  translateText,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   component: NodeDataProp;
@@ -94,14 +105,31 @@ const SINGLE_FIELD_KINDS: Partial<
   [ArgumentControl.DateTime]: ValueSingleFieldKind.DateTime,
 };
 
-type DescribeArgumentFunction = (arg: Argument) => string;
+type DescribeArgumentFunction = (
+  translator: Translator,
+  arg: Argument,
+) => string;
+
+// "Required. Where the email is sent." - the step's own words after the first.
+export const REQUIRED_ARGUMENT_HELP: string = translationKey(
+  "Required. {{description}}",
+);
+export const OPTIONAL_ARGUMENT_HELP: string = translationKey(
+  "Optional. {{description}}",
+);
 
 /*
  * A setting's help: whether it is required, then what it is for. Under the
  * label for most settings, and under a switch's name beside it.
  */
-const describeArgument: DescribeArgumentFunction = (arg: Argument): string => {
-  return `${arg.required ? "Required" : "Optional"}. ${arg.description}`;
+const describeArgument: DescribeArgumentFunction = (
+  translator: Translator,
+  arg: Argument,
+): string => {
+  return translator.translateTemplate(
+    arg.required ? REQUIRED_ARGUMENT_HELP : OPTIONAL_ARGUMENT_HELP,
+    { description: translatableTerm(arg.description) },
+  );
 };
 
 type ValidateTypedValueFunction = (
@@ -130,12 +158,14 @@ export const validateTypedValue: ValidateTypedValueFunction = (
     try {
       URL.fromString(value.trim());
     } catch (err: unknown) {
-      return err instanceof Exception ? err.getMessage() : "URL is not valid.";
+      return err instanceof Exception
+        ? err.getMessage()
+        : (translateText("URL is not valid.") as string);
     }
   }
 
   if (type === ComponentInputType.Email && !Email.isValid(value.trim())) {
-    return "Email is not valid.";
+    return translateText("Email is not valid.") as string;
   }
 
   return null;
@@ -144,6 +174,7 @@ export const validateTypedValue: ValidateTypedValueFunction = (
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const formRef: React.MutableRefObject<FormProps<
     FormValues<JSONObject>
   > | null> = useRef<FormProps<FormValues<JSONObject>> | null>(null);
@@ -153,12 +184,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   >({});
 
   /*
-   * Arguments flagged isAdvanced are collapsed behind a disclosure, so the
-   * settings panel opens on the two or three fields that actually decide what
-   * the step does rather than on every knob it has. A required argument is
-   * never collapsed no matter how it is flagged: BasicForm skips validation
-   * for a field hidden by showIf, so hiding a required one would let an
-   * incomplete step save cleanly.
+   * Arguments flagged isAdvanced are folded under More fields, as every
+   * form's rarely needed options are (getAdvancedFormSection), so the
+   * settings panel opens on the two or three fields that actually decide
+   * what the step does rather than on every knob it has. The folded header
+   * names them and shows the ones that hold a value, so an existing
+   * configuration is never hidden from the person who comes back to read
+   * it. A required argument is never folded, however it is flagged: it
+   * belongs with the fields a step cannot do without.
    */
   const collapsibleAdvancedArguments: Array<Argument> = (
     component.metadata.arguments || []
@@ -166,35 +199,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return Boolean(arg.isAdvanced) && !arg.required;
   });
 
-  const hasValueForArgument: (arg: Argument) => boolean = (
-    arg: Argument,
-  ): boolean => {
-    const value: unknown = component.arguments
-      ? component.arguments[arg.id]
-      : undefined;
-
-    if (value === undefined || value === null) {
-      return false;
-    }
-
-    if (typeof value === "string") {
-      return value.trim() !== "";
-    }
-
-    if (typeof value === "object") {
-      return Object.keys(value as JSONObject).length > 0;
-    }
-
-    return true;
-  };
-
-  /*
-   * Open on load when something down there is already set, so an existing
-   * configuration is never hidden from the person who comes back to read it.
-   */
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(
-    collapsibleAdvancedArguments.some(hasValueForArgument),
-  );
+  // One More fields section for the step's folded arguments.
+  const moreFieldsSection: FormFieldCollapsibleSection<JSONObject> =
+    getAdvancedFormSection<JSONObject>({ id: "workflow-step-more-fields" });
 
   const isCollapsibleAdvanced: (arg: Argument) => boolean = (
     arg: Argument,
@@ -228,9 +235,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * Everyday settings first, collapsible ones last, each group keeping its
-   * declared order. Without this an advanced argument declared in the middle
-   * would pop into the middle of the form when the disclosure opens.
+   * Everyday settings first, folded ones last, each group keeping its
+   * declared order: the fields of a folded section are one run at the end
+   * of the form.
    */
   const orderedArguments: Array<Argument> = [
     ...(component.metadata.arguments || []).filter((arg: Argument) => {
@@ -238,9 +245,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     }),
     ...collapsibleAdvancedArguments,
   ];
-
-  const firstAdvancedArgumentIndex: number =
-    orderedArguments.length - collapsibleAdvancedArguments.length;
 
   /*
    * Workflows in the current project, used to populate dropdowns for any
@@ -546,7 +550,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             <ValueSingleField
               kind={singleKind}
               title={isSwitch ? arg.name : undefined}
-              description={isSwitch ? describeArgument(arg) : undefined}
+              description={
+                isSwitch ? describeArgument(translator, arg) : undefined
+              }
               value={
                 singleKind === ValueSingleFieldKind.Boolean
                   ? component.arguments?.[arg.id]
@@ -607,7 +613,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     onChange={row.onChange}
                     multiline={false}
                     placeholder={row.placeholder}
-                    ariaLabel={`${arg.name} value ${row.rowIndex + 1}`}
+                    ariaLabel={translator.translateTemplate(
+                      "{{name}} value {{number}}",
+                      {
+                        name: translatableTerm(arg.name),
+                        number: row.rowIndex + 1,
+                      },
+                    )}
                     dataTestId={`workflow-argument-${arg.id}-value-${row.rowIndex}`}
                   />
                 );
@@ -786,21 +798,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
                   return {
                     title: `${arg.name}`,
-                    /*
-                     * The heading sits on the first advanced field, so the
-                     * disclosure reads as a labelled section rather than as a
-                     * run of extra inputs appearing out of nowhere.
-                     */
-                    sectionTitle:
-                      isAdvanced && argIndex === firstAdvancedArgumentIndex
-                        ? "Advanced"
-                        : undefined,
-                    showIf: isAdvanced
-                      ? (): boolean => {
-                          return showAdvanced;
-                        }
+                    collapsibleSection: isAdvanced
+                      ? moreFieldsSection
                       : undefined,
-                    description: describeArgument(arg),
+                    description: describeArgument(translator, arg),
                     field: {
                       [arg.id]: true,
                     },
@@ -832,25 +833,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               }
             />
           )}
-
-        {collapsibleAdvancedArguments.length > 0 && (
-          <div className="mt-3">
-            <button
-              type="button"
-              aria-expanded={showAdvanced}
-              className="text-sm underline text-blue-500 hover:text-blue-600 cursor-pointer"
-              onClick={() => {
-                setShowAdvanced(!showAdvanced);
-              }}
-            >
-              {showAdvanced
-                ? "Hide advanced settings"
-                : `Show ${collapsibleAdvancedArguments.length} advanced setting${
-                    collapsibleAdvancedArguments.length === 1 ? "" : "s"
-                  }`}
-            </button>
-          </div>
-        )}
       </div>
     </ValuePickerProvider>
   );

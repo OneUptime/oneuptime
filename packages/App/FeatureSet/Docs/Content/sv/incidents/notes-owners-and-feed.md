@@ -114,7 +114,7 @@ Själva meddelandet prenumeranterna får mallas per statussida och per kanal —
 
 ## Incidentflödet
 
-Kortet **Incident Flöde** sitter längst ner i vänsterkolumnen på incidentens sida **Översikt**. Det är incidentens berättelse i ordning: varje post är en ikon, avataren och namnet på den som orsakade den, en relativ tidsstämpel med exakt lokal tid vid hovring, och en Markdown-brödtext. Posterna sorteras med äldst först.
+Kortet **Incident Flöde** sitter längst ner i vänsterkolumnen på incidentens sida **Översikt**. Det är incidentens berättelse i ordning: varje post är en ikon, avataren och namnet på den som orsakade den, en relativ tidsstämpel med exakt lokal tid vid hovring, och en Markdown-brödtext. Som standard står de senaste posterna överst.
 
 Vissa poster bär extra detaljer — en ägaravisering listar till exempel alla som fick mejl. De visar en knapp **More Information** som öppnar en panel **More Information**.
 
@@ -122,10 +122,14 @@ Kortets rubrik har också en meny **Åtgärder** så att du kan agera utan att l
 
 - **Execute Runbook** — kör ett [runbook](/docs/runbooks/index) mot den här incidenten.
 - **Kör jourpolicy** — larma en policy på begäran.
-- **Add Public Note** — samma fyra fält som på sidan Offentliga anteckningar, i en dialog.
-- **Lägg till privat anteckning** — bara brödtext och bilagor.
+- **Add Public Note** — skrivrutan från sidan Offentliga anteckningar, i en dialog: skriv anteckningen och välj **Post update**. Mallar, **Draft with AI**, bilagor, **Notify status page subscribers** med vilka den når och **Preview notification** finns alla där. Anteckningen publiceras nu; välj **Posted now** för en tidigare tidpunkt.
+- **Lägg till privat anteckning** — skrivrutan från sidan Privata anteckningar, i en dialog: skriv anteckningen och välj **Add note**.
 
-Bredvid den hämtar **Uppdatera** flödet på nytt.
+Allt annat ligger bakom knappen **⋯** bredvid, samma knapp **Fler alternativ** som en tabells kortrubrik har, så att rubriken visar så få knappar som möjligt:
+
+- **Nyaste först** / **Äldsta först** — ordningen flödet läses i. En bock markerar den som används, och din webbläsare kommer ihåg valet för varje incidents flöde.
+- **Filtrera efter händelsetyp** — en dialog som listar flödets händelsetyper, var och en med ikonen för sina poster, och en sökruta när listan är lång. Bocka för de som ska visas och välj **Använd filter**; utan bockar visas alla. Så länge flödet är filtrerat säger en ruta ovanför hur många händelsetyper det visar, med en etikett för varje, **Redigera filter** och **Rensa filter**. Filtret sparas inte: lämna incidenten så visar flödet allt igen.
+- **Uppdatera** — hämtar flödet på nytt.
 
 **Flödet växer bara, och det är inte din granskningslogg.** API:et tillåter att flödesposter skapas och läses men inte uppdateras eller raderas, så ingen kan i tysthet skriva om en incidents historia. Det är inte permanent heller: i betalda installationer tas flödesrader äldre än tre år bort. För ett varaktigt register över vem som ändrade vad, använd **Granskning → Granskningsloggar** i incidentens sidomeny.
 

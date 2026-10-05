@@ -1,11 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -19,57 +17,20 @@ const DockerSwarmClusterSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<DockerSwarmCluster>
-        name="Cluster Settings"
-        cardProps={{
-          title: "Cluster Settings",
-          description: "Manage settings for this Docker Swarm cluster.",
+      <ResourceDetailsCard<DockerSwarmCluster>
+        modelType={DockerSwarmCluster}
+        modelId={modelId}
+        id="docker-swarm-cluster-details"
+        title="Cluster Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Name",
+          description:
+            "Must match the docker.swarm.cluster.name the Docker Swarm Agent reports. Telemetry is matched to this cluster by it: rename it on the agent too, or the agent's next report creates a new cluster.",
+          placeholder: "swarm-production",
         }}
-        isEditable={true}
-        editButtonText="Edit Settings"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            description:
-              "Name for this Docker Swarm cluster. This should match the docker.swarm.cluster.name resource attribute reported by the Docker Swarm Agent.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "swarm-production",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            description: "Friendly description for this Docker Swarm cluster.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production Docker Swarm cluster in US East",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: DockerSwarmCluster,
-          id: "docker-swarm-cluster-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-          ],
+        descriptionField={{
+          placeholder: "Production Docker Swarm cluster running in US East",
         }}
       />
       <TelemetryResourceRetentionSettings<DockerSwarmCluster>

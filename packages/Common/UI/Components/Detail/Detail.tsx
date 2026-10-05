@@ -1,6 +1,9 @@
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
 import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import CodeBlock from "../CodeBlock/CodeBlock";
 import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
@@ -12,6 +15,14 @@ import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
+import BooleanValue from "./BooleanValue";
+import DetailRecordLine from "./DetailRecordLine";
+import { getRecordIdText, isRecordIdField } from "./DetailRecordId";
+import {
+  getRecordTimes,
+  isRecordTimeField,
+  RecordTime,
+} from "./DetailRecordTime";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
@@ -42,6 +53,14 @@ export interface ComponentProps<T extends GenericObject> {
   id?: string | undefined;
   showDetailsInNumberOfColumns?: number | undefined;
   style?: DetailStyle | undefined;
+  /*
+   * The item is a record (the default): its own ID, and when it was created
+   * and last updated, go on the small line under the fields rather than in
+   * the grid. False for values that are not a record's own columns - a
+   * record's custom fields, which people name, and could name "createdAt" -
+   * so every field is drawn as the field it is.
+   */
+  showRecordLine?: boolean | undefined;
 }
 
 type DetailFunction = <T extends GenericObject>(
@@ -52,6 +71,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -94,7 +114,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     if (!options) {
       return (
         <span className="text-gray-400 italic text-sm">
-          {translateString("No options found") ?? "No options found"}
+          {translateString("No options found")}
         </span>
       );
     }
@@ -384,10 +404,22 @@ const Detail: DetailFunction = <T extends GenericObject>(
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span className="font-semibold text-blue-700">{minutes}</span>
-        <span className="text-xs text-blue-600 font-medium">
-          {minutes > 1 ? "minutes" : "minute"}
-        </span>
+        <TranslatedSentence
+          template={{ one: "{{count}} minute", other: "{{count}} minutes" }}
+          count={minutes}
+          slots={{
+            count: (
+              <span className="font-semibold text-blue-700">{minutes}</span>
+            ),
+          }}
+          renderText={(text: string): ReactElement => {
+            return (
+              <span className="text-xs text-blue-600 font-medium">
+                {text.trim()}
+              </span>
+            );
+          }}
+        />
       </div>
     );
   };
@@ -414,8 +446,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
           >
             <div className="break-words leading-relaxed">{data}</div>
 
+            {/*
+             * Hidden text and an ID bring their own copy control. A second
+             * one here was handed the rendered ID element rather than the ID,
+             * so it copied "[object Object]" (the project ID on an API key).
+             */}
             {field.opts?.isCopyable &&
-              field.fieldType !== FieldType.HiddenText && (
+              field.fieldType !== FieldType.HiddenText &&
+              field.fieldType !== FieldType.ObjectID && (
                 <div className="opacity-0 group-hover/copyable:opacity-100 transition-all duration-200 transform group-hover/copyable:translate-x-0 -translate-x-1">
                   <CopyableButton textToBeCopied={data.toString()} />
                 </div>
@@ -568,21 +606,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (field.fieldType === FieldType.Boolean) {
-      if (data) {
-        data = (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-            Yes
-          </span>
-        );
-      } else {
-        data = (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-            No
-          </span>
-        );
-      }
+      data = <BooleanValue value={Boolean(data)} />;
     }
 
     if (field.fieldType === FieldType.DateTime) {
@@ -691,7 +715,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 style={{
                   height: "100px",
                 }}
-                alt={field.title ? `${field.title} image` : "Uploaded image"}
+                alt={
+                  field.title
+                    ? translator.translateTemplate("{{field}} image", {
+                        field: translatableTerm(field.title),
+                      })
+                    : translator.translateText("Uploaded image")
+                }
               />
             </div>
           </div>
@@ -982,40 +1012,114 @@ const Detail: DetailFunction = <T extends GenericObject>(
         : "gap-0 divide-y divide-gray-100";
   }
 
+  const shownFields: Array<Field<T>> = (props.fields || []).filter(
+    (field: Field<T>) => {
+      // Filter out fields with hideOnMobile on mobile devices
+      if (field.hideOnMobile && isMobile) {
+        return false;
+      }
+
+      // check if showIf exists.
+      if (field.showIf) {
+        return field.showIf(props.item);
+      }
+
+      return true;
+    },
+  );
+
+  const showRecordLine: boolean = props.showRecordLine !== false;
+
+  type IsRecordLineFieldFunction = (field: Field<T>) => boolean;
+
+  /*
+   * The record's own ID is not one of the fields: it goes on one small line
+   * under them, with a copy button (DetailRecordId.ts says why). So do when
+   * the record was created and last updated, after the ID
+   * (DetailRecordTime.ts). A card that declared one twice still says it once.
+   */
+  const isRecordLineField: IsRecordLineFieldFunction = (
+    field: Field<T>,
+  ): boolean => {
+    return (
+      showRecordLine && (isRecordIdField(field) || isRecordTimeField(field))
+    );
+  };
+
+  const recordIdField: Field<T> | undefined = showRecordLine
+    ? shownFields.find((field: Field<T>) => {
+        return isRecordIdField(field);
+      })
+    : undefined;
+
+  const recordId: string =
+    recordIdField && props.item
+      ? getRecordIdText(getNestedValue(props.item, String(recordIdField.key)))
+      : "";
+
+  const recordTimes: Array<RecordTime> =
+    showRecordLine && props.item
+      ? getRecordTimes(shownFields, (field: Field<T>): unknown => {
+          return getNestedValue(props.item, String(field.key));
+        })
+      : [];
+
+  const gridFields: Array<Field<T>> = shownFields.filter((field: Field<T>) => {
+    return !isRecordLineField(field);
+  });
+
+  const gridClassName: string = `grid grid-cols-1 ${gapClasses} sm:grid-cols-${
+    props.showDetailsInNumberOfColumns || 1
+  } w-full`;
+
+  const renderedFields: Array<ReactElement> = gridFields.map(
+    (field: Field<T>, i: number) => {
+      return getField(field, i);
+    },
+  );
+
+  if (!recordId && recordTimes.length === 0) {
+    return (
+      /*
+       * The id names this detail, so it belongs to the element that holds all
+       * of it. It used to be stamped on every row instead, which put the same
+       * id on as many elements as the detail had fields: invalid HTML, an
+       * anchor or getElementById that reaches only the first row, and a
+       * Playwright locator that resolves to several elements and fails strict
+       * mode - which is how the SLO settings E2E found it.
+       */
+      <div id={props.id} className={gridClassName}>
+        {renderedFields}
+      </div>
+    );
+  }
+
+  /*
+   * With a record line the detail is the fields and the line under them, so
+   * the id moves to the element that holds both. The grid inside keeps its
+   * own classes, and its rows their first/last trims; the line draws the one
+   * divider above it, in the rhythm of the rows: the compact style's rows
+   * are py-3 apart, the others' wider.
+   */
+  const recordLineClassName: string =
+    gridFields.length === 0
+      ? ""
+      : styleType === DetailStyle.Compact
+        ? "mt-3 border-t border-gray-100 pt-3"
+        : "mt-4 border-t border-gray-100 pt-3";
+
   return (
-    /*
-     * The id names this detail, so it belongs to the element that holds all of
-     * it. It used to be stamped on every row instead, which put the same id on
-     * as many elements as the detail had fields: invalid HTML, an anchor or
-     * getElementById that reaches only the first row, and a Playwright locator
-     * that resolves to several elements and fails strict mode - which is how
-     * the SLO settings E2E found it.
-     */
-    <div
-      id={props.id}
-      className={`grid grid-cols-1 ${gapClasses} sm:grid-cols-${
-        props.showDetailsInNumberOfColumns || 1
-      } w-full`}
-    >
-      {props.fields &&
-        props.fields.length > 0 &&
-        props.fields
-          .filter((field: Field<T>) => {
-            // Filter out fields with hideOnMobile on mobile devices
-            if (field.hideOnMobile && isMobile) {
-              return false;
-            }
-
-            // check if showIf exists.
-            if (field.showIf) {
-              return field.showIf(props.item);
-            }
-
-            return true;
-          })
-          .map((field: Field<T>, i: number) => {
-            return getField(field, i);
-          })}
+    <div id={props.id} className="w-full">
+      {gridFields.length > 0 ? (
+        <div className={gridClassName}>{renderedFields}</div>
+      ) : (
+        <></>
+      )}
+      <DetailRecordLine
+        recordId={recordId}
+        times={recordTimes}
+        className={recordLineClassName}
+      />
     </div>
   );
 };

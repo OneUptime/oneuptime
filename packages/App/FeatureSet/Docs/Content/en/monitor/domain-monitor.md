@@ -48,7 +48,7 @@ Internationalized domain names are accepted in either form: `münchen.de` is con
 | Domain Name   | The domain to monitor (e.g., `example.com`)         | Yes      |
 | Lookup Method | `Auto`, `RDAP`, or `WHOIS` — see **Lookup Methods** | Yes      |
 
-### Advanced Settings
+### More fields
 
 | Field        | Description                                                     | Default |
 | ------------ | --------------------------------------------------------------- | ------- |
@@ -98,12 +98,30 @@ For **Domain Registrar**, **Domain Name Server**, and **Domain Status Code**:
 - **Equal To** — Value matches exactly
 - **Not Equal To** — Value does not match
 
+### Default Criteria
+
+A new domain monitor starts with three criteria, so it warns you before a registration expires without any setup:
+
+1. **Domain check failed** — the registration has expired, or its registration data could not be read. The monitor is marked **Offline** and an incident is created. The incident resolves itself once the registration is read and current again.
+2. **Domain expires soon** — the registration has not expired but expires in 30 days or less. An **alert** called "_monitor name_ domain expires soon" is created.
+3. **Domain is not expired** — the monitor is marked **Operational**.
+
+The "expires soon" warning is an alert, not an incident: it does not show on your status pages, it pages nobody unless you add an on-call policy to it, and it does not change the monitor's status. It uses your project's second alert severity, **Low** on a new project. Once the renewal shows up in the registration record, the alert resolves itself. A registry that publishes no expiry date gives the warning nothing to go on, so it stays quiet.
+
+Criteria are checked from top to bottom, and the first one that matches decides what happens. That is why "expires soon" sits above "is not expired": a domain about to expire has not expired yet, so it would match both.
+
+To be warned earlier, change the value of the **Domain Expires In Days** filter in the "expires soon" criteria, for example to `60`. To open an incident instead, turn on **Create incident** in that criteria.
+
+Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it, create a criteria with **Domain Is Expired** / **False** and **Domain Expires In Days** / **Less Than or Equal To** / `30`, filter condition **All**, that creates an alert and does not change the monitor status, and move it above the criteria that marks the monitor as online.
+
 ### Example Criteria
 
 #### Alert if domain expires within 30 days
 
+New monitors start with this one (see **Default Criteria** above).
+
 - **Filter Type**: Domain Expires In Days
-- **Filter Condition**: Less Than
+- **Filter Condition**: Less Than or Equal To
 - **Value**: 30
 
 #### Mark as offline if domain is expired
@@ -124,7 +142,7 @@ For **Domain Registrar**, **Domain Name Server**, and **Domain Status Code**:
 
 ## Best Practices
 
-1. **Set early warnings** — Configure degraded alerts at 60 days and offline alerts at 14 days before expiry
+1. **Give yourself time to renew** — The default warning comes 30 days before expiry. If renewing needs approvals or a payment that takes longer, raise it to 60 days
 2. **Cover failed lookups** — Include an **Is Online / False** filter in your offline criteria so an unreadable registration is not mistaken for a healthy one. Monitors created from now on get this by default; monitors created earlier need it added by hand
 3. **Monitor all critical domains** — Include primary domains, subdomains registered separately, and any domains used for email or APIs
 4. **Track registrar changes** — Monitor the registrar field to detect unauthorized domain transfers

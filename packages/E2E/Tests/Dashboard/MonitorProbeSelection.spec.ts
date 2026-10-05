@@ -1,7 +1,7 @@
 import { BASE_URL } from "../../Config";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { toId } from "./Helpers/MonitorAlerting";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
 import {
   APIResponse,
   Browser,
@@ -25,10 +25,11 @@ import Faker from "Common/Utils/Faker";
  *
  * (B) Editing a probe looked like it did nothing: the Probe Details form was a
  *     two-step wizard whose primary button read "Next", so a user who changed
- *     a field on step one never saw a Save button. It is a two-step form
- *     again, and an edit form now keeps Save Changes on every step. Test:
- *     toggle "enable monitoring automatically on new monitors" from the card,
- *     save, reload, and assert the card shows the new value.
+ *     a field on step one never saw a Save button. It is one page now - the
+ *     name and description, with the logo, the auto-enable switch and the
+ *     labels folded under More fields - so Save Changes is the only way out.
+ *     Test: toggle "enable monitoring automatically on new monitors" from the
+ *     card, save, reload, and assert the card shows the new value.
  *
  * To run locally against a full stack:
  *
@@ -198,7 +199,7 @@ test.describe("Monitor probe selection", () => {
       .locator(`${monitorCreateFormSelector} input[placeholder='Monitor Name']`)
       .fill(monitorName);
     await selectMonitorTypeCard({ page, cardValue: "Website" });
-    await page.getByTestId(submitButtonTestId).click();
+    await clickNext({ page });
 
     // Step 2: criteria. Wait for the async defaults, then fill the URL.
     await expect(page.getByText("Monitor Criteria").first()).toBeVisible({
@@ -210,7 +211,8 @@ test.describe("Monitor probe selection", () => {
       .first();
     await destination.waitFor({ state: "visible", timeout: 30000 });
     await destination.fill("https://oneuptime.com");
-    await page.getByTestId(submitButtonTestId).click();
+    // Criteria is not the last step: Next walks on to choose the probes.
+    await clickNext({ page });
 
     // Step 3: probes + interval.
     const probesCombo: Locator = page.getByRole("combobox", {
@@ -244,12 +246,15 @@ test.describe("Monitor probe selection", () => {
       .getByRole("option", { name: "Every 5 Minutes", exact: true })
       .click();
 
-    // Step 4: Labels is always the final step; leave it empty here.
-    await page.getByTestId(submitButtonTestId).click();
+    /*
+     * Probes & Interval is the last step: the labels fold under More fields on
+     * Monitor Info, so there is no Labels step to walk on to.
+     */
     await expect(
-      // "Labels (Optional)" is the rendered accessible name — match the prefix.
-      page.getByRole("combobox", { name: /^Labels\b/ }),
-    ).toBeVisible({ timeout: 30000 });
+      page
+        .locator(monitorCreateFormSelector)
+        .getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
     await page.getByTestId(submitButtonTestId).click();
 
     await page.waitForURL(
@@ -312,19 +317,20 @@ test.describe("Monitor probe selection", () => {
     await page.getByRole("button", { name: /Edit Probe/i }).click();
 
     /*
-     * Two steps - Basic Info, then More - and the primary button is a real
-     * Save on both, not a "Next" that hides the save behind another step:
-     * an edit form saves from any step. Next is a plain button beside it.
+     * One page, so the primary button is a real Save and there is no Next:
+     * the switch waits under More fields with the logo and the labels.
      */
     const saveButton: Locator = page.getByRole("button", {
       name: /Save Changes/i,
     });
     await expect(saveButton).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
 
-    const nextButton: Locator = page.getByTestId("modal-footer-next-button");
-    await expect(nextButton).toHaveText("Next");
-    await nextButton.click();
-    await expect(nextButton).toHaveCount(0);
+    const advanced: Locator = page
+      .getByTestId("modal")
+      .getByRole("button", { name: "More fields", exact: true });
+    await expect(advanced).toHaveAttribute("aria-expanded", "false");
+    await advanced.click();
     await expect(saveButton).toBeVisible();
 
     const toggle: Locator = page.getByRole("switch", {
@@ -354,7 +360,16 @@ test.describe("Monitor probe selection", () => {
      * separate DOM subtrees.
      */
     await page.getByRole("button", { name: /Edit Probe/i }).click();
-    await page.getByTestId("modal-footer-next-button").click();
+    // Folded, the section's header shows the switch as on.
+    await expect(advanced).toHaveAttribute("aria-expanded", "false", {
+      timeout: 30000,
+    });
+    await expect(
+      advanced.locator(
+        "[data-testid='folded-section-item'][data-item-set='true']",
+      ),
+    ).toContainText(": On");
+    await advanced.click();
     const reloadedToggle: Locator = page.getByRole("switch", {
       name: autoEnableToggleName,
     });

@@ -1,6 +1,6 @@
 # Een dashboard maken
 
-Om een dashboard te maken, open je **Dashboards → Create Dashboard**, geef je het een naam en open je het. Het canvas opent in **Bewerken**-modus, klaar voor je om widgets toe te voegen.
+Om een dashboard te maken, open je **Dashboards → Create Dashboard** en kies je een sjabloon, of **Blank Dashboard** om helemaal opnieuw te beginnen. Een sjabloon vult de naam van het dashboard voor je in (genummerd, zoals "Kubernetes Dashboard 2", als het project er al een heeft); een leeg dashboard geef je zelf een naam. Klik op **Create Dashboard** en het nieuwe dashboard opent. Een leeg dashboard opent op een leeg canvas, met een knop **Widget toevoegen** voor de eerste widget.
 
 ## Het canvas
 
@@ -17,7 +17,7 @@ Het is in beide modi hetzelfde dashboard. Er is geen aparte "publish"-stap — e
 
 ## Een widget toevoegen
 
-1. Klik op de **+**-knop om het widget-palet te openen.
+1. Klik op **Widget toevoegen** om het widget-palet te openen: op het canvas van een leeg dashboard, of in de werkbalk terwijl je het dashboard bewerkt.
 2. Kies het widget-type. Zie [Widgets](/docs/dashboards/widgets) voor de catalogus.
 3. De widget verschijnt op het canvas.
 4. Klik op het tandwielicoon op de widget om zijn instellingen te openen.

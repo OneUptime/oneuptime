@@ -8,9 +8,14 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import { createInstance, i18n } from "i18next";
+import path from "path";
 import React from "react";
+import { I18nextProvider } from "react-i18next";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -49,10 +54,11 @@ jest.mock("Common/UI/Utils/API/API", () => {
 });
 
 import CreateWorkflowModal from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
-import { workflowTemplateViewDomId } from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowTemplatePicker";
+import { workflowTemplateOptionDomId } from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowTemplatePicker";
 import {
   WorkflowTemplateCollection,
   WorkflowTemplatePickerView,
+  getWorkflowTemplatePickerViews,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
@@ -230,18 +236,24 @@ const getTemplate: GetTemplateFunction = (
 const OPTION_TEST_ID_PREFIX: string = "workflow-template-option-";
 const VARIABLE_INPUT_TEST_ID_PREFIX: string = "workflow-variable-";
 
+type GetSelectFunction = () => HTMLElement;
+
+const getCategorySelect: GetSelectFunction = (): HTMLElement => {
+  return screen.getByTestId("workflow-template-view-select");
+};
+
 type ShowViewFunction = (view: WorkflowTemplatePickerView) => void;
 
-/** Choose a category (or a collection) in the picker's list of them. */
+/** Choose a category (or a collection) in the picker's category select. */
 const showView: ShowViewFunction = (view: WorkflowTemplatePickerView): void => {
-  fireEvent.click(screen.getByTestId(workflowTemplateViewDomId(view)));
+  fireEvent.change(getCategorySelect(), { target: { value: String(view) } });
 };
 
 type HighlightTemplateFunction = (templateId: string) => WorkflowTemplate;
 
 /**
- * Click a template's row, which previews it. Opens All templates first when
- * the row is not on the list being shown.
+ * Click a template's row, which picks it and opens its details. Opens All
+ * templates first when the row is not on the list being shown.
  */
 const highlightTemplate: HighlightTemplateFunction = (
   templateId: string,
@@ -259,9 +271,23 @@ const highlightTemplate: HighlightTemplateFunction = (
 
 type SubmitFunction = () => void;
 
-/** The footer's primary button: Use this template, Next or Create Workflow. */
+/*
+ * The footer's way on: Use this template on the picker and Next on a Name
+ * step that is not the last - both plain - or Create Workflow, the one
+ * primary button, on the last step.
+ */
 const submit: SubmitFunction = (): void => {
-  fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+  fireEvent.click(
+    screen.queryByTestId("modal-footer-next-button") ||
+      screen.getByTestId("modal-footer-submit-button"),
+  );
+};
+
+type QueryButtonFunction = () => HTMLElement | null;
+
+// The picker's way on, Use this template: a plain button, not the action.
+const queryUseTemplateButton: QueryButtonFunction = (): HTMLElement | null => {
+  return screen.queryByTestId("modal-footer-next-button");
 };
 
 type SelectTemplateFunction = (templateId: string) => WorkflowTemplate;
@@ -321,18 +347,24 @@ const fillVariable: FillVariableFunction = (
   });
 };
 
-type GetProgressFunction = () => HTMLElement;
-
-const getProgress: GetProgressFunction = (): HTMLElement => {
-  return screen.getByRole("navigation", { name: "Progress" });
+/*
+ * The wizard's steps, as its step content says which it is drawing. The
+ * dialog has no progress rail to read them from: two steps, three at most,
+ * say enough with the footer's Back and Next or Create Workflow.
+ */
+const WIZARD_STEP: Record<string, string> = {
+  "Start from": "pick-template",
+  Name: "name",
+  Configure: "configure",
 };
 
 type ExpectActiveStepFunction = (title: string) => void;
 
 const expectActiveStep: ExpectActiveStepFunction = (title: string): void => {
-  const label: HTMLElement = within(getProgress()).getByText(title);
-
-  expect(label.closest('[aria-current="step"]')).not.toBeNull();
+  expect(screen.getByTestId("workflow-wizard-step-content")).toHaveAttribute(
+    "data-step",
+    WIZARD_STEP[title] as string,
+  );
 };
 
 type CreatedWorkflowFunction = () => Workflow;
@@ -366,8 +398,9 @@ const getListbox: GetListboxFunction = (): HTMLElement => {
 
 type GetPreviewFunction = () => HTMLElement;
 
+/** The picked template's details, open inside its row. */
 const getPreview: GetPreviewFunction = (): HTMLElement => {
-  return screen.getByTestId("workflow-template-preview");
+  return screen.getByTestId("workflow-template-details");
 };
 
 type TestIdSuffixesFunction = (
@@ -513,129 +546,251 @@ describe("CreateWorkflowModal variable input types", () => {
   });
 });
 
-describe("CreateWorkflowModal standard form steps", () => {
-  test("uses the shared vertical progress rail and its active-step semantics", () => {
+describe("CreateWorkflowModal's dialog", () => {
+  test("is called Create a workflow, and says workflows are created switched off", () => {
     renderModal();
 
-    const progress: HTMLElement = getProgress();
-    const stepList: HTMLElement = within(progress).getByRole("list");
-
-    expect(stepList).toHaveClass("space-y-6");
-    expectActiveStep("Start from");
-    expect(within(progress).getByText("Name")).toBeInTheDocument();
-    expect(within(progress).queryByText("Configure")).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Create a workflow",
+    );
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Workflows are created switched off, so nothing runs until you turn them on.",
+    );
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
+      "Workflows are created switched off, so nothing runs until you turn them on.",
+    );
   });
 
   /*
-   * The rail sits beside a picker whose rows are as wide as their longest
-   * description. Free to shrink, it was squeezed until "Start from" broke
-   * over two lines.
+   * The version before this one was the widest dialog there is, with a
+   * progress rail, a column of categories, the list and a preview side by
+   * side. The step is one column now, and the dialog is the medium width.
    */
-  test("the progress rail keeps its width beside the picker", () => {
+  test("is medium width, not the widest dialog", () => {
     renderModal();
 
-    expect(screen.getByTestId("workflow-wizard-steps")).toHaveStyle({
-      flex: "0 0 auto",
-    });
-    expect(getStepContent()).toHaveClass("min-w-0");
+    expect(screen.getByTestId("modal").className).toContain("sm:max-w-3xl");
+    expect(screen.getByTestId("modal").className).not.toContain("sm:max-w-7xl");
   });
 
-  test("only adds Configure for templates that declare variables", () => {
+  test("has no progress rail beside its steps, on any step", () => {
+    renderModal();
+
+    const noRail: () => void = (): void => {
+      expect(
+        screen.queryByRole("navigation", { name: "Progress" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("workflow-wizard-steps"),
+      ).not.toBeInTheDocument();
+    };
+
+    noRail();
+
+    selectTemplate(SLACK_TEMPLATE_ID);
+    expectActiveStep("Name");
+    noRail();
+
+    submit();
+    expectActiveStep("Configure");
+    noRail();
+  });
+});
+
+describe("CreateWorkflowModal standard form steps", () => {
+  test("only adds Configure for templates that declare variables: Next on Name says so", () => {
     renderModal();
 
     selectTemplate(ZERO_CONFIG_TEMPLATE_ID);
 
     expectActiveStep("Name");
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Create Workflow",
+    );
     expect(
-      within(getProgress()).queryByText("Configure"),
+      screen.queryByTestId("modal-footer-next-button"),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(within(getProgress()).getByText("Start from"));
-    expect(screen.getByTestId("workflow-template-search")).toBeInTheDocument();
-
-    selectTemplate(SLACK_TEMPLATE_ID);
-
-    expectActiveStep("Name");
-    expect(within(getProgress()).getByText("Configure")).toBeInTheDocument();
-  });
-
-  test("a completed step can navigate back to the template picker", () => {
-    renderModal();
-    selectTemplate(SLACK_TEMPLATE_ID);
-
-    const startFromStep: HTMLElement =
-      within(getProgress()).getByText("Start from");
-    expect(startFromStep.closest("li")).toHaveClass("cursor-pointer");
-
-    fireEvent.click(startFromStep);
-
-    expect(screen.getByTestId("workflow-template-search")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
     expectActiveStep("Start from");
+
+    selectTemplate(SLACK_TEMPLATE_ID);
+
+    // Name is not the last step: a plain Next, and no Create Workflow.
+    expectActiveStep("Name");
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
+      "Next",
+    );
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
+
+    submit();
+
+    expectActiveStep("Configure");
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Create Workflow",
+    );
   });
-});
 
-describe("CreateWorkflowModal's Start from step", () => {
-  /*
-   * Two ways in, and one primary button: Use this template, in the footer.
-   * Start from scratch is the other way, drawn plain beside the search.
-   */
-  test("offers Start from scratch and Use this template, and only the second is primary", () => {
+  test("Back walks the steps backwards: Configure, Name, then the picker", () => {
     renderModal();
+    goToConfigure(SLACK_TEMPLATE_ID);
 
-    const useTemplate: HTMLElement = screen.getByTestId(
-      "modal-footer-submit-button",
-    );
-    const scratch: HTMLElement = screen.getByTestId(
-      "workflow-start-from-scratch",
-    );
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+    expectActiveStep("Name");
 
-    expect(useTemplate).toHaveTextContent("Use this template");
-    expect(useTemplate).toBeEnabled();
-    expect(scratch).toHaveTextContent("Start from scratch");
-    expect(scratch.tagName).toBe("BUTTON");
-    expect(scratch).toHaveAttribute("aria-pressed", "false");
-    expect(scratch.className).not.toMatch(/bg-indigo-600/);
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+    expectActiveStep("Start from");
+    expect(screen.getByTestId("workflow-template-picker")).toBeInTheDocument();
     // No Back on the first step.
     expect(
       screen.queryByTestId("workflow-wizard-back"),
     ).not.toBeInTheDocument();
   });
 
-  test("opens on the recommended templates, with the first one highlighted and previewed", () => {
+  test("the Configure step's first field is ready to type into", () => {
+    renderModal();
+    goToConfigure(EMAIL_TEMPLATE_ID);
+
+    expect(
+      getVariableInput(getTemplate(EMAIL_TEMPLATE_ID).variables[0]!.name),
+    ).toHaveFocus();
+  });
+
+  test("the Configure step says, in one sentence, which template needs the details", () => {
+    renderModal();
+    goToConfigure(SLACK_TEMPLATE_ID);
+
+    expect(getStepContent()).toHaveTextContent(
+      `${getTemplate(SLACK_TEMPLATE_ID).name} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.`,
+    );
+  });
+});
+
+describe("CreateWorkflowModal's Start from step", () => {
+  /*
+   * "'Start from scratch' should be more visible as well because that's the
+   * most commonly used option." It is the first thing in the dialog, a card
+   * of its own, and the focus starts on it.
+   */
+  test("Start from scratch is the first thing in the dialog's body, and has the focus", () => {
+    renderModal();
+
+    const scratch: HTMLElement = screen.getByTestId(
+      "workflow-start-from-scratch",
+    );
+    const content: HTMLElement = screen.getByTestId("modal-content");
+
+    expect(content.querySelector("button, input, select, [tabindex]")).toBe(
+      scratch,
+    );
+    expect(scratch).toHaveFocus();
+    expect(scratch).toHaveTextContent("Start from scratch");
+    expect(scratch).not.toHaveAttribute("aria-current");
+  });
+
+  /*
+   * Until a template is picked the step's way on is Start from scratch, at
+   * its top, and the footer holds only Cancel: a disabled "Use this
+   * template" beside it read as if a template had to be chosen.
+   */
+  test("the footer holds only Cancel until a template is picked", () => {
+    renderModal();
+
+    expect(queryUseTemplateButton()).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("modal-footer")).getAllByRole("button"),
+    ).toEqual([screen.getByTestId("modal-footer-close-button")]);
+    // No Back on the first step.
+    expect(
+      screen.queryByTestId("workflow-wizard-back"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Use this template only walks on to Name: it is a Next by another name,
+   * so it is plain, like Cancel. Create Workflow, on the last step, is the
+   * wizard's one primary button.
+   */
+  test("picking a template brings Use this template into the footer, plain: nothing on the picker is primary", () => {
+    renderModal();
+    highlightTemplate(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[2]!);
+
+    const useTemplate: HTMLElement = screen.getByTestId(
+      "modal-footer-next-button",
+    );
+
+    expect(useTemplate).toHaveTextContent("Use this template");
+    expect(useTemplate).toBeEnabled();
+    expect(
+      screen.queryByTestId("modal-footer-submit-button"),
+    ).not.toBeInTheDocument();
+    // Named: eslint's wrap-regex and prettier disagree on a bare /re/.test().
+    const FILLED: RegExp = /\bbg-indigo-600\b/;
+
+    // Nothing in the dialog is filled.
+    for (const button of screen.getAllByRole("button")) {
+      expect({
+        button: button.textContent,
+        filled: FILLED.test(button.className),
+      }).toEqual({ button: button.textContent, filled: false });
+    }
+  });
+
+  test("Create Workflow, on the last step, is the one primary button", () => {
+    renderModal();
+    selectTemplate(ZERO_CONFIG_TEMPLATE_ID);
+
+    expectActiveStep("Name");
+
+    const create: HTMLElement = screen.getByTestId(
+      "modal-footer-submit-button",
+    );
+    const FILLED: RegExp = /\bbg-indigo-600\b/;
+
+    expect(create).toHaveTextContent("Create Workflow");
+    expect(create.className).toMatch(FILLED);
+    expect(
+      screen.getAllByRole("button").filter((button: HTMLElement) => {
+        return FILLED.test(button.className);
+      }),
+    ).toEqual([create]);
+  });
+
+  test("Use this template takes the template picked on to Name, with its suggestions", () => {
+    renderModal();
+
+    const picked: WorkflowTemplate = highlightTemplate(
+      RECOMMENDED_WORKFLOW_TEMPLATE_IDS[3]!,
+    );
+
+    submit();
+
+    expectActiveStep("Name");
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      picked.workflowName,
+    );
+    expect(screen.getByTestId("workflow-description-input")).toHaveValue(
+      picked.workflowDescription,
+    );
+  });
+
+  test("opens on the recommended templates, with none picked and no details open", () => {
     renderModal();
 
     expect(optionIdsIn(getListbox())).toEqual([
       ...RECOMMENDED_WORKFLOW_TEMPLATE_IDS,
     ]);
-    expect(activeOptionId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]);
+    expect(activeOptionId()).toBeNull();
     expect(
-      within(getPreview()).getByRole("heading", {
-        name: getTemplate(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!).name,
-      }),
-    ).toBeInTheDocument();
-  });
-
-  test("the search box has the focus, so typing searches straight away", () => {
-    renderModal();
-
-    expect(screen.getByTestId("workflow-template-search")).toHaveFocus();
-  });
-
-  test("Use this template, with nothing picked, takes the highlighted first recommendation", () => {
-    renderModal();
-
-    submit();
-
-    const first: WorkflowTemplate = getTemplate(
-      RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!,
-    );
-
-    expectActiveStep("Name");
-    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
-      first.workflowName,
-    );
-    expect(screen.getByTestId("workflow-description-input")).toHaveValue(
-      first.workflowDescription,
+      screen.queryByTestId("workflow-template-details"),
+    ).not.toBeInTheDocument();
+    expect(getCategorySelect()).toHaveValue(
+      WorkflowTemplateCollection.Recommended,
     );
   });
 
@@ -649,10 +804,8 @@ describe("CreateWorkflowModal's Start from step", () => {
     fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
 
     expectActiveStep("Name");
-    expect(
-      within(getProgress()).queryByText("Configure"),
-    ).not.toBeInTheDocument();
     expect(screen.getByTestId("workflow-name-input")).toHaveValue("");
+    expect(screen.getByTestId("workflow-name-input")).toHaveFocus();
     expect(screen.getByTestId("workflow-description-input")).toHaveValue("");
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
       "Create Workflow",
@@ -678,19 +831,56 @@ describe("CreateWorkflowModal's Start from step", () => {
     expect(workflow.graph).toEqual({ nodes: [], edges: [] });
   });
 
-  test("after Start from scratch, Back shows it as the start chosen", () => {
+  test("Start from scratch works with a template picked too, and lets the template go", () => {
+    renderModal();
+    highlightTemplate(SLACK_TEMPLATE_ID);
+
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+
+    expectActiveStep("Name");
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue("");
+
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    expect(activeOptionId()).toBeNull();
+    expect(queryUseTemplateButton()).not.toBeInTheDocument();
+    expect(screen.getByTestId("workflow-start-from-scratch")).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+  });
+
+  test("after Start from scratch, Back shows it as the start chosen, with the focus on it", () => {
     renderModal();
 
     fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
     fireEvent.click(screen.getByTestId("workflow-wizard-back"));
 
-    expect(screen.getByTestId("workflow-start-from-scratch")).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    const scratch: HTMLElement = screen.getByTestId(
+      "workflow-start-from-scratch",
+    );
+
+    expect(scratch).toHaveAttribute("aria-current", "true");
+    expect(scratch).toHaveFocus();
+  });
+
+  test("picking a template after that moves the mark from Start from scratch to the template", () => {
+    renderModal();
+
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+    highlightTemplate(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]!);
+
+    expect(
+      screen.getByTestId("workflow-start-from-scratch"),
+    ).not.toHaveAttribute("aria-current");
+    expect(activeOptionId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]);
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
+      "Use this template",
     );
   });
 
-  test("Enter in the search box uses the highlighted template", () => {
+  test("Enter in the search box uses its best match", () => {
     renderModal();
     searchTemplates("discord");
 
@@ -720,15 +910,28 @@ describe("CreateWorkflowModal's Start from step", () => {
     );
   });
 
-  test("Use this template is disabled when a search matches nothing", () => {
+  test("a search picks its best match, so Use this template is there to take it", () => {
+    renderModal();
+    searchTemplates("heartbeat");
+
+    expect(activeOptionId()).toBe("scheduled-heartbeat");
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
+      "Use this template",
+    );
+
+    submit();
+
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      getTemplate("scheduled-heartbeat").workflowName,
+    );
+  });
+
+  test("a search that matches nothing takes Use this template away again", () => {
     renderModal();
     searchTemplates("pagerduty");
 
-    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+    expect(queryUseTemplateButton()).not.toBeInTheDocument();
     expect(screen.getByTestId("workflow-template-empty")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
-
     expectActiveStep("Start from");
   });
 
@@ -765,12 +968,59 @@ describe("CreateWorkflowModal's Start from step", () => {
 
     expectActiveStep("Start from");
     expect(screen.getByTestId("workflow-template-search")).toHaveValue("slack");
-    expect(
-      screen.getByTestId(
-        workflowTemplateViewDomId(WorkflowTemplateCategory.Monitors),
-      ),
-    ).toHaveAttribute("aria-checked", "true");
+    expect(getCategorySelect()).toHaveValue(WorkflowTemplateCategory.Monitors);
     expect(activeOptionId()).toBe("monitor-offline-only-slack");
+    expect(
+      within(
+        screen.getByTestId(
+          workflowTemplateOptionDomId("monitor-offline-only-slack"),
+        ),
+      ).getByTestId("workflow-template-details"),
+    ).toBeInTheDocument();
+    // The focus is back on the list, on the template that was taken.
+    expect(getListbox()).toHaveFocus();
+  });
+
+  /*
+   * The wizard keeps the template taken picked, so Back shows it however it
+   * was reached: as a search's best match, or a row further down the
+   * results reached with the arrow keys.
+   */
+  test("a template taken by Enter after a search is still the one picked after Back", () => {
+    renderModal();
+    searchTemplates("discord");
+
+    fireEvent.keyDown(screen.getByTestId("workflow-template-search"), {
+      key: "Enter",
+    });
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    expect(screen.getByTestId("workflow-template-search")).toHaveValue(
+      "discord",
+    );
+    expect(activeOptionId()).toBe("incident-created-discord");
+  });
+
+  test("a template reached with the arrow keys and taken with Enter is the one picked after Back", () => {
+    renderModal();
+    searchTemplates("slack");
+
+    const search: HTMLElement = screen.getByTestId("workflow-template-search");
+    const results: Array<string> = optionIdsIn(getListbox());
+
+    expect(results.length).toBeGreaterThan(2);
+
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    fireEvent.keyDown(search, { key: "Enter" });
+
+    expect(screen.getByTestId("workflow-name-input")).toHaveValue(
+      getTemplate(results[2]!).workflowName,
+    );
+
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+
+    expect(activeOptionId()).toBe(results[2]);
   });
 
   test("taking the same template again keeps the name typed for it", () => {
@@ -782,6 +1032,7 @@ describe("CreateWorkflowModal's Start from step", () => {
     });
     fireEvent.click(screen.getByTestId("workflow-wizard-back"));
 
+    // Still picked, so Use this template is there to take it again.
     submit();
 
     expect(screen.getByTestId("workflow-name-input")).toHaveValue(
@@ -815,6 +1066,34 @@ describe("CreateWorkflowModal's Start from step", () => {
     expect(
       within(getStepContent()).getByText(template.teaches),
     ).toBeInTheDocument();
+  });
+
+  test("the category select offers every view, by name, and lists what it says", () => {
+    renderModal();
+
+    expect(
+      Array.from((getCategorySelect() as HTMLSelectElement).options).map(
+        (option: HTMLOptionElement): string => {
+          return option.textContent || "";
+        },
+      ),
+    ).toEqual(
+      getWorkflowTemplatePickerViews().map(
+        (info: { label: string }): string => {
+          return info.label;
+        },
+      ),
+    );
+
+    showView(WorkflowTemplateCategory.OnCall);
+
+    expect(optionIdsIn(getListbox())).toEqual(
+      getWorkflowTemplatesByCategory(WorkflowTemplateCategory.OnCall).map(
+        (template: WorkflowTemplate): string => {
+          return template.id;
+        },
+      ),
+    );
   });
 });
 
@@ -870,6 +1149,199 @@ describe("CreateWorkflowModal wizard state and validation", () => {
       screen.queryByText("SMTP Password is required."),
     ).not.toBeInTheDocument();
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("a name shorter than two letters is refused, says why, and creates nothing", () => {
+    renderModal();
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: " a " },
+    });
+    submit();
+
+    expectActiveStep("Name");
+    expect(
+      screen.getByText(
+        "Please give this workflow a name of at least 2 letters.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-name-input")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("the message goes as soon as the name is changed", () => {
+    renderModal();
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+    submit();
+
+    expect(
+      screen.getByText(
+        "Please give this workflow a name of at least 2 letters.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("workflow-name-input"), {
+      target: { value: "On" },
+    });
+
+    expect(
+      screen.queryByText(
+        "Please give this workflow a name of at least 2 letters.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("workflow-name-input")).not.toHaveAttribute(
+      "aria-invalid",
+    );
+  });
+});
+
+/*
+ * The whole dialog in another language, with the Dashboard's real German
+ * locale: the strings this change added and the wizard's own, which were
+ * English placeholders until it, are all shown translated. Template names
+ * and descriptions stay English catalog content.
+ */
+describe("CreateWorkflowModal in German", () => {
+  const LOCALE_PATH: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+  );
+  const german: Record<string, string> = JSON.parse(
+    fs.readFileSync(LOCALE_PATH, "utf8"),
+  ) as Record<string, string>;
+  const instance: i18n = createInstance();
+
+  beforeAll(async () => {
+    await instance.init({
+      lng: "de",
+      fallbackLng: "de",
+      resources: { de: { translation: german } },
+      interpolation: { escapeValue: false },
+    });
+  });
+
+  type DeFunction = (english: string) => string;
+
+  // The German wording, checked to be a translation and not the English.
+  const de: DeFunction = (english: string): string => {
+    const value: string | undefined = german[english];
+
+    expect({ english: english, translated: value !== english }).toEqual({
+      english: english,
+      translated: true,
+    });
+
+    return value as string;
+  };
+
+  type RenderGermanFunction = () => void;
+
+  const renderGerman: RenderGermanFunction = (): void => {
+    render(
+      <I18nextProvider i18n={instance}>
+        <CreateWorkflowModal
+          onClose={getJestMockFunction()}
+          onCreated={getJestMockFunction()}
+        />
+      </I18nextProvider>,
+    );
+  };
+
+  test("the first step: title, note, Start from scratch, the heading and the categories", () => {
+    renderGerman();
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      de("Create a workflow"),
+    );
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      de(
+        "Workflows are created switched off, so nothing runs until you turn them on.",
+      ),
+    );
+    expect(screen.getByTestId("workflow-start-from-scratch")).toHaveTextContent(
+      `${de("Start from scratch")}${de(
+        "Begin with an empty canvas and add your own trigger and steps.",
+      )}`,
+    );
+    expect(
+      screen.getByRole("heading", { name: de("Or start from a template") }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-template-search")).toHaveAttribute(
+      "placeholder",
+      de("Search templates…"),
+    );
+    expect(getCategorySelect()).toHaveAccessibleName(de("Template categories"));
+    expect(
+      Array.from((getCategorySelect() as HTMLSelectElement).options).map(
+        (option: HTMLOptionElement): string => {
+          return option.textContent || "";
+        },
+      ),
+    ).toEqual(
+      getWorkflowTemplatePickerViews().map(
+        (info: { label: string }): string => {
+          return german[info.label] || info.label;
+        },
+      ),
+    );
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
+      german["Cancel"] as string,
+    );
+  });
+
+  test("a picked template's details and Use this template", () => {
+    renderGerman();
+    highlightTemplate(SLACK_TEMPLATE_ID);
+
+    const details: HTMLElement = getPreview();
+
+    expect(details).toHaveTextContent(german["How It Works"] as string);
+    expect(details).toHaveTextContent(de("What you'll need"));
+    expect(screen.getByTestId("modal-footer-next-button")).toHaveTextContent(
+      de("Use this template"),
+    );
+  });
+
+  test("the Name step: its help, its prompts and its message", () => {
+    renderGerman();
+    fireEvent.click(screen.getByTestId("workflow-start-from-scratch"));
+
+    expect(getStepContent()).toHaveTextContent(
+      de("Workflow names are unique within a project."),
+    );
+    expect(screen.getByTestId("workflow-name-input")).toHaveAttribute(
+      "placeholder",
+      de("What should this workflow be called?"),
+    );
+    expect(screen.getByTestId("workflow-description-input")).toHaveAttribute(
+      "placeholder",
+      de("What is this workflow for?"),
+    );
+
+    submit();
+
+    expect(
+      screen.getByText(
+        de("Please give this workflow a name of at least 2 letters."),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("the Configure step's sentence, with the template's name in it", () => {
+    renderGerman();
+    goToConfigure(SLACK_TEMPLATE_ID);
+
+    const sentence: string = de(
+      "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
+    );
+
+    expect(getStepContent()).toHaveTextContent(
+      sentence.replace("{{templateName}}", getTemplate(SLACK_TEMPLATE_ID).name),
+    );
   });
 });
 
@@ -1153,11 +1625,12 @@ describe("CreateWorkflowModal Jira templates", () => {
       ).toEqual(kind.templateIds);
     }
 
+    // Offered by name alone: the select carries no counts.
+    expect(getCategorySelect()).toHaveValue(WorkflowTemplateCategory.Jira);
     expect(
-      screen.getByTestId(
-        workflowTemplateViewDomId(WorkflowTemplateCategory.Jira),
-      ),
-    ).toHaveAccessibleName("Jira (17)");
+      (getCategorySelect() as HTMLSelectElement).selectedOptions[0]
+        ?.textContent,
+    ).toBe("Jira");
   });
 
   /*
@@ -1168,30 +1641,29 @@ describe("CreateWorkflowModal Jira templates", () => {
   test("the categories follow the declared order, between Recommended and All templates, Jira included", () => {
     renderModal();
 
-    const radios: Array<HTMLElement> = within(
-      screen.getByRole("radiogroup", { name: "Template categories" }),
-    ).getAllByRole("radio");
+    const select: HTMLSelectElement = screen.getByRole("combobox", {
+      name: "Template categories",
+    }) as HTMLSelectElement;
 
+    expect(select).toBe(getCategorySelect());
     expect(
-      radios.map((radio: HTMLElement): string => {
-        return radio.getAttribute("data-testid") || "";
+      Array.from(select.options).map((option: HTMLOptionElement): string => {
+        return option.value;
       }),
     ).toEqual([
-      workflowTemplateViewDomId(WorkflowTemplateCollection.Recommended),
+      WorkflowTemplateCollection.Recommended,
       ...WorkflowTemplateCategories.filter(
         (category: WorkflowTemplateCategory) => {
           return getWorkflowTemplatesByCategory(category).length > 0;
         },
-      ).map((category: WorkflowTemplateCategory): string => {
-        return workflowTemplateViewDomId(category);
-      }),
-      workflowTemplateViewDomId(WorkflowTemplateCollection.All),
+      ),
+      WorkflowTemplateCollection.All,
     ]);
     expect(
-      screen.getByTestId(
-        workflowTemplateViewDomId(WorkflowTemplateCategory.Jira),
-      ),
-    ).toBeInTheDocument();
+      Array.from(select.options).map((option: HTMLOptionElement): string => {
+        return option.value;
+      }),
+    ).toContain(WorkflowTemplateCategory.Jira);
   });
 
   test("All templates lists the Jira templates under Jira, in the same order", () => {
@@ -1219,13 +1691,11 @@ describe("CreateWorkflowModal Jira templates", () => {
       expect({
         query: query,
         results: optionIdsIn(getListbox()),
-        jiraCount: screen
-          .getByTestId(workflowTemplateViewDomId(WorkflowTemplateCategory.Jira))
-          .getAttribute("aria-label"),
+        searching: (getCategorySelect() as HTMLSelectElement).value,
       }).toEqual({
         query: query,
         results: JIRA_TEMPLATE_IDS,
-        jiraCount: "Jira (17)",
+        searching: WorkflowTemplateCollection.All,
       });
     }
   });
@@ -1335,10 +1805,10 @@ describe("CreateWorkflowModal Jira templates", () => {
 
       expect({
         template: templateId,
-        settings: testIdSuffixes(preview, "workflow-template-preview-setting-"),
+        settings: testIdSuffixes(preview, "workflow-template-details-setting-"),
         saysNothingToFill: Boolean(
           within(preview).queryByTestId(
-            "workflow-template-preview-no-settings",
+            "workflow-template-details-no-settings",
           ),
         ),
       }).toEqual({
@@ -1354,10 +1824,10 @@ describe("CreateWorkflowModal Jira templates", () => {
     highlightTemplate(INCIDENT_JIRA_KIND.createIssueTemplateId);
 
     const token: HTMLElement = screen.getByTestId(
-      `workflow-template-preview-setting-${JIRA_TOKEN_VARIABLE}`,
+      `workflow-template-details-setting-${JIRA_TOKEN_VARIABLE}`,
     );
     const siteUrl: HTMLElement = screen.getByTestId(
-      "workflow-template-preview-setting-jiraBaseUrl",
+      "workflow-template-details-setting-jiraBaseUrl",
     );
 
     expect(token).toHaveTextContent("Secret");
@@ -1580,9 +2050,7 @@ describe("CreateWorkflowModal Jira templates", () => {
 
       expect(template.variables).toEqual([]);
       expectActiveStep("Name");
-      expect(
-        within(getProgress()).queryByText("Configure"),
-      ).not.toBeInTheDocument();
+      // Create Workflow, not Next: there is no Configure step to go on to.
       expect(
         screen.getByTestId("modal-footer-submit-button"),
       ).toHaveTextContent("Create Workflow");

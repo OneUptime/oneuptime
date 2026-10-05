@@ -63,6 +63,8 @@ import {
   getExceptionDetailDataPlan,
 } from "../../Utils/ExceptionDetailData";
 import { ExceptionTriageAction } from "../../Utils/ExceptionDetailPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -80,6 +82,7 @@ interface EmptySectionProps {
 const EmptySection: FunctionComponent<EmptySectionProps> = (
   props: EmptySectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Card title={props.title} description={props.description}>
       <div
@@ -89,7 +92,9 @@ const EmptySection: FunctionComponent<EmptySectionProps> = (
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
           <Icon icon={props.icon} className="h-5 w-5 text-gray-400" />
         </div>
-        <p className="mt-3 max-w-md text-sm text-gray-600">{props.message}</p>
+        <p className="mt-3 max-w-md text-sm text-gray-600">
+          {translator.translateText(props.message)}
+        </p>
       </div>
     </Card>
   );
@@ -98,6 +103,7 @@ const EmptySection: FunctionComponent<EmptySectionProps> = (
 const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const dataPlan: ExceptionDetailDataPlan = getExceptionDetailDataPlan(
     props.section,
   );
@@ -501,7 +507,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           />
           <p className="min-w-0 flex-1">
             <span className="font-medium">
-              Could not update this exception.
+              {translator.translateText("Could not update this exception.")}
             </span>{" "}
             {actionError}
           </p>
@@ -512,7 +518,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               setActionError(undefined);
             }}
           >
-            Dismiss
+            {translator.translateText("Dismiss")}
           </button>
         </div>
       )}

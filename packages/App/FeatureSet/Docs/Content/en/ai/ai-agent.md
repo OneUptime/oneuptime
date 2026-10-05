@@ -39,12 +39,13 @@ Three things must be in place before a fix task can run. The exception page chec
 ### 1. An LLM provider
 
 - **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Project Settings** > **AI** > **LLM Providers** — a project-owned provider always takes precedence.
-- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
+- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a self-hosted Ollama:
 
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
-GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
-GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
+# An address the OneUptime server can reach, never localhost.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
 ```
 
@@ -95,11 +96,11 @@ The Runner shows as connected on the **Runbooks** > **Runners** page within a mi
 
 ## Automatic code fixes from investigations
 
-When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or alert and its conservative classification recommends a repository code change, the investigation panel offers **Open Fix PR from this analysis** — a fix task whose entire context is the posted analysis. The action is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click when **Enable Automatic Code Fixes** is on. It is **on by default for new projects** (a project created before this default keeps its setting) and is configured independently under **Incidents > Settings > AI** and **Alerts > Settings > AI**.
+When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or alert and its conservative classification recommends a repository code change, the investigation panel offers **Open Fix PR from this analysis** — a fix task whose entire context is the posted analysis. The action is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click when the switch **Open a fix pull request when an investigation finds a code change** is on. It is **on by default for new projects** (a project created before this default keeps its setting) and is set independently under **Incidents > Settings > AI** and **Alerts > Settings > AI**.
 
 When enabled, an investigation that ends with a **confident, evidenced, code-fixable** root cause analysis automatically queues the same fix task the button creates. The gate is a constrained, server-verified classification, never a regex over the analysis prose: only a positive code-fix verdict opens a pull request. Missing evidence, non-code remedies and failed classifications all fail toward doing nothing.
 
-Everything else matches the manual button: the pull request opens ready for review, generated from the posted analysis, needs a GitHub-App-connected repository and a Runner with **Runs AI Code Fixes** enabled, counts against that signal type's **Daily AI Fix Task Limit** and the repository's open-PR cap when either is set (unset, neither limits anything), and every trigger first checks for a fix task that is already queued or running for the same incident or alert — so an automatic trigger and a human click normally collapse into one task rather than two pull requests. (The check is a read before the write, not a lock, so two triggers that fire at the very same moment can still both get through.) The run is system-authored (no user attribution), and nothing merges automatically.
+Everything else matches the manual button: the pull request opens ready for review, generated from the posted analysis, needs a GitHub-App-connected repository and a Runner with **Runs AI Code Fixes** enabled, counts against that signal type's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and the repository's open-PR cap when either is set (unset, neither limits anything), and every trigger first checks for a fix task that is already queued or running for the same incident or alert — so an automatic trigger and a human click normally collapse into one task rather than two pull requests. (The check is a read before the write, not a lock, so two triggers that fire at the very same moment can still both get through.) The run is system-authored (no user attribution), and nothing merges automatically.
 
 ## Privacy
 

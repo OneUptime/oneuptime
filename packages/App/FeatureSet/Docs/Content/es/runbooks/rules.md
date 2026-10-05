@@ -61,7 +61,7 @@ Puedes ver todas las ejecuciones disparadas por reglas en **Runbooks → Ejecuci
 
 ## Runbooks deshabilitados
 
-Si una regla referencia un runbook con `isEnabled = false`, la regla sigue coincidiendo pero la ejecución se omite. Vuelve a habilitar el runbook para reanudar.
+Si una regla referencia un runbook que está desactivado (**Run this runbook** desactivado en la página **Settings** del runbook, `isEnabled = false`), la regla sigue coincidiendo pero la ejecución se omite. Vuelve a activar el interruptor para reanudar.
 
 ## Probar una regla
 

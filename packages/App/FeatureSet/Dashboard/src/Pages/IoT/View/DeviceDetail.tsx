@@ -37,10 +37,13 @@ import {
 } from "../Utils/IoTDeviceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const IoTFleetDeviceDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../iot/:modelId/devices/:subModelId — subModelId is
    * the percent-encoded device externalId (the `device.id` datapoint
@@ -120,7 +123,10 @@ const IoTFleetDeviceDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "device_battery",
       title: "Battery Level",
-      description: `Battery level percent for device ${deviceName} (iot_battery_percent).`,
+      description: translator.translateTemplate(
+        "Battery level percent for device {{deviceName}} (iot_battery_percent).",
+        { deviceName: deviceName },
+      ),
       legend: "Battery",
       legendUnit: "%",
     },
@@ -141,7 +147,10 @@ const IoTFleetDeviceDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "device_signal",
       title: "Signal Strength",
-      description: `Signal strength in dBm for device ${deviceName} (iot_signal_strength_dbm).`,
+      description: translator.translateTemplate(
+        "Signal strength in dBm for device {{deviceName}} (iot_signal_strength_dbm).",
+        { deviceName: deviceName },
+      ),
       legend: "Signal",
       legendUnit: "dBm",
     },
@@ -162,7 +171,10 @@ const IoTFleetDeviceDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "device_temperature",
       title: "Temperature",
-      description: `Temperature in degrees Celsius for device ${deviceName} (iot_temperature_celsius).`,
+      description: translator.translateTemplate(
+        "Temperature in degrees Celsius for device {{deviceName}} (iot_temperature_celsius).",
+        { deviceName: deviceName },
+      ),
       legend: "Temperature",
       legendUnit: "°C",
     },
@@ -183,7 +195,10 @@ const IoTFleetDeviceDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "device_memory",
       title: "Memory Usage",
-      description: `Memory usage for device ${deviceName} (iot_memory_usage_bytes).`,
+      description: translator.translateTemplate(
+        "Memory usage for device {{deviceName}} (iot_memory_usage_bytes).",
+        { deviceName: deviceName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -327,7 +342,12 @@ const IoTFleetDeviceDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Device Metrics: ${deviceName}`}
+          title={translator.translateTemplate(
+            "Device Metrics: {{deviceName}}",
+            {
+              deviceName: deviceName,
+            },
+          )}
           description="Battery, connectivity, temperature, and memory for this device over the selected time range."
         >
           <ResourceMetricsTab

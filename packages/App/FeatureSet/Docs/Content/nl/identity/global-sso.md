@@ -21,8 +21,8 @@ Global SSO, inclusief de instantiebrede schakelaar "Require SSO for Login", maak
 2. **Een provider aanmaken**
 
    - Klik op **Create Global SSO**.
-   - Voor SAML: voer een **Naam** in, de **Sign On URL** en **Issuer** van uw identiteitsprovider, en plak het **Public Certificate**. Kies de **Signature**- en **Digest**-methoden (laat de standaardwaarden — `RSA-SHA256` / `SHA256` — staan als u twijfelt).
-   - Voor OIDC: voer de **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (moet `openid` bevatten) en de claimnamen voor **email** / **name** in.
+   - Voor SAML: voer een **Naam** in, de **Sign On URL** en **Issuer** van uw identiteitsprovider, en plak het **Public Certificate**. Al het andere wordt onder **More fields** ingevuld: de **Signature Method** (`RSA-SHA256`), de **Digest Method** (`SHA256`) en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vereist. Na het opslaan opent de pagina van de provider.
+   - Voor OIDC: voer een **Name**, de **Issuer URL**, en de **Client ID** en **Client Secret** van de app die u bij uw IdP hebt geregistreerd in. U kunt ook de discovery-URL van uw IdP in **Issuer URL** plakken. Al het andere wordt onder **More fields** ingevuld: de **Discovery URL** (de issuer gevolgd door `/.well-known/openid-configuration`), de **Scopes** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vereist. Na het opslaan opent de pagina van de provider.
 
 3. **Kopieer de OneUptime-URL's naar uw identiteitsprovider**
 
@@ -39,7 +39,7 @@ Hoe een globale provider zich gedraagt, hangt af van of u er projecten aan koppe
 
 - **Geen projecten gekoppeld (default-all / invite-first):** Gebruikers kunnen inloggen met de provider en **elk project bereiken waarvan ze al lid zijn**. Nieuwe gebruikers worden **niet** automatisch aangemaakt — een gebruiker moet eerst voor een project worden uitgenodigd. Gebruik dit voor bedrijfsbrede SSO waarbij lidmaatschappen elders worden beheerd.
 
-- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Attached Projects** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
+- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Attached Projects** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
 
 Als u elke automatische accountaanmaak wilt voorkomen, zelfs wanneer er projecten zijn gekoppeld, schakel dan **Disable Sign Up with SSO** in op de provider — gebruikers moeten dan worden uitgenodigd voordat ze kunnen inloggen.
 

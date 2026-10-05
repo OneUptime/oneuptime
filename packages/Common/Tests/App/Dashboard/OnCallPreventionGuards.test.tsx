@@ -97,8 +97,9 @@ import EscalationRules, {
   MembersByRuleId,
   describeEscalationRuleDeletion,
   getEscalationRuleDeletionImpact,
-  toSelectedOptions,
+  getRuleResponderIds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules";
+import { readEscalationRuleResponderIds } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleForm";
 import {
   CoverageCell,
   DeletionImpact,
@@ -205,28 +206,45 @@ const readinessJson: ReadinessJsonFunction = (
 
 describe("Escalation rule form: reading the responder selection", () => {
   /*
-   * The form hands a multi-select value over either as bare ids or as
-   * { value, label } envelopes depending on whether it was seeded as a default,
-   * and the save path reconciles join rows off the result. A shape this misreads
-   * is a responder silently dropped from - or never added to - a level.
+   * The Notify picker hands its picks over as ids per kind of responder, and
+   * the save path reconciles join rows off them. Whatever shape a value
+   * arrives in - ids, { value, label } options, ObjectIDs - a shape this
+   * misreads is a responder silently dropped from, or never added to, a level.
    */
-  test("flattens option envelopes and bare ids into id/label pairs", () => {
+  test("reads option envelopes and bare ids as ids, skipping empties", () => {
     expect(
-      toSelectedOptions([
-        { value: USER_ALEX, label: "Alex Chen" },
-        USER_SAM,
-        null,
-        undefined,
-      ]),
-    ).toEqual([
-      { id: USER_ALEX, label: "Alex Chen" },
-      { id: USER_SAM, label: "" },
-    ]);
+      readEscalationRuleResponderIds({
+        users: [
+          { value: USER_ALEX, label: "Alex Chen" },
+          USER_SAM,
+          null,
+          undefined,
+        ],
+      }).users,
+    ).toEqual([USER_ALEX, USER_SAM]);
   });
 
   test("a non-array selection is no selection rather than a crash", () => {
-    expect(toSelectedOptions(undefined)).toEqual([]);
-    expect(toSelectedOptions("not-an-array")).toEqual([]);
+    expect(readEscalationRuleResponderIds({ users: undefined }).users).toEqual(
+      [],
+    );
+    expect(readEscalationRuleResponderIds(undefined).users).toEqual([]);
+  });
+
+  test("a rule's current join rows become the picks its edit dialog opens with", () => {
+    expect(getRuleResponderIds(membersByRuleId["rule-1"]!)).toEqual({
+      onCallSchedules: [],
+      teams: [USER_JO],
+      users: [USER_ALEX, USER_SAM],
+    });
+    // A join row whose responder is gone names nobody.
+    expect(
+      getRuleResponderIds({
+        userJoins: [{ user: undefined } as any],
+        teamJoins: [],
+        scheduleJoins: [{ onCallDutyPolicySchedule: { name: "x" } } as any],
+      }),
+    ).toEqual({ onCallSchedules: [], teams: [], users: [] });
   });
 });
 

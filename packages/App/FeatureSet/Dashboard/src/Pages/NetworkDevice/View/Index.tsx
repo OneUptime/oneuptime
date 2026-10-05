@@ -1,6 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
 import DeviceStatusHero from "../../../Components/NetworkDevice/DeviceStatusHero";
-import { HOSTNAME_FIELD_DESCRIPTION } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
 import DeviceInterfacesPreview from "../../../Components/NetworkDevice/DeviceInterfacesPreview";
 import DeviceInventoryCard from "../../../Components/NetworkDevice/DeviceInventoryCard";
 import DeviceMonitorLookupUtil, {
@@ -10,18 +9,19 @@ import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitors
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
-import { getMacAddressFormField } from "../MacAddressFormField";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
-import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Label from "Common/Models/DatabaseModels/Label";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -32,16 +32,24 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Device Overview — the "is it OK, and what is it?" page. Health hero on
  * top, then identity and inventory, an interfaces digest, and the monitors
  * watching the device. Deep data lives on its own sub-pages (Interfaces,
  * Metrics, Traffic, Monitors), and SNMP credentials live in Settings.
+ *
+ * The device's details are read here and edited in one place: the Device
+ * Settings card on its Settings page, which the "Edit in Settings" link
+ * opens. Its name, description, address and site used to be edited here
+ * too, in a wizard of their own.
  */
 const NetworkDeviceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
@@ -92,80 +100,16 @@ const NetworkDeviceView: FunctionComponent<
           title: "Device Details",
           description:
             "Name, address, and organization for this device. SNMP credentials are managed in Settings.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        formSteps={[
-          { title: "Device Details", id: "device-details" },
-          { title: "Address", id: "address" },
-          { title: "Site & Labels", id: "site-and-labels" },
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "device-details",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "core-switch-01",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "device-details",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Core switch in the US East datacenter",
-          },
-          {
-            field: {
-              hostname: true,
-            },
-            title: "Hostname",
-            stepId: "address",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "10.0.0.1 or switch-01.example.com",
-            description: HOSTNAME_FIELD_DESCRIPTION,
-          },
-          getMacAddressFormField({ stepId: "address" }),
-          {
-            field: {
-              site: true,
-            },
-            title: "Site",
-            stepId: "site-and-labels",
-            description:
-              "The network site this device belongs to. Site health rolls up from its devices.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Site (optional)",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "site-and-labels",
-            description: "Organize and filter devices with labels.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
         modelDetailProps={{
           modelType: NetworkDevice,
           id: "network-device-details",
@@ -234,7 +178,9 @@ const NetworkDeviceView: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">No site assigned</span>
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
                   );
                 }
                 return <span>{item.site.name}</span>;

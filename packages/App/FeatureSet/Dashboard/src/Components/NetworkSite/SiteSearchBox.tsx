@@ -27,6 +27,8 @@ import {
   normalizeSiteSearchText,
 } from "./SiteSearchUtil";
 import { pluralizeSiteType } from "./SiteMapViewModel";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The search box of every drill-down over the site hierarchy: the Network
@@ -64,8 +66,9 @@ const INPUT_CLASS: string =
 const NO_STATUS_COLOR: string = "#9ca3af"; // gray-400
 
 const DEFAULT_TEST_ID: string = "network-map-search";
-const DEFAULT_PLACEHOLDER: string =
-  "Search sites by name — anywhere in your network";
+const DEFAULT_PLACEHOLDER: string = translationKey(
+  "Search sites by name — anywhere in your network",
+);
 
 export interface ComponentProps {
   value: string;
@@ -102,6 +105,7 @@ export interface ComponentProps {
 const SiteSearchBox: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [results, setResults] = useState<Array<SiteSearchResultView>>([]);
   const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -119,7 +123,9 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
   const canSearchRemotely: boolean = isRemoteSearchable(normalized);
 
   const testId: string = props.dataTestId || DEFAULT_TEST_ID;
-  const placeholder: string = props.placeholder || DEFAULT_PLACEHOLDER;
+  const placeholder: string =
+    translator.translateText(props.placeholder || DEFAULT_PLACEHOLDER) ||
+    DEFAULT_PLACEHOLDER;
   const listboxId: string = `${testId}-listbox`;
   const optionId: (result: SiteSearchResultView) => string = (
     result: SiteSearchResultView,
@@ -385,7 +391,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             data-testid={`${testId}-clear`}
-            aria-label="Clear search"
+            aria-label={translator.translateText("Clear search")}
             className="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-indigo-600"
             onClick={() => {
               props.onChange("");
@@ -426,11 +432,17 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
              * name the customer wrote, and naive pluralization prints
              * "Facilitys" and "Branchs" on a real estate's map.
              */}
-            {`Showing ${props.localMatchCount} of ${props.localTotalCount} ${(props.localTotalCount ===
-            1
-              ? props.childTypeLabel
-              : pluralizeSiteType(props.childTypeLabel)
-            ).toLowerCase()} at this level`}
+            {translator.translateTemplate(
+              "Showing {{matchCount}} of {{totalCount}} {{siteType}} at this level",
+              {
+                matchCount: props.localMatchCount,
+                totalCount: props.localTotalCount,
+                siteType: (props.localTotalCount === 1
+                  ? props.childTypeLabel
+                  : pluralizeSiteType(props.childTypeLabel)
+                ).toLowerCase(),
+              },
+            )}
           </p>
         ) : (
           <></>
@@ -451,7 +463,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
           }}
         >
           <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Anywhere in your network
+            {translator.translateText("Anywhere in your network")}
           </p>
 
           {error ? (
@@ -470,7 +482,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
               className="px-3 py-2 text-xs text-gray-500"
               data-testid={`${testId}-searching`}
             >
-              Searching…
+              {translator.translateText("Searching…")}
             </p>
           ) : (
             <></>
@@ -481,13 +493,17 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
               className="px-3 py-2 text-xs text-gray-500"
               data-testid={`${testId}-no-results`}
             >
-              No sites match that name.
+              {translator.translateText("No sites match that name.")}
             </p>
           ) : (
             <></>
           )}
 
-          <div role="listbox" id={listboxId} aria-label="Site search results">
+          <div
+            role="listbox"
+            id={listboxId}
+            aria-label={translator.translateText("Site search results")}
+          >
             {results.map(
               (result: SiteSearchResultView, index: number): ReactElement => {
                 const isActive: boolean = index === activeIndex;
@@ -528,7 +544,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
                            */
                           <span
                             className="h-1.5 w-1.5 flex-shrink-0 rounded-full border border-gray-400"
-                            title="Not reporting"
+                            title={translator.translateText("Not reporting")}
                           />
                         )}
                         <span className="truncate text-sm font-medium text-gray-900">
@@ -557,7 +573,9 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
               className="border-t border-gray-100 px-3 py-2 text-[11px] text-gray-500"
               data-testid={`${testId}-truncated`}
             >
-              More sites match than are shown — keep typing to narrow it down.
+              {translator.translateText(
+                "More sites match than are shown — keep typing to narrow it down.",
+              )}
             </p>
           ) : (
             <></>

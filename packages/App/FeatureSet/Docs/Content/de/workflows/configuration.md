@@ -4,12 +4,12 @@ Diese Seite behandelt die Einstellungen und Sicherheitsgrenzen, die Sie kennen s
 
 ## Einen Workflow ein- oder ausschalten
 
-Jeder Workflow hat oben in seinem **Builder** und auf seiner Seite **Übersicht** einen Schalter **Aktiviert**. Ist er aus, läuft der Workflow nicht – Webhook-Aufrufe, geplante Zeitpunkte und OneUptime-Ereignisse werden allesamt ignoriert, ebenso **Arbeitsablauf ausführen** und **Run just this step**. Neue Workflows starten deaktiviert.
+Jeder Workflow hat oben in seinem **Editor** und auf seiner Seite **Übersicht** einen Schalter **Aktiviert**. Ist er aus, läuft der Workflow nicht – Webhook-Aufrufe, geplante Zeitpunkte und OneUptime-Ereignisse werden allesamt ignoriert, ebenso **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen**. Neue Workflows starten deaktiviert.
 
 Nutzen Sie diesen Schalter als Ihr Tor mit der Aufschrift „startklar“:
 
 1. Bauen Sie den Workflow.
-2. Klicken Sie im **Builder** mit realistischen Werten auf **Arbeitsablauf ausführen**. Ein deaktivierter Workflow läuft nicht einmal von Hand, daher fragt der Builder zuerst, ob er eingeschaltet werden soll: Klicken Sie auf **Einschalten und ausführen**.
+2. Klicken Sie im **Editor** mit realistischen Werten auf **Arbeitsablauf ausführen**. Ein deaktivierter Workflow läuft nicht einmal von Hand, daher fragt der Editor zuerst, ob er eingeschaltet werden soll: Klicken Sie auf **Einschalten und ausführen**.
 3. Prüfen Sie die **Protokolle** – vergewissern Sie sich, dass jeder Baustein dorthin gegangen ist, wo Sie ihn erwartet haben.
 4. Lassen Sie **Aktiviert** eingeschaltet, wenn er fertig ist. Wenn nicht, schalten Sie ihn aus, bis er es ist: Solange er eingeschaltet ist, feuert sein Trigger bei echten Ereignissen.
 

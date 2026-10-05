@@ -3,13 +3,18 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
+import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
+import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
+import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import {
   DASHBOARD_URL,
@@ -19,7 +24,6 @@ import {
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
-import Team from "Common/Models/DatabaseModels/Team";
 import React, {
   Fragment,
   FunctionComponent,
@@ -27,15 +31,45 @@ import React, {
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+
+/*
+ * The provider the configuration dialog is open for: its id, and whether it
+ * is on, so the dialog can say what is left to do.
+ */
+interface OidcConfigDialogTarget {
+  id: string;
+  isEnabled: boolean;
+}
 
 /*
  * Settings > OIDC: the project's OpenID Connect sign-on providers and the
  * link to test them.
+ *
+ * Adding one asks for its name, issuer, client ID and secret, and the teams
+ * newcomers join (the members team to start with); everything else is
+ * filled in under Advanced (Common/UI/Components/Sso/OidcProviderFormFields).
+ * Once it is saved, the dialog with the redirect URI to give the identity
+ * provider opens straight away: that is the next thing to do.
  */
 const OIDCSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
-  const [showOidcConfigId, setShowOidcConfigId] = useState<string>("");
+  const translator: Translator = useTranslator();
+  /*
+   * The project's sign-in page, which lists its enabled SAML and OIDC
+   * providers (Pages/Onboarding/SSO) - the page SSO enforcement sends people
+   * to. The link used to end in /oidc, a page the Dashboard does not have.
+   */
+  const testUrl: string = `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`;
+  const [oidcConfigTarget, setOidcConfigTarget] =
+    useState<OidcConfigDialogTarget | null>(null);
+  const showOidcConfigId: string = oidcConfigTarget?.id || "";
+
+  const createInitialValues: FormValues<ProjectOIDC> | undefined =
+    useDefaultSsoTeamsInitialValues<ProjectOIDC>();
 
   return (
     <Fragment>
@@ -59,144 +93,41 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
             description:
               "Configure OpenID Connect identity providers for single sign-on. Members will be able to sign in using your configured OIDC provider.",
           }}
-          formSteps={[
-            { title: "Basic Info", id: "basic" },
-            { title: "Endpoints", id: "endpoints" },
-            { title: "Credentials", id: "credentials" },
-            { title: "Claims & Teams", id: "more" },
-          ]}
+          formSteps={getSsoProviderFormSteps<ProjectOIDC>()}
           noItemsMessage={"No OIDC configuration found."}
           viewPageRoute={Navigation.getCurrentRoute()}
-          formFields={[
-            {
-              field: { name: true },
-              title: "Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description: "Friendly name to help you remember.",
-              placeholder: "Okta OIDC",
-              validation: { minLength: 2 },
-              stepId: "basic",
-            },
-            {
-              field: { description: true },
-              title: "Description",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              description: "Friendly description to help you remember.",
-              placeholder: "Sign in with Okta via OpenID Connect",
-              validation: { minLength: 2 },
-              stepId: "basic",
-            },
-            {
-              field: { discoveryURL: true },
-              title: "Discovery URL",
-              fieldType: FormFieldSchemaType.URL,
-              required: true,
-              description:
-                "OIDC discovery document URL — usually ends in /.well-known/openid-configuration.",
-              placeholder:
-                "https://accounts.example.com/.well-known/openid-configuration",
-              stepId: "endpoints",
-              disableSpellCheck: true,
-            },
-            {
-              field: { issuerURL: true },
-              title: "Issuer URL",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description:
-                "Expected issuer (the 'iss' claim in the ID token). Must match exactly what the IdP returns",
-              placeholder: "https://accounts.example.com",
-              stepId: "endpoints",
-              disableSpellCheck: true,
-            },
-            {
-              field: { clientId: true },
-              title: "Client ID",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description: "OIDC client ID issued by your identity provider.",
-              placeholder: "abc123-client-id",
-              stepId: "credentials",
-              disableSpellCheck: true,
-            },
-            {
-              field: { clientSecret: true },
-              title: "Client Secret",
-              fieldType: FormFieldSchemaType.EncryptedText,
-              required: true,
-              description:
-                "OIDC client secret issued by your identity provider. Stored encrypted at rest.",
-              placeholder: "client-secret-value",
-              stepId: "credentials",
-            },
-            {
-              field: { scopes: true },
-              title: "Scopes",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description:
-                "Space-separated list of OIDC scopes to request. Must include 'openid'.",
-              placeholder: "openid email profile",
-              stepId: "credentials",
-              defaultValue: "openid email profile",
-            },
-            {
-              field: { emailClaimName: true },
-              title: "Email Claim Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description:
-                "Name of the ID token / userinfo claim that contains the user's email address.",
-              placeholder: "email",
-              stepId: "more",
-              defaultValue: "email",
-            },
-            {
-              field: { nameClaimName: true },
-              title: "Name Claim Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              description:
-                "Name of the ID token / userinfo claim that contains the user's display name.",
-              placeholder: "name",
-              stepId: "more",
-              defaultValue: "name",
-            },
-            {
-              field: { isEnabled: true },
-              description:
-                "You can test this first, before enabling it. To test, please save the config.",
-              title: "Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
-              stepId: "more",
-            },
-            {
-              field: { teams: true },
-              title: "Teams",
-              description: "Add users to these teams when they sign up.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Team,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: true,
-              placeholder: "Select Teams",
-              stepId: "more",
-            },
-          ]}
+          formFields={getOidcProviderFormFields<ProjectOIDC>({
+            withTeams: true,
+            getTeamsFooterElement: getSsoTeamsGrantNote,
+          })}
+          createInitialValues={createInitialValues}
+          onCreateSuccess={(
+            item: ProjectOIDC,
+            modalType?: ModalType,
+          ): Promise<ProjectOIDC> => {
+            if (modalType === ModalType.Create && item._id) {
+              setOidcConfigTarget({
+                id: item._id.toString(),
+                isEnabled: Boolean(item.isEnabled),
+              });
+            }
+
+            return Promise.resolve(item);
+          }}
           showRefreshButton={true}
           actionButtons={[
             {
               title: "View OIDC Config",
+              icon: IconProp.Settings,
               buttonStyleType: ButtonStyleType.NORMAL,
               onClick: async (
                 item: ProjectOIDC,
                 onCompleteAction: VoidFunction,
               ) => {
-                setShowOidcConfigId((item["_id"] as string) || "");
+                setOidcConfigTarget({
+                  id: (item["_id"] as string) || "",
+                  isEnabled: Boolean(item.isEnabled),
+                });
                 onCompleteAction();
               },
             },
@@ -255,16 +186,16 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           title={`Test OpenID Connect (OIDC)`}
           description={
             <span>
-              Here&apos;s a link which will help you test OIDC integration
-              before you force it on your organization:{" "}
-              <Link
-                openInNewTab={true}
-                to={URL.fromString(
-                  `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`,
-                )}
-              >
-                <span>{`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`}</span>
-              </Link>
+              <TranslatedSentence
+                template="Here's a link which will help you test OIDC integration before you force it on your organization: {{link}}"
+                slots={{
+                  link: (
+                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
+                      <span>{testUrl}</span>
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           }
         />
@@ -276,7 +207,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
               <div>
                 <div>
                   <div className="font-semibold">
-                    Redirect URI (Callback URL):
+                    {translator.translateText("Redirect URI (Callback URL):")}
                   </div>
                   <div>
                     {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
@@ -286,20 +217,32 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
                   <br />
                 </div>
                 <div>
-                  <div className="font-semibold">Identifier (audience): </div>
+                  <div className="font-semibold">
+                    {translator.translateText("Identifier (audience):")}
+                  </div>
                   <div>{`${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`}</div>
                   <br />
                 </div>
                 <div className="text-sm text-gray-500">
-                  Configure your identity provider to redirect to the URL above
-                  after authentication. The client must be permitted to use the
-                  authorization code flow with PKCE.
+                  {translator.translateText(
+                    "Configure your identity provider to redirect to the URL above after authentication. The client must be permitted to use the authorization code flow with PKCE.",
+                  )}
                 </div>
+                {!oidcConfigTarget?.isEnabled && (
+                  <div
+                    className="mt-3 text-sm text-gray-500"
+                    data-testid="oidc-config-turn-on-note"
+                  >
+                    {translator.translateText(
+                      "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.",
+                    )}
+                  </div>
+                )}
               </div>
             }
             submitButtonText={"Close"}
             onSubmit={() => {
-              setShowOidcConfigId("");
+              setOidcConfigTarget(null);
             }}
             submitButtonType={ButtonStyleType.NORMAL}
           />

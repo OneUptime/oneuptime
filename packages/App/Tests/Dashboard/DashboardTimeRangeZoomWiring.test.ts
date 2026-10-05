@@ -106,7 +106,9 @@ describe("dashboard-wide time range zoom wiring", () => {
     expect(toolbar).toContain(
       "props.isTimeRangeZoomed && props.onResetTimeRangeZoom &&",
     );
-    expect(toolbar).toContain('aria-label="Reset zoom"');
+    expect(toolbar).toContain(
+      'aria-label={translator.translateText("Reset zoom")}',
+    );
   });
 
   test("entering edit mode drops the zoom rather than stranding the board", () => {
@@ -115,10 +117,20 @@ describe("dashboard-wide time range zoom wiring", () => {
      * left zoomed would have no way out until the user leaves edit mode.
      */
     const shell: string = readSquashed(AUTHENTICATED_SHELL);
-    const editHandlerIndex: number = shell.indexOf("onEditClick={() => {");
+    /*
+     * Both ways into edit mode - the toolbar's Edit Dashboard and an empty
+     * board's Add Widget - go through startEditing.
+     */
+    const editHandlerIndex: number = shell.indexOf(
+      "const startEditing: () => void = (): void => {",
+    );
     expect(editHandlerIndex).toBeGreaterThan(-1);
-    expect(shell.slice(editHandlerIndex, editHandlerIndex + 400)).toContain(
+    expect(shell.slice(editHandlerIndex, editHandlerIndex + 600)).toContain(
       "timeRangeZoom.resetZoom();",
+    );
+    expect(shell).toContain("onEditClick={startEditing}");
+    expect(shell).toMatch(
+      /const startWithFirstWidget: \(\) => void = \(\): void => \{ if \(!canEditDashboard\) \{ return; \} startEditing\(\);/,
     );
   });
 

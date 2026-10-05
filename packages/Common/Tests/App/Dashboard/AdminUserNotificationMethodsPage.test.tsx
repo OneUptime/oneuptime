@@ -224,6 +224,7 @@ import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -234,6 +235,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import ProjectNotificationChannelsStore from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels";
+import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import UserUtil from "../../../UI/Utils/User";
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
@@ -757,6 +762,17 @@ beforeEach((): void => {
   mountedTableModels = [];
   pendingRequestCount = 0;
 
+  /*
+   * The self view offers Slack and Microsoft Teams only for the workspaces
+   * the project has connected. Both are, unless a test says otherwise.
+   */
+  window.localStorage.clear();
+  ConnectedWorkspaces.reset();
+  ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [
+    WorkspaceType.Slack,
+    WorkspaceType.MicrosoftTeams,
+  ]);
+
   getListMock.mockReset();
   getItemMock.mockReset();
   getCommonHeadersMock.mockReset();
@@ -783,9 +799,21 @@ beforeEach((): void => {
     return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
   });
 
+  /*
+   * A project with SMS, calls, WhatsApp and Telegram on, so every channel an
+   * admin may add is offered. A new project has all four off; the tests
+   * under "a project with channels switched off" start from that.
+   */
   const project: Project = new Project();
   project.disableOnCallNotificationFallback = false;
+  project.enableSmsNotifications = true;
+  project.enableCallNotifications = true;
+  project.enableWhatsAppNotifications = true;
+  project.enableTelegramNotifications = true;
   getItemMock.mockResolvedValue(project as never);
+
+  // Which channels are on is shared by the page and its lists: start clean.
+  ProjectNotificationChannelsStore.reset();
 
   getCommonHeadersMock.mockReturnValue({} as never);
 
@@ -808,6 +836,7 @@ beforeEach((): void => {
 
 afterEach(async (): Promise<void> => {
   cleanup();
+  ConnectedWorkspaces.reset();
 
   for (
     let attempt: number = 0;
@@ -1565,6 +1594,49 @@ describe("the self-serve view", () => {
     });
 
     expect(adminCalls).toHaveLength(0);
+  });
+
+  /*
+   * The Workspace Apps tab offers a table only for the workspaces the
+   * project has connected, and is not there when it has none: adding Slack
+   * or Microsoft Teams points at your own account in a workspace the project
+   * is connected to.
+   */
+  test("offers only the connected workspace's table", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [WorkspaceType.Slack]);
+
+    await renderSelfPage();
+    await openTab("Workspace Apps");
+
+    expect(mountedTableModels).toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+  });
+
+  test("has no Workspace Apps tab in a project with no workspace connected", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, []);
+
+    await renderSelfPage();
+
+    expect(screen.queryByTestId("tab-Workspace Apps")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tab-Direct Contact")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-Push Notifications")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-Webhooks")).toBeInTheDocument();
+    expect(mountedTableModels).not.toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+  });
+
+  test("the admin's view of somebody else asks nothing about workspaces", async () => {
+    ConnectedWorkspaces.reset();
+
+    await renderPage();
+
+    const requestedModels: Array<unknown> = getListMock.mock.calls.map(
+      (call: Array<any>) => {
+        return call[0].modelType;
+      },
+    );
+
+    expect(requestedModels).not.toContain(WorkspaceProjectAuthToken);
   });
 
   test("says these are the same settings they already have", async () => {
@@ -2356,5 +2428,293 @@ describe("each row's actions: one button and a ⋯ menu", () => {
     }
 
     closeRowMenu(menu);
+  });
+});
+
+/*
+ * A project with SMS, calls or WhatsApp switched off - which is every new
+ * project, where all four paid channels start off.
+ *
+ * The server refuses a method on a channel that is off ("SMS notifications
+ * are disabled for this project ..."), and refuses to send an SMS or call
+ * code again while it is. So the Add form offers only the channels that are
+ * on (email always), says once why the others are missing, asks for an
+ * email address alone when nothing else is on, and the copy under the list
+ * promises only what can be added. A channel the project read could not
+ * answer for is offered as before: the server has the last word.
+ */
+describe("a project with channels switched off", () => {
+  interface ChannelSwitches {
+    sms: boolean;
+    call: boolean;
+    whatsApp: boolean;
+    telegram: boolean;
+  }
+
+  const ALL_OFF: ChannelSwitches = {
+    sms: false,
+    call: false,
+    whatsApp: false,
+    telegram: false,
+  };
+
+  const ALL_ON: ChannelSwitches = {
+    sms: true,
+    call: true,
+    whatsApp: true,
+    telegram: true,
+  };
+
+  type RespondWithChannelsFunction = (switches: ChannelSwitches) => void;
+
+  const respondWithChannels: RespondWithChannelsFunction = (
+    switches: ChannelSwitches,
+  ): void => {
+    const project: Project = new Project();
+    project.disableOnCallNotificationFallback = false;
+    project.enableSmsNotifications = switches.sms;
+    project.enableCallNotifications = switches.call;
+    project.enableWhatsAppNotifications = switches.whatsApp;
+    project.enableTelegramNotifications = switches.telegram;
+    getItemMock.mockResolvedValue(project as never);
+  };
+
+  const WHATSAPP_METHOD_ID: string = "60000000-0000-4000-8000-000000000005";
+  const MASKED_WHATSAPP_PHONE: string = "+1 ••• ••• 9911";
+
+  const UNVERIFIED_WHATSAPP: JSONObject = methodJson({
+    methodId: WHATSAPP_METHOD_ID,
+    methodType: "WhatsApp",
+    maskedIdentifier: MASKED_WHATSAPP_PHONE,
+    isVerified: false,
+    isAdminAddable: true,
+    leakedRawValue: "+15557779911",
+  });
+
+  const WHY_MISSING: string =
+    "Channels that are off in this project are not offered. A project owner can turn them on in Project Settings → Notification Settings.";
+
+  const OFFERED_CASES: Array<[string, ChannelSwitches, Array<string>]> = [
+    ["every channel off", ALL_OFF, ["Email"]],
+    ["SMS off", { ...ALL_ON, sms: false }, ["Email", "Phone call", "WhatsApp"]],
+    ["calls off", { ...ALL_ON, call: false }, ["Email", "SMS", "WhatsApp"]],
+    [
+      "WhatsApp off",
+      { ...ALL_ON, whatsApp: false },
+      ["Email", "SMS", "Phone call"],
+    ],
+    /*
+     * An admin cannot add Telegram for anyone (the account holder has to
+     * message the bot), so its switch changes nothing here.
+     */
+    [
+      "only Telegram off",
+      { ...ALL_ON, telegram: false },
+      ["Email", "SMS", "Phone call", "WhatsApp"],
+    ],
+  ];
+
+  test.each(OFFERED_CASES)(
+    "%s: the Add form offers only what is on, email always",
+    async (
+      _name: string,
+      switches: ChannelSwitches,
+      expected: Array<string>,
+    ) => {
+      respondWithChannels(switches);
+
+      await renderPage();
+
+      clickButton(document.body, "Add notification method");
+
+      expect(channelOptions()).toEqual(expected);
+    },
+  );
+
+  test("says once why a channel is missing, and nothing while every channel is on", async () => {
+    respondWithChannels({ ...ALL_ON, call: false });
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(within(modal()).getByText(WHY_MISSING)).toBeInTheDocument();
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+    cleanup();
+
+    respondWithChannels(ALL_ON);
+    ProjectNotificationChannelsStore.reset();
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(within(modal()).queryByText(WHY_MISSING)).not.toBeInTheDocument();
+  });
+
+  test("with only email on, it asks for an email address alone, and adds it", async () => {
+    respondWithChannels(ALL_OFF);
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(
+      screen.queryByPlaceholderText("you@company.com or +15551234567"),
+    ).not.toBeInTheDocument();
+    expect(within(modal()).getByText("Email address")).toBeInTheDocument();
+    expect(
+      within(modal()).queryByText(
+        "Phone numbers need the country code, for example +15551234567.",
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("you@company.com"), {
+      target: { value: RAW_EMAIL },
+    });
+
+    fireEvent.click(within(modal()).getByText("Add"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalled();
+    });
+
+    expect(apiPostMock.mock.calls[0]![0].data).toEqual({
+      methodType: "Email",
+      value: RAW_EMAIL,
+    });
+  });
+
+  test.each([
+    [
+      "every channel on",
+      ALL_ON,
+      "You can add an email address, phone number or WhatsApp number for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+    [
+      "WhatsApp off",
+      { ...ALL_ON, whatsApp: false },
+      "You can add an email address or phone number for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+    [
+      "SMS and calls off",
+      { ...ALL_ON, sms: false, call: false },
+      "You can add an email address or WhatsApp number for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+    [
+      "every channel off",
+      ALL_OFF,
+      "You can add an email address for Jane, and remove any method they no longer use. Identifiers are always shown masked.",
+    ],
+  ])(
+    "%s: the note under the list promises only what can be added",
+    async (_name: string, switches: ChannelSwitches, sentence: string) => {
+      respondWithChannels(switches);
+
+      const container: HTMLElement = await renderPage();
+
+      expect(container.textContent).toContain(sentence);
+    },
+  );
+
+  test("an SMS or call code is not offered again while that channel is off; a WhatsApp one still is", async () => {
+    respondWithChannels(ALL_OFF);
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS, UNVERIFIED_WHATSAPP]);
+
+    await renderPage();
+
+    /*
+     * The server refuses to text an SMS code again while SMS is off, so the
+     * row offers Remove alone. WhatsApp sends its code whatever the switch
+     * says, so its row keeps Resend code.
+     */
+    expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Remove"]);
+    expect(moreButtonFor(rowFor(MASKED_PHONE))).toBeNull();
+    expect(rowButtonLabels(rowFor(MASKED_WHATSAPP_PHONE))).toEqual([
+      "Resend code",
+    ]);
+  });
+
+  test("with SMS on, the unverified SMS row offers Resend code again", async () => {
+    respondWithChannels({ ...ALL_OFF, sms: true });
+    respondWithMethods([VERIFIED_EMAIL, UNVERIFIED_SMS]);
+
+    await renderPage();
+
+    expect(rowButtonLabels(rowFor(MASKED_PHONE))).toEqual(["Resend code"]);
+  });
+
+  test("a project the page could not read offers every channel, as before", async () => {
+    const project: Project = new Project();
+    project.disableOnCallNotificationFallback = false;
+
+    getItemMock.mockImplementation((data: any): Promise<unknown> => {
+      if (data.select && data.select.enableSmsNotifications) {
+        return Promise.reject(new Error("Could not read the project."));
+      }
+
+      return Promise.resolve(project);
+    });
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    /*
+     * "We could not check" is not "off": the form offers what it always
+     * did, says nothing about channels being off, and the server decides.
+     */
+    expect(channelOptions()).toEqual([
+      "Email",
+      "SMS",
+      "Phone call",
+      "WhatsApp",
+    ]);
+    expect(within(modal()).queryByText(WHY_MISSING)).not.toBeInTheDocument();
+  });
+
+  test("a channel turned on elsewhere on the screen is offered at once", async () => {
+    respondWithChannels(ALL_OFF);
+
+    await renderPage();
+
+    await act(async (): Promise<void> => {
+      announceModelSwitchSaved({
+        modelType: Project,
+        modelId: PROJECT_ID,
+        column: "enableSmsNotifications",
+        value: true,
+        source: "another-switch",
+      });
+    });
+
+    clickButton(document.body, "Add notification method");
+
+    expect(channelOptions()).toEqual(["Email", "SMS"]);
+  });
+
+  test("the project read asks for the four switches and nothing else", async () => {
+    respondWithChannels(ALL_ON);
+
+    await renderPage();
+
+    const channelReads: Array<any> = getItemMock.mock.calls
+      .map((call: Array<any>): any => {
+        return call[0];
+      })
+      .filter((data: any): boolean => {
+        return Boolean(data.select && data.select.enableSmsNotifications);
+      });
+
+    expect(channelReads.length).toBeGreaterThanOrEqual(1);
+    expect(channelReads[0].modelType).toBe(Project);
+    expect(channelReads[0].id.toString()).toBe(PROJECT_ID_STRING);
+    expect(channelReads[0].select).toEqual({
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: true,
+      enableTelegramNotifications: true,
+    });
   });
 });

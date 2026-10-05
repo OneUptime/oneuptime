@@ -74,7 +74,7 @@ Si tu equipo escribe las mismas tres actualizaciones en cada interrupción, guá
 
 Las plantillas se comparten entre notas públicas y privadas: una sola lista de plantillas sirve a ambas, y la misma plantilla se puede insertar en cualquiera de los dos tipos de nota.
 
-Las gestionas en **Incidentes → Ajustes → Plantillas de Notas**: la tarjeta se titula **Public or Private Note Templates for Incidents** y su formulario tiene un paso **Información de la plantilla** (**Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios) y un paso **Detalles de la nota** para el cuerpo. Si haces clic en **Crear desde plantilla** antes de crear ninguna, OneUptime te dice que todavía no existe ninguna; ojo, porque el mensaje apunta a Ajustes del proyecto, pero la página vive en realidad en **Incidentes → Ajustes → Plantillas de Notas**.
+Las gestionas en **Incidentes → Ajustes → Plantillas de Notas**: la tarjeta se titula **Public or Private Note Templates for Incidents** y su formulario es una sola página: **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios, y luego el cuerpo. Si haces clic en **Crear desde plantilla** antes de crear ninguna, OneUptime te dice que todavía no existe ninguna; ojo, porque el mensaje apunta a Ajustes del proyecto, pero la página vive en realidad en **Incidentes → Ajustes → Plantillas de Notas**.
 
 ## Publicar notas desde Slack o Microsoft Teams
 
@@ -114,7 +114,7 @@ El mensaje que reciben los suscriptores se genera con plantillas por página de 
 
 ## El feed del incidente
 
-La tarjeta **Incidente Feed** está al final de la columna izquierda de la página **Vista General** del incidente. Es la historia del incidente en orden: cada elemento es un icono, el avatar y el nombre de quien lo provocó, una marca de tiempo relativa con la hora local exacta al pasar el ratón, y un cuerpo en Markdown. Los elementos se ordenan de más antiguo a más reciente.
+La tarjeta **Incidente Feed** está al final de la columna izquierda de la página **Vista General** del incidente. Es la historia del incidente en orden: cada elemento es un icono, el avatar y el nombre de quien lo provocó, una marca de tiempo relativa con la hora local exacta al pasar el ratón, y un cuerpo en Markdown. De forma predeterminada, los elementos más recientes aparecen arriba.
 
 Algunos elementos llevan detalle adicional: una notificación a propietarios enumera, por ejemplo, a todo el mundo a quien se envió correo. Esos muestran un botón **More Information** que abre un panel **More Information**.
 
@@ -122,10 +122,14 @@ La cabecera de la tarjeta tiene además un menú **Acciones** para que puedas ac
 
 - **Execute Runbook** — inicia un [runbook](/docs/runbooks/index) contra este incidente.
 - **Ejecutar política de guardia** — avisa a una política bajo demanda.
-- **Add Public Note** — los mismos cuatro campos de la página de Notas Públicas, en un modal.
-- **Añadir nota privada** — solo cuerpo de la nota y adjuntos.
+- **Add Public Note** — el editor de la página de Notas Públicas, en un modal: escribe la nota y luego **Post update**. Plantillas, **Draft with AI**, adjuntos, **Notify status page subscribers** con a quién llegará y **Preview notification** están todos ahí. La nota se publica ahora; para darle una hora anterior, elige **Posted now**.
+- **Añadir nota privada** — el editor de la página de Notas Privadas, en un modal: escribe la nota y luego **Add note**.
 
-Al lado, **Actualizar** vuelve a recuperar el feed.
+Todo lo demás está detrás del botón **⋯** de al lado, el mismo botón **Más opciones** que tiene la cabecera de tarjeta de una tabla, para que la cabecera muestre los menos botones posibles:
+
+- **Más recientes primero** / **Más antiguos primero** — el orden en que se lee el feed. Una marca indica el que está en uso, y tu navegador recuerda la elección para el feed de cada incidente.
+- **Filtrar por tipo de evento** — un diálogo que lista los tipos de evento del feed, cada uno con el icono de sus elementos, y un cuadro de búsqueda cuando la lista es larga. Marca los que quieras ver y elige **Aplicar filtros**; si no marcas ninguno, se muestran todos. Mientras el feed está filtrado, un recuadro encima indica cuántos tipos de evento muestra, con una etiqueta para cada uno, **Editar filtros** y **Limpiar filtros**. El filtro no se guarda: si sales del incidente, su feed vuelve a mostrarlo todo.
+- **Actualizar** — vuelve a recuperar el feed.
 
 **El feed es de solo anexado, y no es tu registro de auditoría.** La API permite crear y leer elementos del feed, pero no actualizarlos ni eliminarlos, así que nadie puede reescribir en silencio la historia de un incidente. Tampoco es permanente: en instalaciones facturadas, las filas del feed con más de tres años se eliminan. Para un registro duradero de quién cambió qué, usa **Auditoría → Registros de Auditoría** en el menú lateral del incidente.
 

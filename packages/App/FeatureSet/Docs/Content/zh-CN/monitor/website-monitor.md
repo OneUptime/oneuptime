@@ -59,7 +59,7 @@ https://example.com/health?cb=1719500005
 https://example.com/health?nocache={{random}}
 ```
 
-### 高级选项
+### 更多字段
 
 #### 不跟随重定向
 

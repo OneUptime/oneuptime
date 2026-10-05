@@ -121,6 +121,8 @@ import {
   resolveExceptionChipDisplay,
 } from "../../Utils/ExceptionsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -465,6 +467,7 @@ export interface ExceptionsViewerProps {
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The host's stored exception-instance query, read once into the instance
    * scope this viewer resolves fingerprints from. See
@@ -2074,10 +2077,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
       {(
         [
-          ["unresolved", "Unresolved"],
-          ["resolved", "Resolved"],
-          ["archived", "Archived"],
-          ["all", "All"],
+          ["unresolved", translationKey("Unresolved")],
+          ["resolved", translationKey("Resolved")],
+          ["archived", translationKey("Archived")],
+          ["all", translationKey("All")],
         ] as Array<[ExceptionStatus, string]>
       ).map(([key, label]: [ExceptionStatus, string]): ReactElement => {
         const isActive: boolean = status === key;
@@ -2095,7 +2098,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
               setPage(1);
             }}
           >
-            {label}
+            {translator.translateText(label)}
           </button>
         );
       })}
@@ -2117,13 +2120,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
       {(
         [
-          ["issues", "Issues", "Hide user errors and expected denials"],
+          [
+            "issues",
+            translationKey("Issues"),
+            translationKey("Hide user errors and expected denials"),
+          ],
           [
             "user-errors",
-            "User errors",
-            "Only user errors and expected denials — the classes the Issues lens hides",
+            translationKey("User errors"),
+            translationKey(
+              "Only user errors and expected denials — the classes the Issues lens hides",
+            ),
           ],
-          ["all", "All", "Every exception, whatever its fault class"],
+          [
+            "all",
+            translationKey("All"),
+            translationKey("Every exception, whatever its fault class"),
+          ],
         ] as Array<[ExceptionClassScope, string, string]>
       ).map(
         ([key, label, description]: [
@@ -2136,7 +2149,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             <button
               key={key}
               type="button"
-              title={description}
+              title={translator.translateText(description)}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                 isActive
                   ? "bg-indigo-50 text-indigo-700"
@@ -2147,7 +2160,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
                 setPage(1);
               }}
             >
-              {label}
+              {translator.translateText(label)}
             </button>
           );
         },

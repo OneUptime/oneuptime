@@ -9,7 +9,7 @@
 
 2. **Connect Microsoft Teams to OneUptime Project**
 
-   - Navigate to **Project Settings** > **Microsoft Teams** within your OneUptime project.
+   - Navigate to **Project Settings** > **Workspace** > **Microsoft Teams** within your OneUptime project. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect Slack or Teams**, which leads here too.
    - Follow the prompts to connect your Microsoft Teams account with the OneUptime project.
 
 3. **Add the OneUptime App to Each Team (Required)**
@@ -29,11 +29,14 @@
 
 4. **Configure Incident Notifications**
 
-   - After connecting your Microsoft Teams account, go to **Incidents Page** > **Microsoft Teams**.
+   - After connecting your Microsoft Teams account, go to **Incidents** > **Workspace** > **Microsoft Teams**. The **Workspace** section lists only the chat workspaces your project has connected, so **Microsoft Teams** appears there once it is connected.
    - Add rules to send incident notifications to Microsoft Teams. For example, you can create a rule that posts messages to a Teams channel when an incident is created.
 
 5. **Configure Alerts and Scheduled Maintenance Notifications**
-   - Similar rules can be applied to Alerts and Scheduled Maintenance by navigating to their respective pages and configuring the desired rules.
+   - Similar rules can be applied to Alerts, Scheduled Maintenance, Monitors and On-Call from **Workspace** > **Microsoft Teams** in their own menus.
+
+6. **Connect Your Own Account**
+   - Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams.
 
 ## Network access for self-hosted deployments
 

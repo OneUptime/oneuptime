@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "14.0.12",
+  "version": "14.0.14",
   "description": "",
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
     "dev:api": "npx nodemon",
     "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts",
     "migrate": "export NODE_OPTIONS=\"--max-old-space-size=8096 --max-http-header-size=8388608${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Migrate.ts",
-    "compile": "tsc",
+    "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "bash ./scripts/dev.sh",
     "audit": "npm audit --audit-level=low",

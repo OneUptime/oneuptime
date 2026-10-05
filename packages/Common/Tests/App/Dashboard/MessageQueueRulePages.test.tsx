@@ -50,10 +50,12 @@ import RuleSettingsPageProps from "../../../../App/FeatureSet/Dashboard/src/Page
 import MessageQueueLabelRule from "../../../Models/DatabaseModels/MessageQueueLabelRule";
 import MessageQueueOwnerRule from "../../../Models/DatabaseModels/MessageQueueOwnerRule";
 import Label from "../../../Models/DatabaseModels/Label";
-import Team from "../../../Models/DatabaseModels/Team";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import RULE_CRITERIA_FIELDS_BY_MODEL from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { OWNER_RULE_OWNERS_DESCRIPTION } from "../../../UI/Components/PeoplePicker/OwnersFormField";
+import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 
 const RULE_ID: string = "9c4a2b1e-7d3f-4e8a-9b6c-1f2e3d4c5b6a";
 
@@ -113,7 +115,11 @@ describe.each([
     listPath: "settings/label-rules",
     tableId: "message-queue-label-rules-table",
     actionStep: "labels",
-    actionFields: ["labelsToAdd"],
+    /*
+     * What the rule adds, then its name (filled in from it), its Enabled
+     * switch (Edit only) and its description (folded): the shared form.
+     */
+    actionFields: ["labelsToAdd", "name", "isEnabled", "description"],
   },
   {
     name: "owner rules",
@@ -124,7 +130,14 @@ describe.each([
     listPath: "settings/owner-rules",
     tableId: "message-queue-owner-rules-table",
     actionStep: "owners",
-    actionFields: ["ownerTeams", "ownerUsers"],
+    // One picker for people and teams, in place of a dropdown for each.
+    actionFields: [
+      "owners",
+      "name",
+      "isEnabled",
+      "notifyOwners",
+      "description",
+    ],
   },
 ])("the queue $name page", (page: any) => {
   const listUrl: string = `/dashboard/${PROJECT_ID}/queues/${page.listPath}`;
@@ -189,7 +202,7 @@ describe.each([
       tableProps()["formSteps"].map((step: Props): string => {
         return step["id"];
       }),
-    ).toEqual(["basic-info", "match-criteria", page.actionStep]);
+    ).toEqual(["match-criteria", page.actionStep]);
   });
 
   test("its action step is the rule's action", () => {
@@ -224,7 +237,8 @@ describe.each([
         return Boolean(field["field"]["messageQueueSystemPattern"]);
       },
     );
-    expect(system["title"]).toBe("Messaging System Pattern");
+    // The operator says it is a pattern; the criterion is the system itself.
+    expect(system["title"]).toBe("Messaging System");
     expect(system["placeholder"]).toBe("^kafka$");
     expect(system["description"]).toContain("messaging.system value");
     expect(system["description"]).toContain("display name");
@@ -243,36 +257,68 @@ describe.each([
 
     const help: Props = tableProps()["helpContent"];
     expect(help["markdown"]).toMatch(/^### Match Criteria$/m);
-    expect(help["markdown"]).toContain("**Messaging System Pattern**");
+    expect(help["markdown"]).toContain("**Messaging System**");
+    expect(help["markdown"]).not.toContain("Messaging System Pattern");
     expect(help["markdown"]).toContain("^kafka$");
+    // The naming tips sit outside the section the shared help rewrites.
+    expect(help["markdown"]).toMatch(/^### Matching Discovered Queues$/m);
   });
 });
 
 describe("the owner rules page's owners", () => {
-  test("teams come from the project's teams, and owners are notified by default", () => {
+  test("people and teams are picked in one field, saved as the rule's owner columns", () => {
     renderPage(
       MessageQueueOwnerRulesPage,
       `/dashboard/${PROJECT_ID}/queues/settings/owner-rules`,
     );
 
     const props: Props = ruleTableMock.mock.calls[0]![0] as Props;
-    const teams: Props = props["formFields"].find((field: Props): boolean => {
-      return Boolean(field["field"]["ownerTeams"]);
-    });
-    expect(teams["dropdownModal"]).toEqual({
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    });
-    const users: Props = props["formFields"].find((field: Props): boolean => {
-      return Boolean(field["field"]["ownerUsers"]);
-    });
-    expect(typeof users["fetchDropdownOptions"]).toBe("function");
-    expect(fieldsInStep(props, "basic-info")).toEqual([
-      "name",
-      "description",
-      "isEnabled",
-      "notifyOwners",
+    const owners: Array<Props> = props["formFields"].filter(
+      (field: Props): boolean => {
+        return field["fieldType"] === FormFieldSchemaType.PeoplePicker;
+      },
+    );
+
+    expect(owners).toHaveLength(1);
+    expect(owners[0]!["stepId"]).toBe("owners");
+    // A rule that adds no owner cannot be saved.
+    expect(owners[0]!["required"]).toBe(true);
+    expect(owners[0]!["title"]).toBe("Owners");
+    expect(owners[0]!["description"]).toBe(OWNER_RULE_OWNERS_DESCRIPTION);
+    expect(owners[0]!["fieldType"]).toBe(FormFieldSchemaType.PeoplePicker);
+    expect(owners[0]!["peoplePicker"]["kinds"]).toEqual([
+      { kind: PeoplePickerKind.User, valueKey: "ownerUsers" },
+      { kind: PeoplePickerKind.Team, valueKey: "ownerTeams" },
     ]);
+
+    // Both are columns of the rule, which ModelForm saves as such.
+    const rule: MessageQueueOwnerRule = new MessageQueueOwnerRule();
+    expect(rule.hasColumn("ownerUsers")).toBe(true);
+    expect(rule.hasColumn("ownerTeams")).toBe(true);
+  });
+
+  test("owners are notified by default, which waits folded under the owners", () => {
+    renderPage(
+      MessageQueueOwnerRulesPage,
+      `/dashboard/${PROJECT_ID}/queues/settings/owner-rules`,
+    );
+
+    const props: Props = ruleTableMock.mock.calls[0]![0] as Props;
+    const notifyOwners: Props = props["formFields"].find(
+      (field: Props): boolean => {
+        return Boolean(field["field"]?.["notifyOwners"]);
+      },
+    );
+
+    expect(notifyOwners["stepId"]).toBe("owners");
+    expect(notifyOwners["fieldType"]).toBe(FormFieldSchemaType.Toggle);
+    expect(notifyOwners["collapsibleSection"]).toBeDefined();
+    // No default of its own: the form starts it where the server does (on).
+    expect(notifyOwners["defaultValue"]).toBeUndefined();
+    expect(
+      new MessageQueueOwnerRule().getTableColumnMetadata("notifyOwners")
+        .defaultValue,
+    ).toBe(true);
+    expect(fieldsInStep(props, "basic-info")).toEqual([]);
   });
 });

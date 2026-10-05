@@ -9,8 +9,16 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AlertBanner, {
   AlertBannerType,
 } from "Common/UI/Components/AlertBanner/AlertBanner";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { subscribeToModelSwitchSaved } from "Common/UI/Components/ModelSwitch/ModelSwitchEvents";
+import useSaveModelSwitch, {
+  SaveModelSwitch,
+} from "Common/UI/Components/ModelSwitch/useSaveModelSwitch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
@@ -26,6 +34,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import SloEvaluationSwitchCopy, {
+  SLO_EVALUATION_SWITCH_COLUMN,
+  TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID,
+  TURN_SLO_EVALUATION_ON_ERROR_TEST_ID,
+} from "./SloEvaluationSwitchCopy";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -55,12 +68,76 @@ const toBannerType: ToBannerTypeFunction = (
 /*
  * SloHealth names where a notice can be fixed without importing routes
  * (it is loaded by plain-node tests and the dashboard SLO widget); this is
- * where a destination becomes a page.
+ * where a destination becomes a page. TurnEvaluationOn is not a page: the
+ * banner turns evaluation on itself, with a button.
  */
-const ACTION_PAGES: Record<SloNoticeActionTarget, PageMap> = {
+type SloNoticeLinkTarget = Exclude<
+  SloNoticeActionTarget,
+  SloNoticeActionTarget.TurnEvaluationOn
+>;
+
+const ACTION_PAGES: Record<SloNoticeLinkTarget, PageMap> = {
   [SloNoticeActionTarget.Settings]: PageMap.SLO_VIEW_SETTINGS,
   [SloNoticeActionTarget.Monitors]: PageMap.SLO_VIEW_MONITORS,
   [SloNoticeActionTarget.MonitorRules]: PageMap.SLO_VIEW_MONITOR_RULES,
+};
+
+/*
+ * A disabled SLO's banner, with the button that turns evaluation back on in
+ * place. The button is hidden only while there is nothing honest to say
+ * about it: the permission snapshot has not arrived yet (PermissionGate).
+ * Someone who may not turn evaluation on sees it locked, with why.
+ */
+const getTurnEvaluationOnBanner: (
+  notice: SloNotice,
+  turnEvaluationOn: SaveModelSwitch,
+) => ReactElement = (
+  notice: SloNotice,
+  turnEvaluationOn: SaveModelSwitch,
+): ReactElement => {
+  const showButton: boolean =
+    turnEvaluationOn.gate.isAllowed ||
+    Boolean(turnEvaluationOn.gate.disabledReason);
+
+  return (
+    <AlertBanner
+      className="mb-5"
+      type={toBannerType(notice.type)}
+      icon={IconProp.PauseCircle}
+      title={notice.title}
+      rightElement={
+        showButton ? (
+          <Button
+            title={SloEvaluationSwitchCopy.turnOnButton}
+            icon={IconProp.Play}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            dataTestId={TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID}
+            isLoading={turnEvaluationOn.isSaving}
+            disabled={!turnEvaluationOn.gate.isAllowed}
+            tooltip={turnEvaluationOn.gate.disabledReason}
+            onClick={turnEvaluationOn.save}
+          />
+        ) : undefined
+      }
+      dataTestId="slo-notice-banner"
+    >
+      <>
+        <p>{notice.body}</p>
+        {turnEvaluationOn.error ? (
+          <p
+            className="mt-1 text-sm text-red-600"
+            role="alert"
+            data-testid={TURN_SLO_EVALUATION_ON_ERROR_TEST_ID}
+          >
+            {turnEvaluationOn.error}
+          </p>
+        ) : (
+          <></>
+        )}
+      </>
+    </AlertBanner>
+  );
 };
 
 /**
@@ -87,11 +164,41 @@ const ACTION_PAGES: Record<SloNoticeActionTarget, PageMap> = {
  *
  * A failed fetch renders nothing: the banner is supplementary, and the
  * page's own error surface already owns real failures.
+ *
+ * A disabled SLO's banner carries "Turn evaluation on", which turns it back
+ * on right there: it saves what the Evaluation card's switch on Settings
+ * saves, and the switch follows it (ModelSwitchEvents). The banner hears
+ * that switch the same way, so flipping it on Settings clears or raises the
+ * banner above it without a reload.
  */
 const SloNoticeBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [slo, setSlo] = useState<ServiceLevelObjective | null>(null);
+
+  // Bumped whenever evaluation is switched on or off, here or elsewhere.
+  const [switchSaveCount, setSwitchSaveCount] = useState<number>(0);
+
+  const turnEvaluationOn: SaveModelSwitch =
+    useSaveModelSwitch<ServiceLevelObjective>({
+      modelType: ServiceLevelObjective,
+      modelId: props.sloId,
+      column: SLO_EVALUATION_SWITCH_COLUMN,
+      value: true,
+    });
+
+  useEffect(() => {
+    return subscribeToModelSwitchSaved({
+      modelType: ServiceLevelObjective,
+      modelId: props.sloId,
+      column: SLO_EVALUATION_SWITCH_COLUMN,
+      onSaved: (): void => {
+        setSwitchSaveCount((count: number): number => {
+          return count + 1;
+        });
+      },
+    });
+  }, [props.sloId.toString()]);
 
   useEffect(() => {
     let cancelled: boolean = false;
@@ -132,7 +239,7 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
     return () => {
       cancelled = true;
     };
-  }, [props.sloId.toString(), props.refreshToggle]);
+  }, [props.sloId.toString(), props.refreshToggle, switchSaveCount]);
 
   if (!slo) {
     return <Fragment />;
@@ -150,6 +257,10 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
 
   if (!notice) {
     return <Fragment />;
+  }
+
+  if (notice.action?.target === SloNoticeActionTarget.TurnEvaluationOn) {
+    return getTurnEvaluationOnBanner(notice, turnEvaluationOn);
   }
 
   const actionRoute: Route | null = notice.action

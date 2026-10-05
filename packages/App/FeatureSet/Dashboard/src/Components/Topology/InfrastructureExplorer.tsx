@@ -1816,9 +1816,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   </div>
                 </div>
                 {!searching && scope?.entity && (
+                  /*
+                   * Under the scope's summary on a phone, at the right edge,
+                   * as a card header's actions always are.
+                   */
                   <button
                     type="button"
-                    className={`${BUTTON} flex-shrink-0 border border-gray-200 text-gray-600 hover:bg-gray-50`}
+                    className={`${BUTTON} flex-shrink-0 self-end border border-gray-200 text-gray-600 hover:bg-gray-50 sm:self-auto`}
                     onClick={() => {
                       setDetailTarget(targetForNode(scope));
                     }}

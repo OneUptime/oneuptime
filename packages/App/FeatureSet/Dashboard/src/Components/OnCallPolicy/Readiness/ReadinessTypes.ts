@@ -1,6 +1,14 @@
 import PageMap from "../../../Utils/PageMap";
+import Dictionary from "Common/Types/Dictionary";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { getOnCallRuleKindQueryForRuleType } from "Common/Types/NotificationRule/OnCallRuleKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  translatePlural,
+  translateTemplate,
+  translateTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import type {
   ReadinessCoverageCell,
   ReadinessMethod,
@@ -628,49 +636,51 @@ export const getRuleTypeLabel: (ruleType: NotificationRuleType) => string = (
 ): string => {
   switch (ruleType) {
     case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT:
-      return "Incident";
+      return translateTemplate("Incident");
     case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-      return "Alert";
+      return translateTemplate("Alert");
     case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-      return "Incident episode";
+      return translateTemplate("Incident episode");
     case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-      return "Alert episode";
+      return translateTemplate("Alert episode");
     case NotificationRuleType.WHEN_USER_GOES_ON_CALL:
-      return "Goes on call";
+      return translateTemplate("Goes on call");
     case NotificationRuleType.WHEN_USER_GOES_OFF_CALL:
-      return "Goes off call";
+      return translateTemplate("Goes off call");
     default:
       return String(ruleType);
   }
 };
 
 /*
- * Which User Settings page repairs a gap of this rule type.
+ * A User Settings page, and the query that opens it the right way.
+ */
+export interface SettingsPageLink {
+  page: PageMap;
+  query?: Dictionary<string> | undefined;
+}
+
+/*
+ * Where a gap of this rule type is repaired: the On-Call Rules page in User
+ * Settings, opened on the tab that holds the rule type's rules
+ * (`?type=alerts`).
  *
  * It lives here rather than in the surface that first needed it because two
  * surfaces now need it - the admin's responder card and the responder's own
  * setup checklist - and a second copy would be a second opinion about where a
- * hole is fixed. Sending somebody to the page that does not carry the rule they
+ * hole is fixed. Sending somebody to the tab that does not carry the rule they
  * are missing is the failure mode that makes a "fix this" link read as noise.
  *
- * The two go-on-call / go-off-call rule types are edited on the incident
- * on-call rules page (IncidentOnCallRules.tsx:406), not on a page of their own,
- * so they route there along with the incident rules - which is also why the
- * incident page is the default rather than a case of its own.
+ * The two go-on-call / go-off-call rule types have no tab of their own, so
+ * they open the first tab, Incidents, as the page's bare address does.
  */
-export const getPageForRuleType: (ruleType: NotificationRuleType) => PageMap = (
+export const getSettingsPageForRuleType: (
   ruleType: NotificationRuleType,
-): PageMap => {
-  switch (ruleType) {
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-      return PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES;
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-      return PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES;
-    case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-      return PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES;
-    default:
-      return PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
-  }
+) => SettingsPageLink = (ruleType: NotificationRuleType): SettingsPageLink => {
+  return {
+    page: PageMap.USER_SETTINGS_ON_CALL_RULES,
+    query: getOnCallRuleKindQueryForRuleType(ruleType),
+  };
 };
 
 // "Incident · Sev1", or just "Goes on call" for the two severity-less types.
@@ -690,13 +700,13 @@ export const getResponderSourceLabel: (
   source: ResponderSourceValue,
 ) => string = (source: ResponderSourceValue): string => {
   const labels: Record<ResponderSourceValue, string> = {
-    Direct: "added directly",
-    Team: "a team",
-    Schedule: "an on-call schedule",
-    Override: "an override",
+    Direct: translationKey("added directly"),
+    Team: translationKey("a team"),
+    Schedule: translationKey("an on-call schedule"),
+    Override: translationKey("an override"),
   };
 
-  return labels[source];
+  return translateTemplate(labels[source]);
 };
 
 /*
@@ -707,20 +717,17 @@ export const getStatusShortLabel: (user: UserReadinessWire) => string = (
   user: UserReadinessWire,
 ): string => {
   if (user.status === READINESS_STATUS_NOT_REACHABLE) {
-    return "Unreachable";
+    return translateTemplate("Unreachable");
   }
 
   if (user.status === READINESS_STATUS_PARTIALLY_READY) {
-    const gapCount: number = getCoverageGaps(user).length;
-
-    if (gapCount === 1) {
-      return "1 gap";
-    }
-
-    return `${gapCount} gaps`;
+    return translatePlural(
+      { one: "{{count}} gap", other: "{{count}} gaps" },
+      getCoverageGaps(user).length,
+    );
   }
 
-  return "Ready";
+  return translateTemplate("Ready");
 };
 
 /*
@@ -784,7 +791,8 @@ const getMethodNames: (user: UserReadinessWire) => string = (
 ): string => {
   return getVerifiedMethods(user)
     .map((method: ReadinessMethodWire): string => {
-      return method.methodType;
+      // The channel's name, in the reader's language where it has one.
+      return translateTerm(method.methodType);
     })
     .join(", ");
 };
@@ -815,38 +823,67 @@ export const getStatusConsequence: (
    * to precede it — "Those pages…" — is only correct in one of them.
    */
   const name: string =
-    displayName || user.userName || user.userEmail || "This responder";
+    displayName ||
+    user.userName ||
+    user.userEmail ||
+    translateTemplate("This responder");
 
   if (user.status === READINESS_STATUS_NOT_REACHABLE) {
     if (hasChannelsSwitchedOff(user)) {
-      return `${name} can only be reached on ${getMethodNames(
-        user,
-      )}, and this project has those channels switched off, so every page routed to them is dropped.`;
+      return translateTemplate(
+        "{{name}} can only be reached on {{methods}}, and this project has those channels switched off, so every page routed to them is dropped.",
+        { name: name, methods: getMethodNames(user) },
+      );
     }
 
-    return `${name} has no verified notification method, so every page routed to them is dropped.`;
+    return translateTemplate(
+      "{{name}} has no verified notification method, so every page routed to them is dropped.",
+      { name: name },
+    );
   }
 
   if (user.status === READINESS_STATUS_PARTIALLY_READY) {
     const gapCount: number = getCoverageGaps(user).length;
-    const gapWord: string = gapCount === 1 ? "rule gap" : "rule gaps";
-    const pageWord: string =
-      gapCount === 1 ? "That page is" : "Those pages are";
 
     if (!delivery.isFallbackEnabled) {
-      return `${name} has ${gapCount} ${gapWord}, and this project has on-call notification fallback switched off. ${pageWord} dropped — nothing catches them.`;
+      return translatePlural(
+        {
+          one: "{{name}} has {{count}} rule gap, and this project has on-call notification fallback switched off. That page is dropped — nothing catches them.",
+          other:
+            "{{name}} has {{count}} rule gaps, and this project has on-call notification fallback switched off. Those pages are dropped — nothing catches them.",
+        },
+        gapCount,
+        { name: name },
+      );
     }
 
     if (!canFallbackDeliver(user, delivery)) {
-      return `${name} has ${gapCount} ${gapWord} and no verified method for the fallback to use, so ${pageWord.toLowerCase()} dropped.`;
+      return translatePlural(
+        {
+          one: "{{name}} has {{count}} rule gap and no verified method for the fallback to use, so that page is dropped.",
+          other:
+            "{{name}} has {{count}} rule gaps and no verified method for the fallback to use, so those pages are dropped.",
+        },
+        gapCount,
+        { name: name },
+      );
     }
 
-    return `${name} has ${gapCount} ${gapWord}. Those pages still reach them on ${getMethodNames(
-      user,
-    )} through the fallback, so nothing is dropped — but with default timing rather than the rules they would have chosen.`;
+    return translatePlural(
+      {
+        one: "{{name}} has {{count}} rule gap. Those pages still reach them on {{methods}} through the fallback, so nothing is dropped — but with default timing rather than the rules they would have chosen.",
+        other:
+          "{{name}} has {{count}} rule gaps. Those pages still reach them on {{methods}} through the fallback, so nothing is dropped — but with default timing rather than the rules they would have chosen.",
+      },
+      gapCount,
+      { name: name, methods: getMethodNames(user) },
+    );
   }
 
-  return `${name} has a verified method and a rule for every severity and rule type.`;
+  return translateTemplate(
+    "{{name}} has a verified method and a rule for every severity and rule type.",
+    { name: name },
+  );
 };
 
 /*
@@ -866,29 +903,47 @@ export const getSelfAddressedConsequence: (
 ): string => {
   if (user.status === READINESS_STATUS_NOT_REACHABLE) {
     if (hasChannelsSwitchedOff(user)) {
-      return `every notification method on your account is on a channel this project has switched off (${getMethodNames(
-        user,
-      )}), so pages routed to you are being dropped.`;
+      return translateTemplate(
+        "every notification method on your account is on a channel this project has switched off ({{methods}}), so pages routed to you are being dropped.",
+        { methods: getMethodNames(user) },
+      );
     }
 
-    return "your account has no verified notification method, so pages routed to you are being dropped.";
+    return translateTemplate(
+      "your account has no verified notification method, so pages routed to you are being dropped.",
+    );
   }
 
   const gapCount: number = getCoverageGaps(user).length;
-  const subject: string = `${gapCount} ${
-    gapCount === 1
-      ? "severity or rule type has"
-      : "severities and rule types have"
-  } no notification rule on your account`;
-  const pageWord: string = gapCount === 1 ? "That page is" : "Those pages are";
 
   if (!delivery.isFallbackEnabled) {
-    return `${subject}, and this project has on-call notification fallback switched off. ${pageWord} dropped rather than arriving on another channel.`;
+    return translatePlural(
+      {
+        one: "{{count}} severity or rule type has no notification rule on your account, and this project has on-call notification fallback switched off. That page is dropped rather than arriving on another channel.",
+        other:
+          "{{count}} severities and rule types have no notification rule on your account, and this project has on-call notification fallback switched off. Those pages are dropped rather than arriving on another channel.",
+      },
+      gapCount,
+    );
   }
 
   if (!canFallbackDeliver(user, delivery)) {
-    return `${subject}, and you have no verified notification method for the fallback to use, so ${pageWord.toLowerCase()} dropped.`;
+    return translatePlural(
+      {
+        one: "{{count}} severity or rule type has no notification rule on your account, and you have no verified notification method for the fallback to use, so that page is dropped.",
+        other:
+          "{{count}} severities and rule types have no notification rule on your account, and you have no verified notification method for the fallback to use, so those pages are dropped.",
+      },
+      gapCount,
+    );
   }
 
-  return `${subject}. Those pages still reach you through the fallback, but with default timing rather than the rules you would have chosen.`;
+  return translatePlural(
+    {
+      one: "{{count}} severity or rule type has no notification rule on your account. Those pages still reach you through the fallback, but with default timing rather than the rules you would have chosen.",
+      other:
+        "{{count}} severities and rule types have no notification rule on your account. Those pages still reach you through the fallback, but with default timing rather than the rules you would have chosen.",
+    },
+    gapCount,
+  );
 };

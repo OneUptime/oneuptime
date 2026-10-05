@@ -6,12 +6,15 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 class UserWithConfirmPassword extends User {
   public confirmPassword: string = "";
 }
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hasPasswordChanged, setHasPasswordChanged] = useState<boolean>(false);
 
   return (
@@ -79,7 +82,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           submitButtonText={"Update Password"}
         />
       ) : (
-        <p>Your password has been updated.</p>
+        <p>{translator.translateText("Your password has been updated.")}</p>
       )}
     </Card>
   );

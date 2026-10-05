@@ -1,23 +1,32 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingRuleOutputMetricName";
+import { getRecordingRuleAdvancedSummary } from "../../../Components/Metrics/RecordingRule/RecordingRuleForm";
 import TraceRecordingRuleDefinition, {
   TraceRecordingRuleDefinitionUtil,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import TraceRecordingRuleDefinitionEditor from "../../../Components/Traces/RecordingRule/TraceRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Trace Recording Rules Work
 
-A Trace Recording Rule computes a new metric from span aggregations on a schedule. Every minute, the worker evaluates each enabled rule for the **previous 1-minute bucket** and writes the result into the metric store under your chosen **Output Metric Name**.
+A Trace Recording Rule computes a new metric from span aggregations on a schedule. Every minute, the worker evaluates each enabled rule for the **previous 1-minute bucket** and writes the result into the metric store under the rule's **Output Metric Name**. The output metric name is made from the rule's name - "HTTP error rate" writes \`http_error_rate\` - unless you choose **Edit** next to it and type your own.
 
 ### Definition
 
@@ -42,9 +51,21 @@ Non-finite results (division by zero, missing source) produce no row — dashboa
 Every materialized row carries \`oneuptime.derived.trace_rule_id\` plus the group-by value when set.
 `;
 
+/*
+ * One page, as a metric recording rule's: the rule's name - the output metric
+ * line under it is made from the name, not asked for - and its definition,
+ * with the description and Enabled (on) folded under More fields
+ * (Components/Metrics/RecordingRule/RecordingRuleForm says why).
+ */
+const traceRecordingRuleMoreFields: FormFieldCollapsibleSection<TraceRecordingRule> =
+  getAdvancedFormSection<TraceRecordingRule>({
+    getSummary: getRecordingRuleAdvancedSummary,
+  });
+
 const TraceRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * "Create metric…" in the traces analytics view deep-links here with a
    * `?prefill=<json definition>` param — open the create form with the
@@ -162,7 +183,11 @@ const TraceRecordingRules: FunctionComponent<
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
-      sortBy="sortOrder"
+      /*
+       * By name: every enabled rule is evaluated each minute, on its own,
+       * so the list has no order to keep (sortOrder is never read).
+       */
+      sortBy="name"
       sortOrder={SortOrder.Ascending}
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
@@ -183,61 +208,43 @@ const TraceRecordingRules: FunctionComponent<
           prefillDefinition ??
           TraceRecordingRuleDefinitionUtil.getEmptyDefinition(),
       }}
-      onBeforeCreate={async (item: TraceRecordingRule) => {
-        if (!item.sortOrder) {
-          item.sortOrder = 1;
-        }
-        if (item.isEnabled === undefined || item.isEnabled === null) {
-          item.isEnabled = true;
-        }
-        return item;
-      }}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Definition", id: "definition" },
-      ]}
       formFields={[
         {
           field: { name: true },
           title: "Name",
-          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. HTTP error rate (from spans)",
           validation: { minLength: 2 },
         },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          description: "What this rule computes and why.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this rule computes and why.",
-        },
+        /*
+         * On Create, made from the rule's name as it is typed (and by the
+         * server when the create leaves it out); never asked for. Right
+         * under the name it is made from.
+         */
+        getGeneratedKeyFormField<TraceRecordingRule>({
+          field: { outputMetricName: true },
+          nameField: "name",
+          title: "Output Metric Name",
+          makeKey: getOutputMetricNameFromRuleName,
+          placeholder: "e.g. http.server.error_rate",
+          description:
+            "Name of the new derived metric. Must be unique per project.",
+        }),
+        // On Edit, a rule's output metric can still be renamed.
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
-          stepId: "basic-info",
           description:
             "Name of the new derived metric. Must be unique per project.",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. http.server.error_rate",
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          description:
-            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
+          doNotShowWhenCreating: true,
         },
         {
           field: { definition: true },
           title: "Definition",
-          stepId: "definition",
           description:
             "Pick your span sources, write the expression that combines them, and optionally split the result by an attribute.",
           fieldType: FormFieldSchemaType.CustomComponent,
@@ -262,6 +269,24 @@ const TraceRecordingRules: FunctionComponent<
               />
             );
           },
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          description: "What this rule computes and why.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule computes and why.",
+          collapsibleSection: traceRecordingRuleMoreFields,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          description:
+            "Only enabled rules are evaluated each minute. You can pause a rule any time.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          collapsibleSection: traceRecordingRuleMoreFields,
         },
       ]}
       showRefreshButton={true}
@@ -292,7 +317,7 @@ const TraceRecordingRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

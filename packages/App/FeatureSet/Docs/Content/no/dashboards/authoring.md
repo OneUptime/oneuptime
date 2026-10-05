@@ -1,6 +1,6 @@
 # Lage et dashbord
 
-For å opprette et dashbord, åpne **Dashbord → Opprett dashbord**, gi det et navn, og åpne det. Lerretet åpnes i **Rediger**-modus, klart til at du kan begynne å legge til widgets.
+For å opprette et dashbord, åpne **Dashbord → Opprett dashbord** og velg en mal, eller **Blank Dashboard** for å starte fra bunnen av. En mal fyller inn navnet på dashbordet for deg (nummerert, som "Kubernetes Dashboard 2", når prosjektet allerede har ett); et tomt dashbord gir du navn selv. Klikk **Opprett dashbord**, og det nye dashbordet åpnes. Et tomt dashbord åpnes på et tomt lerret, med knappen **Legg til widget** for den første widgeten.
 
 ## Lerretet
 
@@ -17,7 +17,7 @@ Det er det samme dashbordet i begge modusene. Det er ingen separat "publiser"-st
 
 ## Legge til en widget
 
-1. Klikk **+**-knappen for å åpne widget-paletten.
+1. Klikk **Legg til widget** for å åpne widget-paletten: på lerretet til et tomt dashbord, eller i verktøylinjen mens du redigerer dashbordet.
 2. Velg widget-typen. Se [Widgets](/docs/dashboards/widgets) for katalogen.
 3. Widgeten dukker opp på lerretet.
 4. Klikk på tannhjul-ikonet på widgeten for å åpne innstillingene.

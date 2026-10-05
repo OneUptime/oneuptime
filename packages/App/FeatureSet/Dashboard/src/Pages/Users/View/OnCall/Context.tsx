@@ -35,6 +35,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Users > View > On-Call — the state every page in that section is built on,
@@ -43,16 +45,17 @@ import React, {
  * This section used to be a single route, and everything in it — the readiness
  * tiles, the coverage grid, the notification methods and four rule tables that
  * each expand to one card per severity band — was stacked onto one page that
- * ran to well over a dozen screens. It was reorganised into six, and this file
- * is what makes that split cheap: identity and readiness are read by the
- * SECTION rather than by each page, so moving between "Readiness" and "Incident
- * Rules" re-renders rather than re-fetches, and every page in the section
- * agrees about who it is talking about.
+ * ran to well over a dozen screens. It is three pages now - Readiness,
+ * Notification Methods, and On-Call Rules with a tab per kind of rule - and
+ * this file is what makes that split cheap: identity and readiness are read by
+ * the SECTION rather than by each page, so moving between "Readiness" and
+ * "On-Call Rules" re-renders rather than re-fetches, and every page in the
+ * section agrees about who it is talking about.
  *
  * That last part is not a performance note. The whole risk of this section is
  * an administrator editing the wrong person's paging configuration while
- * believing it is their own, and six pages that each answered "whose page is
- * this?" separately would be six chances to answer it differently.
+ * believing it is their own, and pages that each answered "whose page is
+ * this?" separately would be as many chances to answer it differently.
  *
  * WHAT IS DELIBERATELY NOT HERE: any read of a notification METHOD model.
  * UserEmail, UserSMS, UserCall, UserPush, UserWhatsApp, UserTelegram,
@@ -185,7 +188,7 @@ export const getFirstName: (displayName: string) => string = (
   const trimmed: string = displayName.trim();
 
   if (!trimmed) {
-    return "this user";
+    return translateTerm("this user", { inSentence: true });
   }
 
   return trimmed.split(" ")[0] || trimmed;
@@ -520,6 +523,8 @@ export function OnBehalfOfBanner(props: {
   displayName: string;
   firstName: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   if (props.isSelf) {
     return (
       <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -528,8 +533,9 @@ export function OnBehalfOfBanner(props: {
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500"
         />
         <p className="text-sm leading-relaxed text-gray-700">
-          This is your own on-call configuration. Changes here are the same as
-          the ones you would make in User Settings.
+          {translator.translateText(
+            "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
+          )}
         </p>
       </div>
     );
@@ -544,15 +550,31 @@ export function OnBehalfOfBanner(props: {
         />
         <div>
           <p className="text-sm font-semibold text-amber-900">
-            {props.canEdit
-              ? "You are editing on behalf of "
-              : "You are viewing "}
-            {props.displayName || "another user"}
+            {props.displayName
+              ? props.canEdit
+                ? translator.translateTemplate(
+                    "You are editing on behalf of {{name}}",
+                    { name: props.displayName },
+                  )
+                : translator.translateTemplate("You are viewing {{name}}", {
+                    name: props.displayName,
+                  })
+              : props.canEdit
+                ? translator.translateText(
+                    "You are editing on behalf of another user",
+                  )
+                : translator.translateText("You are viewing another user")}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-amber-800">
             {props.canEdit
-              ? `This decides how ${props.firstName} is paged — not you. Every change is recorded in the audit log and ${props.firstName} is notified of it.`
-              : `You can see ${props.firstName}'s configuration but not change it. Ask a project owner or admin for the "Edit User Notification Rules" permission.`}
+              ? translator.translateTemplate(
+                  "This decides how {{name}} is paged — not you. Every change is recorded in the audit log and {{name}} is notified of it.",
+                  { name: props.firstName },
+                )
+              : translator.translateTemplate(
+                  'You can see {{name}}\'s configuration but not change it. Ask a project owner or admin for the "Edit User Notification Rules" permission.',
+                  { name: props.firstName },
+                )}
           </p>
         </div>
       </div>

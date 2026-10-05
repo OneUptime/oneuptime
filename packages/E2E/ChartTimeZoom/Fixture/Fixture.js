@@ -33,9 +33,9 @@
  *
  * The explorers' spans and logs are generated the same way: a pure function
  * of the minute (a few services, each with its own rate and error burst),
- * and the span list, the log list, the histograms and the facet counts are
- * all read off those same generated rows, bucketed the way the server
- * buckets them (TraceAggregationService / LogAggregationService).
+ * and the span list, the log list, the lists' totals, the histograms and the
+ * facet counts are all read off those same generated rows, bucketed the way
+ * the server buckets them (TraceAggregationService / LogAggregationService).
  *
  * Every data request is recorded, in order, on
  * window.__chartTimeZoomFixture.requests:
@@ -50,7 +50,9 @@
  *              InBetween), interval and rows (what came back)
  *   lists and counts: query, select, sort, limit, skip, and
  *              window: { column, start, end } when the query filters a
- *              column by an InBetween
+ *              column by an InBetween; an analytics.count also records
+ *              exact (whether it was asked for exactly) and count (what
+ *              came back)
  *   getItem, updateById: id, select or body
  *   api: method, url, body, and window: { start, end } when the body
  *              names a startTime / endTime (the explorers' histogram,
@@ -2343,7 +2345,7 @@ ModelAPI.updateById = async (options) => {
  */
 table(Metric);
 table(Span);
-const ANALYTICS_LIST_TABLES = [
+const ANALYTICS_TABLES = [
   tableName(Log),
   tableName(ChangeEvent),
   tableName(Metric),
@@ -2351,22 +2353,24 @@ const ANALYTICS_LIST_TABLES = [
 ];
 
 /*
- * The rows an analytics read (getList or count) matches, or null when the
- * fixture does not model the table.
+ * Every row of an analytics table that `query` matches, unsorted, or null
+ * for a table the fixture does not model (recorded on `unhandled` as
+ * `kind`). A list pages through these rows and a count counts them, so an
+ * explorer's total always describes the very rows its list holds.
  */
-const analyticsRecords = (kind, modelType, rawQuery, sort) => {
+function analyticsRows(modelType, query, kind) {
   const modelName = tableName(modelType);
-  if (!ANALYTICS_LIST_TABLES.includes(modelName)) {
+  if (!ANALYTICS_TABLES.includes(modelName)) {
     fixture.unhandled.push({ kind, modelName });
     return null;
   }
-  const query = { ...(rawQuery || {}) };
+  const conditions = { ...(query || {}) };
   /*
    * Map-column filters (Log.attributes) are matched key by key: every
    * requested attribute must be present with the same value.
    */
-  const attributeFilter = query.attributes;
-  delete query.attributes;
+  const attributeFilter = conditions.attributes;
+  delete conditions.attributes;
   /*
    * Generated rows exist for any window, so a read of a generated table
    * must name one on its time column (every explorer and page read does).
@@ -2374,7 +2378,7 @@ const analyticsRecords = (kind, modelType, rawQuery, sort) => {
   let candidates = table(modelType);
   const generated = GENERATED_TABLES[modelName];
   if (generated) {
-    const time = query[generated.column];
+    const time = conditions[generated.column];
     if (time instanceof InBetween) {
       candidates = rowsBetween(
         generated,
@@ -2389,19 +2393,24 @@ const analyticsRecords = (kind, modelType, rawQuery, sort) => {
       });
     }
   }
-  return sortRecords(
-    candidates.filter((item) => {
-      if (!matches(item, query)) {
-        return false;
-      }
-      return Object.entries(attributeFilter || {}).every(([key, value]) => {
-        return String(item.attributes?.[key]) === attributeValue(value);
-      });
-    }),
-    sort,
-  );
-};
+  return candidates.filter((item) => {
+    if (!matches(item, conditions)) {
+      return false;
+    }
+    return Object.entries(attributeFilter || {}).every(([key, value]) => {
+      return String(item.attributes?.[key]) === attributeValue(value);
+    });
+  });
+}
 
+/*
+ * POST <model>/get-list, answered the way BaseAnalyticsAPI answers it. The
+ * server skips COUNT(*): it reads one row past the page, says whether that
+ * row was there (hasMore), and sends a lower bound as `count`, the rows up
+ * to the page's last plus one while more follow. A page that ends the list
+ * so proves its own total, and an explorer only counts (below) when rows
+ * follow its page.
+ */
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   const skip = Number(options.skip || 0);
@@ -2416,35 +2425,55 @@ AnalyticsModelAPI.getList = async (options) => {
     skip,
     limit,
   });
-  const records = analyticsRecords(
-    "analytics.getList",
-    options.modelType,
-    options.query,
+  const records = sortRecords(
+    analyticsRows(options.modelType, options.query, "analytics.getList") || [],
     options.sort,
   );
-  if (!records) {
-    return { data: [], count: 0, skip, limit };
-  }
+  const page = records.slice(skip, skip + limit);
+  const hasMore = records.length > skip + limit;
   return {
-    data: records.slice(skip, skip + limit).map((item) => {
+    data: page.map((item) => {
       return projectRecord(options.modelType, item, options.select);
     }),
-    count: records.length,
+    count: skip + page.length + (hasMore ? 1 : 0),
     skip,
     limit,
+    hasMore,
   };
 };
 
-AnalyticsModelAPI.count = async (modelType, query) => {
+/*
+ * POST <model>/count, which BaseAnalyticsAPI answers with `{ count }`: how
+ * many rows the query matches. The explorers print it as their total
+ * ("2,120 spans") and ask for it exact (CountBy.exact): the very rows a list
+ * with the same query pages through, never the server's estimate. The
+ * fixture always counts exactly, which also answers a count that did not
+ * ask to be exact. Only the generated tables (the explorers' spans and
+ * logs) are counted: a count of any other table is not modelled and lands
+ * on `unhandled`, so a page that starts counting one finds out.
+ */
+AnalyticsModelAPI.count = async (
+  modelType,
+  query,
+  _requestOptions,
+  countOptions,
+) => {
   const modelName = tableName(modelType);
-  record({
+  const entry = record({
     kind: "analytics.count",
     modelName,
     query: serialize(query),
     window: windowOf(query),
+    exact: Boolean(countOptions?.exact),
   });
-  const records = analyticsRecords("analytics.count", modelType, query);
-  return records ? records.length : 0;
+  let rows = [];
+  if (GENERATED_TABLES[modelName]) {
+    rows = analyticsRows(modelType, query, "analytics.count");
+  } else {
+    fixture.unhandled.push({ kind: "analytics.count", modelName });
+  }
+  entry.count = rows.length;
+  return entry.count;
 };
 
 AnalyticsModelAPI.aggregate = async (options) => {

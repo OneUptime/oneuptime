@@ -18,6 +18,12 @@ import Permission, { PermissionHelper } from "../../../Types/Permission";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -41,6 +47,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [item, setItem] = useState<TBaseModel | null>(null);
@@ -271,11 +278,15 @@ const ModelDetail: <TBaseModel extends BaseModel>(
 
       if (!item) {
         setError(
-          `Cannot load ${(
-            new props.modelType()?.singularName || "item"
-          ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
-            new props.modelType()?.singularName || "item"
-          ).toLowerCase()}.`,
+          translator.translateTemplate(
+            "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.",
+            {
+              itemName: translatableTerm(
+                new props.modelType()?.singularName || translationKey("Item"),
+                { inSentence: true },
+              ),
+            },
+          ),
         );
       }
 
@@ -340,7 +351,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
           }}
           className="underline primary-on-hover"
         >
-          Refresh?
+          {translator.translateText("Refresh?")}
         </span>
       </p>
     );

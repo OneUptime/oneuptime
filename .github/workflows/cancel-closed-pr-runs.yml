@@ -51,6 +51,7 @@ jobs:
           - Browser Recorder Test
           - Build
           - CLI Test
+          - CodeQL Advanced
           - Common Jobs
           - Common Test
           - Compile
@@ -58,6 +59,7 @@ jobs:
           - Enterprise Edition Test
           - Infrastructure Agent Test
           - Kubernetes AI Agent Test
+          - Kubernetes Agent eBPF E2E
           - Kubernetes Log Tailer Test
           - Mobile Recorder Native Consumer Build
           - Mobile Recorder Test

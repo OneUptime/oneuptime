@@ -6,6 +6,12 @@ import ComponentMetadata, {
 import { HighlightSegment } from "./ComponentSearch";
 import { PickerResource } from "./PickerCatalog";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  translatableTerm,
+  translatePlural,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 /*
  * The pieces the Add Component / Add Trigger picker is drawn from. Colours
@@ -59,10 +65,15 @@ export const getStepCountLabel: CountLabelFunction = (
   count: number,
   componentsType: ComponentType,
 ): string => {
-  const noun: string =
-    componentsType === ComponentType.Trigger ? "trigger" : "action";
-
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+  return componentsType === ComponentType.Trigger
+    ? translatePlural(
+        { one: "{{count}} trigger", other: "{{count}} triggers" },
+        count,
+      )
+    : translatePlural(
+        { one: "{{count}} action", other: "{{count}} actions" },
+        count,
+      );
 };
 
 const FOCUS_RING: string =
@@ -137,13 +148,14 @@ interface ComponentTileProps {
 export const ComponentTile: FunctionComponent<ComponentTileProps> = (
   props: ComponentTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const descriptionId: string = `workflow-picker-description-${props.componentMetadata.id}`;
 
   return (
     <button
       type="button"
       {...getPickerItemProps(componentItemKey(props.componentMetadata))}
-      aria-label={props.componentMetadata.title}
+      aria-label={translator.translateText(props.componentMetadata.title)}
       aria-describedby={descriptionId}
       onClick={() => {
         props.onSelect(props.componentMetadata);
@@ -153,13 +165,13 @@ export const ComponentTile: FunctionComponent<ComponentTileProps> = (
       <IconBox icon={props.componentMetadata.iconProp} />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium text-gray-900">
-          {props.componentMetadata.title}
+          {translator.translateText(props.componentMetadata.title)}
         </div>
         <div
           id={descriptionId}
           className="mt-0.5 line-clamp-2 text-xs leading-5 text-gray-500"
         >
-          {props.componentMetadata.description}
+          {translator.translateText(props.componentMetadata.description)}
         </div>
       </div>
     </button>
@@ -176,6 +188,7 @@ interface ResourceTileProps {
 export const ResourceTile: FunctionComponent<ResourceTileProps> = (
   props: ResourceTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const countLabel: string = getStepCountLabel(
     props.resource.components.length,
     props.componentsType,
@@ -185,7 +198,10 @@ export const ResourceTile: FunctionComponent<ResourceTileProps> = (
     <button
       type="button"
       {...getPickerItemProps(resourceItemKey(props.resource))}
-      aria-label={`${props.resource.name}, ${countLabel}`}
+      aria-label={translator.translateTemplate("{{name}}, {{count}}", {
+        name: translatableTerm(props.resource.name),
+        count: countLabel,
+      })}
       onClick={() => {
         props.onOpen(props.resource);
       }}
@@ -194,7 +210,7 @@ export const ResourceTile: FunctionComponent<ResourceTileProps> = (
       <IconBox icon={props.resource.icon} size="small" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-gray-900">
-          {props.resource.name}
+          {translator.translateText(props.resource.name)}
         </div>
         <div className="text-xs text-gray-500">{countLabel}</div>
       </div>
@@ -216,6 +232,7 @@ interface ResourceRowProps {
 export const ResourceRow: FunctionComponent<ResourceRowProps> = (
   props: ResourceRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const countLabel: string = getStepCountLabel(
     props.resource.components.length,
     props.componentsType,
@@ -225,11 +242,18 @@ export const ResourceRow: FunctionComponent<ResourceRowProps> = (
     <button
       type="button"
       {...getPickerItemProps(resourceItemKey(props.resource))}
-      aria-label={`${props.resource.name}${
+      aria-label={
         props.resource.disambiguation
-          ? ` (${props.resource.disambiguation})`
-          : ""
-      }, ${countLabel}`}
+          ? translator.translateTemplate("{{name}} ({{detail}}), {{count}}", {
+              name: translatableTerm(props.resource.name),
+              detail: translatableTerm(props.resource.disambiguation),
+              count: countLabel,
+            })
+          : translator.translateTemplate("{{name}}, {{count}}", {
+              name: translatableTerm(props.resource.name),
+              count: countLabel,
+            })
+      }
       onClick={() => {
         props.onOpen(props.resource);
       }}
@@ -238,11 +262,11 @@ export const ResourceRow: FunctionComponent<ResourceRowProps> = (
       <IconBox icon={props.resource.icon} size="small" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm text-gray-900">
-          {props.resource.name}
+          {translator.translateText(props.resource.name)}
         </div>
         {props.resource.disambiguation && (
           <div className="truncate text-xs text-gray-500">
-            {props.resource.disambiguation}
+            {translator.translateText(props.resource.disambiguation)}
           </div>
         )}
       </div>
@@ -263,6 +287,7 @@ interface BackButtonProps {
 export const BackButton: FunctionComponent<BackButtonProps> = (
   props: BackButtonProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <button
       type="button"
@@ -270,7 +295,7 @@ export const BackButton: FunctionComponent<BackButtonProps> = (
       className={`-ml-1 inline-flex items-center gap-1 rounded-md px-1 py-1 text-sm font-medium text-gray-600 transition-colors duration-150 hover:text-gray-900 ${FOCUS_RING}`}
     >
       <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
-      {props.label}
+      {translator.translateText(props.label)}
     </button>
   );
 };
@@ -284,16 +309,19 @@ interface SectionHeadingProps {
 export const SectionHeading: FunctionComponent<SectionHeadingProps> = (
   props: SectionHeadingProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mb-2 px-0.5">
       <h3
         id={props.id}
         className="text-xs font-semibold uppercase tracking-wide text-gray-500"
       >
-        {props.title}
+        {translator.translateText(props.title)}
       </h3>
       {props.description && (
-        <p className="mt-1 text-sm text-gray-500">{props.description}</p>
+        <p className="mt-1 text-sm text-gray-500">
+          {translator.translateText(props.description)}
+        </p>
       )}
     </div>
   );

@@ -1,6 +1,8 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
+import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
+import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -15,26 +17,16 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
-import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
-import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
-import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import Host from "Common/Models/DatabaseModels/Host";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Service from "Common/Models/DatabaseModels/Service";
-import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
-import AffectedResourcesPicker, {
-  isAffectedResourcesPayload,
-} from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import { getScheduledMaintenanceAffectedResourcesFormFields } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
+import {
+  SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -48,7 +40,11 @@ import React, {
   useState,
 } from "react";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
@@ -67,9 +63,19 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getMaintenanceEndsAtError,
+  moveMaintenanceEndWithStart,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
 
 // How many status page names the header lists before summarising the rest.
 const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
+
+// The details card's Edit: labels folded under Advanced on Event, as on the create form.
+const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getAdvancedFormSection<ScheduledMaintenance>();
 
 type GetStatusPagesFactFunction = (
   statusPages: Array<StatusPage> | undefined,
@@ -211,6 +217,7 @@ interface ResendNotificationErrorState {
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
@@ -260,6 +267,16 @@ const ScheduledMaintenanceView: FunctionComponent<
               createdByUser: {
                 name: true,
                 email: true,
+              },
+              /*
+               * For the Measurements card: whether the event has ended
+               * (nothing it waits for comes after that), and which state it
+               * is in (a new one is when its values can have changed).
+               */
+              currentScheduledMaintenanceState: {
+                _id: true,
+                isEndedState: true,
+                isResolvedState: true,
               },
             },
           });
@@ -447,22 +464,22 @@ const ScheduledMaintenanceView: FunctionComponent<
               headerLayout: "stacked",
             }}
             refresher={refreshToggle}
+            /*
+             * The create form's steps, for what this card edits: the
+             * resources, the description and the owners have cards and
+             * pages of their own, so the second step holds only the status
+             * pages and the reminders. Whether subscribers hear about the
+             * event when it is scheduled, starts and ends is set once, when
+             * it is created (those columns cannot be updated).
+             */
             formSteps={[
               {
-                title: "Event Info",
-                id: "event-info",
+                title: "Event",
+                id: "event",
               },
               {
                 title: "Status Pages",
                 id: "status-pages",
-              },
-              {
-                title: "Subscribers",
-                id: "subscribers",
-              },
-              {
-                title: "Labels",
-                id: "labels",
               },
             ]}
             isEditable={true}
@@ -479,36 +496,51 @@ const ScheduledMaintenanceView: FunctionComponent<
                 field: {
                   title: true,
                 },
-                stepId: "event-info",
-                title: "Scheduled Maintenance Title",
+                stepId: "event",
+                title: "Title",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
-                placeholder: "Scheduled Maintenance Title",
+                placeholder: "Event Title",
                 validation: {
                   minLength: 2,
                 },
               },
-
+              // Moving the start moves the end with it, as on the create form.
               {
                 field: {
                   startsAt: true,
                 },
-                stepId: "event-info",
-                title: "Event Starts At",
+                stepId: "event",
+                title: "Starts At",
                 fieldType: FormFieldSchemaType.DateTime,
                 required: true,
                 placeholder: "Pick Date and Time",
+                onChange: moveMaintenanceEndWithStart,
               },
               {
                 field: {
                   endsAt: true,
                 },
                 title: "Ends At",
-                stepId: "event-info",
+                stepId: "event",
                 fieldType: FormFieldSchemaType.DateTime,
                 required: true,
                 placeholder: "Pick Date and Time",
+                customValidation: (
+                  values: FormValues<ScheduledMaintenance>,
+                ): string | null => {
+                  return getMaintenanceEndsAtError(values);
+                },
               },
+              getLabelsFormField<ScheduledMaintenance>({
+                stepId: "event",
+                collapsibleSection: detailsAdvancedSection,
+              }),
+              /*
+               * Under it, the pages that show the event's monitors, one
+               * click to add. The monitors are edited in the Affected
+               * Resources card, so they are read from the event.
+               */
               {
                 field: {
                   statusPages: true,
@@ -524,57 +556,23 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 required: false,
                 placeholder: "Select Status Pages",
-              },
-
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-                },
-
-                title: "Event Created: Notify Status Page Subscribers",
-                stepId: "subscribers",
-                description:
-                  "Should status page subscribers be notified when this event is created?",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: true,
-                required: false,
-              },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
-                    true,
-                },
-
-                title: "Event Ongoing: Notify Status Page Subscribers",
-                stepId: "subscribers",
-                description:
-                  "Should status page subscribers be notified when this event state changes to ongoing?",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: true,
-                required: false,
-              },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
-                    true,
-                },
-
-                title: "Event Ended: Notify Status Page Subscribers",
-                stepId: "subscribers",
-                description:
-                  "Should status page subscribers be notified when this event state changes to ended?",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: true,
-                required: false,
+                getFooterElement:
+                  getStatusPageSuggestionsFooter<ScheduledMaintenance>({
+                    eventType: StatusPageEventType.ScheduledEvent,
+                    monitorsOf: {
+                      modelType: ScheduledMaintenance,
+                      modelId: modelId,
+                    },
+                  }),
               },
               {
                 field: {
                   sendSubscriberNotificationsOnBeforeTheEvent: true,
                 },
-                stepId: "subscribers",
-                title: "Send reminders to subscribers before the event",
+                stepId: "status-pages",
+                title: "Reminders before the event",
                 description:
-                  "Please add a list of notification options to notify subscribers before the event",
+                  "Remind subscribers before the event starts, for example 1 day before.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 getCustomElement: (
                   value: FormValues<ScheduledMaintenance>,
@@ -590,23 +588,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                   );
                 },
                 required: false,
-              },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
               },
             ]}
             modelDetailProps={{
@@ -675,7 +656,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     if (reminders.length === 0) {
                       return (
                         <span className="text-gray-500">
-                          No reminders configured
+                          {translator.translateText("No reminders configured")}
                         </span>
                       );
                     }
@@ -688,11 +669,15 @@ const ScheduledMaintenanceView: FunctionComponent<
                         />
                         <div className="text-xs text-gray-500">
                           {item.nextSubscriberNotificationBeforeTheEventAt
-                            ? "Next reminder: " +
-                              OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                                item.nextSubscriberNotificationBeforeTheEventAt,
+                            ? translator.translateTemplate(
+                                "Next reminder: {{date}}",
+                                {
+                                  date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                                    item.nextSubscriberNotificationBeforeTheEventAt,
+                                  ),
+                                },
                               )
-                            : "No upcoming reminders"}
+                            : translator.translateText("No upcoming reminders")}
                         </div>
                       </div>
                     );
@@ -721,8 +706,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {"Could not resend notifications: " +
-                              resendNotificationError}
+                            {translator.translateTemplate(
+                              "Could not resend notifications: {{error}}",
+                              { error: resendNotificationError },
+                            )}
                           </p>
                         )}
                       </div>
@@ -774,6 +761,28 @@ const ScheduledMaintenanceView: FunctionComponent<
             }}
           />
 
+          {/*
+           * The project's own measurements - how late it started, how long it
+           * ran over - worked out for this event, under its other facts.
+           * Drawn only when the project shows some on maintenance pages.
+           */}
+          <EventMeasurementsCard
+            source={SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(
+              scheduledMaintenance?.currentScheduledMaintenanceState
+                ?.isEndedState ||
+                scheduledMaintenance?.currentScheduledMaintenanceState
+                  ?.isResolvedState,
+            )}
+            refreshKey={getEventMeasurementRefreshKey({
+              currentStateId:
+                scheduledMaintenance?.currentScheduledMaintenanceState?._id,
+              times: [eventStartsAt, eventEndsAt],
+            })}
+            headerLayout="stacked"
+          />
+
           <OverviewCustomFields
             modelId={modelId}
             modelType={ScheduledMaintenance}
@@ -798,211 +807,11 @@ const ScheduledMaintenanceView: FunctionComponent<
                 return token + 1;
               });
             }}
-            formFields={[
-              {
-                field: {
-                  monitors: true,
-                },
-                title: "",
-                description:
-                  "Search and attach monitors, hosts, clusters, container hosts, network sites, IoT fleets, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
-                fieldType: FormFieldSchemaType.CustomComponent,
-                required: false,
-                getCustomElement: (
-                  values: FormValues<ScheduledMaintenance>,
-                  elementProps: CustomElementProps,
-                ) => {
-                  return (
-                    <AffectedResourcesPicker
-                      monitors={values.monitors as Array<Monitor>}
-                      hosts={values.hosts as Array<Host>}
-                      kubernetesClusters={
-                        values.kubernetesClusters as Array<KubernetesCluster>
-                      }
-                      dockerHosts={values.dockerHosts as Array<DockerHost>}
-                      podmanHosts={values.podmanHosts as Array<PodmanHost>}
-                      proxmoxClusters={
-                        values.proxmoxClusters as Array<ProxmoxCluster>
-                      }
-                      vmwareVCenters={
-                        values.vmwareVCenters as Array<VMwareVCenter>
-                      }
-                      cephClusters={values.cephClusters as Array<CephCluster>}
-                      dockerSwarmClusters={
-                        values.dockerSwarmClusters as Array<DockerSwarmCluster>
-                      }
-                      iotFleets={values.iotFleets as Array<IoTFleet>}
-                      databaseServers={
-                        values.databaseServers as Array<DatabaseServer>
-                      }
-                      networkSites={values.networkSites as Array<NetworkSite>}
-                      services={values.services as Array<Service>}
-                      resourceTypes={[
-                        "Monitor",
-                        "Host",
-                        "KubernetesCluster",
-                        "DockerHost",
-                        "PodmanHost",
-                        "ProxmoxCluster",
-                        "VMwareVCenter",
-                        "CephCluster",
-                        "DockerSwarmCluster",
-                        "IoTFleet",
-                        "DatabaseServer",
-                        "NetworkSite",
-                        "Service",
-                      ]}
-                      onChange={(payload: unknown) => {
-                        elementProps.onChange?.(payload);
-                      }}
-                    />
-                  );
-                },
-                onChange: (
-                  value: unknown,
-                  currentValues: FormValues<ScheduledMaintenance>,
-                  setNewFormValues: (
-                    values: FormValues<ScheduledMaintenance>,
-                  ) => void,
-                ) => {
-                  if (isAffectedResourcesPayload(value)) {
-                    const payload: typeof value = value;
-                    queueMicrotask(() => {
-                      setNewFormValues({
-                        ...currentValues,
-                        monitors: payload.monitors,
-                        hosts: payload.hosts,
-                        kubernetesClusters: payload.kubernetesClusters,
-                        dockerHosts: payload.dockerHosts,
-                        podmanHosts: payload.podmanHosts,
-                        proxmoxClusters: payload.proxmoxClusters,
-                        vmwareVCenters: payload.vmwareVCenters,
-                        cephClusters: payload.cephClusters,
-                        dockerSwarmClusters: payload.dockerSwarmClusters,
-                        iotFleets: payload.iotFleets,
-                        databaseServers: payload.databaseServers,
-                        networkSites: payload.networkSites,
-                        services: payload.services,
-                      } as FormValues<ScheduledMaintenance>);
-                    });
-                  }
-                },
-              },
-              /*
-               * Hidden registrations so ModelForm.getSelectFields includes
-               * every relation the picker writes (hosts, clusters, container
-               * hosts, IoT fleets, network sites and services) on load and
-               * submit.
-               */
-              {
-                field: { hosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { kubernetesClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { dockerHosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { podmanHosts: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { proxmoxClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { vmwareVCenters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { cephClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { dockerSwarmClusters: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { iotFleets: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { databaseServers: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { networkSites: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-              {
-                field: { services: true },
-                title: "",
-                fieldType: FormFieldSchemaType.Text,
-                required: false,
-                showIf: () => {
-                  return false;
-                },
-              },
-            ]}
+            /*
+             * Split as Create Scheduled Maintenance Event is: the monitors
+             * on their own, and everything else the event affects below.
+             */
+            formFields={getScheduledMaintenanceAffectedResourcesFormFields()}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
               /*

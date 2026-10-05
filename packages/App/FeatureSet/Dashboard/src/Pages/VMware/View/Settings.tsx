@@ -1,11 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -19,57 +17,20 @@ const VMwareVCenterSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<VMwareVCenter>
-        name="vCenter Settings"
-        cardProps={{
-          title: "vCenter Settings",
-          description: "Manage settings for this vCenter.",
+      <ResourceDetailsCard<VMwareVCenter>
+        modelType={VMwareVCenter}
+        modelId={modelId}
+        id="vmware-vcenter-details"
+        title="vCenter Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Name",
+          description:
+            "Must match the vmware.vcenter.name the VMware Agent reports (its VMWARE_VCENTER_NAME). Telemetry is matched to this vCenter by it: rename it on the agent too, or the agent's next report creates a new vCenter.",
+          placeholder: "prod-vcenter",
         }}
-        isEditable={true}
-        editButtonText="Edit Settings"
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            description:
-              "Name for this vCenter. This should match the vmware.vcenter.name resource attribute reported by the VMware Agent (its VMWARE_VCENTER_NAME).",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "prod-vcenter",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            description: "Friendly description for this vCenter.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production vCenter Server in the US East datacenter",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: VMwareVCenter,
-          id: "vmware-vcenter-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-          ],
+        descriptionField={{
+          placeholder: "Production vCenter Server in the US East datacenter",
         }}
       />
       <TelemetryResourceRetentionSettings<VMwareVCenter>

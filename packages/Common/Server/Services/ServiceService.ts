@@ -10,14 +10,8 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import ServiceLabelRuleEngineService from "./ServiceLabelRuleEngineService";
 import ServiceOwnerRuleEngineService from "./ServiceOwnerRuleEngineService";
-import ArrayUtil from "../../Utils/Array";
-import {
-  Blue500,
-  BrightColors,
-  Gray500,
-  Green500,
-  Yellow500,
-} from "../../Types/BrandColors";
+import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
+import { pickRandomDistinctColor } from "../../Utils/DistinctColor";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -27,6 +21,11 @@ import Project from "../../Models/DatabaseModels/Project";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import SingleFlight from "../Utils/SingleFlight";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
+import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 
@@ -52,9 +51,30 @@ const METADATA_WRITE_THROTTLE_SECONDS: number = 5 * 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "service-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+/*
+ * A service is matched to its telemetry by its name (service.name),
+ * so a rename is held to the rules a new service is: no spaces around
+ * it, never blank, and never another service's name
+ * (DiscoveredResourceUpdate).
+ */
+const SERVICE_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "service",
+});
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: SERVICE_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()
@@ -64,10 +84,13 @@ export class Service extends DatabaseService<Model> {
     /*
      * Select a random color when the caller did not provide one. API
      * clients (e.g. Terraform) may set an explicit color; overwriting it
-     * made the field impossible to manage declaratively.
+     * made the field impossible to manage declaratively. From the palette
+     * OneUptime picks new records' colours from (Utils/DistinctColor), not
+     * BrightColors, which holds black and grey: a black service vanished in
+     * the dark theme and a grey one looked switched off.
      */
     if (!createBy.data.serviceColor) {
-      createBy.data.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
+      createBy.data.serviceColor = pickRandomDistinctColor();
     }
 
     return {

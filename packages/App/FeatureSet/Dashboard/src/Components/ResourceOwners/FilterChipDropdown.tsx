@@ -14,13 +14,15 @@ import {
   FILTER_OPERATOR_LABELS,
 } from "./FilterChipDropdownTypes";
 import {
-  FILTER_CHIP_ACTIVE_CLASSES,
-  FILTER_CHIP_BASE_CLASSES,
-  FILTER_CHIP_CLEAR_CLASSES,
-  FILTER_CHIP_INACTIVE_CLASSES,
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
 } from "./FilterChipStyles";
+import FilterChipButton from "./FilterChipButton";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -193,6 +195,7 @@ const Avatar: FunctionComponent<{
 const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
   const [searchText, setSearchText] = useState<string>("");
@@ -460,10 +463,6 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     setIsComponentVisible(false);
   };
 
-  const chipBaseClasses: string = FILTER_CHIP_BASE_CLASSES;
-  const chipActiveClasses: string = FILTER_CHIP_ACTIVE_CLASSES;
-  const chipInactiveClasses: string = FILTER_CHIP_INACTIVE_CLASSES;
-
   const clearChipFully: () => void = (): void => {
     if (props.onClear) {
       props.onClear();
@@ -487,12 +486,15 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="relative inline-block">
-      <button
-        type="button"
-        onClick={togglePopover}
-        className={`${chipBaseClasses} ${isChipActive ? chipActiveClasses : chipInactiveClasses}`}
-        aria-expanded={isComponentVisible}
-        aria-haspopup="listbox"
+      <FilterChipButton
+        isActive={isChipActive}
+        isExpanded={isComponentVisible}
+        popupKind="listbox"
+        onToggle={togglePopover}
+        clearLabel={translator.translateTemplate("Clear {{label}} filter", {
+          label: translatableTerm(props.label),
+        })}
+        onClear={isChipActive ? clearChipFully : undefined}
       >
         {isChipActive ? (
           <>
@@ -507,32 +509,19 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
               />
             ) : null}
             <span className="whitespace-nowrap">
-              <span className="text-indigo-500/80">{props.label}</span>
+              <span className="text-indigo-500/80">
+                {translator.translateText(props.label)}
+              </span>
               <span className="mx-1 text-indigo-300">·</span>
               <span className="font-semibold">
                 {isEmptyOperator
-                  ? FILTER_OPERATOR_LABELS[operator]
-                  : `${operator === "is_not" ? "not " : ""}${displayValue}`}
+                  ? translator.translateText(FILTER_OPERATOR_LABELS[operator])
+                  : operator === "is_not"
+                    ? translator.translateTemplate("not {{value}}", {
+                        value: displayValue,
+                      })
+                    : displayValue}
               </span>
-            </span>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                clearChipFully();
-              }}
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  clearChipFully();
-                }
-              }}
-              className={FILTER_CHIP_CLEAR_CLASSES}
-              aria-label={`Clear ${props.label} filter`}
-            >
-              <Icon icon={IconProp.Close} className="h-3 w-3" />
             </span>
           </>
         ) : (
@@ -543,14 +532,16 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                 className="h-3.5 w-3.5 text-gray-400"
               />
             )}
-            <span className="whitespace-nowrap">{props.label}</span>
+            <span className="whitespace-nowrap">
+              {translator.translateText(props.label)}
+            </span>
             <Icon
               icon={IconProp.ChevronDown}
               className="h-3 w-3 text-gray-400 transition-transform group-aria-expanded:rotate-180"
             />
           </>
         )}
-      </button>
+      </FilterChipButton>
 
       {isComponentVisible && (
         <div
@@ -560,7 +551,9 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
         >
           {supportedOperators.length > 1 && (
             <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
-              <span className="shrink-0">{props.label.toLowerCase()}</span>
+              <span className="shrink-0">
+                {translator.translateTerm(props.label, { inSentence: true })}
+              </span>
               <select
                 value={operator}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -569,12 +562,14 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                   }
                 }}
                 className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
-                aria-label={`${props.label} operator`}
+                aria-label={translator.translateTemplate("{{label}} operator", {
+                  label: translatableTerm(props.label),
+                })}
               >
                 {supportedOperators.map((op: FilterOperator) => {
                   return (
                     <option key={op} value={op}>
-                      {FILTER_OPERATOR_LABELS[op]}
+                      {translator.translateText(FILTER_OPERATOR_LABELS[op])}
                     </option>
                   );
                 })}
@@ -596,8 +591,12 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                     setSearchText(e.target.value);
                   }}
                   placeholder={
-                    props.searchPlaceholder ||
-                    `Search ${props.label.toLowerCase()}...`
+                    translator.translateText(props.searchPlaceholder) ||
+                    translator.translateTemplate("Search {{label}}...", {
+                      label: translatableTerm(props.label, {
+                        inSentence: true,
+                      }),
+                    })
                   }
                   className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 />
@@ -606,7 +605,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
           )}
           {isEmptyOperator && (
             <div className="px-3 py-4 text-center text-xs text-gray-500">
-              No additional selection needed.
+              {translator.translateText("No additional selection needed.")}
             </div>
           )}
           <div
@@ -617,7 +616,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
             {isLoading && (
               <div className="flex items-center justify-center gap-2 px-3 py-3 text-xs text-gray-500">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-500" />
-                Loading...
+                {translator.translateText("Loading...")}
               </div>
             )}
             {!isLoading && filteredOptions.length === 0 && (
@@ -630,12 +629,16 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">
-                    {searchText.trim() ? "No matches" : "Nothing to show"}
+                    {translator.translateText(
+                      searchText.trim() ? "No matches" : "Nothing to show",
+                    )}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {searchText.trim()
-                      ? "Try a different search term"
-                      : "No options available"}
+                    {translator.translateText(
+                      searchText.trim()
+                        ? "Try a different search term"
+                        : "No options available",
+                    )}
                   </p>
                 </div>
               </div>
@@ -711,7 +714,9 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
           {isMulti && hasValue && (
             <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-3 py-2">
               <span className="text-xs text-gray-500">
-                {selectedValues.length} selected
+                {translator.translateTemplate("{{count}} selected", {
+                  count: translator.formatNumber(selectedValues.length),
+                })}
               </span>
               <button
                 type="button"
@@ -720,7 +725,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                 }}
                 className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
               >
-                Clear
+                {translator.translateText("Clear")}
               </button>
             </div>
           )}

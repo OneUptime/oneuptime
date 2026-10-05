@@ -100,6 +100,11 @@ import {
   AiAccessRow,
   AiAccessRows,
 } from "../AiAccess/AiAccessRow";
+import { AiAgentAction, getAiAgentActions } from "../AiAccess/AiAgentActions";
+import {
+  AiAgentTestProgress,
+  getAiAgentCardButtons,
+} from "../AiAccess/AiAgentActionsMenu";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -154,6 +159,13 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * A resource's AI agent page (AI → AI agent): whether OneUptime AI can reach
@@ -162,8 +174,9 @@ import { useParams } from "react-router-dom";
  * descriptor so one component serves every resource type:
  *
  *  A. "<Resource> AI agent": the connection, with the install instructions
- *     or the logs command where they are the next step, a connection test,
- *     and the admin action (reset the agent).
+ *     or the logs command where they are the next step. Its status sits in
+ *     the header with one ⋯ beside it for the connection test and the admin
+ *     action (reset the agent) - ../AiAccess/AiAgentActions.ts.
  *  B. "Needs attention": the server's gaps as ONE item, only when there
  *     are any — a headline saying what AI cannot do here, then one short
  *     step per gap with its action. The page never builds a readiness
@@ -225,11 +238,18 @@ async function postResourceAiAccess(data: {
 function AdminPermissionNote(): ReactElement {
   return (
     <AiAccessPermissionNote
-      canText="You can turn investigation on or off, lower fixes and remove allowlist entries."
-      cannotText={`Turning fixes on or up, or adding allowlist entries, needs ${formatNameList(
-        getResourceAiAccessAdminPermissionTitles(),
-        "or",
-      )}.`}
+      canText={translationKey(
+        "You can turn investigation on or off, lower fixes and remove allowlist entries.",
+      )}
+      cannotText={translateTemplate(
+        "Turning fixes on or up, or adding allowlist entries, needs {{permissions}}.",
+        {
+          permissions: formatNameList(
+            getResourceAiAccessAdminPermissionTitles(),
+            translateTemplate("or"),
+          ),
+        },
+      )}
       dataTestId="resource-ai-access-admin-note"
     />
   );
@@ -256,6 +276,7 @@ interface SettingsModalProps {
 const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   props: SettingsModalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [saved, setSaved] = useState<ResourceAiAccessSavedSettings | null>(
     null,
   );
@@ -293,7 +314,10 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 
         if (!model) {
           throw new Error(
-            `Could not read this ${descriptor.noun}'s AI settings. It may have been deleted, or you may no longer have access to it.`,
+            translator.translateTemplate(
+              "Could not read this {{noun}}'s AI settings. It may have been deleted, or you may no longer have access to it.",
+              { noun: translatableTerm(descriptor.noun) },
+            ),
           );
         }
 
@@ -353,7 +377,13 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       {
         field: { isAiInvestigationEnabled: true },
         title: descriptor.investigateTitle,
-        description: `Read-only: ${descriptor.readExamples}. An investigation never changes this ${descriptor.noun}.`,
+        description: translator.translateTemplate(
+          "Read-only: {{readExamples}}. An investigation never changes this {{noun}}.",
+          {
+            readExamples: descriptor.readExamples,
+            noun: translatableTerm(descriptor.noun),
+          },
+        ),
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         dataTestId: "ai-investigation-field",
@@ -477,7 +507,14 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       });
       if (loosening.length > 0) {
         setSaveError(
-          `${capitalizeFirst(loosening.join(", "))} needs one of these permissions: ${getResourceAiAccessAdminPermissionTitles().join(", ")}.`,
+          translator.translateTemplate(
+            "{{changes}} needs one of these permissions: {{permissions}}.",
+            {
+              changes: capitalizeFirst(loosening.join(", ")),
+              permissions:
+                getResourceAiAccessAdminPermissionTitles().join(", "),
+            },
+          ),
         );
         return;
       }
@@ -581,6 +618,8 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 function InstallInstructions(props: {
   install: ResourceAiAgentInstall;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="space-y-3" data-testid="ai-agent-install">
       <p className="text-xs text-gray-600" data-testid="ai-agent-install-where">
@@ -589,7 +628,9 @@ function InstallInstructions(props: {
       <div data-testid="ai-agent-install-command">
         <CodeBlock language="yaml" code={props.install.composeSnippet} />
       </div>
-      <p className="text-xs text-gray-600">Then start it:</p>
+      <p className="text-xs text-gray-600">
+        {translator.translateText("Then start it:")}
+      </p>
       <div data-testid="ai-agent-install-start">
         <CodeBlock language="bash" code={props.install.startCommand} />
       </div>
@@ -600,7 +641,11 @@ function InstallInstructions(props: {
         >
           {props.install.prerequisites.map(
             (prerequisite: string): ReactElement => {
-              return <li key={prerequisite}>{prerequisite}</li>;
+              return (
+                <li key={prerequisite}>
+                  {translator.translateText(prerequisite)}
+                </li>
+              );
             },
           )}
         </ul>
@@ -615,13 +660,13 @@ function InstallInstructions(props: {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-2 text-left font-medium text-gray-500">
-                Variable
+                {translator.translateText("Variable")}
               </th>
               <th className="px-3 py-2 text-left font-medium text-gray-500">
-                Value
+                {translator.translateText("Value")}
               </th>
               <th className="px-3 py-2 text-left font-medium text-gray-500">
-                What it does
+                {translator.translateText("What it does")}
               </th>
             </tr>
           </thead>
@@ -640,7 +685,7 @@ function InstallInstructions(props: {
                       {variable.value}
                     </td>
                     <td className="px-3 py-2 text-gray-600">
-                      {variable.description}
+                      {translator.translateText(variable.description)}
                     </td>
                   </tr>
                 );
@@ -657,6 +702,7 @@ function InstallInstructions(props: {
 function WriteAccessInstructions(props: {
   descriptor: ResourceAiAgentDescriptor;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const commands: ResourceAiAgentWriteAccessCommands =
     getResourceAiAgentWriteAccessCommands(props.descriptor.resourceType);
 
@@ -666,7 +712,9 @@ function WriteAccessInstructions(props: {
       dataTestId="ai-access-write-commands"
     >
       <p className="text-xs leading-5 text-gray-600">
-        The agent is read-only, so fixes cannot run yet.
+        {translator.translateText(
+          "The agent is read-only, so fixes cannot run yet.",
+        )}
       </p>
       {commands.installerNote ? (
         <p
@@ -700,7 +748,7 @@ function WriteAccessInstructions(props: {
             <></>
           )}
           <p className="text-xs leading-5 text-gray-600">
-            Or allow every target:
+            {translator.translateText("Or allow every target:")}
           </p>
         </>
       ) : (
@@ -709,7 +757,9 @@ function WriteAccessInstructions(props: {
       <div data-testid="ai-access-write-all-env">
         <CodeBlock language="bash" code={commands.allTargetsEnv} />
       </div>
-      <p className="text-xs leading-5 text-gray-600">Then restart the agent:</p>
+      <p className="text-xs leading-5 text-gray-600">
+        {translator.translateText("Then restart the agent:")}
+      </p>
       <div data-testid="ai-access-write-restart-command">
         <CodeBlock language="bash" code={commands.restartCommand} />
       </div>
@@ -726,6 +776,7 @@ function WriteAccessInstructions(props: {
 const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const descriptor: ResourceAiAgentDescriptor = props.descriptor;
   const modelId: ObjectID = useResourceId();
 
@@ -776,7 +827,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
 
         if (!parsed) {
           throw new Error(
-            "The server returned an AI agent status this page cannot read.",
+            translateTemplate(
+              "The server returned an AI agent status this page cannot read.",
+            ),
           );
         }
 
@@ -951,7 +1004,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
-        {RESOURCE_AI_AGENT_PAGE_TITLE}
+        {translator.translateText(RESOURCE_AI_AGENT_PAGE_TITLE)}
       </h2>
       <p className="mt-1 text-sm text-gray-500">
         {getResourceAiAgentPageSubtitle(descriptor)}
@@ -1024,7 +1077,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         className="text-xs font-medium text-gray-500"
         data-testid="ai-agent-gap-ask"
       >
-        {RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT}
+        {translator.translateText(RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT)}
       </p>
     );
   };
@@ -1064,7 +1117,17 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                 run: async (): Promise<void> => {
                   await updateResource({ isAiInvestigationEnabled: true });
                 },
-                notice: `AI may now investigate this ${descriptor.noun} with ${descriptor.readOnlyCommandsPhrase}.`,
+                notice: translator.translateTemplate(
+                  "AI may now investigate this {{noun}} with {{commands}}.",
+                  {
+                    noun: translatableTerm(descriptor.noun, {
+                      inSentence: true,
+                    }),
+                    commands: translatableTerm(
+                      descriptor.readOnlyCommandsPhrase,
+                    ),
+                  },
+                ),
                 isConfirmed: false,
               }).catch(() => {
                 // handled inside runPageAction
@@ -1112,59 +1175,32 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const agentButtons: Array<ReactElement> = [];
-
   /*
-   * There is nothing to test before an agent registered. Without edit
-   * permission the button stays, locked, with the reason in its tooltip;
-   * it is dropped only when there is nothing honest to say (the permission
-   * snapshot has not landed).
+   * The agent card's ⋯. There is nothing to test or reset before an agent
+   * registered.
    */
-  if (hasAgent && (testGate.isAllowed || testGate.disabledReason)) {
-    agentButtons.push(
-      <Button
-        key="test"
-        title="Test connection"
-        icon={IconProp.Play}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        isLoading={isTesting}
-        disabled={isTesting || !testGate.isAllowed}
-        tooltip={
-          testGate.isAllowed
-            ? undefined
-            : getResourceAccessTestPermissionRequirement(descriptor)
-        }
-        dataTestId="ai-agent-test-button"
-        onClick={() => {
-          if (!testGate.isAllowed || !hasAgent) {
-            return;
-          }
-          runTest().catch(() => {
-            // handled inside runTest
-          });
-        }}
-      />,
-    );
-  }
-
-  if (hasAgent && canResetResourceAiAgent()) {
-    agentButtons.push(
-      <Button
-        key="reset"
-        title="Reset agent"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        disabled={isActing}
-        dataTestId="ai-agent-reset-button"
-        onClick={() => {
-          setConfirmationError("");
-          setIsConfirmingReset(true);
-        }}
-      />,
-    );
-  }
+  const agentActions: Array<AiAgentAction> = getAiAgentActions({
+    testConnection: {
+      hasTarget: hasAgent,
+      gate: testGate,
+      permissionRequirement:
+        getResourceAccessTestPermissionRequirement(descriptor),
+      isRunning: isTesting,
+      onRun: (): void => {
+        runTest().catch(() => {
+          // handled inside runTest
+        });
+      },
+    },
+    resetAgent: {
+      isOffered: hasAgent && canResetResourceAiAgent(),
+      onClick: (): void => {
+        setConfirmationError("");
+        setIsConfirmingReset(true);
+      },
+    },
+    isActing,
+  });
 
   const settingsButtons: Array<ReactElement> =
     settingsGate.isAllowed || settingsGate.disabledReason
@@ -1208,7 +1244,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         <Alert
           type={AlertType.WARNING}
           strongTitle="Could not refresh the AI agent status"
-          title={`${error} Showing the last known status; this page retries on its own.`}
+          title={translator.translateTemplate(
+            "{{error}} Showing the last known status; this page retries on its own.",
+            { error: error },
+          )}
           dataTestId="ai-access-refresh-warning"
         />
       ) : (
@@ -1248,7 +1287,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             />
           </span>
         }
-        buttons={agentButtons}
+        buttons={getAiAgentCardButtons(agentActions)}
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-900" data-testid="ai-agent-sentence">
@@ -1298,9 +1337,20 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               className="text-xs text-rose-600"
               data-testid="ai-agent-last-error"
             >
-              Last command error
-              {lastVerifiedAt ? ` (last worked ${lastVerifiedAt})` : ""}:{" "}
-              {status.aiAccessLastError}
+              {lastVerifiedAt
+                ? translator.translateTemplate(
+                    "Last command error (last worked {{lastVerifiedAt}}): {{error}}",
+                    {
+                      lastVerifiedAt: lastVerifiedAt,
+                      error: status.aiAccessLastError,
+                    },
+                  )
+                : translator.translateTemplate(
+                    "Last command error: {{error}}",
+                    {
+                      error: status.aiAccessLastError,
+                    },
+                  )}
             </p>
           ) : (
             <></>
@@ -1326,6 +1376,8 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+
+          {isTesting ? <AiAgentTestProgress /> : <></>}
 
           {testError ? (
             <Alert
@@ -1368,11 +1420,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                           text={
                             row.succeeded
                               ? "succeeded"
-                              : `failed${
-                                  row.exitCode !== null
-                                    ? ` (exit ${row.exitCode})`
-                                    : ""
-                                }`
+                              : row.exitCode !== null
+                                ? translator.translateTemplate(
+                                    "failed (exit {{exitCode}})",
+                                    { exitCode: row.exitCode },
+                                  )
+                                : "failed"
                           }
                           color={row.succeeded ? Green500 : Red500}
                         />
@@ -1529,7 +1582,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
       {isConfirmingReset ? (
         <ConfirmModal
           title="Reset the AI agent?"
-          description={`This revokes the ${descriptor.agentName}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.`}
+          description={translator.translateTemplate(
+            "This revokes the {{agentName}}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.",
+            { agentName: translatableTerm(descriptor.agentName) },
+          )}
           submitButtonText="Reset agent"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isActing}
@@ -1546,7 +1602,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                   resourceId: modelId,
                 });
               },
-              notice: `The ${descriptor.agentName} was reset. It reconnects on its own within a few minutes.`,
+              notice: translator.translateTemplate(
+                "The {{agent}} was reset. It reconnects on its own within a few minutes.",
+                { agent: translatableTerm(descriptor.agentName) },
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction

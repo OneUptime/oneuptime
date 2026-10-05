@@ -4,6 +4,12 @@ import {
   isPingOnlyDiscoveredHost as isPingOnlyDiscoveredHostForImport,
 } from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
+import {
+  getGlobalTranslator,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Normalisation moved to Common so the server-side auto-import rule engine
@@ -225,15 +231,20 @@ export function countDiscoveredHosts(
 export function getDiscoveredHostFilterLabel(
   filter: DiscoveredHostFilter,
 ): string {
+  /*
+   * English, and declared as translation keys: the filter row looks each
+   * one up in the reader's language where it renders it (see
+   * getDiscoveredHostFilterOptions).
+   */
   if (filter === DiscoveredHostFilter.Snmp) {
-    return "SNMP";
+    return translationKey("SNMP");
   }
 
   if (filter === DiscoveredHostFilter.NoSnmp) {
-    return "No SNMP";
+    return translationKey("No SNMP");
   }
 
-  return "All";
+  return translationKey("All");
 }
 
 /**
@@ -253,14 +264,14 @@ export function getDiscoveredHostFilterEmptyMessage(
   filter: DiscoveredHostFilter,
 ): string {
   if (filter === DiscoveredHostFilter.Snmp) {
-    return "No host in this scan answered SNMP.";
+    return translateTemplate("No host in this scan answered SNMP.");
   }
 
   if (filter === DiscoveredHostFilter.NoSnmp) {
-    return "Every host in this scan answered SNMP.";
+    return translateTemplate("Every host in this scan answered SNMP.");
   }
 
-  return "This scan did not find any responding hosts.";
+  return translateTemplate("This scan did not find any responding hosts.");
 }
 
 /**
@@ -273,9 +284,18 @@ export function getDiscoveredHostFilterEmptyMessage(
  *
  * Thousands separators for the reason #3322 exists — at four digits, 2866 and
  * 2,866 are not equally easy to check against the probe's own tally.
+ *
+ * The group's name is looked up in the reader's language under its own label
+ * — the key the row's "No SNMP" pill is looked up under — so the button and
+ * the pill it filters to read alike in every language, not only in English.
+ * FilterButtons cannot do that lookup itself: it looks up the whole label,
+ * and no locale has a key for "No SNMP (2,890)". The page hands in the
+ * translator it renders the pill with; the default is the global one, which
+ * answers in English where no translation is set up.
  */
 export function getDiscoveredHostFilterOptions(
   hosts: Array<DiscoveredNetworkDevice>,
+  translator: Translator = getGlobalTranslator(),
 ): Array<DiscoveredHostFilterOption> {
   const counts: DiscoveredHostCounts = countDiscoveredHosts(hosts);
 
@@ -293,9 +313,9 @@ export function getDiscoveredHostFilterOptions(
     const count: number = countByFilter[filter];
 
     return {
-      label: `${getDiscoveredHostFilterLabel(filter)} (${count.toLocaleString(
-        "en-US",
-      )})`,
+      label: `${translator.translateTerm(
+        getDiscoveredHostFilterLabel(filter),
+      )} (${count.toLocaleString("en-US")})`,
       value: filter,
       count: count,
     };

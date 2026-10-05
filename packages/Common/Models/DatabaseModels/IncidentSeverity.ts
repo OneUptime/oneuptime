@@ -19,6 +19,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
@@ -42,6 +43,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * which incidents a Security role may see.
  */
 @TenantColumn("projectId")
+@ListOrderColumn({ column: "order", scopeColumns: ["projectId"] })
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -491,7 +493,6 @@ export default class IncidentSeverity extends BaseModel {
   })
   public color?: Color = undefined;
 
-  @UniqueColumnBy("projectId")
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -523,7 +524,9 @@ export default class IncidentSeverity extends BaseModel {
     isDefaultValueColumn: false,
     type: TableColumnType.SmallNumber,
     title: "Order",
-    description: "Order / Priority of this resource",
+    required: false,
+    description:
+      "Where this severity ranks among the project's incident severities: 1 is the most severe. A new severity without a number goes to the end of the list. Setting a number moves the severity to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
     /*
      * Readable on relation queries like its name/color siblings —
      * severity ranking (lower = more severe) is needed wherever a related

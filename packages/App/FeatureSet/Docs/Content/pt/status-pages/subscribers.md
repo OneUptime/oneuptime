@@ -8,19 +8,22 @@ Esta página cobre os dois lados: os cinco canais de inscrição e como os visit
 
 ## Canais de inscrição
 
-Uma página de status oferece cinco canais, cada um com sua própria chave na página. Vá em **Páginas de status → sua página → Assinantes → Configurações de assinantes**:
+Uma página de status oferece cinco canais. Eles e a página em que os visitantes se inscrevem são ligados em um só lugar: o cartão **Canais** em **Páginas de status → sua página → Assinantes → Configurações de assinantes**. Cada chave é salva assim que você a muda:
 
-- **Habilitar assinantes por e-mail** (`enableEmailSubscribers`) — ligado por padrão. Todo o resto fica desligado até você ligar.
-- **Habilitar assinantes por SMS** (`enableSmsSubscribers`) — desligado por padrão.
-- **Habilitar assinantes do Slack** (`enableSlackSubscribers`) — desligado por padrão.
-- **Habilitar assinantes do Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — desligado por padrão.
-- **Habilitar assinantes por webhook** (`enableWebhookSubscribers`) — desligado por padrão.
+- **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) — ligado por padrão. Coloca o item **Inscrever-se** na barra de navegação da página de status, onde os visitantes se inscrevem pelos canais abaixo.
+- **E-mail** (`enableEmailSubscribers`) — ligado por padrão. Todo o resto fica desligado até você ligar.
+- **SMS** (`enableSmsSubscribers`) — desligado por padrão. No OneUptime Cloud, cada SMS é pago com o saldo de SMS e chamadas do projeto, a menos que a página tenha sua própria **Configuração do Twilio**. Para ligá-lo, o projeto também precisa de **SMS** ligado no cartão **Canais de notificação**, em **Configurações do projeto > Notificações > Configurações de notificação**.
+- **Slack** (`enableSlackSubscribers`) — desligado por padrão.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — desligado por padrão.
+- **Webhook** (`enableWebhookSubscribers`) — desligado por padrão.
 
-Cada canal também ganha uma lista própria no menu lateral da página de status, sob **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do MS Teams** e **Assinantes de webhook**. É ali que você vê quem se cadastrou, adiciona alguém à mão ou deixa uma anotação em **Notas** (`internalNote`) sobre um assinante específico.
+As chaves decidem como os visitantes podem se inscrever por conta própria: a página de status recusa uma inscrição por um canal desligado. Elas não interrompem as notificações: os assinantes que sua equipe adiciona pelo painel, pela API ou por um workflow recebem as atualizações, quaisquer que sejam os canais ligados.
 
-**Uma chave sozinha não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) está ligado *e* pelo menos um canal está habilitado. Se você ligar **Habilitar assinantes por e-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
+No OneUptime Cloud, ao lado de uma chave que o seu plano não inclui aparece o nome do plano: **Growth** para **SMS** e **Mostrar página de assinantes**, **Scale** para **Slack**, **Microsoft Teams** e **Webhook**.
 
-As mesmas cinco chaves aparecem uma segunda vez dentro do cartão **Configurações de assinantes**, em **Configurações avançadas**, ao lado de **Mostrar página de assinantes**. São as mesmas colunas por baixo — escolha uma tela e fique nela, de preferência a página dedicada **Configurações de assinantes**, já que é lá que mora o restante da configuração de assinantes.
+Cada canal também ganha uma lista própria no menu lateral da página de status, sob **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do MS Teams** e **Assinantes de webhook**. É ali que você vê quem se cadastrou, adiciona alguém à mão ou deixa uma anotação em **Notas** (`internalNote`) sobre um assinante específico. Enquanto um canal está desligado, o topo da lista dele avisa, com a chave do canal ali mesmo, para você ligá-lo sem sair da lista.
+
+**Uma chave sozinha não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** está ligado *e* pelo menos um canal está ligado. Se você ligar **E-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
 
 ## O que um visitante vê na página Inscrever-se
 
@@ -40,6 +43,8 @@ Por padrão, um assinante recebe tudo o que há na página. Duas chaves no cart�
 
 - **Permitir que assinantes escolham recursos** (`allowSubscribersToChooseResources`) — desligado por padrão. Ligue e o formulário de inscrição ganha uma chave **Inscrever-se em todos os recursos**; desmarque-a e aparece **Selecionar recursos para inscrever-se**, para o visitante escolher recurso a recurso.
 - **Permitir que assinantes escolham tipos de evento** (`allowSubscribersToChooseEventTypes`) — desligado por padrão. Mesmo formato: uma chave **Inscrever-se em todos os tipos de eventos** e, quando ela é desmarcada, **Selecionar tipos de eventos para inscrever-se** logo abaixo.
+
+Com qualquer um dos dois ligado, o formulário continua sendo uma página só: essas escolhas ficam em **Preferências**, recolhido abaixo de para onde enviar as atualizações. Recolhido, ele diz em uma linha o que o visitante vai receber (todas as atualizações da página de status, até que ele restrinja algo), então quem quer tudo só clica em **Inscrever-se**. A página **Atualizar inscrição** mostra as mesmas escolhas abertas.
 
 Os tipos de evento são `Incident`, `Announcement` e `Scheduled Event`.
 
@@ -79,7 +84,7 @@ Os assinantes recebem os três tipos de evento citados acima, mas cada origem te
 
 ### Notificações de anúncio
 
-O próprio anúncio carrega **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposto no formulário de criação como a caixa **Notificar assinantes da página de status**, marcada por padrão. Se o anúncio nomear monitores em **Monitores afetados (Opcional)**, a notificação fica restrita a esses monitores; deixe em branco e todos os assinantes são notificados.
+O próprio anúncio carrega **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), exposto no formulário de criação como a caixa **Notificar assinantes da página de status** em **Agendamento e notificações**, marcada por padrão. Os assinantes ficam sabendo uma única vez, quando o anúncio começa a ser exibido; por isso a escolha é feita na criação, e uma edição não a altera. Se o anúncio nomear monitores em **Monitores afetados**, a notificação fica restrita a esses monitores; deixe em branco e todos os assinantes são notificados.
 
 ### Eventos de manutenção programada
 
@@ -111,12 +116,14 @@ Vale configurar o SMTP próprio cedo se você tem assinantes por e-mail: uma men
 
 Um anúncio é um registro no nível do projeto (o modelo `StatusPageAnnouncement`) que você distribui para uma ou mais páginas de status, opcionalmente restrito a monitores específicos, com uma janela durante a qual ele é exibido.
 
-Você cria um em **Páginas de status → Mais → Anúncios**, ou em **Anúncios** no menu lateral de uma página de status individual. O formulário de criação é um assistente de quatro etapas:
+Você cria um em **Páginas de status → Mais → Anúncios**, ou em **Anúncios** no menu lateral de uma página de status individual. Criado a partir de uma página de status, essa página já vem selecionada, então um título e uma descrição bastam, e **Criar anúncio** leva você de volta à lista **Anúncios** dessa página (ou à lista do projeto, se você a desmarcou no caminho). O formulário de criação tem duas etapas e depois uma revisão:
 
-1. **Informações básicas** — **Título do anúncio** (obrigatório, ao menos dois caracteres), **Descrição** (Markdown, opcional) e **Anexos**, para arquivos que devem acompanhar o anúncio na página de status.
-2. **Páginas de status** — **Mostrar anúncio nestas páginas de status**, uma seleção múltipla obrigatória. Um anúncio pode atingir várias páginas de uma vez.
-3. **Recursos afetados** — **Monitores afetados (Opcional)**. Se você não selecionar nenhum, todos os assinantes são notificados.
-4. **Agendamento e configurações** — **Começar a mostrar anúncio em** (obrigatório, o padrão é agora), **Parar de exibir o anúncio em** (opcional) e **Notificar assinantes da página de status** (marcado por padrão).
+1. **Anúncio** — **Título** (obrigatório, ao menos dois caracteres) e **Descrição** (Markdown, obrigatória: é o texto que as pessoas leem na página de status). Os **Anexos**, para arquivos que devem acompanhar o anúncio na página de status, ficam em **Mais campos**.
+2. **Páginas de status** — **Mostrar anúncio nestas páginas de status**, uma seleção múltipla obrigatória (um anúncio pode atingir várias páginas de uma vez), e **Monitores afetados**: se você não selecionar nenhum, todos os assinantes são notificados. Assim que você escolhe monitores, o formulário sugere, abaixo da seleção de páginas, as páginas de status que os mostram: "Páginas de status que mostram os monitores afetados:" seguido do nome de cada página. Clique em um nome para adicionar essa página, ou em **Adicionar todas**; nada é escolhido por você. Abaixo, **Agendamento e notificações** fica recolhido em uma linha que diz o que vai acontecer: "É exibido agora e permanece até você encerrá-lo. Os assinantes são notificados quando ele começa a ser exibido." Abra a seção para mudar **Começar a mostrar anúncio em** (o padrão é agora), **Parar de exibir o anúncio em** (vazio: o anúncio fica visível até você definir um fim) ou **Notificar assinantes da página de status** (marcado por padrão). A linha acompanha suas respostas. O fim tem de vir depois do início e, num anúncio novo, ainda estar por vir: um anúncio que já terminou nunca seria exibido.
+
+A revisão mostra a mesma linha. **Criar a partir de modelo** preenche o formulário a partir de um modelo; criado a partir de uma página de status, as páginas de status do modelo são mantidas ao lado dessa página.
+
+A página do próprio anúncio o edita nas mesmas duas etapas. **Notificar os assinantes sobre esta atualização** fica abaixo da descrição, e **Agendamento** contém o início e o fim. Definir um fim que já passou é a forma de retirar um anúncio.
 
 Os visitantes leem os anúncios em `/announcements`, divididos entre **Anúncios ativos** e **Anúncios anteriores**, cada um marcado com **Anunciado em**. Anúncios que estão no ar também ficam fixados no topo da página de visão geral. Quando não há nada a mostrar, a página diz *Sem anúncios*, com a observação de que nenhum foi publicado até agora.
 
@@ -127,18 +134,18 @@ Os anexos são servidos por `GET {statusPageCrudPath}/status-page-announcement/a
 **Show At** (`showAnnouncementAt`) e **End At** (`endAnnouncementAt`) governam tudo, mas a página de visão geral e a lista de anúncios fazem perguntas diferentes, e é aí que as pessoas tropeçam.
 
 - **A página de visão geral** mostra um anúncio quando `showAnnouncementAt` está no passado e `endAnnouncementAt` está no futuro ou vazio.
-- **A lista `/announcements`** mostra os anúncios cujo `showAnnouncementAt` cai dentro de **Mostrar histórico de anúncios (em dias)** (`showAnnouncementHistoryInDays`, 14 por padrão) e depois os separa, no cliente, entre ativos e anteriores.
+- **A lista `/announcements`** mostra os anúncios cujo `showAnnouncementAt` cai dentro da janela de histórico dos anúncios (`showAnnouncementHistoryInDays`, 14 por padrão) e depois os separa, no cliente, entre ativos e anteriores.
 
 Duas consequências que vale planejar:
 
 - **Um anúncio sem data de término nunca expira.** Deixe **Parar de exibir o anúncio em** vazio e ele fica fixado na página de visão geral indefinidamente. Defina uma data de término em tudo o que tiver prazo.
 - **Um anúncio antigo, mas ainda ativo, pode sumir da lista.** Se ele começou há mais de `showAnnouncementHistoryInDays`, ele cai fora de `/announcements` mas continua na visão geral. Aumente a janela de histórico se você mantém avisos de longa duração.
 
-Se os anúncios aparecem ou não é decidido pelo cartão **Configurações do anúncio**, em **Configurações avançadas**: **Mostrar anúncios** (`showAnnouncementsOnStatusPage`, `true` por padrão) e **Mostrar histórico de anúncios (em dias)** (14 por padrão). Com **Mostrar anúncios** desligado, o endpoint de anúncios recusa a requisição de saída.
+Se os anúncios aparecem ou não é definido no cartão **O que sua página de status mostra**, em **Configurações avançadas**: **Mostrar anúncios** (`showAnnouncementsOnStatusPage`, `true` por padrão) e, abaixo dela, **Mostrar … dias de histórico** (`showAnnouncementHistoryInDays`, 14 por padrão). Com **Mostrar anúncios** desligado, o endpoint de anúncios recusa a requisição de saída.
 
 ## Modelos de anúncio
 
-Se você publica o mesmo tipo de aviso repetidamente — o alerta mensal de manutenção, aquela degradação recorrente de um terceiro — deixe pronto. **Páginas de status → Configurações → Modelos de anúncios** guarda o modelo `StatusPageAnnouncementTemplate`, e seu formulário pede **Nome do modelo**, **Descrição do modelo**, **Título do anúncio**, **Descrição**, **Mostrar anúncio nestas páginas de status**, **Monitores afetados (Opcional)** e **Notificar assinantes** — assim a distribuição e a decisão de notificar são tomadas uma vez, e não a cada publicação.
+Se você publica o mesmo tipo de aviso repetidamente — o alerta mensal de manutenção, aquela degradação recorrente de um terceiro — deixe pronto. **Páginas de status → Configurações → Modelos de anúncios** guarda o modelo `StatusPageAnnouncementTemplate`. Seu formulário passa por **Informações do modelo** (**Nome do modelo**, **Descrição do modelo**) e depois pelas etapas do próprio anúncio: **Anúncio** (**Título**, **Descrição**) e **Páginas de status** (**Mostrar anúncio nestas páginas de status**, **Monitores afetados** e **Notificar assinantes da página de status**, marcado por padrão) — assim a distribuição e a decisão de notificar são tomadas uma vez, e não a cada publicação. Um modelo não tem agendamento: um anúncio criado a partir dele é exibido desde a criação, a menos que você mude isso em **Agendamento e notificações**.
 
 ## Assinantes de webhook e proteção contra SSRF
 

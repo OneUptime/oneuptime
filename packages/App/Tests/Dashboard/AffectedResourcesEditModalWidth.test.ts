@@ -568,7 +568,17 @@ describe("modals that edit affected resources", () => {
         },
       );
 
-      expect(cards).toHaveLength(1);
+      /*
+       * One card, however many pickers it holds: an incident template's
+       * monitors have a picker of their own, above the one for the rest.
+       */
+      expect(
+        new Set(
+          cards.map((usage: PickerEditorUsage): string => {
+            return usage.ownerTag;
+          }),
+        ).size,
+      ).toBe(1);
       expect(cards[0]!.width).toBe("ModalWidth.Medium");
     },
   );
@@ -591,12 +601,17 @@ describe("modals that edit affected resources", () => {
     })!.source;
 
     expect(viewPageSource).toContain("excludeAffectedResources: true");
+    /*
+     * Both pickers on the page belong to its Affected Resources card - the
+     * monitors have a picker of their own, above the one for the rest - and
+     * none comes from the details card's builder.
+     */
     expect(
       MODAL_USAGES.filter((usage: PickerEditorUsage) => {
         return usage.file === viewPage;
       }).map((usage: PickerEditorUsage) => {
         return usage.via;
       }),
-    ).toEqual(["inline"]);
+    ).toEqual(["inline", "inline"]);
   });
 });

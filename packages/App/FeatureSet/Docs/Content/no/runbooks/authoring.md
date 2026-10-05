@@ -14,7 +14,7 @@ Hvert trinn har:
 | **Krev godkjenning**            | Hvis på, pauser runbook'et etter dette trinnet og venter på at en bruker godkjenner før neste trinn kjøres. |
 | **Typespesifikk konfigurasjon** | Skript, URL, agent osv. — se nedenfor.                                                                      |
 
-Trinn kjører **i rekkefølge**. Omorganiser med pilene opp/ned i trinn-editoren.
+Trinn kjører **i rekkefølge**. Dra et trinn i håndtaket til venstre i overskriften for å endre rekkefølgen; med tastaturet setter du fokus på håndtaket, trykker mellomrom, flytter trinnet med piltastene og trykker mellomrom igjen.
 
 ## Trinntyper
 

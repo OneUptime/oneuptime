@@ -21,10 +21,11 @@ import {
  * The overview pages' right-hand column is about 300px wide. A detail card
  * there used to put a long "Edit Scheduled Maintenance Event" button beside
  * its title, squeezing the title and description into a column one word
- * wide. The pages now hand CardModelDetail a stacked header and a short
- * "Edit" label. CardModelDetail passes cardProps straight to Card, so what
- * is pinned here is that the layout survives that hop and that the short
- * label changes nothing about how the button is gated.
+ * wide. The pages now hand CardModelDetail a stacked header - the title and
+ * a short "Edit" share the first row, Edit at the right, and the description
+ * runs under them. CardModelDetail passes cardProps straight to Card, so
+ * what is pinned here is that the layout survives that hop and that the
+ * short label changes nothing about how the button is gated.
  */
 
 let permissionsForTest: Array<unknown> = [];
@@ -177,7 +178,7 @@ describe("CardModelDetail header layout", () => {
     jest.restoreAllMocks();
   });
 
-  test("forwards a stacked header to the card, with Edit on its own row", async () => {
+  test("forwards a stacked header to the card, with Edit on the title's row, at the right", async () => {
     permissionsForTest = [Permission.ProjectAdmin];
 
     renderCard({ headerLayout: "stacked", editButtonText: "Edit" });
@@ -187,11 +188,17 @@ describe("CardModelDetail header layout", () => {
     });
 
     const header: HTMLElement = screen.getByTestId("card-header");
+    const titleRow: HTMLElement = screen.getByTestId("card-header-title-row");
     const actions: HTMLElement = screen.getByTestId("card-header-actions");
 
     expect(header).toHaveAttribute("data-header-layout", "stacked");
-    expect(within(header).getByText("Monitor Details")).toBeInTheDocument();
+    expect(within(titleRow).getByText("Monitor Details")).toBeInTheDocument();
+    expect(titleRow.lastElementChild).toBe(actions);
     expect(actions).toContainElement(findButton("Edit"));
+    // The description runs under the row, not between the title and Edit.
+    expect(titleRow).not.toContainElement(
+      screen.getByTestId("card-description"),
+    );
     expect(findButton("Edit Monitor")).toBeNull();
   });
 
@@ -204,8 +211,16 @@ describe("CardModelDetail header layout", () => {
       expect(findButton("Edit Monitor")).not.toBeNull();
     });
 
-    expect(screen.queryByTestId("card-header")).toBeNull();
-    expect(screen.queryByTestId("card-header-actions")).toBeNull();
+    const header: HTMLElement = screen.getByTestId("card-header");
+
+    expect(header).toHaveAttribute("data-header-layout", "default");
+    expect(screen.queryByTestId("card-header-title-row")).toBeNull();
+    expect(header.lastElementChild).toBe(
+      screen.getByTestId("card-header-actions"),
+    );
+    expect(screen.getByTestId("card-header-actions")).toContainElement(
+      findButton("Edit Monitor"),
+    );
   });
 
   test("the short label is still offered only to someone who may update", async () => {

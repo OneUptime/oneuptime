@@ -36,6 +36,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -154,38 +156,37 @@ export class Service extends DatabaseService<Model> {
       createBy.data.isDefault = true;
     }
 
-    // If this agent is being set as default, unset other defaults in the same project
-    if (createBy.data.isDefault && createBy.data.projectId) {
-      await this.updateBy({
-        query: {
-          projectId: createBy.data.projectId,
-          isDefault: true,
-        },
-        data: {
-          isDefault: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-    }
-
     return { createBy: createBy, carryForward: [] };
   }
 
   /*
    * An AI agent icon is rendered by the id-based image route, which
    * serves only public files. The file picker uploads it private, so
-   * attaching it to an agent is the point at which it becomes public.
+   * attaching it to an agent is the point at which it becomes public - when
+   * it is a file of the agent's own project (FileService.makeRecordFilePublic).
+   *
+   * An agent saved as its project's default takes the default from the
+   * project's other agents - only now that it exists, so a create that is
+   * refused or fails leaves the project's default where it was.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    await FileService.makeRecordFilePublic({
+      fileId: RelationIdUtil.read(
+        createdItem as unknown as Record<string, unknown>,
+        ["iconFileId", "iconFile"],
+      ),
+      projectId: createdItem.projectId || null,
+    });
+
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isDefault",
+      createdItem: createdItem,
+    });
 
     return createdItem;
   }
@@ -298,74 +299,52 @@ export class Service extends DatabaseService<Model> {
       carryForward.aiAgentsToNotifyOwners = aiAgentsToNotifyOwners;
     }
 
-    // If setting isDefault to true, we need to unset other defaults in the same project
-    if (updateBy.data.isDefault === true) {
-      // Get the items being updated to find their project IDs
-      const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-
-      // Collect unique project IDs
-      const projectIds: Set<string> = new Set();
-      const itemIds: Set<string> = new Set();
-      for (const item of itemsToUpdate) {
-        if (item.projectId) {
-          projectIds.add(item.projectId.toString());
-        }
-        if (item._id) {
-          itemIds.add(item._id);
-        }
-      }
-
-      // For each project, unset the default on other agents
-      for (const projectIdStr of projectIds) {
-        const projectId: ObjectID = new ObjectID(projectIdStr);
-        await this.updateBy({
-          query: {
-            projectId: projectId,
-            isDefault: true,
-            _id: QueryHelper.notInOrNull(Array.from(itemIds)),
-          },
-          data: {
-            isDefault: false,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-        });
-      }
-    }
-
     return { updateBy: updateBy, carryForward };
   }
 
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
+    }
+
+    // An agent this update made the default takes it from the others.
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
     if (
       onUpdate.carryForward &&
       onUpdate.carryForward.aiAgentsToNotifyOwners.length > 0
     ) {
+      const updatedIds: Set<string> = new Set(
+        updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      // Only agents the update actually changed have a new status to tell.
       for (const aiAgent of onUpdate.carryForward.aiAgentsToNotifyOwners) {
+        if (!aiAgent.id || !updatedIds.has(aiAgent.id.toString())) {
+          continue;
+        }
+
         await this.notifyOwnersOnStatusChange({
-          aiAgentId: aiAgent.id!,
+          aiAgentId: aiAgent.id,
         });
       }
     }

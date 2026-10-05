@@ -11,7 +11,7 @@ Statussider ligger under **Statussider** i venstre navigasjon i dashbordet, i gr
 - **Opprettes med to felt.** En ny statusside spør bare etter **Navn** og **Beskrivelse**. Ressurser, merkevare og domener konfigureres etterpå.
 - **Ressursene er det de besøkende ser.** Hver rad på siden er en **Statusside Ressurs** — en overvåking (eller en overvåkingsgruppe) med sitt eget visningsnavn, verktøytips og oppetidsalternativer. Grupper deler en lang side i seksjoner, og de kan nestes.
 - **En forhåndsvisnings-URL fra dag én.** Hver statusside får en forhåndsvisningslenke, så du kan se på den lenge før et egendefinert domene finnes.
-- **Rutene de besøkende ser, styres av innstillinger.** Hendelser, kunngjøringer, planlagte hendelser og abonnementssiden dukker bare opp når bryteren deres på **Avanserte innstillinger** står på.
+- **Rutene de besøkende ser, styres av innstillinger.** Hendelser, episoder, kunngjøringer og planlagte hendelser dukker bare opp så lenge bryteren deres i **Hva statussiden din viser** (på **Avanserte innstillinger**) står på, og abonnementssiden bare så lenge **Vis abonnentside** står på.
 - **Tre måter å gjøre den privat på.** Private brukere, et hovedpassord eller SAML SSO / OIDC — pluss en IP-hviteliste.
 - **Abonnentene får beskjed automatisk.** Abonnenter på e-post, SMS, Slack, Microsoft Teams og webhook kan alle følge en side, hver kanal bak sin egen bryter.
 
@@ -98,38 +98,23 @@ For hva som i det hele tatt setter en hendelse på denne siden, og hva som tar d
 
 ## Å velge hva som vises på siden
 
-De fleste visningsbryterne bor på ett sted: **Statussider → siden din → Avansert → Avanserte innstillinger**. Hvert kort har sin egen **Edit Settings**-knapp.
+Hva de besøkende ser, stilles inn i ett kort: **Hva statussiden din viser**, på **Statussider → siden din → Avansert → Avanserte innstillinger**. Det har en rad for hver liste siden kan vise, deretter **Oppetidshistorikk** og linjen «Powered by OneUptime». Det finnes ingen redigeringsknapp: En bryter lagres i det du slår den om, og et antall dager når du forlater feltet eller trykker Enter.
 
-**Hendelsesinnstillinger**:
+- **Vis hendelser** (`showIncidentsOnStatusPage`) — på som standard. Under den bestemmer **Vis de siste … dagene** (`showIncidentHistoryInDays`, standard 14) hvor langt tilbake hendelseslisten rekker, og **Vis hendelsesetiketter** (`showIncidentLabelsOnStatusPage`) er av som standard.
+- **Vis bare hendelser som er begrenset til denne siden** (`onlyShowScopedIncidents`) — også i hendelsesraden, av som standard. Står den på, viser siden bare hendelsene som er begrenset til den med **Begrens til disse statussidene**, og abonnentene blir bare varslet om dem. Den avgjør også hvilke hendelser som tar med episodene sine til siden, så den blir stående når **Vis hendelser** er av.
+- **Vis episoder** (`showEpisodesOnStatusPage`) — på som standard, med **Vis de siste … dagene** (`showEpisodeHistoryInDays`, standard 14) og **Vis episodeetiketter** (`showEpisodeLabelsOnStatusPage`, av som standard). Episoder er sin egen modell med sine egne endepunkter, ikke en visning av hendelser.
+- **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`) — på som standard, med **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14).
+- **Vis planlagte vedlikeholdshendelser** (`showScheduledMaintenanceEventsOnStatusPage`) — på som standard, med **Vis de siste … dagene** (`showScheduledEventHistoryInDays`, standard 14) og **Vis hendelsesetiketter** (`showScheduledEventLabelsOnStatusPage`, av som standard).
+- **Oppetidshistorikk** — **Vis de siste … dagene** (`showUptimeHistoryInDays`) er lengden på oppetidsstolpen ved siden av hver ressurs. Standard er 90, og den må ligge mellom 1 og 90. Alle **Vis oppetid %**- og **Vis statushistorikkdiagram**-valg på en ressurs eller en gruppe leser dette tallet.
+- **Vis «Powered By OneUptime»-merkevarebygging** — på som standard, så bunnteksten de besøkende ser, leser «Powered by OneUptime». Slå den av for å skjule linjen. Kolonnen lagrer det omvendt, som `hidePoweredByOneUptimeBranding`.
 
-- **Vis hendelser** (`showIncidentsOnStatusPage`) — på som standard. Slår du den av, forsvinner også navigasjonselementet **Hendelser**.
-- **Vis hendelseshistorikk (i dager)** (`showIncidentHistoryInDays`) — hvor langt tilbake hendelseslisten rekker. Standard er 14.
-- **Vis hendelsesetiketter** (`showIncidentLabelsOnStatusPage`) — av som standard.
+**En liste som er slått av,** forsvinner fra siden sammen med elementet sitt i navigasjonslinjen hvis den har et; det offentlige endepunktet avviser forespørsler, og abonnentene på siden blir ikke varslet om den typen hendelse. Raden viser da bare bryteren: Hvor langt tilbake en skjult liste går, og om den viser etiketter, endrer ingenting.
 
-**Episodeinnstillinger** — de samme tre bryterne for hendelsesepisoder: **Vis episoder** (`showEpisodesOnStatusPage`, på som standard), **Vis episodehistorikk (i dager)** (standard 14) og **Vis episodeetiketter** (av som standard). Episoder er sin egen modell med sine egne endepunkter, ikke en visning av hendelser.
+**Planer.** På OneUptime Cloud står planen som trengs ved siden av en innstilling planen din ikke kan endre. De fire listebryterne, de tre etikettbryterne og episodehistorikken krever **Growth**; å skjule linjen «Powered by OneUptime» krever **Scale**. De andre historikkvinduene, **Oppetidshistorikk** og **Vis bare hendelser som er begrenset til denne siden** kan endres på alle planer, og hver innstilling lagres for seg.
 
-**Kunngjøringsinnstillinger**:
+Om siden viser punktet **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, på som standard), og hvilke kanaler besøkende kan abonnere med, stilles ikke inn på dette skjermbildet: Begge deler ligger i kortet **Kanaler** under **Abonnenter → Abonnentsinnstillinger** (se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers)).
 
-- **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`) — på som standard.
-- **Vis kunngjøringshistorikk (i dager)** (`showAnnouncementHistoryInDays`) — standard er 14.
-
-**Innstillinger for planlagte hendelser**:
-
-- **Vis planlagte vedlikeholdshendelser** (`showScheduledMaintenanceEventsOnStatusPage`) — på som standard.
-- **Vis historikk for planlagte hendelser (i dager)** (`showScheduledEventHistoryInDays`) — standard er 14.
-- **Vis hendelsesetiketter** (`showScheduledEventLabelsOnStatusPage`) — av som standard.
-
-**Innstillinger for oppetidshistorikk**:
-
-- **Vis oppetidshistorikk (i dager)** (`showUptimeHistoryInDays`) — lengden på oppetidsstolpen ved siden av hver ressurs. Standard er 90, og den må ligge mellom 1 og 90. Alle **Vis oppetid %**- og **Vis statushistorikkdiagram**-valg på en ressurs eller en gruppe leser dette tallet.
-
-**Abonnentsinnstillinger**:
-
-- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — på som standard, pluss de fem bryterne for å aktivere hver kanal. De samme kanalbryterne finnes også på det dedikerte skjermbildet **Abonnentsinnstillinger** under seksjonen **Abonnenter**; behandle det som det egentlige stedet å sette dem.
-
-**Drevet av OneUptime-merkevarebygging**:
-
-- **Skjul «Powered By OneUptime»-merkevarebygging** — av som standard, så bunnteksten de besøkende ser, leser «Powered by OneUptime» til du slår dette på.
+Under kortet følger et kort som eksporterer innstillingene for statussiden til en JSON-fil du kan importere igjen, og kortet for å arkivere statussiden.
 
 **Hvor fargene er.** Fargene på oppetidsstolpen er ikke her — **Standard stolpefarge**, reglene for stolpefarge, **Overvåkerstatuser for nedetid** og **Vis samlet oppetidsprosent** bor alle på **Statussider → siden din → Merkevare → Oversiktsside**. Det finnes ingen tema- eller merkefargeinnstilling noe sted; alt utover disse kontrollene gjøres med **Egendefinert CSS**.
 
@@ -157,7 +142,7 @@ Legg til folkene som får logge inn, på **Statussider → siden din → Sikkerh
 
 ### SSO og OIDC
 
-For en privat side knyttet til identitetsleverandøren din konfigurerer **Statussider → siden din → Sikkerhet → SSO** SAML (påloggings-URL, utsteder, x509-sertifikat, signatur- og digest-metoder), og **Statussider → siden din → Sikkerhet → OIDC** konfigurerer OpenID Connect (oppdagelses-URL, utsteder, klient-ID og hemmelighet, omfang, claim-navn). **SCIM** klargjør private brukere fra IdP-en automatisk. På OneUptime Cloud krever alle tre Scale-planen eller høyere. På en selvdriftet installasjon er SSO og OIDC en del av alle utgaver, mens SCIM krever [Enterprise Edition](/docs/self-hosted/enterprise).
+For en privat side knyttet til identitetsleverandøren din konfigurerer **Statussider → siden din → Sikkerhet → SSO** SAML (du skriver inn påloggings-URL, utsteder og x509-sertifikat, og signatur- og digest-metodene fylles ut under **Flere felt**), og **Statussider → siden din → Sikkerhet → OIDC** konfigurerer OpenID Connect: du skriver inn utsteder, klient-ID og hemmelighet, og oppdagelses-URL, omfang og claim-navn fylles ut under **Flere felt**. **SCIM** klargjør private brukere fra IdP-en automatisk. På OneUptime Cloud krever alle tre Scale-planen eller høyere. På en selvdriftet installasjon er SSO og OIDC en del av alle utgaver, mens SCIM krever [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Et kort **SSO-innstillinger** eksponerer **Tving SSO for innlogging** (`requireSsoForLogin`, av som standard). Test SSO-oppsettet ditt før du slår det på — fungerer det ikke, låser du deg selv ute av statussiden.
 

@@ -6,6 +6,8 @@ import {
 } from "Common/Types/AI/AIChatTypes";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
 
@@ -63,6 +65,7 @@ function stateTone(state: string): string {
 const EntityListWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const items: Array<JSONObject> = props.widget.data.items || [];
   const shown: Array<JSONObject> = items.slice(0, MAX_ITEMS);
   const isException: boolean =
@@ -72,7 +75,7 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
   if (shown.length === 0) {
     return (
       <div className="py-3 text-center text-xs text-gray-400">
-        Nothing here.
+        {translator.translateText("Nothing here.")}
       </div>
     );
   }
@@ -89,7 +92,8 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate text-xs font-semibold text-gray-900">
-                    {toStr(item["type"]) || "Exception"}
+                    {toStr(item["type"]) ||
+                      translator.translateText("Exception")}
                   </div>
                   <div className="mt-0.5 line-clamp-2 text-[11px] text-gray-500">
                     {toStr(item["message"])}
@@ -101,14 +105,16 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
                   </span>
                   {item["isResolved"] ? (
                     <Badge
-                      text="Resolved"
+                      text={translator.translateText("Resolved") as string}
                       tone="bg-emerald-50 text-emerald-700"
                     />
                   ) : null}
                 </div>
               </div>
               <div className="mt-1.5 text-[10px] text-gray-400">
-                Last seen {timeAgo(item["lastSeenAt"])}
+                {translator.translateTemplate("Last seen {{time}}", {
+                  time: timeAgo(item["lastSeenAt"]),
+                })}
               </div>
             </div>
           );
@@ -185,7 +191,9 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
             </div>
             {item["createdAt"] ? (
               <div className="mt-1.5 text-[10px] text-gray-400">
-                Created {timeAgo(item["createdAt"])}
+                {translator.translateTemplate("Created {{time}}", {
+                  time: timeAgo(item["createdAt"]),
+                })}
               </div>
             ) : null}
           </div>
@@ -193,7 +201,14 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
       })}
       {items.length > shown.length && (
         <div className="text-[11px] text-gray-400">
-          Showing {shown.length} of {items.length}.
+          {translator.translatePlural(
+            {
+              one: "Showing {{shown}} of {{count}}.",
+              other: "Showing {{shown}} of {{count}}.",
+            },
+            items.length,
+            { shown: translator.formatNumber(shown.length) },
+          )}
         </div>
       )}
     </div>

@@ -6,11 +6,30 @@ import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import TraceMonitorPreview from "../../../Monitor/TraceMonitor/TraceMonitorPreview";
 import SpanUtil from "../../../../Utils/SpanUtil";
+
+/*
+ * The filters that narrow a trace monitor down further - telemetry service,
+ * infrastructure entity and attributes - fold under the same More fields
+ * section as the rarely needed fields of every other form, instead of the
+ * Show / Hide Advanced Options link this form had of its own (which, taking
+ * an empty filter for a set one, never started folded). Span status stays
+ * on screen with the name and the time window: filtering on ERROR is how a
+ * trace monitor alerts on failures, and the security event monitor learnt
+ * that a hidden filter like it reads as one that cannot be used (issue
+ * #3398). Folded, the section's header names its filters and shows each one
+ * a monitor uses as a chip ("Filter by Telemetry Service: 1"), so editing a
+ * monitor never hides a filter it has. Folded fields stay mounted: the
+ * preview below and the saved step always get the whole filter set. Built
+ * once, so every render hands its fields the same section.
+ */
+const MORE_TRACE_FILTERS: FormFieldCollapsibleSection<MonitorStepTraceMonitor> =
+  getAdvancedFormSection<MonitorStepTraceMonitor>();
 
 export interface ComponentProps {
   monitorStepTraceMonitor?: MonitorStepTraceMonitor | undefined;
@@ -29,22 +48,8 @@ export interface ComponentProps {
 const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let showAdvancedOptionsByDefault: boolean = false;
   const monitorStepTraceMonitor: MonitorStepTraceMonitor =
     props.monitorStepTraceMonitor || MonitorStepTraceMonitorUtil.getDefault();
-
-  if (
-    monitorStepTraceMonitor &&
-    (monitorStepTraceMonitor.attributes ||
-      monitorStepTraceMonitor.spanStatuses ||
-      monitorStepTraceMonitor.telemetryServiceIds)
-  ) {
-    showAdvancedOptionsByDefault = true;
-  }
-
-  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(
-    showAdvancedOptionsByDefault,
-  );
 
   return (
     <div>
@@ -132,9 +137,6 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Span Status",
             description: "Select the status of the spans you want to monitor.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
           },
           {
             field: {
@@ -152,9 +154,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Telemetry Service",
             description: "Select the telemetry services you want to monitor.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_TRACE_FILTERS,
           },
           {
             field: {
@@ -176,9 +176,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Filter by Infrastructure Entity",
             description: "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_TRACE_FILTERS,
           },
           {
             field: {
@@ -195,31 +193,16 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "You can filter the Traces based on the attributes that are attached to the Traces.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
+            collapsibleSection: MORE_TRACE_FILTERS,
           },
         ]}
       />
-      <div className="-ml-3">
-        <Button
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          title={
-            showAdvancedOptions
-              ? "Hide Advanced Options"
-              : "Show Advanced Options"
-          }
-          onClick={() => {
-            return setShowAdvancedOptions(!showAdvancedOptions);
-          }}
-        />
-      </div>
       <div>
         <HorizontalRule />
         <FieldLabelElement
           title={"Spans Preview"}
           description={
-            "Here is the preview of the Traces that will be monitored based on the filters you have set above."
+            "The spans these filters match, so you can check the filters before you save."
           }
           hideOptionalLabel={true}
           isHeading={true}

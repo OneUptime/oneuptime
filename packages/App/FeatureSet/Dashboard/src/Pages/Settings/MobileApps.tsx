@@ -4,6 +4,9 @@ import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Image from "Common/UI/Components/Image/Image";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface Feature {
   icon: IconProp;
@@ -67,6 +70,42 @@ const FeatureIcon: FunctionComponent<{ icon: IconProp }> = ({
   );
 };
 
+/*
+ * The small line of a store badge ("Download on the" over "App Store"): the
+ * badge's sentence is translated whole, and its text around the store name is
+ * drawn in this style. A badge column drops empty pieces, so a language that
+ * puts the store name last or first still gets two lines.
+ */
+const StoreBadgeEyebrow: FunctionComponent<{ text: string }> = ({
+  text,
+}: {
+  text: string;
+}): ReactElement => {
+  if (!text.trim()) {
+    return <></>;
+  }
+
+  return (
+    <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-gray-300">
+      {text.trim()}
+    </span>
+  );
+};
+
+// Store names: brand names, the same in every language.
+const APP_STORE_NAME: string = "App Store";
+const GOOGLE_PLAY_NAME: string = "Google Play";
+
+const DownloadApkLabel: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <span className="text-sm font-semibold">
+      {translator.translateText("Download APK")}
+    </span>
+  );
+};
+
 const features: Array<Feature> = [
   {
     icon: IconProp.BellAlert,
@@ -118,10 +157,17 @@ const downloadRows: Array<DownloadRow> = [
       <>
         <AppleLogo className="h-6 w-6" />
         <div className="flex flex-col leading-tight text-left">
-          <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-gray-300">
-            Download on the
-          </span>
-          <span className="text-sm font-semibold">App Store</span>
+          <TranslatedSentence
+            template="Download on the {{store}}"
+            slots={{
+              store: (
+                <span className="text-sm font-semibold">{APP_STORE_NAME}</span>
+              ),
+            }}
+            renderText={(text: string): ReactElement => {
+              return <StoreBadgeEyebrow text={text} />;
+            }}
+          />
         </div>
       </>
     ),
@@ -137,10 +183,19 @@ const downloadRows: Array<DownloadRow> = [
       <>
         <GooglePlayLogo className="h-6 w-6" />
         <div className="flex flex-col leading-tight text-left">
-          <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-gray-300">
-            Get it on
-          </span>
-          <span className="text-sm font-semibold">Google Play</span>
+          <TranslatedSentence
+            template="Get it on {{store}}"
+            slots={{
+              store: (
+                <span className="text-sm font-semibold">
+                  {GOOGLE_PLAY_NAME}
+                </span>
+              ),
+            }}
+            renderText={(text: string): ReactElement => {
+              return <StoreBadgeEyebrow text={text} />;
+            }}
+          />
         </div>
       </>
     ),
@@ -159,7 +214,7 @@ const downloadRows: Array<DownloadRow> = [
           size={SizeProp.Five}
           className="h-4 w-4"
         />
-        <span className="text-sm font-semibold">Download APK</span>
+        <DownloadApkLabel />
       </>
     ),
     onClick: () => {
@@ -169,6 +224,7 @@ const downloadRows: Array<DownloadRow> = [
 ];
 
 const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <div className="mb-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -182,16 +238,18 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               />
               <span className="h-5 w-px bg-gray-200" />
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
-                On-Call
+                {translator.translateText("On-Call")}
               </span>
             </div>
             <h1 className="mt-5 text-[28px] font-semibold leading-[1.15] tracking-tight text-gray-900 md:text-[32px]">
-              Your on-call toolkit, in your pocket.
+              {translator.translateText(
+                "Your on-call toolkit, in your pocket.",
+              )}
             </h1>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-gray-500">
-              Get paged on critical incidents, manage your rotation, and respond
-              — all from your phone. Install the OneUptime On-Call app on your
-              device.
+              {translator.translateText(
+                "Get paged on critical incidents, manage your rotation, and respond — all from your phone. Install the OneUptime On-Call app on your device.",
+              )}
             </p>
           </div>
           <div className="flex items-center gap-1.5 self-start rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600 md:self-end">
@@ -199,7 +257,7 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
             </span>
-            Available on iOS & Android
+            {translator.translateText("Available on iOS & Android")}
           </div>
         </div>
 
@@ -216,10 +274,10 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     {row.eyebrow}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-gray-900">
-                    {row.title}
+                    {translator.translateText(row.title)}
                   </p>
                   <p className="mt-0.5 text-sm text-gray-500">
-                    {row.description}
+                    {translator.translateText(row.description)}
                   </p>
                 </div>
                 <button
@@ -248,10 +306,10 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             >
               <FeatureIcon icon={feature.icon} />
               <p className="mt-5 text-[15px] font-semibold text-gray-900">
-                {feature.title}
+                {translator.translateText(feature.title)}
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-gray-500">
-                {feature.description}
+                {translator.translateText(feature.description)}
               </p>
             </div>
           );

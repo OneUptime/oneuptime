@@ -71,7 +71,7 @@ Hvis statussiden rapporterer om flere komponenter, kan du valgfrit angive et kom
 
 Når en komponentgruppe også er angivet, anvendes komponentnavnefilteret **inden for** den gruppe, så du kan målrette en enkelt komponent inde i en større gruppe. Når ingen af filtrene er angivet, overvåges alle komponenter inden for rækkevidde.
 
-### Avancerede indstillinger
+### Flere felter
 
 #### Timeout
 
