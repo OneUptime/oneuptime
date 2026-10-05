@@ -374,6 +374,31 @@ page's [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agen
 has the details, and [AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
 explains what the agent may do and how to let it fix what it finds.
 
+### What AI may do is set on the AI agent
+
+Investigation and fixes on a Kubernetes cluster or an infrastructure resource
+are now the AI agent's own settings — the chart's `aiAgent.investigation` and
+`aiAgent.fixes`, or `ONEUPTIME_AI_INVESTIGATION` and `ONEUPTIME_AI_FIXES`
+where a resource AI agent runs. The agent reports them, OneUptime applies
+them, and the AI agent page shows them read-only: **Change** shows the
+command for each option instead of saving anything.
+
+- **Settings you chose stay.** A cluster or resource whose AI settings someone
+  chose on its AI agent page keeps them until its agent's configuration names
+  them. An agent or chart older than this release reports nothing, and the
+  page sets them as before.
+- **A configuration that names them wins.** OneUptime then refuses a change
+  made anywhere else — the AI agent page, the API, Terraform — until the
+  configuration stops naming them. The command allowlist stays on the page.
+- **Nothing chosen yet: the agent's defaults.** Investigation on, and fixes
+  **Ask for approval** when the agent has write access, else **Off**.
+- A cluster whose AI commands run through a Runner you bound keeps its
+  settings on the page.
+
+[AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
+and [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)
+have the commands.
+
 ### Enable AI is the only AI switch
 
 **Project Settings → AI Features** had three switches. **Enable

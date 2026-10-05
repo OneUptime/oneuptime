@@ -44,6 +44,7 @@ import DocsNav, {
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import Form from "Common/Models/DatabaseModels/Form";
+import { UPLOAD_OUTSIDE_PROJECT_MESSAGE } from "Common/Server/Services/FileService";
 import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
 import {
   FORM_FOREIGN_PAGE_MESSAGE,
@@ -1116,6 +1117,8 @@ describe("Forms docs", () => {
         FORM_FAVICON_TYPE_MESSAGE,
         FORM_FAVICON_TOO_LARGE_MESSAGE,
         FORM_FAVICON_NOT_FOUND_MESSAGE,
+        // Uploading an image into a project the uploader cannot act in (API).
+        UPLOAD_OUTSIDE_PROJECT_MESSAGE,
       ];
 
       for (const sentence of quoted) {

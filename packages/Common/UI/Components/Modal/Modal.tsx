@@ -596,6 +596,12 @@ const Modal: FunctionComponent<ComponentProps> = (
               ref={contentRef}
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
               data-testid="modal-content"
+              /*
+               * A popup that stays inside its surroundings (the color field's)
+               * is kept inside this body: over the fields, never over the
+               * header or the footer's buttons (UseAnchoredFieldPopup).
+               */
+              data-anchored-popup-boundary="true"
             >
               <div ref={contentInnerRef}>
                 <ModalBody error={props.error}>

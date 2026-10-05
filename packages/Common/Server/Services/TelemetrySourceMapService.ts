@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/TelemetrySourceMap";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -50,7 +50,7 @@ export const SOURCE_MAP_RETENTION_DAYS: number = SourceMapRetentionInDays;
  */
 export const MAX_SOURCE_MAPS_PER_RELEASE: number = SourceMapMaxMapsPerRelease;
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     /*
@@ -65,6 +65,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const content: string | undefined = createBy.data.content;
 
     if (!content) {

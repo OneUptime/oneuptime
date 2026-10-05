@@ -22,7 +22,6 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
@@ -46,6 +45,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -272,8 +272,6 @@ const notifySubscribersOfAnnouncement: (data: {
         );
         const statusPageName: string =
           statuspage.pageTitle || statuspage.name || "Status Page";
-        const statusPageIdString: string | null =
-          statuspage.id?.toString() || statuspage._id?.toString() || null;
 
         const announcementDetailsUrl: string =
           announcement.id && statusPageURL
@@ -650,13 +648,11 @@ const notifySubscribersOfAnnouncement: (data: {
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: announcementDetailsUrl,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
+                      logoUrl: StatusPageEmailLogo.getLogoUrl({
+                        statusPage: statuspage,
+                        host: host,
+                        httpProtocol: httpProtocol,
+                      }),
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"
                         : "false",

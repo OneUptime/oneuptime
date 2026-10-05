@@ -4,6 +4,13 @@ import {
   KUBECTL_ALLOW_WRITES_ENV,
   KUBECTL_WRITE_NAMESPACES_ENV,
 } from "./Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiSettings,
+  ResolvedAgentAiSettings,
+  resolveAgentAiSettings,
+} from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * The agent's configuration, read from the environment the kubernetes-agent
@@ -44,12 +51,31 @@ export interface AgentConfig {
    * Whether AI-composed kubectl writes may run. Only "true" allows them;
    * unset, "false" and anything else (a typo, "yes", "readonly") refuse —
    * a security switch must never read a plausible "off" as "on". The chart
-   * sets it from aiAgent.remediation.enabled, matching the write RBAC it
-   * grants the agent's ServiceAccount.
+   * sets it from aiAgent.fixes (or, on a release that does not set that,
+   * aiAgent.remediation.enabled), matching the write RBAC it grants the
+   * agent's ServiceAccount. Also false while aiSettings.fixes is off: an
+   * agent configured not to fix anything never writes.
    */
   allowWrites: boolean;
   // The switch exactly as set (null when unset), for refusal messages.
   allowWritesSetting: string | null;
+  /*
+   * What this agent's configuration lets OneUptime AI do on the cluster
+   * (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES, which the chart
+   * sets from aiAgent.investigation and aiAgent.fixes), reported on
+   * registration and every heartbeat. When the configuration names neither,
+   * these are the agent's defaults (isConfigured false), which OneUptime
+   * applies only to a cluster whose settings nobody chose on its AI agent
+   * page.
+   */
+  aiSettings: AgentAiSettings;
+  // ONEUPTIME_AI_FIXES exactly as set (null when unset), for messages.
+  aiFixesSetting: string | null;
+  /*
+   * The write switch is on, but fixes are off in the configuration, so
+   * writes are refused anyway — for the refusal's message.
+   */
+  writesOffByFixes: boolean;
   /*
    * The namespaces writes may land in, trimmed, lowercased and without
    * duplicates. Empty means cluster-wide (the RBAC still bounds it).
@@ -230,6 +256,21 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
     }
   }
 
+  /*
+   * What AI may do here, as the chart configured it. With fixes off the
+   * agent refuses every write itself, whatever the write switch says.
+   */
+  const writeSwitch: boolean = parseSwitch(allowWritesSetting);
+  const aiFixesSetting: string | null = env[AI_FIXES_ENV] ?? null;
+  const ai: ResolvedAgentAiSettings = resolveAgentAiSettings({
+    investigationSetting: env[AI_INVESTIGATION_ENV] ?? null,
+    fixesSetting: aiFixesSetting,
+    allowWrites: writeSwitch,
+    allowWritesName: KUBECTL_ALLOW_WRITES_ENV,
+  });
+
+  warnings.push(...ai.warnings);
+
   const chartVersion: string = readTrimmed(env, CHART_VERSION_ENV);
   const podNamespace: string = readTrimmed(
     env,
@@ -243,8 +284,11 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       apiKey,
       clusterName,
       chartVersion: chartVersion || null,
-      allowWrites: parseSwitch(allowWritesSetting),
+      allowWrites: ai.allowWrites,
       allowWritesSetting,
+      aiSettings: ai.settings,
+      aiFixesSetting,
+      writesOffByFixes: writeSwitch && !ai.allowWrites,
       writeNamespaces: parseWriteNamespaces(env[KUBECTL_WRITE_NAMESPACES_ENV]),
       allowNodeOperations: parseSwitch(allowNodeOperationsSetting),
       allowNodeOperationsSetting,

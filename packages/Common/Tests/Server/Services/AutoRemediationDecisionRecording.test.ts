@@ -42,8 +42,24 @@ import {
   ResourceAiAccessStatus,
   ResourceAiRemediationMode,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - the rule engine writes down what it did with every
@@ -226,6 +242,9 @@ function mockEngine(data: {
   autoExecutedInLastHour?: number | undefined;
 }): Harness {
   const saved: Array<AutoRemediationDecision> = [];
+
+  // The runbooks the rules name are the project's (RuleRecordScope).
+  stubProjectDirectory({});
 
   for (const level of ["error", "warn", "debug"] as const) {
     jest.spyOn(logger, level).mockImplementation((): void => {

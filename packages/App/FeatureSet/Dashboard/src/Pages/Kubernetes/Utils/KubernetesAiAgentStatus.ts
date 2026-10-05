@@ -15,9 +15,15 @@ import {
   isKubernetesAgentRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AGENT_HELM_NAMESPACE } from "./DocumentationMarkdown";
+import { readAiSettingsSource } from "../../../Components/AiAccess/AiAccessModes";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "Common/Types/AI/AgentAiSettings";
 import {
   translatableTerm,
   translateTemplate,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -84,6 +90,35 @@ export const AI_AGENT_GONE_TEXT: string =
 export const AI_AGENT_SILENT_TEXT: string = `The AI agent has not checked in for over ${KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes. Check its pod:`;
 
 export const ASK_PROJECT_ADMIN_TEXT: string = "Ask a project owner or admin.";
+
+// Where the cluster's investigation and fixes are set, as its status says.
+export function getKubernetesAiSettingsSource(
+  status: KubernetesClusterAiAccessStatus,
+): AgentAiSettingsSource {
+  return readAiSettingsSource(status.aiSettingsSource);
+}
+
+/*
+ * Does the cluster's Kubernetes AI agent set investigation and fixes (its
+ * chart's aiAgent.investigation / aiAgent.fixes, or its defaults)? Then
+ * the page shows them read-only, and changes them with a chart command.
+ */
+export function isKubernetesAiSettingsSetByAgent(
+  status: KubernetesClusterAiAccessStatus,
+): boolean {
+  return isAgentAiSettingsSourceAgent(getKubernetesAiSettingsSource(status));
+}
+
+// The "Needs attention" step for investigation the agent keeps off.
+export const KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT: string =
+  translationKey("Turn on AI investigation on the Kubernetes agent chart.");
+
+/*
+ * The route a cluster's AI access status is read from, with { clusterId }:
+ * the AI agent page, and the Overview's two cards that show it.
+ */
+export const KUBERNETES_AI_ACCESS_STATUS_ROUTE: string =
+  "/kubernetes-cluster/ai-access/status";
 
 /*
  * The status as the route returns it, or null when the body is not one.
@@ -436,18 +471,27 @@ function withVersionPrefix(version: string): string {
 }
 
 /*
- * The card's meta line, part by part (joined with " · "): when the target
- * was last seen, the agent's version, kubectl's version, and what it may
- * change. A Runner reached with a credential reports no write scope — its
- * credential's RBAC decides — so none is shown for it.
+ * The card's meta line: when the target was last seen, then — when the
+ * target is the cluster's own agent — the agent's version, which the page
+ * draws with AgentVersion (so an outdated agent gets its sign and upgrade
+ * dialog, like every other agent version), then kubectl's version and what
+ * it may change. A Runner reached with a credential reports no write scope
+ * — its credential's RBAC decides — so none is shown for it.
  */
-export function getAiAgentMetaParts(
+export interface AiAgentMeta {
+  lastSeen: string | null;
+  // The agent's version goes here, drawn by the page.
+  showsAgentVersion: boolean;
+  rest: Array<string>;
+}
+
+export function getAiAgentMeta(
   status: KubernetesClusterAiAccessStatus,
-): Array<string> {
+): AiAgentMeta {
   const state: AiAgentCardState = getAiAgentCardState(status);
 
   if (state === "not_installed") {
-    return [];
+    return { lastSeen: null, showsAgentVersion: false, rest: [] };
   }
 
   const agent: KubernetesAiAgentSummary | null = getAiAgentSummary(status);
@@ -463,15 +507,9 @@ export function getAiAgentMetaParts(
 
   const parts: Array<string> = [];
 
-  if (lastAliveAt) {
-    parts.push(
-      `last seen ${OneUptimeDate.fromNow(OneUptimeDate.fromString(lastAliveAt))}`,
-    );
-  }
-
-  if (isAgentTarget && agent?.agentVersion) {
-    parts.push(`agent ${withVersionPrefix(agent.agentVersion)}`);
-  }
+  const lastSeen: string | null = lastAliveAt
+    ? `last seen ${OneUptimeDate.fromNow(OneUptimeDate.fromString(lastAliveAt))}`
+    : null;
 
   if (posture?.kubectlVersion) {
     parts.push(`kubectl ${withVersionPrefix(posture.kubectlVersion)}`);
@@ -490,7 +528,20 @@ export function getAiAgentMetaParts(
     }
   }
 
-  return parts;
+  return {
+    lastSeen,
+    showsAgentVersion: isAgentTarget && agent !== null,
+    rest: parts,
+  };
+}
+
+// The meta line's words, in order, without the agent's version.
+export function getAiAgentMetaParts(
+  status: KubernetesClusterAiAccessStatus,
+): Array<string> {
+  const meta: AiAgentMeta = getAiAgentMeta(status);
+
+  return [...(meta.lastSeen ? [meta.lastSeen] : []), ...meta.rest];
 }
 
 /*
@@ -558,6 +609,8 @@ export function getAttentionGaps(
  */
 export type AiAgentGapAction =
   | "turn_on_investigation"
+  // The agent keeps investigation off: show the chart command that turns it on.
+  | "set_investigation_in_agent"
   | "open_ai_features"
   | "open_llm_providers"
   | "open_ai_credits"
@@ -570,7 +623,9 @@ export function getAiAgentGapAction(
 ): AiAgentGapAction | null {
   switch (gap.code) {
     case "investigation_disabled":
-      return "turn_on_investigation";
+      return isKubernetesAiSettingsSetByAgent(status)
+        ? "set_investigation_in_agent"
+        : "turn_on_investigation";
     /*
      * project_auto_remediation_disabled and
      * project_ai_command_execution_disabled are retired (Enable AI covers
@@ -715,7 +770,9 @@ export function getAiAgentAttentionStepText(
     case "credential_on_agent_runner":
       return getRunnerStepText(gap, status);
     case "investigation_disabled":
-      return "Turn on AI investigation with kubectl.";
+      return isKubernetesAiSettingsSetByAgent(status)
+        ? KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT
+        : "Turn on AI investigation with kubectl.";
     case "remediation_write_access_missing":
       // The commands are below for the agent and the previous Runner alike.
       if (shouldShowWriteAccessCommands(status)) {

@@ -21,11 +21,16 @@ import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import crypto from "crypto";
 
 const generateImageAccessToken: () => string = (): string => {
   return crypto.randomBytes(32).toString("hex");
 };
+
+// The refusal for an upload into a project the uploader cannot act in.
+export const UPLOAD_OUTSIDE_PROJECT_MESSAGE: string =
+  "You can upload files only to a project you are a member of.";
 
 // An id column as Postgres hands it back raw: a uuid string, or null.
 const readStoredId: (value: unknown) => ObjectID | null = (
@@ -89,9 +94,10 @@ export class Service extends DatabaseService<File> {
     /*
      * Always generate an unguessable access token server-side. The token
      * is the only safe way to address an inline-uploaded image in
-     * markdown without exposing the enumerable ObjectID.
+     * markdown without exposing the enumerable ObjectID, so it is never
+     * one the request chose. OneUptime's own code (root) may bring its own.
      */
-    if (!createBy.data.imageAccessToken) {
+    if (!createBy.props.isRoot || !createBy.data.imageAccessToken) {
       createBy.data.imageAccessToken = generateImageAccessToken();
     }
 
@@ -100,10 +106,32 @@ export class Service extends DatabaseService<File> {
      * dashboard's tenant, an API key's project - never whatever the body
      * says, so a file can only ever claim the project it was uploaded from.
      * A project's records use only files of their own project
-     * (FileOwnership).
+     * (FileOwnership), and its private files are shown to its members
+     * (FileViewerAccess), so only someone who can act in the project may
+     * upload into it.
      */
-    (createBy.data as unknown as Dictionary<unknown>)["projectId"] =
-      createBy.props.tenantId || null;
+    const projectId: ObjectID | null = createBy.props.tenantId || null;
+
+    if (projectId) {
+      Service.assertMayUploadToProject({
+        props: createBy.props,
+        projectId: projectId,
+      });
+    }
+
+    (createBy.data as unknown as Dictionary<unknown>)["projectId"] = projectId;
+
+    /*
+     * Every upload starts private, whatever the request says. A file becomes
+     * public only when a record that shows it to everyone is published - an
+     * image in a public note, an announcement or a published postmortem
+     * (InlineImageAccessTokenSync), a probe's or an AI agent's icon
+     * (makeStoredIconsPublic) - never because an upload asked. OneUptime's
+     * own code (root) says what it means.
+     */
+    if (!createBy.props.isRoot) {
+      createBy.data.isPublic = false;
+    }
 
     /*
      * Who uploads it is the signed-in user making the request, never the
@@ -114,6 +142,32 @@ export class Service extends DatabaseService<File> {
       createBy.props.userId || null;
 
     return { createBy, carryForward: null };
+  }
+
+  /**
+   * Refuses an upload into a project the uploader cannot act in. The
+   * request was resolved for the project it names (UserMiddleware), so it
+   * carries the uploader's access there exactly when they have it: a
+   * membership they have accepted, signed in the way the project requires,
+   * or an API key of the project (whose project is the key's own, whatever
+   * header it was sent with). Server admins act in every project, and
+   * OneUptime's own code (root) says what it means.
+   */
+  public static assertMayUploadToProject(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+  }): void {
+    const props: DatabaseCommonInteractionProps = data.props;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    if (props.userTenantAccessPermission?.[data.projectId.toString()]) {
+      return;
+    }
+
+    throw new NotAuthorizedException(UPLOAD_OUTSIDE_PROJECT_MESSAGE);
   }
 
   /**
@@ -230,8 +284,8 @@ export class Service extends DatabaseService<File> {
   /*
    * Marks a record's file as anonymously readable: a probe's or an AI
    * agent's icon, which the id-based image route serves only once it is
-   * public. Uploads from the file picker arrive private, so attaching one is
-   * the point at which it becomes public - but only a file of the record's
+   * public. Every upload arrives private, so attaching one is the point at
+   * which it becomes public - but only a file of the record's
    * own project: a record never makes a file of another project, or one
    * uploaded with none, readable by everyone. A record outside any project
    * (a global probe or AI agent, which only server admins manage) has no

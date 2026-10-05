@@ -3,7 +3,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
@@ -58,7 +58,7 @@ const STATE_KIND_SELECT: Select<ScheduledMaintenanceState> = {
  */
 const TIMELINE_REPLAY_BATCH_SIZE: number = 100;
 
-export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
+export class Service extends ProjectReferencesService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
     super(ScheduledMaintenanceStateTimeline);
     if (IsBillingEnabled) {
@@ -117,6 +117,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   protected override async onBeforeCreate(
     createBy: CreateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -732,6 +734,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnUpdate<ScheduledMaintenanceStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Resolved before the update runs, because the update may narrow or move
      * the rows the query matches -- and because a row can be repointed at a

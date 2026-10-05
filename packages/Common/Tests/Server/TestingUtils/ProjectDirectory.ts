@@ -1,6 +1,7 @@
 import { jest } from "@jest/globals";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -42,6 +43,11 @@ export interface ProjectDirectory {
   members?: Array<string> | undefined;
   // Ids that exist in some other project (for mustExist: false references).
   elsewhere?: Array<string> | undefined;
+  /*
+   * Ids of rows every project shares (a global probe), by table name. None
+   * when left out.
+   */
+  shared?: Record<string, Array<string>> | undefined;
 }
 
 export interface ProjectDirectoryStub {
@@ -145,6 +151,30 @@ export function stubProjectDirectory(
     );
 
   jest
+    .spyOn(ProjectScopedReferenceValidator, "findSharedIds")
+    .mockImplementation(
+      async (data: {
+        service: DatabaseService<DatabaseBaseModel>;
+        ids: Array<string>;
+      }): Promise<Set<string>> => {
+        const model: string = data.service.getModel().tableName || "";
+        const shared: Set<string> = lower(
+          (directory.shared && directory.shared[model]) || [],
+        );
+
+        return new Set<string>(
+          data.ids
+            .map((id: string): string => {
+              return id.toLowerCase();
+            })
+            .filter((id: string): boolean => {
+              return shared.has(id);
+            }),
+        );
+      },
+    );
+
+  jest
     .spyOn(ProjectScopedReferenceValidator, "findExistingIds")
     .mockImplementation(
       async (data: {
@@ -170,4 +200,20 @@ export function stubProjectDirectory(
     );
 
   return stub;
+}
+
+/*
+ * For a suite about a service's own rules - what it refuses, what it reads,
+ * in which order - rather than the references it names: the generic check
+ * every ProjectReferencesService runs first is let through, so it adds no
+ * lookups of its own. ProjectScopedReferencesEverywhere holds every service
+ * to that check.
+ */
+export function stubGenericReferenceCheck(): void {
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
 }

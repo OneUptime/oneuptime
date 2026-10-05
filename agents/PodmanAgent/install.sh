@@ -118,6 +118,8 @@ install_ai_agent() {
         -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
         -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman \
         -e PODMAN_HOST_NAME="$PODMAN_HOST_NAME" \
+        -e ONEUPTIME_AI_INVESTIGATION="${ONEUPTIME_AI_INVESTIGATION:-}" \
+        -e ONEUPTIME_AI_FIXES="${ONEUPTIME_AI_FIXES:-}" \
         -e ONEUPTIME_AI_ALLOW_WRITES="$ONEUPTIME_AI_ALLOW_WRITES" \
         -e ONEUPTIME_AI_WRITE_TARGETS="${ONEUPTIME_AI_WRITE_TARGETS:-}" \
         -e ONEUPTIME_AI_PROTECTED_TARGETS="${ONEUPTIME_AI_PROTECTED_TARGETS:-}" \
@@ -161,13 +163,13 @@ if [ "$AI_AGENT_RUNNING" = "true" ]; then
     echo ""
     echo "OneUptime AI agent: oneuptime-podman-ai-agent (logs: podman logs -f oneuptime-podman-ai-agent)"
     if [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
-        echo "It may apply the fixes you allow on the host's AI agent page in OneUptime"
-        echo "(never to itself or the collector)."
+        echo "It may apply the fixes you allow (never to itself or the collector):"
+        echo "ONEUPTIME_AI_FIXES=ask-for-approval, automatic or bypass-approval sets how."
     else
         echo "It is read-only: OneUptime AI can look at this host's containers while it"
         echo "investigates, but not change them. To let it apply fixes (restart, start,"
         echo "stop a container), re-run this script with ONEUPTIME_AI_ALLOW_WRITES=true"
-        echo "(and ONEUPTIME_AI_WRITE_TARGETS=\"web-*,api-*\" to limit which containers),"
-        echo "then choose on the host's AI agent page whether each fix needs approval."
+        echo "and ONEUPTIME_AI_FIXES=ask-for-approval (or automatic, or bypass-approval),"
+        echo "and ONEUPTIME_AI_WRITE_TARGETS=\"web-*,api-*\" to limit which containers."
     fi
 fi

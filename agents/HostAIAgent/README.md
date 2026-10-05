@@ -81,9 +81,9 @@ Targets are compared by their full names: `nginx` is `nginx.service`, a process 
 
 ## Allowing fixes
 
-1. In `/opt/oneuptime-host-ai-agent/.env` set `ONEUPTIME_AI_ALLOW_WRITES=true`, and optionally `ONEUPTIME_AI_WRITE_TARGETS` to the units fixes may touch (comma-separated globs such as `nginx.service,app-*`; empty means any unit that is not protected).
+1. In `/opt/oneuptime-host-ai-agent/.env` set `ONEUPTIME_AI_ALLOW_WRITES=true` and `ONEUPTIME_AI_FIXES` to whether each fix needs approval (`ask-for-approval`, `automatic` or `bypass-approval`), and optionally `ONEUPTIME_AI_WRITE_TARGETS` to the units fixes may touch (comma-separated globs such as `nginx.service,app-*`; empty means any unit that is not protected).
 2. `cd /opt/oneuptime-host-ai-agent && sudo docker compose up -d`.
-3. On the host's **AI → AI agent** page in OneUptime, choose whether each fix needs approval (**Ask for approval**, **Automatic**, **Bypass approval**), and optionally allow specific commands to run without approval. Loosening these needs Project Owner, Project Admin or the Edit Auto Remediation Rule permission.
+3. The host's **AI → AI agent** page in OneUptime then shows what the agent allows, read-only; **Change** there shows these lines for each option. In **Automatic** mode you may also allow specific commands to run without approval there; loosening that list needs Project Owner, Project Admin or the Edit Auto Remediation Rule permission.
 
 The agent never changes, whatever the settings: every OneUptime unit (`oneuptime-*`, including its own `oneuptime-host-ai-agent.service`), the OpenTelemetry collector (`otelcol-contrib.service`, `otelcol.service`), the Docker engine it runs in (`docker.service`, `docker.socket`, `containerd.service`), its own process and the processes above it, and anything in `ONEUPTIME_AI_PROTECTED_TARGETS`. `curl -s http://127.0.0.1:3877/status` lists them (`protectedTargets`).
 
@@ -103,6 +103,8 @@ Set these in the `.env` next to `docker-compose.yml` (`/opt/oneuptime-host-ai-ag
 | `ONEUPTIME_URL` | — (required) | Your OneUptime address, e.g. `https://oneuptime.com`. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` (or `ONEUPTIME_API_KEY`) | — (required) | The project's telemetry ingestion key. |
 | `HOST_NAME` | the hostname | The `host.name` the collector reports for this host. |
+| `ONEUPTIME_AI_INVESTIGATION` | empty (on) | `true` or `false`: whether OneUptime AI may run read-only programs while it investigates. |
+| `ONEUPTIME_AI_FIXES` | empty | `off`, `ask-for-approval`, `automatic` or `bypass-approval`. Empty: `ask-for-approval` with writes allowed, else `off`. Any mode but `off` also needs `ONEUPTIME_AI_ALLOW_WRITES=true`. |
 | `ONEUPTIME_AI_ALLOW_WRITES` | `false` | `true` allows fixes. Anything else means read-only. |
 | `ONEUPTIME_AI_WRITE_TARGETS` | any | Comma-separated globs of the units (or `pid:*`, `journal`) fixes may touch. |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated globs OneUptime AI must never change, on top of the built-in ones. |

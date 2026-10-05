@@ -6,6 +6,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Project from "../../Models/DatabaseModels/Project";
 import Runbook from "../../Models/DatabaseModels/Runbook";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
 import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -1584,8 +1585,22 @@ class AutoRemediationRuleEngineServiceClass {
         continue;
       }
 
-      // Deterministic rule: propose or start every attached runbook.
-      const runbooks: Array<Runbook> = rule.runbooks || [];
+      /*
+       * Deterministic rule: propose or start every attached runbook - the
+       * project's own only. A rule saved before its lists were checked can
+       * still name another project's runbook, whose name would otherwise
+       * land in this project's suggestion and feed.
+       */
+      const runbooks: Array<Runbook> =
+        await RuleRecordScope.keepRecordsInProject({
+          projectId: data.projectId,
+          records: rule.runbooks,
+          modelType: Runbook,
+          description: `runbooks of auto-remediation rule ${rule.id?.toString() || ""}`,
+          logAttributes: {
+            projectId: data.projectId.toString(),
+          } as LogAttributes,
+        });
 
       if (runbooks.length === 0) {
         recorder.add({

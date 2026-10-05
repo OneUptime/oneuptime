@@ -211,7 +211,22 @@ describe("Forms Overview - branding", () => {
     }
 
     expect(api).toContain("`POST /api/file`, in the form's project");
-    expect(api).toContain("`isPublic` set to `false`");
+    // Uploads start private, whatever the request says; the docs ask for nothing.
+    expect(api).not.toContain("`isPublic` set to `false`");
+    expect(api).toContain(
+      "Every upload is private: `isPublic` is set by OneUptime, whatever the request says.",
+    );
+    /*
+     * An upload goes only into a project its uploader can act in, refused
+     * otherwise with FileService's UPLOAD_OUTSIDE_PROJECT_MESSAGE (pinned in
+     * Common's FileUploadRules test).
+     */
+    expect(api).toContain(
+      "with an API key of that project, or signed in as a member of it with its id in the `tenantid` header",
+    );
+    expect(api).toContain(
+      '"You can upload files only to a project you are a member of."',
+    );
     expect(api).toContain(
       "it must have been uploaded in the form's project, and a logo must be a PNG, JPEG, GIF, WebP or SVG image of 512 KB or less, a favicon one of those or an ICO of 128 KB or less",
     );

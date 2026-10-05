@@ -1,5 +1,15 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
-import { getResourceAiAgentServiceName } from "../../../FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import {
+  getResourceAiAgentServiceName,
+  getResourceAiAgentSettingsEnv,
+} from "../../../FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import {
+  AGENT_AI_FIXES_MODES,
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiFixesMode,
+} from "Common/Types/AI/AgentAiSettings";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { TOOL_OUTPUT_PAGE_CHARS } from "Common/Types/AI/AIAgentRunLimits";
 import {
@@ -934,7 +944,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
     });
 
-    it("says a resource starts with investigation and fixes off, as the models default them", (): void => {
+    it("says AI investigations are on by default and fixes off, as the models default them", (): void => {
       for (const model of [
         "DockerHost",
         "PodmanHost",
@@ -957,8 +967,8 @@ describe("Infrastructure AI Agents docs", (): void => {
 
         expect({
           model,
-          off: investigation.includes("default: false"),
-        }).toEqual({ model, off: true });
+          on: investigation.includes("default: true"),
+        }).toEqual({ model, on: true });
         expect({
           model,
           disabled: source.includes(
@@ -967,9 +977,20 @@ describe("Infrastructure AI Agents docs", (): void => {
         }).toEqual({ model, disabled: true });
       }
 
-      expect(page).toContain(
-        "A resource starts with investigation and fixes off.",
+      // The same defaults as a cluster, said among what is the same.
+      const same: string = page.slice(
+        page.indexOf("The resource AI agents follow the same design:"),
+        page.indexOf("What differs:"),
       );
+
+      expect(same).toContain(
+        "**The same defaults.** AI investigations are on by default",
+      );
+      expect(same).toContain(
+        "a resource starts with investigation on and fixes off, like a cluster",
+      );
+      expect(page).not.toContain("It starts switched off.");
+      expect(page).not.toContain("investigation and fixes off.");
 
       // The first connection's defaults, as the registration service applies them.
       const service: string = fs.readFileSync(
@@ -1504,6 +1525,68 @@ describe("Infrastructure AI Agents docs", (): void => {
           bypassApproval: false,
         }).verdict,
       ).toBe("RequiresApproval");
+    });
+  });
+
+  /*
+   * "These options should depend on the agent itself": the page documents
+   * the two variables the agents read (the shared contract's names and
+   * spellings), the example is the AI agent page's own .env lines, and it
+   * says the page follows them read-only.
+   */
+  describe("what AI may do, set by the agent", (): void => {
+    const setByAgent: string = section(
+      page,
+      "### What AI may do, set by the agent",
+    );
+
+    it("names both variables and every fixes value, as the agents read them", (): void => {
+      expect(tableRow(setByAgent, `\`${AI_INVESTIGATION_ENV}\``)).toContain(
+        "`true`",
+      );
+      const fixes: string = tableRow(setByAgent, `\`${AI_FIXES_ENV}\``);
+
+      for (const mode of AGENT_AI_FIXES_MODES) {
+        expect({
+          mode,
+          named: fixes.includes(
+            `\`${AGENT_AI_FIXES_SETTING_VALUES[mode as AgentAiFixesMode]}\``,
+          ),
+        }).toEqual({ mode, named: true });
+      }
+      // Fixes also need the write switch.
+      expect(fixes).toContain("`ONEUPTIME_AI_ALLOW_WRITES=true`");
+    });
+
+    it("the example is the AI agent page's own .env lines for Ask for approval", (): void => {
+      expect(setByAgent).toContain(
+        `\`\`\`bash\n${getResourceAiAgentSettingsEnv({
+          investigation: true,
+          fixes: "RequireApproval",
+        })}\n\`\`\``,
+      );
+    });
+
+    it("says the page follows them read-only, and that the allowlist stays on the page", (): void => {
+      const flat: string = setByAgent.replace(/\s+/g, " ");
+
+      expect(flat).toContain("shows them read-only");
+      expect(flat).toContain("refuses a change made anywhere else");
+      expect(flat).toContain("The command allowlist stays on the page.");
+    });
+
+    it("every collector passes both to its AI agent, so a .env line reaches it", (): void => {
+      for (const [type, relative] of Object.entries(COMPOSE_FILES)) {
+        const compose: string = readRepoFile(relative as string);
+
+        for (const variable of [AI_INVESTIGATION_ENV, AI_FIXES_ENV]) {
+          expect({
+            type,
+            variable,
+            passed: compose.includes(`- ${variable}=\${${variable}:-}`),
+          }).toEqual({ type, variable, passed: true });
+        }
+      }
     });
   });
 

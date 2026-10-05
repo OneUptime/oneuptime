@@ -52,6 +52,15 @@ import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test: the SLO feed items ServiceLevelObjectiveService writes
@@ -223,6 +232,7 @@ beforeEach(() => {
     .mockResolvedValue(URL.fromString(USER_LINK));
 
   jest.spyOn(logger, "error").mockImplementation((): void => {});
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -409,6 +419,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
           return Promise.resolve(createBy.data);
         },
       );
+    stubProjectDirectory({});
   });
 
   function onCreate(): unknown {
@@ -531,6 +542,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the before-snapshot", ()
     findBySpy = jest
       .spyOn(ServiceLevelObjectiveService, "findBy")
       .mockResolvedValue([sloRow({ targetPercentage: 99.9 })]);
+    stubProjectDirectory({});
   });
 
   test("the evaluation worker's per-tick state write reads nothing, carries nothing and posts nothing", async () => {
@@ -1149,6 +1161,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - feed wiring", () => {
     jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(sloRow({}));
+    stubProjectDirectory({});
   });
 
   test("starts the writer when there is a snapshot, and does not wait for it", async () => {

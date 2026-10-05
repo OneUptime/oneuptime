@@ -1170,13 +1170,13 @@ export default class DockerSwarmCluster extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Investigate With Read-Only Commands",
     description:
-      "When on, OneUptime AI runs read-only commands (docker service ls, service ps, service logs, node ls) on this Docker Swarm cluster, through its Docker Swarm AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Off by default. Anyone who may edit the Docker Swarm cluster can turn it on or off.",
-    defaultValue: false,
+      "When on, OneUptime AI runs read-only commands (docker service ls, service ps, service logs, node ls) on this Docker Swarm cluster, through its Docker Swarm AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the Docker Swarm cluster can turn it on or off.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: false,
+    default: true,
   })
   public isAiInvestigationEnabled?: boolean = undefined;
 

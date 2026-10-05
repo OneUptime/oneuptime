@@ -514,7 +514,9 @@ function getAgentVerifyStep(context: AgentGuideContext): SetupGuideStep {
       ]),
     )}
 
-\`docker compose ps\` lists the collector (\`${PROXMOX_AGENT_CONTAINER}\`), the bundled exporter (\`${PROXMOX_EXPORTER_CONTAINER}\`, unless you use your own) and the OneUptime AI agent (\`${PROXMOX_AI_AGENT_CONTAINER}\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cluster then appears automatically in the **Proxmox** section.`,
+\`docker compose ps\` lists the collector (\`${PROXMOX_AGENT_CONTAINER}\`), the bundled exporter (\`${PROXMOX_EXPORTER_CONTAINER}\`, unless you use your own) and the OneUptime AI agent (\`${PROXMOX_AI_AGENT_CONTAINER}\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cluster then appears automatically in the **Proxmox** section.
+
+**OneUptime AI agent (on by default, read-only).** AI investigations are on: it lets OneUptime AI investigate incidents and alerts on this cluster with read-only \`pvesh\` requests, and changes nothing unless you allow fixes — see **OneUptime AI agent** under Advanced.`,
   };
 }
 

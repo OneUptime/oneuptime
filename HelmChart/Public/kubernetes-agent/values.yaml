@@ -1471,8 +1471,8 @@ serviceAccount:
 #
 # What it may do is decided in two places:
 #   * RBAC, here. Read-only by default: get/list/watch and pod logs,
-#     cluster-wide. aiAgent.remediation.enabled adds the write verbs fixes
-#     use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets
+#     cluster-wide. aiAgent.fixes (any level but off) adds the write verbs
+#     fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets
 #     (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on
 #     Jobs (`create job --from=cronjob/...`) and HPAs; delete on Pods and Jobs
 #     only; and, with remediation.nodeOperations, cordon/uncordon/taint/drain
@@ -1497,24 +1497,49 @@ serviceAccount:
 #     own namespace, anything outside remediation.namespaces, or a node when
 #     remediation.nodeOperations is false. OneUptime refuses such a fix
 #     already when it is proposed or approved.
-#     How fixes run is picked on the cluster's AI → Agent page: off; "ask for
-#     approval" (a human approves the exact kubectl plan); "automatic" (safe
-#     changes run on their own; a round that could only find riskier fixes
-#     ends by proposing exactly those for one-click approval, and otherwise a
-#     riskier fix waits for the follow-up round, which asks); or "bypass
-#     approval" (AI does not ask, except when the hourly circuit breaker
-#     trips, when another unattended OneUptime AI round is still changing or
-#     verifying the same cluster, or after a fix whose rollback did not
-#     complete). The chart README has the details.
+#     How fixes run is set here, with aiAgent.fixes below: off;
+#     ask-for-approval (a human approves the exact kubectl plan); automatic
+#     (safe changes run on their own; a round that could only find riskier
+#     fixes ends by proposing exactly those for one-click approval, and
+#     otherwise a riskier fix waits for the follow-up round, which asks); or
+#     bypass-approval (AI does not ask, except when the hourly circuit
+#     breaker trips, when another unattended OneUptime AI round is still
+#     changing or verifying the same cluster, or after a fix whose rollback
+#     did not complete). The cluster's AI → Agent page shows it, with the
+#     command that changes it. The chart README has the details.
 #
 # Let AI fix things too (list the namespaces it may change; each must
 # already exist):
 #   helm repo update
 #   helm upgrade <release> oneuptime/kubernetes-agent -n <namespace> \
-#     --reuse-values --set aiAgent.remediation.enabled=true \
+#     --reuse-values --set aiAgent.investigation=true \
+#     --set aiAgent.fixes=ask-for-approval \
 #     --set "aiAgent.remediation.namespaces={web,api}"
 aiAgent:
   enabled: true
+  # What OneUptime AI may do on this cluster. The cluster's AI → Agent page
+  # shows these two and offers no way to change them there: change them
+  # here. They are left unset on purpose. A release that sets neither lets
+  # the agent use its defaults (investigation on; fixes ask-for-approval
+  # when the deprecated aiAgent.remediation.enabled is true, else off), and
+  # OneUptime applies those only to a cluster whose settings nobody chose on
+  # its AI → Agent page — a default here would replace such a choice on
+  # every upgrade that takes this chart's defaults.
+  #
+  # # AI runs read-only kubectl (get, describe, logs, events, top) while it
+  # # investigates an incident or alert on this cluster. false: it still
+  # # investigates, with the data OneUptime already has.
+  # investigation: true
+  #
+  # # What AI does when it finds a fix: off (never proposes or runs a
+  # # change; the agent stays read-only), ask-for-approval (a person approves
+  # # the exact kubectl plan before it runs), automatic (safe changes run on
+  # # their own, riskier ones ask) or bypass-approval (every change the
+  # # policy allows runs on its own). Every level but off grants the agent
+  # # the write RBAC described above, bound where remediation.namespaces
+  # # says; off grants none. Quote it in a values file ("off"): YAML reads a
+  # # bare off as false, which the chart also reads as off.
+  # fixes: "off"
   image:
     repository: oneuptime/kubernetes-ai-agent
     # Leave empty to track `release` — the moving tag the release pipeline
@@ -1544,10 +1569,10 @@ aiAgent:
   # would silently replace them. Set them with --set as usual.
   #
   # remediation:
-  #   # Grant write RBAC so OneUptime AI can apply fixes. A cluster whose agent
-  #   # connects for the first time with this on starts in "ask for approval",
-  #   # unless AI settings were already picked on its AI → Agent page (they are
-  #   # kept as chosen). Otherwise pick the mode on that page.
+  #   # Deprecated: set aiAgent.fixes instead, which grants the same write
+  #   # RBAC with every level but off. Read only while aiAgent.fixes is unset:
+  #   # true grants write RBAC, and the agent's default fixes are then
+  #   # ask-for-approval.
   #   enabled: false
   #   # Where the write role applies. List namespaces to bind it with one
   #   # RoleBinding in each and nowhere else; the agent refuses a write
@@ -1577,6 +1602,7 @@ aiAgent:
   # # ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION,
   # # ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES,
   # # ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_AI_AGENT_POD_NAMESPACE,
+  # # ONEUPTIME_AI_INVESTIGATION, ONEUPTIME_AI_FIXES,
   # # HOME, KUBECACHEDIR, PORT) fail the render instead of silently replacing
   # # the chart's value. Unset, a stored aiAccess.extraEnv carries over; clear
   # # it with --set-json 'aiAgent.extraEnv=[]'.

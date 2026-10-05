@@ -1,5 +1,6 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -18,7 +19,10 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import CreateBy from "../Types/Database/CreateBy";
 import OneUptimeDate from "../../Types/Date";
@@ -30,9 +34,27 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The monitor status to switch to and every list a template carries are
+   * checked by this service's own hooks below, with
+   * ProjectScopedReferenceValidator and its own words.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "statusPages",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   public validateEventTemplate(template: Model): void {
@@ -124,6 +146,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     this.validateEventTemplate(createBy.data);
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -156,6 +180,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const newTemplate: QueryDeepPartialEntity<Model> = updateBy.data;
 
     const existingTemplates: Array<Model> = await this.findBy({

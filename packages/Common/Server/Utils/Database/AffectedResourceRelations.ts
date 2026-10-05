@@ -47,6 +47,22 @@ export function getAffectedResourceRelations(
   );
 }
 
+/*
+ * The names of the affected-resource lists `model` has: the lists a service
+ * that checks them itself, with getAffectedResourceRelations, names in
+ * ProjectReferencesService.getListsCheckedByService. Called from hooks,
+ * once every service above has loaded.
+ */
+export function getAffectedResourceColumns(
+  model: DatabaseBaseModel,
+): Array<string> {
+  return getAffectedResourceRelations(model).map(
+    (relation: ProjectScopedRelation): string => {
+      return relation.column;
+    },
+  );
+}
+
 function getAllAffectedResourceRelations(): Array<ProjectScopedRelation> {
   return [
     {

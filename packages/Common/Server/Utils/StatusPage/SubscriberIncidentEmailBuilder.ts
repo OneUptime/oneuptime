@@ -1,7 +1,6 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationTemplate from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
-import { StatusPageApiRoute } from "../../../ServiceRoute";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
@@ -27,6 +26,7 @@ import IncidentTemplateVariableBuilder, {
   IncidentStatusPageTemplateVariables,
   IncidentTemplateVariables,
 } from "./IncidentTemplateVariableBuilder";
+import StatusPageEmailLogo from "./StatusPageEmailLogo";
 
 /*
  * The email a status page's subscribers get about an incident - its subject
@@ -197,23 +197,6 @@ export default class SubscriberIncidentEmailBuilder {
       : data.statusPageUrl;
   }
 
-  // The status page's logo, for the default email, or "" when it has none.
-  public static getLogoUrl(data: {
-    statusPage: StatusPage;
-    host: Hostname;
-    httpProtocol: Protocol;
-  }): string {
-    const statusPageId: string | null =
-      data.statusPage.id?.toString() || data.statusPage._id?.toString() || null;
-
-    return data.statusPage.logoFileId && statusPageId
-      ? new URL(data.httpProtocol, data.host)
-          .addRoute(StatusPageApiRoute)
-          .addRoute(`/logo/${statusPageId}`)
-          .toString()
-      : "";
-  }
-
   /*
    * Which email a page's subscribers get: its custom template only when the
    * template has a body and the page sends through its own SMTP server.
@@ -264,7 +247,8 @@ export default class SubscriberIncidentEmailBuilder {
    * instance's host and protocol for the logo.
    *
    * The page needs what StatusPageSubscriberService.
-   * getStatusPagesToSendNotification reads: its names, logoFileId,
+   * getStatusPagesToSendNotification reads: its names, its logo with the
+   * logo's project (STATUS_PAGE_EMAIL_LOGO_SELECT),
    * isPublicStatusPage, smtpConfig and the footer text columns. The default
    * email paints the severity in its own colour when the incident was read
    * with incidentSeverity.color; without it the severity stays plain text.
@@ -370,7 +354,8 @@ export default class SubscriberIncidentEmailBuilder {
         IncidentTemplateVariableBuilder.getStatusPageName(statusPage),
       statusPageUrl: data.statusPageUrl,
       detailsUrl: data.detailsUrl,
-      logoUrl: this.getLogoUrl({
+      // "" when the page's logo route would not serve its logo.
+      logoUrl: StatusPageEmailLogo.getLogoUrl({
         statusPage: statusPage,
         host: data.host,
         httpProtocol: data.httpProtocol,

@@ -1,3 +1,4 @@
+import File from "Common/Models/DatabaseModels/File";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
@@ -425,6 +426,8 @@ function statusPage(overrides?: {
   pageTitle?: string;
   withoutPageTitle?: boolean;
   withLogo?: boolean;
+  // The project the logo was uploaded in; the page's own by default.
+  logoProjectId?: ObjectID | null;
   // Custom SMTP and Twilio, which Email and SMS need to use custom templates.
   withCustomSmtpAndSms?: boolean;
 }): StatusPage {
@@ -442,7 +445,22 @@ function statusPage(overrides?: {
   }
   page.onlyShowScopedIncidents = false;
   if (overrides?.withLogo) {
+    // Read as getStatusPagesToSendNotification reads it: with its project.
     page.logoFileId = LOGO_FILE_ID;
+
+    const logo: File = new File();
+    logo._id = LOGO_FILE_ID.toString();
+
+    const logoProjectId: ObjectID | null =
+      overrides.logoProjectId === undefined
+        ? PROJECT_ID
+        : overrides.logoProjectId;
+
+    if (logoProjectId) {
+      logo.projectId = logoProjectId;
+    }
+
+    page.logoFile = logo;
   }
   if (overrides?.withCustomSmtpAndSms) {
     (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
@@ -930,6 +948,21 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
     expect((sentMail()[0]!["vars"] as JSONObject)["logoUrl"]).toBe(
       "https://oneuptime.acme.com/status-page-api/logo/22222222-2222-4222-8222-222222222222",
     );
+  });
+
+  test("leaves the logo out of the email when the page's logo route would not serve it", async () => {
+    for (const logoProjectId of [ObjectID.generate(), null]) {
+      mock(MailService.sendMail).mockClear();
+      mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      ).mockResolvedValue([
+        statusPage({ withLogo: true, logoProjectId: logoProjectId }),
+      ] as never);
+
+      await runJob();
+
+      expect((sentMail()[0]!["vars"] as JSONObject)["logoUrl"]).toBe("");
+    }
   });
 
   test("an untitled episode gets the bare subject prefix, not 'undefined'", async () => {

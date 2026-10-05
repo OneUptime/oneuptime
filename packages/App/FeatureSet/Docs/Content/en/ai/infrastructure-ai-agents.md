@@ -8,6 +8,8 @@ These agents are the **resource AI agents**. Each resource's dashboard page has 
 - **Logs** — everything OneUptime AI did on the resource, newest first: each investigation with its incident or alert and its summary, each fix it proposed or ran, and every command it sent through the agent. (This page used to be called Insights.)
 - **AI agent** — whether the agent is connected, what AI may do on the resource (investigate, and how fixes run), anything that needs attention with the step that fixes it, and, in the **⋯** menu next to the agent's status, **Test connection** and **Reset agent**.
 
+The resource's **Overview** ends with an **AI agent** card that sums the AI agent page up: whether the agent is connected, whether investigation is on, how fixes run (**Off**, **Ask for approval**, **Automatic** or **Bypass approval**) and what needs attention, with a link to the AI agent page, where they are changed.
+
 ## How it relates to the Kubernetes AI agent
 
 Kubernetes clusters have their own agent, the Kubernetes AI agent, installed by the Kubernetes agent Helm chart — see [Cluster access — let OneUptime AI run kubectl](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl). Nothing on this page changes it. The resource AI agents follow the same design:
@@ -15,12 +17,12 @@ Kubernetes clusters have their own agent, the Kubernetes AI agent, installed by 
 - **The same tiers and modes.** Every command is **Read**, **SafeWrite**, **RiskyWrite** or **Denied**, and fixes are **Off**, **Ask for approval**, **Automatic** or **Bypass approval**, with the same meaning as on a cluster.
 - **The same three checks.** The same command policy is enforced by OneUptime's AI tools, again when OneUptime queues the command, and again by the agent before it runs anything.
 - **The same rule about credentials.** The agent uses only what its own environment and mounts give it. OneUptime never sends it a credential.
+- **The same defaults.** AI investigations are on by default: a resource starts with investigation on and fixes off, like a cluster, so OneUptime AI investigates with its agent as soon as it connects, and changes nothing until someone allows fixes (see [Connecting to OneUptime](#connecting-to-oneuptime)).
 
 What differs:
 
 - **One image for every resource.** `oneuptime/resource-ai-agent` serves all eight kinds of resource, and `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` says which one an agent serves. It runs next to the resource's collector as one more container, not from a Helm chart.
 - **Write access is an environment variable.** `ONEUPTIME_AI_ALLOW_WRITES=true` on the agent lets it apply fixes at all, and `ONEUPTIME_AI_WRITE_TARGETS` limits which containers, services, VMs, OSDs, sessions or units they may touch. On a cluster the chart's RBAC and `aiAgent.remediation.namespaces` do this.
-- **It starts switched off.** A resource starts with investigation and fixes off. The agent's first connection turns investigation on (see [Connecting to OneUptime](#connecting-to-oneuptime)).
 
 Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appears under Runbooks → Runners, and it is never used as a Bash or SSH host for runbooks.
 
@@ -113,9 +115,28 @@ If the collector still uses its default name (`docker-host`, `podman-host`, `doc
 
 It authenticates with the project's telemetry ingestion key — the first one set of `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` and `ONEUPTIME_SERVICE_TOKEN`, which the collectors already set — and receives a key of its own. All of its calls are HTTPS `POST`s to `<ONEUPTIME_URL>/resource-ai-agent-ingest/…`: it registers once at start, heartbeats every 30 seconds (it counts as online for 5 minutes after the last one), asks for work every 3 seconds, and signs off when it stops. A second agent with the same identity is refused while the first one is online: a container that stops cleanly signs off, so its replacement is admitted at once, but after a crash or a kill the replacement waits until the old one has been quiet for 5 minutes. If it is still refused after 10 minutes, another live agent uses the same identity: the agent logs an error saying so and asks only every 5 minutes until you give each resource its own name or stop the other agent. A project holds at most 250 resource AI agents, and at most 30 new ones register per hour. Once the 250 are reached, agents not heard from in 7 days are removed to make room for a new one (the resource keeps its AI settings, and such an agent that comes back simply registers again).
 
-On its first connection the agent turns **investigation** on for its resource and, if it allows writes (`ONEUPTIME_AI_ALLOW_WRITES=true`), sets **Fixes** to **Ask for approval**. It does this only on a resource whose AI settings nobody has changed yet: once someone saves them on the AI agent page, the agent never changes them again.
+**Investigation** is on for every resource from the start, so OneUptime AI investigates with the agent as soon as it connects. Beyond that, what AI may do on the resource is the agent's own setting (see [What AI may do, set by the agent](#what-ai-may-do-set-by-the-agent)). An agent that names neither setting uses its defaults: it turns **investigation** on for its resource and, if it allows writes (`ONEUPTIME_AI_ALLOW_WRITES=true`), sets **Fixes** to **Ask for approval**, else **Off**. Its defaults apply only to a resource whose AI settings nobody has chosen on the AI agent page: settings someone saved there stay as they are until the agent's configuration names them, so a resource whose **Investigate** switch someone turned off stays off. An agent older than these settings reports neither, and the AI agent page sets them, as before.
 
 **Reset agent**, in the same **⋯** menu on the AI agent page, makes OneUptime forget the agent's key once you confirm it; whatever held it is locked out, and the real agent registers again within a few minutes. The agent needs a OneUptime server of the same version as its image, or newer.
+
+### What AI may do, set by the agent
+
+Investigation and fixes are set where the agent runs — in the `.env` it shares with the collector, or its container's environment — and OneUptime follows them:
+
+| Variable                     | Default | What it does                                                                                                                                                                                                                                          |
+| ---------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_AI_INVESTIGATION` | empty   | `true` lets AI run the read-only commands below while it investigates; `false` keeps it to the data OneUptime already has. Empty: on.                                                                                                                 |
+| `ONEUPTIME_AI_FIXES`         | empty   | How AI may apply a fix: `off`, `ask-for-approval`, `automatic` or `bypass-approval` (see [Fix modes](#fix-modes)). Any mode but `off` also needs `ONEUPTIME_AI_ALLOW_WRITES=true`, and `off` keeps the agent read-only even with it. Empty: `ask-for-approval` when the agent allows writes, else `off`. |
+
+For example, to let AI apply fixes with a person approving each one:
+
+```bash
+ONEUPTIME_AI_INVESTIGATION=true
+ONEUPTIME_AI_FIXES=ask-for-approval
+ONEUPTIME_AI_ALLOW_WRITES=true
+```
+
+Then restart the agent (`docker compose up -d`, or run the collector's `install.sh` again with them set for a Docker or Podman host). The agent reports both when it registers and with every heartbeat, and OneUptime applies them to the resource at once. The resource's AI agent page then shows them read-only: **Change** shows these lines for the option you pick instead of saving anything, and OneUptime refuses a change made anywhere else — the API, Terraform, a master admin — while the agent sets them. The command allowlist stays on the page. A value the agent cannot read keeps that setting off, and the agent logs which one.
 
 ## What an investigation may run
 
@@ -192,11 +213,11 @@ Query text in the output is normalized — every string and number literal becom
 
 ## How fixes work
 
-Fixes are off until you turn them on, and that takes two switches: `ONEUPTIME_AI_ALLOW_WRITES=true` on the agent (see [Write access on the agent](#write-access-on-the-agent)), and **Fixes** on the resource's AI agent page. Either one alone changes nothing. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI Features), which it is unless someone turned it off.
+Fixes are off until you turn them on, and that takes two settings on the agent: `ONEUPTIME_AI_FIXES` set to a mode other than `off` (see [What AI may do, set by the agent](#what-ai-may-do-set-by-the-agent)), and `ONEUPTIME_AI_ALLOW_WRITES=true` (see [Write access on the agent](#write-access-on-the-agent)). Either one alone changes nothing. An agent older than `ONEUPTIME_AI_FIXES` takes **Fixes** from the resource's AI agent page instead. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI Features), which it is unless someone turned it off.
 
 ### Fix modes
 
-**Fixes** on the AI agent page have the same four settings as on a Kubernetes cluster:
+Fixes have the same four modes as on a Kubernetes cluster — `ONEUPTIME_AI_FIXES` writes them `off`, `ask-for-approval`, `automatic` and `bypass-approval`:
 
 - **Off** — AI only investigates.
 - **Ask for approval** — after the root cause analysis, OneUptime AI diagnoses with read commands and composes the smallest plan that addresses the cause, for example `docker restart web`. The plan appears on the incident or alert with its rationale, expected effect and rollback; a person approves it with one click, and OneUptime runs exactly those commands.
@@ -308,7 +329,7 @@ One valid entry per resource: `docker stop web` (Docker and Podman), `docker ser
 
 ### Who may change it
 
-Turning fixes on — any move from **Off**, **Ask for approval** included — and loosening them — switching to **Automatic** or **Bypass approval**, or adding an allowlist entry — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission, the same people who may create a fully automatic remediation rule. **Reset agent** takes the same people. Tightening — **Off**, a less autonomous mode, removing allowlist entries — and the **Investigate** switch are open to anyone who may edit the resource, and so is **Test connection**.
+While the agent sets investigation and fixes, they change where it runs, whoever you are, and what follows applies to the command allowlist alone. For an agent older than these settings, which leaves them to the AI agent page: turning fixes on — any move from **Off**, **Ask for approval** included — and loosening them — switching to **Automatic** or **Bypass approval**, or adding an allowlist entry — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission, the same people who may create a fully automatic remediation rule. **Reset agent** takes the same people. Tightening — **Off**, a less autonomous mode, removing allowlist entries — and the **Investigate** switch are open to anyone who may edit the resource, and so is **Test connection**.
 
 ## Write access on the agent
 
@@ -418,7 +439,10 @@ A missing setting does not crash the agent: it stays up and healthy, says what i
 | `Waiting for this …'s previous AI agent to go offline`                                | The old container did not sign off (a crash or a kill), so it counts as online for 5 minutes after its last heartbeat. Any longer: another agent uses this identity.        |
 | A warning that the name is the collector's default                                    | Give the resource a unique name on the collector and the agent.                                                                                                             |
 | `The agent cannot reach this … right now`                                             | Check the socket mount, the address, the credentials or the keyring the message names. The AI agent page shows the same reason.                                             |
-| `Refused by the …: … this agent is read-only`                                         | Set `ONEUPTIME_AI_ALLOW_WRITES=true` and restart the agent.                                                                                                                 |
+| `Refused by the …: … this agent is read-only`                                         | Set `ONEUPTIME_AI_ALLOW_WRITES=true` and `ONEUPTIME_AI_FIXES` to a mode other than `off`, and restart the agent.                                                            |
+| `ONEUPTIME_AI_FIXES="…" is not one of …, so AI fixes stay off`                        | Use `off`, `ask-for-approval`, `automatic` or `bypass-approval` (and `true` or `false` for `ONEUPTIME_AI_INVESTIGATION`); until then that setting stays off.             |
+| `ONEUPTIME_AI_FIXES=…, but … is not "true": the agent stays read-only`                | Set `ONEUPTIME_AI_ALLOW_WRITES=true` as well, or `ONEUPTIME_AI_FIXES=off`.                                                                                                  |
+| A save refused because what OneUptime AI may do is set by the agent                   | The agent sets investigation and fixes: change them where it runs. **Change** on the AI agent page shows the lines for each option.                                        |
 | A fix refused as `outside the targets` or because the agent `protects` a target       | Adjust `ONEUPTIME_AI_WRITE_TARGETS` or `ONEUPTIME_AI_PROTECTED_TARGETS`, or leave that change to a person.                                                                  |
 | `OneUptime sent … as …, but this agent's policy reads it as …`                        | The agent and OneUptime run different versions: run the agent image version that matches your server.                                                                       |
 | `pipes and redirects are not supported; run one command`                              | Expected: commands never run through a shell. The refusal tells OneUptime AI to run one command at a time.                                                                  |

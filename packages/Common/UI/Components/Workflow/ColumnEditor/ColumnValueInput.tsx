@@ -341,8 +341,8 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
       case ModelColumnControl.Color:
         return (
           <ColorPicker
-            value={props.text}
-            placeholder={props.placeholder || "#000000"}
+            layout="compact"
+            value={props.text || ""}
             ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}
             tabIndex={props.tabIndex}

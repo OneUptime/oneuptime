@@ -39,6 +39,15 @@ import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * TeamComplianceSettingService guards what a team compliance rule may say.
@@ -313,6 +322,7 @@ beforeEach(() => {
         countSeverities(ALERT_SEVERITIES_BY_PROJECT, countBy.query),
       );
     }) as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -3351,6 +3361,7 @@ describe("TeamComplianceSettingService - a severity delete pauses and marks the 
         incidentSeverityIds: [MAJOR_INCIDENT],
       },
     );
+    stubProjectDirectory({});
   });
 
   /*
@@ -5603,6 +5614,7 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
     jest
       .spyOn(ModelPermission, "checkUpdatePermissionByModel")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   test("a toggle is a plain column update: no hook reads, no relation write", async () => {

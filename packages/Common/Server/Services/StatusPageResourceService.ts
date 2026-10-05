@@ -5,7 +5,7 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
@@ -106,7 +106,7 @@ function duplicateResourceException(
   );
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -289,11 +289,13 @@ export class Service extends DatabaseService<Model> {
    * bulk add modal, and the API.
    *
    * The check is status-page-wide rather than per group: a monitor in two
-   * groups is still a monitor a visitor sees twice.
+   * groups is still a monitor a visitor sees twice. It reads the page in its
+   * own project only, so it says nothing about another project's page.
    */
   @CaptureSpan()
   public async isResourceAlreadyOnStatusPage(data: {
     statusPageId: ObjectID;
+    projectId: ObjectID;
     monitorId?: ObjectID | null | undefined;
     monitorGroupId?: ObjectID | null | undefined;
     excludeResourceId?: ObjectID | null | undefined;
@@ -304,6 +306,7 @@ export class Service extends DatabaseService<Model> {
 
     const query: Query<Model> = {
       statusPageId: data.statusPageId,
+      projectId: data.projectId,
     };
 
     if (data.monitorId) {
@@ -333,10 +336,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.statusPageId) {
       throw new BadDataException(
         "Status Page Resource statusPageId is required",
       );
+    }
+
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    if (!projectId) {
+      throw new BadDataException("Status Page Resource projectId is required");
     }
 
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
@@ -346,6 +358,7 @@ export class Service extends DatabaseService<Model> {
     if (
       await this.isResourceAlreadyOnStatusPage({
         statusPageId: createBy.data.statusPageId,
+        projectId: projectId,
         monitorId: target.monitorId,
         monitorGroupId: target.monitorGroupId,
       })
@@ -356,6 +369,7 @@ export class Service extends DatabaseService<Model> {
     if (!createBy.data.order) {
       const query: Query<Model> = {
         statusPageId: createBy.data.statusPageId,
+        projectId: projectId,
         statusPageGroupId:
           createBy.data.statusPageGroupId || QueryHelper.isNull(),
       };
@@ -490,6 +504,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Pointing an existing resource at a monitor the page already lists is the
      * same duplicate onBeforeCreate refuses, just reached from the edit form.
@@ -506,6 +522,9 @@ export class Service extends DatabaseService<Model> {
       const resourceBeingUpdated: Model | null = await this.findOneBy({
         query: {
           _id: updateBy.query._id!,
+          ...(updateBy.props.tenantId
+            ? { projectId: updateBy.props.tenantId }
+            : {}),
         },
         props: {
           isRoot: true,
@@ -513,6 +532,7 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           statusPageId: true,
+          projectId: true,
           monitorId: true,
           monitorGroupId: true,
         },
@@ -541,9 +561,11 @@ export class Service extends DatabaseService<Model> {
 
       if (
         resourceBeingUpdated?.statusPageId &&
+        resourceBeingUpdated.projectId &&
         !isTargetUnchanged &&
         (await this.isResourceAlreadyOnStatusPage({
           statusPageId: resourceBeingUpdated.statusPageId,
+          projectId: resourceBeingUpdated.projectId,
           monitorId: updatedTarget.monitorId,
           monitorGroupId: updatedTarget.monitorGroupId,
           excludeResourceId: resourceBeingUpdated.id,

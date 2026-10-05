@@ -539,6 +539,157 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorSecretAccessPostgres.test.ts --forceExit
 
+      # Opt-in suites that ran nowhere until now (wired 2026-10-05). Several cover
+      # write paths reworked that day: the permission check before hooks, the
+      # project reference checks and the permission list corrections. Each clones
+      # what it needs into its own schema or rolls back, like the steps above.
+      - name: Test dashboard label filters (any-of label groups) on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DASHBOARD_LABEL_TESTS: "true"
+          DASHBOARD_LABEL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DASHBOARD_LABEL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DASHBOARD_LABEL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Database/QueryUtilIncludesAnyOfGroupsPostgres.test.ts
+          --forceExit
+
+      - name: Test the inventory overview and status facets on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INVENTORY_FACET_TESTS: "true"
+          INVENTORY_FACET_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INVENTORY_FACET_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INVENTORY_FACET_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/InventoryOverviewPostgres.test.ts
+          Tests/Server/Types/Database/InventoryStatusPostgres.test.ts
+          --forceExit
+
+      - name: Test routine email settings on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NOTIFICATION_TESTS: "true"
+          NOTIFICATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NOTIFICATION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NOTIFICATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RoutineEmailSettingsPostgres.test.ts
+          --forceExit
+
+      - name: Test who may create on-call policy children on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_AUTHORIZATION_TESTS: "true"
+          ON_CALL_AUTHORIZATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_AUTHORIZATION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_AUTHORIZATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallChildCreateAuthorizationPostgres.test.ts
+          --forceExit
+
+      - name: Test permission blocks on delete on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PERMISSION_BLOCK_TESTS: "true"
+          PERMISSION_BLOCK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PERMISSION_BLOCK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PERMISSION_BLOCK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PermissionBlockDeletionPostgres.test.ts
+          --forceExit
+
+      - name: Test project data residency on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_DATA_RESIDENCY_TESTS: "true"
+          PROJECT_DATA_RESIDENCY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_DATA_RESIDENCY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_DATA_RESIDENCY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectDataResidencyPostgres.test.ts
+          --forceExit
+
+      - name: Test the resource AI investigation default migration on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RESOURCE_AI_INVESTIGATION_TESTS: "true"
+          RESOURCE_AI_INVESTIGATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RESOURCE_AI_INVESTIGATION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RESOURCE_AI_INVESTIGATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/TurnOnResourceAiInvestigationByDefaultPostgres.test.ts
+          --forceExit
+
+      - name: Test the configurable rule criteria migration on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_CRITERIA_MIGRATION_TESTS: "true"
+          RULE_CRITERIA_MIGRATION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_CRITERIA_MIGRATION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_CRITERIA_MIGRATION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddConfigurableRuleCriteriaMigration.test.ts
+          --forceExit
+
+      - name: Test the SLO monitor type on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SLO_MONITOR_TYPE_TESTS: "true"
+          SLO_MONITOR_TYPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SLO_MONITOR_TYPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SLO_MONITOR_TYPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ServiceLevelObjectiveMonitorTypePostgres.test.ts
+          --forceExit
+
+      - name: Test private status page user reads on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATUS_PAGE_PRIVACY_TESTS: "true"
+          STATUS_PAGE_PRIVACY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATUS_PAGE_PRIVACY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATUS_PAGE_PRIVACY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPagePrivateUserReadAccessPostgres.test.ts
+          --forceExit
+
+      - name: Test team member reads across tenants on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TEAM_MEMBER_PERMISSION_TESTS: "true"
+          TEAM_MEMBER_PERMISSION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAM_MEMBER_PERMISSION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAM_MEMBER_PERMISSION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TeamMemberMultiTenantReadPostgres.test.ts
+          --forceExit
+
+      - name: Test workflow OAuth variables on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_VARIABLE_OAUTH_TESTS: "true"
+          WORKFLOW_VARIABLE_OAUTH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_VARIABLE_OAUTH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_VARIABLE_OAUTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+          DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WorkflowVariableOAuthPostgres.test.ts
+          --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

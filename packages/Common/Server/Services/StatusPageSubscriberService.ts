@@ -12,7 +12,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -20,7 +20,6 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
 import { STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageArchive";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
@@ -63,6 +62,9 @@ import StatusPageSubscriberUnsubscribeNotice, {
   StatusPageSubscriberUnsubscribeNoticeEmail,
   StatusPageSubscriberUnsubscribeSource,
 } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+import StatusPageEmailLogo, {
+  STATUS_PAGE_EMAIL_LOGO_SELECT,
+} from "../Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -152,7 +154,7 @@ export interface StatusPageSubscriberUnsubscribeBackfillResult {
   markedAddedByTeam: number;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -230,6 +232,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
     logger.debug("onBeforeCreate called with data:", {
       projectId: data.data.projectId?.toString(),
       statusPageId: data.data.statusPageId?.toString(),
@@ -330,6 +334,7 @@ export class Service extends DatabaseService<Model> {
       contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
+          projectId: projectId,
           subscriberEmail: data.data.subscriberEmail,
         },
         select: {
@@ -378,6 +383,7 @@ export class Service extends DatabaseService<Model> {
       contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
+          projectId: projectId,
           subscriberPhone: data.data.subscriberPhone,
         },
         select: {
@@ -635,6 +641,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
     )?.["isUnsubscribed"];
@@ -1514,7 +1522,7 @@ Stay informed about service availability! 🚀`;
         _id: subscriber.statusPageId.toString(),
       },
       select: {
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         isPublicStatusPage: true,
         pageTitle: true,
         name: true,
@@ -1574,8 +1582,6 @@ Stay informed about service availability! 🚀`;
     logger.debug(`HTTP Protocol: ${httpProtocol}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
-    const statusPageIdString: string | null =
-      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     const confirmSubscriptionLink: string = this.getConfirmSubscriptionLink({
       statusPageUrl: statusPageURL,
@@ -1661,13 +1667,11 @@ Stay informed about service availability! 🚀`;
             templateType: EmailTemplateType.ConfirmStatusPageSubscription,
             vars: {
               statusPageName: statusPageName,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               statusPageUrl: statusPageURL,
               isPublicStatusPage: statusPage.isPublicStatusPage
                 ? "true"
@@ -1750,7 +1754,7 @@ Stay informed about service availability! 🚀`;
         _id: subscriber.statusPageId.toString(),
       },
       select: {
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         isPublicStatusPage: true,
         pageTitle: true,
         name: true,
@@ -1810,8 +1814,6 @@ Stay informed about service availability! 🚀`;
     logger.debug(`HTTP Protocol: ${httpProtocol}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
-    const statusPageIdString: string | null =
-      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
@@ -1886,13 +1888,11 @@ Stay informed about service availability! 🚀`;
             templateType: EmailTemplateType.SubscribedToStatusPage,
             vars: {
               statusPageName: statusPageName,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               statusPageUrl: statusPageURL,
               isPublicStatusPage: statusPage.isPublicStatusPage
                 ? "true"
@@ -2543,7 +2543,7 @@ Stay informed about service availability! 🚀`;
         pageTitle: true,
         projectId: true,
         isPublicStatusPage: true,
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         allowSubscribersToChooseResources: true,
         subscriberEmailNotificationFooterText: true,
         enableCustomSubscriberEmailNotificationFooterText: true,

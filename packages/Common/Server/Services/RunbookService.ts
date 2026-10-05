@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import RunbookLabelRuleEngineService from "./RunbookLabelRuleEngineService";
 import RunbookOwnerRuleEngineService from "./RunbookOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Runbook";
@@ -6,7 +6,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

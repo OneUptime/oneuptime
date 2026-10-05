@@ -203,26 +203,33 @@ const createFromForm: (
     .fill(data.name);
   await modal.locator("textarea").first().fill(data.description);
 
-  // The colour is already picked: Create works without touching it.
-  const colorBox: Locator = modal.getByPlaceholder("Please select a color.", {
-    exact: true,
-  });
-  await expect(colorBox).toHaveValue(/^#[0-9a-f]{6}$/);
+  /*
+   * The colour is already picked - one of the swatches, ticked - so Create
+   * works without touching it. The field holds its colour as data-value.
+   */
+  const colorField: Locator = modal.getByTestId("color-picker");
+  await expect(colorField).toHaveAttribute("data-value", /^#[0-9a-f]{6}$/);
+  await expect(colorField.getByRole("radio", { checked: true })).toHaveCount(1);
 
   if (data.color) {
-    await colorBox.click();
-    const picker: Locator = page.getByTestId("color-picker-popup");
-    await expect(picker).toBeVisible();
-    // The picker's hex box: a whole hex is taken as it is typed.
-    await picker.locator("input").first().fill(data.color);
-    // Escape closes the picker, not the form.
-    await page.keyboard.press("Escape");
-    await expect(picker).toBeHidden();
+    // An exact colour: Custom color, and its code box.
+    await colorField.getByTestId("color-picker-custom").click();
+    const code: Locator = colorField.getByRole("textbox", {
+      name: "Color code",
+    });
+    await code.fill(data.color);
+    await code.press("Enter");
+    // Escape puts the fine picker away, not the form.
+    await code.press("Escape");
+    await expect(
+      colorField.getByTestId("color-picker-custom-panel"),
+    ).toBeHidden();
     await expect(modal).toBeVisible();
-    await expect(colorBox).toHaveValue(data.color);
+    await expect(colorField).toHaveAttribute("data-value", data.color);
   }
 
-  const savedColor: string = await colorBox.inputValue();
+  const savedColor: string =
+    (await colorField.getAttribute("data-value")) || "";
 
   const submit: Locator = modal.getByTestId("modal-footer-submit-button");
   await submit.click();

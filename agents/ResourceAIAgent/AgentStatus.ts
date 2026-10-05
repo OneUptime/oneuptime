@@ -1,5 +1,6 @@
 import { AgentPosture } from "./Posture";
 import AiResourceType from "./Common/Types/ResourceAiAgent/AiResourceType";
+import { AGENT_AI_FIXES_SETTING_VALUES } from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * What the agent knows about itself right now, for GET /status: the first
@@ -43,6 +44,15 @@ export interface AgentStatusSnapshot {
   toolVersion: string | null;
   reachable: boolean | null;
   reachError: string | null;
+  /*
+   * What this agent lets OneUptime AI do, as reported (null before the
+   * first report), and whether its configuration names it (false: these
+   * are the agent's defaults, which apply only where nobody chose the
+   * settings on the resource's AI agent page).
+   */
+  aiInvestigation: boolean | null;
+  aiFixes: string | null;
+  aiSettingsConfigured: boolean | null;
   runningJobId: string | null;
   jobsRun: number;
   lastJobAt: string | null;
@@ -124,6 +134,15 @@ export default class AgentStatus {
       toolVersion: this.posture?.toolVersion || null,
       reachable: this.posture ? this.posture.reachable : null,
       reachError: this.posture?.reachError || null,
+      aiInvestigation: this.posture?.aiSettings
+        ? this.posture.aiSettings.investigation
+        : null,
+      aiFixes: this.posture?.aiSettings
+        ? AGENT_AI_FIXES_SETTING_VALUES[this.posture.aiSettings.fixes]
+        : null,
+      aiSettingsConfigured: this.posture?.aiSettings
+        ? this.posture.aiSettings.isConfigured
+        : null,
       runningJobId: this.runningJobId,
       jobsRun: this.jobsRun,
       lastJobAt: toIso(this.lastJobAt),

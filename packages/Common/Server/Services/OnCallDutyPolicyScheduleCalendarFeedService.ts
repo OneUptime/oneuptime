@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import CalendarFeedToken, {
   CalendarFeedRotation,
@@ -47,7 +47,7 @@ export const MAX_MINIMUM_GAP_MINUTES: number = 7 * 24 * 60;
  * calendar API and the team-member cleanup respectively; cache purging stays
  * with the caller.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -56,6 +56,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
 
@@ -135,6 +137,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (updateBy.data.pastDays !== undefined) {
       updateBy.data.pastDays = CalendarFeedWindow.clampPastDays(
         updateBy.data.pastDays,

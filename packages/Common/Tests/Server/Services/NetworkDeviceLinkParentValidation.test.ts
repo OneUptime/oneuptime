@@ -7,7 +7,16 @@ import ObjectID from "../../../Types/ObjectID";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
-import { describe, expect, it, afterEach } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - the declared-parent invariant on NetworkDeviceLink
@@ -135,8 +144,10 @@ function mockStoredLinks(links: Array<NetworkDeviceLink>): jest.SpyInstance {
   /*
    * Installed alongside, so a test about the PARENT invariant is never
    * incidentally failed by the tenancy check on an end it moved to set
-   * the scene. Tests about tenancy itself re-stub this.
+   * the scene. Tests about tenancy itself re-stub this. The devices a test
+   * names are its project's too (ProjectReferencesService).
    */
+  stubProjectDirectory({});
   mockProjectDevicesExist();
   return jest
     .spyOn(NetworkDeviceLinkService, "findBy")
@@ -813,7 +824,15 @@ describe("NetworkDeviceLinkService.onBeforeUpdate (declared parent)", () => {
       makeUpdateBy({ fromDeviceId: DEVICE_C_ID }),
     );
 
-    const select: any = findBySpy.mock.calls[0]![0].select;
+    /*
+     * The service's own read - a root update without a tenant first reads
+     * what the matched links hold (ProjectReferenceCheck).
+     */
+    const select: any = (
+      findBySpy.mock.calls.find((call: Array<any>): boolean => {
+        return Boolean(call[0].select.toDeviceId);
+      }) as Array<any>
+    )[0].select;
     expect(select.fromDeviceId).toBe(true);
     expect(select.toDeviceId).toBe(true);
     expect(select.parentDeviceId).toBe(true);

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IoTFleetLabelRuleEngineService from "./IoTFleetLabelRuleEngineService";
 import IoTFleetOwnerRuleEngineService from "./IoTFleetOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/IoTFleet";
@@ -35,7 +35,7 @@ const IOT_FLEET_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "IoT fleet",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

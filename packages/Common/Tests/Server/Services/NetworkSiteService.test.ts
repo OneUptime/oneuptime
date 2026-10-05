@@ -30,6 +30,15 @@ import {
 } from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
 import { AggregateColumn } from "../../../Server/Types/Database/AggregateBy";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * NetworkSiteService only needs the type service's findOneById boundary.
@@ -3669,6 +3678,7 @@ describe("NetworkSiteService hierarchy mutation lock", () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

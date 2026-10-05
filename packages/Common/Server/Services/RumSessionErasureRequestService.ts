@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   RumSessionErasureRequestStatus,
   RumSessionErasureRequestType,
@@ -21,7 +21,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * be executed is worse than a rejected one - the requester believes their
  * data is gone.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -30,6 +30,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const requestType: RumSessionErasureRequestType | undefined =
       createBy.data.requestType;
 

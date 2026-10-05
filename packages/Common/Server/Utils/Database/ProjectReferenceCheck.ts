@@ -4,6 +4,7 @@ import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -13,6 +14,7 @@ import ProjectScopedReferenceValidator, {
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedReferenceException,
+  readRowColumn,
   resolveReferenceId,
   resolveReferenceIds,
 } from "./ProjectScopedReferenceValidator";
@@ -145,7 +147,9 @@ export default class ProjectReferenceCheck {
 
       columns.push({
         column: column,
-        idColumn: isRelation ? metadata.manyToOneRelationColumn : undefined,
+        idColumn: isRelation
+          ? ProjectReferenceCheck.getIdColumn(model, column, metadata)
+          : undefined,
         isList: isList,
         modelName: metadata.title || referencedModel.singularName || column,
         service: ProjectScopedReferenceValidator.getLookupService(
@@ -160,20 +164,57 @@ export default class ProjectReferenceCheck {
   }
 
   /*
-   * The reference columns a write is checked on: all of them, but for single
-   * relations the service checks itself. A list is always checked.
+   * The id column a relation is written through. A few user-owned models
+   * (UserNotificationRule, the notification methods) name the relation
+   * itself as its id column in the metadata - `user` for `user` - while the
+   * column holding the id is `userId`; reading the relation twice would miss
+   * a payload that sends the id.
+   */
+  private static getIdColumn(
+    model: DatabaseBaseModel,
+    column: string,
+    metadata: TableColumnMetadata,
+  ): string | undefined {
+    const idColumn: string | undefined = metadata.manyToOneRelationColumn;
+
+    if (idColumn === column && model.hasColumn(`${column}Id`)) {
+      return `${column}Id`;
+    }
+
+    return idColumn;
+  }
+
+  /*
+   * The reference columns a write is checked on: all of them, but for the
+   * relations and lists the service checks itself (see
+   * ProjectReferencesService.getRelationsCheckedByService and
+   * getListsCheckedByService).
    */
   public static getCheckedColumns(
     model: DatabaseBaseModel,
     relationsCheckedByService?: Array<string> | undefined,
+    listsCheckedByService?: Array<string> | undefined,
   ): Array<ProjectReferenceColumn> {
-    const skipped: Array<string> = relationsCheckedByService || [];
+    const skippedRelations: Array<string> = relationsCheckedByService || [];
+    const skippedLists: Array<string> = listsCheckedByService || [];
 
     return ProjectReferenceCheck.getReferenceColumns(model).filter(
       (column: ProjectReferenceColumn): boolean => {
-        return column.isList || !skipped.includes(column.column);
+        return column.isList
+          ? !skippedLists.includes(column.column)
+          : !skippedRelations.includes(column.column);
       },
     );
+  }
+
+  /*
+   * A write OneUptime makes itself: as root, with no project on the request
+   * - a job, an engine, a service's own helper. Requests made in a project
+   * carry it: an API call, and a workflow, which writes as root with its
+   * project's tenant. A master admin is a person, not the server.
+   */
+  public static isServerWrite(props: DatabaseCommonInteractionProps): boolean {
+    return Boolean(props.isRoot) && !props.tenantId;
   }
 
   // "host owner rule": how the error names the record being written.
@@ -193,8 +234,16 @@ export default class ProjectReferenceCheck {
     createBy: CreateBy<TModel>;
     // See ProjectReferencesService.getRelationsCheckedByService.
     relationsCheckedByService?: Array<string> | undefined;
+    // See ProjectReferencesService.getListsCheckedByService.
+    listsCheckedByService?: Array<string> | undefined;
     // See ProjectReferencesService.getJsonReferenceColumns.
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
+    /*
+     * Runs once the write is known to name something to look up, right
+     * before the first read (see ProjectReferencesService
+     * .checksCreatePermissionFirst). Not run when nothing is read.
+     */
+    beforeReading?: (() => void) | undefined;
   }): Promise<void> {
     const model: DatabaseBaseModel = data.service.getModel();
     const tenantColumn: string | null = model.getTenantColumn();
@@ -208,20 +257,23 @@ export default class ProjectReferenceCheck {
 
     const projectId: ObjectID | undefined =
       data.createBy.props.tenantId ||
-      ProjectReferenceCheck.toObjectID(
-        resolveReferenceId(record[tenantColumn]),
-      );
+      ProjectReferenceCheck.getRecordProjectId(model, record);
 
     const references: Array<ColumnReference> =
       ProjectReferenceCheck.getWrittenReferences({
         model: model,
         payload: record,
         relationsCheckedByService: data.relationsCheckedByService,
+        listsCheckedByService: data.listsCheckedByService,
         jsonReferenceColumns: data.jsonReferenceColumns,
       });
 
-    if (references.length === 0) {
+    if (references.length === 0 || !projectId) {
       return;
+    }
+
+    if (data.beforeReading) {
+      data.beforeReading();
     }
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -252,6 +304,8 @@ export default class ProjectReferenceCheck {
     updateBy: UpdateBy<TModel>;
     // See ProjectReferencesService.getRelationsCheckedByService.
     relationsCheckedByService?: Array<string> | undefined;
+    // See ProjectReferencesService.getListsCheckedByService.
+    listsCheckedByService?: Array<string> | undefined;
     // See ProjectReferencesService.getJsonReferenceColumns.
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Promise<void> {
@@ -267,6 +321,7 @@ export default class ProjectReferenceCheck {
         model: model,
         payload: (data.updateBy.data || {}) as unknown as Dictionary<unknown>,
         relationsCheckedByService: data.relationsCheckedByService,
+        listsCheckedByService: data.listsCheckedByService,
         jsonReferenceColumns: data.jsonReferenceColumns,
       });
 
@@ -399,6 +454,7 @@ export default class ProjectReferenceCheck {
     model: DatabaseBaseModel;
     payload: Dictionary<unknown>;
     relationsCheckedByService?: Array<string> | undefined;
+    listsCheckedByService?: Array<string> | undefined;
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Array<ColumnReference> {
     const references: Array<ColumnReference> = [];
@@ -406,6 +462,7 @@ export default class ProjectReferenceCheck {
     for (const column of ProjectReferenceCheck.getCheckedColumns(
       data.model,
       data.relationsCheckedByService,
+      data.listsCheckedByService,
     )) {
       for (const id of ProjectReferenceCheck.getWrittenIds(
         data.payload,
@@ -509,7 +566,7 @@ export default class ProjectReferenceCheck {
 
       for (const record of records) {
         const projectId: string = normalizeId(
-          record.getValue<ObjectID>(tenantColumn)?.toString() || "",
+          readRowColumn(record, tenantColumn)?.toString() || "",
         );
 
         if (!projectId) {
@@ -518,7 +575,7 @@ export default class ProjectReferenceCheck {
 
         const heldByRecord: Set<string> = new Set<string>(
           jsonColumn
-            .getReferences(record.getValue(jsonColumn.column))
+            .getReferences(readRowColumn(record, jsonColumn.column))
             .map((reference: ProjectScopedReference): string => {
               return normalizeId(reference.id?.toString() || "");
             }),
@@ -548,6 +605,43 @@ export default class ProjectReferenceCheck {
     }
 
     return heldIds;
+  }
+
+  /*
+   * The project a record being created names for itself: its tenant column,
+   * or - when a root write sends the relation instead (`project: { _id }`),
+   * which TypeORM saves to the same column - that relation.
+   */
+  private static getRecordProjectId(
+    model: DatabaseBaseModel,
+    record: Dictionary<unknown>,
+  ): ObjectID | undefined {
+    const tenantColumn: string = model.getTenantColumn()!;
+
+    const fromColumn: ObjectID | undefined = ProjectReferenceCheck.toObjectID(
+      resolveReferenceId(record[tenantColumn]),
+    );
+
+    if (fromColumn) {
+      return fromColumn;
+    }
+
+    for (const column of model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(column);
+
+      if (
+        metadata?.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn === tenantColumn &&
+        column !== tenantColumn
+      ) {
+        return ProjectReferenceCheck.toObjectID(
+          resolveReferenceId(record[column]),
+        );
+      }
+    }
+
+    return undefined;
   }
 
   private static toObjectID(

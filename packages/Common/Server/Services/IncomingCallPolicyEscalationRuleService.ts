@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -7,7 +7,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import IncomingCallPolicyEscalationRule from "../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 
-export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
+export class Service extends ProjectReferencesService<IncomingCallPolicyEscalationRule> {
   public constructor() {
     super(IncomingCallPolicyEscalationRule);
   }
@@ -15,6 +15,8 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncomingCallPolicyEscalationRule>,
   ): Promise<OnCreate<IncomingCallPolicyEscalationRule>> {
+    await super.onBeforeCreate(createBy);
+
     // Validate mutual exclusivity: either userId OR onCallDutyPolicyScheduleId must be set
     const hasUser: boolean = Boolean(createBy.data.userId);
     const hasSchedule: boolean = Boolean(
@@ -88,6 +90,8 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncomingCallPolicyEscalationRule>,
   ): Promise<OnUpdate<IncomingCallPolicyEscalationRule>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Enforce user/schedule mutual exclusivity on update (parity with onBeforeCreate).
      * Only runs when the update actually touches one of the routing-target fields, so
