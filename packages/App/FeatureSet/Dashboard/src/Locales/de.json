@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "{{count}} in den letzten {{days}} Tagen erstellter Vorfall wurde nicht untersucht.",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} Untersuchungen, {{failed}} fehlgeschlagen",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} stand hinter {{shown}} der {{count}} Untersuchungen hier.",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} stand hinter {{shown}} von {{count}} Untersuchung hier."
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} stand hinter {{shown}} von {{count}} Untersuchung hier.",
+  "The project had reached its own daily AI limit.": "Das Projekt hatte sein eigenes tägliches KI-Limit erreicht."
 }

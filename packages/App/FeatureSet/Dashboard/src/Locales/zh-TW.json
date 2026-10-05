@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "過去 {{days}} 天內建立的 {{count}} 個事件未被調查。",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}：{{investigations}} 次調查，{{failed}} 次失敗",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "此處 {{count}} 次調查中有 {{shown}} 次由 {{name}} 引發。",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "此處 {{count}} 次調查中有 {{shown}} 次由 {{name}} 引發。"
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "此處 {{count}} 次調查中有 {{shown}} 次由 {{name}} 引發。",
+  "The project had reached its own daily AI limit.": "專案已達到其自身的每日 AI 限額。"
 }

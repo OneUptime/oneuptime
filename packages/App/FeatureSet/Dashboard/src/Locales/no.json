@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "{{count}} hendelse opprettet de siste {{days}} dagene ble ikke undersøkt.",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} undersøkelser, {{failed}} mislyktes",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} sto bak {{shown}} av de {{count}} undersøkelsene her.",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} sto bak {{shown}} av {{count}} undersøkelse her."
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} sto bak {{shown}} av {{count}} undersøkelse her.",
+  "The project had reached its own daily AI limit.": "Prosjektet hadde nådd sin egen daglige AI-grense."
 }

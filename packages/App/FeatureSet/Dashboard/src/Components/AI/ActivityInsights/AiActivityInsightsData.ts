@@ -882,6 +882,9 @@ export const NOT_INVESTIGATED_REASONS: Record<
     insufficient_ai_balance: translationKey(
       "The project ran out of AI credits.",
     ),
+    project_daily_limit_reached: translationKey(
+      "The project had reached its own daily AI limit.",
+    ),
     severity_below_threshold: translationKey(
       "They were below the minimum severity to investigate.",
     ),
@@ -910,6 +913,9 @@ export const NOT_INVESTIGATED_REASONS: Record<
     ),
     insufficient_ai_balance: translationKey(
       "The project ran out of AI credits.",
+    ),
+    project_daily_limit_reached: translationKey(
+      "The project had reached its own daily AI limit.",
     ),
     severity_below_threshold: translationKey(
       "They were below the minimum severity to investigate.",

@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "{{count}} incident dat in de afgelopen {{days}} dagen is aangemaakt, is niet onderzocht.",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} onderzoeken, {{failed}} mislukt",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} zat achter {{shown}} van de {{count}} onderzoeken hier.",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} zat achter {{shown}} van {{count}} onderzoek hier."
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} zat achter {{shown}} van {{count}} onderzoek hier.",
+  "The project had reached its own daily AI limit.": "Het project had zijn eigen dagelijkse AI-limiet bereikt."
 }

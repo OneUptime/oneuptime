@@ -1234,6 +1234,7 @@ describe("build: what needs attention", () => {
   test.each([
     ["provider_missing", AiActivityAttentionSeverity.High],
     ["insufficient_ai_balance", AiActivityAttentionSeverity.High],
+    ["project_daily_limit_reached", AiActivityAttentionSeverity.High],
     ["daily_budget_exhausted", AiActivityAttentionSeverity.High],
     ["ai_disabled", AiActivityAttentionSeverity.Medium],
     ["enqueue_failed", AiActivityAttentionSeverity.Medium],

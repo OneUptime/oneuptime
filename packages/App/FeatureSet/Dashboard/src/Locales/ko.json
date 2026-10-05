@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "지난 {{days}}일 동안 생성된 인시던트 {{count}}건이 조사되지 않았습니다.",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: 조사 {{investigations}}건, 실패 {{failed}}건",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "이곳의 조사 {{count}}건 중 {{shown}}건이 {{name}}에서 비롯되었습니다.",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "이곳의 조사 {{count}}건 중 {{shown}}건이 {{name}}에서 비롯되었습니다."
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "이곳의 조사 {{count}}건 중 {{shown}}건이 {{name}}에서 비롯되었습니다.",
+  "The project had reached its own daily AI limit.": "프로젝트 자체의 일일 AI 한도에 도달했습니다."
 }

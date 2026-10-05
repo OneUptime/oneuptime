@@ -150,6 +150,7 @@ const NOT_STARTED_SEVERITY: Partial<
 > = {
   provider_missing: AiActivityAttentionSeverity.High,
   insufficient_ai_balance: AiActivityAttentionSeverity.High,
+  project_daily_limit_reached: AiActivityAttentionSeverity.High,
   daily_budget_exhausted: AiActivityAttentionSeverity.High,
   budget_check_failed: AiActivityAttentionSeverity.Medium,
   enqueue_failed: AiActivityAttentionSeverity.Medium,

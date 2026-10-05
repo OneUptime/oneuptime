@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "{{count}} incident created in the last {{days}} days was not investigated.",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} investigations, {{failed}} failed",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} was behind {{shown}} of the {{count}} investigations here.",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} was behind {{shown}} of the {{count}} investigation here."
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} was behind {{shown}} of the {{count}} investigation here.",
+  "The project had reached its own daily AI limit.": "The project had reached its own daily AI limit."
 }

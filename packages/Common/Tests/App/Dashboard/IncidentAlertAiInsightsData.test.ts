@@ -65,6 +65,7 @@ const ALL_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "automatic_investigation_disabled",
   "provider_missing",
   "insufficient_ai_balance",
+  "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
   "daily_budget_exhausted",
@@ -541,6 +542,23 @@ describe("why incidents were not investigated", () => {
       expect(sentence).toMatch(/^[A-Z].*\.$/);
     },
   );
+
+  test("every reason the server records has a sentence, for both products", () => {
+    for (const subjectKind of INCIDENT_ALERT_AI_SUBJECT_KINDS) {
+      expect(Object.keys(NOT_INVESTIGATED_REASONS[subjectKind]).sort()).toEqual(
+        [...ALL_REASON_CODES].sort(),
+      );
+    }
+  });
+
+  test("a project that reached its own daily AI limit says so", () => {
+    expect(
+      describeNotInvestigatedReason("incident", "project_daily_limit_reached"),
+    ).toBe("The project had reached its own daily AI limit.");
+    expect(
+      describeNotInvestigatedReason("alert", "project_daily_limit_reached"),
+    ).toBe("The project had reached its own daily AI limit.");
+  });
 
   test("only the automatic switch names the product", () => {
     for (const code of ALL_REASON_CODES) {

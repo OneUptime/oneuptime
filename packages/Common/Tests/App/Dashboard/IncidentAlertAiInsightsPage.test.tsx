@@ -494,6 +494,35 @@ describe.each(
       );
     });
 
+    test("a skip because the project reached its own daily AI limit points at Project Settings → AI Features", async () => {
+      serve(
+        ok(
+          insights(product, {
+            attention: [
+              {
+                kind: AiActivityAttentionKind.InvestigationsNotStarted,
+                severity: AiActivityAttentionSeverity.High,
+                count: 3,
+                reason: "project_daily_limit_reached",
+              },
+            ],
+          }),
+        ),
+      );
+      openPage(product);
+
+      await findTestId("ai-insights-attention");
+
+      const [item] = attentionItems() as [HTMLElement];
+
+      expect(
+        within(item).getByTestId("ai-insights-attention-detail"),
+      ).toHaveTextContent("The project had reached its own daily AI limit.");
+      expect(
+        hrefOf(within(item).getByText("Go to Project Settings → AI Features")),
+      ).toBe(pathOf(PageMap.SETTINGS_AI_FEATURES));
+    });
+
     test("anyone else is told who can act; a check that failed on its own offers nothing", async () => {
       setPermissions([Permission.ProjectMember]);
       serve(

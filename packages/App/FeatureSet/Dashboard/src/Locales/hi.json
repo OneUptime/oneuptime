@@ -25310,5 +25310,6 @@
   "{{count}} incidents created in the last {{days}} days were not investigated._one": "पिछले {{days}} दिनों में बनाई गई {{count}} घटना की जांच नहीं हुई।",
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} जांचें, {{failed}} विफल",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "यहां की {{count}} जांचों में से {{shown}} के पीछे {{name}} था।",
-  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "यहां की {{count}} जांच में से {{shown}} के पीछे {{name}} था।"
+  "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "यहां की {{count}} जांच में से {{shown}} के पीछे {{name}} था।",
+  "The project had reached its own daily AI limit.": "प्रोजेक्ट अपनी दैनिक AI सीमा तक पहुंच गया था।"
 }
