@@ -239,6 +239,8 @@ const SideOver: FunctionComponent<ComponentProps> = (
             <div
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-6"
               data-testid="side-over-content"
+              // Popups that stay inside their surroundings stay in this body.
+              data-anchored-popup-boundary="true"
             >
               {/*
                * The bottom padding is kept at every width. It used to go with

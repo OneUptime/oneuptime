@@ -6,6 +6,7 @@ import BasicForm, {
   FormSummaryConfig,
 } from "./BasicForm";
 import Fields from "./Types/Fields";
+import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
@@ -87,7 +88,13 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
           ) as string;
         }
 
+        /*
+         * A color column's description tells an API reader how to write a
+         * color ("in Hex (#32a852 for example)"). The form's swatches need no
+         * such instructions, so FormField says something plainer instead.
+         */
         if (
+          field.fieldType !== FormFieldSchemaType.Color &&
           props.model.getDisplayColumnDescriptionAs(
             Object.keys(field.field || {})[0] as string,
           ) &&

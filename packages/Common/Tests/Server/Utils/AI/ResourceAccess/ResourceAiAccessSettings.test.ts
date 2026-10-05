@@ -13,6 +13,14 @@ import { OnUpdate } from "../../../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../../../Server/Types/Database/UpdateBy";
 import logger from "../../../../../Server/Utils/Logger";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CephCluster from "../../../../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../../../../Models/DatabaseModels/DatabaseServer";
+import DockerHost from "../../../../../Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "../../../../../Models/DatabaseModels/DockerSwarmCluster";
+import Host from "../../../../../Models/DatabaseModels/Host";
+import PodmanHost from "../../../../../Models/DatabaseModels/PodmanHost";
+import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
   RESOURCE_AI_ALLOWLIST_EXAMPLES,
@@ -267,13 +275,41 @@ describe("ResourceAiAccessSettings constants", () => {
     ]);
   });
 
-  it("starts a never-configured resource from the column defaults: investigation off, fixes Off", () => {
+  it("starts a never-configured resource from the column defaults: investigation on, fixes Off", () => {
     expect(NEVER_CONFIGURED_RESOURCE_AI_ACCESS).toEqual({
-      isAiInvestigationEnabled: false,
+      isAiInvestigationEnabled: true,
       aiRemediationMode: ResourceAiRemediationMode.Disabled,
       aiCommandAllowlist: [],
     });
   });
+
+  /*
+   * The snapshot IS the column defaults: it is the "before" a first write
+   * is judged and recorded against, so it must move with them.
+   */
+  it.each([
+    ["DockerHost", DockerHost],
+    ["PodmanHost", PodmanHost],
+    ["DockerSwarmCluster", DockerSwarmCluster],
+    ["ProxmoxCluster", ProxmoxCluster],
+    ["VMwareVCenter", VMwareVCenter],
+    ["CephCluster", CephCluster],
+    ["DatabaseServer", DatabaseServer],
+    ["Host", Host],
+  ])(
+    "matches %s's column defaults",
+    (_name: string, model: { new (): BaseModel }) => {
+      const instance: BaseModel = new model();
+
+      expect(
+        instance.getTableColumnMetadata("isAiInvestigationEnabled")
+          .defaultValue,
+      ).toBe(NEVER_CONFIGURED_RESOURCE_AI_ACCESS.isAiInvestigationEnabled);
+      expect(
+        instance.getTableColumnMetadata("aiRemediationMode").defaultValue,
+      ).toBe(NEVER_CONFIGURED_RESOURCE_AI_ACCESS.aiRemediationMode);
+    },
+  );
 });
 
 describe("ResourceAiAccessSettings.validateSettings", () => {

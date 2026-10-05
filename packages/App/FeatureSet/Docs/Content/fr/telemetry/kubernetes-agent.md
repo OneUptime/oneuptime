@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**Les investigations IA sont activées par défaut.** `aiAgent.enabled=true` exécute l'agent IA Kubernetes à côté du collector : lorsqu'un incident ou une alerte survient sur ce cluster, OneUptime AI l'examine avec `kubectl` en lecture seule (`get`, `describe`, `logs`, `events`, `top`) et ne modifie rien. Les correctifs restent désactivés tant que vous ne les autorisez pas. Pour installer sans lui, utilisez plutôt `--set aiAgent.enabled=false`.
 
 ## Étape 4 — Vérifier l'installation
 

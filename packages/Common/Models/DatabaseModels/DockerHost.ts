@@ -1054,13 +1054,13 @@ export default class DockerHost extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Investigate With Read-Only Commands",
     description:
-      "When on, OneUptime AI runs read-only commands (docker ps, inspect, logs, stats, events) on this Docker host, through its Docker AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Off by default. Anyone who may edit the Docker host can turn it on or off.",
-    defaultValue: false,
+      "When on, OneUptime AI runs read-only commands (docker ps, inspect, logs, stats, events) on this Docker host, through its Docker AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the Docker host can turn it on or off.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: false,
+    default: true,
   })
   public isAiInvestigationEnabled?: boolean = undefined;
 

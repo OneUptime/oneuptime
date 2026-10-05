@@ -1,4 +1,5 @@
 import { AddResourceAiAgents1796300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796300000000-AddResourceAiAgents";
+import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798000000000-TurnOnResourceAiInvestigationByDefault";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
@@ -23,6 +24,7 @@ import fs from "fs";
 import path from "path";
 import {
   DefaultNamingStrategy,
+  MigrationInterface,
   QueryRunner,
   getMetadataArgsStorage,
 } from "typeorm";
@@ -45,9 +47,13 @@ import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadat
  *     index and foreign key names (a mismatch is a green deploy and a red
  *     Schema Drift job). resourceId has NO foreign key anywhere: it points
  *     into a different table for every resourceType.
- *  3. THE DEFAULTS AND THE ENTITIES AGREE. Every resource starts with AI
- *     investigation off and remediation Disabled, in the model and in the
- *     DDL; the drift job does not reliably catch a DEFAULT that disagrees.
+ *  3. THE DEFAULTS AND THE ENTITIES AGREE. This migration shipped every
+ *     resource with AI investigation off and remediation Disabled; the drift
+ *     job does not reliably catch a DEFAULT that disagrees. A column whose
+ *     default a LATER migration moved (investigation, now on by default:
+ *     TurnOnResourceAiInvestigationByDefault) is compared with that
+ *     migration instead, as AddKubernetesClusterAiAccessMigration.test.ts
+ *     does for the cluster's.
  *  4. NOTHING BUT SCHEMA. No data is rewritten: no resource is switched on
  *     for anybody, and no Kubernetes table or column is touched (the
  *     Kubernetes AI agent's stack is unchanged).
@@ -92,6 +98,48 @@ const RESOURCE_AI_COLUMN_DDL: Array<[string, string]> = [
   ["aiAccessLastError", `character varying`],
   ["aiAccessConfiguredAt", `TIMESTAMP WITH TIME ZONE`],
 ];
+
+/*
+ * Column defaults a LATER migration moved. This migration has shipped, so
+ * its DDL stays exactly as it was (existing installs ran it long ago); for
+ * these columns the model's current default is compared with the later
+ * migration's SET DEFAULT instead, and this migration's historical default
+ * with what the later migration's down() restores.
+ */
+interface MovedDefault {
+  property: string;
+  migration: MigrationInterface;
+}
+
+const DEFAULTS_MOVED_LATER: Array<MovedDefault> = [
+  {
+    property: "isAiInvestigationEnabled",
+    migration: new TurnOnResourceAiInvestigationByDefault1798000000000(),
+  },
+];
+
+function movedDefaultFor(property: string): MovedDefault | undefined {
+  return DEFAULTS_MOVED_LATER.find((moved: MovedDefault): boolean => {
+    return moved.property === property;
+  });
+}
+
+async function recordQueriesOf(
+  migration: MigrationInterface,
+  direction: "up" | "down",
+): Promise<Array<string>> {
+  const statements: Array<string> = [];
+
+  const queryRunner: QueryRunner = {
+    query: async (statement: string): Promise<void> => {
+      statements.push(statement);
+    },
+  } as unknown as QueryRunner;
+
+  await migration[direction](queryRunner);
+
+  return statements;
+}
 
 const UNIQUE_INDEX: string = `CREATE UNIQUE INDEX "IDX_ResourceAiAgent_projectId_resourceType_resourceId" ON "ResourceAiAgent" ("projectId", "resourceType", "resourceId") WHERE "deletedAt" IS NULL`;
 
@@ -511,13 +559,57 @@ describe("AddResourceAiAgents migration - the resource models' AI access columns
         expect(ddl).not.toContain("NOT NULL");
       }
 
-      if (typeof declared.options.default === "string") {
+      if (movedDefaultFor(column)) {
+        // Compared with the later migration below.
+        expect(ddl).toContain("DEFAULT");
+      } else if (typeof declared.options.default === "string") {
         expect(ddl).toContain(`DEFAULT '${declared.options.default}'`);
       } else if (declared.options.default !== undefined) {
         expect(ddl).toContain(`DEFAULT ${String(declared.options.default)}`);
       } else {
         expect(ddl).not.toContain("DEFAULT");
       }
+    },
+  );
+
+  const movedCases: Array<[string, ModelType, MovedDefault]> =
+    ALL_AI_RESOURCE_TYPES.flatMap(
+      (type: AiResourceType): Array<[string, ModelType, MovedDefault]> => {
+        return DEFAULTS_MOVED_LATER.map(
+          (moved: MovedDefault): [string, ModelType, MovedDefault] => {
+            return [type, RESOURCE_MODELS[type], moved];
+          },
+        );
+      },
+    );
+
+  test.each(movedCases)(
+    "%s: the model's moved default is the one the later migration sets, and its down() restores this migration's",
+    async (type: string, model: ModelType, moved: MovedDefault) => {
+      const declared: ColumnMetadataArgs = declaredColumn(
+        model,
+        moved.property,
+      );
+      const historical: string | undefined = RESOURCE_AI_COLUMN_DDL.find(
+        ([column]: [string, string]): boolean => {
+          return column === moved.property;
+        },
+      )?.[1].match(/DEFAULT (.+)$/)?.[1];
+
+      expect(declared.options.default).toBeDefined();
+      expect(historical).toBeDefined();
+      // This migration's own DDL is unchanged: it shipped with the old default.
+      expect(await recordQueries("up")).toContain(
+        `ALTER TABLE "${type}" ADD "${moved.property}" boolean NOT NULL DEFAULT ${historical}`,
+      );
+      expect(await recordQueriesOf(moved.migration, "up")).toContain(
+        `ALTER TABLE "${type}" ALTER COLUMN "${moved.property}" SET DEFAULT ${String(
+          declared.options.default,
+        )}`,
+      );
+      expect(await recordQueriesOf(moved.migration, "down")).toContain(
+        `ALTER TABLE "${type}" ALTER COLUMN "${moved.property}" SET DEFAULT ${historical}`,
+      );
     },
   );
 

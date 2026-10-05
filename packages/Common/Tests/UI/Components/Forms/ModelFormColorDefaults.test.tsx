@@ -1,13 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
   act,
   cleanup,
@@ -21,6 +13,13 @@ import React from "react";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
+import {
+  colorOf,
+  getCheckedSwatch,
+  getColorField,
+  getSwatch,
+  typeColorCode,
+} from "../ColorPicker/ColorPickerDriver";
 
 /*
  * A colour the record cannot be saved without starts picked
@@ -30,9 +29,9 @@ import Permission from "../../../../Types/Permission";
  * Roles and a status page's bar colour rules each opened their Create form on
  * an empty colour picker, and Create refused to save until a colour was
  * chosen. Now the form opens with a colour already picked - one the records
- * listed beside it do not use yet - shown in the picker from the first paint,
- * sent as the Color it stands for when nobody touches it, and changed or
- * cleared like any other value. Edit forms show the record as it is.
+ * listed beside it do not use yet - ticked among the swatches from the first
+ * paint, sent as the Color it stands for when nobody touches it, and changed
+ * like any other value. Edit forms show the record as it is.
  *
  * Through the real ModelForm, BasicForm and ColorPicker, with only the
  * network stubbed.
@@ -246,8 +245,14 @@ async function renderForm<TBaseModel extends BaseModel>(data: {
   };
 }
 
-function colorInput(placeholder: string = COLOR_PLACEHOLDER): HTMLInputElement {
-  return screen.getByPlaceholderText(placeholder) as HTMLInputElement;
+// The form's one color field.
+function colorField(): HTMLElement {
+  return getColorField();
+}
+
+// What it holds: lowercase #rrggbb, "" for none.
+function colorValue(): string {
+  return colorOf(colorField());
 }
 
 async function typeName(): Promise<void> {
@@ -272,38 +277,14 @@ async function submitAndCapture(): Promise<JSONObject> {
   return capturedModels[0]!;
 }
 
-// Types a hex into the picker's own box, as a person (and the E2E) does.
+// Types a code into Custom color's box, as a person (and the E2E) does.
 async function pickInPicker(hex: string): Promise<void> {
-  fireEvent.click(colorInput());
-
-  const popup: HTMLElement = await screen.findByTestId("color-picker-popup");
-  const hexBox: HTMLInputElement | null = popup.querySelector("input");
-
-  expect(hexBox).not.toBeNull();
+  typeColorCode(colorField(), hex);
 
   await act(async (): Promise<void> => {
-    fireEvent.change(hexBox!, { target: { value: hex } });
+    await Promise.resolve();
   });
-
-  fireEvent.keyDown(colorInput(), { key: "Escape" });
 }
-
-/*
- * react-color paints the picker's checkerboard on a canvas, which jsdom does
- * not implement and says so on the console; with no context it skips it.
- */
-const originalGetContext: typeof HTMLCanvasElement.prototype.getContext =
-  HTMLCanvasElement.prototype.getContext;
-
-beforeAll(() => {
-  HTMLCanvasElement.prototype.getContext = ((): null => {
-    return null;
-  }) as unknown as typeof HTMLCanvasElement.prototype.getContext;
-});
-
-afterAll(() => {
-  HTMLCanvasElement.prototype.getContext = originalGetContext;
-});
 
 afterEach(() => {
   cleanup();
@@ -312,28 +293,22 @@ afterEach(() => {
 });
 
 describe("a Create form's colour", () => {
-  test("starts picked, in the box and the swatch, from the first paint", async () => {
+  test("starts picked, its swatch ticked, from the first paint", async () => {
     await renderForm<Label>({
       modelType: Label,
       fields: [NAME_FIELD, COLOR_FIELD],
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue(Indigo500.toString());
+      expect(colorValue()).toBe(Indigo500.toString());
     });
 
-    // The swatch beside the box is painted with it.
-    const swatch: HTMLElement | null = colorInput()
-      .closest("div.flex")
-      ?.querySelector("div[aria-hidden='true']") as HTMLElement | null;
-
-    expect(swatch).not.toBeNull();
-    expect(swatch!.style.backgroundColor).toBe("rgb(99, 102, 241)");
-
-    // And it can be cleared, like any colour.
-    expect(
-      screen.getByRole("button", { name: "Clear color" }),
-    ).toBeInTheDocument();
+    // The swatch of that color is the one ticked.
+    expect(getCheckedSwatch(colorField())).toHaveAccessibleName("Indigo");
+    expect(getCheckedSwatch(colorField())).toHaveAttribute(
+      "data-color",
+      Indigo500.toString(),
+    );
   });
 
   test("is sent untouched as the Color it stands for - Create works without touching it", async () => {
@@ -359,7 +334,7 @@ describe("a Create form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue(Teal600.toString());
+      expect(colorValue()).toBe(Teal600.toString());
     });
 
     await typeName();
@@ -382,11 +357,11 @@ describe("a Create form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput().value).not.toBe("");
+      expect(colorValue()).not.toBe("");
     });
 
     for (const used of [Red, Yellow, Green, new Color("#4f46e5")]) {
-      expect(areSimilarColors(colorInput().value, used)).toBe(false);
+      expect(areSimilarColors(colorValue(), used)).toBe(false);
     }
   });
 
@@ -398,7 +373,7 @@ describe("a Create form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue(Indigo500.toString());
+      expect(colorValue()).toBe(Indigo500.toString());
     });
 
     // A page re-renders: a new fields array, and the table refetched its rows.
@@ -409,7 +384,7 @@ describe("a Create form's colour", () => {
       existingItems: [labelWithColor(Indigo500), labelWithColor(Amber600)],
     });
 
-    expect(colorInput()).toHaveValue(Indigo500.toString());
+    expect(colorValue()).toBe(Indigo500.toString());
 
     await typeName();
     const model: JSONObject = await submitAndCapture();
@@ -424,13 +399,13 @@ describe("a Create form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue(Indigo500.toString());
+      expect(colorValue()).toBe(Indigo500.toString());
     });
 
     await pickInPicker("#0891b2");
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue("#0891b2");
+      expect(colorValue()).toBe("#0891b2");
     });
 
     await typeName();
@@ -440,29 +415,33 @@ describe("a Create form's colour", () => {
     expect(String(model["color"])).toBe("#0891b2");
   });
 
-  test("can be cleared, and is then required again, as before", async () => {
+  test("cannot be emptied: a required colour has no No color, so one is always picked", async () => {
     await renderForm<Label>({
       modelType: Label,
       fields: [NAME_FIELD, COLOR_FIELD],
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue(Indigo500.toString());
+      expect(colorValue()).toBe(Indigo500.toString());
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear color" }));
+    expect(
+      within(colorField()).queryByRole("radio", { name: "No color" }),
+    ).toBeNull();
+    expect(within(colorField()).getByRole("radiogroup")).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
 
-    await waitFor(() => {
-      expect(colorInput()).toHaveValue("");
+    // Another swatch is another colour, never none.
+    act(() => {
+      fireEvent.click(getSwatch(colorField(), "Teal"));
     });
 
     await typeName();
-    await submit();
+    const model: JSONObject = await submitAndCapture();
 
-    expect(
-      await screen.findByText("Label Color is required."),
-    ).toBeInTheDocument();
-    expect(capturedModels).toHaveLength(0);
+    expect(String(model["color"])).toBe(Teal600.toString());
   });
 
   test("keeps a colour the form starts with", async () => {
@@ -473,7 +452,7 @@ describe("a Create form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue("#ef4444");
+      expect(colorValue()).toBe("#ef4444");
     });
 
     await typeName();
@@ -490,7 +469,7 @@ describe("a Create form's colour", () => {
     });
 
     // Nothing fills it in: the form said what it starts with.
-    expect(colorInput()).toHaveValue("");
+    expect(colorValue()).toBe("");
 
     await typeName();
     await submit();
@@ -508,7 +487,7 @@ describe("a Create form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue("#ef4444");
+      expect(colorValue()).toBe("#ef4444");
     });
 
     await typeName();
@@ -541,7 +520,9 @@ describe("a Create form's colour", () => {
       ],
     });
 
-    expect(colorInput("No color")).toHaveValue("");
+    expect(colorValue()).toBe("");
+    // An optional colour offers No color, and it is the one ticked.
+    expect(getCheckedSwatch(colorField())).toHaveAccessibleName("No color");
 
     await typeName();
     const model: JSONObject = await submitAndCapture();
@@ -572,7 +553,7 @@ describe("an Edit form's colour", () => {
     });
 
     await waitFor(() => {
-      expect(colorInput()).toHaveValue("#ef4444");
+      expect(colorValue()).toBe("#ef4444");
     });
 
     const model: JSONObject = await submitAndCapture();
@@ -598,7 +579,7 @@ describe("an Edit form's colour", () => {
       );
     });
 
-    expect(colorInput()).toHaveValue("");
+    expect(colorValue()).toBe("");
   });
 });
 
