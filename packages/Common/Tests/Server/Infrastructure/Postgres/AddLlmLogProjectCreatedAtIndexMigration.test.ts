@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import type { SpyInstance } from "jest-mock";
 import path from "path";
@@ -148,7 +148,10 @@ function fakeDatabase(database: FakeDatabase): FakeRun {
   return { runner, statements, builds };
 }
 
-function spyOnLogs(): { warn: SpyInstance; info: SpyInstance } {
+type WarnSpy = SpyInstance<typeof logger.warn>;
+type InfoSpy = SpyInstance<typeof logger.info>;
+
+function spyOnLogs(): { warn: WarnSpy; info: InfoSpy } {
   return {
     warn: jest.spyOn(logger, "warn").mockImplementation((): void => {
       return undefined;
@@ -166,7 +169,7 @@ async function up(database: FakeDatabase): Promise<FakeRun> {
 }
 
 /* The one warning that tells the operator what happened. */
-function lastWarning(warn: SpyInstance): string {
+function lastWarning(warn: WarnSpy): string {
   const calls: Array<Array<unknown>> = warn.mock.calls;
   expect(calls.length).toBeGreaterThan(0);
   return String(calls[calls.length - 1]![0]);

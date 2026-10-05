@@ -8,6 +8,7 @@ import {
 import LlmLogService from "../../../Server/Services/LlmLogService";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
+import { jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { DataSource, QueryRunner } from "typeorm";
 
@@ -572,7 +573,10 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
       });
     }
 
-    function silenceLogs(): { warn: SpyInstance; info: SpyInstance } {
+    function silenceLogs(): {
+      warn: SpyInstance<typeof logger.warn>;
+      info: SpyInstance<typeof logger.info>;
+    } {
       return {
         warn: jest.spyOn(logger, "warn").mockImplementation((): void => {
           return undefined;
