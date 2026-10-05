@@ -1,8 +1,9 @@
 /*
- * Substitution behaviour of VMUtil.replaceValueInPlace, focused on the three
+ * Substitution behaviour of VMUtil.replaceValueInPlace, focused on the four
  * ways a resolved value used to come out wrong: unescaped quotes when the
- * caller passed an object, `$`-patterns in the replacement text, and
- * `[last]` against a key that is not an array.
+ * caller passed an object, `$`-patterns in the replacement text, `[last]`
+ * against a key that is not an array, and `{{...}}` text inside a value being
+ * matched by a later placeholder.
  */
 
 jest.mock("../../../../Server/Utils/VM/VMRunner", () => {
@@ -239,5 +240,170 @@ describe("replaceValueInPlace — unresolved references", () => {
         false,
       ),
     ).toBe("a {{ local.variables.v }} b");
+  });
+});
+
+describe("replaceValueInPlace — a resolved value that carries {{...}} text", () => {
+  /*
+   * Substitution used to go one variable at a time over the progressively
+   * rewritten string, replacing the first occurrence of each placeholder. A
+   * value carrying placeholder text — an email subject, a request body, an API
+   * response, all written by someone other than the template author — was
+   * then matched by a later placeholder: the later value landed inside it, and
+   * the placeholder the author wrote came out unrendered.
+   */
+  it("keeps an email subject that names another variable as written", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        { emailSubject: "{{monitorName}}", monitorName: "Nightly backups" },
+        "{{emailSubject}} - {{monitorName}}",
+        false,
+      ),
+    ).toBe("{{monitorName}} - Nightly backups");
+  });
+
+  it("keeps a request body that names another variable as written", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        { requestBody: "{{monitorName}}", monitorName: "Prod API" },
+        "{{requestBody}} on {{monitorName}}",
+        false,
+      ),
+    ).toBe("{{monitorName}} on Prod API");
+  });
+
+  it("renders the same whichever placeholder comes first", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        { emailSubject: "{{monitorName}}", monitorName: "Nightly backups" },
+        "{{monitorName}} - {{emailSubject}}",
+        false,
+      ),
+    ).toBe("Nightly backups - {{monitorName}}");
+  });
+
+  it("leaves a variable that only the value names unresolved", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        {
+          emailSubject: "{{monitorDescription}}",
+          monitorDescription: "Internal runbook notes",
+          monitorName: "Nightly backups",
+        },
+        "{{emailSubject}} - {{monitorName}}",
+        false,
+      ),
+    ).toBe("{{monitorDescription}} - Nightly backups");
+  });
+
+  it("replaces every occurrence of a placeholder whose value contains it", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        { emailSubject: "Fwd: {{emailSubject}}" },
+        "{{emailSubject}} | {{emailSubject}}",
+        false,
+      ),
+    ).toBe("Fwd: {{emailSubject}} | Fwd: {{emailSubject}}");
+  });
+
+  it("escapes each value where it stands in a JSON template", () => {
+    const result: string = VMUtil.replaceValueInPlace(
+      makeStorage({
+        subject: '"{{local.variables.owner}}" is down',
+        owner: 'ops "core"',
+      }),
+      '{"summary": "{{local.variables.subject}}", "owner": "{{local.variables.owner}}"}',
+      true,
+    );
+
+    expect(JSON.parse(result)).toEqual({
+      summary: '"{{local.variables.owner}}" is down',
+      owner: 'ops "core"',
+    });
+  });
+
+  it("keeps the other headers intact when one header's value names another variable", () => {
+    const result: JSONValue = VMUtil.replaceValueInPlace(
+      makeStorage({ subject: "{{local.variables.token}}", token: "abc" }),
+      {
+        "X-Subject": "{{local.variables.subject}}",
+        Authorization: "Bearer {{local.variables.token}}",
+      } as never,
+      false,
+    ) as unknown as JSONValue;
+
+    expect(result).toEqual({
+      "X-Subject": "{{local.variables.token}}",
+      Authorization: "Bearer abc",
+    });
+  });
+});
+
+describe("replaceValueInPlace — a template that is a single placeholder", () => {
+  /*
+   * The raw value replaces the placeholder, so an argument that is nothing
+   * but a reference keeps the type of what it points at. This used to be
+   * decided inside the per-variable loop; these pin it now that substitution
+   * is a single pass.
+   */
+  it("returns a number as a number", () => {
+    expect(
+      VMUtil.replaceValueInPlace({ count: 5 }, "{{count}}", false) as unknown,
+    ).toBe(5);
+  });
+
+  it("ignores whitespace around the placeholder", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        { count: 5 },
+        "  {{count}}\n",
+        false,
+      ) as unknown,
+    ).toBe(5);
+  });
+
+  it("returns an object as unescaped JSON, even for a JSON template", () => {
+    const value: JSONObject = { a: 1, note: 'he said "hi"' };
+
+    const result: string = VMUtil.replaceValueInPlace(
+      { value: value },
+      "{{value}}",
+      true,
+    );
+
+    expect(result).toBe(JSON.stringify(value, null, 2));
+    expect(JSON.parse(result)).toEqual(value);
+  });
+
+  it("leaves an unresolved placeholder untouched, whitespace and all", () => {
+    expect(VMUtil.replaceValueInPlace({}, "  {{missing}}  ", false)).toBe(
+      "  {{missing}}  ",
+    );
+  });
+
+  it("does not resolve placeholder text inside the value", () => {
+    expect(
+      VMUtil.replaceValueInPlace({ a: "{{b}}", b: "x" }, "{{a}}", false),
+    ).toBe("{{b}}");
+  });
+
+  /*
+   * The old loop asked "is the whole string this placeholder?" of the
+   * half-rewritten string, so an empty value in front of the last placeholder
+   * switched it to the raw-value path: the result's type, and for a JSON
+   * template whether it was escaped, hung on what another value rendered to.
+   */
+  it("is decided by the template, not by what the other placeholders render to", () => {
+    expect(
+      VMUtil.replaceValueInPlace(
+        { prefix: "", count: 5 },
+        "{{prefix}}{{count}}",
+        false,
+      ) as unknown,
+    ).toBe("5");
+  });
+
+  it("does not count braces after the placeholder as part of it", () => {
+    expect(VMUtil.replaceValueInPlace({ a: 1 }, "{{a}}}}", false)).toBe("1}}");
   });
 });
