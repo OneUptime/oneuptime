@@ -2,6 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -67,6 +68,22 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (existingMember) {
       throw new BadDataException("Alert is already a member of this episode");
+    }
+
+    /*
+     * Added by the person making the request. DatabaseService has already
+     * taken out whatever addedByUser the request named, under both names
+     * (UserAttribution), so with no person on it - an API key, a workflow -
+     * nobody is named. OneUptime's own writes - adding by hand for the
+     * person who asked, as the grouping engine does - name that person
+     * themselves, and keep it.
+     */
+    if (createBy.props.userId && !createBy.props.isRoot) {
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["addedByUserId", "addedByUser"],
+        createBy.props.userId,
+      );
     }
 
     // Set addedAt if not provided

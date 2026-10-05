@@ -7,7 +7,9 @@ import OpenAPIUtil from "../../../Server/Utils/OpenAPI";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
-import UserAttribution from "../../../Types/Database/UserAttribution";
+import UserAttribution, {
+  ATTRIBUTED_SWITCHES,
+} from "../../../Types/Database/UserAttribution";
 import { JSONObject } from "../../../Types/JSON";
 import {
   getTerraformAttributes,
@@ -106,10 +108,13 @@ describe("which columns record a person doing something", () => {
       expect.arrayContaining([
         "markedAsResolvedByUser",
         "markedAsResolvedByUserId",
+        "markedAsResolvedAt",
         "markedAsArchivedByUser",
         "markedAsArchivedByUserId",
+        "markedAsArchivedAt",
       ]),
     );
+    expect(attributionIn("Monitor")).toContain("archivedAt");
     expect(attributionIn("OnCallDutyPolicyExecutionLog")).toEqual(
       expect.arrayContaining([
         "acknowledgedByUserId",
@@ -170,12 +175,20 @@ describe("which columns record a person doing something", () => {
     }
   });
 
-  test("each is a user's id, or the relation to that user", () => {
+  test("each is a user's id or the relation to that user, or the time a switch was turned", () => {
     const wrong: Array<string> = [];
 
     for (const entry of ATTRIBUTION_COLUMNS) {
       const metadata: TableColumnMetadata =
         new entry.modelType().getTableColumnMetadata(entry.column);
+
+      if (UserAttribution.isTimeColumn(entry.column)) {
+        if (metadata.type !== TableColumnType.Date) {
+          wrong.push(`${entry.table}.${entry.column}: ${metadata.type}`);
+        }
+
+        continue;
+      }
 
       const isUserId: boolean = metadata.type === TableColumnType.ObjectID;
       const isUserRelation: boolean =
@@ -194,8 +207,80 @@ describe("which columns record a person doing something", () => {
     const wrong: Array<string> = [];
 
     for (const entry of ATTRIBUTION_COLUMNS) {
-      if (!UserAttribution.isColumn(entry.column)) {
+      if (!UserAttribution.isDecidedByServer(entry.column)) {
         wrong.push(`${entry.table}.${entry.column}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  /*
+   * The rule follows the name, so a new column named `<act>ByUserId` is
+   * closed to every write the moment it is declared. That is right for a
+   * new model's createdByUserId; for a new act, somebody decides that the
+   * column records who did something - rather than a person a request
+   * chooses, which is named for that instead (`ownerUserId`, `userId`) -
+   * and adds the act here.
+   */
+  test("every act is one OneUptime records", () => {
+    const KNOWN_ACTS: ReadonlyArray<string> = [
+      "acknowledged",
+      "added",
+      "answered",
+      "approved",
+      "archived",
+      "created",
+      "deleted",
+      "dismissed",
+      "humanVerdict",
+      "markedAsArchived",
+      "markedAsResolved",
+      "overrided",
+      "pinned",
+      "projectCreated",
+      "projectDeleted",
+      "requested",
+      "triggered",
+      "viewed",
+    ];
+
+    const acts: Set<string> = new Set<string>(
+      ATTRIBUTION_COLUMNS.filter((entry: AttributionColumn): boolean => {
+        return UserAttribution.isColumn(entry.column);
+      }).map((entry: AttributionColumn): string => {
+        return entry.column.replace(/ByUser(Id)?$/, "");
+      }),
+    );
+
+    expect([...acts].sort()).toEqual([...KNOWN_ACTS].sort());
+  });
+
+  test("the switches recorded with who and when are the ones the models have", () => {
+    const wrong: Array<string> = [];
+
+    for (const attributedSwitch of ATTRIBUTED_SWITCHES) {
+      const models: Array<ModelType> = (Models as Array<ModelType>).filter(
+        (modelType: ModelType): boolean => {
+          return new modelType().hasColumn(attributedSwitch.byUserColumn);
+        },
+      );
+
+      if (models.length === 0) {
+        wrong.push(`no model has ${attributedSwitch.byUserColumn}`);
+      }
+
+      for (const modelType of models) {
+        const model: DatabaseBaseModel = new modelType();
+
+        for (const column of [
+          attributedSwitch.switchColumn,
+          attributedSwitch.atColumn,
+        ]) {
+          if (!model.hasColumn(column)) {
+            wrong.push(`${tableOf(modelType)} has no ${column}`);
+          }
+        }
       }
     }
 
@@ -413,7 +498,7 @@ describe("the API offers each for reading only", () => {
 
     for (const modelType of Models as Array<ModelType>) {
       for (const descriptor of getTerraformAttributes(modelType)) {
-        if (UserAttribution.isColumn(descriptor.columnName)) {
+        if (UserAttribution.isDecidedByServer(descriptor.columnName)) {
           offered.push(
             `${tableOf(modelType)}.${(descriptor as TerraformAttributeDescriptor).columnName}`,
           );

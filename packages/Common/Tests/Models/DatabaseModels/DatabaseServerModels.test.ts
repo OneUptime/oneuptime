@@ -1310,10 +1310,13 @@ describe("Databases (DatabaseServer) models", () => {
         DATABASE_SERVER_ROOT_ONLY_COLUMNS.filter((column: string): boolean => {
           /*
            * slug is a Slug column, which ColumnPermission always skips. Who
-           * archived or deleted it is computed: DatabaseService takes a
-           * value a request sends out before this check (UserAttribution).
+           * archived or deleted it, and when, is computed: DatabaseService
+           * takes a value a request sends out before this check
+           * (UserAttribution).
            */
-          return column !== "slug" && !UserAttribution.isColumn(column);
+          return (
+            column !== "slug" && !UserAttribution.isDecidedByServer(column)
+          );
         }),
       )("a non-root create carrying %s is refused", (column: string) => {
         const data: DatabaseServer = manualCreateData();

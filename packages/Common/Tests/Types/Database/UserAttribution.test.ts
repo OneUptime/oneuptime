@@ -10,6 +10,7 @@ import TableColumn, {
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import UserAttribution, {
+  ATTRIBUTED_SWITCHES,
   CREATED_BY_USER_COLUMN,
   CREATED_BY_USER_ID_COLUMN,
   ModelWithUserAttribution,
@@ -279,5 +280,99 @@ describe("the column decorators", () => {
       "createdByUser",
       "createdByUserId",
     ]);
+  });
+});
+
+describe("when a switch was turned", () => {
+  test.each(["archivedAt", "markedAsResolvedAt", "markedAsArchivedAt"])(
+    "%s is OneUptime's to say",
+    (columnName: string) => {
+      expect(UserAttribution.isTimeColumn(columnName)).toBe(true);
+      expect(UserAttribution.isDecidedByServer(columnName)).toBe(true);
+      expect(UserAttribution.isColumn(columnName)).toBe(false);
+    },
+  );
+
+  test.each([
+    "createdAt",
+    "updatedAt",
+    "addedAt",
+    "postedAt",
+    "autoArchivedAt",
+    "manuallyRestoredAt",
+    "lastSeenAt",
+  ])("%s is not one of them", (columnName: string) => {
+    expect(UserAttribution.isTimeColumn(columnName)).toBe(false);
+    expect(UserAttribution.isDecidedByServer(columnName)).toBe(false);
+  });
+
+  test("each switch names who turned it and when", () => {
+    expect(ATTRIBUTED_SWITCHES.length).toBeGreaterThan(0);
+
+    for (const attributedSwitch of ATTRIBUTED_SWITCHES) {
+      expect(UserAttribution.isColumn(attributedSwitch.byUserColumn)).toBe(
+        true,
+      );
+      expect(UserAttribution.isTimeColumn(attributedSwitch.atColumn)).toBe(
+        true,
+      );
+      expect(
+        UserAttribution.isDecidedByServer(attributedSwitch.switchColumn),
+      ).toBe(false);
+    }
+  });
+
+  test("a time is closed and computed like a person", () => {
+    expect(
+      UserAttribution.getAccessControl("markedAsResolvedAt", {
+        create: [Permission.ProjectOwner],
+        read: [Permission.ProjectOwner],
+        update: [Permission.ProjectOwner],
+      }),
+    ).toEqual({ create: [], read: [Permission.ProjectOwner], update: [] });
+
+    expect(
+      UserAttribution.getColumnMetadata("archivedAt", {
+        type: TableColumnType.Date,
+      }).computed,
+    ).toBe(true);
+  });
+
+  test("a model's switch times are among the columns OneUptime decides", () => {
+    expect(
+      UserAttribution.getColumns({
+        getTableColumns: (): { columns: Array<string> } => {
+          return {
+            columns: ["name", "isArchived", "archivedAt", "archivedByUserId"],
+          };
+        },
+        getTableColumnMetadata: (): undefined => {
+          return undefined;
+        },
+      }),
+    ).toEqual(["archivedAt", "archivedByUserId"]);
+  });
+});
+
+class DeclaredSwitchTime extends BaseModel {
+  @ColumnAccessControlDecorator({
+    create: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner],
+    update: [Permission.ProjectOwner],
+  })
+  @TableColumn({ type: TableColumnType.Date, title: "Marked as Resolved At" })
+  public markedAsResolvedAt?: Date = undefined;
+}
+
+describe("the column decorators, on a switch's time", () => {
+  test("it is computed and closed to every write, whatever it declares", () => {
+    const model: DeclaredSwitchTime = new DeclaredSwitchTime();
+
+    expect(getTableColumn(model, "markedAsResolvedAt").computed).toBe(true);
+    expect(getColumnAccessControl(model, "markedAsResolvedAt")).toEqual({
+      create: [],
+      read: [Permission.ProjectOwner],
+      update: [],
+    });
   });
 });

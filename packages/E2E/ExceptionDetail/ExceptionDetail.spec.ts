@@ -312,12 +312,9 @@ test.describe("header", () => {
       "isArchived=false",
     ]);
     expect(updates[0]!.id).toBe(EXCEPTION_ID);
-    expect(updates[0]!.data["markedAsResolvedAt"]).toBeTruthy();
-    expect(updates[2]!.data["markedAsResolvedAt"]).toBeNull();
-    // Who resolved or archived it is the server's to record, never sent.
+    // Who turned it, and when, is the server's to record: only the switch is sent.
     for (const update of updates) {
-      expect(update.data).not.toHaveProperty("markedAsResolvedByUserId");
-      expect(update.data).not.toHaveProperty("markedAsArchivedByUserId");
+      expect(Object.keys(update.data)).toHaveLength(1);
     }
   });
 

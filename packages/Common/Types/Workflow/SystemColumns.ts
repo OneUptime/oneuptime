@@ -20,7 +20,10 @@
  * Columns every model inherits from DatabaseBaseModel, plus the "who did it"
  * columns OneUptime decides itself (DatabaseService sets createdByUserId on
  * create and archivedAt/archivedByUserId when a record is archived; a
- * workflow never sets them - see UserAttribution).
+ * workflow never sets them - see UserAttribution). Those are computed now,
+ * which the endpoint reports, and stay named here for the editor's fallback
+ * (ColumnUse.isSystemColumn), which reads this list when a response carries
+ * no flag.
  */
 const SYSTEM_COLUMN_IDS: Array<string> = [
   "_id",

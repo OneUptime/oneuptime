@@ -6,6 +6,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import ColumnPermission from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -165,13 +166,53 @@ function namingSomebodyElse(
   const values: Record<string, unknown> = {};
 
   for (const column of attributionCase.columns) {
+    const type: TableColumnType = model.getTableColumnMetadata(column).type;
+
     values[column] =
-      model.getTableColumnMetadata(column).type === TableColumnType.Entity
+      type === TableColumnType.Entity
         ? { _id: OTHER_USER_ID }
-        : new ObjectID(OTHER_USER_ID);
+        : type === TableColumnType.Date
+          ? new Date("2020-01-01T00:00:00.000Z")
+          : new ObjectID(OTHER_USER_ID);
   }
 
   return values;
+}
+
+// What an update that asks to change nothing else is told.
+function refusalFor(columns: Array<string>): string {
+  return `${columns.join(", ")} ${
+    columns.length === 1 ? "is" : "are"
+  } recorded by OneUptime and cannot be changed.`;
+}
+
+/*
+ * What a write made in a project that names somebody under every one of a
+ * model's columns comes to: a create reaches the hooks naming nobody, and an
+ * update that asked for nothing else is told those fields are OneUptime's.
+ * Null when it came to that.
+ */
+function problemWith(
+  writeName: string,
+  attributionCase: AttributionCase,
+  reached: Reached,
+): string | null {
+  if (writeName === "update") {
+    const expected: string = refusalFor(attributionCase.columns);
+
+    return reached.outcome instanceof BadDataException &&
+      reached.outcome.message === expected
+      ? null
+      : describeOutcome(reached.outcome);
+  }
+
+  if (!(reached.outcome instanceof PastTheRule)) {
+    return describeOutcome(reached.outcome);
+  }
+
+  const named: Array<string> = stillNamed(attributionCase, reached.data);
+
+  return named.length > 0 ? named.join(", ") : null;
 }
 
 function payloadFor(
@@ -328,12 +369,12 @@ test("the sweep sees every model that records who did something", () => {
   }
 });
 
-describe.each(WRITES)("%s, every model", (_name: string, write: Write) => {
+describe.each(WRITES)("%s, every model", (name: string, write: Write) => {
   test.each([
     ["a workflow", WORKFLOW_PROPS],
     ["the admin dashboard", ADMIN_DASHBOARD_PROPS],
   ])(
-    "%s names nobody: the write reaches the hooks without any of them",
+    "%s names nobody: a create reaches the hooks without any of them, an update of nothing else is told they are OneUptime's",
     async (_who: string, props: DatabaseCommonInteractionProps) => {
       const wrong: Array<string> = [];
 
@@ -344,17 +385,14 @@ describe.each(WRITES)("%s, every model", (_name: string, write: Write) => {
           props,
         );
 
-        if (!(reached.outcome instanceof PastTheRule)) {
-          wrong.push(
-            `${attributionCase.table}: ${describeOutcome(reached.outcome)}`,
-          );
-          continue;
-        }
+        const problem: string | null = problemWith(
+          name,
+          attributionCase,
+          reached,
+        );
 
-        const named: Array<string> = stillNamed(attributionCase, reached.data);
-
-        if (named.length > 0) {
-          wrong.push(`${attributionCase.table}: ${named.join(", ")}`);
+        if (problem) {
+          wrong.push(`${attributionCase.table}: ${problem}`);
         }
       }
 
@@ -376,7 +414,7 @@ describe.each(WRITES)("%s, every model", (_name: string, write: Write) => {
       },
     ],
   ])(
-    "%s names nobody: the write reaches the hooks without any of them",
+    "%s names nobody: a create reaches the hooks without any of them, an update of nothing else is told they are OneUptime's",
     async (
       _who: string,
       propsFor: (
@@ -384,7 +422,7 @@ describe.each(WRITES)("%s, every model", (_name: string, write: Write) => {
       ) => DatabaseCommonInteractionProps,
     ) => {
       const wrong: Array<string> = [];
-      let reachedTheHooks: number = 0;
+      let reachedTheRule: number = 0;
 
       for (const attributionCase of CASES) {
         const reached: Reached = await write(
@@ -393,31 +431,29 @@ describe.each(WRITES)("%s, every model", (_name: string, write: Write) => {
           propsFor(attributionCase),
         );
 
-        if (!(reached.outcome instanceof PastTheRule)) {
-          /*
-           * A table this caller may not write at all is refused before the
-           * rule, which is as good: nothing it named is written.
-           */
-          if (!isRefusal(reached.outcome)) {
-            wrong.push(
-              `${attributionCase.table}: ${describeOutcome(reached.outcome)}`,
-            );
-          }
-
+        /*
+         * A table this caller may not write at all is refused before the
+         * rule, which is as good: nothing it named is written.
+         */
+        if (isRefusal(reached.outcome)) {
           continue;
         }
 
-        reachedTheHooks++;
+        reachedTheRule++;
 
-        const named: Array<string> = stillNamed(attributionCase, reached.data);
+        const problem: string | null = problemWith(
+          name,
+          attributionCase,
+          reached,
+        );
 
-        if (named.length > 0) {
-          wrong.push(`${attributionCase.table}: ${named.join(", ")}`);
+        if (problem) {
+          wrong.push(`${attributionCase.table}: ${problem}`);
         }
       }
 
       expect(wrong).toEqual([]);
-      expect(reachedTheHooks).toBeGreaterThan(200);
+      expect(reachedTheRule).toBeGreaterThan(200);
     },
   );
 
@@ -533,15 +569,34 @@ describe("a write names nobody even as the same person, or as a clear", () => {
         { createdByUserId: null },
         { createdByUserId: USER_ID, createdByUser: { _id: OTHER_USER_ID } },
       ]) {
-        const reached: Reached = await write(incident, values, personProps());
+        const reached: Reached = await write(
+          incident,
+          { title: "Payments are down", ...values },
+          personProps(),
+        );
 
         expect(reached.outcome).toBeInstanceOf(PastTheRule);
         expect(stillNamed(incident, reached.data)).toEqual([]);
-        expect(reached.data).not.toHaveProperty("createdByUserId");
-        expect(reached.data).not.toHaveProperty("createdByUser");
+        expect(reached.data?.["createdByUserId"]).toBeUndefined();
+        expect(reached.data?.["createdByUser"]).toBeUndefined();
+        expect(reached.data?.["title"]).toBe("Payments are down");
       }
     },
   );
+
+  test("a create's own instance keeps every column: they are cleared, not deleted", async () => {
+    const { service } = stoppedAfterTheRule(Incident);
+    const data: DatabaseBaseModel = payloadFor(Incident, {
+      createdByUserId: new ObjectID(OTHER_USER_ID),
+    });
+
+    await outcomeOf(service.create({ data: data, props: apiKeyProps() }));
+
+    expect(Object.keys(data)).toContain("createdByUserId");
+    expect(
+      (data as unknown as Record<string, unknown>)["createdByUserId"],
+    ).toBeUndefined();
+  });
 
   test("two names that disagree are taken out, never refused", async () => {
     const reached: Reached = await create(
@@ -826,15 +881,60 @@ describe("who changed a record, end to end", () => {
       expect(unnamed["markedAsResolvedByUserId"]).toBeNull();
     });
 
-    test("the time the request sends with it is kept", async () => {
-      const at: Date = new Date("2026-10-05T10:00:00.000Z");
+    test.each([
+      ["isResolved", "markedAsResolvedAt"],
+      ["isArchived", "markedAsArchivedAt"],
+    ])(
+      "%s on: the time is the server's, whatever the request sends",
+      async (switchColumn: string, atColumn: string) => {
+        const sent: Date = new Date("2020-01-01T00:00:00.000Z");
+        const before: number = Date.now();
+
+        const data: Record<string, unknown> = await written(
+          TelemetryException,
+          { [switchColumn]: true, [atColumn]: sent },
+          personProps(),
+        );
+
+        expect(data[atColumn]).toBeInstanceOf(Date);
+        expect((data[atColumn] as Date).getTime()).toBeGreaterThanOrEqual(
+          before,
+        );
+      },
+    );
+
+    test.each([
+      ["isResolved", "markedAsResolvedAt"],
+      ["isArchived", "markedAsArchivedAt"],
+    ])("%s off: no time", async (switchColumn: string, atColumn: string) => {
       const data: Record<string, unknown> = await written(
         TelemetryException,
-        { isResolved: true, markedAsResolvedAt: at },
+        { [switchColumn]: false },
         personProps(),
       );
 
-      expect(data["markedAsResolvedAt"]).toEqual(at);
+      expect(data[atColumn]).toBeNull();
+    });
+
+    test("a time the request sends on its own is taken out", async () => {
+      const service: DatabaseService<TelemetryException> =
+        new DatabaseService<TelemetryException>(TelemetryException);
+
+      const outcome: unknown = await outcomeOf(
+        service.updateBy({
+          query: { _id: RECORD_ID },
+          data: {
+            markedAsResolvedAt: new Date("2020-01-01T00:00:00.000Z"),
+          } as never,
+          limit: 1,
+          skip: 0,
+          props: personProps(),
+        }),
+      );
+
+      expect((outcome as Error).message).toBe(
+        refusalFor(["markedAsResolvedAt"]),
+      );
     });
   });
 
@@ -873,19 +973,52 @@ describe("who changed a record, end to end", () => {
     });
   });
 
-  test("an update that names only a creator changes nothing", async () => {
+  test("an update that asks to change only who did something is told those fields are OneUptime's", async () => {
     // Workspace rules once let their editors rewrite the creator.
-    const data: Record<string, unknown> = await written(
-      WorkspaceNotificationRule,
-      {
-        createdByUserId: new ObjectID(OTHER_USER_ID),
-        createdByUser: { _id: OTHER_USER_ID },
-        deletedByUserId: new ObjectID(OTHER_USER_ID),
-      },
-      personProps(),
+    const service: DatabaseService<WorkspaceNotificationRule> =
+      new DatabaseService<WorkspaceNotificationRule>(WorkspaceNotificationRule);
+    const lookup: SpyInstance = getJestSpyOn(service, "_findBy");
+
+    const outcome: unknown = await outcomeOf(
+      service.updateBy({
+        query: { _id: RECORD_ID },
+        data: {
+          createdByUserId: new ObjectID(OTHER_USER_ID),
+          createdByUser: { _id: OTHER_USER_ID },
+          deletedByUserId: new ObjectID(OTHER_USER_ID),
+        } as never,
+        limit: 1,
+        skip: 0,
+        props: personProps(),
+      }),
     );
 
-    expect(data).toEqual({});
+    expect(outcome).toBeInstanceOf(BadDataException);
+    expect((outcome as Error).message).toBe(
+      refusalFor(
+        UserAttribution.getColumns(new WorkspaceNotificationRule()).filter(
+          (column: string): boolean => {
+            return [
+              "createdByUserId",
+              "createdByUser",
+              "deletedByUserId",
+            ].includes(column);
+          },
+        ),
+      ),
+    );
+    // Nothing was read or written.
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
+  test("OneUptime's own update of only who did something goes on", async () => {
+    const data: Record<string, unknown> = await written(
+      WorkspaceNotificationRule,
+      { createdByUserId: new ObjectID(OTHER_USER_ID) },
+      SERVER_PROPS,
+    );
+
+    expect(String(data["createdByUserId"])).toBe(OTHER_USER_ID);
   });
 
   test("the rest of the update goes on", async () => {
@@ -923,9 +1056,9 @@ describe("the other columns about who did something", () => {
     );
 
     expect(reached.outcome).toBeInstanceOf(PastTheRule);
-    expect(reached.data).not.toHaveProperty("triggeredByUserId");
-    expect(reached.data).not.toHaveProperty("triggeredByUser");
-    expect(reached.data).not.toHaveProperty("acknowledgedByUserId");
+    expect(reached.data?.["triggeredByUserId"]).toBeUndefined();
+    expect(reached.data?.["triggeredByUser"]).toBeUndefined();
+    expect(reached.data?.["acknowledgedByUserId"]).toBeUndefined();
   });
 });
 
@@ -982,5 +1115,166 @@ describe("an incident a request declares", () => {
     expect(reached.outcome).toBeInstanceOf(PastTheRule);
     expect(reached.data?.["title"]).toBe("Checkout is down");
     expect(CreatedByUser.getId(reached.data, apiKeyProps())).toBeNull();
+  });
+});
+
+/*
+ * Re-sending a switch as it stands - Terraform sends a resource's whole
+ * state on every apply, an edit form re-sends what it shows - turns nothing:
+ * the row keeps who turned it, and when. Only a row whose switch really
+ * turns takes the stamps. These run the whole update path down to each
+ * row's write; only the rows read and the writes are stubbed.
+ */
+describe("a switch re-sent as it stands keeps who turned it, and when", () => {
+  interface RowWrites {
+    writes: Array<Record<string, unknown>>;
+    audited: Array<Record<string, unknown>>;
+  }
+
+  const ROW_IDS: Array<string> = [
+    "0193c0de-aaaa-4aaa-8bbb-000000000101",
+    "0193c0de-aaaa-4aaa-8bbb-000000000102",
+  ];
+
+  async function rowsWritten<TBaseModel extends DatabaseBaseModel>(
+    modelType: { new (): TBaseModel },
+    rows: Array<Record<string, unknown>>,
+    values: Record<string, unknown>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<RowWrites> {
+    const service: DatabaseService<TBaseModel> =
+      new DatabaseService<TBaseModel>(modelType);
+    const writes: Array<Record<string, unknown>> = [];
+    const audited: Array<Record<string, unknown>> = [];
+
+    getJestSpyOn(service, "_findBy").mockResolvedValue(
+      rows.map(
+        (row: Record<string, unknown>, index: number): DatabaseBaseModel => {
+          return payloadFor(modelType, {
+            ...row,
+            _id: ROW_IDS[index],
+            projectId: PROJECT_ID,
+          });
+        },
+      ) as never,
+    );
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      update: async (
+        _where: unknown,
+        written: Record<string, unknown>,
+      ): Promise<{ affected: number }> => {
+        const row: Record<string, unknown> = { ...written };
+        delete row["version"];
+        writes.push(row);
+        return { affected: 1 };
+      },
+    } as never);
+    getJestSpyOn(service, "onTriggerWorkflow").mockResolvedValue(
+      undefined as never,
+    );
+    getJestSpyOn(service, "onTriggerRealtime").mockResolvedValue(
+      undefined as never,
+    );
+    getJestSpyOn(AuditLogService, "recordUpdate").mockImplementation(
+      async (record: { updatedFields: unknown }): Promise<void> => {
+        audited.push({
+          ...(record.updatedFields as Record<string, unknown>),
+        });
+      },
+    );
+
+    await service.updateBy({
+      query: { _id: RECORD_ID },
+      data: values as never,
+      limit: 10,
+      skip: 0,
+      props: props,
+    });
+
+    return { writes, audited };
+  }
+
+  test("resolving an exception that is already resolved keeps who resolved it, and when", async () => {
+    const { writes } = await rowsWritten(
+      TelemetryException,
+      [{ isResolved: true }],
+      { isResolved: true },
+      personProps(),
+    );
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toEqual({ isResolved: true });
+  });
+
+  test("resolving one that is not records the person, and the time", async () => {
+    const { writes } = await rowsWritten(
+      TelemetryException,
+      [{ isResolved: false }],
+      { isResolved: true },
+      personProps(),
+    );
+
+    expect(String(writes[0]!["markedAsResolvedByUserId"])).toBe(
+      USER_ID.toString(),
+    );
+    expect(writes[0]!["markedAsResolvedAt"]).toBeInstanceOf(Date);
+  });
+
+  test("one update over two rows stamps only the row that turns", async () => {
+    const { writes } = await rowsWritten(
+      TelemetryException,
+      [{ isArchived: true }, { isArchived: false }],
+      { isArchived: true },
+      personProps(),
+    );
+
+    expect(writes).toHaveLength(2);
+    expect(writes[0]).toEqual({ isArchived: true });
+    expect(String(writes[1]!["markedAsArchivedByUserId"])).toBe(
+      USER_ID.toString(),
+    );
+    expect(writes[1]!["markedAsArchivedAt"]).toBeInstanceOf(Date);
+  });
+
+  test("reopening a resolved one clears who and when", async () => {
+    const { writes } = await rowsWritten(
+      TelemetryException,
+      [{ isResolved: true }],
+      { isResolved: false },
+      personProps(),
+    );
+
+    expect(writes[0]).toEqual({
+      isResolved: false,
+      markedAsResolvedByUserId: null,
+      markedAsResolvedAt: null,
+    });
+  });
+
+  test("an edit that re-sends an archived resource's switch keeps who archived it, and the audit log says only what changed", async () => {
+    const { writes, audited } = await rowsWritten(
+      Monitor,
+      [{ isArchived: true, name: "Checkout API" }],
+      { isArchived: true, name: "Checkout API v2" },
+      personProps(),
+    );
+
+    expect(writes[0]).toEqual({ isArchived: true, name: "Checkout API v2" });
+    expect(audited).toHaveLength(1);
+    expect(audited[0]).not.toHaveProperty("archivedAt");
+    expect(audited[0]).not.toHaveProperty("archivedByUserId");
+  });
+
+  test("archiving a resource that is not archived records who and when, in the audit log too", async () => {
+    const { writes, audited } = await rowsWritten(
+      Monitor,
+      [{ isArchived: false }],
+      { isArchived: true },
+      personProps(),
+    );
+
+    expect(String(writes[0]!["archivedByUserId"])).toBe(USER_ID.toString());
+    expect(writes[0]!["archivedAt"]).toBeInstanceOf(Date);
+    expect(String(audited[0]!["archivedByUserId"])).toBe(USER_ID.toString());
   });
 });

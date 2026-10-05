@@ -1,5 +1,9 @@
+import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
@@ -11,10 +15,14 @@ import {
 } from "../../../Server/Types/Workflow/ComponentCode";
 import CreateOneBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/CreateOneBaseModel";
 import UpdateOneBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/UpdateOneBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
 import Exception from "../../../Types/Exception/Exception";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import UserType from "../../../Types/UserType";
 import logger from "../../../Server/Utils/Logger";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
@@ -199,4 +207,149 @@ describe("OneUptime's own server code records the person it acts for", () => {
 
     expect(String(reached()["addedByUserId"])).toBe(PERSON_ID.toString());
   });
+});
+
+/*
+ * Who added an incident or an alert to an episode is about the request
+ * itself, so the services stamp it in their create hooks, after
+ * DatabaseService has taken out whoever the request named.
+ */
+describe("an incident or alert added to an episode is added by the person making the request", () => {
+  const EPISODE_ID: string = "0193c0de-bbbb-4aaa-8bbb-0000000000c3";
+
+  const OWNER: DatabaseCommonInteractionProps["userTenantAccessPermission"] = {
+    [PROJECT_ID.toString()]: {
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          permission: Permission.ProjectOwner,
+          labelIds: [],
+          isBlockPermission: false,
+          _type: "UserPermission",
+        },
+      ],
+      _type: "UserTenantAccessPermission",
+    },
+  };
+
+  // Someone signed in who owns the project.
+  const PERSON_PROPS: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: PERSON_ID,
+    userGlobalAccessPermission: {
+      projectIds: [PROJECT_ID],
+      globalPermissions: [Permission.Public, Permission.User],
+      _type: "UserGlobalAccessPermission",
+    },
+    userTenantAccessPermission: OWNER,
+  };
+
+  // An API key with every project permission: no person on the request.
+  const API_KEY_PROPS: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userType: UserType.API,
+    userTenantAccessPermission: OWNER,
+  };
+
+  interface EpisodeMemberCase {
+    label: string;
+    service: DatabaseService<DatabaseBaseModel>;
+    member: () => DatabaseBaseModel;
+  }
+
+  const CASES: Array<EpisodeMemberCase> = [
+    {
+      label: "an incident",
+      service:
+        IncidentEpisodeMemberService as unknown as DatabaseService<DatabaseBaseModel>,
+      member: (): DatabaseBaseModel => {
+        const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+        member.projectId = PROJECT_ID;
+        member.incidentEpisodeId = new ObjectID(EPISODE_ID);
+        member.incidentId = new ObjectID(RECORD_ID);
+        return member;
+      },
+    },
+    {
+      label: "an alert",
+      service:
+        AlertEpisodeMemberService as unknown as DatabaseService<DatabaseBaseModel>,
+      member: (): DatabaseBaseModel => {
+        const member: AlertEpisodeMember = new AlertEpisodeMember();
+        member.projectId = PROJECT_ID;
+        member.alertEpisodeId = new ObjectID(EPISODE_ID);
+        member.alertId = new ObjectID(RECORD_ID);
+        return member;
+      },
+    },
+  ];
+
+  // Whoever else the request says added it, under both names.
+  function namingSomeoneElse(member: DatabaseBaseModel): DatabaseBaseModel {
+    Object.assign(member, {
+      addedByUserId: new ObjectID(OTHER_USER_ID),
+      addedByUser: { _id: OTHER_USER_ID },
+    });
+
+    return member;
+  }
+
+  /*
+   * The create through the service's real write path - the permission check
+   * and the hooks included - stopped right after the hooks.
+   */
+  async function pastTheHooks(
+    entry: EpisodeMemberCase,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Record<string, unknown>> {
+    // Not a member yet, in an episode that has others: the hook goes on.
+    getJestSpyOn(entry.service, "findOneBy").mockResolvedValue(null);
+    getJestSpyOn(entry.service, "countBy").mockResolvedValue(
+      new PositiveNumber(1),
+    );
+
+    let reached: Record<string, unknown> = {};
+
+    getJestSpyOn(entry.service, "generateSlug").mockImplementation(
+      (createBy: { data: unknown }): never => {
+        reached = { ...(createBy.data as Record<string, unknown>) };
+        throw new AtTheHooks();
+      },
+    );
+
+    await expect(
+      entry.service.create({
+        data: namingSomeoneElse(entry.member()),
+        props: props,
+      }),
+    ).rejects.toBeInstanceOf(AtTheHooks);
+
+    return reached;
+  }
+
+  test.each(CASES)(
+    "$label: by the person, whoever the request names",
+    async (entry: EpisodeMemberCase) => {
+      const reached: Record<string, unknown> = await pastTheHooks(
+        entry,
+        PERSON_PROPS,
+      );
+
+      expect(String(reached["addedByUserId"])).toBe(PERSON_ID.toString());
+      expect(reached["addedByUser"]).toBeUndefined();
+    },
+  );
+
+  test.each(CASES)(
+    "$label: with no person on the request, by nobody",
+    async (entry: EpisodeMemberCase) => {
+      const reached: Record<string, unknown> = await pastTheHooks(
+        entry,
+        API_KEY_PROPS,
+      );
+
+      expect(reached["addedByUserId"]).toBeUndefined();
+      expect(reached["addedByUser"]).toBeUndefined();
+    },
+  );
 });

@@ -26,7 +26,6 @@ import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthor
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/IncidentAlert";
@@ -516,6 +515,10 @@ export class Service extends ProjectReferencesService<Model> {
    * This hook runs before DatabaseService checks the caller's create
    * permission, so every refusal is worded so it reveals nothing about
    * records the caller cannot see.
+   *
+   * "Linked by" is the link's creator, which DatabaseService decides as it
+   * does for every record (UserAttribution): whoever made the request, and
+   * nobody for an API key or a workflow.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -604,18 +607,6 @@ export class Service extends ProjectReferencesService<Model> {
         throw new BadDataException(
           "The alert to link does not exist in this project, or you do not have access to it.",
         );
-      }
-
-      /*
-       * "Linked by" is whoever made the request. sanitizeCreateOrUpdate
-       * stamps it for a user; an API key has no user, and must not be able
-       * to name somebody else as the one who linked the alert.
-       */
-      if (createBy.props.userId) {
-        RelationIdUtil.stamp(data, CREATED_BY_USER_KEYS, createBy.props.userId);
-      } else {
-        delete createBy.data.createdByUserId;
-        delete createBy.data.createdByUser;
       }
     }
 
