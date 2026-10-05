@@ -144,7 +144,7 @@ Avisering begärs per tidslinjerad med **Meddela statussideprenumeranter** (`sho
 - **Incidenten är inte synlig på statussidan** (`isVisibleOnStatusPage` är av).
 - **Statussidan har incidenter avslaget** (`showIncidentsOnStatusPage` är av). Det här gäller per statussida — andra sidor som visar samma monitor aviseras ändå.
 
-**En sak till som ändrar utfallet.** Om du skriver in en **Offentlig anteckning** i dialogen för tillståndsändring markeras tidslinjeraden som redan aviserad i stället för att köas. Det är anteckningen själv som når prenumeranterna, så de får ett meddelande i stället för två. Händelsetypen bakom det rena tillståndsändringsmeddelandet är `Subscriber Incident State Changed`.
+**En sak till som ändrar utfallet.** Om du skriver in en **Offentlig anteckning** i dialogen för tillståndsändring markeras tidslinjeraden som redan aviserad i stället för att köas. Det är anteckningen själv som når prenumeranterna, så de får ett meddelande i stället för två. Det meddelandet nämner det nya tillståndet i varje kanal, så som tillståndsändringsmeddelandet skulle ha gjort: till exempel `[Resolved Incident] <title>` i e-postens ämnesrad och `**Status:** Resolved` i Slack och Microsoft Teams. Anteckningen kräver behörighet att skapa offentliga anteckningar: utan den erbjuder dialogen inte anteckningen, och en tillståndsändring som skickas med en anteckning avvisas, så tillståndet förblir oförändrat. Händelsetypen bakom det rena tillståndsändringsmeddelandet är `Subscriber Incident State Changed`.
 
 För vilka som tar emot dem och hur mallarna väljs, se [Prenumeranter och meddelanden](/docs/status-pages/subscribers).
 

@@ -70,6 +70,22 @@ const STATE_CHANGE_DIALOGS: Array<string> = [
   `${DASHBOARD}/Components/ScheduledMaintenance/ChangeState.tsx`,
 ];
 
+/*
+ * The note each dialog posts with the change. The note is offered only to
+ * someone who may create it (noteModel, canPostStateChangeNote): the server
+ * refuses a state change whose note the person may not post.
+ */
+const NOTE_MODEL_OF_DIALOG: Record<string, string> = {
+  [`${DASHBOARD}/Components/Alert/ChangeState.tsx`]: "AlertInternalNote",
+  [`${DASHBOARD}/Components/AlertEpisode/ChangeState.tsx`]:
+    "AlertEpisodeInternalNote",
+  [`${DASHBOARD}/Components/Incident/ChangeState.tsx`]: "IncidentPublicNote",
+  [`${DASHBOARD}/Components/IncidentEpisode/ChangeState.tsx`]:
+    "IncidentEpisodeInternalNote",
+  [`${DASHBOARD}/Components/ScheduledMaintenance/ChangeState.tsx`]:
+    "ScheduledMaintenancePublicNote",
+};
+
 // How the shared piece writes its one folded section on both fields.
 const NOTE_SECTION: string = "noteSection";
 
@@ -164,6 +180,33 @@ describe("state change dialogs", () => {
       expect(source).not.toContain("FormFieldSchemaType.Checkbox");
     },
   );
+
+  test.each(STATE_CHANGE_DIALOGS)(
+    "%s offers its note only to someone who may post it",
+    (file: string) => {
+      const noteModel: string = NOTE_MODEL_OF_DIALOG[file]!;
+
+      expect(noteModel).toBeDefined();
+      expect(code(file)).toContain(`noteModel: new ${noteModel}(),`);
+      expect(code(file)).toContain(
+        `import ${noteModel} from "Common/Models/DatabaseModels/${noteModel}";`,
+      );
+    },
+  );
+
+  test("the shared piece hides the note, picker and editor alike, from someone who may not post it", () => {
+    const source: string = code(SHARED_PIECE);
+
+    expect(source).toContain(
+      "const isNoteOffered: boolean = !options.noteModel || canPostStateChangeNote(options.noteModel);",
+    );
+    expect(source).toContain(
+      "return isNoteOffered && noteTemplates.length > 0;",
+    );
+    expect(source).toContain(
+      "showIf: (): boolean => { return isNoteOffered; },",
+    );
+  });
 
   test("the bulk dialog builds its note with the shared piece, too", () => {
     const source: string = code(BULK_DIALOG);

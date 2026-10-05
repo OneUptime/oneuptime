@@ -7,6 +7,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
+import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -291,6 +292,7 @@ function ongoingState(): ScheduledMaintenanceState {
   const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
   state._id = ONGOING_STATE_ID.toString();
   state.name = "Ongoing";
+  state.color = new Color("#f59e0b");
   state.isScheduledState = false;
   state.isOngoingState = true;
   return state;
@@ -509,9 +511,28 @@ beforeEach(() => {
   jest
     .spyOn(ScheduledMaintenancePublicNoteService, "findAllBy")
     .mockImplementation((async (input: unknown) => {
-      return notes.filter((row: ScheduledMaintenancePublicNote) => {
-        return matches(row, (input as { query: JSONObject }).query);
-      });
+      const select: JSONObject = (input as { select: JSONObject }).select;
+
+      return notes
+        .filter((row: ScheduledMaintenancePublicNote) => {
+          return matches(row, (input as { query: JSONObject }).query);
+        })
+        .map(
+          (
+            row: ScheduledMaintenancePublicNote,
+          ): ScheduledMaintenancePublicNote => {
+            // The state it was posted with, joined as the select asks for it.
+            if (
+              select["postedWithScheduledMaintenanceState"] &&
+              row.postedWithScheduledMaintenanceStateId?.toString() ===
+                ONGOING_STATE_ID.toString()
+            ) {
+              row.postedWithScheduledMaintenanceState = ongoingState();
+            }
+
+            return row;
+          },
+        );
     }) as never);
   jest
     .spyOn(ScheduledMaintenancePublicNoteService, "updateOneById")
@@ -605,6 +626,50 @@ describe("a scheduled maintenance state change posted with a public note", () =>
     expect(notes[0]!.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Success,
     );
+  });
+
+  test("the note's messages say the event is Ongoing, on every channel, as the state change's did", async () => {
+    await markOngoing({ notify: true, publicNote: NOTE });
+
+    // The note carries the state the event moved to.
+    expect(notes[0]!.postedWithScheduledMaintenanceStateId?.toString()).toBe(
+      ONGOING_STATE_ID.toString(),
+    );
+
+    await runTheJobs();
+
+    const mail: { subject: string; vars: JSONObject } = mock(
+      MailService.sendMail,
+    ).mock.calls[0]![0] as { subject: string; vars: JSONObject };
+
+    expect(mail.subject).toBe(
+      "[Ongoing Scheduled Maintenance] Database upgrade",
+    );
+    expect(mail.vars["eventState"]).toBe("Ongoing");
+    expect(mail.vars["eventStateColor"]).toBe("#f59e0b");
+
+    expect(
+      (mock(SmsService.sendSms).mock.calls[0]![0] as { message: string })
+        .message,
+    ).toMatch(/^Maintenance Database upgrade on Acme Status is Ongoing\. /);
+    expect(
+      (
+        mock(SlackUtil.sendMessageToChannelViaIncomingWebhook).mock
+          .calls[0]![0] as { text: string }
+      ).text,
+    ).toContain("**Status:** Ongoing");
+    expect(
+      (
+        mock(MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook).mock
+          .calls[0]![0] as { text: string }
+      ).text,
+    ).toContain("**Status:** Ongoing");
+    expect(
+      (
+        mock(StatusPageSubscriberWebhookUtil.sendWebhookNotification).mock
+          .calls[0]![0] as { payload: { data: JSONObject } }
+      ).payload.data["scheduledMaintenanceState"],
+    ).toBe("Ongoing");
   });
 
   test("the next runs send nothing more", async () => {

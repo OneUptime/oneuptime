@@ -32,6 +32,7 @@ import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -153,6 +154,54 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
       if (!scheduledMaintenanceStateId) {
         throw new BadDataException("scheduledMaintenanceStateId is null");
+      }
+
+      // The public note that comes with the change, if any (a blank one is none).
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
+
+      /*
+       * The note, as it will be posted below - before the change, as the
+       * person changing the state, so that a note they may not post refuses
+       * the change too. Asked now, before anything is read or written, with
+       * the check the note's own create runs, so the refusal says what it
+       * means for the change (StateChangePublicNote).
+       */
+      let scheduledMaintenancePublicNote:
+        | ScheduledMaintenancePublicNote
+        | undefined = undefined;
+
+      if (publicNote) {
+        scheduledMaintenancePublicNote = new ScheduledMaintenancePublicNote();
+        scheduledMaintenancePublicNote.scheduledMaintenanceId =
+          createBy.data.scheduledMaintenanceId;
+        scheduledMaintenancePublicNote.note = publicNote;
+        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
+        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
+
+        const noteProjectId: ObjectID | undefined =
+          createBy.data.projectId || createBy.props.tenantId;
+
+        if (noteProjectId) {
+          scheduledMaintenancePublicNote.projectId = noteProjectId;
+        }
+
+        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+        // Its messages name the state the event moves to.
+        StateChangePublicNote.markPostedWith(
+          scheduledMaintenancePublicNote,
+          scheduledMaintenanceStateId,
+        );
+
+        StateChangePublicNote.assertCallerMayPost({
+          noteModelType: ScheduledMaintenancePublicNote,
+          note: scheduledMaintenancePublicNote,
+          props: createBy.props,
+        });
       }
 
       /*
@@ -292,23 +341,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         }
       }
 
-      const publicNote: string | undefined =
-        StateChangeSubscriberNotification.getPublicNote(
-          createBy.miscDataProps as JSONObject | undefined,
-        );
-
-      if (publicNote) {
-        const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
-          new ScheduledMaintenancePublicNote();
-        scheduledMaintenancePublicNote.scheduledMaintenanceId =
-          createBy.data.scheduledMaintenanceId;
-        scheduledMaintenancePublicNote.note = publicNote;
-        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
-        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
-        scheduledMaintenancePublicNote.projectId = createBy.data.projectId!;
-        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
-
+      // The note goes first: a note that cannot be posted refuses the change.
+      if (scheduledMaintenancePublicNote) {
         await ScheduledMaintenancePublicNoteService.create({
           data: scheduledMaintenancePublicNote,
           props: createBy.props,

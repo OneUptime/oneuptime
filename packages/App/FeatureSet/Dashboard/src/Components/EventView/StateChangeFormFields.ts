@@ -5,6 +5,11 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate, {
+  ModelAction,
+  PermissionCheckableModel,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import {
   BulkStateChangeNoteTemplate,
   BulkStateChangeNoteType,
@@ -38,6 +43,13 @@ import {
  * Nothing about what is sent changes: the note travels under the same key
  * (publicNote / privateNote), the template id under its own, and the notify
  * flag as before.
+ *
+ * Only someone who may post the note is offered it (noteModel,
+ * canPostStateChangeNote). The server refuses a state change whose note the
+ * person may not post - the whole change, not just the note, so nobody is
+ * left recorded as told by a note that was never posted (Common
+ * Server/Utils/StatusPage/StateChangePublicNote) - and a dialog that offered
+ * the note would only lead them into that refusal.
  *
  * Build the fields with getStateChangeFormFields and hand them to the dialog
  * as they are. A guard (StateChangeDialogsFoldTheNote.test.ts) keeps every
@@ -101,7 +113,33 @@ export interface StateChangeFormFieldsOptions {
    * status page. Left out, the dialog has none.
    */
   notifySubscribers?: StateChangeNotifyOptions | undefined;
+  /*
+   * The note the change posts, as an empty model of its kind (an
+   * IncidentPublicNote, an AlertInternalNote, ...). Someone who may not
+   * create it is not offered it (canPostStateChangeNote): no "Add a public
+   * note" / "Add a private note" line, no template picker, no editor. Left
+   * out, the note is offered.
+   */
+  noteModel?: PermissionCheckableModel | undefined;
 }
+
+/*
+ * Whether the person signed in may post the note a state change carries:
+ * the note model's create permissions (PermissionGate), the ones the server
+ * asks for before it saves the change. A person it does not know yet - the
+ * permissions not loaded, no permission to name - is offered the note, and
+ * the server decides, as it always has.
+ */
+export const canPostStateChangeNote: (
+  noteModel: PermissionCheckableModel,
+) => boolean = (noteModel: PermissionCheckableModel): boolean => {
+  const gate: PermissionGateResult = PermissionGate.check(
+    noteModel,
+    ModelAction.Create,
+  );
+
+  return gate.isAllowed || !gate.disabledReason;
+};
 
 export type GetStateChangeNoteSectionFunction = <TEntity>(
   noteType: BulkStateChangeNoteType,
@@ -139,6 +177,9 @@ export const getStateChangeFormFields: GetStateChangeFormFieldsFunction = <
   );
   const noteTemplates: Array<BulkStateChangeNoteTemplate> =
     options.noteTemplates;
+  // A note the person may not post is not offered (canPostStateChangeNote).
+  const isNoteOffered: boolean =
+    !options.noteModel || canPostStateChangeNote(options.noteModel);
 
   // One section for both of its fields, so they are one folded line.
   const noteSection: FormFieldCollapsibleSection<TEntity> =
@@ -183,7 +224,7 @@ export const getStateChangeFormFields: GetStateChangeFormFieldsFunction = <
         },
       ),
       showIf: (): boolean => {
-        return noteTemplates.length > 0;
+        return isNoteOffered && noteTemplates.length > 0;
       },
       // Picking a template writes it into the note, over what was there.
       onChange: (
@@ -216,6 +257,9 @@ export const getStateChangeFormFields: GetStateChangeFormFieldsFunction = <
       fieldType: FormFieldSchemaType.Markdown,
       title: options.noteTitle || STATE_CHANGE_NOTE_TITLES[options.noteType],
       description: options.noteDescription,
+      showIf: (): boolean => {
+        return isNoteOffered;
+      },
       required: false,
       overrideFieldKey: noteFieldKey,
       showEvenIfPermissionDoesNotExist: true,

@@ -144,7 +144,7 @@ La notifica viene richiesta per ogni riga di cronologia da **Notifica gli iscrit
 - **L'incidente non è visibile sulla pagina di stato** (`isVisibleOnStatusPage` è disattivato).
 - **La pagina di stato ha gli incidenti disattivati** (`showIncidentsOnStatusPage` è disattivato). Questo vale per singola pagina di stato: le altre pagine che mostrano lo stesso monitor ricevono comunque la notifica.
 
-**Un'altra cosa che cambia l'esito.** Se scrivete una **Nota pubblica** nella finestra di cambio stato, la riga di cronologia viene marcata come già notificata invece che messa in coda. È la nota stessa a raggiungere gli iscritti, quindi ricevono un messaggio invece di due. Il tipo di evento dietro il messaggio semplice di cambio stato è `Subscriber Incident State Changed`.
+**Un'altra cosa che cambia l'esito.** Se scrivete una **Nota pubblica** nella finestra di cambio stato, la riga di cronologia viene marcata come già notificata invece che messa in coda. È la nota stessa a raggiungere gli iscritti, quindi ricevono un messaggio invece di due. Quel messaggio nomina il nuovo stato su ogni canale, come avrebbe fatto il messaggio di cambio stato: per esempio `[Resolved Incident] <title>` nell'oggetto dell'email e `**Status:** Resolved` in Slack e Microsoft Teams. Pubblicare la nota richiede il permesso di creare note pubbliche: senza, la finestra non offre la nota, e un cambio di stato inviato con una nota viene rifiutato, quindi lo stato resta com'era. Il tipo di evento dietro il messaggio semplice di cambio stato è `Subscriber Incident State Changed`.
 
 Per sapere chi riceve queste comunicazioni e come vengono scelti i modelli, vedete [Iscritti e annunci](/docs/status-pages/subscribers).
 

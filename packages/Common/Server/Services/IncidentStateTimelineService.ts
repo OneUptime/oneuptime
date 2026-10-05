@@ -37,6 +37,7 @@ import InvestigationGrader from "../Utils/AI/SRE/InvestigationGrader";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -104,6 +105,66 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
+      // Under either of its names; the two must agree.
+      const incidentStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["incidentStateId", "incidentState"],
+        "Incident State",
+      );
+
+      if (!incidentStateId) {
+        throw new BadDataException("incidentStateId is null");
+      }
+
+      // The public note that comes with the change, if any (a blank one is none).
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
+
+      /*
+       * The note is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the incident feed and in Slack. With Notify on it is the one message
+       * subscribers get about the change, which is recorded as sent by it.
+       * So whether they may post it is asked now, before anything is read or
+       * written, with the check the note's own create runs: a change whose
+       * note they may not post is refused whole, rather than saved with
+       * nobody told (StateChangePublicNote).
+       *
+       * It notifies exactly when the change was asked to: a change that does
+       * not say keeps its column defaults and notifies itself, and its note
+       * stays quiet - one message, not two.
+       */
+      let publicNoteToPost: IncidentPublicNote | undefined = undefined;
+
+      if (publicNote) {
+        publicNoteToPost = new IncidentPublicNote();
+        publicNoteToPost.incidentId = createBy.data.incidentId;
+        publicNoteToPost.note = publicNote;
+        publicNoteToPost.postedAt = createBy.data.startsAt;
+        publicNoteToPost.createdAt = createBy.data.startsAt;
+
+        const noteProjectId: ObjectID | undefined =
+          createBy.data.projectId || createBy.props.tenantId;
+
+        if (noteProjectId) {
+          publicNoteToPost.projectId = noteProjectId;
+        }
+
+        publicNoteToPost.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+        // Its messages name the state the incident moves to.
+        StateChangePublicNote.markPostedWith(publicNoteToPost, incidentStateId);
+
+        StateChangePublicNote.assertCallerMayPost({
+          noteModelType: IncidentPublicNote,
+          note: publicNoteToPost,
+          props: createBy.props,
+        });
+      }
+
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
         createBy.data,
@@ -117,17 +178,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
             projectId: createBy.data.projectId || createBy.props.tenantId!,
           },
         )}`;
-      }
-
-      // Under either of its names; the two must agree.
-      const incidentStateId: ObjectID | null = RelationIdUtil.readConsistent(
-        createBy.data as unknown as Record<string, unknown>,
-        ["incidentStateId", "incidentState"],
-        "Incident State",
-      );
-
-      if (!incidentStateId) {
-        throw new BadDataException("incidentStateId is null");
       }
 
       /*
@@ -288,12 +338,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         incidentId: createBy.data.incidentId?.toString(),
       } as LogAttributes);
 
-      // Posted as a public note once the change is saved (onCreateSuccess).
-      const publicNote: string | undefined =
-        StateChangeSubscriberNotification.getPublicNote(
-          createBy.miscDataProps as JSONObject | undefined,
-        );
-
       /*
        * The change's own notification, decided once: when it notifies
        * subscribers and a note comes with it, the note is the one message
@@ -312,6 +356,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
           publicNote: publicNote,
+          publicNoteToPost: publicNoteToPost,
           mutex: mutex,
         },
       };
@@ -631,17 +676,18 @@ ${createdItem.rootCause}`,
       });
     }
 
-    if (onCreate.carryForward.publicNote) {
-      const publicNote: string = onCreate.carryForward.publicNote;
-
-      const incidentPublicNote: IncidentPublicNote = new IncidentPublicNote();
-      incidentPublicNote.incidentId = createdItem.incidentId;
-      incidentPublicNote.note = publicNote;
+    /*
+     * The note that came with the change, which onBeforeCreate built and
+     * made sure may be posted: posted now, after the change, on the incident
+     * and at the time the change was saved with, as the person who changed
+     * the state.
+     */
+    if (onCreate.carryForward.publicNoteToPost) {
+      const incidentPublicNote: IncidentPublicNote =
+        onCreate.carryForward.publicNoteToPost;
       incidentPublicNote.postedAt = createdItem.startsAt!;
       incidentPublicNote.createdAt = createdItem.startsAt!;
       incidentPublicNote.projectId = createdItem.projectId!;
-      incidentPublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-        Boolean(createdItem.shouldStatusPageSubscribersBeNotified);
 
       await IncidentPublicNoteService.create({
         data: incidentPublicNote,
