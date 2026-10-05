@@ -352,7 +352,7 @@ export default class ProjectScopedReferenceValidator {
    * record the update matches is in. Handing validateReferencesBelongToProject
    * the request's project alone would check nothing for those updates.
    */
-  public static async validateUpdateReferencesBelongToProject<
+  public static async validateUpdateReferences<
     TModel extends DatabaseBaseModel,
   >(data: {
     service: DatabaseService<TModel>;

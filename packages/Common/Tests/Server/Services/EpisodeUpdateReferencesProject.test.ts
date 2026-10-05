@@ -319,7 +319,7 @@ describe.each(CASES)("$name updated in a project", (testCase: EpisodeCase) => {
   });
 });
 
-describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject", () => {
+describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
   const SEVERITY_REFERENCE: (id: string) => {
     modelName: string;
     id: string;
@@ -337,17 +337,15 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProjec
   test("reads nothing for an update that names no reference", async () => {
     const findBy: SpyInstance = jest.spyOn(IncidentEpisodeService, "findBy");
 
-    await ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject(
-      {
-        service: IncidentEpisodeService,
-        updateBy: {
-          data: {},
-          query: { _id: EPISODE_ID },
-          props: { isRoot: true },
-        } as never,
-        references: [],
-      },
-    );
+    await ProjectScopedReferenceValidator.validateUpdateReferences({
+      service: IncidentEpisodeService,
+      updateBy: {
+        data: {},
+        query: { _id: EPISODE_ID },
+        props: { isRoot: true },
+      } as never,
+      references: [],
+    });
 
     expect(findBy).not.toHaveBeenCalled();
   });
@@ -410,7 +408,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProjec
 
   test("refuses another project's record against the request's project", async () => {
     await expect(
-      ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject({
+      ProjectScopedReferenceValidator.validateUpdateReferences({
         service: IncidentEpisodeService,
         updateBy: {
           data: {},
@@ -431,7 +429,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProjec
       ] as never);
 
     await expect(
-      ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject({
+      ProjectScopedReferenceValidator.validateUpdateReferences({
         service: IncidentEpisodeService,
         updateBy: {
           data: {},
