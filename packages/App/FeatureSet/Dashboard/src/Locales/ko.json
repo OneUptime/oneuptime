@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "규칙은 저장 후 1분 이내에 시작하여 매분 메트릭을 기록합니다.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
   "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
-  "e.g. Add production": "예: production 추가"
+  "e.g. Add production": "예: production 추가",
+  "AI agent actions": "AI 에이전트 작업",
+  "Testing the connection…": "연결을 테스트하는 중…"
 }

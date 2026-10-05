@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "De regel schrijft zijn metriek elke minuut weg, te beginnen binnen een minuut na het opslaan.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Wanneer deze regel overeenkomt, worden deze labels toegevoegd. Labels die al zijn toegevoegd, worden niet twee keer toegevoegd.",
   "e.g. Add Platform as owners": "bijv. Platform als eigenaren toevoegen",
-  "e.g. Add production": "bijv. production toevoegen"
+  "e.g. Add production": "bijv. production toevoegen",
+  "AI agent actions": "AI-agentacties",
+  "Testing the connection…": "Verbinding wordt getest…"
 }

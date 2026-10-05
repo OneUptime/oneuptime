@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "این قاعده هر دقیقه متریک خود را می‌نویسد و ظرف یک دقیقه پس از ذخیره شدن شروع می‌کند.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "وقتی این قاعده مطابقت کند، این برچسب‌ها افزوده می‌شوند. برچسب‌هایی که از قبل افزوده شده‌اند دوباره افزوده نمی‌شوند.",
   "e.g. Add Platform as owners": "برای نمونه افزودن Platform به‌عنوان مالک",
-  "e.g. Add production": "برای نمونه افزودن production"
+  "e.g. Add production": "برای نمونه افزودن production",
+  "AI agent actions": "اقدام‌های عامل هوش مصنوعی",
+  "Testing the connection…": "در حال آزمایش اتصال…"
 }

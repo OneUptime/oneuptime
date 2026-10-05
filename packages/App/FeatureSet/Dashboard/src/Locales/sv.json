@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "Regeln skriver sitt mått varje minut, med start senast en minut efter att den har sparats.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "När den här regeln matchar läggs dessa etiketter till. Etiketter som redan finns läggs inte till två gånger.",
   "e.g. Add Platform as owners": "t.ex. Lägg till Platform som ägare",
-  "e.g. Add production": "t.ex. Lägg till production"
+  "e.g. Add production": "t.ex. Lägg till production",
+  "AI agent actions": "Åtgärder för AI-agenten",
+  "Testing the connection…": "Testar anslutningen…"
 }

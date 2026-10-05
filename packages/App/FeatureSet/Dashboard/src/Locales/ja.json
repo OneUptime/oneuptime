@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "ルールは保存から 1 分以内に、毎分のメトリクスの書き込みを開始します。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。",
   "e.g. Add Platform as owners": "例: Platform を所有者として追加",
-  "e.g. Add production": "例: production を追加"
+  "e.g. Add production": "例: production を追加",
+  "AI agent actions": "AI エージェントのアクション",
+  "Testing the connection…": "接続をテストしています…"
 }

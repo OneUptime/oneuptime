@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "Правило записывает свою метрику каждую минуту, начиная не позже чем через минуту после сохранения.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Когда это правило срабатывает, эти метки добавляются. Уже добавленные метки повторно не добавляются.",
   "e.g. Add Platform as owners": "напр. Добавить Platform как владельцев",
-  "e.g. Add production": "напр. Добавить production"
+  "e.g. Add production": "напр. Добавить production",
+  "AI agent actions": "Действия ИИ-агента",
+  "Testing the connection…": "Проверка подключения…"
 }

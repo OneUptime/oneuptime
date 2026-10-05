@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "此規則會在儲存後一分鐘內開始，每分鐘寫入一次其指標。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "當此規則符合時，會新增這些標籤。已新增的標籤不會重複新增。",
   "e.g. Add Platform as owners": "例如 將 Platform 新增為擁有者",
-  "e.g. Add production": "例如 新增 production"
+  "e.g. Add production": "例如 新增 production",
+  "AI agent actions": "AI 代理操作",
+  "Testing the connection…": "正在測試連線…"
 }

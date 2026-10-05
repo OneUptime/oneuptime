@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "नियम सहेजे जाने के एक मिनट के भीतर शुरू होकर हर मिनट अपना मेट्रिक लिखता है।",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "जब यह नियम मेल खाता है, तो ये लेबल जोड़े जाते हैं। पहले से जुड़े लेबल दोबारा नहीं जोड़े जाते।",
   "e.g. Add Platform as owners": "उदा. Platform को स्वामी के रूप में जोड़ें",
-  "e.g. Add production": "उदा. production जोड़ें"
+  "e.g. Add production": "उदा. production जोड़ें",
+  "AI agent actions": "AI एजेंट क्रियाएँ",
+  "Testing the connection…": "कनेक्शन का परीक्षण किया जा रहा है…"
 }

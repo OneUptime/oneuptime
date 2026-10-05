@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "A regra grava sua métrica a cada minuto, começando em até um minuto após ser salva.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Quando esta regra corresponde, estes rótulos são anexados. Rótulos já anexados não são adicionados duas vezes.",
   "e.g. Add Platform as owners": "ex.: Adicionar Platform como proprietários",
-  "e.g. Add production": "ex.: Adicionar production"
+  "e.g. Add production": "ex.: Adicionar production",
+  "AI agent actions": "Ações do agente IA",
+  "Testing the connection…": "Testando a conexão…"
 }

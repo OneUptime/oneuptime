@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "该规则在保存后一分钟内开始，每分钟写入一次其指标。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "当此规则匹配时，会添加这些标签。已添加的标签不会被重复添加。",
   "e.g. Add Platform as owners": "例如 将 Platform 添加为所有者",
-  "e.g. Add production": "例如 添加 production"
+  "e.g. Add production": "例如 添加 production",
+  "AI agent actions": "AI 代理操作",
+  "Testing the connection…": "正在测试连接…"
 }

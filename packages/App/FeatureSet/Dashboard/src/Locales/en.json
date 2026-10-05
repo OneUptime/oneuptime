@@ -24892,5 +24892,7 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "The rule writes its metric every minute, starting within a minute of being saved.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "When this rule matches, these labels are attached. Labels already attached are not added twice.",
   "e.g. Add Platform as owners": "e.g. Add Platform as owners",
-  "e.g. Add production": "e.g. Add production"
+  "e.g. Add production": "e.g. Add production",
+  "AI agent actions": "AI agent actions",
+  "Testing the connection…": "Testing the connection…"
 }
