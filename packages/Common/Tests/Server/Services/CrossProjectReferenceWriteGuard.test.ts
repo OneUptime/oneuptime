@@ -123,7 +123,7 @@ function spyOnValidator(rejects?: boolean): void {
 
       if (rejects && hasId) {
         throw new BadDataException(
-          "This record references records that belong to a different project.",
+          "This record references records that are not in this project.",
         );
       }
     }) as never);
@@ -209,7 +209,7 @@ describe("cross-project reference guard on write", () => {
           data: { title: "test", incidentSeverityId: SEVERITY_ID } as Incident,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
 
       expect(counter).not.toHaveBeenCalled();
     });
@@ -339,7 +339,7 @@ describe("cross-project reference guard on write", () => {
           query: {},
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -397,7 +397,7 @@ describe("cross-project reference guard on write", () => {
           data: { title: "test", alertSeverityId: SEVERITY_ID } as Alert,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
 
       expect(counter).not.toHaveBeenCalled();
     });
@@ -489,7 +489,7 @@ describe("cross-project reference guard on write", () => {
           } as ScheduledMaintenance,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
 
       expect(counter).not.toHaveBeenCalled();
     });
@@ -589,7 +589,7 @@ describe("cross-project reference guard on write", () => {
           } as IncidentTemplate,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -630,7 +630,7 @@ describe("cross-project reference guard on write", () => {
           } as ScheduledMaintenanceTemplate,
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -792,7 +792,7 @@ describe("cross-project reference guard on write", () => {
           query: {},
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
     });
 
     test("update looks nothing up when neither monitorSteps nor the status is written", async () => {

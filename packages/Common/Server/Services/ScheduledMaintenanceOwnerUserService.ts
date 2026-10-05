@@ -2,7 +2,7 @@ import User from "../../Models/DatabaseModels/User";
 import ObjectID from "../../Types/ObjectID";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import UserService from "./UserService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -15,7 +15,7 @@ import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
