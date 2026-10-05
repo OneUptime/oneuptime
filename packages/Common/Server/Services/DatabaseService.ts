@@ -125,6 +125,15 @@ interface ColumnsByIdUpdateStatement {
   params: Array<unknown>;
 }
 
+/*
+ * The query a write's hooks are handed in place of the one sent (see
+ * pinQueryToRows), and whether it names the rows themselves by _id.
+ */
+interface PinnedQuery<TBaseModel extends BaseModel> {
+  query: Query<TBaseModel>;
+  namesTheRows: boolean;
+}
+
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
   private model!: TBaseModel;
@@ -377,15 +386,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * found are the only ones the hooks get to see:
    *
    *  - none: the write changes nothing, so it returns at once and no hook
-   *    runs (the same 0 it returned before, without anything done first);
-   *  - some: the query handed on is pinned to them by _id, and the window to
-   *    them, so a hook reading "the rows this write names" reads exactly
-   *    those. A query that already names its one row by _id is left as sent.
+   *    runs - neither the before nor the success hook (the same 0 it
+   *    returned before, without anything done first);
+   *  - some: the query handed on names only them (see pinQueryToRows), so a
+   *    hook reading "the rows this write names" reads only those.
    *
    * The full check still runs after the hooks, on whatever they hand back.
    * Root and master admin callers write any row, so nothing changes for
-   * them; nor with ignoreHooks, where no hook runs. Returns whether there is
-   * anything left to write.
+   * them; nor with ignoreHooks, or for a service with no hook for this kind
+   * of write, where nothing runs that could act on the rows. Returns whether
+   * there is anything left to write.
    */
   private async keepRowsCallerMayWrite(
     write: {
@@ -395,11 +405,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: DatabaseCommonInteractionProps;
     },
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    options: { withDeleted?: boolean } = {},
   ): Promise<boolean> {
     if (
       write.props.isRoot ||
       write.props.isMasterAdmin ||
-      write.props.ignoreHooks
+      write.props.ignoreHooks ||
+      !this.hasHooksFor(type)
     ) {
       return true;
     }
@@ -421,13 +433,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             write.props,
           );
 
-    const rows: Array<TBaseModel> = await this._findBy({
-      query: writableQuery,
-      select: { _id: true } as Select<TBaseModel>,
-      skip: this.normalizePositiveNumber(write.skip) ?? 0,
-      limit: this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX,
-      props: { isRoot: true, ignoreHooks: true },
-    });
+    const rows: Array<TBaseModel> = await this._findBy(
+      {
+        query: writableQuery,
+        select: { _id: true } as Select<TBaseModel>,
+        skip: this.normalizePositiveNumber(write.skip) ?? 0,
+        limit: this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      options.withDeleted,
+    );
 
     const rowIds: Array<string> = [];
 
@@ -441,41 +456,123 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return false;
     }
 
-    write.query = this.pinQueryToRows(write.query, rowIds);
-    write.skip = 0;
-    write.limit = rowIds.length;
+    const pinned: PinnedQuery<TBaseModel> | null = this.pinQueryToRows(
+      write.query,
+      rowIds,
+      write.props,
+    );
+
+    if (pinned) {
+      write.query = pinned.query;
+
+      /*
+       * A query that names the rows by _id needs no window but them. One that
+       * is only scoped to the project keeps the window it was sent with, so
+       * the write still covers the rows it covered.
+       */
+      if (pinned.namesTheRows) {
+        write.skip = 0;
+        write.limit = rowIds.length;
+      }
+    }
 
     return true;
   }
 
   /*
-   * The query, narrowed to these rows by _id. Kept as it is when it already
-   * names exactly the one row (a plain id, as updateOneById and deleteOneById
-   * send it), so hooks that read query._id as an id still can. Otherwise
-   * every other condition is kept and _id is set to the row, or the rows.
+   * Whether this service has a hook for an update or a delete - before it or
+   * after it - that could act on the rows it names.
+   */
+  private hasHooksFor(
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): boolean {
+    const hookNames: Array<string> =
+      type === DatabaseRequestType.Update
+        ? ["onBeforeUpdate", "onUpdateSuccess"]
+        : ["onBeforeDelete", "onDeleteSuccess"];
+
+    return hookNames.some((hookName: string): boolean => {
+      return (
+        (this as unknown as Record<string, unknown>)[hookName] !==
+        (DatabaseService.prototype as unknown as Record<string, unknown>)[
+          hookName
+        ]
+      );
+    });
+  }
+
+  /*
+   * The query a write's hooks are handed, so that it names only the rows the
+   * caller may write - in a shape hooks already read:
+   *
+   *  - a query naming its one row by a plain _id (updateOneById and
+   *    deleteOneById send that) is kept as it was sent;
+   *  - one that names rows by _id some other way gets _id set to them: a
+   *    plain id for one row, an "any of" for several;
+   *  - one that does not name _id gets the one row's plain id, when it
+   *    matched one row. When it matched several, _id is left out - hooks
+   *    that refuse a write without one, or read it as an id, keep doing what
+   *    they did - and it is scoped to the caller's project instead, in the
+   *    window it was sent with.
+   *
+   * null when none of these applies, and the query is left as it is.
    */
   private pinQueryToRows(
     query: Query<TBaseModel>,
     rowIds: Array<string>,
-  ): Query<TBaseModel> {
-    const pinnedId: unknown =
-      rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds);
+    props: DatabaseCommonInteractionProps,
+  ): PinnedQuery<TBaseModel> | null {
+    const oneRowId: string | null = rowIds.length === 1 ? rowIds[0]! : null;
 
     if (Array.isArray(query)) {
-      return { _id: pinnedId } as Query<TBaseModel>;
+      return {
+        query: {
+          _id: oneRowId || QueryHelper.any(rowIds),
+        } as Query<TBaseModel>,
+        namesTheRows: true,
+      };
     }
 
     const sentId: unknown = (query as Record<string, unknown>)["_id"];
 
-    if (
-      rowIds.length === 1 &&
-      (typeof sentId === "string" || sentId instanceof ObjectID) &&
-      sentId.toString().toLowerCase() === rowIds[0]!.toLowerCase()
-    ) {
-      return query;
+    if (sentId !== undefined && sentId !== null) {
+      if (
+        oneRowId &&
+        (typeof sentId === "string" || sentId instanceof ObjectID) &&
+        sentId.toString().toLowerCase() === oneRowId.toLowerCase()
+      ) {
+        return { query: query, namesTheRows: true };
+      }
+
+      return {
+        query: {
+          ...query,
+          _id: oneRowId || QueryHelper.any(rowIds),
+        } as Query<TBaseModel>,
+        namesTheRows: true,
+      };
     }
 
-    return { ...query, _id: pinnedId } as Query<TBaseModel>;
+    if (oneRowId) {
+      return {
+        query: { ...query, _id: oneRowId } as Query<TBaseModel>,
+        namesTheRows: true,
+      };
+    }
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
+      return {
+        query: {
+          ...query,
+          [tenantColumn]: props.tenantId,
+        } as Query<TBaseModel>,
+        namesTheRows: false,
+      };
+    }
+
+    return null;
   }
 
   protected async onBeforeCreate(
@@ -869,6 +966,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * Skipped with ignoreHooks.
    */
   protected async onBeforeUpdateUniqueCheck(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
+  /*
+   * The last hook before an update is written: the caller has passed every
+   * permission check, the query is narrowed to the rows they may write, and
+   * the clash checks have run. A side effect the update must make before
+   * it is written - and must never make for an update that is refused -
+   * belongs here; one it may make afterwards belongs in onUpdateSuccess. A
+   * throw here refuses the update. Skipped with ignoreHooks.
+   */
+  protected async onUpdatePermitted(
     _updateBy: UpdateBy<TBaseModel>,
   ): Promise<void> {
     // A place holder method used for overriding.
@@ -3059,11 +3171,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
-      // Only the rows the caller may delete reach the hook. See the helper.
+      /*
+       * Only the rows the caller may delete reach the hook. See the helper.
+       * A hard delete also purges soft-deleted rows, so they count too.
+       */
       if (
         !(await this.keepRowsCallerMayWrite(
           deleteBy,
           DatabaseRequestType.Delete,
+          { withDeleted: true },
         ))
       ) {
         return 0;
@@ -3816,6 +3932,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {
         await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
+        await this.onUpdatePermitted(beforeUpdateBy);
       }
 
       const data: PartialEntity<TBaseModel> =
@@ -4132,10 +4249,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
-       * onUpdateSuccess always fires — subclasses rely on it being called
-       * even when nothing matched — but it is handed only the rows the write
-       * actually affected, so a row deleted mid-update never appears as a
-       * phantom id that hooks would then fail to re-read.
+       * onUpdateSuccess fires whenever onBeforeUpdate did - even when nothing
+       * matched, which subclasses rely on - but it is handed only the rows
+       * the write actually affected, so a row deleted mid-update never
+       * appears as a phantom id that hooks would then fail to re-read. (For a
+       * caller who may write none of the rows a write names, neither hook
+       * runs: see keepRowsCallerMayWrite.)
        */
       if (!updateBy.props.ignoreHooks) {
         await this.onUpdateSuccess(

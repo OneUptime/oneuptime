@@ -788,7 +788,7 @@ export class ProjectService extends DatabaseService<Model> {
    * a charge that fails (no card, say) refuses the change, as it always has.
    */
   @CaptureSpan()
-  protected override async onBeforeUpdateUniqueCheck(
+  protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     if (
@@ -798,6 +798,7 @@ export class ProjectService extends DatabaseService<Model> {
       return;
     }
 
+    // The same rows, and the same window of them, the update writes.
     const projects: Array<Model> = await this.findBy({
       query: updateBy.query,
       select: {
@@ -807,7 +808,10 @@ export class ProjectService extends DatabaseService<Model> {
         updateBy.limit instanceof PositiveNumber
           ? updateBy.limit.toNumber()
           : updateBy.limit,
-      skip: 0,
+      skip:
+        updateBy.skip instanceof PositiveNumber
+          ? updateBy.skip.toNumber()
+          : updateBy.skip,
       props: {
         isRoot: true,
       },

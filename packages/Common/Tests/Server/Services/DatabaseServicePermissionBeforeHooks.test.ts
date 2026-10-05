@@ -1,4 +1,5 @@
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -243,12 +244,16 @@ function makeFakeRepository(): FakeRepository {
         });
       },
     ),
-    update: getJestMockFunction().mockImplementation(async (): Promise<{ affected: number }> => {
-      throw new Error("update() should not have been reached.");
-    }),
-    delete: getJestMockFunction().mockImplementation(async (): Promise<{ affected: number }> => {
-      throw new Error("delete() should not have been reached.");
-    }),
+    update: getJestMockFunction().mockImplementation(
+      async (): Promise<{ affected: number }> => {
+        throw new Error("update() should not have been reached.");
+      },
+    ),
+    delete: getJestMockFunction().mockImplementation(
+      async (): Promise<{ affected: number }> => {
+        throw new Error("delete() should not have been reached.");
+      },
+    ),
     save: getJestMockFunction().mockImplementation(async (): Promise<never> => {
       throw new Error("save() should not have been reached.");
     }),
@@ -865,5 +870,380 @@ describe("DatabaseService: the rows of a project write are looked up by the proj
     expect(
       String(firstArgumentOf(onBeforeUpdate).query["_id"]).toLowerCase(),
     ).toBe(PROJECT_ID.toString().toLowerCase());
+  });
+});
+
+describe("DatabaseService: an update or delete of several rows keeps the shape hooks read", () => {
+  /*
+   * Hooks that act on one row refuse a write without a plain _id, and hooks
+   * that read query._id as an id skip one without it. A write that names
+   * several rows by a condition is therefore not handed an "any of" _id it
+   * never sent: it is scoped to the caller's project, in its own window.
+   */
+  test.each([
+    [
+      "an update",
+      "onBeforeUpdate",
+      (service: DatabaseService<BaseModel>): Promise<unknown> => {
+        return service.updateBy({
+          query: {},
+          data: { description: "shared" } as never,
+          limit: 10,
+          skip: 0,
+          props: ownerProps(),
+        });
+      },
+    ],
+    [
+      "a delete",
+      "onBeforeDelete",
+      (service: DatabaseService<BaseModel>): Promise<unknown> => {
+        return service.deleteBy({
+          query: {},
+          limit: 10,
+          skip: 0,
+          props: ownerProps(),
+        });
+      },
+    ],
+  ] as Array<
+    [
+      string,
+      HookName,
+      (service: DatabaseService<BaseModel>) => Promise<unknown>,
+    ]
+  >)(
+    "%s that names several of the caller's rows by a condition is scoped to their project, with no _id added",
+    async (
+      _label: string,
+      hook: HookName,
+      run: (service: DatabaseService<BaseModel>) => Promise<unknown>,
+    ) => {
+      const harness: Harness = makeHarness();
+
+      await expect(run(harness.service)).rejects.toThrow(HOOK_REACHED);
+
+      const handed: {
+        query: Record<string, unknown>;
+        skip: unknown;
+        limit: unknown;
+      } = firstArgumentOf(harness.hooks[hook]);
+
+      expect(handed.query["_id"]).toBeUndefined();
+      expect(equalityValueOf(handed.query["projectId"])).toBe(
+        PROJECT_ID.toString(),
+      );
+
+      // The window it was sent with, not one cut down to the rows found.
+      expect(handed.skip).toBe(0);
+      expect(handed.limit).toBe(10);
+    },
+  );
+
+  test("the rows looked up are the ones in the window the caller sent", async () => {
+    const harness: Harness = makeHarness();
+
+    await expect(
+      harness.service.updateBy({
+        query: {},
+        data: { description: "shared" } as never,
+        limit: 10,
+        skip: 1,
+        props: ownerProps(),
+      }),
+    ).rejects.toThrow(HOOK_REACHED);
+
+    const handed: {
+      query: Record<string, unknown>;
+      skip: unknown;
+      limit: unknown;
+    } = firstArgumentOf(harness.hooks.onBeforeUpdate);
+
+    // Past the first of the caller's two labels: the second, and only it.
+    expect(handed.query["_id"]).toBe(OWN_SECOND_LABEL_ID);
+    expect(handed.skip).toBe(0);
+    expect(handed.limit).toBe(1);
+  });
+});
+
+class LabelServiceWithUpdateSuccess extends DatabaseService<Label> {
+  public constructor() {
+    super(Label);
+  }
+
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Label>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Label>> {
+    return onUpdate;
+  }
+}
+
+class LabelServiceWithDeleteSuccess extends DatabaseService<Label> {
+  public constructor() {
+    super(Label);
+  }
+
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Label>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Label>> {
+    return onDelete;
+  }
+}
+
+describe("DatabaseService: the rows are looked up first only for a service with a hook for the write", () => {
+  const FULL_CHECK_REACHED: string = "The full permission check was reached.";
+
+  function withFakeRepository(
+    service: DatabaseService<BaseModel>,
+  ): FakeRepository {
+    const repository: FakeRepository = makeFakeRepository();
+    getJestSpyOn(service, "getRepository").mockReturnValue(repository);
+    return repository;
+  }
+
+  function updateOwnLabel(
+    service: DatabaseService<BaseModel>,
+  ): Promise<number> {
+    return service.updateBy({
+      query: { _id: OWN_LABEL_ID },
+      data: { name: "renamed" } as never,
+      limit: 10,
+      skip: 0,
+      props: ownerProps(),
+    });
+  }
+
+  test("an update of a service with no update hook goes straight to the full check", async () => {
+    const service: DatabaseService<BaseModel> = new DatabaseService<BaseModel>(
+      Label,
+    );
+    const repository: FakeRepository = withFakeRepository(service);
+    const getUpdatableQuery: jest.SpyInstance = getJestSpyOn(
+      ModelPermission,
+      "getUpdatableQuery",
+    );
+    getJestSpyOn(
+      ModelPermission,
+      "checkUpdateQueryPermissions",
+    ).mockRejectedValue(new Error(FULL_CHECK_REACHED));
+
+    await expect(updateOwnLabel(service)).rejects.toThrow(FULL_CHECK_REACHED);
+
+    expect(getUpdatableQuery).not.toHaveBeenCalled();
+    expect(repository.find).not.toHaveBeenCalled();
+  });
+
+  test("an update of a service with only an onUpdateSuccess hook is looked up first", async () => {
+    const service: DatabaseService<BaseModel> =
+      new LabelServiceWithUpdateSuccess() as unknown as DatabaseService<BaseModel>;
+    const repository: FakeRepository = withFakeRepository(service);
+    const getUpdatableQuery: jest.SpyInstance = getJestSpyOn(
+      ModelPermission,
+      "getUpdatableQuery",
+    );
+    getJestSpyOn(
+      ModelPermission,
+      "checkUpdateQueryPermissions",
+    ).mockRejectedValue(new Error(FULL_CHECK_REACHED));
+
+    await expect(updateOwnLabel(service)).rejects.toThrow(FULL_CHECK_REACHED);
+
+    expect(getUpdatableQuery).toHaveBeenCalledTimes(1);
+    expect(repository.find).toHaveBeenCalledTimes(1);
+  });
+
+  test("an update of another project's row by a service with no update hook still changes nothing", async () => {
+    const service: DatabaseService<BaseModel> = new DatabaseService<BaseModel>(
+      Label,
+    );
+    const repository: FakeRepository = withFakeRepository(service);
+
+    const result: number = await service.updateBy({
+      query: { _id: OTHER_LABEL_ID },
+      data: { name: "renamed" } as never,
+      limit: 10,
+      skip: 0,
+      props: ownerProps(),
+    });
+
+    expect(result).toBe(0);
+    expect(repository.update).not.toHaveBeenCalled();
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  test("a hard delete of a service with no delete hook makes one lookup, the full check's", async () => {
+    const service: DatabaseService<BaseModel> = new DatabaseService<BaseModel>(
+      Label,
+    );
+    const repository: FakeRepository = withFakeRepository(service);
+    repository.delete.mockImplementation(
+      async (): Promise<{ affected: number }> => {
+        return { affected: 1 };
+      },
+    );
+    const checkDeleteQueryPermission: jest.SpyInstance = getJestSpyOn(
+      ModelPermission,
+      "checkDeleteQueryPermission",
+    );
+
+    const result: number = await service.hardDeleteBy({
+      query: { _id: OWN_LABEL_ID },
+      limit: 10,
+      skip: 0,
+      props: ownerProps(),
+    });
+
+    expect(result).toBe(1);
+    expect(checkDeleteQueryPermission).toHaveBeenCalledTimes(1);
+    expect(repository.find).toHaveBeenCalledTimes(1);
+  });
+
+  test("a hard delete's own lookup counts soft-deleted rows, as the hard delete does", async () => {
+    const service: DatabaseService<BaseModel> =
+      new LabelServiceWithDeleteSuccess() as unknown as DatabaseService<BaseModel>;
+    const repository: FakeRepository = withFakeRepository(service);
+    repository.delete.mockImplementation(
+      async (): Promise<{ affected: number }> => {
+        return { affected: 1 };
+      },
+    );
+    const checkDeleteQueryPermission: jest.SpyInstance = getJestSpyOn(
+      ModelPermission,
+      "checkDeleteQueryPermission",
+    );
+
+    const result: number = await service.hardDeleteBy({
+      query: { _id: OWN_LABEL_ID },
+      limit: 10,
+      skip: 0,
+      props: ownerProps(),
+    });
+
+    expect(result).toBe(1);
+    expect(checkDeleteQueryPermission).toHaveBeenCalledTimes(2);
+    expect(repository.find).toHaveBeenCalledTimes(2);
+    expect(
+      (repository.find.mock.calls[0]![0] as { withDeleted?: boolean })
+        .withDeleted,
+    ).toBe(true);
+  });
+
+  test("a soft-deleting delete's lookup leaves soft-deleted rows out", async () => {
+    const service: DatabaseService<BaseModel> =
+      new LabelServiceWithDeleteSuccess() as unknown as DatabaseService<BaseModel>;
+    const repository: FakeRepository = withFakeRepository(service);
+    getJestSpyOn(service, "onBeforeDelete").mockRejectedValue(
+      new Error(HOOK_REACHED),
+    );
+
+    await expect(
+      service.deleteBy({
+        query: { _id: OWN_LABEL_ID },
+        limit: 10,
+        skip: 0,
+        props: ownerProps(),
+      }),
+    ).rejects.toThrow(HOOK_REACHED);
+
+    expect(repository.find).toHaveBeenCalledTimes(1);
+    expect(
+      (repository.find.mock.calls[0]![0] as { withDeleted?: boolean })
+        .withDeleted,
+    ).toBe(false);
+  });
+});
+
+describe("DatabaseService: onUpdatePermitted runs only once every permission check has passed", () => {
+  const PERMITTED_REACHED: string = "onUpdatePermitted was reached.";
+  const SANITIZE_REACHED: string = "The write was being prepared.";
+
+  interface PermittedHarness {
+    harness: Harness;
+    permitted: jest.SpyInstance;
+  }
+
+  function harnessWithPassingBeforeHook(): PermittedHarness {
+    const harness: Harness = makeHarness();
+
+    harness.hooks.onBeforeUpdate.mockImplementation(
+      async (updateBy: unknown): Promise<unknown> => {
+        return { updateBy, carryForward: null };
+      },
+    );
+
+    const permitted: jest.SpyInstance = getJestSpyOn(
+      harness.service,
+      "onUpdatePermitted",
+    ).mockRejectedValue(new Error(PERMITTED_REACHED));
+
+    return { harness, permitted };
+  }
+
+  function updateOwnLabel(
+    service: DatabaseService<BaseModel>,
+    props: DatabaseCommonInteractionProps = ownerProps(),
+  ): Promise<number> {
+    return service.updateBy({
+      query: { _id: OWN_LABEL_ID },
+      data: { name: "renamed" } as never,
+      limit: 10,
+      skip: 0,
+      props,
+    });
+  }
+
+  test("an update the full check refuses never reaches it", async () => {
+    const { harness, permitted }: PermittedHarness =
+      harnessWithPassingBeforeHook();
+    getJestSpyOn(
+      ModelPermission,
+      "checkUpdateQueryPermissions",
+    ).mockRejectedValue(new NotAuthorizedException("Refused by the check."));
+
+    await expect(updateOwnLabel(harness.service)).rejects.toThrow(
+      "Refused by the check.",
+    );
+
+    expect(permitted).not.toHaveBeenCalled();
+  });
+
+  test("an update the caller may make reaches it with the narrowed query, before anything is written", async () => {
+    const { harness, permitted }: PermittedHarness =
+      harnessWithPassingBeforeHook();
+
+    await expect(updateOwnLabel(harness.service)).rejects.toThrow(
+      PERMITTED_REACHED,
+    );
+
+    expect(permitted).toHaveBeenCalledTimes(1);
+    const handed: { query: Record<string, unknown> } = permitted.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
+    expect(equalityValueOf(handed.query["projectId"])).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(harness.repository.update).not.toHaveBeenCalled();
+    expect(harness.repository.save).not.toHaveBeenCalled();
+  });
+
+  test("ignoreHooks skips it, as it skips every other hook", async () => {
+    const { harness, permitted }: PermittedHarness =
+      harnessWithPassingBeforeHook();
+    getJestSpyOn(
+      harness.service as unknown as {
+        sanitizeCreateOrUpdate: () => Promise<unknown>;
+      },
+      "sanitizeCreateOrUpdate",
+    ).mockRejectedValue(new Error(SANITIZE_REACHED));
+
+    await expect(
+      updateOwnLabel(harness.service, {
+        ...ownerProps(),
+        ignoreHooks: true,
+      }),
+    ).rejects.toThrow(SANITIZE_REACHED);
+
+    expect(permitted).not.toHaveBeenCalled();
   });
 });
