@@ -87,6 +87,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
       await OnCallRulePolicyScope.keepPoliciesInProject({
         projectId: episode.projectId,
         matchedPolicies: matchedPolicies,
+        matchedRules: matchedRules,
         ruleKind: "Alert episode on-call",
         logAttributes: {
           projectId: episode.projectId.toString(),

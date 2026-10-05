@@ -65,7 +65,8 @@ interface EngineCase {
   newRecord: () => BaseModel;
   ruleService: { findBy: unknown };
   recordService: { getRepository: unknown };
-  stubFeed: () => void;
+  // Stubs the feed and returns the spy, to read what the feed item says.
+  stubFeed: () => ReturnType<typeof jest.spyOn>;
   apply: (record: BaseModel) => Promise<void>;
 }
 
@@ -93,8 +94,8 @@ const ENGINES: Array<EngineCase> = [
     },
     ruleService: IncidentOnCallRuleService,
     recordService: IncidentService,
-    stubFeed: (): void => {
-      jest
+    stubFeed: (): ReturnType<typeof jest.spyOn> => {
+      return jest
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
     },
@@ -114,8 +115,8 @@ const ENGINES: Array<EngineCase> = [
     },
     ruleService: AlertOnCallRuleService,
     recordService: AlertService,
-    stubFeed: (): void => {
-      jest
+    stubFeed: (): ReturnType<typeof jest.spyOn> => {
+      return jest
         .spyOn(AlertFeedService, "createAlertFeedItem")
         .mockResolvedValue(undefined as never);
     },
@@ -133,8 +134,8 @@ const ENGINES: Array<EngineCase> = [
     },
     ruleService: IncidentEpisodeOnCallRuleService,
     recordService: IncidentEpisodeService,
-    stubFeed: (): void => {
-      jest
+    stubFeed: (): ReturnType<typeof jest.spyOn> => {
+      return jest
         .spyOn(IncidentEpisodeFeedService, "createIncidentEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
@@ -154,8 +155,8 @@ const ENGINES: Array<EngineCase> = [
     },
     ruleService: AlertEpisodeOnCallRuleService,
     recordService: AlertEpisodeService,
-    stubFeed: (): void => {
-      jest
+    stubFeed: (): ReturnType<typeof jest.spyOn> => {
+      return jest
         .spyOn(AlertEpisodeFeedService, "createAlertEpisodeFeedItem")
         .mockResolvedValue(undefined as never);
     },
@@ -171,11 +172,15 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
   let directory: ProjectDirectoryStub;
   let persisted: Array<unknown>;
   let warnings: Array<string>;
+  let feed: ReturnType<typeof jest.spyOn>;
 
-  function ruleNaming(policyIds: Array<string>): BaseModel {
+  function ruleNaming(
+    policyIds: Array<string>,
+    name: string = "Page the platform rota",
+  ): BaseModel {
     const rule: BaseModel = engine.newRule();
     rule.id = ObjectID.generate();
-    rule.setColumnValue("name", "Page the platform rota");
+    rule.setColumnValue("name", name);
     rule.setColumnValue(
       "onCallDutyPolicies",
       policyIds.map((id: string): OnCallDutyPolicy => {
@@ -225,7 +230,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     jest
       .spyOn(OnCallDutyPolicyService, "findBy")
       .mockResolvedValue([] as never);
-    engine.stubFeed();
+    feed = engine.stubFeed();
 
     jest.spyOn(logger, "warn").mockImplementation(((message: unknown) => {
       warnings.push(String(message));
@@ -263,6 +268,26 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
         return warning.includes(`"${FOREIGN_POLICY}"`);
       }),
     ).toBe(true);
+  });
+
+  test("the feed credits only the rules whose policies were attached", async () => {
+    jest
+      .spyOn(engine.ruleService as never, "findBy" as never)
+      .mockResolvedValue([
+        ruleNaming([FOREIGN_POLICY], "Rule naming another project's rota"),
+        ruleNaming([OWN_POLICY], "Rule naming the platform rota"),
+      ] as never);
+
+    await engine.apply(engine.newRecord());
+
+    expect(feed).toHaveBeenCalledTimes(1);
+
+    const feedItem: string = (
+      feed.mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+
+    expect(feedItem).toContain("Rule naming the platform rota");
+    expect(feedItem).not.toContain("another project's rota");
   });
 
   test("pages nothing when every policy the rules name is another project's", async () => {

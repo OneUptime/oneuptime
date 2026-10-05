@@ -101,6 +101,7 @@ class IncidentOnCallRuleEngineServiceClass {
       await OnCallRulePolicyScope.keepPoliciesInProject({
         projectId: incident.projectId,
         matchedPolicies: matchedPolicies,
+        matchedRules: matchedRules,
         ruleKind: "Incident on-call",
         logAttributes: {
           projectId: incident.projectId.toString(),

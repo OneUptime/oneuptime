@@ -13,14 +13,26 @@ import logger, { LogAttributes } from "../Logger";
  * must not be paged about this project's incident. So the engines keep only
  * the project's own policies: one read, pinned to the project.
  */
+
+// A matched rule, as far as which policies it names.
+export interface RuleNamingPolicies {
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+}
+
 export default class OnCallRulePolicyScope {
   /*
    * Removes from `matchedPolicies` (policy id -> policy) every policy that
-   * is not one of the project's, and logs their ids.
+   * is not one of the project's, and logs their ids. `matchedRules` - the
+   * rules credited with adding a policy, in the order they were evaluated -
+   * keeps only the rules that still add one, so the feed never credits a
+   * rule with a policy that was left out. Both are changed in place.
    */
-  public static async keepPoliciesInProject(data: {
+  public static async keepPoliciesInProject<
+    TRule extends RuleNamingPolicies,
+  >(data: {
     projectId: ObjectID;
     matchedPolicies: Map<string, OnCallDutyPolicy>;
+    matchedRules: Array<TRule>;
     // For the log: "Incident on-call".
     ruleKind: string;
     logAttributes: LogAttributes;
@@ -43,19 +55,50 @@ export default class OnCallRulePolicyScope {
       return !kept.has(id);
     });
 
+    if (dropped.length === 0) {
+      return;
+    }
+
     for (const id of dropped) {
       data.matchedPolicies.delete(id);
     }
 
-    if (dropped.length > 0) {
-      logger.warn(
-        `${data.ruleKind} rules name on-call policies that are not in this project; they were not paged: ${dropped
-          .map((id: string): string => {
-            return `"${id}"`;
-          })
-          .join(", ")}`,
-        data.logAttributes,
-      );
-    }
+    /*
+     * Replay which rule added each policy first - the order the engines
+     * credit them in - and keep a rule only while one of those is kept.
+     */
+    const seen: Set<string> = new Set<string>();
+    const rulesStillAdding: Array<TRule> = data.matchedRules.filter(
+      (rule: TRule): boolean => {
+        let addsOne: boolean = false;
+
+        for (const policy of rule.onCallDutyPolicies || []) {
+          const id: string = policy.id?.toString() || "";
+
+          if (!id || seen.has(id)) {
+            continue;
+          }
+
+          seen.add(id);
+
+          if (kept.has(id)) {
+            addsOne = true;
+          }
+        }
+
+        return addsOne;
+      },
+    );
+
+    data.matchedRules.splice(0, data.matchedRules.length, ...rulesStillAdding);
+
+    logger.warn(
+      `${data.ruleKind} rules name on-call policies that are not in this project; they were not paged: ${dropped
+        .map((id: string): string => {
+          return `"${id}"`;
+        })
+        .join(", ")}`,
+      data.logAttributes,
+    );
   }
 }

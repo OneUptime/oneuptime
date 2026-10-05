@@ -1,8 +1,10 @@
 import DatabaseService from "../../Services/DatabaseService";
 import CreateBy from "../../Types/Database/CreateBy";
 import Query from "../../Types/Database/Query";
+import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
@@ -31,7 +33,10 @@ import ProjectScopedReferenceValidator, {
  * Not checked: the record's own project (the tenant relation, which
  * DatabaseService stamps from the request) and who created or deleted it
  * (stamped by the server). A relation to a model with no project of its own
- * that is not a person has nothing to compare against and is left alone.
+ * that is not a person has nothing to compare against and is left alone. Ids
+ * a JSON column holds are not described by the metadata, so a service names
+ * such a column and how to read its references (a JsonReferenceColumn); they
+ * are checked together with the rest, in one answer.
  *
  * ProjectScopedReferenceValidator does the checking: lookups pinned to the
  * project, a user counted by membership, and one answer - echoing the ids
@@ -51,6 +56,17 @@ export interface ProjectReferenceColumn {
   // How the error names the field: the column's title ("Owner Teams").
   modelName: string;
   service: DatabaseService<DatabaseBaseModel>;
+}
+
+/*
+ * A JSON column whose value names records - an incident grouping rule's
+ * member role assignments, { userId, incidentRoleId } pairs - and the
+ * references a value of it names, each with the field name an error uses
+ * and the lookup it is checked with.
+ */
+export interface JsonReferenceColumn {
+  column: string;
+  getReferences: (value: unknown) => Array<ProjectScopedReference>;
 }
 
 // A reference and the column it was written to.
@@ -177,6 +193,8 @@ export default class ProjectReferenceCheck {
     createBy: CreateBy<TModel>;
     // See ProjectReferencesService.getRelationsCheckedByService.
     relationsCheckedByService?: Array<string> | undefined;
+    // See ProjectReferencesService.getJsonReferenceColumns.
+    jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Promise<void> {
     const model: DatabaseBaseModel = data.service.getModel();
     const tenantColumn: string | null = model.getTenantColumn();
@@ -194,20 +212,13 @@ export default class ProjectReferenceCheck {
         resolveReferenceId(record[tenantColumn]),
       );
 
-    const references: Array<ProjectScopedReference> = [];
-
-    for (const column of ProjectReferenceCheck.getCheckedColumns(
-      model,
-      data.relationsCheckedByService,
-    )) {
-      for (const id of ProjectReferenceCheck.getWrittenIds(record, column)) {
-        references.push({
-          modelName: column.modelName,
-          id: id,
-          service: column.service,
-        });
-      }
-    }
+    const references: Array<ColumnReference> =
+      ProjectReferenceCheck.getWrittenReferences({
+        model: model,
+        payload: record,
+        relationsCheckedByService: data.relationsCheckedByService,
+        jsonReferenceColumns: data.jsonReferenceColumns,
+      });
 
     if (references.length === 0) {
       return;
@@ -230,43 +241,34 @@ export default class ProjectReferenceCheck {
    *
    * With a tenant - the caller's own project, the common case - the ids are
    * checked first, and only those that are not the project's are looked for
-   * among what the matched records hold: an update that names only the
-   * project's records reads nothing else. Hooks run before the tenant
-   * narrows the query, so what the matched records hold is read per project
-   * (getHeldRelationIds) and only the caller's project is used. A root or
-   * master admin update with no tenant is checked against each matched
-   * record's own project.
+   * among what the matched records of that project hold: an update that
+   * names only the project's records reads nothing else. Hooks run before
+   * the tenant narrows the query, so that read is pinned to the tenant here.
+   * A root or master admin update with no tenant is checked against each
+   * matched record's own project.
    */
   public static async validateUpdate<TModel extends DatabaseBaseModel>(data: {
     service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;
     // See ProjectReferencesService.getRelationsCheckedByService.
     relationsCheckedByService?: Array<string> | undefined;
+    // See ProjectReferencesService.getJsonReferenceColumns.
+    jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Promise<void> {
     const model: DatabaseBaseModel = data.service.getModel();
+    const tenantColumn: string | null = model.getTenantColumn();
 
-    if (!model.getTenantColumn()) {
+    if (!tenantColumn) {
       return;
     }
 
-    const payload: Dictionary<unknown> = (data.updateBy.data ||
-      {}) as unknown as Dictionary<unknown>;
-
-    const references: Array<ColumnReference> = [];
-
-    for (const column of ProjectReferenceCheck.getCheckedColumns(
-      model,
-      data.relationsCheckedByService,
-    )) {
-      for (const id of ProjectReferenceCheck.getWrittenIds(payload, column)) {
-        references.push({
-          modelName: column.modelName,
-          id: id,
-          service: column.service,
-          column: column.column,
-        });
-      }
-    }
+    const references: Array<ColumnReference> =
+      ProjectReferenceCheck.getWrittenReferences({
+        model: model,
+        payload: (data.updateBy.data || {}) as unknown as Dictionary<unknown>,
+        relationsCheckedByService: data.relationsCheckedByService,
+        jsonReferenceColumns: data.jsonReferenceColumns,
+      });
 
     if (references.length === 0) {
       return;
@@ -274,16 +276,6 @@ export default class ProjectReferenceCheck {
 
     const subject: string = ProjectReferenceCheck.getSubject(model);
     const tenantId: ObjectID | undefined = data.updateBy.props.tenantId;
-
-    const readHeldIds: (columns: Array<string>) => Promise<HeldRelationIds> = (
-      columns: Array<string>,
-    ): Promise<HeldRelationIds> => {
-      return ProjectScopedReferenceValidator.getHeldRelationIds({
-        service: data.service as unknown as DatabaseService<DatabaseBaseModel>,
-        query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
-        columns: Array.from(new Set<string>(columns)),
-      });
-    };
 
     const isHeld: (
       held: Dictionary<Set<string>>,
@@ -311,11 +303,15 @@ export default class ProjectReferenceCheck {
         return;
       }
 
-      const heldIds: HeldRelationIds = await readHeldIds(
-        unavailable.map((reference: ColumnReference): string => {
-          return reference.column;
-        }),
-      );
+      const heldIds: HeldRelationIds = await ProjectReferenceCheck.readHeldIds({
+        service: data.service,
+        query: {
+          ...(data.updateBy.query as Dictionary<unknown>),
+          [tenantColumn]: tenantId,
+        } as unknown as Query<DatabaseBaseModel>,
+        references: unavailable,
+        jsonReferenceColumns: data.jsonReferenceColumns,
+      });
 
       const held: Dictionary<Set<string>> =
         heldIds.get(normalizeId(tenantId.toString())) || {};
@@ -339,11 +335,12 @@ export default class ProjectReferenceCheck {
       );
     }
 
-    const heldIds: HeldRelationIds = await readHeldIds(
-      references.map((reference: ColumnReference): string => {
-        return reference.column;
-      }),
-    );
+    const heldIds: HeldRelationIds = await ProjectReferenceCheck.readHeldIds({
+      service: data.service,
+      query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
+      references: references,
+      jsonReferenceColumns: data.jsonReferenceColumns,
+    });
 
     for (const [projectId, held] of heldIds) {
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -395,6 +392,162 @@ export default class ProjectReferenceCheck {
     }
 
     return ids;
+  }
+
+  // Everything a payload references, each with the column it was written to.
+  private static getWrittenReferences(data: {
+    model: DatabaseBaseModel;
+    payload: Dictionary<unknown>;
+    relationsCheckedByService?: Array<string> | undefined;
+    jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
+  }): Array<ColumnReference> {
+    const references: Array<ColumnReference> = [];
+
+    for (const column of ProjectReferenceCheck.getCheckedColumns(
+      data.model,
+      data.relationsCheckedByService,
+    )) {
+      for (const id of ProjectReferenceCheck.getWrittenIds(
+        data.payload,
+        column,
+      )) {
+        references.push({
+          modelName: column.modelName,
+          id: id,
+          service: column.service,
+          column: column.column,
+        });
+      }
+    }
+
+    for (const jsonColumn of data.jsonReferenceColumns || []) {
+      const value: unknown = data.payload[jsonColumn.column];
+
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      for (const reference of jsonColumn.getReferences(value)) {
+        references.push({ ...reference, column: jsonColumn.column });
+      }
+    }
+
+    return references;
+  }
+
+  /*
+   * Per project, per column, the ids every record the query matches already
+   * holds: lists and relations through getHeldRelationIds, a JSON column by
+   * reading it and the references it names. All read as root.
+   */
+  private static async readHeldIds<TModel extends DatabaseBaseModel>(data: {
+    service: DatabaseService<TModel>;
+    query: Query<DatabaseBaseModel>;
+    references: Array<ColumnReference>;
+    jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
+  }): Promise<HeldRelationIds> {
+    const service: DatabaseService<DatabaseBaseModel> =
+      data.service as unknown as DatabaseService<DatabaseBaseModel>;
+
+    const columns: Set<string> = new Set<string>(
+      data.references.map((reference: ColumnReference): string => {
+        return reference.column;
+      }),
+    );
+
+    const jsonColumns: Array<JsonReferenceColumn> = (
+      data.jsonReferenceColumns || []
+    ).filter((jsonColumn: JsonReferenceColumn): boolean => {
+      return columns.has(jsonColumn.column);
+    });
+
+    const isJsonColumn: (column: string) => boolean = (
+      column: string,
+    ): boolean => {
+      return jsonColumns.some((jsonColumn: JsonReferenceColumn): boolean => {
+        return jsonColumn.column === column;
+      });
+    };
+
+    const heldIds: HeldRelationIds =
+      await ProjectScopedReferenceValidator.getHeldRelationIds({
+        service: service,
+        query: data.query,
+        columns: Array.from(columns).filter((column: string): boolean => {
+          return !isJsonColumn(column);
+        }),
+      });
+
+    if (jsonColumns.length === 0) {
+      return heldIds;
+    }
+
+    const tenantColumn: string = service.getModel().getTenantColumn()!;
+
+    const select: Dictionary<boolean> = {
+      _id: true,
+      [tenantColumn]: true,
+    };
+
+    for (const jsonColumn of jsonColumns) {
+      select[jsonColumn.column] = true;
+    }
+
+    const records: Array<DatabaseBaseModel> = await service.findBy({
+      query: data.query,
+      select: select as Select<DatabaseBaseModel>,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const jsonColumn of jsonColumns) {
+      // Per project, the ids every record read so far holds in this column.
+      const heldInColumn: Map<string, Set<string>> = new Map();
+
+      for (const record of records) {
+        const projectId: string = normalizeId(
+          record.getValue<ObjectID>(tenantColumn)?.toString() || "",
+        );
+
+        if (!projectId) {
+          continue;
+        }
+
+        const heldByRecord: Set<string> = new Set<string>(
+          jsonColumn
+            .getReferences(record.getValue(jsonColumn.column))
+            .map((reference: ProjectScopedReference): string => {
+              return normalizeId(reference.id?.toString() || "");
+            }),
+        );
+
+        const heldSoFar: Set<string> | undefined = heldInColumn.get(projectId);
+
+        heldInColumn.set(
+          projectId,
+          heldSoFar
+            ? new Set<string>(
+                Array.from(heldSoFar).filter((id: string): boolean => {
+                  return heldByRecord.has(id);
+                }),
+              )
+            : heldByRecord,
+        );
+      }
+
+      for (const [projectId, held] of heldInColumn) {
+        if (!heldIds.has(projectId)) {
+          heldIds.set(projectId, {});
+        }
+
+        heldIds.get(projectId)![jsonColumn.column] = held;
+      }
+    }
+
+    return heldIds;
   }
 
   private static toObjectID(

@@ -5,6 +5,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentGroupingRule from "../../../Models/DatabaseModels/IncidentGroupingRule";
+import Label from "../../../Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
@@ -89,6 +91,11 @@ const PLATFORM: string = "0000000b-0000-4000-8000-000000000001";
 const DATABASE: string = "0000000b-0000-4000-8000-000000000002";
 // Another project's team.
 const FOREIGN_TEAM: string = "0000000b-0000-4000-8000-0000000000ff";
+// An on-call policy and a label of the project, and of another project.
+const OWN_POLICY: string = "0000000c-0000-4000-8000-000000000001";
+const FOREIGN_POLICY: string = "0000000c-0000-4000-8000-0000000000ff";
+const OWN_LABEL: string = "0000000d-0000-4000-8000-000000000001";
+const FOREIGN_LABEL: string = "0000000d-0000-4000-8000-0000000000ff";
 
 const MEMBERS: Array<string> = [ADA, BOB];
 const PROJECT_TEAMS: Array<string> = [PLATFORM, DATABASE];
@@ -103,6 +110,24 @@ function team(id: string): Team {
   const item: Team = new Team();
   item._id = id;
   return item;
+}
+
+function onCallPolicy(id: string): OnCallDutyPolicy {
+  const item: OnCallDutyPolicy = new OnCallDutyPolicy();
+  item._id = id;
+  return item;
+}
+
+function label(id: string): Label {
+  const item: Label = new Label();
+  item._id = id;
+  return item;
+}
+
+function idsOf(records: Array<BaseModel> | undefined | null): Array<string> {
+  return (records || []).map((record: BaseModel): string => {
+    return record._id!.toString();
+  });
 }
 
 // What the directory was asked: teams by the project, members by the project.
@@ -127,7 +152,11 @@ function teamLookups(): Array<TeamLookup> {
 function stubDirectory(): void {
   directory = stubProjectDirectory({
     projectId: PROJECT_ID,
-    records: { Team: PROJECT_TEAMS },
+    records: {
+      Team: PROJECT_TEAMS,
+      OnCallDutyPolicy: [OWN_POLICY],
+      Label: [OWN_LABEL],
+    },
     members: MEMBERS,
   });
 
@@ -349,10 +378,12 @@ describe.each(ENGINES)("the $label engine", (engine: EngineCase) => {
     await engine.createNewEpisode(engine.newRecord(), rule);
 
     expect(ownerIds(writtenTeams, "teamId")).toEqual([DATABASE]);
-    // One read of the rule's teams, then createOwner's own check of the one added.
+    /*
+     * One read of the rule's teams. The owner row's own service checks the
+     * team it is handed again when the row is written.
+     */
     expect(teamLookups()).toEqual([
       { projectId: PROJECT_ID.toString(), ids: [FOREIGN_TEAM, DATABASE] },
-      { projectId: PROJECT_ID.toString(), ids: [DATABASE] },
     ]);
 
     // Said in the log, by id.
@@ -519,6 +550,80 @@ describe.each(ENGINES)("the $label engine", (engine: EngineCase) => {
     expect(String(created.getColumnValue("assignedToTeamId"))).toBe(DATABASE);
     expect(ownerIds(writtenUsers, "userId")).toEqual([ADA]);
     expect(writtenTeams).toEqual([]);
+  });
+
+  test("copies only the project's own on-call policies and episode labels onto the episode", async () => {
+    const warn: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
+
+    const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.onCallDutyPolicies = [
+      onCallPolicy(OWN_POLICY),
+      onCallPolicy(FOREIGN_POLICY),
+    ];
+    rule.episodeLabels = [label(FOREIGN_LABEL), label(OWN_LABEL)];
+
+    await engine.createNewEpisode(engine.newRecord(), rule);
+
+    const created: BaseModel = (
+      episodeCreate.mock.calls[0] as Array<{ data: BaseModel }>
+    )[0]!.data;
+
+    expect(
+      idsOf(created.getColumnValue("onCallDutyPolicies") as Array<BaseModel>),
+    ).toEqual([OWN_POLICY]);
+    expect(idsOf(created.getColumnValue("labels") as Array<BaseModel>)).toEqual(
+      [OWN_LABEL],
+    );
+
+    // Both read pinned to the project, and what was left out said by id.
+    for (const lookup of directory.recordLookups) {
+      expect(lookup.projectId).toBe(PROJECT_ID.toString());
+    }
+    const warnings: Array<string> = warn.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return String(call[0]);
+      },
+    );
+    expect(
+      warnings.some((message: string): boolean => {
+        return message.includes(`"${FOREIGN_POLICY}"`);
+      }),
+    ).toBe(true);
+    expect(
+      warnings.some((message: string): boolean => {
+        return message.includes(`"${FOREIGN_LABEL}"`);
+      }),
+    ).toBe(true);
+  });
+
+  test("a failed check copies no policies or labels, and the episode still opens", async () => {
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    jest
+      .spyOn(ProjectScopedReferenceValidator, "findIdsInProject")
+      .mockRejectedValue(new Error("Database is down") as never);
+
+    const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.onCallDutyPolicies = [onCallPolicy(OWN_POLICY)];
+    rule.episodeLabels = [label(OWN_LABEL)];
+
+    const episode: BaseModel | null = await engine.createNewEpisode(
+      engine.newRecord(),
+      rule,
+    );
+
+    const created: BaseModel = (
+      episodeCreate.mock.calls[0] as Array<{ data: BaseModel }>
+    )[0]!.data;
+
+    expect(episode?.id?.toString()).toBe(EPISODE_ID.toString());
+    expect(created.getColumnValue("onCallDutyPolicies")).toBeFalsy();
+    expect(created.getColumnValue("labels")).toBeFalsy();
   });
 });
 

@@ -2,7 +2,9 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
-import ProjectReferenceCheck from "../Utils/Database/ProjectReferenceCheck";
+import ProjectReferenceCheck, {
+  JsonReferenceColumn,
+} from "../Utils/Database/ProjectReferenceCheck";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 
@@ -36,6 +38,15 @@ export default class ProjectReferencesService<
     return [];
   }
 
+  /*
+   * JSON columns whose values name records - the metadata cannot describe
+   * those - and how to read the references from a value. Checked together
+   * with the lists and relations, in the same answer.
+   */
+  protected getJsonReferenceColumns(): Array<JsonReferenceColumn> {
+    return [];
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TBaseModel>,
@@ -44,6 +55,7 @@ export default class ProjectReferencesService<
       service: this,
       createBy: createBy,
       relationsCheckedByService: this.getRelationsCheckedByService(),
+      jsonReferenceColumns: this.getJsonReferenceColumns(),
     });
 
     return { createBy: createBy, carryForward: undefined };
@@ -57,6 +69,7 @@ export default class ProjectReferencesService<
       service: this,
       updateBy: updateBy,
       relationsCheckedByService: this.getRelationsCheckedByService(),
+      jsonReferenceColumns: this.getJsonReferenceColumns(),
     });
 
     return { updateBy: updateBy, carryForward: null };

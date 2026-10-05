@@ -99,6 +99,7 @@ class AlertOnCallRuleEngineServiceClass {
       await OnCallRulePolicyScope.keepPoliciesInProject({
         projectId: alert.projectId,
         matchedPolicies: matchedPolicies,
+        matchedRules: matchedRules,
         ruleKind: "Alert on-call",
         logAttributes: {
           projectId: alert.projectId.toString(),

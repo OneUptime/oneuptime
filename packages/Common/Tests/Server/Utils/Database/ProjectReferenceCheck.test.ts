@@ -12,9 +12,11 @@ import HostOwnerTeamService from "../../../../Server/Services/HostOwnerTeamServi
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck, {
+  JsonReferenceColumn,
   ProjectReferenceColumn,
 } from "../../../../Server/Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator, {
+  ProjectScopedReference,
   ProjectScopedReferenceException,
 } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -526,5 +528,135 @@ describe("ProjectReferenceCheck lookups", () => {
       expect(column.service).toBeInstanceOf(DatabaseService);
       expect(column.service).not.toBe(HostOwnerRuleService);
     }
+  });
+});
+
+describe("ProjectReferenceCheck with a JSON reference column", () => {
+  let storedRules: Array<HostOwnerRule>;
+  let storedRead: ReturnType<typeof jest.spyOn>;
+
+  /*
+   * A JSON column naming teams, the way an incident grouping rule's member
+   * role assignments name users and roles. Borrows HostOwnerRule's criteria
+   * column for the test.
+   */
+  const TEAMS_IN_JSON: JsonReferenceColumn = {
+    column: "criteria",
+    getReferences: (value: unknown): Array<ProjectScopedReference> => {
+      return ((value as Array<{ teamId?: string }>) || [])
+        .filter((entry: { teamId?: string }): boolean => {
+          return Boolean(entry?.teamId);
+        })
+        .map((entry: { teamId?: string }): ProjectScopedReference => {
+          return {
+            modelName: "Criteria Teams",
+            id: entry.teamId!,
+            service: ProjectScopedReferenceValidator.getLookupService(
+              Team,
+            ) as unknown as DatabaseService<DatabaseBaseModel>,
+          };
+        });
+    },
+  };
+
+  beforeEach(() => {
+    storedRules = [];
+    storedRead = jest
+      .spyOn(HostOwnerRuleService, "findBy")
+      .mockImplementation((async (): Promise<Array<HostOwnerRule>> => {
+        return storedRules;
+      }) as never);
+  });
+
+  test("checks the column's references with the lists, in one answer", async () => {
+    const message: string = await refusalOf(
+      ProjectReferenceCheck.validateCreate({
+        service: HostOwnerRuleService,
+        createBy: createOf(
+          ownerRule({
+            ownerTeams: [stub(Team, FOREIGN_TEAM)],
+            criteria: [{ teamId: SECOND_FOREIGN_TEAM }, { teamId: OWN_TEAM }],
+          } as unknown as Record<string, unknown>),
+        ),
+        jsonReferenceColumns: [TEAMS_IN_JSON],
+      }),
+    );
+
+    expect(message).toBe(
+      refusal("host owner rule", [
+        `Owner Teams "${FOREIGN_TEAM}"`,
+        `Criteria Teams "${SECOND_FOREIGN_TEAM}"`,
+      ]),
+    );
+  });
+
+  test("an update saves back what the rule's column already holds, but adds nothing foreign", async () => {
+    const stored: HostOwnerRule = new HostOwnerRule();
+    stored._id = RULE_ID;
+    stored.projectId = PROJECT_ID;
+    (stored as unknown as Record<string, unknown>)["criteria"] = [
+      { teamId: FOREIGN_TEAM },
+    ];
+    storedRules = [stored];
+
+    await expect(
+      ProjectReferenceCheck.validateUpdate({
+        service: HostOwnerRuleService,
+        updateBy: updateOf<HostOwnerRule>({
+          criteria: [{ teamId: FOREIGN_TEAM }, { teamId: OWN_TEAM }],
+        }),
+        jsonReferenceColumns: [TEAMS_IN_JSON],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(
+      await refusalOf(
+        ProjectReferenceCheck.validateUpdate({
+          service: HostOwnerRuleService,
+          updateBy: updateOf<HostOwnerRule>({
+            criteria: [
+              { teamId: FOREIGN_TEAM },
+              { teamId: SECOND_FOREIGN_TEAM },
+            ],
+          }),
+          jsonReferenceColumns: [TEAMS_IN_JSON],
+        }),
+      ),
+    ).toBe(
+      refusal("host owner rule", [`Criteria Teams "${SECOND_FOREIGN_TEAM}"`]),
+    );
+
+    // What the rules hold is read pinned to the caller's project.
+    for (const call of storedRead.mock.calls as Array<Array<unknown>>) {
+      expect(
+        String(
+          (call[0] as { query: Record<string, unknown> }).query["projectId"],
+        ),
+      ).toBe(PROJECT_ID.toString());
+    }
+  });
+});
+
+describe("ProjectReferenceCheck reading what an update's records hold", () => {
+  test("pins the read to the caller's tenant", async () => {
+    const storedRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(HostOwnerRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await refusalOf(
+      ProjectReferenceCheck.validateUpdate({
+        service: HostOwnerRuleService,
+        updateBy: updateOf<HostOwnerRule>({ ownerTeams: [FOREIGN_TEAM] }),
+      }),
+    );
+
+    expect(storedRead).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, unknown> = (
+      storedRead.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["_id"]).toBe(RULE_ID);
+    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
   });
 });

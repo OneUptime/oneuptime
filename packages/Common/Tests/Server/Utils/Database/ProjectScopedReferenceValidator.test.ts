@@ -15,6 +15,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ServerException from "../../../../Types/Exception/ServerException";
 import ObjectID from "../../../../Types/ObjectID";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 /*
@@ -943,5 +944,140 @@ describe("ProjectScopedReferenceValidator lookups", () => {
     });
 
     expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectScopedReferenceValidator answers", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("names an id written to two fields in both, so one answer lists everything", async () => {
+    mockLookups({ incidentSeverities: [] });
+
+    await expect(
+      ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: PROJECT_ID,
+        subject: "rule",
+        references: [
+          {
+            modelName: "Incident Severities",
+            id: UNKNOWN_ID,
+            service: IncidentSeverityService,
+          },
+          {
+            modelName: "Escalate Severities",
+            id: UNKNOWN_ID.toUpperCase(),
+            service: IncidentSeverityService,
+          },
+          {
+            modelName: "Incident Severities",
+            id: UNKNOWN_ID,
+            service: IncidentSeverityService,
+          },
+        ],
+      }),
+    ).rejects.toThrow(
+      `This rule references records that are not in this project: Incident Severities "${UNKNOWN_ID}", Escalate Severities "${UNKNOWN_ID.toUpperCase()}". Please pick values from this project and try again.`,
+    );
+  });
+
+  it("returns the references it would refuse, without throwing", async () => {
+    mockLookups({
+      incidentSeverities: [incidentSeverity(OWN_SEVERITY_ID, PROJECT_ID)],
+    });
+
+    const own: ReturnType<typeof severityReference> =
+      severityReference(OWN_SEVERITY_ID);
+    const foreign: ReturnType<typeof severityReference> =
+      severityReference(FOREIGN_SEVERITY_ID);
+
+    await expect(
+      ProjectScopedReferenceValidator.getUnavailableReferences({
+        projectId: PROJECT_ID,
+        references: [own, foreign],
+      }),
+    ).resolves.toEqual([foreign]);
+  });
+});
+
+describe("ProjectScopedReferenceValidator memberships", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function userId(index: number): string {
+    return `05e40000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+  }
+
+  it("reads the users a few at a time, pinned to the project", async () => {
+    const findBy: jest.Mock = mockMemberships([userId(1), userId(119)]);
+
+    const userIds: Array<string> = Array.from(
+      { length: 120 },
+      (_value: unknown, index: number): string => {
+        return userId(index);
+      },
+    );
+
+    const members: Set<string> =
+      await ProjectScopedReferenceValidator.findProjectMemberIds({
+        projectId: PROJECT_ID,
+        userIds: userIds,
+      });
+
+    expect(Array.from(members).sort()).toEqual([userId(1), userId(119)]);
+    expect(findBy).toHaveBeenCalledTimes(3);
+
+    for (let index: number = 0; index < 3; index++) {
+      const asked: Array<string> = idsIn(callOf(findBy, index).query["userId"]);
+      expect(asked.length).toBeLessThanOrEqual(50);
+      expect(String(callOf(findBy, index).query["projectId"])).toBe(
+        PROJECT_ID.toString(),
+      );
+    }
+  });
+
+  it("asks for each user it has not found when a read comes back full", async () => {
+    const lookup: DatabaseService<TeamMember> =
+      ProjectScopedReferenceValidator.getLookupService(TeamMember);
+
+    // A read as long as the limit: a member's rows may lie past it.
+    jest.spyOn(lookup, "findBy").mockImplementation((async (): Promise<
+      Array<TeamMember>
+    > => {
+      return Array.from({ length: 10000 }, (): TeamMember => {
+        const membership: TeamMember = new TeamMember();
+        membership.userId = new ObjectID(userId(1));
+        membership.projectId = PROJECT_ID;
+        return membership;
+      });
+    }) as never);
+
+    const countBy: jest.Mock = jest.fn(async (data: unknown) => {
+      const query: Record<string, unknown> = (
+        data as { query: Record<string, unknown> }
+      ).query;
+
+      return new PositiveNumber(String(query["userId"]) === userId(2) ? 1 : 0);
+    }) as unknown as jest.Mock;
+    jest.spyOn(lookup, "countBy").mockImplementation(countBy as never);
+
+    const members: Set<string> =
+      await ProjectScopedReferenceValidator.findProjectMemberIds({
+        projectId: PROJECT_ID,
+        userIds: [userId(1), userId(2), userId(3)],
+      });
+
+    expect(Array.from(members).sort()).toEqual([userId(1), userId(2)]);
+    // Only the users the full read did not show were counted, each pinned.
+    expect(countBy).toHaveBeenCalledTimes(2);
+    for (const call of countBy.mock.calls as Array<Array<unknown>>) {
+      expect(
+        String(
+          (call[0] as { query: Record<string, unknown> }).query["projectId"],
+        ),
+      ).toBe(PROJECT_ID.toString());
+    }
   });
 });

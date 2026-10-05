@@ -7,6 +7,7 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ServerException from "../../../Types/Exception/ServerException";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
@@ -128,6 +129,9 @@ function normalizeId(id: string): string {
 
 // The users table: a person, who has no project of their own.
 const USER_TABLE_NAME: string = "User";
+
+// How many users one membership read asks about.
+const MEMBERSHIP_LOOKUP_BATCH_SIZE: number = 50;
 
 /*
  * The plain lookup services, one per model, created on first use: a service
@@ -339,20 +343,18 @@ export default class ProjectScopedReferenceValidator {
   /*
    * How a refusal lists references: by the field the caller filled in and
    * the id they sent - never by what the id resolved to - each id once per
-   * lookup, in the order given. Whether an id belongs to another project,
-   * matches nothing, or names someone who is not a member is not this
-   * project's business to say, so all of them read the same; and everything
-   * wrong is listed in one go, so a caller fixing a payload with several bad
-   * ids does not discover them one round-trip at a time.
+   * field, in the order given, so an id written to two fields is named in
+   * both. Whether an id belongs to another project, matches nothing, or
+   * names someone who is not a member is not this project's business to
+   * say, so all of them read the same; and everything wrong is listed in one
+   * go, so a caller fixing a payload with several bad ids does not discover
+   * them one round-trip at a time.
    */
   public static describeReferences(
     references: Array<ProjectScopedReference>,
   ): Array<string> {
     const described: Array<string> = [];
-    const seen: Map<
-      DatabaseService<DatabaseBaseModel>,
-      Set<string>
-    > = new Map();
+    const seen: Set<string> = new Set<string>();
 
     for (const reference of references) {
       const id: string = reference.id?.toString().trim() || "";
@@ -361,17 +363,13 @@ export default class ProjectScopedReferenceValidator {
         continue;
       }
 
-      if (!seen.has(reference.service)) {
-        seen.set(reference.service, new Set<string>());
-      }
+      const key: string = `${reference.modelName}\u0000${normalizeId(id)}`;
 
-      const seenForService: Set<string> = seen.get(reference.service)!;
-
-      if (seenForService.has(normalizeId(id))) {
+      if (seen.has(key)) {
         continue;
       }
 
-      seenForService.add(normalizeId(id));
+      seen.add(key);
 
       // Echo the id as the caller wrote it, not the normalized key.
       described.push(`${reference.modelName} "${id}"`);
@@ -897,50 +895,82 @@ export default class ProjectScopedReferenceValidator {
   /*
    * The users among `userIds` (valid uuids) who hold a membership in the
    * project, normalized: a TeamMember row in any of its teams, an invitation
-   * still pending included (see the comment at the top of this file). One
-   * read, pinned to the project, so a membership elsewhere is never loaded.
+   * still pending included (see the comment at the top of this file). Read
+   * pinned to the project, so a membership elsewhere is never loaded.
+   *
+   * There is one row per team a user is in, so the users are read a few at
+   * a time, and a read that comes back full - the rows past it unread - is
+   * finished by asking for each user it did not find on their own.
    */
   public static async findProjectMemberIds(data: {
     projectId: ObjectID;
     userIds: Array<string>;
   }): Promise<Set<string>> {
     const found: Set<string> = new Set<string>();
-
-    if (data.userIds.length === 0) {
-      return found;
-    }
-
-    const memberships: Array<TeamMember> =
-      await ProjectScopedReferenceValidator.getLookupService(TeamMember).findBy(
-        {
-          query: {
-            projectId: data.projectId,
-            userId: QueryHelper.any(data.userIds),
-          },
-          select: {
-            userId: true,
-            projectId: true,
-          },
-          // One row per team a user is in, so not one row per id.
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        },
-      );
-
+    const lookup: DatabaseService<TeamMember> =
+      ProjectScopedReferenceValidator.getLookupService(TeamMember);
     const projectId: string = normalizeId(data.projectId.toString());
 
-    for (const membership of memberships) {
-      if (normalizeId(membership.projectId?.toString() || "") !== projectId) {
+    for (
+      let start: number = 0;
+      start < data.userIds.length;
+      start += MEMBERSHIP_LOOKUP_BATCH_SIZE
+    ) {
+      const userIds: Array<string> = data.userIds.slice(
+        start,
+        start + MEMBERSHIP_LOOKUP_BATCH_SIZE,
+      );
+
+      const memberships: Array<TeamMember> = await lookup.findBy({
+        query: {
+          projectId: data.projectId,
+          userId: QueryHelper.any(userIds),
+        },
+        select: {
+          userId: true,
+          projectId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const membership of memberships) {
+        if (normalizeId(membership.projectId?.toString() || "") !== projectId) {
+          continue;
+        }
+
+        const userId: string = normalizeId(membership.userId?.toString() || "");
+
+        if (userId) {
+          found.add(userId);
+        }
+      }
+
+      if (memberships.length < LIMIT_PER_PROJECT) {
         continue;
       }
 
-      const userId: string = normalizeId(membership.userId?.toString() || "");
+      for (const userId of userIds) {
+        if (found.has(normalizeId(userId))) {
+          continue;
+        }
 
-      if (userId) {
-        found.add(userId);
+        const count: PositiveNumber = await lookup.countBy({
+          query: {
+            projectId: data.projectId,
+            userId: userId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (count.toNumber() > 0) {
+          found.add(normalizeId(userId));
+        }
       }
     }
 

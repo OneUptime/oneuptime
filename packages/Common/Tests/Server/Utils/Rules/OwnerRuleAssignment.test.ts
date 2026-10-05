@@ -7,7 +7,7 @@ import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
-import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import {
   ProjectDirectoryStub,
@@ -28,14 +28,15 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  * The owner sets are saved configuration and can name a user who has left
  * the project since, or - saved before the lists were checked - a team of
- * another project; createOwner skips both (see the last blocks).
+ * another project, which the owner service refuses; createOwner skips both
+ * (see the last blocks).
  */
 
 /*
- * Every owner user below is a project member, and every owner team one of
- * the project's teams, unless a test says otherwise. The membership read is
- * TeamMemberService's, the team read ProjectScopedReferenceValidator's; no
- * Postgres here.
+ * Every owner user below is a project member unless a test says otherwise.
+ * The membership read is TeamMemberService's; a team is the owner service's
+ * to check, and the stubbed directory shows createOwner never reads one
+ * itself. No Postgres here.
  */
 let memberCheck: jest.SpyInstance;
 let directory: ProjectDirectoryStub;
@@ -752,125 +753,94 @@ describe("OwnerRuleAssignment and project membership", () => {
 });
 
 describe("OwnerRuleAssignment and the project's teams", () => {
+  /*
+   * A team owner is checked by the owner row's own service: every owner
+   * service is a ProjectReferencesService, which refuses a team (or user,
+   * or resource) that is not the row's project's with a
+   * ProjectScopedReferenceException. createOwner reports that row as not
+   * added, so a saved owner set naming another project's team still adds
+   * everyone else. OwnerAndRuleServicesCheckReferences holds every owner
+   * service to that check.
+   */
   // A team of another project, or one that does not exist at all.
   const FOREIGN_TEAM: ObjectID = new ObjectID(
     "55555555-5555-4555-8555-555555555555",
   );
 
-  function teamRowOf(teamId: ObjectID | string): MonitorOwnerTeam {
+  function refusedAsNotTheProjects(): ProjectScopedReferenceException {
+    return new ProjectScopedReferenceException(
+      `This monitor team owner references records that are not in this project: Team "${FOREIGN_TEAM.toString()}". Please pick values from this project and try again.`,
+    );
+  }
+
+  function teamRowOf(teamId: ObjectID): MonitorOwnerTeam {
     const owner: MonitorOwnerTeam = new MonitorOwnerTeam();
-    owner.teamId = new ObjectID(teamId.toString());
+    owner.teamId = teamId;
     owner.monitorId = MONITOR_ID;
     owner.projectId = PROJECT_ID;
     return owner;
   }
 
-  async function createTeamOwner(
-    owner: MonitorOwnerTeam,
-    create: jest.Mock,
-  ): Promise<boolean> {
-    return await OwnerRuleAssignment.createOwner({
-      ownerService: {
-        create,
-      } as unknown as DatabaseService<MonitorOwnerTeam>,
-      owner: owner,
-      props: { isRoot: true },
-    });
-  }
-
-  it("makes one of the project's teams an owner, read pinned to the row's project", async () => {
+  it("reports a team the owner service refuses as not the project's as not added", async () => {
     const create: jest.Mock = jest.fn(async () => {
-      return {};
+      throw refusedAsNotTheProjects();
     });
-
-    await expect(createTeamOwner(teamRowOf(TEAM_A), create)).resolves.toBe(
-      true,
-    );
-
-    expect(create).toHaveBeenCalledTimes(1);
-    expect(directory.recordLookups).toEqual([
-      {
-        model: "Team",
-        projectId: PROJECT_ID.toString(),
-        ids: [TEAM_A.toString()],
-      },
-    ]);
-  });
-
-  it("never makes a team of another project an owner, and writes nothing for it", async () => {
-    const create: jest.Mock = jest.fn(async () => {
-      return {};
-    });
-
-    await expect(
-      createTeamOwner(teamRowOf(FOREIGN_TEAM), create),
-    ).resolves.toBe(false);
-
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("matches a team id sent in another case", async () => {
-    const create: jest.Mock = jest.fn(async () => {
-      return {};
-    });
-
-    await expect(
-      createTeamOwner(teamRowOf(TEAM_B.toString().toUpperCase()), create),
-    ).resolves.toBe(true);
-  });
-
-  it("never sends a team id that is not a uuid to the database", async () => {
-    const create: jest.Mock = jest.fn(async () => {
-      return {};
-    });
-
-    await expect(
-      createTeamOwner(teamRowOf("not-a-team"), create),
-    ).resolves.toBe(false);
-
-    expect(directory.recordLookups).toEqual([]);
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("checks the team against the caller's tenant when the row has no project", async () => {
-    const create: jest.Mock = jest.fn(async () => {
-      return {};
-    });
-    const owner: MonitorOwnerTeam = teamRowOf(FOREIGN_TEAM);
-    delete owner.projectId;
 
     await expect(
       OwnerRuleAssignment.createOwner({
         ownerService: {
           create,
         } as unknown as DatabaseService<MonitorOwnerTeam>,
-        owner: owner,
-        props: { tenantId: PROJECT_ID },
+        owner: teamRowOf(FOREIGN_TEAM),
+        props: { isRoot: true },
       }),
     ).resolves.toBe(false);
 
-    expect(directory.recordLookups[0]!.projectId).toBe(PROJECT_ID.toString());
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
-  it("a failing team read fails the write, as any other read would", async () => {
-    jest.restoreAllMocks();
-    const failure: Error = new Error("db down");
-    jest
-      .spyOn(ProjectScopedReferenceValidator, "findIdsInProject")
-      .mockRejectedValue(failure);
+  it("leaves the team to the owner service rather than reading it a second time", async () => {
     const create: jest.Mock = jest.fn(async () => {
       return {};
     });
 
-    await expect(createTeamOwner(teamRowOf(TEAM_A), create)).rejects.toBe(
-      failure,
-    );
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: teamRowOf(TEAM_A),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(true);
 
-    expect(create).not.toHaveBeenCalled();
+    expect(directory.recordLookups).toEqual([]);
+    expect(memberCheck).not.toHaveBeenCalled();
+  });
+
+  it("still throws a refusal of any other kind", async () => {
+    const failure: BadDataException = new BadDataException(
+      "teamId is required",
+    );
+    const create: jest.Mock = jest.fn(async () => {
+      throw failure;
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: teamRowOf(TEAM_A),
+        props: { isRoot: true },
+      }),
+    ).rejects.toBe(failure);
   });
 
   it("adds the rest of a saved owner set when one of its teams is another project's", async () => {
-    const services: WritableServices = writableServices({});
+    const services: WritableServices = writableServices({
+      teamErrors: { [FOREIGN_TEAM.toString()]: refusedAsNotTheProjects() },
+    });
 
     const added: OwnersToAssign = await OwnerRuleAssignment.addOwners({
       ownerUserService: services.ownerUserService,
@@ -883,13 +853,6 @@ describe("OwnerRuleAssignment and the project's teams", () => {
       props: { isRoot: true },
     });
 
-    expect(
-      writtenRows<MonitorOwnerTeam>(services.createTeam).map(
-        (r: MonitorOwnerTeam): string => {
-          return r.teamId!.toString();
-        },
-      ),
-    ).toEqual([TEAM_A.toString()]);
     expect(ids(added.teamIds)).toEqual([TEAM_A.toString()]);
     expect(ids(added.userIds)).toEqual([USER_A.toString()]);
   });
