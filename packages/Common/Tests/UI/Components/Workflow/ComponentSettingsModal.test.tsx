@@ -675,7 +675,7 @@ describe("Webhook trigger: its URL's secret key is managed here, not in Settings
     expect(props.onResetWebhookSecretKey).not.toHaveBeenCalled();
   });
 
-  test("Delete Workflow alone may update a workflow but not its key, so the reset stays locked", () => {
+  test("Delete Workflow alone may not update a workflow, so the reset stays locked", () => {
     mockPermissions = [Permission.DeleteWorkflow];
 
     render(<ComponentSettingsModal {...webhookProps()} />);
