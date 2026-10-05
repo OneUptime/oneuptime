@@ -144,11 +144,10 @@ jest.mock(
   "Common/Server/Utils/Database/ProjectScopedReferenceValidator",
   () => {
     // The refusal type is the real one: createOwner recognises it.
-    const actual: {
-      ProjectScopedReferenceException: unknown;
-    } = jest.requireActual(
-      "Common/Server/Utils/Database/ProjectScopedReferenceValidator",
-    );
+    const actual: { ProjectScopedReferenceException: unknown } =
+      jest.requireActual(
+        "Common/Server/Utils/Database/ProjectScopedReferenceValidator",
+      ) as { ProjectScopedReferenceException: unknown };
 
     return {
       __esModule: true,
