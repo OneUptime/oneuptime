@@ -679,7 +679,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
           data: link(incidentId, foreignAlertId),
           props: { isRoot: true },
         }),
-      ).rejects.toThrow("belong to a different project");
+      ).rejects.toThrow("not in this project");
       expect(await linkCount()).toBe(0);
     });
 

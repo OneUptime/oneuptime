@@ -24893,6 +24893,7 @@
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Quando esta regra corresponde, estes rótulos são anexados. Rótulos já anexados não são adicionados duas vezes.",
   "e.g. Add Platform as owners": "ex.: Adicionar Platform como proprietários",
   "e.g. Add production": "ex.: Adicionar production",
+  "AI agent actions": "Ações do agente IA",
   "AI settings": "AI settings",
   "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
@@ -24942,6 +24943,7 @@
   "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".": "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".",
   "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.": "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
   "Stage": "Stage",
+  "Testing the connection…": "Testando a conexão…",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
@@ -24984,5 +24986,10 @@
   "Upgrade the Helm release": "Atualizar a release do Helm",
   "Upgrade the {{agentName}}": "Atualizar {{agentName}}",
   "Pull the latest images and recreate the agent": "Baixar as imagens mais recentes e recriar o agente",
-  "Run the command from the setup guide again. It is filled in with this host's name and the ingestion key you pick there.": "Execute novamente o comando do guia de configuração. Ele já vem preenchido com o nome deste host e a chave de ingestão que você escolher lá."
+  "Run the command from the setup guide again. It is filled in with this host's name and the ingestion key you pick there.": "Execute novamente o comando do guia de configuração. Ele já vem preenchido com o nome deste host e a chave de ingestão que você escolher lá.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "Você não pode adicionar pessoas a {{teams}} por meio deste provedor: essas equipes dão mais acesso do que você tem. Escolha equipes para as quais você poderia convidar alguém ou peça a um proprietário do projeto que salve este provedor.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "Você não pode adicionar pessoas a {{teams}} por meio deste provedor: essa equipe dá mais acesso do que você tem. Escolha equipes para as quais você poderia convidar alguém ou peça a um proprietário do projeto que salve este provedor.",
+  "Only a project owner can add or change SCIM connections.": "Somente um proprietário do projeto pode adicionar ou alterar conexões SCIM.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "Pelo SCIM, seu provedor de identidade pode adicionar pessoas a qualquer equipe deste projeto. Por isso, adicionar uma conexão, alterá-la, ou ver ou redefinir seu token Bearer exige um acesso que abranja todas as equipes.",
+  "Switching it off, with nothing else changed, is still allowed.": "Desativá-lo continua permitido, se nada mais for alterado."
 }

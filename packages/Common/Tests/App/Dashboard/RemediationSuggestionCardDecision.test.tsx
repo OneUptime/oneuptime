@@ -71,7 +71,9 @@ let getListSpy: ReturnType<typeof jest.spyOn>;
 function serve(served: Served): void {
   getListSpy.mockImplementation((async (data: {
     modelType: { new (): unknown };
-  }): Promise<ListResult<unknown>> => {
+  }): Promise<
+    ListResult<AutoRemediationDecision | AutoRemediationSuggestion>
+  > => {
     if (data.modelType === AutoRemediationDecision) {
       if (served.decisions instanceof Error) {
         throw served.decisions;

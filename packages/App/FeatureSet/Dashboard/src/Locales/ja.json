@@ -24893,6 +24893,7 @@
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。",
   "e.g. Add Platform as owners": "例: Platform を所有者として追加",
   "e.g. Add production": "例: production を追加",
+  "AI agent actions": "AI エージェントのアクション",
   "AI settings": "AI settings",
   "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
@@ -24942,6 +24943,7 @@
   "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".": "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".",
   "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.": "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
   "Stage": "Stage",
+  "Testing the connection…": "接続をテストしています…",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
@@ -24984,5 +24986,10 @@
   "Upgrade the Helm release": "Helm リリースをアップグレードする",
   "Upgrade the {{agentName}}": "{{agentName}} をアップグレード",
   "Pull the latest images and recreate the agent": "最新のイメージを pull して、エージェントを作り直す",
-  "Run the command from the setup guide again. It is filled in with this host's name and the ingestion key you pick there.": "セットアップガイドのコマンドをもう一度実行します。このホストの名前と、そこで選んだ取り込みキーが入力済みです。"
+  "Run the command from the setup guide again. It is filled in with this host's name and the ingestion key you pick there.": "セットアップガイドのコマンドをもう一度実行します。このホストの名前と、そこで選んだ取り込みキーが入力済みです。",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "このプロバイダー経由で {{teams}} にユーザーを追加することはできません。あなたが持つ以上のアクセス権が与えられるためです。誰かを招待できるチームを選ぶか、プロジェクトのオーナーにこのプロバイダーの保存を依頼してください。",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "このプロバイダー経由で {{teams}} にユーザーを追加することはできません。あなたが持つ以上のアクセス権が与えられるためです。誰かを招待できるチームを選ぶか、プロジェクトのオーナーにこのプロバイダーの保存を依頼してください。",
+  "Only a project owner can add or change SCIM connections.": "SCIM 接続を追加または変更できるのはプロジェクトのオーナーだけです。",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "SCIM を通じて、ID プロバイダーはこのプロジェクトの任意のチームにユーザーを追加できます。そのため、接続の追加や変更、ベアラートークンの表示やリセットには、すべてのチームを対象とするアクセス権が必要です。",
+  "Switching it off, with nothing else changed, is still allowed.": "ほかに何も変更しなければ、無効にすることは引き続きできます。"
 }

@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostFeedService from "./DockerHostFeedService";
 import { DockerHostFeedEventType } from "../../Models/DatabaseModels/DockerHostFeed";
@@ -11,7 +11,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import DockerHostService from "./DockerHostService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

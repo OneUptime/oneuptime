@@ -70,7 +70,9 @@ jest.mock("../../../UI/Utils/Permission", () => {
 
 import GrantablePermission, {
   PermissionRows,
+  TeamPermissionGrant,
   canGrantPermission,
+  canGrantTeamPermission,
   isBlockedFromAny,
   isUnrestrictedPermission,
   toPermissionRows,
@@ -779,4 +781,267 @@ describe("a block that takes a whole table away", () => {
       });
     }
   }
+});
+
+/*
+ * One of a team's own rows, at the scope and labels it has: what joining
+ * the team hands on. The single sign-on provider forms weigh a team's rows
+ * this way to say which picked teams the server would refuse (a provider's
+ * teams meet the invitation's ceiling, Server/Utils/SsoProviderTeamGrant),
+ * so it must agree with TeamPermissionService.assertCanGrantPermission for
+ * label-limited rows too - never a yes where the server says no, and never
+ * a no where it says yes, or the form would warn about a team it saves.
+ */
+describe("handing on one of a team's rows", () => {
+  const OTHER_LABEL_ID: ObjectID = new ObjectID(
+    "0a000000-0000-4000-8000-000000000004",
+  );
+
+  interface GrantSpec {
+    name: string;
+    grant: TeamPermissionGrant;
+  }
+
+  const GRANTS: Array<GrantSpec> = [
+    {
+      name: "Project Member for the whole project",
+      grant: {
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.All,
+      },
+    },
+    {
+      name: "Project Member on a legacy row with no scope",
+      grant: { permission: Permission.ProjectMember },
+    },
+    {
+      name: "Project Member for one label",
+      grant: {
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_ID.toString()],
+      },
+    },
+    {
+      name: "Project Member for two labels",
+      grant: {
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_ID.toString(), OTHER_LABEL_ID.toString()],
+      },
+    },
+    {
+      name: "Project Member for what one owns",
+      grant: {
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.Owned,
+      },
+    },
+    {
+      name: "Project Member at All that also names a label",
+      grant: {
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.All,
+        labelIds: [LABEL_ID.toString()],
+      },
+    },
+    {
+      name: "Project Owner",
+      grant: {
+        permission: Permission.ProjectOwner,
+        scope: PermissionScope.All,
+      },
+    },
+    {
+      name: "Project Admin",
+      grant: {
+        permission: Permission.ProjectAdmin,
+        scope: PermissionScope.All,
+      },
+    },
+  ];
+
+  const ROW_CALLERS: Array<{ name: string; rows: Array<UserPermission> }> = [
+    ...CALLERS,
+    {
+      name: "a member on both labels",
+      rows: [
+        row({
+          permission: Permission.ProjectMember,
+          scope: PermissionScope.Labels,
+          labels: [LABEL_ID, OTHER_LABEL_ID],
+        }),
+      ],
+    },
+    {
+      name: "a member blocked on the other label",
+      rows: [
+        row({
+          permission: Permission.ProjectMember,
+          scope: PermissionScope.All,
+        }),
+        row({
+          permission: Permission.ProjectMember,
+          isBlockPermission: true,
+          labels: [OTHER_LABEL_ID],
+        }),
+      ],
+    },
+    {
+      name: "a member blocked from what they own",
+      rows: [
+        row({
+          permission: Permission.ProjectMember,
+          scope: PermissionScope.All,
+        }),
+        row({
+          permission: Permission.ProjectMember,
+          isBlockPermission: true,
+          scope: PermissionScope.Owned,
+        }),
+      ],
+    },
+    {
+      name: "a member on some labels, blocked on one of them",
+      rows: [
+        row({
+          permission: Permission.ProjectMember,
+          scope: PermissionScope.Labels,
+          labels: [LABEL_ID, OTHER_LABEL_ID],
+        }),
+        row({
+          permission: Permission.ProjectMember,
+          isBlockPermission: true,
+          labels: [LABEL_ID],
+        }),
+      ],
+    },
+  ];
+
+  function teamRowServerAllows(
+    grant: TeamPermissionGrant,
+    rows: Array<UserPermission>,
+  ): boolean {
+    try {
+      TeamPermissionService.assertCanGrantPermission({
+        permission: grant.permission,
+        labelIds: (grant.labelIds || []).map((labelId: string): ObjectID => {
+          return new ObjectID(labelId);
+        }),
+        scope: grant.scope,
+        props: serverProps(rows),
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  for (const caller of ROW_CALLERS) {
+    for (const spec of GRANTS) {
+      test(`${caller.name} handing on ${spec.name}: the server's answer`, () => {
+        expect(
+          canGrantTeamPermission({
+            grant: spec.grant,
+            rows: rowsOf(caller.rows),
+          }),
+        ).toBe(teamRowServerAllows(spec.grant, caller.rows));
+      });
+    }
+  }
+
+  test("the matrix holds both answers for label-limited rows, so it really compares something", () => {
+    const answers: Set<boolean> = new Set<boolean>();
+
+    for (const caller of ROW_CALLERS) {
+      answers.add(
+        canGrantTeamPermission({
+          grant: GRANTS[2]!.grant,
+          rows: rowsOf(caller.rows),
+        }),
+      );
+    }
+
+    expect(answers).toEqual(new Set<boolean>([true, false]));
+  });
+
+  test("for a row that reaches the whole project, it answers as canGrantPermission does", () => {
+    for (const caller of ROW_CALLERS) {
+      for (const permission of TARGETS) {
+        expect({
+          caller: caller.name,
+          permission,
+          answer: canGrantTeamPermission({
+            grant: { permission: permission, scope: PermissionScope.All },
+            rows: rowsOf(caller.rows),
+          }),
+        }).toEqual({
+          caller: caller.name,
+          permission,
+          answer: canGrant(permission, caller.rows),
+        });
+      }
+    }
+  });
+
+  test("a label-limited row is handed on by someone holding every one of its labels", () => {
+    const rows: PermissionRows = rowsOf([
+      row({
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.Labels,
+        labels: [LABEL_ID],
+      }),
+    ]);
+
+    expect(
+      canGrantTeamPermission({ grant: GRANTS[2]!.grant, rows: rows }),
+    ).toBe(true);
+    // Not one with a label they do not hold, and not the whole project.
+    expect(
+      canGrantTeamPermission({ grant: GRANTS[3]!.grant, rows: rows }),
+    ).toBe(false);
+    expect(
+      canGrantTeamPermission({ grant: GRANTS[0]!.grant, rows: rows }),
+    ).toBe(false);
+  });
+
+  test("a scope this copy does not know never reaches the whole project", () => {
+    expect(
+      isUnrestrictedPermission({
+        ...row({ permission: Permission.ProjectMember }),
+        scope: "Everything" as PermissionScope,
+      }),
+    ).toBe(false);
+  });
+
+  test("the signed-in user: a team with no rows is anyone's, a master admin may hand on any team", () => {
+    projectPermissionsForTest = tenant([
+      row({
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.Labels,
+        labels: [LABEL_ID],
+      }),
+    ]);
+    globalPermissionsForTest = global([Permission.Public]);
+
+    expect(GrantablePermission.canCurrentUserGrantTeam([])).toBe(true);
+    expect(
+      GrantablePermission.canCurrentUserGrantTeam([GRANTS[2]!.grant]),
+    ).toBe(true);
+    expect(
+      GrantablePermission.canCurrentUserGrantTeam([
+        GRANTS[2]!.grant,
+        GRANTS[0]!.grant,
+      ]),
+    ).toBe(false);
+
+    isMasterAdminForTest = true;
+
+    expect(
+      GrantablePermission.canCurrentUserGrantTeam([
+        GRANTS[6]!.grant,
+        GRANTS[0]!.grant,
+      ]),
+    ).toBe(true);
+  });
 });

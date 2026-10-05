@@ -765,7 +765,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - labels, team
   it("lets a cross-project team abort the create", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        'This SLO burn rate rule references records that belong to a different project: Team "Other team".',
+        `This SLO burn rate rule references records that are not in this project: Team "${TEAM_ID.toString()}". Please pick values from this project and try again.`,
       ),
     );
 
@@ -774,7 +774,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - labels, team
         "onBeforeCreate",
         makeValidCreateBy({ incidentOwnerTeams: [team(TEAM_ID)] }),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 
@@ -1082,7 +1082,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
   it("lets a newly introduced cross-project policy abort the update", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        'This SLO burn rate rule references records that belong to a different project: On-Call Duty Policy "Other rota".',
+        `This SLO burn rate rule references records that are not in this project: On-Call Duty Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
       ),
     );
 
@@ -1094,7 +1094,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
           { isRoot: true, tenantId: PROJECT_ID },
         ),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 

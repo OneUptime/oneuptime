@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import NetworkSiteService from "./NetworkSiteService";
 import Model from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
@@ -23,6 +23,10 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
  */
 const SITE_KEYS: Array<string> = ["siteId", "site"];
 
+// One answer for a site that is missing and a site of another project.
+export const NETWORK_SITE_NOT_IN_PROJECT_MESSAGE: string =
+  "This network site assignment rule's site is not in this project. Please pick a site from this project and try again.";
+
 const HOSTNAME_OPERATORS: ReadonlySet<RuleCriteriaOperator> = new Set([
   RuleCriteriaOperator.Equals,
   RuleCriteriaOperator.NotEquals,
@@ -38,9 +42,14 @@ function readSiteId(data: Record<string, unknown>): ObjectID | null {
   return RelationIdUtil.read(data, SITE_KEYS);
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // The site is checked by assertSiteBelongsToProject.
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["site"];
   }
 
   /*
@@ -70,17 +79,17 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    if (!site) {
-      throw new BadDataException("Network site not found.");
-    }
-
+    /*
+     * Another project's site is answered exactly like a site that does not
+     * exist: which ids exist outside the project is not this project's to
+     * learn.
+     */
     if (
-      site.projectId &&
-      site.projectId.toString() !== data.projectId.toString()
+      !site ||
+      (site.projectId &&
+        site.projectId.toString() !== data.projectId.toString())
     ) {
-      throw new BadDataException(
-        "Network site must belong to the same project.",
-      );
+      throw new BadDataException(NETWORK_SITE_NOT_IN_PROJECT_MESSAGE);
     }
   }
 
@@ -92,6 +101,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     this.validateCriteria({
       criteria: createBy.data.criteria,
       subnetCidr: createBy.data.subnetCidr,
@@ -116,6 +128,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
     const isCriteriaChange: boolean =

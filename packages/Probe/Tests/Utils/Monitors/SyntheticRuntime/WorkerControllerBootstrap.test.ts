@@ -1108,6 +1108,46 @@ describe("SyntheticRuntime WorkerController bootstrap", () => {
     }
   });
 
+  test("charges the first attempt nothing for the clock ticking over before it starts", async () => {
+    /*
+     * The first attempt has spent nothing of the whole budget, so it gets
+     * exactly the configured budget. What was left of the whole budget used
+     * to be read off the clock twice -- once as the bootstrap started, again
+     * as the attempt did -- and a millisecond ticking over in between came off
+     * the attempt: SyntheticBrowserSlowStorage's CONTROL failed on CI with "of
+     * its 9999 ms budget" for a 10000 ms attempt. A single attempt's whole
+     * budget is its own budget, as it is there, so any charge shows. Here
+     * every reading of the clock is a millisecond later than the last.
+     */
+    const readClock: () => number = Date.now.bind(Date);
+    let readings: number = 0;
+    const clock: jest.SpyInstance<number, []> = jest
+      .spyOn(Date, "now")
+      .mockImplementation((): number => {
+        readings++;
+        return readClock() + readings;
+      });
+
+    try {
+      const failure: ExecutionFailure = await executeExpectingFailure(
+        new FakeBrowserContext(99),
+        { bootstrapAttempts: 1, bootstrapTimeoutInMs: QUICK_BUDGET_IN_MS },
+      );
+
+      expect(failure.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+      expect(failure.error.message).toBe(
+        tenantBootstrapMessage(1, QUICK_BUDGET_IN_MS),
+      );
+      const detail: BootstrapDetail = parseBootstrapDetail(
+        failure.internalDetail,
+      );
+      expect(detail.reports).toHaveLength(1);
+      expect(detail.reports[0]!.budgetInMs).toBe(QUICK_BUDGET_IN_MS);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   test("reports a probe-side runtime fault once the attempts are spent", async () => {
     const context: FakeBrowserContext = new FakeBrowserContext(99);
 

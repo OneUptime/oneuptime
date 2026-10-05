@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorTemplateService from "./MonitorTemplateService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkDeviceAutoImportRuleEngineService from "./NetworkDeviceAutoImportRuleEngineService";
@@ -63,6 +63,12 @@ function readMonitorTemplateId(data: Record<string, unknown>): ObjectID | null {
 
 const OID_TEMPLATE_KEYS: Array<string> = ["oidTemplateId", "oidTemplate"];
 
+// One answer each for a template that is missing and one of another project.
+export const MONITOR_TEMPLATE_NOT_FOUND_MESSAGE: string =
+  "Monitor template not found.";
+export const OID_TEMPLATE_NOT_FOUND_MESSAGE: string =
+  "OID Collection Template not found.";
+
 function readOidTemplateId(data: Record<string, unknown>): ObjectID | null {
   return RelationIdUtil.readConsistent(
     data,
@@ -85,15 +91,27 @@ interface AutoImportRuleUpdatePlan {
   isRuleReachChanged: boolean;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Both templates are read with the caller's own props (a template the
+   * caller cannot see cannot be attached), see validateMonitorTemplateSelection
+   * and validateOidTemplateSelection.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["monitorTemplate", "oidTemplate"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     this.validateCriteria({
       criteria: createBy.data.criteria,
       ipMatchTarget: createBy.data.ipMatchTarget,
@@ -134,6 +152,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
     const isCriteriaChange: boolean =
@@ -477,17 +498,17 @@ export class Service extends DatabaseService<Model> {
         props: data.props,
       });
 
-    if (!oidTemplate) {
-      throw new BadDataException("OID Collection Template not found.");
-    }
-
+    /*
+     * Another project's template is answered exactly like one that does not
+     * exist (a root write reads past the tenant): which ids exist outside the
+     * project is not this project's to learn.
+     */
     if (
+      !oidTemplate ||
       !oidTemplate.projectId ||
       oidTemplate.projectId.toString() !== data.projectId.toString()
     ) {
-      throw new BadDataException(
-        "OID Collection Template must belong to the same project.",
-      );
+      throw new BadDataException(OID_TEMPLATE_NOT_FOUND_MESSAGE);
     }
   }
 
@@ -550,17 +571,13 @@ export class Service extends DatabaseService<Model> {
         props: data.props,
       });
 
-    if (!monitorTemplate) {
-      throw new BadDataException("Monitor template not found.");
-    }
-
+    // Another project's template reads like a missing one, as above.
     if (
+      !monitorTemplate ||
       !monitorTemplate.projectId ||
       monitorTemplate.projectId.toString() !== data.projectId.toString()
     ) {
-      throw new BadDataException(
-        "Monitor template must belong to the same project.",
-      );
+      throw new BadDataException(MONITOR_TEMPLATE_NOT_FOUND_MESSAGE);
     }
 
     if (monitorTemplate.monitorType !== MonitorType.NetworkDevice) {

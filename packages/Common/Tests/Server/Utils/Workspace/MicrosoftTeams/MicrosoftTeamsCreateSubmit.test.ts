@@ -648,21 +648,20 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       name: "the reference check refusing another project's monitor",
       where: "validator",
       error: new ProjectScopedReferenceException(
-        'This incident references records that belong to a different project: Monitor "Payroll API". Please pick values from this project and try again.',
+        `This incident references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`,
       ),
       reply: INCIDENT_REFERENCE_UNAVAILABLE,
-      logged:
-        'ProjectScopedReferenceException: This incident references records that belong to a different project: Monitor "Payroll API". Please pick values from this project and try again.',
+      logged: `ProjectScopedReferenceException: This incident references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`,
     },
     {
       // Deleted after the form was sent; IncidentService.create checks it.
       name: "IncidentService.create refusing a severity the project no longer has",
       where: "create",
       error: new ProjectScopedReferenceException(
-        `This incident references records that do not exist: Incident Severity "${SEVERITY_ID}". Please pick values that exist in this project and try again.`,
+        `This incident references records that are not in this project: Incident Severity "${SEVERITY_ID}". Please pick values from this project and try again.`,
       ),
       reply: INCIDENT_REFERENCE_UNAVAILABLE,
-      logged: `ProjectScopedReferenceException: This incident references records that do not exist: Incident Severity "${SEVERITY_ID}". Please pick values that exist in this project and try again.`,
+      logged: `ProjectScopedReferenceException: This incident references records that are not in this project: Incident Severity "${SEVERITY_ID}". Please pick values from this project and try again.`,
     },
     {
       // Never "❌ Could not create the incident: " with nothing after it.
@@ -706,8 +705,7 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
   );
 
   test("a reference the project does not have is answered without naming the record; the log keeps which one it was", async (): Promise<void> => {
-    const validatorMessage: string =
-      'This incident references records that belong to a different project: Monitor "Acme Corp payroll API", On-Call Policy "Acme Corp executives". Please pick values from this project and try again.';
+    const validatorMessage: string = `This incident references records that are not in this project: Monitor "${MONITOR_ID}", On-Call Policy "${ON_CALL_POLICY_ID}". Please pick values from this project and try again.`;
     validateReferencesSpy.mockRejectedValue(
       new ProjectScopedReferenceException(validatorMessage),
     );
@@ -2007,21 +2005,20 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         name: "the reference check refusing another project's label, with the fixed line",
         where: "validator",
         error: new ProjectScopedReferenceException(
-          'This scheduled maintenance event references records that belong to a different project: Label "acme-payroll". Please pick values from this project and try again.',
+          `This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
         ),
         reply: MAINTENANCE_REFERENCE_UNAVAILABLE,
-        logged:
-          'ProjectScopedReferenceException: This scheduled maintenance event references records that belong to a different project: Label "acme-payroll". Please pick values from this project and try again.',
+        logged: `ProjectScopedReferenceException: This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
       },
       {
         // Deleted after the form was sent; the service checks it on create.
         name: "ScheduledMaintenanceService.create refusing a monitor status the project no longer has, with the fixed line",
         where: "create",
         error: new ProjectScopedReferenceException(
-          `This scheduled maintenance event references records that do not exist: Monitor Status "${MONITOR_STATUS_ID}". Please pick values that exist in this project and try again.`,
+          `This scheduled maintenance event references records that are not in this project: Monitor Status "${MONITOR_STATUS_ID}". Please pick values from this project and try again.`,
         ),
         reply: MAINTENANCE_REFERENCE_UNAVAILABLE,
-        logged: `ProjectScopedReferenceException: This scheduled maintenance event references records that do not exist: Monitor Status "${MONITOR_STATUS_ID}". Please pick values that exist in this project and try again.`,
+        logged: `ProjectScopedReferenceException: This scheduled maintenance event references records that are not in this project: Monitor Status "${MONITOR_STATUS_ID}". Please pick values from this project and try again.`,
       },
       {
         name: "a BadDataException without a message, with the generic line",
@@ -2063,8 +2060,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
     );
 
     test("a reference the project does not have is answered without naming the record; the log keeps which one it was", async (): Promise<void> => {
-      const validatorMessage: string =
-        'This scheduled maintenance event references records that belong to a different project: Monitor "Acme Corp payroll API". Please pick values from this project and try again.';
+      const validatorMessage: string = `This scheduled maintenance event references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`;
       validateReferencesSpy.mockRejectedValue(
         new ProjectScopedReferenceException(validatorMessage),
       );

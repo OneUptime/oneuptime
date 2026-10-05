@@ -1,0 +1,1311 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import fs from "fs";
+import path from "path";
+import React from "react";
+
+/*
+ * A PROJECT SSO PROVIDER'S TEAMS: THE FORM NAMES THE ONES THE SERVER WOULD
+ * REFUSE.
+ *
+ * People who sign in with a project's SAML or OIDC provider for the first
+ * time join its teams, so the server saves a provider only with teams the
+ * person saving it could invite someone to (Server/Utils
+ * /SsoProviderTeamGrant). Settings > SSO and Settings > OIDC say so under
+ * Teams the moment such a team is picked (Dashboard Components/Sso
+ * /SsoTeamsGrantNote, SsoTeamGrants):
+ *
+ *   - the rule, piece by piece: which ids a Teams field holds, which teams
+ *     the signed-in user could hand on, which picked ones they could not;
+ *   - side by side with the server, caller by caller and team by team,
+ *     label-limited and blocked rows included: the note warns about exactly
+ *     the teams the server refuses;
+ *   - the note itself: nothing while loading, when every team is fine, or
+ *     when the teams cannot be read; the teams by name otherwise;
+ *   - through the real provider form, on its Sign-in step.
+ */
+
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: class PasswordHashStub {},
+  };
+});
+
+let isMasterAdminForTest: boolean = false;
+let projectPermissionsForTest: unknown = null;
+let userIdForTest: string = "5f000000-0000-4000-8000-0000000000c1";
+
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<string> => {
+        return ["ProjectOwner", "ProjectAdmin", "User", "Public"];
+      },
+      getProjectPermissions: (): unknown => {
+        return projectPermissionsForTest;
+      },
+      getGlobalPermissions: (): unknown => {
+        return {
+          _type: "UserGlobalAccessPermission",
+          projectIds: [],
+          globalPermissions: ["Public", "User"],
+        };
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/User", () => {
+  return {
+    __esModule: true,
+    default: {
+      isMasterAdmin: (): boolean => {
+        return isMasterAdminForTest;
+      },
+      getUserId: (): string => {
+        return userIdForTest;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/Translation", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return {
+        translateString: (value: string | undefined): string | undefined => {
+          return value;
+        },
+        translateValue: (value: unknown): unknown => {
+          return value;
+        },
+      };
+    },
+  };
+});
+
+interface MockListRequest {
+  modelType: { new (): unknown };
+  select: Record<string, unknown>;
+  sort: Record<string, unknown>;
+  query: Record<string, unknown>;
+}
+
+const mockServer: {
+  lists: Array<MockListRequest>;
+  failLists: boolean;
+  record: Record<string, unknown>;
+} = { lists: [], failLists: false, record: {} };
+
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getItem: async (): Promise<Record<string, unknown>> => {
+        return { ...mockServer.record };
+      },
+      getList: async (
+        data: MockListRequest,
+      ): Promise<{
+        data: Array<unknown>;
+        count: number;
+        skip: number;
+        limit: number;
+      }> => {
+        mockServer.lists.push(data);
+
+        const fixtures: typeof import("./SsoTeamsGrantNoteFixtures") =
+          jest.requireActual(
+            "./SsoTeamsGrantNoteFixtures",
+          ) as typeof import("./SsoTeamsGrantNoteFixtures");
+
+        if (mockServer.failLists) {
+          throw new Error("You do not have permission to read teams.");
+        }
+
+        const rows: Array<unknown> = fixtures.listFor(data.modelType);
+
+        return { data: rows, count: rows.length, skip: 0, limit: 10000 };
+      },
+      getCommonHeaders: (): Record<string, unknown> => {
+        return {};
+      },
+      createOrUpdate: async (data: {
+        model: Record<string, unknown>;
+      }): Promise<{ data: Record<string, unknown> }> => {
+        return { data: data.model };
+      },
+    },
+  };
+});
+
+import {
+  SSO_TEAM_GRANTS_CACHE_TTL_MS,
+  SsoTeamData,
+  SsoTeamGrant,
+  buildSsoTeamGrants,
+  canSignedInUserGrantTeam,
+  clearSsoTeamGrantsCache,
+  fetchSsoTeamData,
+  fetchSsoTeamDataOnce,
+  getFormTeamIds,
+  getTeamsBeyondGrant,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoTeamGrants";
+import SsoTeamsGrantNote, {
+  SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID,
+  SSO_TEAMS_GRANT_NOTE_TEST_ID,
+  getSsoTeamsGrantNote,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoTeamsGrantNote";
+import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
+import Team from "../../../Models/DatabaseModels/Team";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
+import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import { getSamlProviderFormFields } from "../../../UI/Components/Sso/SamlProviderFormFields";
+import { getSsoProviderFormSteps } from "../../../UI/Components/Sso/SsoProviderFormFields";
+import { TeamPermissionGrant } from "../../../UI/Utils/GrantablePermission";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../../UI/Utils/Project";
+import { getJestSpyOn } from "../../Spy";
+import {
+  ADMIN,
+  FRONTEND,
+  FRONTEND_LABEL_ID,
+  FixtureTeam,
+  MEMBERS,
+  OWNERS,
+  PROJECT_ID,
+  PROJECT_TEAMS,
+  READERS,
+  RESPONDERS,
+  listFor,
+  toPermissionModels,
+} from "./SsoTeamsGrantNoteFixtures";
+
+const PROVIDER_ID: ObjectID = new ObjectID(
+  "5f000000-0000-4000-8000-0000000000b1",
+);
+
+function allow(
+  permission: Permission,
+  data?: {
+    scope?: PermissionScope | undefined;
+    labelIds?: Array<ObjectID> | undefined;
+  },
+): UserPermission {
+  return {
+    permission: permission,
+    labelIds: data?.labelIds || [],
+    isBlockPermission: false,
+    scope: data?.scope || PermissionScope.All,
+    _type: "UserPermission",
+  };
+}
+
+function block(
+  permission: Permission,
+  labelIds: Array<ObjectID> = [],
+): UserPermission {
+  return {
+    permission: permission,
+    labelIds: labelIds,
+    isBlockPermission: true,
+    _type: "UserPermission",
+  };
+}
+
+interface Caller {
+  name: string;
+  rows: Array<UserPermission>;
+  // The teams the server lets this caller put on a provider.
+  grantable: Array<FixtureTeam>;
+}
+
+const CALLERS: Array<Caller> = [
+  {
+    name: "a project owner",
+    rows: [allow(Permission.ProjectOwner)],
+    grantable: PROJECT_TEAMS,
+  },
+  {
+    name: "a project admin",
+    rows: [allow(Permission.ProjectAdmin)],
+    grantable: [ADMIN, READERS],
+  },
+  {
+    name: "a project admin who is also in Members",
+    rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
+    grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
+  },
+  {
+    name: "a project owner blocked from Project Owner, who is also an admin",
+    rows: [
+      allow(Permission.ProjectOwner),
+      block(Permission.ProjectOwner),
+      allow(Permission.ProjectAdmin),
+    ],
+    grantable: [ADMIN, READERS],
+  },
+  {
+    name: "an SSO editor with Project Member for the Frontend label only",
+    rows: [
+      allow(Permission.CreateProjectSSO),
+      allow(Permission.EditProjectSSO),
+      allow(Permission.ProjectMember, {
+        scope: PermissionScope.Labels,
+        labelIds: [FRONTEND_LABEL_ID],
+      }),
+    ],
+    grantable: [FRONTEND, READERS],
+  },
+  {
+    name: "an SSO editor with Project Member, blocked from it on Frontend",
+    rows: [
+      allow(Permission.CreateProjectSSO),
+      allow(Permission.EditProjectSSO),
+      allow(Permission.ProjectMember),
+      block(Permission.ProjectMember, [FRONTEND_LABEL_ID]),
+    ],
+    grantable: [READERS],
+  },
+  {
+    name: "an SSO editor with Project Member and Delete Incident",
+    rows: [
+      allow(Permission.CreateProjectSSO),
+      allow(Permission.EditProjectSSO),
+      allow(Permission.ProjectMember),
+      allow(Permission.DeleteProjectIncident),
+    ],
+    grantable: [MEMBERS, FRONTEND, READERS, RESPONDERS],
+  },
+];
+
+function signIn(caller: Caller): void {
+  projectPermissionsForTest = {
+    _type: "UserTenantAccessPermission",
+    projectId: PROJECT_ID,
+    permissions: caller.rows,
+  };
+}
+
+function serverProps(caller: Caller): DatabaseCommonInteractionProps {
+  return {
+    userId: new ObjectID("5f000000-0000-4000-8000-0000000000c1"),
+    tenantId: PROJECT_ID,
+    userGlobalAccessPermission: {
+      _type: "UserGlobalAccessPermission",
+      projectIds: [PROJECT_ID],
+      globalPermissions: [Permission.Public, Permission.User],
+    },
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: caller.rows.map((row: UserPermission): UserPermission => {
+          return { ...row, labelIds: [...row.labelIds] };
+        }),
+      },
+    },
+  };
+}
+
+function idOf(team: FixtureTeam): string {
+  return team.id.toString();
+}
+
+// Every team, weighed for whoever is signed in now.
+function signedInUserGrants(teamData: SsoTeamData): Array<SsoTeamGrant> {
+  return buildSsoTeamGrants({
+    ...teamData,
+    canGrantTeam: canSignedInUserGrantTeam,
+  });
+}
+
+beforeEach(() => {
+  isMasterAdminForTest = false;
+  projectPermissionsForTest = null;
+  userIdForTest = "5f000000-0000-4000-8000-0000000000c1";
+  mockServer.lists = [];
+  mockServer.failLists = false;
+  mockServer.record = {};
+  // Each case signs in someone else: nothing read for another case is kept.
+  clearSsoTeamGrantsCache();
+  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+});
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
+
+describe("the ids a Teams field holds", () => {
+  test("in every shape the field holds them, once each, in order", () => {
+    expect(
+      getFormTeamIds([
+        idOf(MEMBERS),
+        { value: idOf(ADMIN), label: "Admin" },
+        { _id: idOf(OWNERS).toUpperCase() },
+        OWNERS.id,
+        idOf(MEMBERS),
+      ]),
+    ).toEqual([idOf(MEMBERS), idOf(ADMIN), idOf(OWNERS)]);
+  });
+
+  test("nothing picked is none", () => {
+    expect(getFormTeamIds(undefined)).toEqual([]);
+    expect(getFormTeamIds(null)).toEqual([]);
+    expect(getFormTeamIds([])).toEqual([]);
+    expect(getFormTeamIds(["", "  "])).toEqual([]);
+  });
+
+  test("a single value counts as one pick", () => {
+    expect(getFormTeamIds(idOf(ADMIN))).toEqual([idOf(ADMIN)]);
+  });
+});
+
+describe("which teams the person could hand on", () => {
+  const TEAMS: Array<{ id: string; name: string }> = PROJECT_TEAMS.map(
+    (team: FixtureTeam): { id: string; name: string } => {
+      return { id: idOf(team).toUpperCase(), name: team.name };
+    },
+  );
+
+  test("a team is weighed by every row it has, allows and blocks alike", () => {
+    const asked: Array<Array<TeamPermissionGrant>> = [];
+
+    const grants: Array<SsoTeamGrant> = buildSsoTeamGrants({
+      teams: TEAMS,
+      permissionRows: PROJECT_TEAMS.flatMap((team: FixtureTeam) => {
+        return team.rows.map((row: FixtureTeam["rows"][number]) => {
+          return {
+            teamId: idOf(team),
+            permission: row.permission,
+            scope: row.scope,
+            labelIds: (row.labelIds || []).map((labelId: ObjectID): string => {
+              return labelId.toString();
+            }),
+          };
+        });
+      }),
+      canGrantTeam: (rows: Array<TeamPermissionGrant>): boolean => {
+        asked.push(rows);
+        return rows.length === 0;
+      },
+    });
+
+    expect(
+      grants.map((grant: SsoTeamGrant) => {
+        return [grant.id, grant.name, grant.canGrant];
+      }),
+    ).toEqual(
+      PROJECT_TEAMS.map((team: FixtureTeam) => {
+        return [idOf(team), team.name, team.rows.length === 0];
+      }),
+    );
+
+    // Responders hands on its block row too.
+    expect(asked[PROJECT_TEAMS.indexOf(RESPONDERS)]).toEqual([
+      {
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.All,
+        labelIds: [],
+      },
+      {
+        permission: Permission.DeleteProjectIncident,
+        scope: PermissionScope.All,
+        labelIds: [],
+      },
+    ]);
+  });
+
+  // Owners, Admin and Members, each with one row naming its permission.
+  const TEAM_DATA: SsoTeamData = {
+    teams: [OWNERS, ADMIN, MEMBERS].map(
+      (team: FixtureTeam): { id: string; name: string } => {
+        return { id: idOf(team), name: team.name };
+      },
+    ),
+    permissionRows: [OWNERS, ADMIN, MEMBERS].map((team: FixtureTeam) => {
+      return {
+        teamId: idOf(team).toUpperCase(),
+        permission: team.rows[0]!.permission,
+        scope: PermissionScope.All,
+        labelIds: [],
+      };
+    }),
+  };
+
+  // Hands on Admin only.
+  const adminOnly: (rows: Array<TeamPermissionGrant>) => boolean = (
+    rows: Array<TeamPermissionGrant>,
+  ): boolean => {
+    return rows.every((row: TeamPermissionGrant): boolean => {
+      return row.permission === Permission.ProjectAdmin;
+    });
+  };
+
+  test("the picked teams beyond it are named in the project's order", () => {
+    expect(
+      getTeamsBeyondGrant({
+        selectedTeams: [idOf(MEMBERS), idOf(ADMIN), idOf(OWNERS)],
+        teamData: TEAM_DATA,
+        canGrantTeam: adminOnly,
+      }),
+    ).toEqual(["Owners", "Members"]);
+    expect(
+      getTeamsBeyondGrant({
+        selectedTeams: [idOf(ADMIN)],
+        teamData: TEAM_DATA,
+        canGrantTeam: adminOnly,
+      }),
+    ).toEqual([]);
+    // While the teams are not known, nothing is said.
+    expect(
+      getTeamsBeyondGrant({
+        selectedTeams: [idOf(OWNERS)],
+        teamData: null,
+        canGrantTeam: adminOnly,
+      }),
+    ).toEqual([]);
+  });
+
+  test("only the picked teams are weighed, each by its own rows", () => {
+    const asked: Array<Array<TeamPermissionGrant>> = [];
+
+    getTeamsBeyondGrant({
+      selectedTeams: [idOf(MEMBERS)],
+      teamData: TEAM_DATA,
+      canGrantTeam: (rows: Array<TeamPermissionGrant>): boolean => {
+        asked.push(rows);
+        return false;
+      },
+    });
+
+    expect(asked).toEqual([
+      [
+        {
+          permission: Permission.ProjectMember,
+          scope: PermissionScope.All,
+          labelIds: [],
+        },
+      ],
+    ]);
+
+    // Nothing picked: nothing weighed.
+    getTeamsBeyondGrant({
+      selectedTeams: [],
+      teamData: TEAM_DATA,
+      canGrantTeam: (): boolean => {
+        throw new Error("Nothing should be weighed.");
+      },
+    });
+  });
+
+  test("reads the project's teams, oldest first, and every row with its scope and labels", async () => {
+    signIn(CALLERS[1]!);
+
+    const grants: Array<SsoTeamGrant> = signedInUserGrants(
+      await fetchSsoTeamData({
+        projectId: PROJECT_ID,
+        modelAPI: ModelAPI,
+      }),
+    );
+
+    expect(
+      grants.map((grant: SsoTeamGrant): [string, boolean] => {
+        return [grant.name, grant.canGrant];
+      }),
+    ).toEqual([
+      ["Owners", false],
+      ["Admin", true],
+      ["Members", false],
+      ["Frontend", false],
+      ["Readers", true],
+      ["Responders", false],
+    ]);
+
+    const teamList: MockListRequest | undefined = mockServer.lists.find(
+      (request: MockListRequest): boolean => {
+        return request.modelType === Team;
+      },
+    );
+    const rowList: MockListRequest | undefined = mockServer.lists.find(
+      (request: MockListRequest): boolean => {
+        return request.modelType === TeamPermission;
+      },
+    );
+
+    expect(teamList?.query).toEqual({ projectId: PROJECT_ID });
+    expect(teamList?.sort).toEqual({ createdAt: SortOrder.Ascending });
+    expect(rowList?.query).toEqual({ projectId: PROJECT_ID });
+    expect(rowList?.select).toEqual({
+      _id: true,
+      teamId: true,
+      permission: true,
+      scope: true,
+      labels: { _id: true },
+    });
+  });
+
+  test("a row whose permission did not come back counts against its team, as on the server", async () => {
+    signIn(CALLERS[1]!);
+
+    const unreadable: TeamPermission = new TeamPermission();
+    unreadable.teamId = READERS.id;
+    unreadable.projectId = PROJECT_ID;
+
+    const grants: Array<SsoTeamGrant> = signedInUserGrants(
+      await fetchSsoTeamData({
+        projectId: PROJECT_ID,
+        modelAPI: {
+          getList: async (data: {
+            modelType: unknown;
+          }): Promise<{
+            data: Array<unknown>;
+            count: number;
+            skip: number;
+            limit: number;
+          }> => {
+            const rows: Array<unknown> =
+              data.modelType === TeamPermission
+                ? [unreadable]
+                : listFor(data.modelType);
+
+            return { data: rows, count: rows.length, skip: 0, limit: 10000 };
+          },
+        } as unknown as typeof ModelAPI,
+      }),
+    );
+
+    expect(
+      grants.find((grant: SsoTeamGrant): boolean => {
+        return grant.name === READERS.name;
+      })?.canGrant,
+    ).toBe(false);
+
+    expect(() => {
+      TeamPermissionService.assertCanGrantPermission({
+        permission: unreadable.permission as Permission,
+        labelIds: [],
+        scope: undefined,
+        props: serverProps(CALLERS[1]!),
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("the note reads a project's teams once while they are fresh, and again once they are not", async () => {
+    signIn(CALLERS[1]!);
+
+    let now: number = 1_000_000;
+    const clock: () => number = (): number => {
+      return now;
+    };
+
+    const first: SsoTeamData = await fetchSsoTeamDataOnce({
+      projectId: PROJECT_ID,
+      now: clock,
+    });
+    now += SSO_TEAM_GRANTS_CACHE_TTL_MS - 1;
+    const again: SsoTeamData = await fetchSsoTeamDataOnce({
+      projectId: PROJECT_ID,
+      now: clock,
+    });
+
+    // The team list and the permission rows, read once.
+    expect(mockServer.lists).toHaveLength(2);
+    expect(again).toBe(first);
+
+    now += 1;
+    await fetchSsoTeamDataOnce({ projectId: PROJECT_ID, now: clock });
+
+    expect(mockServer.lists).toHaveLength(4);
+  });
+
+  test("what one person read is never handed to someone else who signs in", async () => {
+    signIn(CALLERS[0]!);
+
+    await fetchSsoTeamDataOnce({ projectId: PROJECT_ID });
+
+    expect(mockServer.lists).toHaveLength(2);
+
+    userIdForTest = "5f000000-0000-4000-8000-0000000000c2";
+    signIn(CALLERS[1]!);
+
+    await fetchSsoTeamDataOnce({ projectId: PROJECT_ID });
+
+    // Read afresh, as the person now signed in.
+    expect(mockServer.lists).toHaveLength(4);
+  });
+
+  test("the rows are weighed with the permissions held when asked, not when they were read", async () => {
+    // Read before this person's permissions have loaded.
+    const teamData: SsoTeamData = await fetchSsoTeamDataOnce({
+      projectId: PROJECT_ID,
+    });
+
+    const beyondGrant: () => Array<string> = (): Array<string> => {
+      return getTeamsBeyondGrant({
+        selectedTeams: [idOf(ADMIN)],
+        teamData: teamData,
+      });
+    };
+
+    expect(beyondGrant()).toEqual(["Admin"]);
+
+    signIn(CALLERS[1]!);
+
+    expect(beyondGrant()).toEqual([]);
+  });
+
+  test("a read that fails is not kept", async () => {
+    signIn(CALLERS[1]!);
+    mockServer.failLists = true;
+
+    await expect(
+      fetchSsoTeamDataOnce({ projectId: PROJECT_ID }),
+    ).rejects.toThrow();
+
+    mockServer.failLists = false;
+
+    const teamData: SsoTeamData = await fetchSsoTeamDataOnce({
+      projectId: PROJECT_ID,
+    });
+
+    expect(teamData.teams).toHaveLength(PROJECT_TEAMS.length);
+  });
+
+  test("a master admin may hand on every team, as on the server", async () => {
+    isMasterAdminForTest = true;
+
+    const grants: Array<SsoTeamGrant> = signedInUserGrants(
+      await fetchSsoTeamData({
+        projectId: PROJECT_ID,
+      }),
+    );
+
+    expect(
+      grants.every((grant: SsoTeamGrant): boolean => {
+        return grant.canGrant;
+      }),
+    ).toBe(true);
+  });
+});
+
+/*
+ * The note warns about a team exactly when the server refuses it: the
+ * dashboard's rule over the rows the browser reads, against the server's
+ * rule over the same rows.
+ */
+describe("side by side with the server", () => {
+  beforeEach(() => {
+    getJestSpyOn(QueryHelper, "any").mockImplementation(
+      (values: unknown): unknown => {
+        return {
+          anyOf: (values as Array<unknown>).map((value: unknown): string => {
+            return String(value).toLowerCase();
+          }),
+        };
+      },
+    );
+
+    // A team's rows, as the server reads them for a ceiling.
+    getJestSpyOn(TeamPermissionService, "findBy").mockImplementation(
+      async (findBy: unknown): Promise<Array<TeamPermission>> => {
+        const teamIdQuery: unknown = (findBy as { query: { teamId: unknown } })
+          .query.teamId;
+        const teamIds: Array<string> = (
+          teamIdQuery as { anyOf?: Array<string> }
+        ).anyOf || [String(teamIdQuery).toLowerCase()];
+
+        return PROJECT_TEAMS.filter((team: FixtureTeam): boolean => {
+          return teamIds.includes(idOf(team).toLowerCase());
+        }).flatMap(toPermissionModels);
+      },
+    );
+  });
+
+  test.each(CALLERS)(
+    "$name: the teams the note names are the teams the server refuses",
+    async (caller: Caller) => {
+      signIn(caller);
+
+      const dashboard: Array<SsoTeamGrant> = buildSsoTeamGrants({
+        ...(await fetchSsoTeamData({ projectId: PROJECT_ID })),
+        canGrantTeam: canSignedInUserGrantTeam,
+      });
+
+      const refusedByServer: Array<string> = (
+        await TeamPermissionService.findTeamsCallerCannotGrant({
+          teamIds: PROJECT_TEAMS.map((team: FixtureTeam): ObjectID => {
+            return team.id;
+          }),
+          projectId: PROJECT_ID,
+          props: serverProps(caller),
+        })
+      ).map((teamId: ObjectID): string => {
+        return teamId.toString();
+      });
+
+      const refusedByDashboard: Array<string> = dashboard
+        .filter((grant: SsoTeamGrant): boolean => {
+          return !grant.canGrant;
+        })
+        .map((grant: SsoTeamGrant): string => {
+          return grant.id;
+        });
+
+      expect(refusedByDashboard).toEqual(refusedByServer);
+      expect(refusedByDashboard).toEqual(
+        PROJECT_TEAMS.filter((team: FixtureTeam): boolean => {
+          return !caller.grantable.includes(team);
+        }).map(idOf),
+      );
+    },
+  );
+});
+
+describe("the note under Teams", () => {
+  async function renderNote(selectedTeams: unknown): Promise<{
+    rerender: (selected: unknown) => void;
+  }> {
+    let rerender: (ui: React.ReactElement) => void = () => {
+      // Replaced below.
+    };
+
+    await act(async (): Promise<void> => {
+      rerender = render(
+        <SsoTeamsGrantNote selectedTeams={selectedTeams} />,
+      ).rerender;
+    });
+
+    return {
+      rerender: (selected: unknown): void => {
+        rerender(<SsoTeamsGrantNote selectedTeams={selected} />);
+      },
+    };
+  }
+
+  test("names a picked team the person could not invite someone to", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderNote([idOf(ADMIN), idOf(OWNERS)]);
+
+    const note: HTMLElement = await screen.findByTestId(
+      SSO_TEAMS_GRANT_NOTE_TEST_ID,
+    );
+
+    expect(note).toHaveAttribute("role", "note");
+    expect(note).toHaveTextContent(
+      "You can't add people to Owners through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+    );
+  });
+
+  test("names several, in the project's order, and says they give more access", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderNote([idOf(MEMBERS), idOf(OWNERS)]);
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent(
+      "You can't add people to Owners, Members through this provider: they give more access than you have.",
+    );
+  });
+
+  test("says nothing while every picked team is one the person could hand on", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderNote([idOf(ADMIN), idOf(READERS)]);
+
+    await waitFor(() => {
+      expect(mockServer.lists.length).toBeGreaterThanOrEqual(2);
+    });
+    await act(async (): Promise<void> => {});
+
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("follows the picks as they change", async () => {
+    signIn(CALLERS[1]!);
+
+    const { rerender } = await renderNote([idOf(ADMIN)]);
+
+    await waitFor(() => {
+      expect(mockServer.lists.length).toBeGreaterThanOrEqual(2);
+    });
+
+    await act(async (): Promise<void> => {
+      rerender([idOf(ADMIN), idOf(MEMBERS)]);
+    });
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("Members");
+
+    await act(async (): Promise<void> => {
+      rerender([idOf(ADMIN)]);
+    });
+
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("follows the person's permissions once they have loaded", async () => {
+    // Drawn before this person's permissions have loaded.
+    const { rerender } = await renderNote([idOf(ADMIN)]);
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("Admin");
+
+    signIn(CALLERS[1]!);
+
+    await act(async (): Promise<void> => {
+      rerender([idOf(ADMIN)]);
+    });
+
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+    // Nothing read again for it.
+    expect(mockServer.lists).toHaveLength(2);
+  });
+
+  test.each([
+    ["a project owner", false],
+    ["a master admin", true],
+  ])(
+    "%s is never warned, and nothing is read for them",
+    async (_name: string, isMasterAdmin: boolean) => {
+      if (isMasterAdmin) {
+        isMasterAdminForTest = true;
+      } else {
+        signIn(CALLERS[0]!);
+      }
+
+      await renderNote(PROJECT_TEAMS.map(idOf));
+      await act(async (): Promise<void> => {});
+
+      expect(mockServer.lists).toEqual([]);
+      expect(
+        screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("an owner whose Project Owner is blocked is weighed like anyone else", async () => {
+    signIn(CALLERS[3]!);
+
+    await renderNote([idOf(OWNERS)]);
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("Owners");
+  });
+
+  test("on a saved provider switched off, it adds that switching off alone is still allowed", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderNote([idOf(OWNERS)]);
+
+    await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID);
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).not.toBeInTheDocument();
+
+    cleanup();
+
+    await act(async (): Promise<void> => {
+      render(
+        <SsoTeamsGrantNote
+          selectedTeams={[idOf(OWNERS)]}
+          isSavedProviderSwitchedOff={true}
+        />,
+      );
+    });
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).toHaveTextContent(
+      "Switching it off, with nothing else changed, is still allowed.",
+    );
+  });
+
+  test("getSsoTeamsGrantNote says so only for a saved provider with Enabled off", async () => {
+    signIn(CALLERS[1]!);
+
+    const cases: Array<[Record<string, unknown>, boolean]> = [
+      // A saved provider, switched off in the form.
+      [{ _id: PROVIDER_ID.toString(), isEnabled: false }, true],
+      // A saved provider left on.
+      [{ _id: PROVIDER_ID.toString(), isEnabled: true }, false],
+      // A new provider: it starts off, but its save is always weighed.
+      [{ isEnabled: false }, false],
+    ];
+
+    for (const [values, says] of cases) {
+      cleanup();
+
+      await act(async (): Promise<void> => {
+        render(
+          <>{getSsoTeamsGrantNote({ ...values, teams: [idOf(OWNERS)] })}</>,
+        );
+      });
+
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID);
+
+      expect({
+        values,
+        says: Boolean(
+          screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+        ),
+      }).toEqual({ values, says });
+    }
+  });
+
+  test("says nothing when the teams cannot be read: the server explains on Save", async () => {
+    signIn(CALLERS[1]!);
+    mockServer.failLists = true;
+
+    await renderNote([idOf(OWNERS)]);
+    await act(async (): Promise<void> => {});
+
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("says nothing, and reads nothing, outside a project", async () => {
+    getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
+    signIn(CALLERS[1]!);
+
+    await renderNote([idOf(OWNERS)]);
+    await act(async (): Promise<void> => {});
+
+    expect(mockServer.lists).toEqual([]);
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("getSsoTeamsGrantNote reads the form's Teams value", async () => {
+    signIn(CALLERS[1]!);
+
+    await act(async (): Promise<void> => {
+      render(<>{getSsoTeamsGrantNote({ teams: [idOf(OWNERS)] })}</>);
+    });
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("Owners");
+  });
+});
+
+/*
+ * Through the real provider form, with only the network stubbed: the note
+ * sits under Teams on the Sign-in step.
+ */
+describe("in the SAML provider form", () => {
+  async function renderForm(data: {
+    formType: FormType;
+    initialValues?: FormValues<ProjectSSO> | undefined;
+  }): Promise<void> {
+    await act(async (): Promise<void> => {
+      render(
+        <ModelForm<ProjectSSO>
+          modelType={ProjectSSO}
+          id="saml-provider-form"
+          name="Settings > Project SSO"
+          fields={getSamlProviderFormFields<ProjectSSO>({
+            withTeams: true,
+            getTeamsFooterElement: getSsoTeamsGrantNote,
+          })}
+          steps={getSsoProviderFormSteps<ProjectSSO>()}
+          formType={data.formType}
+          modelIdToEdit={
+            data.formType === FormType.Update ? PROVIDER_ID : undefined
+          }
+          initialValues={data.initialValues}
+          onSuccess={(): void => {
+            // Not asserted on.
+          }}
+          submitButtonText={
+            data.formType === FormType.Create ? "Create SSO" : "Save Changes"
+          }
+          disableAutofocus={true}
+        />,
+      );
+    });
+
+    await screen.findByRole("navigation", { name: "Progress" });
+    await act(async (): Promise<void> => {});
+  }
+
+  async function goToSignIn(): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("form-next-button"));
+    });
+  }
+
+  test("a project admin who starts a provider on Owners is told on Sign-in", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderForm({
+      formType: FormType.Create,
+      initialValues: {
+        teams: [idOf(OWNERS)],
+      } as unknown as FormValues<ProjectSSO>,
+    });
+
+    // Not on the Provider step: Teams is on Sign-in.
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByPlaceholderText("Okta"), {
+        target: { value: "Okta" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("https://yourapp.example.com/apps/appId"),
+        { target: { value: "https://idp.example.com/sso" } },
+      );
+      fireEvent.change(screen.getByPlaceholderText("https://example.com"), {
+        target: { value: "https://idp.example.com" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("Paste in your x509 certificate here."),
+        { target: { value: "certificate" } },
+      );
+    });
+
+    await goToSignIn();
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("You can't add people to Owners through this provider");
+  });
+
+  test("editing a provider whose teams give more access than the editor has says so", async () => {
+    signIn(CALLERS[1]!);
+    mockServer.record = {
+      _id: PROVIDER_ID.toString(),
+      name: "Okta",
+      signOnURL: "https://idp.example.com/sso",
+      issuerURL: "https://idp.example.com",
+      publicCertificate: "certificate",
+      signatureMethod: "RSA-SHA256",
+      digestMethod: "SHA256",
+      description: "Sign in with Okta",
+      isEnabled: true,
+      teams: [{ _id: idOf(MEMBERS) }],
+    };
+
+    await renderForm({ formType: FormType.Update });
+
+    // The stored provider has loaded before the form moves on.
+    await waitFor(() => {
+      expect(
+        (screen.getByPlaceholderText("Okta") as HTMLInputElement).value,
+      ).toBe("Okta");
+    });
+
+    await goToSignIn();
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent(
+      "You can't add people to Members through this provider",
+    );
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).not.toBeInTheDocument();
+
+    // Switching it off is the one save it may still make.
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("switch", { name: "Enabled" }));
+    });
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).toHaveTextContent(
+      "Switching it off, with nothing else changed, is still allowed.",
+    );
+  });
+
+  test("a new provider, which starts switched off, is not told it may be saved that way", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderForm({
+      formType: FormType.Create,
+      initialValues: {
+        teams: [idOf(OWNERS)],
+      } as unknown as FormValues<ProjectSSO>,
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByPlaceholderText("Okta"), {
+        target: { value: "Okta" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("https://yourapp.example.com/apps/appId"),
+        { target: { value: "https://idp.example.com/sso" } },
+      );
+      fireEvent.change(screen.getByPlaceholderText("https://example.com"), {
+        target: { value: "https://idp.example.com" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("Paste in your x509 certificate here."),
+        { target: { value: "certificate" } },
+      );
+    });
+
+    await goToSignIn();
+
+    await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID);
+    expect(screen.getByRole("switch", { name: "Enabled" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a project owner sees no note", async () => {
+    signIn(CALLERS[0]!);
+
+    await renderForm({
+      formType: FormType.Create,
+      initialValues: {
+        teams: [idOf(OWNERS), idOf(MEMBERS)],
+      } as unknown as FormValues<ProjectSSO>,
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByPlaceholderText("Okta"), {
+        target: { value: "Okta" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("https://yourapp.example.com/apps/appId"),
+        { target: { value: "https://idp.example.com/sso" } },
+      );
+      fireEvent.change(screen.getByPlaceholderText("https://example.com"), {
+        target: { value: "https://idp.example.com" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("Paste in your x509 certificate here."),
+        { target: { value: "certificate" } },
+      );
+    });
+
+    await goToSignIn();
+    await act(async (): Promise<void> => {});
+
+    expect(screen.getByText("Teams")).toBeVisible();
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+    // Nobody's permission rows are read for them.
+    expect(
+      mockServer.lists.filter((request: MockListRequest): boolean => {
+        return request.modelType === TeamPermission;
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The note's sentences are entries in every Dashboard locale: English maps
+ * each to itself, and every other language has its own wording.
+ */
+describe("the note's words in every language", () => {
+  const LOCALES_DIR: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+  const OTHER: string =
+    "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.";
+  const ONE: string =
+    "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.";
+  const SWITCH_OFF: string =
+    "Switching it off, with nothing else changed, is still allowed.";
+
+  function readLocale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  }
+
+  test("English maps each sentence to itself", () => {
+    const english: Record<string, string> = readLocale("en");
+
+    expect(english[OTHER]).toBe(OTHER);
+    expect(english[`${OTHER}_one`]).toBe(ONE);
+    expect(english[SWITCH_OFF]).toBe(SWITCH_OFF);
+  });
+
+  test("every other language has its own wording, placeholders kept", () => {
+    const languages: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(languages).toHaveLength(16);
+
+    for (const language of languages) {
+      const entries: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        other: entries[OTHER] !== undefined && entries[OTHER] !== OTHER,
+        otherKeepsTeams: entries[OTHER]?.includes("{{teams}}"),
+        one:
+          entries[`${OTHER}_one`] !== undefined &&
+          entries[`${OTHER}_one`] !== ONE,
+        switchOff:
+          entries[SWITCH_OFF] !== undefined &&
+          entries[SWITCH_OFF] !== SWITCH_OFF,
+      }).toEqual({
+        language,
+        other: true,
+        otherKeepsTeams: true,
+        one: true,
+        switchOff: true,
+      });
+    }
+  });
+});
