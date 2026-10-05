@@ -5,7 +5,8 @@ services:
     # install.sh downloads next to this file. The native `vcenter`
     # receiver talks to vCenter directly, so no exporter sidecar is
     # needed. This is the version Tests/Ops/validate-collector-configs.sh
-    # validates the config against; bump the two together.
+    # validates the config against, and the one the config reports as the
+    # agent's version (oneuptime.agent.version); bump the three together.
     image: otel/opentelemetry-collector-contrib:0.161.0
     container_name: oneuptime-vmware-agent
     volumes:

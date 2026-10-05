@@ -20,9 +20,13 @@ import VersionUtil from "Common/Utils/VersionUtil";
  *   - PinnedCollector: the agent is the upstream OpenTelemetry Collector
  *     plus OneUptime's config, and reports the collector version its files
  *     pin. The newest is the pin in this release's files.
- *   - None: OneUptime does not release it - the customer's own SDK or
- *     collector, or an agent whose config reports no version. Its version is
- *     shown as it always was and is never called outdated.
+ *   - None: OneUptime does not release it - the customer's own SDK in their
+ *     app, function or devices. Its version is shown as it always was and is
+ *     never called outdated.
+ *
+ * An agent installed before its files reported a version sends none, so its
+ * version reads "Not reported" (or nothing) - unknown, never outdated -
+ * until it is upgraded to files that report one.
  *
  * Pure on purpose (no React, no API), so the version rules are testable on
  * their own; the AgentVersion component reads the server's version and
@@ -42,7 +46,10 @@ export enum AgentKind {
   DatabaseAgent = "database-agent",
   // packages/Runner, run as oneuptime/runner: a Runner.
   Runner = "runner",
-  // The upstream OpenTelemetry Collector the host guide installs: a host.
+  /*
+   * The upstream OpenTelemetry Collector the host guide installs, with the
+   * guide's config: a host.
+   */
   HostCollector = "host-collector",
   // agents/ProxmoxAgent: a Proxmox cluster.
   ProxmoxAgent = "proxmox-agent",
@@ -117,6 +124,26 @@ export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.0";
  */
 export const DATABASE_AGENT_VERSION: string = "0.161.0";
 
+/*
+ * The collector versions the Proxmox, Ceph and VMware agents report: the
+ * oneuptime.agent.version each agents/<Agent>/otel-collector-config.yaml
+ * stamps, kept equal to the collector image its docker-compose.yml pins (and
+ * to the Dashboard's embedded copy of that config). AgentKind.test.ts fails
+ * when an agent's files move on without its constant.
+ */
+export const PROXMOX_AGENT_VERSION: string = "0.161.0";
+export const CEPH_AGENT_VERSION: string = "0.161.0";
+export const VMWARE_AGENT_VERSION: string = "0.161.0";
+
+/*
+ * The otelcol-contrib release the host guide installs (every install method:
+ * the Docker image tag, the package and archive VERSION, the Windows
+ * $version) and the oneuptime.agent.version its config.yaml stamps. The
+ * guide reads it from here, so the two cannot drift
+ * (Pages/Host/Utils/DocumentationMarkdown.ts).
+ */
+export const HOST_COLLECTOR_VERSION: string = "0.161.0";
+
 export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   [AgentKind.KubernetesAgent]: {
     name: "OneUptime Kubernetes Agent",
@@ -148,31 +175,42 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     isRunner: true,
   },
   /*
-   * The host guide installs the upstream collector at the latest GitHub
-   * release, and its config stamps no oneuptime.agent.version: a host shows
-   * a version only when someone stamped one themselves.
+   * The host guide installs the collector release it pins, with a config
+   * that stamps the same version: a host set up from the guide reports it.
+   * A collector someone configured themselves reports nothing, and stays
+   * unknown.
    */
   [AgentKind.HostCollector]: {
     name: "OpenTelemetry Collector",
-    latestVersionSource: AgentLatestVersionSource.None,
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: HOST_COLLECTOR_VERSION,
   },
   /*
-   * The Proxmox, Ceph and VMware agents' configs stamp no
-   * oneuptime.agent.version (and the Proxmox and Ceph ones run the
-   * collector's :latest), so there is no version to compare.
+   * The Proxmox, Ceph and VMware agents run the collector their compose
+   * file pins, and their config stamps that pin. A Proxmox cluster that
+   * pushes its own metrics (Proxmox VE 9's metric server) runs no agent and
+   * reports no version.
    */
   [AgentKind.ProxmoxAgent]: {
     name: "OneUptime Proxmox Agent",
-    latestVersionSource: AgentLatestVersionSource.None,
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: PROXMOX_AGENT_VERSION,
   },
   [AgentKind.CephAgent]: {
     name: "OneUptime Ceph Agent",
-    latestVersionSource: AgentLatestVersionSource.None,
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: CEPH_AGENT_VERSION,
   },
   [AgentKind.VMwareAgent]: {
     name: "OneUptime VMware Agent",
-    latestVersionSource: AgentLatestVersionSource.None,
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: VMWARE_AGENT_VERSION,
   },
+  /*
+   * IoT, serverless and RUM versions come from the customer's own
+   * OpenTelemetry SDK (or their own gateway collector), which OneUptime
+   * neither ships nor pins: never outdated.
+   */
   [AgentKind.IoTExporter]: {
     name: "OpenTelemetry exporter",
     latestVersionSource: AgentLatestVersionSource.None,
