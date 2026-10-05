@@ -159,7 +159,7 @@
 آیتم‌های خوراک را خودِ سرویس حادثه، هر دو سرویس یادداشت، خط زمانی وضعیت، تغییرات مالک و عضو، پیوند دادن و برداشتن پیوند هشدارها، موتورهای قاعده، اجرای کشیک، اجراکننده‌های بررسی و پس‌مرگ هوش مصنوعی، و کارهای کرون اعلان می‌نویسند. نوع رویدادها این‌ها را پوشش می‌دهند:
 
 - **خودِ حادثه** — `IncidentCreated`، `IncidentUpdated`، `IncidentStateChanged`. مدخل `IncidentUpdated` صفحه‌های وضعیتی را هم که به محدوده حادثه افزوده یا از آن برداشته شده‌اند ثبت می‌کند.
-- **یادداشت‌ها و نوشته‌ها** — `PublicNote`، `PrivateNote`، `RootCause`، `RemediationNotes`، `PostmortemNote`.
+- **یادداشت‌ها و نوشته‌ها** — `PublicNote`، `PrivateNote`، `RootCause`، `RemediationNotes`، `PostmortemNote`. مورد `PostmortemNote` وقتی نوشته می‌شود که یادداشت پس‌رویدادنامه تغییر کند، نه هر بار که پس‌رویدادنامه ذخیره می‌شود.
 - **آدم‌ها** — `OwnerUserAdded`، `OwnerTeamAdded`، `OwnerUserRemoved`، `OwnerTeamRemoved`، `IncidentMemberAdded`، `IncidentMemberRemoved`.
 - **هشدارهای پیوندشده** — `AlertLinked` و `AlertUnlinked`، که به‌صورت **Alert Linked** و **Alert Unlinked** نشان داده می‌شوند.
 - **اعلان‌ها** — `OwnerNotificationSent`، `SubscriberNotificationSent`، `OnCallPolicy`، `OnCallNotification`.

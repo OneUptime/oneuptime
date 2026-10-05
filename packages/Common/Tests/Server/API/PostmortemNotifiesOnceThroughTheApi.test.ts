@@ -183,29 +183,44 @@ async function put(data: JSONObject): Promise<void> {
   await api.updateItem(request, response);
 }
 
-// Every write that puts the postmortem notification back to Pending.
+/*
+ * Every write that puts the postmortem notification back to Pending -
+ * what the send job picks up - however it is made: a conditional hook-free
+ * write, or an update of the incident through the repository (which is how
+ * every save used to queue it).
+ */
 function postmortemNotificationsQueued(): Array<{
   data: Record<string, unknown>;
-  expectedData: Record<string, unknown>;
+  expectedData?: Record<string, unknown> | undefined;
 }> {
-  return compareAndSet.mock.calls
-    .map((call: Array<unknown>) => {
-      return call[0] as {
-        data: Record<string, unknown>;
-        expectedData: Record<string, unknown>;
-      };
-    })
-    .filter(
-      (input: {
-        data: Record<string, unknown>;
-        expectedData: Record<string, unknown>;
-      }): boolean => {
-        return (
-          input.data["subscriberNotificationStatusOnPostmortemPublished"] ===
-          StatusPageSubscriberNotificationStatus.Pending
-        );
-      },
-    );
+  const conditionalWrites: Array<{
+    data: Record<string, unknown>;
+    expectedData?: Record<string, unknown> | undefined;
+  }> = compareAndSet.mock.calls.map((call: Array<unknown>) => {
+    return call[0] as {
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    };
+  });
+
+  const repositoryWrites: Array<{
+    data: Record<string, unknown>;
+    expectedData?: Record<string, unknown> | undefined;
+  }> = repositoryUpdate.mock.calls.map((call: Array<unknown>) => {
+    return { data: (call[1] || call[0]) as Record<string, unknown> };
+  });
+
+  return [...conditionalWrites, ...repositoryWrites].filter(
+    (input: {
+      data: Record<string, unknown>;
+      expectedData?: Record<string, unknown> | undefined;
+    }): boolean => {
+      return (
+        input.data["subscriberNotificationStatusOnPostmortemPublished"] ===
+        StatusPageSubscriberNotificationStatus.Pending
+      );
+    },
+  );
 }
 
 function postmortemFeedItems(): Array<string> {
@@ -404,6 +419,8 @@ describe("PUT an incident's postmortem", () => {
     expect(written()["subscriberNotificationStatusOnPostmortemPublished"]).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
+    // The caller's own write is the one Pending.
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
     expect(compareAndSet).not.toHaveBeenCalled();
   });
 
