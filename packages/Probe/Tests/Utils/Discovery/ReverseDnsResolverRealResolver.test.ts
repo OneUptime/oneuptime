@@ -24,8 +24,9 @@ import {
   ipv4AddressOfReverseName,
   ptrReply,
   rcodeReply,
-  reserveClosedUdpPort,
+  RefusingUdpPort,
   startFakeDnsServer,
+  startRefusingUdpPort,
 } from "../../TestingUtils/FakeDnsServer";
 import { DiscoveredHostReverseDnsStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
 import logger from "Common/Server/Utils/Logger";
@@ -530,17 +531,20 @@ describe("the real resolver: twelve kitchen displays on one nameserver, first pa
 
 describe("the real resolver: the codes the default lookup now sees", () => {
   let server: FakeDnsServer;
+  let refusingPort: RefusingUdpPort;
   let lookup: ReverseDnsLookupFunction;
   let factory: ReverseDnsResolverFactory;
 
   beforeAll(async () => {
     server = await startFakeDnsServer(kitchenResponder);
+    refusingPort = await startRefusingUdpPort();
     factory = loopbackResolverFactory([server.address]);
     lookup = buildDefaultLookup(DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS, factory);
   });
 
   afterAll(async () => {
     await server?.close();
+    await refusingPort?.close();
   });
 
   it.each([
@@ -588,9 +592,8 @@ describe("the real resolver: the codes the default lookup now sees", () => {
   });
 
   it("reports a nameserver with nothing listening as unreachable, and does not convict the probe", async () => {
-    const closedPort: number = await reserveClosedUdpPort();
     const deadFactory: ReverseDnsResolverFactory = loopbackResolverFactory([
-      `127.0.0.1:${closedPort}`,
+      refusingPort.address,
     ]);
 
     await expect(
@@ -641,11 +644,13 @@ describe("the real resolver: the codes the default lookup now sees", () => {
  */
 describe("the real resolver: the hosts file, read before any query", () => {
   let server: FakeDnsServer;
+  let refusingPort: RefusingUdpPort;
   let directory: string;
   let hostsPath: string;
 
   beforeAll(async () => {
     server = await startFakeDnsServer(kitchenResponder);
+    refusingPort = await startRefusingUdpPort();
     directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-hosts-"));
     hostsPath = path.join(directory, "hosts");
     fs.writeFileSync(
@@ -664,6 +669,7 @@ describe("the real resolver: the hosts file, read before any query", () => {
 
   afterAll(async () => {
     await server?.close();
+    await refusingPort?.close();
     fs.rmSync(directory, { recursive: true, force: true });
   });
 
@@ -717,9 +723,8 @@ describe("the real resolver: the hosts file, read before any query", () => {
      * Before the fix it named its listed devices at once through reverse();
      * the first version of the fix named none of them.
      */
-    const closedPort: number = await reserveClosedUdpPort();
     const deadFactory: ReverseDnsResolverFactory = loopbackResolverFactory([
-      `127.0.0.1:${closedPort}`,
+      refusingPort.address,
     ]);
 
     const result: ReverseDnsResolution = await new ReverseDnsResolver({

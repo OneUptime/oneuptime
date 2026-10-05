@@ -43,7 +43,7 @@ Open **Notes → Public Notes** in the incident side menu and write in the compo
 
 **See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
-**See what they will get.** Under the same checkbox, **Preview notification** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
+**See what they will get.** Beside the same checkbox, **Preview** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. It stays grey until the note has some text. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
 
 **The posting time is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, choose **Posted now** and set when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
@@ -143,7 +143,7 @@ The card header also has an **Actions** menu so you can act without leaving the 
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
 - **Execute On-Call Policy** — page a policy on demand.
-- **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview notification** are all there. The note is posted now; to backdate it, choose **Posted now**.
+- **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview** are all there. The note is posted now; to backdate it, choose **Posted now**.
 - **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 
 Both are locked, naming the missing permission, for someone who may not write notes. After a note is posted the dialog closes and the feed shows it.

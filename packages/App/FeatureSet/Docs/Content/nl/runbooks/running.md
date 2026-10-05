@@ -14,9 +14,16 @@ Open een willekeurige uitvoering om de checklist-UI te zien. Elke stap toont:
 - **Titel en beschrijving** — bij uitvoering gekopieerd uit het runbook.
 - **Output** (inklapbaar) — stdout, returnwaarden, HTTP-responses.
 - **Foutmelding** als de stap faalde.
-- Voor handmatige stappen in `WaitingForUser`: **Markeer als voltooid**- en **Overslaan**-knoppen.
+- Op de stap waarop de uitvoering wacht: **Mark complete** (een handmatige stap) of **Approve & continue** (een stap met **Goedkeuring vereist**), en **Overslaan**.
+- Zolang de uitvoering gepauzeerd is, **Overslaan** op latere geautomatiseerde stappen die geen goedkeuring vereisen.
 
 De pagina pollt elke 3 seconden zolang de uitvoering niet terminal is, dus je ziet geautomatiseerde stappen bijna real-time afronden.
+
+## Stappen voltooien, goedkeuren en overslaan
+
+Alleen de stap waarop de uitvoering wacht, kan als voltooid worden gemarkeerd, worden goedgekeurd of worden overgeslagen om de uitvoering verder te laten gaan. Een handmatige stap of een stap met **Goedkeuring vereist** kan niet worden afgevinkt of overgeslagen voordat de uitvoering hem bereikt — zijn taak is de uitvoering te stoppen, dus hij neemt pas een beslissing aan als de uitvoering daar is (bij een goedkeuring pas als de stap gedraaid heeft en je de output kunt zien).
+
+Zolang de uitvoering gepauzeerd is, kun je ook een latere geautomatiseerde stap overslaan die geen goedkeuring vereist, zodat die niet draait wanneer de uitvoering verdergaat. De uitvoering blijft gepauzeerd op de stap die op jou wacht. Overslaan kan niet terwijl er stappen draaien — wacht tot de uitvoering pauzeert, of annuleer de uitvoering. Elke stap legt vast wie hem heeft voltooid of overgeslagen.
 
 ## Handmatige en geautomatiseerde stappen afwisselen
 

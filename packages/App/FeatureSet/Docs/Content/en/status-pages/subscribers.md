@@ -144,7 +144,7 @@ An incident's messages â€” created, state changed, public note and postmortem â€
 
 #### Previewing the email before it is sent
 
-**Preview notification** is on the last step of **Declare New Incident**, under **Notify Status Page Subscribers**, and under the **Notify Status Page Subscribers** checkbox while you write a public note. It shows the email each status page's subscribers will get, built and rendered by the same code, template and settings the notification is sent with, so what you see is what they receive:
+**Preview** is a small link beside the value it previews: next to **Yes** under **Notify Status Page Subscribers** on the last step of **Declare New Incident**, and next to the **Notify Status Page Subscribers** checkbox while you write a public note. It opens **Preview notification**, which shows the email each status page's subscribers will get, built and rendered by the same code, template and settings the notification is sent with, so what you see is what they receive:
 
 - pick a status page to see its email, with its subject and its "up to" counts per channel;
 - a line says which template is used and why, for example that the page's custom template is not used because the page has no **Custom SMTP Config**;

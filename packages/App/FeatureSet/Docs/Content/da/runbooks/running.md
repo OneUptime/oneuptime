@@ -14,9 +14,16 @@ Der er tre måder, hvorpå en runbook-kørsel oprettes:
 - **Titel og beskrivelse** — kopieret fra runbook'et på kørselstidspunktet.
 - **Output** (kan foldes ud) — stdout, returværdier, HTTP-svar.
 - **Fejlmeddelelse** hvis trinnet fejlede.
-- For manuelle trin i `WaitingForUser`: knapperne **Marker som færdig** og **Spring over**.
+- På det trin, kørslen venter på: **Mark complete** (et manuelt trin) eller **Approve & continue** (et trin med **Kræv godkendelse**) samt **Spring over**.
+- Mens kørslen er sat på pause, **Spring over** på senere automatiserede trin, der ikke kræver godkendelse.
 
 Siden poller hver 3. sekund, mens kørslen ikke er terminal, så du ser automatiserede trin afsluttes næsten i realtid.
+
+## Fuldføre, godkende og springe trin over
+
+Kun det trin, kørslen venter på, kan markeres som færdigt, godkendes eller springes over for at fortsætte kørslen. Et manuelt trin eller et trin med **Kræv godkendelse** kan ikke tikkes af eller springes over, før kørslen når frem til det — dets opgave er at stoppe kørslen, så det tager først imod en beslutning, når kørslen er nået dertil (ved en godkendelse først, når trinnet har kørt, og du kan se dets output).
+
+Mens kørslen er sat på pause, kan du også springe et senere automatiseret trin over, der ikke kræver godkendelse, så det ikke kører, når kørslen fortsætter. Kørslen forbliver sat på pause på det trin, der venter på dig. Du kan ikke springe trin over, mens der kører trin — vent, til kørslen går på pause, eller annullér den. Hvert trin registrerer, hvem der fuldførte det eller sprang det over.
 
 ## Flette manuelle og automatiserede trin
 

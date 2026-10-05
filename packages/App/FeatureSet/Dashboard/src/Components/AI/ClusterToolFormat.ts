@@ -232,7 +232,7 @@ export function getClusterEvidenceNote(
 ): string | null {
   if (toolName === RUN_KUBECTL_TOOL_NAME) {
     return translator.translateText(
-      "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Insights page (AI → Insights) lists every kubectl command OneUptime AI ran there.",
+      "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.",
     ) as string;
   }
 
@@ -244,7 +244,7 @@ export function getClusterEvidenceNote(
 
   if (toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
     return translator.translateText(
-      "Infrastructure commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the resource's AI Insights page (AI → Insights) lists every command OneUptime AI ran there.",
+      "Infrastructure commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the resource's AI Logs page (AI → Logs) lists every command OneUptime AI ran there.",
     ) as string;
   }
 

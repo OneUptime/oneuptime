@@ -83,6 +83,13 @@ export function getVMwareBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Insights",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_VCENTER_VIEW_AI_LOGS, [
+      "Project",
+      "VMware",
+      "View vCenter",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_VCENTER_VIEW_AI_AGENT, [
       "Project",
       "VMware",

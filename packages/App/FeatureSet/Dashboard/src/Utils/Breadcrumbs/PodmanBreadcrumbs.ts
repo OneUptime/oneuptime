@@ -34,6 +34,13 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Insights",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_AI_LOGS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_AI_AGENT, [
       "Project",
       "Podman",
