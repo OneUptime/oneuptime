@@ -109,6 +109,9 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/VMware/VCenters.tsx": [
     "VMwareAgent",
   ],
+  "packages/App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index.tsx": [
+    "StorageArrayAgent",
+  ],
   "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Index.tsx": [
     "IoTExporter",
   ],

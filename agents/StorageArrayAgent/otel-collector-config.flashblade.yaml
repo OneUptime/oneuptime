@@ -116,6 +116,12 @@ processors:
       - key: storage.system
         value: "${env:STORAGE_SYSTEM}"
         action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
       # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").

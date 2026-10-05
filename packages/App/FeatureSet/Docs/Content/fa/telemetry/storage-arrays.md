@@ -198,13 +198,25 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 ## ارتقای عامل
 
+عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** آرایه پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
+
+تصویر جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌هایش فایل‌هایی کنار آن‌اند، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و سه پیکربندی جمع‌کننده را تازه می‌کند (فایلی را که ویرایش کرده بودید به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد) و عامل را دوباره می‌سازد تا جمع‌کننده پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`.
+
 ```bash
-cd /opt/oneuptime-storage-array-agent
-docker compose pull
-docker compose up -d
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh -o install.sh
+bash install.sh
 ```
 
-تصویرهای جمع‌کننده و صادرکننده در `docker-compose.yml` سنجاق شده‌اند؛ وقتی نسخه تازه‌تری از OneUptime سنجاقی را بالا می‌برد، پیش از pull ‏`docker-compose.yml` و پیکربندی‌های جمع‌کننده را دوباره از پوشه StorageArrayAgent دانلود کنید — یا `install.sh` را دوباره اجرا کنید، که هر مقدار `.env` موجودتان را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود) و فقط همان فایل‌ها را تازه می‌کند.
+آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل فایل compose و سه پیکربندی جمع‌کننده را دوباره دانلود کنید (هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس تصویرها را pull کنید و عامل را دوباره بسازید:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.yaml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flasharray-exporter.yaml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flashblade.yaml
+docker compose pull
+docker compose up -d --force-recreate
+```
 
 ## حذف عامل
 

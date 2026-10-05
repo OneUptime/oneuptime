@@ -259,24 +259,63 @@ echo "Installing to: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
 # Download the compose file and all three collector configs, so switching
-# the array type later is an .env edit. A file you edited (an added label,
-# a changed interval) is kept as <file>.bak.<timestamp> before it is
-# replaced.
+# the array type later is an .env edit. A re-run is the upgrade, so it must
+# not discard an edit (an added label, a changed interval) silently. What
+# was installed is recorded (a sha256 per file in .agent-files.sha256), so a
+# file that no longer matches its record was edited: it is kept as
+# <file>.bak.<timestamp> and named at the end. A file that still matches is
+# simply replaced, however much the new version changed (a collector pin
+# bump changes all three configs). Without a record — an agent installed
+# before it was kept, or no sha256 tool — any file that differs from the new
+# download is kept, and said to differ rather than to be edited.
 REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent"
 AGENT_FILES="docker-compose.yml otel-collector-config.yaml otel-collector-config.flasharray-exporter.yaml otel-collector-config.flashblade.yaml"
-BACKUPS=""
+AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
+EDITED_FILES=()
+DIFFERING_FILES=()
+
+file_sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | cut -d ' ' -f 1
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | cut -d ' ' -f 1
+    fi
+}
 
 echo "Downloading configuration files..."
+rm -f "$AGENT_FILES_RECORD.new"
 for file in $AGENT_FILES; do
     download="$INSTALL_DIR/.$file.download"
     curl -fsSL "$REPO_BASE/$file" -o "$download"
     if [ -f "$INSTALL_DIR/$file" ] && ! cmp -s "$download" "$INSTALL_DIR/$file"; then
-        backup="$INSTALL_DIR/$file.bak.$(date +%Y%m%d%H%M%S)"
-        cp "$INSTALL_DIR/$file" "$backup"
-        BACKUPS="$BACKUPS $backup"
+        recorded=""
+        if [ -f "$AGENT_FILES_RECORD" ]; then
+            recorded="$(awk -v name="$file" '$2 == name { sha = $1 } END { print sha }' "$AGENT_FILES_RECORD")"
+        fi
+        current="$(file_sha256 "$INSTALL_DIR/$file")"
+        if [ -z "$recorded" ] || [ -z "$current" ]; then
+            backup="$INSTALL_DIR/$file.bak.$(date +%Y%m%d%H%M%S)"
+            cp -p "$INSTALL_DIR/$file" "$backup"
+            DIFFERING_FILES+=("$backup")
+        elif [ "$current" != "$recorded" ]; then
+            backup="$INSTALL_DIR/$file.bak.$(date +%Y%m%d%H%M%S)"
+            cp -p "$INSTALL_DIR/$file" "$backup"
+            EDITED_FILES+=("$backup")
+        fi
     fi
     mv "$download" "$INSTALL_DIR/$file"
+    current="$(file_sha256 "$INSTALL_DIR/$file")"
+    if [ -n "$current" ]; then
+        printf '%s  %s\n' "$current" "$file" >> "$AGENT_FILES_RECORD.new"
+    fi
 done
+# The record now describes the files just installed (none without a sha256
+# tool: a stale one would read the new files as edited next time).
+if [ -f "$AGENT_FILES_RECORD.new" ]; then
+    mv -f "$AGENT_FILES_RECORD.new" "$AGENT_FILES_RECORD"
+else
+    rm -f "$AGENT_FILES_RECORD"
+fi
 
 # Create .env file. It holds the array's API token, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
@@ -301,14 +340,20 @@ chmod 600 "$ENV_FILE"
 
 # Start the agent. Stop whatever this directory ran before first — with
 # every profile, so an exporter the new choice no longer needs goes away —
-# then start what .env selects. Compose does not notice that a bind-mounted
-# config changed, so this also makes a re-run apply the files it just
-# downloaded.
+# then start what .env selects.
+#
+# --force-recreate, because running this again on an installed agent is how
+# it picks up new files: Compose recreates a running container only when its
+# service definition or environment changed, never for a new collector
+# config (a bind mount), and the collector reads its config only when it
+# starts. A plain `up -d` would keep the old config — and the old
+# oneuptime.agent.version — running after the new one arrived whenever the
+# `down` above left the container in place (it is allowed to fail).
 echo ""
 echo "Starting OneUptime Storage Array Agent..."
 cd "$INSTALL_DIR"
 docker compose --profile flasharray-exporter --profile flashblade down --remove-orphans > /dev/null 2>&1 || true
-if ! docker compose up -d; then
+if ! docker compose up -d --force-recreate; then
     echo ""
     echo "Error: the agent did not start. If Docker reports that the container name"
     echo "\"oneuptime-storage-array-agent\" is already in use, another array's agent runs on"
@@ -331,13 +376,24 @@ elif [ -n "$COMPOSE_PROFILES" ]; then
 else
     echo "Reading the FlashArray at $PURE_FA_ENDPOINT directly (native OpenMetrics)."
 fi
-if [ -n "$BACKUPS" ]; then
+if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""
-    echo "Files you had edited were kept before being replaced:"
-    for backup in $BACKUPS; do
+    echo "You had edited these files since install.sh installed them. They were replaced by"
+    echo "the current versions; your copies are kept next to them:"
+    for backup in "${EDITED_FILES[@]}"; do
         echo "  $backup"
     done
     echo "Re-apply your changes to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
+fi
+if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
+    echo ""
+    echo "These files differ from the new versions and were replaced. There was no record of"
+    echo "what install.sh had installed, so they may hold changes of yours; the old copies are"
+    echo "kept next to them:"
+    for backup in "${DIFFERING_FILES[@]}"; do
+        echo "  $backup"
+    done
+    echo "If they do, re-apply your changes to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
 fi
 echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"

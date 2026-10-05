@@ -167,13 +167,27 @@ The unit assumes the agent lives in `/opt/oneuptime-storage-array-agent` (the in
 
 ## Upgrading
 
+The collector and exporter images are pinned in `docker-compose.yml`, and the collector configs report the collector's pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the array's page; select it to see these commands.
+
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and the three collector configs (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
+
 ```bash
-cd /opt/oneuptime-storage-array-agent
-docker compose pull
-docker compose up -d
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh -o install.sh
+bash install.sh
 ```
 
-The collector and exporter images are pinned in `docker-compose.yml`; when a newer OneUptime release bumps a pin, re-download `docker-compose.yml` and the collector configs from this directory before pulling — or re-run `install.sh`, which reuses every value in your existing `.env` (nothing is prompted for again) and refreshes only those files.
+Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again, then pull and recreate the agent (re-apply any change you made to those files):
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.yaml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flasharray-exporter.yaml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/otel-collector-config.flashblade.yaml
+docker compose pull
+docker compose up -d --force-recreate
+```
+
+An agent installed before its config reported a version shows none until it is upgraded this way.
 
 ## Uninstalling
 

@@ -25598,5 +25598,6 @@
   "Used today: {{count}} tokens._one": "Utilisé aujourd'hui : {{count}} jeton.",
   "macOS": "macOS",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} doit être un nombre entier de {{min}} à {{max}}. Laissez vide pour aucune limite.",
-  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}"
+  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Lancez ceci dans le dossier de l'agent. Votre .env est conservé ; réappliquez toute modification que vous aviez apportée à docker-compose.yml ou otel-collector-config*.yaml."
 }

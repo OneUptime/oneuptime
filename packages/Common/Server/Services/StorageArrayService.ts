@@ -260,7 +260,10 @@ export class Service extends DatabaseService<Model> {
    * long as the volumes batch kept arriving second. The heartbeat is
    * therefore keyed per shape (the set of extras keys present): each scrape
    * job gets its own window, bounding writes at one per job per window,
-   * never one per batch.
+   * never one per batch. The fenced autoDiscoverStorageArray maintenance
+   * path is one more shape — agentVersion alone, the oneuptime.agent.version
+   * every shipped agent config stamps — so the version lands in a window of
+   * its own instead of waiting behind a scrape's snapshot.
    */
   @CaptureSpan()
   public async updateLastSeen(

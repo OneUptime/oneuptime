@@ -25598,5 +25598,6 @@
   "Used today: {{count}} tokens._one": "오늘 사용량: {{count}}개 토큰.",
   "macOS": "macOS",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}}은(는) {{min}}에서 {{max}} 사이의 정수여야 합니다. 비워 두면 제한이 없습니다.",
-  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}"
+  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "에이전트 폴더에서 실행하세요. .env는 그대로 유지됩니다. docker-compose.yml이나 otel-collector-config*.yaml에 했던 변경 사항은 다시 적용하세요."
 }

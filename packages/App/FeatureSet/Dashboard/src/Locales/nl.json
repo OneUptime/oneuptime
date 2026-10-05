@@ -25598,5 +25598,6 @@
   "Used today: {{count}} tokens._one": "Vandaag gebruikt: {{count}} token.",
   "macOS": "macOS",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} moet een geheel getal van {{min}} tot {{max}} zijn. Laat leeg voor geen limiet.",
-  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}"
+  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Voer dit uit in de map van de agent. Je .env blijft behouden; pas de wijzigingen die je in docker-compose.yml of otel-collector-config*.yaml had gemaakt opnieuw toe."
 }

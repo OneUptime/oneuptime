@@ -9,8 +9,10 @@
  * OneUptime registers and inventories an array from what these configs
  * stamp and how they scrape, so their shape is part of the product:
  *
- *  - the `resource` processor UPSERTS `storage.array.name` (the join key)
- *    and `storage.system`, and DELETES `service.name` /
+ *  - the `resource` processor UPSERTS `storage.array.name` (the join key),
+ *    `storage.system` and `oneuptime.agent.version` — exactly the collector
+ *    image docker-compose.yml pins, the version the array's page shows and
+ *    compares with the newest — and DELETES `service.name` /
  *    `service.instance.id`, which the prometheus receiver synthesizes from
  *    the job name — left in, the batch routes to a phantom Service;
  *  - every scrape job labels its series `scrape_endpoint: <endpoint>`: ingest
@@ -24,7 +26,8 @@
  *    token;
  *  - docker-compose.yml mounts the config STORAGE_ARRAY_COLLECTOR_CONFIG
  *    names and starts the exporter that config scrapes only under its
- *    profile, and install.sh writes the two consistently.
+ *    profile, and install.sh writes the two consistently and recreates the
+ *    containers, so a re-run starts the config it just downloaded.
  *
  * `otelcol validate` (validate-collector-configs.sh) proves the configs
  * start; this proves they say the right thing.
@@ -130,6 +133,15 @@ function config(name) {
 
 function compose() {
   return yaml.load(read(`${AGENT_DIR}/docker-compose.yml`));
+}
+
+const COLLECTOR = /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/g;
+
+/* The collector image docker-compose.yml pins — the one collector it runs. */
+function composePin() {
+  const pins = [...read(`${AGENT_DIR}/docker-compose.yml`).matchAll(COLLECTOR)];
+  expect(pins).toHaveLength(1);
+  return pins[0][1];
 }
 
 /* A Prometheus duration ("60s", "2m", "30m") in seconds. */
@@ -267,7 +279,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
       }
     });
 
-    test("stamps the array identity and deletes the receiver's service identity", () => {
+    test("stamps the array identity and the agent's version, and deletes the receiver's service identity", () => {
       expect(config(name).processors.resource).toEqual({
         attributes: [
           {
@@ -280,10 +292,19 @@ describe("agents/StorageArrayAgent collector configs", () => {
             value: "${env:STORAGE_SYSTEM}",
             action: "upsert",
           },
+          {
+            key: "oneuptime.agent.version",
+            value: composePin(),
+            action: "upsert",
+          },
           { key: "service.name", action: "delete" },
           { key: "service.instance.id", action: "delete" },
         ],
       });
+      // Quoted, so YAML keeps it the version string the page compares.
+      expect(configText(name)).toContain(
+        `      - key: oneuptime.agent.version\n        value: "${composePin()}"\n        action: upsert\n`,
+      );
     });
 
     test("never splits a scrape across exports", () => {
@@ -514,6 +535,20 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(names.sort()).toEqual(
       [...CONFIG_ENV, "STORAGE_ARRAY_COLLECTOR_CONFIG"].sort(),
     );
+  });
+
+  /*
+   * A re-run is the upgrade. Compose recreates a running container only when
+   * its service definition or environment changed, never for a new config
+   * file (a bind mount), and the collector reads its config only when it
+   * starts: the script forces it, so the collector starts on the config just
+   * downloaded and reports the oneuptime.agent.version that config stamps.
+   */
+  test("recreates the containers it starts, so a re-run runs the config it downloaded", () => {
+    const starts = script.split("\n").filter((line) => {
+      return /^\s*(if ! )?docker compose up\b/.test(line);
+    });
+    expect(starts).toEqual(["if ! docker compose up -d --force-recreate; then"]);
   });
 
   test("installs where the systemd unit and the doctor script look", () => {

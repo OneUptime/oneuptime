@@ -25598,5 +25598,6 @@
   "Used today: {{count}} tokens._one": "今日已用：{{count}} 個 Token。",
   "macOS": "macOS",
   "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} 必須是 {{min}} 到 {{max}} 之間的整數。留空表示不限制。",
-  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}"
+  "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "在代理程式的資料夾中執行。你的 .env 會保留；請重新套用你對 docker-compose.yml 或 otel-collector-config*.yaml 做過的變更。"
 }

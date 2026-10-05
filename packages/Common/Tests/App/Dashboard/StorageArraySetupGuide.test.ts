@@ -8,6 +8,7 @@ import {
   STORAGE_ARRAY_AGENT_FILES,
   STORAGE_ARRAY_AGENT_INSTALL_DIR,
   STORAGE_ARRAY_AGENT_RAW_URL,
+  STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
   STORAGE_ARRAY_AGENT_SOURCE_URL,
   STORAGE_ARRAY_COLLECTOR_CONFIGS,
   STORAGE_ARRAY_EXAMPLE_NAME,
@@ -18,6 +19,8 @@ import {
   STORAGE_ARRAY_READ_ONLY_USER,
   STORAGE_ARRAY_SYSLOG_PORT,
   StorageArrayPlatform,
+  getStorageArrayAgentDownloadCommand,
+  getStorageArrayAgentUpgradeCommand,
   getStorageArrayEnvFile,
   getStorageArrayInstallScriptCommand,
   getStorageArrayPlatformForSystem,
@@ -32,6 +35,7 @@ import {
   SetupGuideStep,
   SetupGuideStepVariant,
   SetupGuideTopic,
+  codeBlock,
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
@@ -758,6 +762,90 @@ describe("the array name", () => {
   });
 });
 
+/*
+ * The collector image is pinned in docker-compose.yml and every config
+ * stamps the pin as the agent's version, so pulling alone never moves the
+ * agent forward. The install script reuses the .env it finds and recreates
+ * the agent, so running it again is the upgrade; a Docker Compose install
+ * downloads the compose file and the three configs again and recreates the
+ * agent. The dialog beside an outdated version shows the same blocks
+ * (AgentUpgradeGuides.test.ts).
+ */
+describe.each(PLATFORMS)(
+  "the %s guide's upgrade",
+  (platform: StorageArrayPlatform) => {
+    const upgrade: SetupGuideTopic = topicTitled(
+      guideFor(platform).advanced,
+      "Upgrade or uninstall the agent",
+    );
+
+    test("says pulling alone is not enough, and that the sign beside the Agent Version opens these commands", () => {
+      expect(upgrade.summary).toBe(
+        "Download the latest files and recreate the agent, or stop and remove it.",
+      );
+      expect(upgrade.markdown).toContain(
+        "pulling alone does not move the agent forward",
+      );
+      expect(upgrade.markdown).toContain("**Agent Version**");
+      expect(upgrade.markdown).not.toMatch(
+        /docker compose pull\ndocker compose up -d\n/,
+      );
+    });
+
+    test("runs the install script again with nothing in its environment, so the .env is reused", () => {
+      expect(upgrade.markdown).toContain(
+        codeBlock("bash", getStorageArrayAgentUpgradeCommand()),
+      );
+      expect(getStorageArrayAgentUpgradeCommand()).toBe(
+        `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
+      );
+      expect(upgrade.markdown).toContain(
+        "reuses every value in your existing `.env`",
+      );
+      expect(upgrade.markdown).toContain("`<file>.bak.<timestamp>`");
+      // A second array's agent lives in a folder of its own.
+      expect(upgrade.markdown).toContain(
+        `outside \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\``,
+      );
+      expect(upgrade.markdown).toContain(
+        "`INSTALL_DIR=<folder> bash install.sh`",
+      );
+    });
+
+    test("a Compose install downloads the compose file and every config again, then pulls and recreates", () => {
+      const download: string = getStorageArrayAgentDownloadCommand();
+      expect(upgrade.markdown).toContain(codeBlock("bash", download));
+      expect(upgrade.markdown).toContain(
+        codeBlock("bash", STORAGE_ARRAY_AGENT_RECREATE_COMMAND),
+      );
+      expect(upgrade.markdown.indexOf(download)).toBeLessThan(
+        upgrade.markdown.indexOf(STORAGE_ARRAY_AGENT_RECREATE_COMMAND),
+      );
+      expect(download.split("\n")).toEqual(
+        STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
+          return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
+        }),
+      );
+      expect(STORAGE_ARRAY_AGENT_RECREATE_COMMAND).toBe(
+        "docker compose pull\ndocker compose up -d --force-recreate",
+      );
+      // The same files the Compose install downloads.
+      expect(
+        variantOf(guideFor(platform), "Docker Compose").markdown,
+      ).toContain(download);
+    });
+
+    test("still uninstalls in the install script's folder", () => {
+      expect(upgrade.markdown).toContain(
+        codeBlock(
+          "bash",
+          `cd ${STORAGE_ARRAY_AGENT_INSTALL_DIR}\ndocker compose down`,
+        ),
+      );
+    });
+  },
+);
+
 describe("the whole guide reads as one document", () => {
   test.each(PLATFORMS)(
     "the %s guide renders to markdown with every step numbered after the key",
@@ -961,6 +1049,47 @@ describe("drift guards against agents/StorageArrayAgent", () => {
         `COMPOSE_PROFILES="${settings.composeProfile}"`,
       );
     }
+  });
+
+  /*
+   * The agent reports the collector it pins (oneuptime.agent.version): the
+   * compose file must run exactly that collector, and every config the
+   * guide shows must stamp it, or the sign compares the wrong number.
+   */
+  test.each(PLATFORMS)(
+    "the compose file runs the pinned collector, and the %s config reports the pin",
+    (platform: StorageArrayPlatform) => {
+      const image: string =
+        compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"];
+      expect(image).toMatch(
+        /^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/,
+      );
+      const pin: string = image.split(":")[1] as string;
+      expect(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]).toContain(
+        `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,
+      );
+    },
+  );
+
+  test("the install script recreates the containers, so a re-run starts the new config", () => {
+    expect(readAgentFile("install.sh")).toMatch(
+      /^if ! docker compose up -d --force-recreate; then$/m,
+    );
+  });
+
+  test("the README upgrades the agent with the guide's commands", () => {
+    const readme: string = readAgentFile("README.md");
+    expect(readme).toContain(
+      "```bash\n" + getStorageArrayAgentUpgradeCommand() + "\n```",
+    );
+    expect(readme).toContain(
+      "```bash\n" +
+        getStorageArrayAgentDownloadCommand() +
+        "\n" +
+        STORAGE_ARRAY_AGENT_RECREATE_COMMAND +
+        "\n```",
+    );
+    expect(readme).toContain("**Agent Version**");
   });
 
   test("the install script installs where the guide says", () => {

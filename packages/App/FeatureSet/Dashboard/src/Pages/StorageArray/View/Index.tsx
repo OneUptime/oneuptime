@@ -5,6 +5,8 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -1620,10 +1622,17 @@ const StorageArrayOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: StorageArray): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              getElement: (item: StorageArray): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.StorageArrayAgent}
+                    version={item.agentVersion}
+                  />
+                );
               },
             },
             {

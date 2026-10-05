@@ -358,6 +358,12 @@ processors:
       - key: storage.system
         value: "\${env:STORAGE_SYSTEM}"
         action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
       # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
@@ -580,6 +586,12 @@ processors:
       - key: storage.system
         value: "\${env:STORAGE_SYSTEM}"
         action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
       # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
@@ -752,6 +764,12 @@ processors:
       - key: storage.system
         value: "\${env:STORAGE_SYSTEM}"
         action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
       # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
@@ -844,6 +862,14 @@ function isPrefilled(context: { apiKey: string; hasApiKey: boolean }): boolean {
   );
 }
 
+// install.sh, downloaded and run with `words` in its environment.
+function installScriptCommand(words: Array<string>): string {
+  return [
+    `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh`,
+    [...words, "bash install.sh"].join(" "),
+  ].join("\n");
+}
+
 /*
  * install.sh prompts only for the values its environment does not already
  * hold, so the command carries the platform the reader picked (as the
@@ -881,11 +907,36 @@ export function getStorageArrayInstallScriptCommand(data: {
     `STORAGE_ARRAY_COLLECTOR_CONFIG=${settings.collectorConfigFile}`,
   );
 
-  return [
-    `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh`,
-    [...environment, "bash install.sh"].join(" "),
-  ].join("\n");
+  return installScriptCommand(environment);
 }
+
+/*
+ * The commands that upgrade the agent. The collector image is pinned in
+ * docker-compose.yml and its configs are files beside it, so pulling alone
+ * never moves the agent forward. An install-script install runs the script
+ * again with nothing in its environment, since a value there would override
+ * the one in .env: it reuses every value in .env (nothing is asked again),
+ * downloads the latest docker-compose.yml and collector configs (a file the
+ * reader edited is kept as <file>.bak.<timestamp>) and recreates the
+ * containers. A Docker Compose install downloads the four files itself and
+ * recreates the containers: Compose recreates a container for a new image
+ * or environment, never for a new config file, and the collector reads its
+ * config only when it starts. The guide's "Upgrade or uninstall the agent"
+ * topic and the dialog beside an outdated agent version
+ * (Components/AgentVersion) both show these.
+ */
+export function getStorageArrayAgentUpgradeCommand(): string {
+  return installScriptCommand([]);
+}
+
+export function getStorageArrayAgentDownloadCommand(): string {
+  return STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
+    return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
+  }).join("\n");
+}
+
+export const STORAGE_ARRAY_AGENT_RECREATE_COMMAND: string =
+  "docker compose pull\ndocker compose up -d --force-recreate";
 
 /*
  * The .env file a Docker Compose install writes, for one platform. Only the
@@ -1073,9 +1124,7 @@ ${codeBlock(
   "bash",
   [
     "mkdir oneuptime-storage-array-agent && cd oneuptime-storage-array-agent",
-    ...STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
-      return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
-    }),
+    getStorageArrayAgentDownloadCommand(),
   ].join("\n"),
 )}
 
@@ -1322,15 +1371,23 @@ ${codeBlock(
 function getUpgradeTopic(): SetupGuideTopic {
   return {
     title: "Upgrade or uninstall the agent",
-    summary: "Pull the latest images, or stop and remove the agent.",
-    markdown: `**Upgrade** to the images the compose file pins:
+    summary:
+      "Download the latest files and recreate the agent, or stop and remove it.",
+    markdown: `**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its configs are files beside it, so pulling alone does not move the agent forward. Re-run the install script. It reuses every value in your existing \`.env\` (nothing is prompted for again), downloads the latest \`docker-compose.yml\` and collector configs — a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\` — and recreates the agent with them:
 
-${codeBlock(
-  "bash",
-  inAgentFolder(["docker compose pull", "docker compose up -d"]),
-)}
+${codeBlock("bash", getStorageArrayAgentUpgradeCommand())}
 
-When a newer OneUptime release bumps a pin, re-run \`install.sh\`: it reuses every value in your \`.env\` and refreshes the compose file and the collector configs.
+An agent installed outside \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\` (a second array's, say) needs its folder: \`INSTALL_DIR=<folder> bash install.sh\`.
+
+Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your \`.env\` stays, and a change you made to any of them has to be made again:
+
+${codeBlock("bash", getStorageArrayAgentDownloadCommand())}
+
+Then pull the images and recreate the agent, so the collector reads its new config:
+
+${codeBlock("bash", STORAGE_ARRAY_AGENT_RECREATE_COMMAND)}
+
+The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
 
 **Uninstall** the agent:
 

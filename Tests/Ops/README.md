@@ -298,19 +298,22 @@ scrape, so their shape is pinned, per config:
   `endpoint=<array>` for the others, the read-only API token as a Bearer token
   in all of them;
 - only the volumes and hosts jobs drop the latency breakdown dimensions;
-- the `resource` processor upserts `storage.array.name` and `storage.system`
-  and deletes `service.name` / `service.instance.id`; the `batch` processor has
-  no `send_batch_max_size`; one metrics pipeline into one `otlphttp`
-  exporter; the syslog option ships commented out on the port the compose file
+- the `resource` processor upserts `storage.array.name`, `storage.system`
+  and `oneuptime.agent.version` (equal to the compose image pin) and deletes
+  `service.name` / `service.instance.id`; the `batch` processor has no
+  `send_batch_max_size`; one metrics pipeline into one `otlphttp` exporter;
+  the syslog option ships commented out on the port the compose file
   publishes when it is uncommented;
 - `docker-compose.yml` mounts the config `STORAGE_ARRAY_COLLECTOR_CONFIG`
   names, defaults the two optional settings, and starts each exporter pinned,
   unpublished, credential-free and read-only under its own profile;
 - `install.sh` gives each config the platform and profile that match it,
   downloads every file, writes exactly the variables the configs read (the
-  user's quoted), reuses them on a re-run, and installs where the systemd unit
-  and `troubleshoot.sh` look; `troubleshoot.sh` probes the array the way each
-  config scrapes it and hands the API token to curl on stdin.
+  user's quoted), reuses them on a re-run, recreates the container so a re-run
+  starts the config it just downloaded (`--force-recreate`), and installs
+  where the systemd unit and `troubleshoot.sh` look; `troubleshoot.sh` probes
+  the array the way each config scrapes it and hands the API token to curl on
+  stdin.
 
 ### `StorageArrayAgentScripts.test.js`
 
@@ -318,14 +321,18 @@ Runs the Storage Array Agent's `install.sh` and `troubleshoot.sh` for real in
 a scratch directory, with `docker` and `curl` replaced by recording stubs. It
 pins what the installer writes for each array type (config, compose profile
 and platform agree; the address loses its scheme; the `.env` is mode 600 and
-quoted for Compose; a re-run reads it back without asking; an edited file is
-kept as `<file>.bak.<timestamp>`; every profile's exporter is stopped before
-`docker compose up -d`), and what the doctor concludes from each answer the
-array probe can get: a native FlashArray, a refused token (the array's `401`
-or the exporter's `failed to login`), a FlashArray without the native endpoint
-(`404`), an untrusted certificate, an exporter whose profile is off, a
-FlashBlade, a misconfigured endpoint or array name — and that the array's API
-token never appears on a command line.
+quoted for Compose; a re-run reads it back without asking; a sha256 of every
+file it installed is recorded in `.agent-files.sha256`, so an upgrade keeps
+only a file you edited as `<file>.bak.<timestamp>` — not the configs a version
+bump changed — and, with no record, keeps every file that differs; every
+profile's exporter is stopped before `docker compose up -d --force-recreate`,
+so a re-run starts the collector on the config it just downloaded), and what
+the doctor concludes from each answer the array probe can get: a native
+FlashArray, a refused token (the array's `401` or the exporter's `failed to
+login`), a FlashArray without the native endpoint (`404`), an untrusted
+certificate, an exporter whose profile is off, a FlashBlade, a misconfigured
+endpoint or array name — and that the array's API token never appears on a
+command line.
 
 ### `ContainerAgentAiInstallers.test.js`
 

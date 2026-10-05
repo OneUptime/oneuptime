@@ -10,8 +10,10 @@
  * starts the exporter that config scrapes, and the platform stamped as
  * storage.system. It writes them, and the user's values quoted for Compose,
  * into a private .env; a re-run reuses that .env without asking again, keeps
- * an edited file before replacing it, and stops every profile's exporter
- * before starting what .env selects.
+ * an edited file before replacing it, stops every profile's exporter before
+ * starting what .env selects, and recreates the containers, so the collector
+ * starts on the config the run just downloaded (and reports the
+ * oneuptime.agent.version that config stamps).
  *
  * troubleshoot.sh: its array probe asks the array the way the collector
  * does — the native endpoint with namespace=purefa, or Pure's exporter with
@@ -21,6 +23,7 @@
  * stdin, never on a command line.
  */
 
+const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -58,9 +61,11 @@ function readIfExists(file) {
 /* ------------------------------------------------------------ install.sh */
 
 /*
- * `docker` records every call with the directory it ran in, and fails
- * `compose up` when $STUB_DIR/up.fail exists. `curl` serves the agent's files
- * from this checkout.
+ * `docker` records every call with the directory it ran in, fails
+ * `compose up` when $STUB_DIR/up.fail exists, and otherwise keeps the native
+ * config as `compose up` found it in $STUB_DIR/config-at-up.yaml. `curl`
+ * serves the agent's files from this checkout, or from $SERVE_DIR when set
+ * (a newer upstream).
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -70,7 +75,10 @@ function installStubs(dir) {
     `#!/usr/bin/env bash
 printf '%s | %s\\n' "$PWD" "$*" >> "$STUB_DIR/docker.log"
 case "$*" in
-  "compose up"*) [ -f "$STUB_DIR/up.fail" ] && exit 1 ;;
+  "compose up"*)
+    [ -f "$STUB_DIR/up.fail" ] && exit 1
+    cp otel-collector-config.yaml "$STUB_DIR/config-at-up.yaml" 2>/dev/null || true
+    ;;
 esac
 exit 0
 `,
@@ -87,8 +95,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/}"
-[ -f "${AGENT_DIR}/$rel" ] || exit 22
-cp "${AGENT_DIR}/$rel" "$out"
+served="\${SERVE_DIR:-${AGENT_DIR}}"
+[ -f "$served/$rel" ] || exit 22
+cp "$served/$rel" "$out"
 `,
   );
   return bin;
@@ -232,7 +241,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         cwd: installDir,
         args: "compose --profile flasharray-exporter --profile flashblade down --remove-orphans",
       },
-      { cwd: installDir, args: "compose up -d" },
+      { cwd: installDir, args: "compose up -d --force-recreate" },
     ]);
   });
 
@@ -387,6 +396,229 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         return file.includes(".bak.");
       }),
     ).toHaveLength(1);
+  });
+
+  /*
+   * A re-run is the upgrade, and what it downloads may change only the
+   * collector config — the oneuptime.agent.version it stamps, say. Compose
+   * recreates a running container only when its service definition or
+   * environment changed, never for a bind-mounted file's content, and the
+   * collector reads its config only when it starts: every run recreates the
+   * containers, so the collector starts on the config just downloaded.
+   */
+  test("a re-run recreates the agent on the config it just downloaded", () => {
+    const dir = scratch();
+    const env = {
+      ONEUPTIME_URL: "https://oneuptime.example.com",
+      ONEUPTIME_TELEMETRY_INGESTION_KEY: INGESTION_KEY,
+      STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.yaml",
+      STORAGE_ARRAY_NAME: "fa-prod-01",
+      PURE_FA_ENDPOINT: "fa-prod-01.example.com",
+      PURE_FA_API_TOKEN: FA_TOKEN,
+      STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+    };
+    const first = install(dir, { env });
+    expect(first.status).toBe(0);
+
+    // A newer upstream whose config alone changed: a newer version stamp.
+    const upstream = path.join(scratch(), "upstream");
+    fs.cpSync(AGENT_DIR, upstream, { recursive: true });
+    const upstreamConfig = path.join(upstream, "otel-collector-config.yaml");
+    const newer = fs
+      .readFileSync(upstreamConfig, "utf8")
+      .replace(
+        /- key: oneuptime\.agent\.version\n(\s+)value: "[^"]+"/,
+        '- key: oneuptime.agent.version\n$1value: "0.999.0"',
+      );
+    expect(newer).toContain('value: "0.999.0"');
+    fs.writeFileSync(upstreamConfig, newer);
+
+    const upgraded = install(dir, { env: { ...env, SERVE_DIR: upstream } });
+
+    expect(upgraded.status).toBe(0);
+    expect(upgraded.envFile).toBe(first.envFile);
+    const composeUps = upgraded.docker
+      .split("\n")
+      .filter((line) => {
+        return line.includes("| compose up");
+      })
+      .map((line) => {
+        return line.split(" | ")[1];
+      });
+    expect(composeUps).toEqual([
+      "compose up -d --force-recreate",
+      "compose up -d --force-recreate",
+    ]);
+    expect(fs.readFileSync(path.join(dir, "config-at-up.yaml"), "utf8")).toBe(
+      newer,
+    );
+  });
+
+  /*
+   * A collector pin bump changes all three configs, so "differs from the new
+   * download" cannot mean "edited": install.sh records a sha256 per file it
+   * installed, and only a file that no longer matches its record is kept.
+   */
+  describe("which replaced files it keeps", () => {
+    const env = {
+      ONEUPTIME_URL: "https://oneuptime.example.com",
+      ONEUPTIME_TELEMETRY_INGESTION_KEY: INGESTION_KEY,
+      STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.yaml",
+      STORAGE_ARRAY_NAME: "fa-prod-01",
+      PURE_FA_ENDPOINT: "fa-prod-01.example.com",
+      PURE_FA_API_TOKEN: FA_TOKEN,
+      STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+    };
+    const AGENT_FILES = [
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+    ];
+    const CONFIGS = AGENT_FILES.filter((file) => {
+      return file.startsWith("otel-collector-config");
+    });
+
+    function sha256(file) {
+      return crypto
+        .createHash("sha256")
+        .update(fs.readFileSync(file))
+        .digest("hex");
+    }
+
+    // A newer upstream that bumps the version every config stamps.
+    function newerUpstream() {
+      const upstream = path.join(scratch(), "upstream");
+      fs.cpSync(AGENT_DIR, upstream, { recursive: true });
+      for (const config of CONFIGS) {
+        const file = path.join(upstream, config);
+        const bumped = fs
+          .readFileSync(file, "utf8")
+          .replace(
+            /- key: oneuptime\.agent\.version\n(\s+)value: "[^"]+"/,
+            '- key: oneuptime.agent.version\n$1value: "0.999.0"',
+          );
+        expect(bumped).toContain('value: "0.999.0"');
+        fs.writeFileSync(file, bumped);
+      }
+      return upstream;
+    }
+
+    function backupsIn(installDir) {
+      return fs
+        .readdirSync(installDir)
+        .filter((file) => {
+          return file.includes(".bak.");
+        })
+        .sort();
+    }
+
+    test("records a sha256 for every file it installed", () => {
+      const dir = scratch();
+      const run = install(dir, { env });
+      expect(run.status).toBe(0);
+
+      const record = fs
+        .readFileSync(path.join(run.installDir, ".agent-files.sha256"), "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          return line.split(/\s+/);
+        });
+      expect(
+        record.map(([, file]) => {
+          return file;
+        }),
+      ).toEqual(AGENT_FILES);
+      for (const [hash, file] of record) {
+        expect(hash).toBe(sha256(path.join(run.installDir, file)));
+      }
+      // Nothing is left behind from the download.
+      expect(
+        fs.readdirSync(run.installDir).filter((file) => {
+          return file.endsWith(".download") || file.endsWith(".new");
+        }),
+      ).toEqual([]);
+    });
+
+    test("an upgrade replaces the files nobody edited without keeping copies", () => {
+      const dir = scratch();
+      expect(install(dir, { env }).status).toBe(0);
+
+      const upstream = newerUpstream();
+      const upgraded = install(dir, { env: { ...env, SERVE_DIR: upstream } });
+
+      expect(upgraded.status).toBe(0);
+      expect(backupsIn(upgraded.installDir)).toEqual([]);
+      expect(upgraded.output).not.toContain("edited these files");
+      expect(upgraded.output).not.toContain("no record");
+      for (const config of CONFIGS) {
+        expect(
+          fs.readFileSync(path.join(upgraded.installDir, config), "utf8"),
+        ).toBe(fs.readFileSync(path.join(upstream, config), "utf8"));
+      }
+      // The record follows the upgrade, so the next one reads it right too.
+      const record = fs.readFileSync(
+        path.join(upgraded.installDir, ".agent-files.sha256"),
+        "utf8",
+      );
+      expect(record).toContain(
+        `${sha256(path.join(upstream, "otel-collector-config.yaml"))}  otel-collector-config.yaml`,
+      );
+    });
+
+    test("an upgrade keeps only the file you edited, and says you edited it", () => {
+      const dir = scratch();
+      expect(install(dir, { env }).status).toBe(0);
+      const config = path.join(dir, "agent", "otel-collector-config.yaml");
+      const edited = `${fs.readFileSync(config, "utf8")}# my edit\n`;
+      fs.writeFileSync(config, edited);
+
+      const upgraded = install(dir, {
+        env: { ...env, SERVE_DIR: newerUpstream() },
+      });
+
+      expect(upgraded.status).toBe(0);
+      const backups = backupsIn(upgraded.installDir);
+      expect(backups).toHaveLength(1);
+      expect(backups[0]).toMatch(/^otel-collector-config\.yaml\.bak\.\d{14}$/);
+      expect(
+        fs.readFileSync(path.join(upgraded.installDir, backups[0]), "utf8"),
+      ).toBe(edited);
+      expect(upgraded.output).toContain(
+        "You had edited these files since install.sh installed them.",
+      );
+      expect(upgraded.output).toContain(backups[0]);
+      expect(upgraded.output).not.toContain("no record");
+    });
+
+    test("without a record, it keeps every file that differs and says they may hold changes", () => {
+      const dir = scratch();
+      const first = install(dir, { env });
+      expect(first.status).toBe(0);
+      // An agent installed before install.sh kept the record.
+      fs.rmSync(path.join(first.installDir, ".agent-files.sha256"));
+
+      const upgraded = install(dir, {
+        env: { ...env, SERVE_DIR: newerUpstream() },
+      });
+
+      expect(upgraded.status).toBe(0);
+      // The three configs changed upstream; the compose file did not.
+      expect(
+        backupsIn(upgraded.installDir).map((file) => {
+          return file.replace(/\.bak\.\d{14}$/, "");
+        }),
+      ).toEqual([...CONFIGS].sort());
+      expect(upgraded.output).toContain(
+        "There was no record of\nwhat install.sh had installed",
+      );
+      expect(upgraded.output).not.toContain("edited these files");
+      // ...and the record is back for the next run.
+      expect(
+        fs.existsSync(path.join(upgraded.installDir, ".agent-files.sha256")),
+      ).toBe(true);
+    });
   });
 
   test("refuses a $ in a value the collector would expand again", () => {
