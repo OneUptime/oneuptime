@@ -164,7 +164,7 @@ describe("ProjectReferenceCheck.getReferenceColumns", () => {
     ]);
   });
 
-  test("reads an owner row's team and resource, with their id columns, and never its project or audit users", () => {
+  test("reads an owner row's team and resource, with their id columns, and never its project or who created or deleted it", () => {
     const columns: Array<ProjectReferenceColumn> =
       ProjectReferenceCheck.getReferenceColumns(new HostOwnerTeam());
 
