@@ -19,7 +19,11 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -46,12 +50,15 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  *   - every public entry point refuses an anonymous caller with a 401 before a
  *     hook runs and before the repository is touched;
- *   - every kind of credential still reaches the hook exactly as before, so
- *     the gate changes which refusal an anonymous caller gets and nothing else;
+ *   - every kind of credential that may write the table still reaches the
+ *     hook, so the gate changes which refusal an anonymous caller gets and
+ *     nothing else (whether the caller may write the table at all is asked
+ *     before the hooks too: DatabaseServicePermissionBeforeHooks.test.ts);
  *   - a model that is public for one request type stays public for that type
  *     only;
  *   - the concrete hook refusals anonymous callers used to receive are now
- *     401s, while API keys - which reach the hooks - keep the old answers.
+ *     401s, while API keys allowed to write the table - which reach the
+ *     hooks - keep the old answers.
  *
  * No database is touched. getRepository is stubbed to fail loudly, and every
  * positive case stops at the hook: the hook spy throws a sentinel, so "the
@@ -63,6 +70,35 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const ROW_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
+
+/*
+ * The permissions a caller holds in PROJECT_ID. CurrentUser is what every
+ * authenticated caller - an API key too - is granted; ProjectOwner lets it
+ * write the project's monitors.
+ */
+type TenantPermissionsFunction = (
+  permissions: Array<Permission>,
+) => DatabaseCommonInteractionProps["userTenantAccessPermission"];
+
+const tenantPermissions: TenantPermissionsFunction = (
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps["userTenantAccessPermission"] => {
+  const tenantPermission: UserTenantAccessPermission = {
+    projectId: PROJECT_ID,
+    _type: "UserTenantAccessPermission",
+    permissions: permissions.map((permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission,
+        labelIds: [],
+        isBlockPermission: false,
+        scope: PermissionScope.All,
+      };
+    }),
+  };
+
+  return { [PROJECT_ID.toString()]: tenantPermission };
+};
 
 const HOOK_REACHED: string = "The hook was reached - the login gate let it in.";
 const REPOSITORY_REACHED: string =
@@ -115,7 +151,9 @@ const ANONYMOUS_CALLERS: Array<CallerFixture> = [
 /*
  * Every one of these was admitted before the fix and must still be admitted:
  * the gate is the permission layer's own login check, so anything it lets
- * through the permission layer would have let through too.
+ * through the permission layer would have let through too. The API key and
+ * the user may write the project's monitors, as they must to reach a write's
+ * hook at all.
  */
 const CREDENTIALED_CALLERS: Array<CallerFixture> = [
   { name: "root", props: { isRoot: true } },
@@ -125,11 +163,26 @@ const CREDENTIALED_CALLERS: Array<CallerFixture> = [
   },
   {
     name: "an API key (userType API, no userId)",
-    props: { userType: UserType.API, tenantId: PROJECT_ID },
+    props: {
+      userType: UserType.API,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: tenantPermissions([
+        Permission.CurrentUser,
+        Permission.ProjectOwner,
+      ]),
+    },
   },
   {
     name: "a logged-in user",
-    props: { userId: USER_ID, userType: UserType.User, tenantId: PROJECT_ID },
+    props: {
+      userId: USER_ID,
+      userType: UserType.User,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: tenantPermissions([
+        Permission.CurrentUser,
+        Permission.ProjectOwner,
+      ]),
+    },
   },
 ];
 
@@ -517,6 +570,18 @@ describe("DatabaseService runs the login check before its hooks", () => {
         it.each(CREDENTIALED_CALLERS)(
           "lets $name through to " + operation.hook,
           async (caller: CallerFixture) => {
+            /*
+             * Before an update's or delete's hook, the rows the caller may
+             * write are looked up; this one finds the row.
+             */
+            getRepository.mockReturnValue({
+              find: async (): Promise<Array<Monitor>> => {
+                const monitor: Monitor = new Monitor();
+                monitor._id = ROW_ID.toString();
+                return [monitor];
+              },
+            });
+
             await expect(
               operation.run(service, copyProps(caller.props)),
             ).rejects.toThrow(HOOK_REACHED);
@@ -606,6 +671,10 @@ describe("DatabaseService runs the login check before its hooks", () => {
             userId: USER_ID,
             userType: UserType.User,
             tenantId: PROJECT_ID,
+            userTenantAccessPermission: tenantPermissions([
+              Permission.CurrentUser,
+              Permission.ProjectOwner,
+            ]),
           }),
         ).rejects.toThrow(new BadDataException("Delete not allowed"));
 
@@ -761,8 +830,10 @@ describe("DatabaseService's login check honours Permission.Public per request ty
  * through the real services' public methods with the real hooks in place
  * (spied, but calling through). Each anonymous case now gets the 401 without
  * the hook running; each API-key case - an API key has no userId either, but
- * it IS a credential and passes the gate - still gets the hook's own answer,
- * which is what shows the gate changed who is refused, not what the hooks do.
+ * it IS a credential and passes the gate - still gets the hook's own answer
+ * when it may write the table (CurrentUser, which every authenticated caller
+ * holds), which is what shows the gate changed who is refused, not what the
+ * hooks do. A key that may not write the table is refused before the hook.
  */
 describe("hook refusals an anonymous caller used to get are now 401s", () => {
   afterEach(() => {
@@ -892,19 +963,37 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       expect(getRepository).not.toHaveBeenCalled();
     });
 
-    it("still answers an API key with the hook's 422 - a key cannot own a project", async () => {
-      await expect(
-        ProjectService.create({
-          data: makeProject(),
-          props: { userType: UserType.API, tenantId: PROJECT_ID },
-        }),
-      ).rejects.toThrow(
-        new NotAuthorizedException(
-          "User should be logged in to create the project.",
-        ),
-      );
+    it("still answers an API key with a 422 - a key cannot own a project - and now before the hook", async () => {
+      /*
+       * Creating a project needs the User permission, which only a person
+       * holds, so the key is refused by the table check before the hook,
+       * where the hook used to refuse it with "User should be logged in to
+       * create the project.". Still a 422, never the 401 that would make a
+       * client refresh a session it does not have.
+       */
+      let caught: unknown = undefined;
 
-      expect(onBeforeCreate).toHaveBeenCalledTimes(1);
+      try {
+        await ProjectService.create({
+          data: makeProject(),
+          props: {
+            userType: UserType.API,
+            tenantId: PROJECT_ID,
+            userTenantAccessPermission: tenantPermissions([
+              Permission.CurrentUser,
+              Permission.ProjectOwner,
+            ]),
+          },
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(NotAuthorizedException);
+      expect((caught as NotAuthorizedException).message).toContain(
+        "You do not have permissions to create Project.",
+      );
+      expect(onBeforeCreate).not.toHaveBeenCalled();
       expect(getRepository).not.toHaveBeenCalled();
     });
   });
@@ -934,7 +1023,13 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       await expect(
         UserTotpAuthService.create({
           data: new UserTotpAuth(),
-          props: { userType: UserType.API, tenantId: PROJECT_ID },
+          props: {
+            userType: UserType.API,
+            tenantId: PROJECT_ID,
+            userTenantAccessPermission: tenantPermissions([
+              Permission.CurrentUser,
+            ]),
+          },
         }),
       ).rejects.toThrow(new BadDataException("User id is required"));
 
@@ -976,7 +1071,13 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       await expect(
         UserOnCallShiftReminderService.create({
           data: new UserOnCallShiftReminder(),
-          props: { userType: UserType.API, tenantId: PROJECT_ID },
+          props: {
+            userType: UserType.API,
+            tenantId: PROJECT_ID,
+            userTenantAccessPermission: tenantPermissions([
+              Permission.CurrentUser,
+            ]),
+          },
         }),
       ).rejects.toThrow(new BadDataException("userId is required"));
 
@@ -1022,16 +1123,33 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       expect(getRepository).not.toHaveBeenCalled();
     });
 
-    it("still answers an API key with the hook's 400 - a key has no account of its own", async () => {
-      await expect(
-        turnOffTwoFactor({ userType: UserType.API, tenantId: PROJECT_ID }),
-      ).rejects.toThrow(
-        new BadDataException(
-          "You can only turn off two factor authentication for your own account.",
-        ),
-      );
+    it("still refuses an API key - a key has no account of its own - and now before the hook", async () => {
+      /*
+       * An account can only be changed by the user it belongs to, and a key
+       * has no user: the rows it may update are looked up before the hook,
+       * and that lookup refuses it, where the hook's owner guard used to
+       * (400 "You can only turn off two factor authentication for your own
+       * account."). Still not the 401 an expired session gets.
+       */
+      let caught: unknown = undefined;
 
-      expect(onBeforeUpdate).toHaveBeenCalledTimes(1);
+      try {
+        await turnOffTwoFactor({
+          userType: UserType.API,
+          tenantId: PROJECT_ID,
+          userTenantAccessPermission: tenantPermissions([
+            Permission.CurrentUser,
+          ]),
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(NotAuthorizedException);
+      expect((caught as NotAuthorizedException).message).toBe(
+        "A user session is required to update User.",
+      );
+      expect(onBeforeUpdate).not.toHaveBeenCalled();
       expect(getRepository).not.toHaveBeenCalled();
     });
   });
@@ -1067,7 +1185,13 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       await expect(
         UserNotificationRuleService.create({
           data: new UserNotificationRule(),
-          props: { userType: UserType.API, tenantId: PROJECT_ID },
+          props: {
+            userType: UserType.API,
+            tenantId: PROJECT_ID,
+            userTenantAccessPermission: tenantPermissions([
+              Permission.CurrentUser,
+            ]),
+          },
         }),
       ).rejects.toThrow("A notification rule must belong to a user.");
 

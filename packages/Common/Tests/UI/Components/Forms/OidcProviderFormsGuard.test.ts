@@ -65,7 +65,7 @@ const OIDC_FORMS: Array<OidcForm> = [
     label: "ModelTable: Settings > Project OIDC",
     host: "ModelTable",
     builderCall:
-      "formFields={getOidcProviderFormFields<ProjectOIDC>({ withTeams: true, })}",
+      "formFields={getOidcProviderFormFields<ProjectOIDC>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, })}",
   },
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/OIDC.tsx`,
@@ -306,6 +306,24 @@ describe("the OIDC provider forms ask for the issuer, client ID and secret; the 
       "const createInitialValues: FormValues<ProjectOIDC> | undefined = useDefaultSsoTeamsInitialValues<ProjectOIDC>();",
     );
     expect(source).toContain("createInitialValues={createInitialValues}");
+  });
+
+  /*
+   * People who sign in with it join its teams, so the server saves it only
+   * with teams the person saving it could invite someone to; the form names
+   * a picked team beyond that under Teams (SsoTeamsGrantNote).
+   */
+  test("only the project's form names the picked teams the person could not invite someone to", () => {
+    expect(
+      OIDC_FORMS.filter((oidcForm: OidcForm): boolean => {
+        return oidcForm.builderCall.includes(
+          "getTeamsFooterElement: getSsoTeamsGrantNote",
+        );
+      }),
+    ).toEqual([OIDC_FORMS[0]]);
+    expect(dense(OIDC_FORMS[0]!.file)).toContain(
+      'import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";',
+    );
   });
 
   test.each(OIDC_FORMS.slice(0, 3))(

@@ -24893,6 +24893,7 @@
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "जब यह नियम मेल खाता है, तो ये लेबल जोड़े जाते हैं। पहले से जुड़े लेबल दोबारा नहीं जोड़े जाते।",
   "e.g. Add Platform as owners": "उदा. Platform को स्वामी के रूप में जोड़ें",
   "e.g. Add production": "उदा. production जोड़ें",
+  "AI agent actions": "AI एजेंट क्रियाएँ",
   "AI settings": "AI settings",
   "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
@@ -24942,6 +24943,7 @@
   "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".": "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".",
   "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.": "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
   "Stage": "Stage",
+  "Testing the connection…": "कनेक्शन का परीक्षण किया जा रहा है…",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
@@ -24953,5 +24955,10 @@
   "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.": "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.",
   "the monitor": "the monitor",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.",
-  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs."
+  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "आप इस प्रोवाइडर के ज़रिए {{teams}} में लोगों को नहीं जोड़ सकते: ये टीमें आपके पास मौजूद एक्सेस से ज़्यादा एक्सेस देती हैं। ऐसी टीमें चुनें जिनमें आप किसी को आमंत्रित कर सकते हैं, या किसी प्रोजेक्ट ओनर से इस प्रोवाइडर को सेव करने के लिए कहें।",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "आप इस प्रोवाइडर के ज़रिए {{teams}} में लोगों को नहीं जोड़ सकते: यह टीम आपके पास मौजूद एक्सेस से ज़्यादा एक्सेस देती है। ऐसी टीमें चुनें जिनमें आप किसी को आमंत्रित कर सकते हैं, या किसी प्रोजेक्ट ओनर से इस प्रोवाइडर को सेव करने के लिए कहें।",
+  "Only a project owner can add or change SCIM connections.": "केवल प्रोजेक्ट ओनर ही SCIM कनेक्शन जोड़ या बदल सकता है।",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "SCIM के ज़रिए आपका आइडेंटिटी प्रोवाइडर इस प्रोजेक्ट की किसी भी टीम में लोगों को जोड़ सकता है, इसलिए कनेक्शन जोड़ने, बदलने या उसका Bearer टोकन देखने या रीसेट करने के लिए ऐसा एक्सेस चाहिए जो हर टीम को कवर करता हो।",
+  "Switching it off, with nothing else changed, is still allowed.": "अगर और कुछ नहीं बदला जाता, तो इसे बंद करना अब भी अनुमत है।"
 }

@@ -7,6 +7,7 @@ import ProjectScopedReferenceValidator, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * What a monitor is linked to is copied onto every incident and alert it
@@ -50,7 +51,7 @@ describe("MonitorService links a monitor only to its own project's resources", (
   });
 
   it("checks every linked id against the monitor's project", async () => {
-    const check: jest.SpiedFunction<
+    const check: SpyInstance<
       typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
     > = jest
       .spyOn(
@@ -72,7 +73,7 @@ describe("MonitorService links a monitor only to its own project's resources", (
     const args: Parameters<
       typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
     >[0] = check.mock.calls[0]![0];
-    expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(args.projectId?.toString()).toBe(PROJECT_ID.toString());
     expect(args.subject).toBe("monitor");
 
     const references: Array<{
@@ -101,7 +102,7 @@ describe("MonitorService links a monitor only to its own project's resources", (
   });
 
   it("checks once per project a bulk update touches", async () => {
-    const check: jest.SpiedFunction<
+    const check: SpyInstance<
       typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
     > = jest
       .spyOn(
@@ -122,7 +123,7 @@ describe("MonitorService links a monitor only to its own project's resources", (
             typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
           >,
         ) => {
-          return call[0].projectId.toString();
+          return call[0].projectId?.toString();
         },
       ),
     ).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()]);
@@ -149,13 +150,13 @@ describe("MonitorService links a monitor only to its own project's resources", (
   });
 
   it("checks nothing, and reads no project, when the write leaves the links alone or only removes them", async () => {
-    const check: jest.SpiedFunction<
+    const check: SpyInstance<
       typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
     > = jest.spyOn(
       ProjectScopedReferenceValidator,
       "validateReferencesBelongToProject",
     );
-    const getProjectIds: jest.Mock<() => Promise<Array<ObjectID>>> = jest.fn(
+    const getProjectIds: Mock<() => Promise<Array<ObjectID>>> = jest.fn(
       projects(PROJECT_ID),
     );
 
@@ -171,7 +172,7 @@ describe("MonitorService links a monitor only to its own project's resources", (
   });
 
   it("does not treat a monitor's other relations as linked resources", async () => {
-    const check: jest.SpiedFunction<
+    const check: SpyInstance<
       typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
     > = jest.spyOn(
       ProjectScopedReferenceValidator,

@@ -9,6 +9,7 @@ import Field, { FormFieldCollapsibleSection } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
+import type { ReactElement } from "react";
 
 /*
  * THE PARTS EVERY SINGLE SIGN-ON PROVIDER FORM SHARES.
@@ -33,7 +34,10 @@ import FormValues from "../Forms/Types/FormValues";
  *     as its column does: the identity provider has to be told OneUptime's
  *     URLs first, and those exist once the provider is saved.
  *   - Teams (project providers): the teams people join when they first sign
- *     in. The project's settings pages start it on the members team.
+ *     in. The project's settings pages start it on the members team, and
+ *     say under it which picked teams the person could not invite someone
+ *     to: the server saves a provider only with teams the person saving it
+ *     could grant (Server/Utils/SsoProviderTeamGrant).
  *   - Disable Sign Up with SSO and Restrict to Attached Projects (the
  *     instance-wide providers of the Admin Dashboard): two switches that
  *     start off, as their columns do, always folded under Advanced. While
@@ -274,9 +278,32 @@ export const getSsoProviderEnabledField: GetSsoProviderFieldFunction = <
   };
 };
 
-export const getSsoProviderTeamsField: GetSsoProviderFieldFunction = <TEntity>(
-  options: SsoProviderFieldOptions,
+/*
+ * What a page may draw under the Teams field, from the form's values: the
+ * Dashboard says there which picked teams the person could not invite
+ * someone to, since the server will not save a provider with them
+ * (Dashboard Components/Sso/SsoTeamsGrantNote).
+ */
+export type SsoProviderTeamsFooterFunction = (
+  values: unknown,
+) => ReactElement | undefined;
+
+export interface SsoProviderTeamsFieldOptions extends SsoProviderFieldOptions {
+  getFooterElement?: SsoProviderTeamsFooterFunction | undefined;
+}
+
+export type GetSsoProviderTeamsFieldFunction = <TEntity>(
+  options: SsoProviderTeamsFieldOptions,
+) => Field<TEntity>;
+
+export const getSsoProviderTeamsField: GetSsoProviderTeamsFieldFunction = <
+  TEntity,
+>(
+  options: SsoProviderTeamsFieldOptions,
 ): Field<TEntity> => {
+  const getFooterElement: SsoProviderTeamsFooterFunction | undefined =
+    options.getFooterElement;
+
   return {
     field: { teams: true } as unknown as SelectFormFields<TEntity>,
     title: "Teams",
@@ -290,6 +317,15 @@ export const getSsoProviderTeamsField: GetSsoProviderFieldFunction = <TEntity>(
     required: true,
     placeholder: "Select Teams",
     stepId: options.stepId,
+    ...(getFooterElement
+      ? {
+          getFooterElement: (
+            values: FormValues<TEntity>,
+          ): ReactElement | undefined => {
+            return getFooterElement(values);
+          },
+        }
+      : {}),
   };
 };
 

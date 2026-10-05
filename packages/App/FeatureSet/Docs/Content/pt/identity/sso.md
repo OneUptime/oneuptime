@@ -27,7 +27,7 @@ A integração SSO oferece os seguintes benefícios:
    - Insira a **URL de login** do seu provedor de identidade
    - Insira o **Emissor** (Entity ID) do seu provedor de identidade
    - Cole o **Certificado público** do seu provedor de identidade
-   - Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes
+   - Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes. Só são aceitas equipes para as quais você poderia convidar alguém: uma equipe que dá mais acesso do que você tem é indicada em **Equipes**
    - Todo o resto é preenchido em **Mais campos**: o **Método de assinatura** (`RSA-SHA256`), o **Método de digest** (`SHA256`) e uma descrição ("Sign in with" e o nome). Altere-os apenas se o seu provedor de identidade exigir
 
 3. **Obter Metadados SSO do OneUptime**
@@ -294,10 +294,12 @@ Um projeto também pode entrar por meio de um provedor OpenID Connect, como Goog
 1. Registre um aplicativo (um cliente OIDC) no seu provedor de identidade e copie a **URL do Emissor**, o **Client ID** e o **Client Secret** dele.
 2. No OneUptime, navegue para **Configurações do projeto** > **Segurança** > **OIDC** e clique em **Criar: OIDC**.
 3. Informe um **Nome** (o que as pessoas veem na página de login), a **URL do Emissor**, o **Client ID** e o **Client Secret**. Você também pode colar a URL de descoberta do provedor em **URL do Emissor**.
-4. Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem entra pela primeira vez passa a fazer parte dessas equipes. Todo o resto é preenchido em **Mais campos**: a **URL de descoberta** (o emissor seguido de `/.well-known/openid-configuration`), os **Escopos** (`openid email profile`), os nomes das claims `email` e `name` e uma descrição ("Sign in with" e o nome). Altere-os apenas se o seu provedor exigir.
+4. Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem entra pela primeira vez passa a fazer parte dessas equipes. Todo o resto é preenchido em **Mais campos**: a **URL de descoberta** (o emissor seguido de `/.well-known/openid-configuration`), os **Escopos** (`openid email profile`), os nomes das claims `email` e `name` e uma descrição ("Sign in with" e o nome). Altere-os apenas se o seu provedor exigir. Só são aceitas equipes para as quais você poderia convidar alguém: uma equipe que dá mais acesso do que você tem é indicada em **Equipes**.
 5. Salve. A caixa de diálogo **OIDC Configuration** abre com o **Redirect URI**: adicione-o aos URIs de redirecionamento permitidos do seu aplicativo. Um provedor novo começa desabilitado; depois, edite-o e ative **Habilitado**.
 6. Use o link do cartão **Test OpenID Connect (OIDC)** para entrar pelo provedor antes de exigir SSO no projeto.
 
 ## Notas sobre SSO e Funções
 
 O OneUptime atualmente não suporta o mapeamento de funções SAML do seu provedor de identidade. O acesso baseado em funções deve ser configurado separadamente nas **Configurações do projeto** > **SSO** do OneUptime, onde você pode atribuir funções padrão para usuários SSO.
+
+As equipes de um provedor decidem o que as pessoas que entram por ele podem fazer, por isso um provedor só é salvo com equipes para as quais quem o salva poderia convidar alguém. Cada vez que ele é salvo, elas são verificadas de novo: um provedor cujas equipes dão mais acesso do que você tem só pode ser alterado por alguém cujo acesso as abranja, como um proprietário do projeto. Os provedores salvos antes dessa verificação continuam adicionando as pessoas às suas equipes. Qualquer pessoa que possa editar um provedor ainda pode desativá-lo, para que ele possa ser interrompido na hora.

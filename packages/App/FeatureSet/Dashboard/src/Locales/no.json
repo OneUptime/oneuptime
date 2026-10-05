@@ -24893,6 +24893,7 @@
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Når denne regelen samsvarer, legges disse etikettene til. Etiketter som allerede er lagt til, legges ikke til to ganger.",
   "e.g. Add Platform as owners": "f.eks. Legg til Platform som eiere",
   "e.g. Add production": "f.eks. Legg til production",
+  "AI agent actions": "AI-agenthandlinger",
   "AI settings": "AI settings",
   "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
@@ -24942,6 +24943,7 @@
   "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".": "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".",
   "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.": "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
   "Stage": "Stage",
+  "Testing the connection…": "Tester tilkoblingen…",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
@@ -24953,5 +24955,10 @@
   "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.": "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.",
   "the monitor": "the monitor",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.",
-  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs."
+  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "Du kan ikke legge til personer i {{teams}} via denne leverandøren: disse teamene gir mer tilgang enn du har. Velg team du kunne invitert noen til, eller be en prosjekteier om å lagre denne leverandøren.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "Du kan ikke legge til personer i {{teams}} via denne leverandøren: dette teamet gir mer tilgang enn du har. Velg team du kunne invitert noen til, eller be en prosjekteier om å lagre denne leverandøren.",
+  "Only a project owner can add or change SCIM connections.": "Bare en prosjekteier kan legge til eller endre SCIM-tilkoblinger.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "Via SCIM kan identitetsleverandøren din legge til personer i et hvilket som helst team i dette prosjektet, så å legge til en tilkobling, endre en eller se eller tilbakestille bærertokenet krever tilgang som dekker alle team.",
+  "Switching it off, with nothing else changed, is still allowed.": "Det er fortsatt tillatt å slå den av, hvis ingenting annet endres."
 }

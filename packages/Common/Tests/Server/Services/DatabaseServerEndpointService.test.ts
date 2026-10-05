@@ -1399,7 +1399,16 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
   });
 
   test("the lookup only looks inside the caller's project, as root", async () => {
-    const endpointId: string = ObjectID.generate().toString();
+    /*
+     * An endpoint of the caller's project, so the delete reaches its hook:
+     * DatabaseService runs no hook for a delete that names no row the caller
+     * may delete.
+     */
+    addDatabase({ id: DATABASE_ID });
+    const endpointId: string = addEndpoint({
+      databaseServerId: DATABASE_ID,
+      endpoint: "replica-db.example.com:5432",
+    }).id!.toString();
 
     await DatabaseServerEndpointService.deleteBy({
       query: { _id: endpointId, projectId: OTHER_PROJECT_ID },

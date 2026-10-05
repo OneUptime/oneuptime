@@ -581,12 +581,12 @@ describe("the AI SRE page's cluster-access section", () => {
     );
   });
 
-  it("describes Test connection and Reset agent", () => {
+  it("describes Test connection and Reset agent, in the ⋯ next to the agent's status", () => {
     expect(section).toContain(
-      "**Test connection** on the AI agent page runs `kubectl version` and `kubectl auth can-i --list` through the agent",
+      "**Test connection**, in the **⋯** menu next to the agent's status on the AI agent page, runs `kubectl version` and `kubectl auth can-i --list` through the agent",
     );
     expect(section).toContain(
-      "**Reset agent** on the AI agent page makes the server forget the agent's key; the pod reconnects on its own",
+      "**Reset agent**, in the same menu, makes the server forget the agent's key once you confirm it; the pod reconnects on its own",
     );
   });
 

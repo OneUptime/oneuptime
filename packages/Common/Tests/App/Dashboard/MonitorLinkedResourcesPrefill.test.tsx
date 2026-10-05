@@ -21,6 +21,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import type { Mock } from "jest-mock";
 
 /*
  * The footer under a create form's Other Affected Resources that adds what
@@ -66,8 +67,10 @@ function newState(): React.MutableRefObject<MonitorLinkedResourcesPrefillState> 
   };
 }
 
+type SetValue = (value: unknown) => void;
+
 interface Harness {
-  setValue: jest.Mock<(value: unknown) => void>;
+  setValue: Mock<SetValue>;
   rerender: (values: JSONObject) => void;
   unmount: () => void;
 }
@@ -76,7 +79,7 @@ function renderFooter(
   values: JSONObject,
   state: React.MutableRefObject<MonitorLinkedResourcesPrefillState>,
 ): Harness {
-  const setValue: jest.Mock<(value: unknown) => void> = jest.fn();
+  const setValue: Mock<SetValue> = jest.fn<SetValue>();
 
   const element: (current: JSONObject) => React.ReactElement = (
     current: JSONObject,
@@ -286,7 +289,7 @@ describe("MonitorLinkedResourcesPrefill", () => {
 
   test("reads an alert's single monitor", async () => {
     serveMonitors([linkedMonitor()]);
-    const setValue: jest.Mock<(value: unknown) => void> = jest.fn();
+    const setValue: Mock<SetValue> = jest.fn<SetValue>();
 
     render(
       <MonitorLinkedResourcesPrefill

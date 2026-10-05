@@ -24893,6 +24893,7 @@
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "當此規則符合時，會新增這些標籤。已新增的標籤不會重複新增。",
   "e.g. Add Platform as owners": "例如 將 Platform 新增為擁有者",
   "e.g. Add production": "例如 新增 production",
+  "AI agent actions": "AI 代理操作",
   "AI settings": "AI settings",
   "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
@@ -24942,6 +24943,7 @@
   "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".": "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".",
   "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.": "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
   "Stage": "Stage",
+  "Testing the connection…": "正在測試連線…",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
@@ -24953,5 +24955,10 @@
   "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.": "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.",
   "the monitor": "the monitor",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.",
-  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs."
+  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "您無法透過此提供者將使用者加入 {{teams}}：這會授予超出您自身權限的存取權限。請選擇您可以邀請他人加入的團隊，或請專案擁有者儲存此提供者。",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "您無法透過此提供者將使用者加入 {{teams}}：這會授予超出您自身權限的存取權限。請選擇您可以邀請他人加入的團隊，或請專案擁有者儲存此提供者。",
+  "Only a project owner can add or change SCIM connections.": "只有專案擁有者可以新增或變更 SCIM 連線。",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "透過 SCIM，您的身分識別提供者可以將使用者加入此專案中的任何團隊，因此新增連線、變更連線或檢視、重設其 Bearer Token 都需要涵蓋所有團隊的存取權限。",
+  "Switching it off, with nothing else changed, is still allowed.": "只要不變更其他內容，仍然可以將其關閉。"
 }

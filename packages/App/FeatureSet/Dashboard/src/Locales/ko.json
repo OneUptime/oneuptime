@@ -24893,6 +24893,7 @@
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
   "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
   "e.g. Add production": "예: production 추가",
+  "AI agent actions": "AI 에이전트 작업",
   "AI settings": "AI settings",
   "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
@@ -24942,6 +24943,7 @@
   "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".": "Rule \"{{ruleName}}\" started runbook \"{{runbookName}}\".",
   "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.": "Search and attach the hosts, Kubernetes clusters, databases, services and other infrastructure this monitor watches. Every incident and alert it creates is linked to them, so OneUptime AI can investigate and fix them there.",
   "Stage": "Stage",
+  "Testing the connection…": "연결을 테스트하는 중…",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
   "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
@@ -24953,5 +24955,10 @@
   "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.": "Why auto-remediation did, or did not, act on an incident or alert: what each fix path did, or why it did nothing, each time the rule engine evaluated the signal.",
   "the monitor": "the monitor",
   "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.": "{{resourceKind}} \"{{resourceName}}\" could be fixed too, but OneUptime AI fixes one resource per {{signal}}.",
-  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs."
+  "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.": "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "이 공급자를 통해 {{teams}}에 사용자를 추가할 수 없습니다. 내가 가진 것보다 더 많은 액세스 권한이 부여되기 때문입니다. 다른 사람을 초대할 수 있는 팀을 선택하거나 프로젝트 소유자에게 이 공급자를 저장해 달라고 요청하세요.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "이 공급자를 통해 {{teams}}에 사용자를 추가할 수 없습니다. 내가 가진 것보다 더 많은 액세스 권한이 부여되기 때문입니다. 다른 사람을 초대할 수 있는 팀을 선택하거나 프로젝트 소유자에게 이 공급자를 저장해 달라고 요청하세요.",
+  "Only a project owner can add or change SCIM connections.": "SCIM 연결을 추가하거나 변경할 수 있는 사람은 프로젝트 소유자뿐입니다.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "SCIM을 통해 ID 공급자는 이 프로젝트의 모든 팀에 사용자를 추가할 수 있습니다. 따라서 연결을 추가하거나 변경하거나 Bearer 토큰을 보거나 재설정하려면 모든 팀을 포괄하는 액세스 권한이 필요합니다.",
+  "Switching it off, with nothing else changed, is still allowed.": "다른 것을 변경하지 않는다면 끄는 것은 여전히 허용됩니다."
 }
