@@ -115,6 +115,13 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview.tsx": [
     "RumSdk",
   ],
+  // The cluster's AI agent page: the Kubernetes AI agent ships in the chart.
+  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx": [
+    "KubernetesAgent",
+  ],
+  // Every other resource's AI agent page.
+  "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx":
+    ["ResourceAiAgent"],
 };
 
 /*
@@ -124,10 +131,6 @@ const DISPLAYS: Record<string, Array<string>> = {
 const NOT_DRAWN: Record<string, string> = {
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/RumInstrumentation.ts":
     "Reads the SDK version only to tell whether the RUM SDK ever reported; it draws nothing.",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts":
-    "The cluster AI page's status line names the Kubernetes AI agent's version in a sentence; the ai-access-synced-with-agent task moves it onto AgentVersion.",
-  "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatus.ts":
-    "The resource AI page's status line names the resource AI agent's version in a sentence; the ai-access-synced-with-agent task moves it onto AgentVersion.",
 };
 
 const AGENT_KIND_SOURCE: string = fs.readFileSync(

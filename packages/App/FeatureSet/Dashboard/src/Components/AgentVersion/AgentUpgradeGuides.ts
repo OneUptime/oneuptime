@@ -15,6 +15,11 @@ import {
 import { getKubernetesAgentChartUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../Pages/Podman/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../Runner/RunnerImage";
+import {
+  doesInstallScriptStartResourceAiAgent,
+  getResourceAiAgentUpgradeCommand,
+} from "../ResourceAiAgent/ResourceAiAgentInstall";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -75,6 +80,11 @@ export interface AgentUpgradeGuideContext {
   databaseEngine?: DatabaseAgentEngine | null | undefined;
   // The database runs in Kubernetes, where the guide offers a Deployment.
   databaseRunsInKubernetes?: boolean | undefined;
+  /*
+   * The resource a resource AI agent serves: its compose service, and
+   * whether its collector's install script starts it.
+   */
+  resourceType?: AiResourceType | null | undefined;
 }
 
 // ---- shared wording --------------------------------------------------------
@@ -286,6 +296,52 @@ function getRunnerGuide(): AgentUpgradeGuide {
 }
 
 /*
+ * A resource's AI agent: its compose service pulled and recreated, from the
+ * directory of its docker-compose.yml (ResourceAiAgentInstall, the install
+ * instructions on the resource's AI agent page). On a Docker or Podman
+ * host, whose collector's install script starts it as a plain container,
+ * running that script again comes first.
+ */
+function getResourceAiAgentGuide(
+  context: AgentUpgradeGuideContext,
+): AgentUpgradeGuide {
+  const resourceType: AiResourceType | null = context.resourceType || null;
+  const methods: Array<AgentUpgradeMethod> = [];
+
+  if (resourceType && doesInstallScriptStartResourceAiAgent(resourceType)) {
+    methods.push({
+      label: translationKey("Install script"),
+      steps: [
+        {
+          title: translationKey("Run the install script again"),
+          description: translationKey(
+            "Run it on the host with the same settings. It pulls the agent's newest image and starts the agent again.",
+          ),
+        },
+      ],
+    });
+  }
+
+  methods.push({
+    label:
+      resourceType === AiResourceType.PodmanHost
+        ? translationKey("Podman Compose")
+        : translationKey("Docker Compose"),
+    steps: [
+      {
+        title: PULL_AND_RECREATE,
+        description: translationKey(
+          "Run this where the agent's docker-compose.yml is.",
+        ),
+        code: getResourceAiAgentUpgradeCommand(resourceType),
+      },
+    ],
+  });
+
+  return { methods: methods };
+}
+
+/*
  * The upgrade guide for a kind of agent, or null for a kind OneUptime does
  * not release (its version is never outdated, so nothing asks for one).
  */
@@ -322,6 +378,8 @@ export function getAgentUpgradeGuide(
       return getDatabaseAgentGuide(context);
     case AgentKind.Runner:
       return getRunnerGuide();
+    case AgentKind.ResourceAiAgent:
+      return getResourceAiAgentGuide(context);
     default:
       return null;
   }

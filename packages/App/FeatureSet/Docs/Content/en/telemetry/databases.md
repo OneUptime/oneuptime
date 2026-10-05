@@ -417,13 +417,15 @@ The Database Agent's `docker-compose.yml` also runs the **Database AI agent**, t
 
 - It supports PostgreSQL, MySQL (and MariaDB and Percona Server), Redis (and Valkey, KeyDB and Dragonfly) and MongoDB. For SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached it runs nothing and says so on the database's **AI → AI agent** page.
 - It registers as the database the collector reports — `DATABASE_SERVER_ID`, or `DATABASE_SYSTEM`, `DATABASE_SERVER_ADDRESS` and `DATABASE_SERVER_PORT` — and connects to `DATABASE_ENDPOINT` with the collector's monitoring login from the same `.env`. **The login is the hard limit**: the monitoring login can read and nothing else.
-- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`. Fixes need a login of the AI agent's own that may signal other sessions — `pg_signal_backend` on PostgreSQL, the `CONNECTION_ADMIN` privilege on MySQL 8, `+client|kill` for a Redis ACL user, the `killop` action on MongoDB — set as `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` in the same `.env`, so the collector's stays read-only (the agent's README has the grants, and [Credentials and least privilege](/docs/ai/infrastructure-ai-agents#credentials-and-least-privilege) the other resources'). It never ends its own session. Then choose on the AI agent page whether each fix needs a person's approval.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`. Fixes need a login of the AI agent's own that may signal other sessions — `pg_signal_backend` on PostgreSQL, the `CONNECTION_ADMIN` privilege on MySQL 8, `+client|kill` for a Redis ACL user, the `killop` action on MongoDB — set as `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` in the same `.env`, so the collector's stays read-only (the agent's README has the grants, and [Credentials and least privilege](/docs/ai/infrastructure-ai-agents#credentials-and-least-privilege) the other resources'). It never ends its own session. `ONEUPTIME_AI_FIXES` in the same `.env` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - It runs as UID 1000 with no capabilities. Delete the `oneuptime-database-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
 
 Its own variables, in the same `.env` (the compose file passes them to the AI agent only; run `docker compose up -d` after changing one):
 
 | Variable | Default | Description |
 | --- | --- | --- |
+| `ONEUPTIME_AI_INVESTIGATION` | `true` | `false` keeps OneUptime AI from running even the read-only diagnostics while it investigates |
+| `ONEUPTIME_AI_FIXES` | `ask-for-approval` with `ONEUPTIME_AI_ALLOW_WRITES=true`, else `off` | How fixes run: `off`, `ask-for-approval`, `automatic` or `bypass-approval`. Any mode but `off` also needs `ONEUPTIME_AI_ALLOW_WRITES=true`. The database's AI agent page shows both read-only |
 | `ONEUPTIME_AI_ALLOW_WRITES` | `false` | `true` lets it apply fixes; anything else keeps it read-only |
 | `ONEUPTIME_AI_WRITE_TARGETS` | any session | Comma-separated `session:<id>` globs a fix may touch |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated `session:<id>` globs a fix never touches |

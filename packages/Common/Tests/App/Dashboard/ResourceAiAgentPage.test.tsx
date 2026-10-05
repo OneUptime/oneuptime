@@ -24,7 +24,9 @@ import {
   getResourceAiAgentDescriptor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
+  RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
   RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS,
+  RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   getResourceAiAgentNotInstalledText,
   getResourceAiAgentPageSubtitle,
   getResourceAiAgentReadyText,
@@ -41,6 +43,7 @@ import {
 import {
   AI_ACCESS_PROTECTIONS_TITLE,
   AI_FIXES_MODE_TONES,
+  AI_FIXES_OFF_AGENT_SET_HINT,
   formatAiAccessProtections,
   getAiAccessCardDescription,
   getAiFixesFieldDescription,
@@ -51,6 +54,7 @@ import {
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
+  getResourceAiAgentSettingsEnv,
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
@@ -583,8 +587,12 @@ describe("the agent card", () => {
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
       "The Docker AI agent is running next to this Docker host.",
     );
+    // The agent's version as it reported it, drawn by AgentVersion.
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
-      "agent v14.1.0 · Docker 27.3.1 · Read-only",
+      "agent 14.1.0 · Docker 27.3.1 · Read-only",
+    );
+    expect(screen.getByTestId("ai-agent-version")).toHaveTextContent(
+      "agent 14.1.0",
     );
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
       /^last seen /,
@@ -1728,6 +1736,206 @@ describe("What AI may do", () => {
   });
 });
 
+/*
+ * While the resource's AI agent sets investigation and fixes (its .env's
+ * ONEUPTIME_AI_INVESTIGATION / ONEUPTIME_AI_FIXES, or its defaults), the
+ * card says so and Change shows the .env lines for the option picked, and
+ * the restart — nothing is saved here. The allowlist stays OneUptime's.
+ */
+describe("What AI may do, set by the agent", () => {
+  function agentSetStatus(
+    overrides: Partial<ResourceAiAccessStatus> = {},
+  ): ResourceAiAccessStatus {
+    return makeStatus({
+      aiSettingsSource: "agent_configuration",
+      aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      gaps: [],
+      ...overrides,
+    });
+  }
+
+  async function openAgentSettingsDialog(): Promise<HTMLElement> {
+    fireEvent.click(await findTestId("ai-access-change-button"));
+    return await findTestId("agent-ai-settings-dialog");
+  }
+
+  function pickCard(dialog: HTMLElement, field: string, value: string): void {
+    const card: HTMLElement = within(
+      within(dialog).getByTestId(field),
+    ).getByTestId(`card-select-option-${value}`);
+    fireEvent.click(card);
+    expect(card).toHaveAttribute("aria-checked", "true");
+  }
+
+  test("the card says the agent's configuration sets them, naming the agent", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId("ai-access-set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "true");
+    expect(line).toHaveTextContent(
+      RESOURCE_AI_SETTINGS_SET_BY_TEXT.agent_configuration.replace(
+        "{{agent}}",
+        DOCKER.agentName,
+      ),
+    );
+  });
+
+  test("Change shows the .env lines for the option picked, and the restart; nothing is saved", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+    expect(dialog).toHaveAttribute("data-source", "agent_configuration");
+    expect(codeIn(within(dialog).getByTestId("agent-ai-settings-env"))).toBe(
+      getResourceAiAgentSettingsEnv({
+        investigation: true,
+        fixes: "RequireApproval",
+      }),
+    );
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-restart")),
+    ).toContain("compose up -d oneuptime-docker-ai-agent");
+    // A Docker host's collector is usually installed with install.sh.
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-installer-note"),
+    ).toHaveTextContent("install.sh");
+    // Fixes on: what write access amounts to.
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-write-disclosure"),
+    ).toHaveTextContent(
+      getResourceAiAgentWriteDisclosure(AiResourceType.DockerHost),
+    );
+
+    pickCard(dialog, "agent-ai-settings-fixes", "Disabled");
+    pickCard(dialog, "agent-ai-settings-investigation", "off");
+    expect(codeIn(within(dialog).getByTestId("agent-ai-settings-env"))).toBe(
+      "ONEUPTIME_AI_INVESTIGATION=false\nONEUPTIME_AI_FIXES=off\nONEUPTIME_AI_ALLOW_WRITES=false",
+    );
+    expect(
+      within(dialog).queryByTestId("agent-ai-settings-write-disclosure"),
+    ).toBeNull();
+
+    pickCard(dialog, "agent-ai-settings-fixes", "Automatic");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-env")),
+    ).toContain("ONEUPTIME_AI_FIXES=automatic\nONEUPTIME_AI_ALLOW_WRITES=true");
+
+    expect(screen.queryByTestId("modal-footer-submit-button")).toBeNull();
+    expect(updateByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("a reader may open the instructions too", async () => {
+    grant(READER_PERMISSIONS);
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const change: HTMLElement = await findTestId("ai-access-change-button");
+    expect(change).not.toBeDisabled();
+    fireEvent.click(change);
+    expect(await findTestId("agent-ai-settings-dialog")).toBeInTheDocument();
+  });
+
+  test("fixes off: the hint sends the reader to Change for the lines", async () => {
+    serve(
+      agentSetStatus({ aiRemediationMode: ResourceAiRemediationMode.Disabled }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      AI_FIXES_OFF_AGENT_SET_HINT,
+    );
+  });
+
+  test("investigation off: the step points where the agent runs, and Show how opens the lines with investigation on", async () => {
+    serve(
+      agentSetStatus({
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [gap("investigation_disabled")],
+      }),
+    );
+    openAgentPage();
+
+    const step: HTMLElement = await findTestId(
+      "ai-agent-gap-investigation_disabled",
+    );
+    expect(step).toHaveTextContent(
+      RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT.replace(
+        "{{agent}}",
+        DOCKER.agentName,
+      ),
+    );
+    expect(
+      screen.queryByTestId("ai-agent-gap-turn-on-investigation"),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(step).getByTestId("ai-agent-gap-show-investigation-command"),
+    );
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-env")),
+    ).toContain("ONEUPTIME_AI_INVESTIGATION=true");
+  });
+
+  test("Automatic: the allowlist stays editable here, alone, and only it is sent", async () => {
+    serve(
+      agentSetStatus({
+        aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        aiCommandAllowlist: ["docker restart web", "docker restart api"],
+      }),
+    );
+    serveModel({
+      aiRemediationMode: ResourceAiRemediationMode.Automatic,
+      aiCommandAllowlist: ["docker restart web", "docker restart api"],
+    });
+    openAgentPage();
+
+    fireEvent.click(await findTestId("ai-command-allowlist-in-effect-edit"));
+    const dialog: HTMLElement = await findDialogTitled(
+      "Edit the command allowlist",
+    );
+    await within(dialog).findByTestId(
+      "ai-command-allowlist-field",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(within(dialog).queryByTestId("ai-investigation-field")).toBeNull();
+    expect(
+      within(dialog).queryByTestId("ai-remediation-mode-field"),
+    ).toBeNull();
+
+    await setAllowlistText(dialog, "docker restart web");
+    saveChangeModal(dialog);
+
+    expect(await waitForOneUpdate()).toEqual({
+      aiCommandAllowlist: ["docker restart web"],
+    });
+  });
+
+  test("negative control: chosen here, the line offers to move them to the agent, and Change edits", async () => {
+    serve(makeStatus({ aiSettingsSource: "oneuptime" }));
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId("ai-access-set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "false");
+    fireEvent.click(within(line).getByTestId("ai-access-set-by-action"));
+    expect(await findTestId("agent-ai-settings-dialog")).toHaveAttribute(
+      "data-source",
+      "oneuptime",
+    );
+  });
+
+  test("negative control: no agent yet, no line", async () => {
+    serve(notInstalledStatus());
+    openAgentPage();
+
+    await findTestId("ai-access-fixes");
+    expect(screen.queryByTestId("ai-access-set-by")).toBeNull();
+  });
+});
+
 describe("the Change modal: who may loosen", () => {
   test("reads the saved settings of this resource, and nothing else", async () => {
     openAgentPage();
@@ -2235,7 +2443,7 @@ describe("Test connection", () => {
     await waitFor(
       () => {
         expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
-          "agent v14.2.0",
+          "agent 14.2.0",
         );
       },
       { timeout: WAIT_TIMEOUT },

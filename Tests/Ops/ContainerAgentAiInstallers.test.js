@@ -15,7 +15,11 @@
  *    fixes stay on — and a re-run keeps both target lists unless told
  *    otherwise, with the .env (it holds the ingestion key) private;
  *  - on a node that is not a swarm manager the AI agent is left out, because
- *    it can run nothing there and would hold the cluster's AI agent place.
+ *    it can run nothing there and would hold the cluster's AI agent place;
+ *  - what OneUptime AI may do (ONEUPTIME_AI_INVESTIGATION, ONEUPTIME_AI_FIXES)
+ *    reaches the agent as given — it is the agent's own setting, which
+ *    OneUptime follows — and the Swarm installer keeps it in .env like the
+ *    target lists.
  */
 
 const fs = require("fs");
@@ -206,6 +210,57 @@ describe.each(CONTAINER_INSTALLERS)(
         expect(output).not.toContain("It may apply the fixes you allow");
       },
     );
+
+    // The agent's own settings, passed as given: it reads them itself.
+    function aiSettingsPassed(env) {
+      const dir = scratch();
+      const result = run(dir, "bash", script, {
+        ONEUPTIME_URL: "https://oneuptime.example.com",
+        ...env,
+      });
+
+      expect(result.status).toBe(0);
+
+      const args = aiAgentArgs(dir, aiAgent);
+      expect(args).not.toBeNull();
+
+      return {
+        output: result.output,
+        args: args.filter((arg) => {
+          return (
+            arg.startsWith("ONEUPTIME_AI_INVESTIGATION=") ||
+            arg.startsWith("ONEUPTIME_AI_FIXES=")
+          );
+        }),
+      };
+    }
+
+    test("what AI may do reaches the agent exactly as set", () => {
+      expect(
+        aiSettingsPassed({
+          ...env,
+          ONEUPTIME_AI_ALLOW_WRITES: "true",
+          ONEUPTIME_AI_INVESTIGATION: "true",
+          ONEUPTIME_AI_FIXES: "automatic",
+        }).args,
+      ).toEqual(["ONEUPTIME_AI_INVESTIGATION=true", "ONEUPTIME_AI_FIXES=automatic"]);
+    });
+
+    test("unset, both reach the agent empty, so it uses its defaults", () => {
+      expect(aiSettingsPassed({ ...env }).args).toEqual([
+        "ONEUPTIME_AI_INVESTIGATION=",
+        "ONEUPTIME_AI_FIXES=",
+      ]);
+    });
+
+    test("read-only, the script says which settings turn fixes on", () => {
+      const { output } = aiSettingsPassed({ ...env });
+
+      expect(output).toContain("ONEUPTIME_AI_ALLOW_WRITES=true");
+      expect(output).toContain("ONEUPTIME_AI_FIXES=ask-for-approval");
+      // Never sends the reader to a page that no longer decides.
+      expect(output).not.toContain("choose on the host's AI agent page");
+    });
   },
 );
 
@@ -314,6 +369,40 @@ describe("DockerSwarmAgent install.sh", () => {
 
     expect(cleared.envLine("ONEUPTIME_AI_PROTECTED_TARGETS")).toBe("");
     expect(cleared.envLine("ONEUPTIME_AI_WRITE_TARGETS")).toBe("api_*");
+  });
+
+  test("writes what AI may do into .env, and a re-run keeps it unless set again", () => {
+    const dir = scratch();
+    const first = install(dir, {
+      ONEUPTIME_AI_INVESTIGATION: "true",
+      ONEUPTIME_AI_FIXES: "bypass-approval",
+    });
+
+    expect(first.status).toBe(0);
+    expect(first.envLine("ONEUPTIME_AI_INVESTIGATION")).toBe("true");
+    expect(first.envLine("ONEUPTIME_AI_FIXES")).toBe("bypass-approval");
+
+    // The compose service passes both from .env.
+    const compose = fs.readFileSync(
+      path.join(SWARM_DIR, "docker-compose.yml"),
+      "utf8",
+    );
+    for (const name of ["ONEUPTIME_AI_INVESTIGATION", "ONEUPTIME_AI_FIXES"]) {
+      expect(compose).toContain(`- ${name}=\${${name}:-}`);
+    }
+
+    // An upgrade (a re-run without them) keeps what the agent was set to.
+    const again = install(dir, { ONEUPTIME_AI_ALLOW_WRITES: "true" });
+    expect(again.envLine("ONEUPTIME_AI_INVESTIGATION")).toBe("true");
+    expect(again.envLine("ONEUPTIME_AI_FIXES")).toBe("bypass-approval");
+
+    // Set again (even to empty), it is replaced.
+    const changed = install(dir, {
+      ONEUPTIME_AI_FIXES: "ask-for-approval",
+      ONEUPTIME_AI_INVESTIGATION: "",
+    });
+    expect(changed.envLine("ONEUPTIME_AI_FIXES")).toBe("ask-for-approval");
+    expect(changed.envLine("ONEUPTIME_AI_INVESTIGATION")).toBe("");
   });
 
   test("a protected list added to .env by hand survives a re-run", () => {

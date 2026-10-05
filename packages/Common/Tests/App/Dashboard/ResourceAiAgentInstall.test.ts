@@ -15,11 +15,25 @@ import {
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
+  getResourceAiAgentSettingsEnv,
+  getResourceAiAgentSettingsInstructions,
   getResourceAiAgentStatusCommand,
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
   toComposeEnvironmentEntry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import {
+  AgentAiSettingsInstructions,
+  AgentAiSettingsStep,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AgentAiSettingsInstructions";
+import {
+  AGENT_AI_FIXES_MODES,
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiFixesMode,
+  resolveAgentAiSettings,
+} from "../../../Types/AI/AgentAiSettings";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -857,4 +871,180 @@ describe("the write switch", () => {
       expect(disclosure).toContain("OneUptime still holds the line");
     },
   );
+});
+
+/*
+ * What OneUptime AI may do is the agent's own setting: the snippet passes
+ * both variables from the .env (the collectors' compose files do too, both
+ * ways — see "the snippet matches what the collectors ship"), the
+ * variables table names them, and the "Change what AI may do" dialog shows
+ * the .env lines for each option, then the restart.
+ */
+type AgentAiSettingsNote = AgentAiSettingsInstructions["notes"][number];
+
+describe("what AI may do, set where the agent runs", () => {
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the snippet passes both settings from the .env, empty by default",
+    (type: AiResourceType) => {
+      const environment: Record<string, string> = environmentOf(
+        snippetService(type),
+      );
+
+      expect(environment[AI_INVESTIGATION_ENV]).toBe(
+        `\${${AI_INVESTIGATION_ENV}:-}`,
+      );
+      expect(environment[AI_FIXES_ENV]).toBe(`\${${AI_FIXES_ENV}:-}`);
+    },
+  );
+
+  test("the variables table names both, and what they take", () => {
+    const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+      resourceType: AiResourceType.DockerHost,
+      resourceId: RESOURCE_ID,
+    });
+    const variable: (name: string) => ResourceAiAgentInstallVariable = (
+      name: string,
+    ): ResourceAiAgentInstallVariable => {
+      const found: ResourceAiAgentInstallVariable | undefined =
+        install.variables.find((candidate: ResourceAiAgentInstallVariable) => {
+          return candidate.name === name;
+        });
+      expect(found).toBeDefined();
+      return found!;
+    };
+
+    expect(variable(AI_INVESTIGATION_ENV).description).toContain(
+      "true or false",
+    );
+    for (const mode of AGENT_AI_FIXES_MODES) {
+      expect(variable(AI_FIXES_ENV).description).toContain(
+        AGENT_AI_FIXES_SETTING_VALUES[mode],
+      );
+    }
+    // Both sit right before the write switch they work with.
+    const names: Array<string> = install.variables.map(
+      (candidate: ResourceAiAgentInstallVariable) => {
+        return candidate.name;
+      },
+    );
+    expect(names.indexOf(AI_FIXES_ENV)).toBe(
+      names.indexOf(RESOURCE_AI_ALLOW_WRITES_ENV) - 1,
+    );
+    expect(names.indexOf(AI_INVESTIGATION_ENV)).toBe(
+      names.indexOf(AI_FIXES_ENV) - 1,
+    );
+  });
+
+  test.each(
+    AGENT_AI_FIXES_MODES.flatMap((fixes: AgentAiFixesMode) => {
+      return [
+        [true, fixes],
+        [false, fixes],
+      ] as Array<[boolean, AgentAiFixesMode]>;
+    }),
+  )(
+    "investigation %s, fixes %s: the .env lines the agent reads back as exactly that",
+    (investigation: boolean, fixes: AgentAiFixesMode) => {
+      const env: string = getResourceAiAgentSettingsEnv({
+        investigation,
+        fixes,
+      });
+      const lines: Record<string, string> = {};
+      for (const line of env.split("\n")) {
+        const at: number = line.indexOf("=");
+        lines[line.slice(0, at)] = line.slice(at + 1);
+      }
+
+      // The agent's own reading of these lines.
+      const resolved: ReturnType<typeof resolveAgentAiSettings> =
+        resolveAgentAiSettings({
+          investigationSetting: lines[AI_INVESTIGATION_ENV],
+          fixesSetting: lines[AI_FIXES_ENV],
+          allowWrites: lines[RESOURCE_AI_ALLOW_WRITES_ENV] === "true",
+          allowWritesName: RESOURCE_AI_ALLOW_WRITES_ENV,
+        });
+
+      expect(resolved.settings).toEqual({
+        investigation,
+        fixes,
+        isConfigured: true,
+      });
+      // Writes exactly when fixes are on, and no warning either way.
+      expect(resolved.allowWrites).toBe(fixes !== "Disabled");
+      expect(resolved.warnings).toEqual([]);
+    },
+  );
+
+  test("a Docker host: how to do it with install.sh first, then the .env and the restart", () => {
+    const instructions: AgentAiSettingsInstructions =
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.DockerHost,
+        choice: { investigation: true, fixes: "Automatic" },
+      });
+
+    expect(instructions.intro?.[0]?.text).toContain(
+      "Docker agent with install.sh",
+    );
+    expect(instructions.intro?.[0]?.text).toContain(
+      "docker rm -f oneuptime-docker-ai-agent",
+    );
+    expect(
+      instructions.steps.map((step: AgentAiSettingsStep) => {
+        return step.ways[0]?.code;
+      }),
+    ).toEqual([
+      getResourceAiAgentSettingsEnv({
+        investigation: true,
+        fixes: "Automatic",
+      }),
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.DockerHost,
+        resourceId: RESOURCE_ID,
+      }).startCommand,
+    ]);
+    // Fixes on: which containers they may change, and what writes amount to.
+    expect(
+      instructions.notes.map((note: AgentAiSettingsNote) => {
+        return note.dataTestId;
+      }),
+    ).toEqual([
+      "agent-ai-settings-write-targets-note",
+      "agent-ai-settings-write-disclosure",
+    ]);
+    expect(instructions.notes[0]!.text).toContain(
+      RESOURCE_AI_WRITE_TARGETS_ENV,
+    );
+  });
+
+  test("a collector with an install directory: the .env there, and no install.sh note", () => {
+    const instructions: AgentAiSettingsInstructions =
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.ProxmoxCluster,
+        choice: { investigation: false, fixes: "Disabled" },
+      });
+
+    expect(instructions.intro).toEqual([]);
+    expect(instructions.steps[0]!.description).toContain(
+      "/opt/oneuptime-proxmox-agent",
+    );
+    expect(instructions.steps[1]!.ways[0]!.code).toBe(
+      "cd /opt/oneuptime-proxmox-agent\ndocker compose up -d oneuptime-proxmox-ai-agent",
+    );
+    // Fixes off: nothing about write access.
+    expect(instructions.notes).toEqual([]);
+  });
+
+  test("a database server has no write targets to name, only the disclosure", () => {
+    const instructions: AgentAiSettingsInstructions =
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.DatabaseServer,
+        choice: { investigation: true, fixes: "RequireApproval" },
+      });
+
+    expect(
+      instructions.notes.map((note: AgentAiSettingsNote) => {
+        return note.dataTestId;
+      }),
+    ).toContain("agent-ai-settings-write-disclosure");
+  });
 });

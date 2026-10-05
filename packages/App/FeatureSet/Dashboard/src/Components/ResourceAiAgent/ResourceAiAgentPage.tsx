@@ -14,14 +14,18 @@ import {
   RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT,
   ResourceAccessTestResult,
   ResourceAiAgentCardCommand,
+  RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAiAgentGapAction,
+  ResourceAiAgentMeta,
   ResourceAiAgentStatusPill,
   ResourceAiAttention,
   ResourceAiAttentionStep,
   getResourceAiAccessRequestBody,
   getResourceAiAgentCardCommand,
   getResourceAiAgentCardState,
-  getResourceAiAgentMetaParts,
+  getResourceAiAgentMeta,
+  getResourceAiSettingsChoice,
+  getResourceAiSettingsSource,
   getResourceAiAgentPageSubtitle,
   getResourceAiAgentReadyText,
   getResourceAiAgentStateSentence,
@@ -66,6 +70,7 @@ import {
   ResourceAiAgentWriteAccessCommands,
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
+  getResourceAiAgentSettingsInstructions,
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
 } from "./ResourceAiAgentInstall";
@@ -82,6 +87,8 @@ import {
   AI_ACCESS_FIXES_ROW_TITLE,
   AI_ACCESS_INVESTIGATION_ROW_TITLE,
   AI_FIXES_MODE_ICONS,
+  AI_FIXES_OFF_AGENT_SET_HINT,
+  AgentAiSettingsChoice,
   formatAiAccessProtections,
   getAiAccessCardDescription,
   getAiFixesBadge,
@@ -99,7 +106,12 @@ import {
   AiAccessProtections,
   AiAccessRow,
   AiAccessRows,
+  AiAccessSetBy,
 } from "../AiAccess/AiAccessRow";
+import AgentAiSettingsModal from "../AiAccess/AgentAiSettingsModal";
+import { AgentAiSettingsInstructions } from "../AiAccess/AgentAiSettingsInstructions";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import { AiAgentAction, getAiAgentActions } from "../AiAccess/AiAgentActions";
 import {
   AiAgentTestProgress,
@@ -147,6 +159,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "Common/Types/AI/AgentAiSettings";
 import React, {
   Fragment,
   FunctionComponent,
@@ -259,6 +276,11 @@ interface SettingsModalProps {
   descriptor: ResourceAiAgentDescriptor;
   resourceId: ObjectID;
   canConfigureUnattended: boolean;
+  /*
+   * The resource's AI agent sets investigation and fixes: the form edits the
+   * command allowlist alone (the server refuses the rest).
+   */
+  isSetByAgent?: boolean | undefined;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -347,8 +369,12 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       return null;
     }
 
-    return getResourceAiAccessOfferedFields({ saved, canConfigureUnattended });
-  }, [saved, canConfigureUnattended]);
+    return getResourceAiAccessOfferedFields({
+      saved,
+      canConfigureUnattended,
+      isSetByAgent: props.isSetByAgent,
+    });
+  }, [saved, canConfigureUnattended, props.isSetByAgent]);
 
   /*
    * Built once everything has loaded — BasicForm reads its initial values
@@ -373,7 +399,7 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     const modeDescriptions: Record<ResourceAiRemediationMode, string> =
       getResourceRemediationModeOptionDescriptions(descriptor);
 
-    const result: Fields<ResourceAiAccessSettingsFormValues> = [
+    const investigationAndFixes: Fields<ResourceAiAccessSettingsFormValues> = [
       {
         field: { isAiInvestigationEnabled: true },
         title: descriptor.investigateTitle,
@@ -413,6 +439,10 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         ),
       },
     ];
+
+    // While the agent sets them, its .env changes them, not this form.
+    const result: Fields<ResourceAiAccessSettingsFormValues> =
+      offered.investigationAndFixes === false ? [] : investigationAndFixes;
 
     if (offered.allowlist) {
       result.push({
@@ -536,7 +566,11 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   return (
     <>
       <Modal
-        title="Change what AI may do"
+        title={
+          props.isSetByAgent
+            ? "Edit the command allowlist"
+            : "Change what AI may do"
+        }
         submitButtonText="Save"
         submitButtonType={ButtonType.Submit}
         modalWidth={ModalWidth.Medium}
@@ -548,7 +582,11 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         }}
       >
         <div className="space-y-4">
-          {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}
+          {!canConfigureUnattended && !props.isSetByAgent ? (
+            <AdminPermissionNote />
+          ) : (
+            <></>
+          )}
 
           {loadError ? (
             <ErrorMessage message={loadError} />
@@ -803,6 +841,13 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
    */
   const [editCanConfigureUnattended, setEditCanConfigureUnattended] =
     useState<boolean>(false);
+  /*
+   * The "Change what AI may do" dialog for settings the agent sets (or that
+   * could move to it): open with what it should start on, or null.
+   */
+  const [agentSettingsDialog, setAgentSettingsDialog] = useState<{
+    turnOnInvestigation: boolean;
+  } | null>(null);
   const [isConfirmingReset, setIsConfirmingReset] = useState<boolean>(false);
   const [isActing, setIsActing] = useState<boolean>(false);
   const [confirmationError, setConfirmationError] = useState<string>("");
@@ -1047,10 +1092,17 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(status);
   const command: ResourceAiAgentCardCommand =
     getResourceAiAgentCardCommand(status);
-  const metaParts: Array<string> = getResourceAiAgentMetaParts(
-    status,
-    descriptor,
-  );
+  const meta: ResourceAiAgentMeta = getResourceAiAgentMeta(status, descriptor);
+  const isAgentVersionShown: boolean =
+    meta.showsAgentVersion &&
+    (Boolean(agent?.agentVersion) || Boolean(agent?.posture?.agentVersion));
+  const aiSettingsSource: AgentAiSettingsSource =
+    getResourceAiSettingsSource(status);
+  const isSetByAgent: boolean = isAgentAiSettingsSourceAgent(aiSettingsSource);
+  // Settings chosen here that could move to the agent's .env.
+  const canMoveSettingsToAgent: boolean = !isSetByAgent && agent !== null;
+  const currentChoice: AgentAiSettingsChoice =
+    getResourceAiSettingsChoice(status);
   const refusedWarning: string | null = getResourceAiRefusedRegistrationWarning(
     agent,
     descriptor,
@@ -1097,12 +1149,31 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const openAgentSettingsDialog: (turnOnInvestigation: boolean) => void = (
+    turnOnInvestigation: boolean,
+  ): void => {
+    setAgentSettingsDialog({ turnOnInvestigation });
+  };
+
   const renderStepAction: (
     action: ResourceAiAgentGapAction | null,
   ) => ReactElement = (
     action: ResourceAiAgentGapAction | null,
   ): ReactElement => {
     switch (action) {
+      case "set_investigation_in_agent":
+        // Instructions only: anyone who can see the page may read them.
+        return (
+          <Button
+            title="Show how"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            dataTestId="ai-agent-gap-show-investigation-command"
+            onClick={() => {
+              openAgentSettingsDialog(true);
+            }}
+          />
+        );
       case "turn_on_investigation":
         return settingsGate.isAllowed ? (
           <Button
@@ -1202,8 +1273,26 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     isActing,
   });
 
-  const settingsButtons: Array<ReactElement> =
-    settingsGate.isAllowed || settingsGate.disabledReason
+  /*
+   * While the agent sets investigation and fixes, Change shows how to change
+   * them in the agent — instructions, so it is offered to everyone who can
+   * see the page; the server refuses an edit here anyway.
+   */
+  const settingsButtons: Array<ReactElement> = isSetByAgent
+    ? [
+        <Button
+          key="change"
+          title="Change"
+          icon={IconProp.Edit}
+          buttonStyle={ButtonStyleType.NORMAL}
+          buttonSize={ButtonSize.Normal}
+          dataTestId="ai-access-change-button"
+          onClick={() => {
+            openAgentSettingsDialog(false);
+          }}
+        />,
+      ]
+    : settingsGate.isAllowed || settingsGate.disabledReason
       ? [
           <Button
             key="change"
@@ -1307,9 +1396,46 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {metaParts.length > 0 ? (
+          {meta.lastSeen || isAgentVersionShown || meta.rest.length > 0 ? (
             <p className="text-xs text-gray-500" data-testid="ai-agent-meta">
-              {metaParts.join(" · ")}
+              {[
+                ...(meta.lastSeen
+                  ? [<span key="last-seen">{meta.lastSeen}</span>]
+                  : []),
+                ...(isAgentVersionShown
+                  ? [
+                      <span key="agent-version" data-testid="ai-agent-version">
+                        <TranslatedSentence
+                          template="agent {{version}}"
+                          slots={{
+                            version: (
+                              <AgentVersion
+                                kind={AgentKind.ResourceAiAgent}
+                                version={
+                                  agent?.agentVersion ||
+                                  agent?.posture?.agentVersion
+                                }
+                                upgradeGuideContext={{
+                                  resourceType: descriptor.resourceType,
+                                }}
+                              />
+                            ),
+                          }}
+                        />
+                      </span>,
+                    ]
+                  : []),
+                ...meta.rest.map((part: string): ReactElement => {
+                  return <span key={part}>{part}</span>;
+                }),
+              ].map((part: ReactElement, index: number): ReactElement => {
+                return (
+                  <Fragment key={`meta-${index}`}>
+                    {index > 0 ? " · " : ""}
+                    {part}
+                  </Fragment>
+                );
+              })}
             </p>
           ) : (
             <></>
@@ -1517,6 +1643,28 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         description={getAiAccessCardDescription(descriptor.noun)}
         buttons={settingsButtons}
       >
+        {isSetByAgent || canMoveSettingsToAgent ? (
+          <AiAccessSetBy
+            text={translator.translateTemplate(
+              RESOURCE_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
+              { agent: translatableTerm(descriptor.agentName) },
+            )}
+            isSetByAgent={isSetByAgent}
+            actionText={
+              isSetByAgent ? undefined : translator.translateText("Show how")
+            }
+            onAction={
+              isSetByAgent
+                ? undefined
+                : () => {
+                    openAgentSettingsDialog(false);
+                  }
+            }
+            dataTestId="ai-access-set-by"
+          />
+        ) : (
+          <></>
+        )}
         <AiAccessRows>
           <AiAccessRow
             icon={IconProp.MagnifyingGlass}
@@ -1541,10 +1689,15 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           >
             {remediationMode === ResourceAiRemediationMode.Disabled ? (
               <AiAccessHint
-                text={getAiFixesOffHint(
-                  settingsGate.isAllowed &&
-                    canConfigureUnattendedResourceAiAccess(),
-                )}
+                text={
+                  isSetByAgent
+                    ? translator.translateText(AI_FIXES_OFF_AGENT_SET_HINT) ||
+                      AI_FIXES_OFF_AGENT_SET_HINT
+                    : getAiFixesOffHint(
+                        settingsGate.isAllowed &&
+                          canConfigureUnattendedResourceAiAccess(),
+                      )
+                }
                 dataTestId="ai-access-fixes-off-hint"
               />
             ) : null}
@@ -1553,6 +1706,25 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                 title="Command allowlist"
                 patterns={allowlistInEffect}
                 dataTestId="ai-command-allowlist-in-effect"
+                /*
+                 * The allowlist stays OneUptime's: with the agent setting
+                 * the modes, Change shows the agent's .env, so the list is
+                 * edited from here.
+                 */
+                editText={
+                  isSetByAgent &&
+                  settingsGate.isAllowed &&
+                  (canConfigureUnattendedResourceAiAccess() ||
+                    allowlistInEffect.length > 0)
+                    ? translator.translateText("Edit")
+                    : undefined
+                }
+                onEdit={() => {
+                  setEditCanConfigureUnattended(
+                    canConfigureUnattendedResourceAiAccess(),
+                  );
+                  setIsEditingSettings(true);
+                }}
               />
             ) : null}
             {shouldShowResourceWriteAccessCommands(status) ? (
@@ -1567,12 +1739,39 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           descriptor={descriptor}
           resourceId={modelId}
           canConfigureUnattended={editCanConfigureUnattended}
+          isSetByAgent={isSetByAgent}
           onClose={() => {
             setIsEditingSettings(false);
           }}
           onSaved={() => {
             setIsEditingSettings(false);
             refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {agentSettingsDialog ? (
+        <AgentAiSettingsModal
+          agentName={descriptor.agentName}
+          source={aiSettingsSource}
+          current={currentChoice}
+          turnOnInvestigation={agentSettingsDialog.turnOnInvestigation}
+          fixesShortNames={RESOURCE_REMEDIATION_MODE_SHORT_NAMES}
+          fixesDescriptions={getResourceRemediationModeOptionDescriptions(
+            descriptor,
+          )}
+          getInstructions={(
+            choice: AgentAiSettingsChoice,
+          ): AgentAiSettingsInstructions => {
+            return getResourceAiAgentSettingsInstructions({
+              resourceType: descriptor.resourceType,
+              choice,
+            });
+          }}
+          onClose={() => {
+            setAgentSettingsDialog(null);
           }}
         />
       ) : (

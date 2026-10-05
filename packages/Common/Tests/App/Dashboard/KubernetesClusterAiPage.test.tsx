@@ -34,11 +34,13 @@ import {
   AI_AGENT_SIGNED_OFF_TEXT,
   AI_AGENT_SILENT_TEXT,
   AI_AGENT_STATUS_POLL_INTERVAL_MS,
+  KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
 import {
   getAiAgentHelmCommands,
   getAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
+import { KUBERNETES_AI_SETTINGS_SET_BY_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentSettings";
 import {
   INVESTIGATION_ON_SENTENCE,
   KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
@@ -50,6 +52,7 @@ import {
 import {
   AI_ACCESS_PROTECTIONS_TITLE,
   AI_FIXES_MODE_TONES,
+  AI_FIXES_OFF_AGENT_SET_HINT,
   formatAiAccessProtections,
   getAiFixesFieldDescription,
   getAiFixesOffHint,
@@ -829,8 +832,12 @@ describe("the Kubernetes AI agent card", () => {
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
       "The AI agent is running in this cluster.",
     );
+    // The agent's version as it reported it, drawn by AgentVersion.
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
-      "agent v14.1.0 · kubectl v1.31.2 · Read-only",
+      "agent 14.1.0 · kubectl v1.31.2 · Read-only",
+    );
+    expect(screen.getByTestId("ai-agent-version")).toHaveTextContent(
+      "agent 14.1.0",
     );
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
       /^last seen /,
@@ -2392,6 +2399,318 @@ describe("What AI may do", () => {
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * "This particular thing should be synced with the agent, and I should not
+ * be able to manually edit it. When I try to edit it, show me options and
+ * commands to update the agent based on which option I want to select."
+ *
+ * While the cluster's Kubernetes AI agent sets investigation and fixes
+ * (status.aiSettingsSource), the card says so and Change opens a dialog of
+ * options and the chart command for the one picked — nothing is saved
+ * here. The kubectl allowlist stays OneUptime's.
+ */
+describe("What AI may do, set by the agent", () => {
+  function agentSetStatus(
+    overrides: Partial<KubernetesClusterAiAccessStatus> = {},
+    agent: KubernetesAiAgentSummary = makeAgent(),
+  ): KubernetesClusterAiAccessStatus {
+    return makeStatus(
+      {
+        aiSettingsSource: "agent_configuration",
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        gaps: [],
+        ...overrides,
+      },
+      agent,
+    );
+  }
+
+  async function openAgentSettingsDialog(): Promise<HTMLElement> {
+    fireEvent.click(await findTestId("ai-access-change-button"));
+    return await findTestId("agent-ai-settings-dialog");
+  }
+
+  function pickCard(dialog: HTMLElement, field: string, value: string): void {
+    const card: HTMLElement = within(
+      within(dialog).getByTestId(field),
+    ).getByTestId(`card-select-option-${value}`);
+    fireEvent.click(card);
+    expect(card).toHaveAttribute("aria-checked", "true");
+  }
+
+  test("the card says the agent's configuration sets them, behind a lock", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId("ai-access-set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "true");
+    expect(line).toHaveTextContent(
+      KUBERNETES_AI_SETTINGS_SET_BY_TEXT.agent_configuration,
+    );
+    expect(screen.queryByTestId("ai-access-set-by-action")).toBeNull();
+    // The settings themselves read as always.
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+      "Ask for approval",
+    );
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveAttribute(
+      "data-tone",
+      "on",
+    );
+  });
+
+  test("its defaults: the line says the chart names neither setting", async () => {
+    serve(agentSetStatus({ aiSettingsSource: "agent_defaults" }));
+    openAgentPage();
+
+    expect(await findTestId("ai-access-set-by")).toHaveTextContent(
+      KUBERNETES_AI_SETTINGS_SET_BY_TEXT.agent_defaults,
+    );
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+    expect(dialog).toHaveAttribute("data-source", "agent_defaults");
+  });
+
+  test("Change opens the options and the chart command, never the edit form, and saves nothing", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+    expect(dialog).toHaveAttribute("data-source", "agent_configuration");
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-in-effect"),
+    ).toHaveTextContent(
+      "In effect now: investigation on, fixes Ask for approval.",
+    );
+    // No form: nothing here is saved.
+    expect(screen.queryByTestId("ai-investigation-field")).toBeNull();
+    expect(screen.queryByTestId("ai-remediation-mode-field")).toBeNull();
+
+    /*
+     * The agent is read-only and fixes are on: the chart's write access
+     * comes with the upgrade — scoped (recommended) or cluster-wide.
+     */
+    const commands: ReturnType<typeof getAiAgentHelmCommands> =
+      getAiAgentHelmCommands({ investigation: true, fixes: "RequireApproval" });
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command-scoped")),
+    ).toBe(commands.enableRemediationScoped);
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-write-disclosure"),
+    ).toHaveTextContent(getAiAgentWriteDisclosure());
+    fireEvent.click(within(dialog).getByText("The whole cluster"));
+    expect(
+      codeIn(
+        within(dialog).getByTestId("agent-ai-settings-command-cluster-wide"),
+      ),
+    ).toBe(commands.enableRemediation);
+
+    // Instructions only: the one button is Close, and nothing is saved.
+    expect(screen.queryByTestId("modal-footer-submit-button")).toBeNull();
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(updateByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("each option picked shows the command that sets exactly it", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+
+    // Fixes off: one upgrade, and no write access to grant.
+    pickCard(dialog, "agent-ai-settings-fixes", "Disabled");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command")),
+    ).toBe(
+      getAiAgentHelmCommands({ investigation: true, fixes: "Disabled" })
+        .applySettings,
+    );
+    expect(
+      within(dialog).queryByTestId("agent-ai-settings-command-scoped"),
+    ).toBeNull();
+
+    // Investigation off too.
+    pickCard(dialog, "agent-ai-settings-investigation", "off");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command")),
+    ).toContain("--set aiAgent.investigation=false");
+
+    // Bypass approval: back to the write-access upgrades.
+    pickCard(dialog, "agent-ai-settings-fixes", "BypassApproval");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command-scoped")),
+    ).toContain("--set aiAgent.fixes=bypass-approval");
+    expect(updateByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("an agent that may already write gets one command for any mode, and is told fixes off removes it", async () => {
+    serve(
+      agentSetStatus(
+        {},
+        makeAgent({
+          posture: {
+            clusterIdentifier: "prod-east",
+            inCluster: true,
+            allowWrites: true,
+            writeNamespaces: ["web"],
+            kubectlVersion: "v1.31.2",
+          },
+        }),
+      ),
+    );
+    openAgentPage();
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+
+    pickCard(dialog, "agent-ai-settings-fixes", "Automatic");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command")),
+    ).toBe(
+      getAiAgentHelmCommands({ investigation: true, fixes: "Automatic" })
+        .applySettings,
+    );
+    expect(
+      within(dialog).queryByTestId("agent-ai-settings-fixes-off-note"),
+    ).toBeNull();
+
+    pickCard(dialog, "agent-ai-settings-fixes", "Disabled");
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-fixes-off-note"),
+    ).toBeInTheDocument();
+  });
+
+  test("anyone who can see the page may open the instructions, a reader included", async () => {
+    grant(READER_PERMISSIONS);
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const change: HTMLElement = await findTestId("ai-access-change-button");
+    expect(change).not.toBeDisabled();
+    fireEvent.click(change);
+    expect(await findTestId("agent-ai-settings-dialog")).toBeInTheDocument();
+  });
+
+  test("fixes off: the hint sends the reader to Change for the command, not to a choice the page cannot save", async () => {
+    serve(
+      agentSetStatus({ remediationMode: KubernetesAiRemediationMode.Disabled }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      AI_FIXES_OFF_AGENT_SET_HINT,
+    );
+  });
+
+  test("investigation off: the step points at the chart, and Show how opens the command with investigation on", async () => {
+    serve(
+      agentSetStatus({
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [gap("investigation_disabled", "investigation")],
+      }),
+    );
+    openAgentPage();
+
+    const step: HTMLElement = await findTestId(
+      "ai-agent-gap-investigation_disabled",
+    );
+    expect(step).toHaveTextContent(
+      KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
+    );
+    // No Turn on: the server would refuse it.
+    expect(
+      screen.queryByTestId("ai-agent-gap-turn-on-investigation"),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(step).getByTestId("ai-agent-gap-show-investigation-command"),
+    );
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    expect(
+      within(
+        within(dialog).getByTestId("agent-ai-settings-investigation"),
+      ).getByTestId("card-select-option-on"),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command-scoped")),
+    ).toContain("--set aiAgent.investigation=true");
+  });
+
+  test("Automatic: the allowlist stays editable here, alone, and only it is sent", async () => {
+    serve(
+      agentSetStatus({
+        remediationMode: KubernetesAiRemediationMode.Automatic,
+        kubectlAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+      }),
+    );
+    serveCluster({
+      aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+      aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+    });
+    openAgentPage();
+
+    fireEvent.click(await findTestId("kubectl-allowlist-in-effect-edit"));
+    const dialog: HTMLElement = await findDialogTitled(
+      "Edit the kubectl allowlist",
+    );
+    await within(dialog).findByTestId(
+      "kubectl-allowlist-field",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    // Investigation and fixes are the agent's: not on this form.
+    expect(within(dialog).queryByTestId("ai-investigation-field")).toBeNull();
+    expect(
+      within(dialog).queryByTestId("ai-remediation-mode-field"),
+    ).toBeNull();
+
+    await setAllowlistText(dialog, SET_IMAGE_PATTERN);
+    saveChangeModal(dialog);
+
+    expect(await waitForOneUpdate()).toEqual({
+      aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+    });
+  });
+
+  test("negative control: chosen here, Change opens the edit form, and the line offers to move them to the chart", async () => {
+    serve(makeStatus({ aiSettingsSource: "oneuptime" }));
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId("ai-access-set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "false");
+    expect(line).toHaveTextContent(
+      KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime,
+    );
+
+    fireEvent.click(within(line).getByTestId("ai-access-set-by-action"));
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    expect(dialog).toHaveAttribute("data-source", "oneuptime");
+    fireEvent.click(
+      within(
+        screen.getByRole("dialog", { name: /Change what AI may do/ }),
+      ).getByTestId("modal-footer-close-button"),
+    );
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await openChangeModal();
+  });
+
+  test("negative control: a cluster on an advanced Runner has no such line (the agent does not run its commands)", async () => {
+    serve(advancedStatus());
+    openAgentPage();
+
+    await findTestId("ai-access-fixes");
+    expect(screen.queryByTestId("ai-access-set-by")).toBeNull();
   });
 });
 

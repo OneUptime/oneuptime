@@ -68,6 +68,15 @@ import {
   RUNNER_IMAGE,
   getRunnerUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
+import {
+  COMPOSE_DIRECTORY_COMMENT,
+  getResourceAiAgentInstall,
+  getResourceAiAgentServiceName,
+  getResourceAiAgentUpgradeCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import AiResourceType, {
+  ALL_AI_RESOURCE_TYPES,
+} from "../../../Types/ResourceAiAgent/AiResourceType";
 
 /*
  * The dialog beside an outdated agent version says how to upgrade THAT kind
@@ -560,5 +569,81 @@ describe("Runner: the image again, then the setup command on the same page", () 
     expect(last.code).toBeUndefined();
     expect(last.needsSetupGuide).toBeFalsy();
     expect(last.description).toContain("Setup Instructions");
+  });
+});
+
+/*
+ * A resource's AI agent (oneuptime/resource-ai-agent), drawn on every
+ * resource's AI agent page: its compose service pulled and recreated, as
+ * the page's install instructions started it.
+ */
+describe("Resource AI agent: its compose service pulled and recreated", () => {
+  test("without the resource, every service of the docker-compose.yml it sits in", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent);
+    expect(
+      guide.methods.map((method: AgentUpgradeMethod) => {
+        return method.label;
+      }),
+    ).toEqual(["Docker Compose"]);
+    expect(codesOf(guide.methods[0]!)).toEqual([
+      `${COMPOSE_DIRECTORY_COMMENT}\ndocker compose pull\ndocker compose up -d`,
+    ]);
+  });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: pulls and recreates exactly the service the install instructions start",
+    (resourceType: AiResourceType) => {
+      const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+        resourceType,
+      });
+      const compose: AgentUpgradeMethod =
+        guide.methods[guide.methods.length - 1]!;
+      const service: string = getResourceAiAgentServiceName(resourceType);
+      const code: string = codesOf(compose)[0]!;
+
+      expect(code).toBe(getResourceAiAgentUpgradeCommand(resourceType));
+      expect(code).toContain(`compose pull ${service}`);
+      // The same start the install instructions give, from the same place.
+      const start: string = getResourceAiAgentInstall({
+        resourceType,
+        resourceId: "id",
+      }).startCommand;
+      expect(code.endsWith(start.split("\n").pop()!)).toBe(true);
+      expect(code.split("\n")[0]).toBe(start.split("\n")[0]);
+    },
+  );
+
+  test("Podman hosts use Podman Compose", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+      resourceType: AiResourceType.PodmanHost,
+    });
+    const compose: AgentUpgradeMethod =
+      guide.methods[guide.methods.length - 1]!;
+    expect(compose.label).toBe("Podman Compose");
+    expect(codesOf(compose)[0]).toContain("podman compose pull");
+  });
+
+  test.each([AiResourceType.DockerHost, AiResourceType.PodmanHost])(
+    "%s: the collector's install script, which starts the agent as a container, comes first",
+    (resourceType: AiResourceType) => {
+      const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+        resourceType,
+      });
+      expect(guide.methods[0]!.label).toBe("Install script");
+      expect(guide.methods[0]!.steps[0]!.title).toBe(
+        "Run the install script again",
+      );
+      expect(guide.methods).toHaveLength(2);
+    },
+  );
+
+  test("a resource whose collector's compose file ships the agent has the Compose way only", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+      resourceType: AiResourceType.ProxmoxCluster,
+    });
+    expect(guide.methods).toHaveLength(1);
+    expect(codesOf(guide.methods[0]!)[0]).toContain(
+      "cd /opt/oneuptime-proxmox-agent",
+    );
   });
 });
