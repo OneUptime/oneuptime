@@ -10,8 +10,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * arrays they affect. Mirrors the Ceph cluster tables.
  */
 
-export class AddStorageArrayTables1798300000000 implements MigrationInterface {
-  public name: string = "AddStorageArrayTables1798300000000";
+export class AddStorageArrayTables1798400000000 implements MigrationInterface {
+  public name: string = "AddStorageArrayTables1798400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

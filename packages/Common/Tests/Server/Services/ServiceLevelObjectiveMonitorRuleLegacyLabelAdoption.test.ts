@@ -280,8 +280,11 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeCreate - adopting the 
     );
 
     expect(
-      (spies.adoption.mock.calls[0]![0] as AdoptionCall)
-        .serviceLevelObjectiveIds,
+      (
+        spies.adoption.mock.calls[0]![0] as AdoptionCall
+      ).serviceLevelObjectiveIds.map((id: ObjectID | string): string => {
+        return id.toString();
+      }),
     ).toEqual([SLO_ID.toString()]);
   });
 

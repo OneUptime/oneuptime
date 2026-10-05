@@ -293,7 +293,7 @@ export default class PromoCode extends BaseModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "ResellerPlanId",
+    manyToOneRelationColumn: "resellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
     title: "ResellerPlan",

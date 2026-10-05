@@ -181,7 +181,7 @@ Em vez disso, use um endereço privado ou um nome de host interno:
 
 Servidores compatíveis com a OpenAI seguem as mesmas regras, com sua própria porta e o caminho `/v1`, ex.: `http://vllm:8000/v1`, ou `http://192.168.1.20:1234/v1` para o LM Studio. Assim como uma instalação nativa do Ollama, o LM Studio só escuta em `127.0.0.1` até você ativar **Serve on Local Network** nas configurações do servidor dele.
 
-**Endereços privados funcionam em instalações auto-hospedadas.** Um OneUptime auto-hospedado consegue alcançar endereços de rede privada, como `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` e IPv6 `fc00::/7`, a menos que você defina `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, que os recusa como o OneUptime Cloud faz.
+**Endereços privados funcionam em instalações auto-hospedadas.** Um OneUptime auto-hospedado consegue alcançar endereços de rede privada, como `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` e IPv6 `fc00::/7`, a menos que você defina `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, que os recusa como o OneUptime Cloud faz. Essa configuração não se aplica a um Provedor de LLM Global, que é configurado por um administrador (com as variáveis `GLOBAL_LLM_PROVIDER_*` ou no painel de administração), e não por um projeto: ele ainda consegue alcançar endereços privados. Endereços de loopback e link-local continuam recusados para todos os provedores.
 
 **O OneUptime Cloud (SaaS) não consegue alcançar redes privadas.** Ele recusa endereços de rede privada, e nomes de host que resolvem para eles, para todos os provedores de LLM. Para usar um modelo executado na sua própria infraestrutura, auto-hospede o OneUptime em uma rede que consiga alcançá-lo ou exponha o modelo em um endpoint acessível publicamente. Proteja um endpoint público com uma chave de API: o provedor **Ollama** não envia credenciais, enquanto o **OpenAI Compatible** envia a Chave de API como token bearer (o Ollama também oferece uma API compatível com a OpenAI em `/v1`, então pode ficar atrás de um proxy reverso que verifique a chave).
 
@@ -238,6 +238,8 @@ URL Base: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Nome do Modelo: Qwen/Qwen2.5-1.5B-Instruct
 Chave de API: (deixe em branco, a menos que vllm.apiKey esteja definido)
 ```
+
+Com a cobrança ativada, ou com `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` nos valores do Helm), um provedor do próprio projeto não consegue alcançar este endereço interno do cluster, que resolve para um IP privado do cluster. Em vez disso, crie o provedor no painel de administração, em **Configurações** > **Provedores de LLM globais**, com os mesmos campos: um Provedor de LLM Global consegue alcançar esse endereço.
 
 Consulte o [guia de vLLM do Helm chart](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) para agendamento de GPU, modelos restritos e opções de ajuste.
 

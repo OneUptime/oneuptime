@@ -12,7 +12,6 @@ Open **Incidenten** in de linkernavigatie en vouw onderaan het zijmenu **Instell
 
 | Pagina                   | Wat je daar doet                                                                             |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **AI**                   | Automatisch onderzoek, automatische codefixes en postmortem-concepten aan- of uitzetten, en de optionele limieten instellen waarbinnen AI werkt — geen ervan geldt voordat je hem instelt. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Status incident**      | Statussen die een incident doorloopt toevoegen, hernoemen, verkleuren en herschikken.        |
 | **Ernst van incident**   | Ernstniveaus toevoegen, hernoemen, verkleuren en herschikken.                                |
 | **Incident-sjablonen**   | Een heel incident vooraf invullen — titel, beschrijving, resources, bereikbaarheidsbeleid, eigenaren, labels. |
@@ -22,9 +21,11 @@ Open **Incidenten** in de linkernavigatie en vouw onderaan het zijmenu **Instell
 | **Incidentrollen**       | De rollen definiëren waaraan je responders toewijst, zoals Incident Commander.               |
 | **Nummervoorvoegsel**    | De nummervoorvoegsels voor incidenten en incident-episodes.                                  |
 
+Wat OneUptime AI zelfstandig doet, stel je hier niet in: het heeft een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet automatisch onderzoek, automatische codefixes en postmortem-concepten aan of uit en bevat de optionele limieten waarbinnen AI werkt — geen ervan geldt voordat je hem instelt. Ernaast staan de **Regels voor automatisch herstel**, met **Inzichten** en **Logboeken**: wat AI van je incidenten heeft geleerd, en alles wat het heeft gedaan. Zie [AI SRE](/docs/ai/ai-sre).
+
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina pakt de draad op bij **Incident-sjablonen**.
 
-Vouw **Regels** uit en je krijgt negen pagina's erbij: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Reminder Rules**. Die komen verderop aan bod.
+Vouw **Regels** uit en je krijgt acht pagina's erbij: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Reminder Rules**. Die komen verderop aan bod.
 
 ## Incidentsjablonen
 
@@ -114,13 +115,13 @@ Een nieuw voorvoegsel geldt alleen voor incidenten en episodes die daarna worden
 
 ## Regels die draaien wanneer een incident wordt aangemaakt
 
-**Incidenten → Regels** bevat negen regel-engines. Ze doen allemaal hetzelfde werk — kijken naar een incident zodra het is aangemaakt en handelen als het matcht — maar ze verschillen in wat ze doen en in hoe meerdere matchende regels worden afgehandeld.
+**Incidenten → Regels** bevat acht regel-engines, en **Incidenten → AI** een negende, de **Regels voor automatisch herstel**. Ze doen allemaal hetzelfde werk — kijken naar een incident zodra het is aangemaakt en handelen als het matcht — maar ze verschillen in wat ze doen en in hoe meerdere matchende regels worden afgehandeld.
 
 - **Groeperingsregels** — verwante incidenten groeperen tot episodes. Regels worden op prioriteitsvolgorde geëvalueerd; lagere prioriteitsnummers gaan eerst.
 - **Bereikbaarheidsregels** — bereikbaarheidsbeleid uitvoeren voor matchende incidenten. Verderop uitgebreid behandeld.
 - **Eigenaarsregels** — automatisch eigenaren toewijzen.
 - **Runbook-regels** — een [runbook](/docs/runbooks/index) starten wanneer een incident matcht.
-- **Regels voor automatisch herstel** — herstel-runbooks voorstellen of starten wanneer een incident matcht. Staat er voor het incident een AI-onderzoek in de wachtrij, dan draaien ze zodra dat klaar is, met de analyse ervan in de hand. Zie [AI SRE](/docs/ai/ai-sre).
+- **Regels voor automatisch herstel**, onder **AI** — herstel-runbooks voorstellen of starten wanneer een incident matcht. Staat er voor het incident een AI-onderzoek in de wachtrij, dan draaien ze zodra dat klaar is, met de analyse ervan in de hand. Zie [AI SRE](/docs/ai/ai-sre).
 - **Privacyregels** — bepalen of een matchend incident privé is.
 - **Labelregels** — automatisch labels toepassen.
 - **SLA-regels** — reactie- en oplostijden bijhouden. Regels worden op volgorde geëvalueerd; lagere volgordenummers gaan eerst.

@@ -576,6 +576,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
             ...(columnDefault !== undefined
               ? { columnDefaultValue: columnDefault }
               : {}),
+            /*
+             * Required of a new record only: an Edit form leaves it optional
+             * (Field.doNotRequireWhenEditing).
+             */
+            ...(field.doNotRequireWhenEditing &&
+            props.formType !== FormType.Create
+              ? { required: false }
+              : {}),
             field: {
               [key]: true,
             } as SelectFormFields<TBaseModel>,

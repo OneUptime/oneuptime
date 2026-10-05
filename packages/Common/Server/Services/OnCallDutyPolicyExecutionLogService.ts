@@ -14,6 +14,7 @@ import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Color from "../../Types/Color";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -98,8 +99,16 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.statusMessage = "Scheduled.";
     }
 
+    /*
+     * Triggered by the person making the request. Stamped with stamp, so a
+     * `triggeredByUser` relation sent beside it is not what is stored.
+     */
     if (createBy.props.userId) {
-      createBy.data.triggeredByUserId = createBy.props.userId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["triggeredByUserId", "triggeredByUser"],
+        createBy.props.userId,
+      );
     }
 
     createBy.data.onCallPolicyExecutionRepeatCount = 1;

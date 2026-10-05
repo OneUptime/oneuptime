@@ -471,9 +471,11 @@ describe("create: a record points only at files of its own project", () => {
     expect(repository.save).not.toHaveBeenCalled();
   });
 
-  test("checks both files when one is written two different ways", async () => {
+  test("a write made in a project that names two files for one logo is refused before any file is read", async () => {
     const service: StatusPageWrites = new StatusPageWrites();
     const repository: FakeRepository = useRepository(service);
+    const conflict: string =
+      "Conflicting Logo references were provided. logoFileId and logoFile are names for the same field and must hold the same value: send only one of them, or the same id in each.";
 
     const foreignOneWay: StatusPage = newStatusPage();
     foreignOneWay.logoFile = fileRef(OWN_FILE_ID);
@@ -483,6 +485,44 @@ describe("create: a record points only at files of its own project", () => {
       await refusalOf(
         service.create({ data: foreignOneWay, props: rootProps(PROJECT_ID) }),
       ),
+    ).toBe(conflict);
+
+    // Two files of its own are two answers to one question as well.
+    const ownBothWays: StatusPage = newStatusPage();
+    ownBothWays.logoFile = fileRef(OWN_FILE_ID);
+    ownBothWays.logoFileId = new ObjectID(SECOND_OWN_FILE_ID);
+
+    expect(
+      await refusalOf(
+        service.create({ data: ownBothWays, props: rootProps(PROJECT_ID) }),
+      ),
+    ).toBe(conflict);
+
+    expect(repository.save).not.toHaveBeenCalled();
+    expect(getFileOwners).not.toHaveBeenCalled();
+
+    // The same file under both names is one file.
+    const sameBothWays: StatusPage = newStatusPage();
+    sameBothWays.logoFile = fileRef(OWN_FILE_ID);
+    sameBothWays.logoFileId = new ObjectID(OWN_FILE_ID);
+
+    await service.create({ data: sameBothWays, props: rootProps(PROJECT_ID) });
+
+    expect(repository.save).toHaveBeenCalledTimes(1);
+  });
+
+  test("checks both files when OneUptime's own write names one two different ways", async () => {
+    const service: StatusPageWrites = new StatusPageWrites();
+    const repository: FakeRepository = useRepository(service);
+
+    const foreignOneWay: StatusPage = newStatusPage();
+    foreignOneWay.logoFile = fileRef(OWN_FILE_ID);
+    foreignOneWay.logoFileId = new ObjectID(OTHER_PROJECT_FILE_ID);
+
+    expect(
+      await refusalOf(
+        service.create({ data: foreignOneWay, props: rootProps() }),
+      ),
     ).toBe(LOGO_REFUSAL);
     expect(repository.save).not.toHaveBeenCalled();
 
@@ -491,7 +531,7 @@ describe("create: a record points only at files of its own project", () => {
     ownBothWays.logoFile = fileRef(OWN_FILE_ID);
     ownBothWays.logoFileId = new ObjectID(SECOND_OWN_FILE_ID);
 
-    await service.create({ data: ownBothWays, props: rootProps(PROJECT_ID) });
+    await service.create({ data: ownBothWays, props: rootProps() });
 
     expect(repository.save).toHaveBeenCalledTimes(1);
   });

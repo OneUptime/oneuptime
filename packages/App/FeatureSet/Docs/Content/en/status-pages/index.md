@@ -69,6 +69,8 @@ Two naming quirks worth knowing before you go looking:
 
 Outside an individual page, the **Status Pages** section itself lists **All Status Pages**, and a **More** section holds **Announcements**. A collapsed **Settings** section holds **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules**, which are project-wide and shared across every status page. A collapsed **Advanced** section holds **Archived**: the status pages you took offline (see [Archiving a status page](#archiving-a-status-page)).
 
+**Label Rules** and **Owner Rules** label new status pages and give them owners. A rule takes two steps — **Match**, the conditions a status page must meet, then **Labels** (or **Owners**), what the rule adds — and its **Name** is filled in from what you pick. A new rule has to add at least one label or owner; editing one never insists, and the list marks an older rule that adds nothing **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+
 ## What visitors see
 
 The public page is its own app, with a small set of routes:

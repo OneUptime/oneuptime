@@ -593,11 +593,27 @@ describe("publish-time inline image visibility", () => {
       );
     }
 
+    /*
+     * A create publishes the icon its saved row holds, read back like an
+     * update's: the icon is stored under one column, whichever of its two
+     * names the create sent.
+     */
+    async function create(
+      created: Probe | AIAgent,
+      saved: Probe | AIAgent,
+    ): Promise<jest.SpyInstance> {
+      const findBy: jest.SpyInstance = jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([saved] as never);
+
+      await callHook(service, "onCreateSuccess", {}, created);
+
+      return findBy;
+    }
+
     it("publishes a global record's icon on create", async () => {
-      await callHook(
-        service,
-        "onCreateSuccess",
-        {},
+      await create(
+        record({ iconFileId: ICON_FILE_ID }),
         record({ iconFileId: ICON_FILE_ID }),
       );
 
@@ -605,22 +621,45 @@ describe("publish-time inline image visibility", () => {
     });
 
     it("publishes a project record's icon on create when it is the project's own", async () => {
-      await callHook(
-        service,
-        "onCreateSuccess",
-        {},
+      const findBy: jest.SpyInstance = await create(
+        record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
+        record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
+      );
+
+      expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
+
+      const read: {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } = findBy.mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      };
+
+      expect(JSON.stringify(read.query)).toContain(RECORD_ID.toString());
+      expect(read.select).toMatchObject({ projectId: true, iconFileId: true });
+      expect(read.props).toEqual({ isRoot: true });
+    });
+
+    it("publishes an icon written as the relation, as the dashboard writes it", async () => {
+      await create(
+        record({ projectId: ICON_PROJECT_ID, iconFile: ICON_FILE_ID }),
         record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
       );
 
       expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
     });
 
-    it("publishes an icon written as the relation, as the dashboard writes it", async () => {
-      await callHook(
-        service,
-        "onCreateSuccess",
-        {},
-        record({ projectId: ICON_PROJECT_ID, iconFile: ICON_FILE_ID }),
+    it("publishes the icon the saved row holds, not what the create's other name said", async () => {
+      await create(
+        record({
+          projectId: ICON_PROJECT_ID,
+          iconFileId: FOREIGN_ICON_FILE_ID,
+          iconFile: ICON_FILE_ID,
+        }),
+        record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
       );
 
       expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
@@ -628,10 +667,8 @@ describe("publish-time inline image visibility", () => {
 
     it("never publishes another project's file, or one with no project, on create", async () => {
       for (const fileId of [FOREIGN_ICON_FILE_ID, UNOWNED_ICON_FILE_ID]) {
-        await callHook(
-          service,
-          "onCreateSuccess",
-          {},
+        await create(
+          record({ projectId: ICON_PROJECT_ID, iconFileId: fileId }),
           record({ projectId: ICON_PROJECT_ID, iconFileId: fileId }),
         );
       }

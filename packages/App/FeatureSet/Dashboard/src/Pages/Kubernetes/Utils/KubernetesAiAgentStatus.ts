@@ -917,7 +917,7 @@ export function getAutomaticInvestigationConfirmation(data: {
         ? "every new incident"
         : "every new alert";
 
-  return `This applies to ${what} in ${data.projectName}, not just this cluster. Limits live under Incidents → Settings → AI.`;
+  return `This applies to ${what} in ${data.projectName}, not just this cluster. Limits live under Incidents → AI → Settings.`;
 }
 
 /*

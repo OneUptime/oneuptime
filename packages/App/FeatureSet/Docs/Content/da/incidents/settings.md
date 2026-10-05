@@ -12,7 +12,6 @@ Denne side er referencen for den konfiguration — hvad hver side rummer, og hva
 
 | Side                     | Hvad du gør der                                                                                             |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| **AI**                   | Slå automatisk undersøgelse, automatiske koderettelser og postmortem-udkast til eller fra, og sæt de valgfrie grænser, AI arbejder under — ingen af dem gælder, før du sætter dem. Se [AI SRE](/docs/ai/ai-sre). |
 | **Hændelsesstatus**      | Tilføj, omdøb, giv nye farver og omarranger de tilstande, en hændelse bevæger sig igennem.                  |
 | **Hændelsesalvor**       | Tilføj, omdøb, giv nye farver og omarranger alvorsgrader.                                                   |
 | **Hændelsesskabeloner**  | Udfyld en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter.       |
@@ -22,9 +21,11 @@ Denne side er referencen for den konfiguration — hvad hver side rummer, og hva
 | **Hændelsesroller**      | Definér de roller, du sætter folk på, for eksempel Incident Commander.                                      |
 | **Nummerpræfiks**  | Nummerpræfikserne for hændelser og hændelsesepisoder.                                                       |
 
+Hvad OneUptime AI gør på egen hånd, indstilles ikke her: det har sin egen sektion, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dens side **Indstillinger** slår automatisk undersøgelse, automatiske koderettelser og postmortem-udkast til eller fra og rummer de valgfrie grænser, AI arbejder under — ingen af dem gælder, før du sætter dem. **Regler for automatisk afhjælpning** ligger ved siden af, sammen med **Indsigter** og **Protokoller**: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+
 **Hændelsesstatus** og **Hændelsesalvor** er gennemgået i dybden på [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — resten af denne side tager over fra **Hændelsesskabeloner**.
 
-Fold **Regler** ud, og du får ni sider mere: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Regler for automatisk afhjælpning**, **Privatlivsregler**, **Etiketregler**, **SLA-regler** og **Reminder Rules**. Dem tager vi længere nede.
+Fold **Regler** ud, og du får otte sider mere: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler** og **Reminder Rules**. Dem tager vi længere nede.
 
 ## Hændelsesskabeloner
 
@@ -116,13 +117,13 @@ Et nyt præfiks gælder kun hændelser og episoder, der oprettes bagefter. Eksis
 
 ## Regler, der kører når en hændelse oprettes
 
-**Hændelser → Regler** rummer ni regelmotorer. De laver alle det samme stykke arbejde — kigger på en hændelse i det øjeblik den oprettes, og handler hvis den matcher — men de er forskellige i, hvad de gør, og i hvordan flere matchende regler afgøres.
+**Hændelser → Regler** rummer otte regelmotorer, og **Hændelser → AI** en niende, **Regler for automatisk afhjælpning**. De laver alle det samme stykke arbejde — kigger på en hændelse i det øjeblik den oprettes, og handler hvis den matcher — men de er forskellige i, hvad de gør, og i hvordan flere matchende regler afgøres.
 
 - **Grupperingsregler** — grupperer beslægtede hændelser i episoder. Regler evalueres i prioritetsrækkefølge; lave prioritetsnumre kommer først.
 - **Vagtregler** — udfører vagtpolitikker for matchende hændelser. Gennemgået i detaljer nedenfor.
 - **Ejerregler** — tildeler ejere automatisk.
 - **Runbook-regler** — starter et [runbook](/docs/runbooks/index), når en hændelse matcher.
-- **Regler for automatisk afhjælpning** — foreslår eller starter afhjælpnings-runbooks, når en hændelse matcher. Står en AI-undersøgelse i kø for hændelsen, kører de, når den er færdig, med dens analyse i hånden. Se [AI SRE](/docs/ai/ai-sre).
+- **Regler for automatisk afhjælpning**, under **AI** — foreslår eller starter afhjælpnings-runbooks, når en hændelse matcher. Står en AI-undersøgelse i kø for hændelsen, kører de, når den er færdig, med dens analyse i hånden. Se [AI SRE](/docs/ai/ai-sre).
 - **Privatlivsregler** — afgør, om en matchende hændelse er privat.
 - **Etiketregler** — sætter etiketter på automatisk.
 - **SLA-regler** — sporer svar- og løsningstider. Regler evalueres i rækkefølge; lave rækkefølgenumre kommer først.

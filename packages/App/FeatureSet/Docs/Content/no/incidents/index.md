@@ -114,11 +114,12 @@ Etterpå kan du skrive en etteranalyse og eventuelt publisere den på statusside
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Oversikt**      | **Alle hendelser** og **Aktive hendelser** — den siste bærer en rød teller med antall hendelser som ikke er i den løste tilstanden.                                        |
 | **Episoder**      | Hendelsesepisoder, en egen grupperingsfunksjon med sine egne sider.                                                                                                        |
+| **KI** | **Innsikt**, **Logger**, **Innstillinger**, **Regler for automatisk utbedring**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, hva den får gjøre på egen hånd, og reglene som retter hendelser med runbooks. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbeidsområde** | **Slack**- og **Microsoft Teams**-tilkoblinger for hendelser.                                                                                                              |
-| **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Innstillinger** | **KI**, **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Nummerprefiks**. |
+| **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Nummerprefiks**. |
 
-**Regler** og **Innstillinger** er sammenslått som standard — utvid dem for å finne sidene resten av denne dokumentasjonen viser til. Hendelseskonfigurasjon ligger ikke under Prosjektinnstillinger; alt sammen bor her.
+**KI**, **Regler** og **Innstillinger** er sammenslått som standard — utvid dem for å finne sidene resten av denne dokumentasjonen viser til. Hendelseskonfigurasjon ligger ikke under Prosjektinnstillinger; alt sammen bor her.
 
 Selve hendelseslisten viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser**, **Erklært**, **Varighet**, **Etiketter** og **Eiere**, med masseoperasjonen **Endre tilstand** for å lukke flere om gangen.
 

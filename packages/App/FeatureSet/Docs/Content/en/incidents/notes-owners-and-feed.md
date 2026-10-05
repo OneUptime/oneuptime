@@ -209,12 +209,14 @@ Adding the same person twice is safe; owners already assigned are not duplicated
 
 **Incident Owner Rules** auto-assign owner users and teams when matching incidents are created — the routing layer that means a database incident lands on the database team without anyone thinking about it. You'll find them with the rest of the incident automation covered in [Incident Settings & Automation](/docs/incidents/settings).
 
-The rule form has four steps — **Basic Info**, **Match Criteria**, **Owners** and **Inherit Owners**:
+The rule form has two steps — **Match**, the conditions an incident must meet, then **Owners**, what the rule adds:
 
 - **Owners** — **Add owner** opens one list of people and teams; click each one to add it, and remove a pick with the **×** on its chip. When the rule matches, every person and team picked is added as an owner, and already-assigned owners are not duplicated.
-- **Inherit Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
+- **Inherit Owners**, folded under **Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
 
-A **Notify Owners** toggle controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
+A new rule has to add someone: pick at least one owner, or turn on an **Inherit Owners** switch. Its **Name** is filled in from the owners you pick until you type a name of your own. Editing a rule never insists on owners, so an older rule that adds nothing can still be renamed or switched off; the list marks it **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+
+**Notify Owners**, under **More fields**, controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
 
 Every rule execution is written to the incident feed, so you can always tell whether a person was added by a rule or by a human.
 

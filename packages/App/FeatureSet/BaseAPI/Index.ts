@@ -12,6 +12,7 @@ import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
+import IncidentAlertAiActivityAPI from "Common/Server/API/IncidentAlertAiActivityAPI";
 import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
@@ -5635,6 +5636,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
+
+    // The AI section of the Incidents and Alerts menus: AI Insights and Logs.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, IncidentAlertAiActivityAPI);
 
     // AI SRE — the shared conversation in the investigation box
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationConversationAPI);

@@ -181,7 +181,7 @@ OneUptime はこの `options` オブジェクトを Ollama に送るオプショ
 
 OpenAI 互換サーバーにも、それぞれのポートと `/v1` パスで同じルールが当てはまります。例えば `http://vllm:8000/v1`、LM Studio なら `http://192.168.1.20:1234/v1` です。LM Studio もネイティブインストールの Ollama と同じく、サーバー設定で **Serve on Local Network** をオンにするまでは `127.0.0.1` でしか待ち受けません。
 
-**セルフホスト環境ではプライベートアドレスを使えます。** セルフホストの OneUptime は、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10`、IPv6 の `fc00::/7` などのプライベートネットワークのアドレスに到達できます。ただし `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` を設定すると、OneUptime Cloud と同じようにこれらも拒否されます。
+**セルフホスト環境ではプライベートアドレスを使えます。** セルフホストの OneUptime は、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10`、IPv6 の `fc00::/7` などのプライベートネットワークのアドレスに到達できます。ただし `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` を設定すると、OneUptime Cloud と同じようにこれらも拒否されます。この設定はグローバル LLM プロバイダーには適用されません。グローバル LLM プロバイダーはプロジェクトではなく管理者が（`GLOBAL_LLM_PROVIDER_*` 変数または管理ダッシュボードで）設定するため、引き続きプライベートアドレスに到達できます。ループバックアドレスとリンクローカルアドレスは、どのプロバイダーでも拒否されたままです。
 
 **OneUptime Cloud（SaaS）はプライベートネットワークに到達できません。** すべての LLM プロバイダーについて、プライベートネットワークのアドレスと、そのアドレスに解決されるホスト名を拒否します。自分のインフラストラクチャで動くモデルを使うには、そのモデルに到達できるネットワーク上で OneUptime をセルフホストするか、モデルをパブリックに到達可能なエンドポイントで公開してください。公開エンドポイントは API キーで保護してください。**Ollama** プロバイダーは認証情報を送信しませんが、**OpenAI Compatible** は API キーを Bearer トークンとして送信します（Ollama は `/v1` で OpenAI 互換 API も提供しているため、キーを検証するリバースプロキシの背後に置くことができます）。
 
@@ -238,6 +238,8 @@ Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
+
+課金が有効な場合や、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（Helm の values では `outboundConnections.blockPrivateNetwork: true`）を設定した場合、プロジェクトが所有するプロバイダーはこのクラスター内のアドレスに到達できません。このアドレスはクラスターのプライベート IP に解決されるためです。代わりに、管理ダッシュボードの **設定** > **グローバルLLMプロバイダー** で、同じ項目を入力してプロバイダーを作成してください。グローバル LLM プロバイダーならこのアドレスに到達できます。
 
 GPU スケジューリング、ゲート付きモデル、チューニングオプションについては、[Helm チャートの vLLM ガイド](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) をご覧ください。
 

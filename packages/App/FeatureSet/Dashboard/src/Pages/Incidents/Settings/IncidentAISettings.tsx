@@ -31,7 +31,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 export type ComponentProps = PageComponentProps;
 
 /*
- * Incidents → Settings → AI: what OneUptime AI does on its own as incidents
+ * Incidents → AI → Settings: what OneUptime AI does on its own as incidents
  * happen, as switches that save the moment they are flipped, then - folded
  * under Advanced - which incidents it investigates and the limits on its
  * work, each card one question with its own Edit.

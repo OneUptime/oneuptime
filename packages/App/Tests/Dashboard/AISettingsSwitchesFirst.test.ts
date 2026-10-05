@@ -47,7 +47,8 @@ import path from "path";
 /*
  * AI settings pages show each AI behaviour as a switch that saves.
  *
- * Incidents → Settings → AI and Alerts → Settings → AI each showed nine
+ * The incident and alert AI settings pages (Incidents → AI → Settings and
+ * Alerts → AI → Settings, under Settings → AI then) each showed nine
  * read-only rows behind an Update button that opened a three-step wizard
  * (Investigation / Limits / Fix Tasks), every field with a paragraph of
  * help; the postmortem draft was one more switch behind one more dialog;
@@ -373,7 +374,7 @@ describe("every AI behaviour is a switch", () => {
 });
 
 describe("the pages draw switches first, and fold the limits", () => {
-  test("Incidents → Settings → AI: notice, switches, then the limits under Advanced", () => {
+  test("Incidents → AI → Settings: notice, switches, then the limits under Advanced", () => {
     const page: string = readDashboard(INCIDENT_PAGE);
 
     expect(page).toContain(
@@ -395,7 +396,7 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
   });
 
-  test("Alerts → Settings → AI is the same, for alerts", () => {
+  test("Alerts → AI → Settings is the same, for alerts", () => {
     const page: string = readDashboard(ALERT_PAGE);
 
     expect(page).toContain(

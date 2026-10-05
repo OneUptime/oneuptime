@@ -1,9 +1,11 @@
 {
   "baseline": {
-    "keys": 24715,
-    "untranslated": 16456
+    "keys": 25098,
+    "untranslated": 16466
   },
   "sameAsEnglish": [
-    "Precision"
+    "Incident {{number}}: {{title}}",
+    "Precision",
+    "Runbook: {{name}}"
   ]
 }

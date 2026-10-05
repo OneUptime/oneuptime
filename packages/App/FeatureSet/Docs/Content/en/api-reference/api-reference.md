@@ -30,6 +30,12 @@ This network device references records that are not in this project: Network Sit
 
 People are checked by membership: someone who is not a member of the project is refused the same way. A global probe, which every project can use, counts as your project's. Changing a resource checks only the IDs the change adds, so a resource that names something that has since gone can still be saved.
 
+A record can be named in two ways: by its ID field (`monitorId`), or by the relation (`"monitor": { "_id": "…" }`), which is what the dashboard's forms send. Send one of them. If a request sends both, they must name the same record: a request whose two disagree — two different IDs, or an ID and an empty value — is refused with a `400` that names both fields:
+
+```text
+Conflicting Monitor references were provided. monitorId and monitor are names for the same field and must hold the same value: send only one of them, or the same id in each.
+```
+
 ### API Reference
 
 Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference). The API reference is available in multiple languages — your preferred language is auto-detected from your browser, and you can switch languages at any time using the selector in the top navigation.

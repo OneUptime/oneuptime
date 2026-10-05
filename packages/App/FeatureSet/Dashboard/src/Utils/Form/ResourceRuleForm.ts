@@ -12,6 +12,11 @@ import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickNam
 import getOwnersFormField, {
   OWNER_RULE_OWNERS_DESCRIPTION,
 } from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import {
+  INHERITED_LABEL_COLUMNS,
+  INHERITED_OWNER_COLUMNS,
+  isAnyColumnSwitchedOn,
+} from "Common/UI/Components/RuleRun/RuleAction";
 import type SelectFormFields from "Common/UI/Types/SelectEntityField";
 import {
   PluralTemplate,
@@ -23,16 +28,18 @@ import {
 /*
  * CREATE A LABEL RULE OR AN OWNER RULE: WHAT IT MATCHES, THEN WHAT IT ADDS.
  *
- * Every resource product has a Label Rules and an Owner Rules page under its
- * Settings - Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox,
- * VMware, Ceph, Storage Arrays, Cloud, Serverless, Databases, Queues, IoT,
- * Network Devices, RUM, Services, Dashboards, On-Call, Runbooks, SLOs and
- * Workflows. Each page used to write out the same three-step form by hand:
- * "Basic Info" first, asking for a name before anyone had said what the rule
- * was for (and, on an owner rule, whether to notify owners, two steps away
- * from the owners), then "Match Criteria", and only on the third step what
- * the rule does - with "Labels to Add" and "Owners" optional, so a rule that
- * adds nothing could be saved.
+ * Every product with labels and owners has a Label Rules and an Owner Rules
+ * page under its Settings - Monitors, Incidents (and their episodes),
+ * Alerts (and theirs), Scheduled Maintenance, Status Pages, Hosts,
+ * Kubernetes, Docker, Docker Swarm, Podman, Proxmox, VMware, Ceph, Storage
+ * Arrays, Cloud, Serverless, Databases, Queues, IoT, Network Devices, RUM,
+ * Services, Dashboards, On-Call, Runbooks, SLOs and Workflows. Each page used
+ * to write out the same three-step form by hand: "Basic Info" first, asking
+ * for a name before anyone had said what the rule was for (and, on an
+ * owner rule, whether to notify owners, two steps away from the owners),
+ * then "Match Criteria", and only on the third step what the rule does -
+ * with "Labels to Add" and "Owners" optional, so a rule that adds nothing
+ * could be saved.
  *
  * Each page now hands over only what is its own - the fields its rule
  * matches on - and takes the rest from here, so all of them ask the same
@@ -41,14 +48,32 @@ import {
  *   - Match (step id "match-criteria"): the page's criteria fields, drawn as
  *     one conditions builder (Common/UI/Components/RuleCriteria). A rule with
  *     no conditions applies to everything, as before.
- *   - Labels, or Owners: what the rule adds - required - then the rule's
- *     Name, filled in from what was picked ("Add production, eu-west",
- *     "Add Platform as owners") and following the picks until somebody types
- *     a name of their own (Forms/Utils/FollowPickName, the rule every such
- *     name follows). The Description - and on an owner rule, Notify Owners,
- *     on as the server starts it - fold under More fields, whose header says
- *     what is set. An Edit form adds the rule's Enabled switch here; a new
- *     rule starts on (RuleEnabledField).
+ *   - Labels, or Owners: what the rule adds - required of a new rule - then
+ *     the rule's Name, filled in from what was picked ("Add production,
+ *     eu-west", "Add Platform as owners") and following the picks until
+ *     somebody types a name of their own (Forms/Utils/FollowPickName, the
+ *     rule every such name follows). The Description - and on an owner rule,
+ *     Notify Owners, on as the server starts it - fold under More fields,
+ *     whose header says what is set. An Edit form adds the rule's Enabled
+ *     switch here; a new rule starts on (RuleEnabledField).
+ *
+ * An incident, alert or scheduled maintenance rule can add more than what
+ * it names: the labels or owners of the monitors, hosts, clusters and
+ * services the event touches. Its page takes the inheriting form
+ * (getInheritingLabelRuleActionFields / getInheritingOwnerRuleActionFields),
+ * which folds those six switches under "Inherit Labels" / "Inherit Owners"
+ * right after the picker - so a rule may name nothing and only inherit. The
+ * fold says what it is for while nothing in it is on, and opens on an Edit
+ * form whose rule inherits something.
+ *
+ * Only a NEW rule must add something. An Edit form asks for nothing it adds
+ * (the field reads "(Optional)" there - Field.doNotRequireWhenEditing, which
+ * ModelForm reads, as it knows whether it creates or edits): rules saved
+ * before the form asked - through the API, Terraform, an import, or the old
+ * form - may add nothing, and such a rule can still be renamed, switched off
+ * or deleted without first being given labels or owners. Their tables and
+ * their own pages say "Adds nothing" (Common/UI/Components/RuleRun/
+ * RuleAction).
  *
  * How a page uses it (the step ids are written out on the page's own
  * criteria fields, so the form scanner of the guards can place them):
@@ -65,11 +90,16 @@ import {
  *     formSteps={getOwnerRuleFormSteps<HostOwnerRule>()}
  *     formFields={[...criteria, ...getOwnerRuleActionFields<HostOwnerRule>()]}
  *
+ *   <LabelRuleTable<IncidentLabelRule>
+ *     formSteps={getLabelRuleFormSteps<IncidentLabelRule>()}
+ *     formFields={[
+ *       ...criteria,
+ *       ...getInheritingLabelRuleActionFields<IncidentLabelRule>("incident"),
+ *     ]}
+ *
  * Common/Tests/UI/Components/Forms/ResourceRuleFormsGuard.test.ts holds every
- * label and owner rule page to this. The incident, alert, scheduled
- * maintenance, monitor and status page rules keep forms of their own for now
- * (the first three ask which resources' labels or owners to inherit as
- * well); the guard lists them, and the same helpers apply when they move.
+ * label and owner rule model to this: each has one page, on these helpers,
+ * and a model that can inherit takes the inheriting form.
  *
  * The name is filled in in the creator's language, as data: a rule named in
  * German follows its picks for a German editor, and keeps its name for an
@@ -80,6 +110,10 @@ import {
 export const RULE_MATCH_STEP_ID: string = "match-criteria";
 export const LABEL_RULE_ACTION_STEP_ID: string = "labels";
 export const OWNER_RULE_ACTION_STEP_ID: string = "owners";
+
+// The folds of the switches an incident, alert or event rule inherits with.
+export const INHERIT_LABELS_SECTION_ID: string = "inherit-labels";
+export const INHERIT_OWNERS_SECTION_ID: string = "inherit-owners";
 
 /*
  * The longest name a rule can be saved with: every label and owner rule
@@ -99,6 +133,15 @@ export const LABEL_RULE_LABELS_DESCRIPTION: string = translationKey(
   "When this rule matches, these labels are attached. Labels already attached are not added twice.",
 );
 
+// The same, on a rule that can inherit its labels instead.
+export const LABEL_RULE_INHERITING_LABELS_DESCRIPTION: string = translationKey(
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.",
+);
+
+export const OWNER_RULE_INHERITING_OWNERS_DESCRIPTION: string = translationKey(
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.",
+);
+
 export const LABEL_RULE_NAME_DESCRIPTION: string = translationKey(
   "Named after the labels it adds until you type a name of your own.",
 );
@@ -114,6 +157,190 @@ export const RULE_ENABLED_DESCRIPTION: string = translationKey(
 export const OWNER_RULE_NOTIFY_OWNERS_DESCRIPTION: string = translationKey(
   "Notify owners when they are added by this rule. Disable to add silently.",
 );
+
+/*
+ * THE EVENTS A RULE CAN INHERIT FOR.
+ *
+ * An incident, alert or scheduled maintenance rule can add the labels or
+ * owners of the monitors, hosts, Kubernetes clusters, Docker and Podman
+ * hosts and services the event touches - six switches, one column each
+ * (Common/UI/Components/RuleRun/RuleAction lists them). Their words are the
+ * event's own: an alert has one monitor, an incident several.
+ */
+export type InheritingRuleRecord =
+  | "incident"
+  | "alert"
+  | "scheduledMaintenance";
+
+export interface RuleInheritanceWording {
+  // Under the fold's title, and on its header while nothing is inherited.
+  sectionDescription: string;
+  // "Inherit Labels From Monitors" - or Monitor, for an alert's one monitor.
+  monitorsTitle: string;
+  // What each switch does, whole sentences.
+  monitors: string;
+  hosts: string;
+  kubernetesClusters: string;
+  dockerHosts: string;
+  podmanHosts: string;
+  services: string;
+}
+
+export const LABEL_INHERITANCE_WORDING: Record<
+  InheritingRuleRecord,
+  RuleInheritanceWording
+> = {
+  incident: {
+    sectionDescription: translationKey(
+      "Optionally copy labels from related entities onto the incident.",
+    ),
+    monitorsTitle: translationKey("Inherit Labels From Monitors"),
+    monitors: translationKey(
+      "Copy every label of the incident's monitors onto the incident.",
+    ),
+    hosts: translationKey(
+      "Copy every label of the incident's affected hosts onto the incident.",
+    ),
+    kubernetesClusters: translationKey(
+      "Copy every label of the incident's affected Kubernetes clusters onto the incident.",
+    ),
+    dockerHosts: translationKey(
+      "Copy every label of the incident's affected Docker hosts onto the incident.",
+    ),
+    podmanHosts: translationKey(
+      "Copy every label of the incident's affected Podman hosts onto the incident.",
+    ),
+    services: translationKey(
+      "Copy every label of the incident's affected services onto the incident.",
+    ),
+  },
+  alert: {
+    sectionDescription: translationKey(
+      "Optionally copy labels from related entities onto the alert.",
+    ),
+    monitorsTitle: translationKey("Inherit Labels From Monitor"),
+    monitors: translationKey(
+      "When this rule matches, also copy every label of the alert's monitor onto the alert.",
+    ),
+    hosts: translationKey(
+      "Copy every label of the alert's affected hosts onto the alert.",
+    ),
+    kubernetesClusters: translationKey(
+      "Copy every label of the alert's affected Kubernetes clusters onto the alert.",
+    ),
+    dockerHosts: translationKey(
+      "Copy every label of the alert's affected Docker hosts onto the alert.",
+    ),
+    podmanHosts: translationKey(
+      "Copy every label of the alert's affected Podman hosts onto the alert.",
+    ),
+    services: translationKey(
+      "Copy every label of the alert's affected services onto the alert.",
+    ),
+  },
+  scheduledMaintenance: {
+    sectionDescription: translationKey(
+      "Optionally copy labels from related entities onto the event.",
+    ),
+    monitorsTitle: translationKey("Inherit Labels From Monitors"),
+    monitors: translationKey(
+      "Copy every label of the event's monitors onto the event.",
+    ),
+    hosts: translationKey(
+      "Copy every label of the event's affected hosts onto the event.",
+    ),
+    kubernetesClusters: translationKey(
+      "Copy every label of the event's affected Kubernetes clusters onto the event.",
+    ),
+    dockerHosts: translationKey(
+      "Copy every label of the event's affected Docker hosts onto the event.",
+    ),
+    podmanHosts: translationKey(
+      "Copy every label of the event's affected Podman hosts onto the event.",
+    ),
+    services: translationKey(
+      "Copy every label of the event's affected services onto the event.",
+    ),
+  },
+};
+
+export const OWNER_INHERITANCE_WORDING: Record<
+  InheritingRuleRecord,
+  RuleInheritanceWording
+> = {
+  incident: {
+    sectionDescription: translationKey(
+      "Optionally assign owners from related entities to the incident.",
+    ),
+    monitorsTitle: translationKey("Inherit Owners From Monitors"),
+    monitors: translationKey(
+      "Assign every owner of the incident's monitors as an owner of the incident.",
+    ),
+    hosts: translationKey(
+      "Assign every owner of the incident's affected hosts as an owner of the incident.",
+    ),
+    kubernetesClusters: translationKey(
+      "Assign every owner of the incident's affected Kubernetes clusters as an owner of the incident.",
+    ),
+    dockerHosts: translationKey(
+      "Assign every owner of the incident's affected Docker hosts as an owner of the incident.",
+    ),
+    podmanHosts: translationKey(
+      "Assign every owner of the incident's affected Podman hosts as an owner of the incident.",
+    ),
+    services: translationKey(
+      "Assign every owner of the incident's affected services as an owner of the incident.",
+    ),
+  },
+  alert: {
+    sectionDescription: translationKey(
+      "Optionally assign owners from related entities to the alert.",
+    ),
+    monitorsTitle: translationKey("Inherit Owners From Monitor"),
+    monitors: translationKey(
+      "Assign every owner of the alert's monitor as an owner of the alert.",
+    ),
+    hosts: translationKey(
+      "Assign every owner of the alert's affected hosts as an owner of the alert.",
+    ),
+    kubernetesClusters: translationKey(
+      "Assign every owner of the alert's affected Kubernetes clusters as an owner of the alert.",
+    ),
+    dockerHosts: translationKey(
+      "Assign every owner of the alert's affected Docker hosts as an owner of the alert.",
+    ),
+    podmanHosts: translationKey(
+      "Assign every owner of the alert's affected Podman hosts as an owner of the alert.",
+    ),
+    services: translationKey(
+      "Assign every owner of the alert's affected services as an owner of the alert.",
+    ),
+  },
+  scheduledMaintenance: {
+    sectionDescription: translationKey(
+      "Optionally assign owners from related entities to the event.",
+    ),
+    monitorsTitle: translationKey("Inherit Owners From Monitors"),
+    monitors: translationKey(
+      "Assign every owner of the event's monitors as an owner of the event.",
+    ),
+    hosts: translationKey(
+      "Assign every owner of the event's affected hosts as an owner of the event.",
+    ),
+    kubernetesClusters: translationKey(
+      "Assign every owner of the event's affected Kubernetes clusters as an owner of the event.",
+    ),
+    dockerHosts: translationKey(
+      "Assign every owner of the event's affected Docker hosts as an owner of the event.",
+    ),
+    podmanHosts: translationKey(
+      "Assign every owner of the event's affected Podman hosts as an owner of the event.",
+    ),
+    services: translationKey(
+      "Assign every owner of the event's affected services as an owner of the event.",
+    ),
+  },
+};
 
 /*
  * How a rule is named after what it adds: one sentence while every pick
@@ -360,6 +587,54 @@ export const followPicksWithRuleName: <TEntity>(
 };
 
 /**
+ * Whether an inheriting rule must still name its labels: it adds nothing
+ * else until one of its Inherit Labels switches is on. Asked of a new rule
+ * only - the field is doNotRequireWhenEditing.
+ */
+export const isLabelPickRequired: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return !isAnyColumnSwitchedOn(values, INHERITED_LABEL_COLUMNS);
+};
+
+// The same for owners, and the Inherit Owners switches.
+export const isOwnerPickRequired: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return !isAnyColumnSwitchedOn(values, INHERITED_OWNER_COLUMNS);
+};
+
+/*
+ * The labels a label rule adds, picked from the project's labels: required
+ * of a new rule (or, on an inheriting rule, while it inherits nothing), never
+ * of an Edit form, and naming the rule after the picks.
+ */
+const getLabelsToAddField: <TEntity>(options: {
+  description: string;
+  required: boolean | ((values: FormValues<TEntity>) => boolean);
+}) => Field<TEntity> = <TEntity>(options: {
+  description: string;
+  required: boolean | ((values: FormValues<TEntity>) => boolean);
+}): Field<TEntity> => {
+  return {
+    field: { labelsToAdd: true } as unknown as SelectFormFields<TEntity>,
+    title: "Labels to Add",
+    description: options.description,
+    stepId: "labels",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownModal: {
+      type: Label,
+      labelField: "name",
+      valueField: "_id",
+    },
+    required: options.required,
+    doNotRequireWhenEditing: true,
+    placeholder: "Select labels",
+    onChange: followPicksWithRuleName<TEntity>(getLabelRuleName),
+  };
+};
+
+/**
  * A label rule's two steps: what it matches, then the labels it adds. The
  * step ids are written out here, so the form scanner of the guards reads
  * them.
@@ -383,33 +658,18 @@ export const getOwnerRuleFormSteps: <TEntity>() => Array<FormStep<TEntity>> = <
   ];
 };
 
-/**
- * Everything on a label rule's Labels step: the labels it adds (required),
- * its name (filled in from them), its Enabled switch on the Edit form only,
- * and its description folded under More fields.
+/*
+ * What every label rule's Labels step ends with, after what the rule adds:
+ * its name (filled in from the labels), its Enabled switch on the Edit form
+ * only, and its description folded under More fields.
  */
-export const getLabelRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
+const getLabelRuleNameAndMoreFields: <TEntity>() => Array<Field<TEntity>> = <
   TEntity,
 >(): Array<Field<TEntity>> => {
   const moreFields: FormFieldCollapsibleSection<TEntity> =
     getAdvancedFormSection<TEntity>();
 
   return [
-    {
-      field: { labelsToAdd: true } as unknown as SelectFormFields<TEntity>,
-      title: "Labels to Add",
-      description: LABEL_RULE_LABELS_DESCRIPTION,
-      stepId: "labels",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: true,
-      placeholder: "Select labels",
-      onChange: followPicksWithRuleName<TEntity>(getLabelRuleName),
-    },
     {
       field: { name: true } as unknown as SelectFormFields<TEntity>,
       title: "Name",
@@ -443,25 +703,19 @@ export const getLabelRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
   ];
 };
 
-/**
- * Everything on an owner rule's Owners step: the people and teams it adds
- * (required, one picker), its name (filled in from them), its Enabled switch
- * on the Edit form only, and folded under More fields whether the owners it
- * adds are notified - on, as the server starts a rule - and its description.
+/*
+ * What every owner rule's Owners step ends with, after what the rule adds:
+ * its name (filled in from the owners), its Enabled switch on the Edit form
+ * only, and folded under More fields whether the owners it adds are
+ * notified - on, as the server starts a rule - and its description.
  */
-export const getOwnerRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
+const getOwnerRuleNameAndMoreFields: <TEntity>() => Array<Field<TEntity>> = <
   TEntity,
 >(): Array<Field<TEntity>> => {
   const moreFields: FormFieldCollapsibleSection<TEntity> =
     getAdvancedFormSection<TEntity>();
 
   return [
-    getOwnersFormField<TEntity>({
-      stepId: "owners",
-      required: true,
-      description: OWNER_RULE_OWNERS_DESCRIPTION,
-      onChange: followPicksWithRuleName<TEntity>(getOwnerRuleName),
-    }),
     {
       field: { name: true } as unknown as SelectFormFields<TEntity>,
       title: "Name",
@@ -501,5 +755,252 @@ export const getOwnerRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
       required: false,
       collapsibleSection: moreFields,
     },
+  ];
+};
+
+/**
+ * Everything on a label rule's Labels step: the labels it adds (required of
+ * a new rule), its name (filled in from them), its Enabled switch on the
+ * Edit form only, and its description folded under More fields.
+ */
+export const getLabelRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    getLabelsToAddField<TEntity>({
+      description: LABEL_RULE_LABELS_DESCRIPTION,
+      required: true,
+    }),
+    ...getLabelRuleNameAndMoreFields<TEntity>(),
+  ];
+};
+
+/**
+ * Everything on an owner rule's Owners step: the people and teams it adds
+ * (required of a new rule, one picker), its name (filled in from them), its
+ * Enabled switch on the Edit form only, and folded under More fields
+ * whether the owners it adds are notified and its description.
+ */
+export const getOwnerRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    getOwnersFormField<TEntity>({
+      stepId: "owners",
+      required: true,
+      doNotRequireWhenEditing: true,
+      description: OWNER_RULE_OWNERS_DESCRIPTION,
+      onChange: followPicksWithRuleName<TEntity>(getOwnerRuleName),
+    }),
+    ...getOwnerRuleNameAndMoreFields<TEntity>(),
+  ];
+};
+
+/**
+ * The Labels step of an incident, alert or scheduled maintenance label
+ * rule: the labels it adds, then - folded under Inherit Labels - which of
+ * the event's monitors, hosts, clusters and services to copy labels from,
+ * then the rest of every label rule's step. A new rule must add something:
+ * a label, or an Inherit Labels switch turned on.
+ */
+export const getInheritingLabelRuleActionFields: <TEntity>(
+  record: InheritingRuleRecord,
+) => Array<Field<TEntity>> = <TEntity>(
+  record: InheritingRuleRecord,
+): Array<Field<TEntity>> => {
+  const wording: RuleInheritanceWording = LABEL_INHERITANCE_WORDING[record];
+
+  /*
+   * Folded on a new rule, and open on an Edit form whose rule inherits:
+   * what a rule adds is never hidden. While nothing in it is on, its header
+   * says what it is for.
+   */
+  const inheritSection: FormFieldCollapsibleSection<TEntity> = {
+    id: INHERIT_LABELS_SECTION_ID,
+    title: "Inherit Labels",
+    description: wording.sectionDescription,
+    getSummary: (values: FormValues<TEntity>): Array<string> | undefined => {
+      return isAnyColumnSwitchedOn(values, INHERITED_LABEL_COLUMNS)
+        ? undefined
+        : [wording.sectionDescription];
+    },
+  };
+
+  return [
+    getLabelsToAddField<TEntity>({
+      description: LABEL_RULE_INHERITING_LABELS_DESCRIPTION,
+      required: isLabelPickRequired,
+    }),
+    {
+      field: {
+        inheritLabelsFromMonitors: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: wording.monitorsTitle,
+      description: wording.monitors,
+      stepId: "labels",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritLabelsFromHosts: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Labels From Hosts",
+      description: wording.hosts,
+      stepId: "labels",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritLabelsFromKubernetesClusters: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Labels From Kubernetes Clusters",
+      description: wording.kubernetesClusters,
+      stepId: "labels",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritLabelsFromDockerHosts: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Labels From Docker Hosts",
+      description: wording.dockerHosts,
+      stepId: "labels",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritLabelsFromPodmanHosts: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Labels From Podman Hosts",
+      description: wording.podmanHosts,
+      stepId: "labels",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritLabelsFromServices: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Labels From Services",
+      description: wording.services,
+      stepId: "labels",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    ...getLabelRuleNameAndMoreFields<TEntity>(),
+  ];
+};
+
+/**
+ * The Owners step of an incident, alert or scheduled maintenance owner
+ * rule: the people and teams it adds, then - folded under Inherit Owners -
+ * whose owners among the event's monitors, hosts, clusters and services to
+ * add too, then the rest of every owner rule's step. A new rule must add
+ * someone: an owner picked, or an Inherit Owners switch turned on.
+ */
+export const getInheritingOwnerRuleActionFields: <TEntity>(
+  record: InheritingRuleRecord,
+) => Array<Field<TEntity>> = <TEntity>(
+  record: InheritingRuleRecord,
+): Array<Field<TEntity>> => {
+  const wording: RuleInheritanceWording = OWNER_INHERITANCE_WORDING[record];
+
+  // As the Inherit Labels fold: folded until something in it is on.
+  const inheritSection: FormFieldCollapsibleSection<TEntity> = {
+    id: INHERIT_OWNERS_SECTION_ID,
+    title: "Inherit Owners",
+    description: wording.sectionDescription,
+    getSummary: (values: FormValues<TEntity>): Array<string> | undefined => {
+      return isAnyColumnSwitchedOn(values, INHERITED_OWNER_COLUMNS)
+        ? undefined
+        : [wording.sectionDescription];
+    },
+  };
+
+  return [
+    getOwnersFormField<TEntity>({
+      stepId: "owners",
+      required: isOwnerPickRequired,
+      doNotRequireWhenEditing: true,
+      description: OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
+      onChange: followPicksWithRuleName<TEntity>(getOwnerRuleName),
+    }),
+    {
+      field: {
+        inheritOwnersFromMonitors: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: wording.monitorsTitle,
+      description: wording.monitors,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritOwnersFromHosts: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Owners From Hosts",
+      description: wording.hosts,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritOwnersFromKubernetesClusters: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Owners From Kubernetes Clusters",
+      description: wording.kubernetesClusters,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritOwnersFromDockerHosts: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Owners From Docker Hosts",
+      description: wording.dockerHosts,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritOwnersFromPodmanHosts: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Owners From Podman Hosts",
+      description: wording.podmanHosts,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    {
+      field: {
+        inheritOwnersFromServices: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Inherit Owners From Services",
+      description: wording.services,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      collapsibleSection: inheritSection,
+    },
+    ...getOwnerRuleNameAndMoreFields<TEntity>(),
   ];
 };

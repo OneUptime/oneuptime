@@ -103,6 +103,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/configuration/ip-addresses",
       },
       {
+        title: "Label and Owner Rules",
+        url: "/docs/configuration/label-and-owner-rules",
+      },
+      {
         title: "Import and Export Label Rules",
         url: "/docs/configuration/label-rule-import-export",
       },
