@@ -1,5 +1,6 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -107,6 +108,11 @@ export const TELEMETRY_ENTITY_TYPES: Record<
   [ServiceType.CephCluster]: {
     label: "Ceph Cluster",
     modelType: CephCluster,
+    nameFields: ["name"],
+  },
+  [ServiceType.StorageArray]: {
+    label: "Storage Array",
+    modelType: StorageArray,
     nameFields: ["name"],
   },
   [ServiceType.DockerSwarmCluster]: {

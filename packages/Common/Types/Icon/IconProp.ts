@@ -333,6 +333,7 @@ enum IconProp {
   VMware = "VMware",
   IoT = "IoT",
   Ceph = "Ceph",
+  StorageArray = "StorageArray",
   Gauge = "Gauge",
 }
 

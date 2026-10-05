@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import StorageArray from "./StorageArray";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import PodmanHost from "./PodmanHost";
@@ -1049,6 +1050,60 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StorageArray,
+    title: "Storage Arrays",
+    description: "List of storage arrays affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return StorageArray;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceStorageArray",
+    inverseJoinColumn: {
+      name: "storageArrayId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public storageArrays?: Array<StorageArray> = undefined;
 
   @ColumnAccessControl({
     create: [
