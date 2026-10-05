@@ -25326,5 +25326,6 @@
   "This criteria is met when this filter matches:": "Dieses Kriterium ist erfüllt, wenn dieser Filter zutrifft:",
   "This rule runs when all of these conditions are met:": "Diese Regel wird ausgeführt, wenn alle diese Bedingungen erfüllt sind:",
   "This rule runs when any one of these conditions is met:": "Diese Regel wird ausgeführt, wenn eine beliebige dieser Bedingungen erfüllt ist:",
-  "This rule runs when this condition is met:": "Diese Regel wird ausgeführt, wenn diese Bedingung erfüllt ist:"
+  "This rule runs when this condition is met:": "Diese Regel wird ausgeführt, wenn diese Bedingung erfüllt ist:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Diese Regel hat noch einen Standard-Zuständigen, der von einer älteren Version dieses Formulars festgelegt wurde. Öffnen Sie diesen Abschnitt, um sie als Eigentümer hinzuzufügen oder ihn zu entfernen."
 }

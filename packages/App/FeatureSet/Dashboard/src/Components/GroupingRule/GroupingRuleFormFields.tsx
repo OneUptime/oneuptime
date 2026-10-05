@@ -17,16 +17,15 @@ import {
   LegacyDefaultAssigneeChange,
   REOPEN_WINDOW_SETTING_FIELD_KEY,
   RESOLVE_DELAY_SETTING_FIELD_KEY,
-  SHOW_ADVANCED_SETTINGS_FIELD_KEY,
   TIME_WINDOW_SETTING_FIELD_KEY,
   getGroupingMode,
   getLegacyDefaultAssignee,
   getMinutesSettingDisplay,
+  getMinutesSettingFoldedValue,
   getMinutesValidationError,
   getSelectedGroupingMode,
   getValuesForGroupingModeChange,
   getValuesForLegacyDefaultAssigneeChange,
-  hasAdvancedSettings,
   isGroupingMode,
   isLegacyDefaultAssigneeChange,
 } from "../../Utils/GroupingRule/GroupingRuleSetup";
@@ -38,7 +37,10 @@ import MinutesSettingField, {
 } from "./MinutesSettingField";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
@@ -53,8 +55,29 @@ import React, { ReactElement } from "react";
  * saves them.
  *
  * Every step id is written out as a string so the form step guards
- * (Common/Tests/Helpers/FormStepsScan.ts) can place each field.
+ * (Common/Tests/Helpers/FormStepsScan.ts) can place each field. A field that
+ * goes in the rule's More fields is handed its section in the call's object
+ * argument, where those guards read it too: every field of the fold names
+ * the one section the page built.
  */
+
+/*
+ * A field the rule's More fields hold - the fold at the end of the Grouping
+ * step, for everything a rule can do beyond grouping. The section is one
+ * getAdvancedFormSection, built once per page and handed to every field in
+ * it, so the form folds them together; sectionTitle is the small heading
+ * over the first field of a group (On-Call & Ownership, Episode Lifecycle,
+ * Details).
+ */
+export interface FoldedGroupingRuleFieldOptions<TModel extends BaseModel> {
+  collapsibleSection: FormFieldCollapsibleSection<TModel>;
+  sectionTitle?: string | undefined;
+}
+
+export interface FoldedMinutesSettingFieldOptions<TModel extends BaseModel>
+  extends FoldedGroupingRuleFieldOptions<TModel> {
+  kind: GroupingRuleKind;
+}
 
 type Values = GroupingRuleValues;
 
@@ -73,12 +96,6 @@ export const isCustomGroupingSelected: (
   kind: GroupingRuleKind,
 ) => boolean = (values: Values, kind: GroupingRuleKind): boolean => {
   return getSelectedGroupingMode(values, kind) === GroupingMode.Custom;
-};
-
-export const isShowingAdvancedSettings: (values: Values) => boolean = (
-  values: Values,
-): boolean => {
-  return values[SHOW_ADVANCED_SETTINGS_FIELD_KEY] === true;
 };
 
 interface MinutesSetting {
@@ -169,6 +186,32 @@ const changeMinutesSetting: MinutesSettingChangeFunction = <
       [setting.enabledField]: value.enabled,
       [setting.minutesField]: value.minutes,
     } as FormValues<TModel>);
+  };
+};
+
+type FoldedMinutesSettingFunction = <TModel extends BaseModel>(
+  setting: MinutesSetting,
+) => (values: FormValues<TModel>) => string | null;
+
+/*
+ * What a lifecycle setting says on the More fields header while folded: its
+ * minutes while it is on ("Reopen recently resolved episodes: 30 minutes"),
+ * nothing while it is off. The control's own form value is a carrier that
+ * says nothing (carrierDefaultValue); what it edits is the rule's switch and
+ * minutes columns, read here the way the control draws them.
+ */
+const foldedMinutesSetting: FoldedMinutesSettingFunction = <
+  TModel extends BaseModel,
+>(
+  setting: MinutesSetting,
+): ((values: FormValues<TModel>) => string | null) => {
+  return (values: FormValues<TModel>): string | null => {
+    return getMinutesSettingFoldedValue({
+      enabled: asValues(values)[setting.enabledField],
+      minutes: asValues(values)[setting.minutesField],
+      fallbackMinutes: setting.fallbackMinutes,
+      translate: translateGroupingRuleText,
+    });
   };
 };
 
@@ -333,37 +376,15 @@ export const getTimeWindowFormField: <TModel extends BaseModel>(
 };
 
 /*
- * Everything a rule can do beyond grouping - reopening and auto-resolving
- * episodes, episode titles and labels, on-call and owners - lives on steps
- * this switch shows. A rule that already uses any of it opens with it on.
+ * The three episode lifecycle settings - reopen recently resolved episodes,
+ * wait before resolving one, resolve quiet ones - in the rule's More fields:
+ * each a switch with its minutes, drawn as one control, and a chip with its
+ * minutes on the folded header while it is on.
  */
-export const getShowAdvancedSettingsFormField: <
-  TModel extends BaseModel,
->() => ModelField<TModel> = <
-  TModel extends BaseModel,
->(): ModelField<TModel> => {
-  return {
-    overrideField: {
-      isEnabled: true,
-    },
-    overrideFieldKey: SHOW_ADVANCED_SETTINGS_FIELD_KEY,
-    formOnly: true,
-    title: GROUPING_RULE_COPY.showAdvancedTitle,
-    description: GROUPING_RULE_COPY.showAdvancedDescription,
-    stepId: "grouping",
-    fieldType: FormFieldSchemaType.Toggle,
-    required: false,
-    dataTestId: "show-advanced-settings",
-    getDefaultValue: (values: FormValues<TModel>): boolean => {
-      return hasAdvancedSettings(asValues(values));
-    },
-  };
-};
-
 export const getReopenWindowFormField: <TModel extends BaseModel>(
-  kind: GroupingRuleKind,
+  options: FoldedMinutesSettingFieldOptions<TModel>,
 ) => ModelField<TModel> = <TModel extends BaseModel>(
-  kind: GroupingRuleKind,
+  options: FoldedMinutesSettingFieldOptions<TModel>,
 ): ModelField<TModel> => {
   return {
     overrideField: {
@@ -372,12 +393,15 @@ export const getReopenWindowFormField: <TModel extends BaseModel>(
     overrideFieldKey: REOPEN_WINDOW_SETTING_FIELD_KEY,
     formOnly: true,
     title: GROUPING_RULE_COPY.reopenWindowTitle,
-    stepId: "episode-lifecycle",
+    stepId: "grouping",
+    collapsibleSection: options.collapsibleSection,
+    sectionTitle: options.sectionTitle,
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
+    getFoldedValue: foldedMinutesSetting<TModel>(REOPEN_WINDOW),
     customValidation: validateMinutesSetting<TModel>(REOPEN_WINDOW),
     onChange: changeMinutesSetting<TModel>(REOPEN_WINDOW),
     getCustomElement: (
@@ -388,7 +412,7 @@ export const getReopenWindowFormField: <TModel extends BaseModel>(
         {
           setting: REOPEN_WINDOW,
           title: GROUPING_RULE_COPY.reopenWindowTitle,
-          description: GROUPING_RULE_COPY.reopenWindowDescription[kind],
+          description: GROUPING_RULE_COPY.reopenWindowDescription[options.kind],
           sentence: GROUPING_RULE_COPY.reopenWindowSentence,
           minutesLabel: "Reopen Window",
           dataTestId: "reopen-window-setting",
@@ -401,9 +425,9 @@ export const getReopenWindowFormField: <TModel extends BaseModel>(
 };
 
 export const getResolveDelayFormField: <TModel extends BaseModel>(
-  kind: GroupingRuleKind,
+  options: FoldedMinutesSettingFieldOptions<TModel>,
 ) => ModelField<TModel> = <TModel extends BaseModel>(
-  kind: GroupingRuleKind,
+  options: FoldedMinutesSettingFieldOptions<TModel>,
 ): ModelField<TModel> => {
   return {
     overrideField: {
@@ -412,12 +436,15 @@ export const getResolveDelayFormField: <TModel extends BaseModel>(
     overrideFieldKey: RESOLVE_DELAY_SETTING_FIELD_KEY,
     formOnly: true,
     title: GROUPING_RULE_COPY.resolveDelayTitle,
-    stepId: "episode-lifecycle",
+    stepId: "grouping",
+    collapsibleSection: options.collapsibleSection,
+    sectionTitle: options.sectionTitle,
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
+    getFoldedValue: foldedMinutesSetting<TModel>(RESOLVE_DELAY),
     customValidation: validateMinutesSetting<TModel>(RESOLVE_DELAY),
     onChange: changeMinutesSetting<TModel>(RESOLVE_DELAY),
     getCustomElement: (
@@ -428,7 +455,7 @@ export const getResolveDelayFormField: <TModel extends BaseModel>(
         {
           setting: RESOLVE_DELAY,
           title: GROUPING_RULE_COPY.resolveDelayTitle,
-          description: GROUPING_RULE_COPY.resolveDelayDescription[kind],
+          description: GROUPING_RULE_COPY.resolveDelayDescription[options.kind],
           sentence: GROUPING_RULE_COPY.resolveDelaySentence,
           minutesLabel: "Resolve Delay",
           dataTestId: "resolve-delay-setting",
@@ -441,9 +468,9 @@ export const getResolveDelayFormField: <TModel extends BaseModel>(
 };
 
 export const getInactivityTimeoutFormField: <TModel extends BaseModel>(
-  kind: GroupingRuleKind,
+  options: FoldedMinutesSettingFieldOptions<TModel>,
 ) => ModelField<TModel> = <TModel extends BaseModel>(
-  kind: GroupingRuleKind,
+  options: FoldedMinutesSettingFieldOptions<TModel>,
 ): ModelField<TModel> => {
   return {
     overrideField: {
@@ -452,12 +479,15 @@ export const getInactivityTimeoutFormField: <TModel extends BaseModel>(
     overrideFieldKey: INACTIVITY_TIMEOUT_SETTING_FIELD_KEY,
     formOnly: true,
     title: GROUPING_RULE_COPY.inactivityTimeoutTitle,
-    stepId: "episode-lifecycle",
+    stepId: "grouping",
+    collapsibleSection: options.collapsibleSection,
+    sectionTitle: options.sectionTitle,
     fieldType: FormFieldSchemaType.CustomComponent,
     customElementDrawsOwnLabel: true,
     required: false,
     spanFullRow: true,
     getDefaultValue: carrierDefaultValue,
+    getFoldedValue: foldedMinutesSetting<TModel>(INACTIVITY_TIMEOUT),
     customValidation: validateMinutesSetting<TModel>(INACTIVITY_TIMEOUT),
     onChange: changeMinutesSetting<TModel>(INACTIVITY_TIMEOUT),
     getCustomElement: (
@@ -468,8 +498,9 @@ export const getInactivityTimeoutFormField: <TModel extends BaseModel>(
         {
           setting: INACTIVITY_TIMEOUT,
           title: GROUPING_RULE_COPY.inactivityTimeoutTitle,
-          description: GROUPING_RULE_COPY.inactivityTimeoutDescription[kind],
-          sentence: GROUPING_RULE_COPY.inactivityTimeoutSentence[kind],
+          description:
+            GROUPING_RULE_COPY.inactivityTimeoutDescription[options.kind],
+          sentence: GROUPING_RULE_COPY.inactivityTimeoutSentence[options.kind],
           minutesLabel: "Inactivity Timeout",
           dataTestId: "inactivity-timeout-setting",
         },
@@ -524,7 +555,7 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("enableReopenWindow"),
       title: "Enable Reopen Window",
-      stepId: "episode-lifecycle",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       showIf: (): boolean => {
@@ -534,7 +565,7 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("reopenWindowMinutes"),
       title: "Reopen Window (minutes)",
-      stepId: "episode-lifecycle",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.Number,
       required: false,
       showIf: (): boolean => {
@@ -544,7 +575,7 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("enableResolveDelay"),
       title: "Enable Resolve Delay",
-      stepId: "episode-lifecycle",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       showIf: (): boolean => {
@@ -554,7 +585,7 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("resolveDelayMinutes"),
       title: "Resolve Delay (minutes)",
-      stepId: "episode-lifecycle",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.Number,
       required: false,
       showIf: (): boolean => {
@@ -564,7 +595,7 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("enableInactivityTimeout"),
       title: "Enable Inactivity Timeout",
-      stepId: "episode-lifecycle",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
       showIf: (): boolean => {
@@ -574,7 +605,7 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("inactivityTimeoutMinutes"),
       title: "Inactivity Timeout (minutes)",
-      stepId: "episode-lifecycle",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.Number,
       required: false,
       showIf: (): boolean => {
@@ -588,10 +619,9 @@ export const getGroupingRuleColumnFormFields: <
  * A rule's old default assignee (see EPISODE_OWNERS_FIELD_KEY in
  * GroupingRuleSetup). The form no longer asks for one, but a rule saved with
  * it keeps it, so its two columns are registered - never drawn - for the
- * edit form to read and, once somebody settles it, clear; and a line under
- * Episode Owners names it, with Add as owners and Remove.
+ * edit form to read and, once somebody settles it, clear.
  */
-export const getLegacyDefaultAssigneeFormFields: <
+export const getLegacyDefaultAssigneeColumnFormFields: <
   TModel extends BaseModel,
 >() => Array<ModelField<TModel>> = <TModel extends BaseModel>(): Array<
   ModelField<TModel>
@@ -600,7 +630,7 @@ export const getLegacyDefaultAssigneeFormFields: <
     {
       field: selectColumn<TModel>(LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN),
       title: "Default Assign To Team ID",
-      stepId: "on-call-ownership",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.ObjectID,
       required: false,
       showIf: (): boolean => {
@@ -610,68 +640,87 @@ export const getLegacyDefaultAssigneeFormFields: <
     {
       field: selectColumn<TModel>(LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN),
       title: "Default Assign To User ID",
-      stepId: "on-call-ownership",
+      stepId: "grouping",
       fieldType: FormFieldSchemaType.ObjectID,
       required: false,
       showIf: (): boolean => {
         return false;
       },
     },
-    {
-      overrideField: {
-        defaultAssignToUserId: true,
-      },
-      overrideFieldKey: LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
-      formOnly: true,
-      title: GROUPING_RULE_COPY.legacyAssigneeTitle,
-      stepId: "on-call-ownership",
-      fieldType: FormFieldSchemaType.CustomComponent,
-      customElementDrawsOwnLabel: true,
-      required: false,
-      spanFullRow: true,
-      dataTestId: "legacy-default-assignee-field",
-      // Only while the rule still has one: never on a new rule.
-      showIf: (values: FormValues<TModel>): boolean => {
-        return getLegacyDefaultAssignee(asValues(values)) !== null;
-      },
-      onChange: (
-        value: unknown,
-        currentValues: FormValues<TModel>,
-        setNewFormValues: (values: FormValues<TModel>) => void,
-      ): void => {
-        if (!isLegacyDefaultAssigneeChange(value)) {
-          return;
-        }
-
-        setNewFormValues({
-          ...currentValues,
-          ...getValuesForLegacyDefaultAssigneeChange({
-            values: asValues(currentValues),
-            change: value,
-          }),
-        } as FormValues<TModel>);
-      },
-      getCustomElement: (
-        values: FormValues<TModel>,
-        props: CustomElementProps,
-      ): ReactElement => {
-        const assignee: LegacyDefaultAssignee | null = getLegacyDefaultAssignee(
-          asValues(values),
-        );
-
-        if (!assignee) {
-          return <></>;
-        }
-
-        return (
-          <LegacyDefaultAssigneeNote
-            assignee={assignee}
-            onChange={(change: LegacyDefaultAssigneeChange): void => {
-              props.onChange?.(change);
-            }}
-          />
-        );
-      },
-    },
   ];
+};
+
+/*
+ * The line under Episode Owners that names a rule's old default assignee,
+ * with Add as owners and Remove - only while the rule still has one. Folded,
+ * it is a chip with its name on the More fields header, so an edit form
+ * never hides that the rule still has one.
+ */
+export const getLegacyDefaultAssigneeFormField: <TModel extends BaseModel>(
+  options: FoldedGroupingRuleFieldOptions<TModel>,
+) => ModelField<TModel> = <TModel extends BaseModel>(
+  options: FoldedGroupingRuleFieldOptions<TModel>,
+): ModelField<TModel> => {
+  return {
+    overrideField: {
+      defaultAssignToUserId: true,
+    },
+    overrideFieldKey: LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+    formOnly: true,
+    title: GROUPING_RULE_COPY.legacyAssigneeTitle,
+    stepId: "grouping",
+    collapsibleSection: options.collapsibleSection,
+    sectionTitle: options.sectionTitle,
+    fieldType: FormFieldSchemaType.CustomComponent,
+    customElementDrawsOwnLabel: true,
+    required: false,
+    spanFullRow: true,
+    dataTestId: "legacy-default-assignee-field",
+    // Only while the rule still has one: never on a new rule.
+    showIf: (values: FormValues<TModel>): boolean => {
+      return getLegacyDefaultAssignee(asValues(values)) !== null;
+    },
+    // Its names are looked up when it is drawn: the chip has its name alone.
+    getFoldedValue: (values: FormValues<TModel>): string | null => {
+      return getLegacyDefaultAssignee(asValues(values)) ? "" : null;
+    },
+    onChange: (
+      value: unknown,
+      currentValues: FormValues<TModel>,
+      setNewFormValues: (values: FormValues<TModel>) => void,
+    ): void => {
+      if (!isLegacyDefaultAssigneeChange(value)) {
+        return;
+      }
+
+      setNewFormValues({
+        ...currentValues,
+        ...getValuesForLegacyDefaultAssigneeChange({
+          values: asValues(currentValues),
+          change: value,
+        }),
+      } as FormValues<TModel>);
+    },
+    getCustomElement: (
+      values: FormValues<TModel>,
+      props: CustomElementProps,
+    ): ReactElement => {
+      const assignee: LegacyDefaultAssignee | null = getLegacyDefaultAssignee(
+        asValues(values),
+      );
+
+      if (!assignee) {
+        return <></>;
+      }
+
+      return (
+        <LegacyDefaultAssigneeNote
+          assignee={assignee}
+          onChange={(change: LegacyDefaultAssigneeChange): void => {
+            props.onChange?.(change);
+          }}
+        />
+      );
+    },
+  };
 };

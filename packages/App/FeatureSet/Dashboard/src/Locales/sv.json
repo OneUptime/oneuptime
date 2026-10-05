@@ -25326,5 +25326,6 @@
   "This criteria is met when this filter matches:": "Det här kriteriet är uppfyllt när det här filtret matchar:",
   "This rule runs when all of these conditions are met:": "Den här regeln körs när alla dessa villkor är uppfyllda:",
   "This rule runs when any one of these conditions is met:": "Den här regeln körs när något av dessa villkor är uppfyllt:",
-  "This rule runs when this condition is met:": "Den här regeln körs när det här villkoret är uppfyllt:"
+  "This rule runs when this condition is met:": "Den här regeln körs när det här villkoret är uppfyllt:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Den här regeln har fortfarande en standardansvarig som angavs av en äldre version av det här formuläret. Öppna det här avsnittet för att lägga till dem som ägare eller ta bort den."
 }

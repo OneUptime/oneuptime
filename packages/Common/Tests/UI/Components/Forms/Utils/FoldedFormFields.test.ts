@@ -318,6 +318,86 @@ describe("getFoldedFieldValue", () => {
       ).toBeUndefined();
     }
   });
+
+  /*
+   * A custom editor that keeps what it edits in other form values - a
+   * grouping rule's reopen switch and its minutes - says what it is set to
+   * itself (Field.getFoldedValue), already in the reader's language.
+   */
+  const REOPEN: Field<JSONObject> = field(
+    "reopenWindowSetting",
+    FormFieldSchemaType.CustomComponent,
+    {
+      title: "Reopen recently resolved episodes",
+      getFoldedValue: (values: Values): string | null => {
+        return values["enableReopenWindow"] === true
+          ? `${String(values["reopenWindowMinutes"])} minutes`
+          : null;
+      },
+    },
+  );
+
+  test("a custom editor that keeps its value elsewhere says what it is set to, as it says it", () => {
+    expect(
+      valueOf(REOPEN, {
+        reopenWindowSetting: true,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 30,
+      }),
+    ).toEqual({ value: "30 minutes", translateValue: false });
+
+    // Off: nothing to say.
+    expect(
+      valueOf(REOPEN, { reopenWindowSetting: true, enableReopenWindow: false }),
+    ).toBeUndefined();
+  });
+
+  test("a custom editor with nothing more to say than being set leaves its chip its name", () => {
+    for (const said of ["", "   "]) {
+      expect(
+        valueOf(
+          {
+            ...REOPEN,
+            getFoldedValue: (): string | null => {
+              return said;
+            },
+          },
+          {},
+        ),
+      ).toBeUndefined();
+    }
+  });
+
+  test("what a custom editor says is cut to a few words, like any value", () => {
+    const value: FoldedFieldValue | undefined = valueOf(
+      {
+        ...REOPEN,
+        getFoldedValue: (): string | null => {
+          return "Within 30 minutes of the previous incident from the same monitor";
+        },
+      },
+      {},
+    );
+
+    expect(value?.translateValue).toBe(false);
+    expect(value!.value.length).toBeLessThanOrEqual(
+      FOLDED_FIELD_VALUE_MAX_LENGTH,
+    );
+    expect(value!.value.endsWith("…")).toBe(true);
+  });
+
+  test("never shows a secret, even one a custom editor says", () => {
+    expect(
+      valueOf(
+        field("apiToken", FormFieldSchemaType.CustomComponent, {
+          getFoldedValue: (): string | null => {
+            return "tok_live_123";
+          },
+        }),
+        {},
+      ),
+    ).toBeUndefined();
+  });
 });
 
 describe("getFoldedFormFieldItems", () => {
@@ -456,6 +536,76 @@ describe("getFoldedFormFieldItems", () => {
     );
 
     expect(items).toEqual([{ key: "labels", title: "Labels", isSet: false }]);
+  });
+
+  test("draws a custom editor that keeps its value elsewhere as set when it says so, and only then", () => {
+    const lifecycle: Array<Field<JSONObject>> = [
+      field("reopenWindowSetting", FormFieldSchemaType.CustomComponent, {
+        title: "Reopen recently resolved episodes",
+        getDefaultValue: (): boolean => {
+          return true;
+        },
+        getFoldedValue: (values: Values): string | null => {
+          return values["enableReopenWindow"] === true ? "30 minutes" : null;
+        },
+      }),
+      field("legacyDefaultAssignee", FormFieldSchemaType.CustomComponent, {
+        title: "Default assignee",
+        getFoldedValue: (values: Values): string | null => {
+          return values["defaultAssignToUserId"] ? "" : null;
+        },
+      }),
+    ];
+
+    // Both carriers there, nothing they edit set: no chip.
+    expect(
+      getFoldedFormFieldItems(lifecycle, { reopenWindowSetting: true }),
+    ).toEqual([
+      {
+        key: "reopenWindowSetting",
+        title: "Reopen recently resolved episodes",
+        isSet: false,
+      },
+      {
+        key: "legacyDefaultAssignee",
+        title: "Default assignee",
+        isSet: false,
+      },
+    ]);
+
+    expect(
+      getFoldedFormFieldItems(lifecycle, {
+        reopenWindowSetting: true,
+        enableReopenWindow: true,
+        defaultAssignToUserId: "user",
+      }),
+    ).toEqual([
+      {
+        key: "reopenWindowSetting",
+        title: "Reopen recently resolved episodes",
+        isSet: true,
+        value: "30 minutes",
+      },
+      // Set, its name alone.
+      {
+        key: "legacyDefaultAssignee",
+        title: "Default assignee",
+        isSet: true,
+      },
+    ]);
+
+    // A section that says it is not configured still shows nothing as set.
+    expect(
+      getFoldedFormFieldItems(
+        lifecycle,
+        { enableReopenWindow: true },
+        { isSectionConfigured: false },
+      )[0],
+    ).toEqual({
+      key: "reopenWindowSetting",
+      title: "Reopen recently resolved episodes",
+      isSet: false,
+    });
   });
 
   test("names a field by the key its form value is kept under", () => {

@@ -25326,5 +25326,6 @@
   "This criteria is met when this filter matches:": "Este critério é atendido quando este filtro corresponde:",
   "This rule runs when all of these conditions are met:": "Esta regra é executada quando todas estas condições são atendidas:",
   "This rule runs when any one of these conditions is met:": "Esta regra é executada quando qualquer uma destas condições é atendida:",
-  "This rule runs when this condition is met:": "Esta regra é executada quando esta condição é atendida:"
+  "This rule runs when this condition is met:": "Esta regra é executada quando esta condição é atendida:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Esta regra ainda tem um responsável padrão definido por uma versão anterior deste formulário. Abra esta seção para adicioná-los como proprietários ou removê-lo."
 }

@@ -25326,5 +25326,6 @@
   "This criteria is met when this filter matches:": "यह फ़िल्टर मेल खाने पर यह मानदंड पूरा होता है:",
   "This rule runs when all of these conditions are met:": "यह नियम तब चलता है जब ये सभी शर्तें पूरी होती हैं:",
   "This rule runs when any one of these conditions is met:": "यह नियम तब चलता है जब इनमें से कोई एक शर्त पूरी होती है:",
-  "This rule runs when this condition is met:": "यह नियम तब चलता है जब यह शर्त पूरी होती है:"
+  "This rule runs when this condition is met:": "यह नियम तब चलता है जब यह शर्त पूरी होती है:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "इस नियम में अब भी इस फ़ॉर्म के पुराने संस्करण द्वारा सेट किया गया एक डिफ़ॉल्ट असाइनी है। उन्हें मालिक के रूप में जोड़ने या इसे हटाने के लिए यह अनुभाग खोलें।"
 }
