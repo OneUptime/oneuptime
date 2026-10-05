@@ -25219,5 +25219,9 @@
   "Used today: {{count}} tokens.": "Brukt i dag: {{count}} tokens.",
   "Used today: {{count}} tokens._one": "Brukt i dag: {{count}} token.",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} må være et heltall fra {{min}} til {{max}}. La feltet stå tomt for ingen grense."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} må være et heltall fra {{min}} til {{max}}. La feltet stå tomt for ingen grense.",
+  "Adds nothing": "Legger ikke til noe",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Denne regelen legger ikke til noe når den samsvarer. Rediger den for å velge hva den legger til, eller slett den.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Når denne regelen samsvarer, legges disse etikettene til. Etiketter som allerede er lagt til, legges ikke til to ganger. La feltet stå tomt hvis regelen bare arver etiketter.",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Når denne regelen samsvarer, legges disse personene og teamene til som eiere. Eiere som allerede er tildelt, legges ikke til to ganger. La feltet stå tomt hvis regelen bare arver eiere."
 }

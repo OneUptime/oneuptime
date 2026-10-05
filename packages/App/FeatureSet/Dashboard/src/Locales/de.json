@@ -25219,5 +25219,9 @@
   "Used today: {{count}} tokens.": "Heute verbraucht: {{count}} Tokens.",
   "Used today: {{count}} tokens._one": "Heute verbraucht: {{count}} Token.",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} muss eine ganze Zahl von {{min}} bis {{max}} sein. Leer lassen für kein Limit."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} muss eine ganze Zahl von {{min}} bis {{max}} sein. Leer lassen für kein Limit.",
+  "Adds nothing": "Fügt nichts hinzu",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Diese Regel fügt nichts hinzu, wenn sie zutrifft. Bearbeiten Sie sie, um festzulegen, was sie hinzufügt, oder löschen Sie sie.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Wenn diese Regel zutrifft, werden diese Beschriftungen angehängt. Bereits angehängte Beschriftungen werden nicht doppelt hinzugefügt. Lassen Sie das Feld leer, wenn die Regel nur Beschriftungen erbt.",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Wenn diese Regel zutrifft, werden diese Personen und Teams als Eigentümer hinzugefügt. Bereits zugewiesene Eigentümer werden nicht doppelt hinzugefügt. Lassen Sie das Feld leer, wenn die Regel nur Eigentümer erbt."
 }

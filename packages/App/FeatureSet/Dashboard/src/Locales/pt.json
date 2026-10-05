@@ -25219,5 +25219,9 @@
   "Used today: {{count}} tokens.": "Usado hoje: {{count}} tokens.",
   "Used today: {{count}} tokens._one": "Usado hoje: {{count}} token.",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} deve ser um número inteiro de {{min}} a {{max}}. Deixe vazio para não ter limite."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} deve ser um número inteiro de {{min}} a {{max}}. Deixe vazio para não ter limite.",
+  "Adds nothing": "Não adiciona nada",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Esta regra não adiciona nada quando corresponde. Edite-a para escolher o que ela adiciona, ou exclua-a.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Quando esta regra corresponde, estes rótulos são anexados. Rótulos já anexados não são adicionados duas vezes. Deixe em branco se a regra apenas herdar rótulos.",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Quando esta regra corresponde, essas pessoas e equipes são adicionadas como proprietárias. Proprietários já atribuídos não são adicionados duas vezes. Deixe em branco se a regra apenas herdar proprietários."
 }

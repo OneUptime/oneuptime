@@ -25219,5 +25219,9 @@
   "Used today: {{count}} tokens.": "今日已用：{{count}} 个 Token。",
   "Used today: {{count}} tokens._one": "今日已用：{{count}} 个 Token。",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} 必须是 {{min}} 到 {{max}} 之间的整数。留空表示不限制。"
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} 必须是 {{min}} 到 {{max}} 之间的整数。留空表示不限制。",
+  "Adds nothing": "不添加任何内容",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "此规则匹配时不会添加任何内容。请编辑它以选择要添加的内容，或将其删除。",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "当此规则匹配时，会添加这些标签。已添加的标签不会被重复添加。如果规则仅继承标签，请留空。",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "当此规则匹配时，这些人员和团队会被添加为所有者。已分配的所有者不会被重复添加。如果规则仅继承所有者，请留空。"
 }
