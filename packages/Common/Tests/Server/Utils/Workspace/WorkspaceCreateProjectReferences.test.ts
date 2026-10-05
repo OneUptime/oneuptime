@@ -64,10 +64,11 @@ import ObjectID from "../../../../Types/ObjectID";
  * lookups it makes, so a foreign or unknown id has to be caught by the actual
  * check before anything is created or written.
  *
- * The refusal is a ProjectScopedReferenceException: still a BadDataException
- * with the message it always had, which the API and Slack pass on as before.
- * That message names the other project's records, so Teams answers with a
- * fixed line instead and leaves the message to its error log.
+ * The refusal is a ProjectScopedReferenceException: a BadDataException whose
+ * message the API and Slack pass on. It names the field and echoes the id the
+ * caller sent - never the other project's record, which it does not read -
+ * and answers a foreign id like one that matches nothing. Teams still answers
+ * with a fixed line and leaves the message to its error log.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -93,7 +94,7 @@ const CREATED_ID: ObjectID = new ObjectID(
   "a2eb67d4-bd2e-4186-9187-dad799c9316c",
 );
 
-// The other project's records, by the names a refusal gives them.
+// The other project's records, by names no refusal may give them.
 const FOREIGN_MONITOR_NAME: string = "Acme Corp payroll API";
 const FOREIGN_LABEL_NAME: string = "acme-corp-payroll";
 const FOREIGN_POLICY_NAME: string = "Acme Corp executives on call";
@@ -279,7 +280,7 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: OWN_POLICY_ID,
-    refusal: `references records that belong to a different project: Monitor "${FOREIGN_MONITOR_NAME}". Please pick values from this project and try again.`,
+    refusal: `references records that are not in this project: Monitor "${FOREIGN_MONITOR_ID}". Please pick values from this project and try again.`,
     identifying: [FOREIGN_MONITOR_NAME, FOREIGN_MONITOR_ID],
   },
   {
@@ -288,7 +289,7 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: OWN_POLICY_ID,
-    refusal: `references records that do not exist: Monitor "${UNKNOWN_ID}". Please pick values that exist in this project and try again.`,
+    refusal: `references records that are not in this project: Monitor "${UNKNOWN_ID}". Please pick values from this project and try again.`,
     identifying: [UNKNOWN_ID],
   },
   {
@@ -297,7 +298,7 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: FOREIGN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: OWN_POLICY_ID,
-    refusal: `references records that belong to a different project: Monitor Status "${FOREIGN_STATUS_NAME}". Please pick values from this project and try again.`,
+    refusal: `references records that are not in this project: Monitor Status "${FOREIGN_STATUS_ID}". Please pick values from this project and try again.`,
     identifying: [FOREIGN_STATUS_NAME, FOREIGN_STATUS_ID],
   },
   {
@@ -306,7 +307,7 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: `${OWN_LABEL_ID},${FOREIGN_LABEL_ID}`,
     onCallDutyPolicies: OWN_POLICY_ID,
-    refusal: `references records that belong to a different project: Label "${FOREIGN_LABEL_NAME}". Please pick values from this project and try again.`,
+    refusal: `references records that are not in this project: Label "${FOREIGN_LABEL_ID}". Please pick values from this project and try again.`,
     identifying: [FOREIGN_LABEL_NAME, FOREIGN_LABEL_ID],
   },
   {
@@ -315,7 +316,7 @@ const INCIDENT_BAD_REFERENCES: ReadonlyArray<ForeignReferenceCase> = [
     monitorStatus: OWN_STATUS_ID,
     labels: OWN_LABEL_ID,
     onCallDutyPolicies: `${OWN_POLICY_ID},${FOREIGN_POLICY_ID}`,
-    refusal: `references records that belong to a different project: On-Call Policy "${FOREIGN_POLICY_NAME}". Please pick values from this project and try again.`,
+    refusal: `references records that are not in this project: On-Call Policy "${FOREIGN_POLICY_ID}". Please pick values from this project and try again.`,
     identifying: [FOREIGN_POLICY_NAME, FOREIGN_POLICY_ID],
   },
 ];
@@ -390,12 +391,12 @@ describe("WorkspaceProjectReferenceValidator", (): void => {
         monitorStatusId: new ObjectID(FOREIGN_STATUS_ID),
       }),
     ).rejects.toThrow(
-      /This incident references records that belong to a different project: .*Monitor .*Label .*On-Call Policy .*Monitor Status/,
+      /This incident references records that are not in this project: .*Monitor .*Label .*On-Call Policy .*Monitor Status/,
     );
   });
 
   test.each(INCIDENT_BAD_REFERENCES)(
-    "refuses $name with a ProjectScopedReferenceException: still a BadDataException, with the message API callers always had",
+    "refuses $name with a ProjectScopedReferenceException: a BadDataException that echoes the id, never the record's name",
     async (reference: ForeignReferenceCase): Promise<void> => {
       let refusal: unknown = undefined;
 
@@ -427,6 +428,15 @@ describe("WorkspaceProjectReferenceValidator", (): void => {
       expect((refusal as BadDataException).message).toBe(
         `This incident ${reference.refusal}`,
       );
+
+      for (const name of [
+        FOREIGN_MONITOR_NAME,
+        FOREIGN_LABEL_NAME,
+        FOREIGN_POLICY_NAME,
+        FOREIGN_STATUS_NAME,
+      ]) {
+        expect((refusal as BadDataException).message).not.toContain(name);
+      }
     },
   );
 });

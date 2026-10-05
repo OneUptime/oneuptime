@@ -1,18 +1,9 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Team from "../../../Models/DatabaseModels/Team";
-import TeamMember from "../../../Models/DatabaseModels/TeamMember";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import Dictionary from "../../../Types/Dictionary";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
 import TeamMemberService from "../../Services/TeamMemberService";
-import TeamService from "../../Services/TeamService";
-import Query from "../../Types/Database/Query";
-import QueryHelper from "../../Types/Database/QueryHelper";
-import UpdateBy from "../../Types/Database/UpdateBy";
 import ProjectScopedReferenceValidator, {
-  HeldRelationIds,
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Database/ProjectScopedReferenceValidator";
@@ -34,9 +25,12 @@ import OwnerRuleAssignment, { OwnersToAssign } from "./OwnerRuleAssignment";
  * project's teams and members:
  *
  *   - a rule refuses, when it is saved, a team from another project or a
- *     user with no membership in the project (validateOwnersOnCreate and
- *     validateOwnersOnUpdate). An update checks only the owners it adds, so
- *     a rule that already names someone who has left can still be edited;
+ *     user with no membership in the project - like every other list it
+ *     saves (its monitors, labels, on-call policies, episode labels and
+ *     roles) and its old default assignee pair. The rule services are
+ *     ProjectReferencesServices (see ProjectReferenceCheck). An update
+ *     checks only the ids it adds, so a rule that already names someone who
+ *     has left can still be edited;
  *   - the engine, when it opens an episode, adds only the project's own
  *     teams (addOwnersToEpisode), and OwnerRuleAssignment.createOwner adds
  *     only users who are members by then. A rule can outlive a member who
@@ -50,15 +44,9 @@ import OwnerRuleAssignment, { OwnersToAssign } from "./OwnerRuleAssignment";
  * still names the project's own team and a member (getLegacyAssigneeInProject):
  * the engine writes nothing as root that it would not let a person write.
  *
- * Errors echo the ids the caller sent, never a name: resolving an id from
- * outside the project into a team or a person would leak it. (That is also
- * why the teams are not checked with ProjectScopedReferenceValidator, whose
- * message names a foreign record, nor with its filterUsableInProject, which
- * reads one id at a time.)
+ * Logs echo the ids the rule holds, never a name: resolving an id from
+ * outside the project into a team would leak it.
  */
-
-export const EPISODE_OWNER_USERS_COLUMN: string = "episodeOwnerUsers";
-export const EPISODE_OWNER_TEAMS_COLUMN: string = "episodeOwnerTeams";
 
 // Postgres renders a uuid lower-cased, whatever case the payload used.
 type NormalizeIdFunction = (id: string) => string;
@@ -102,19 +90,6 @@ const describeIds: DescribeIdsFunction = (ids: Array<string>): string => {
     .join(", ");
 };
 
-/*
- * A malformed id would fail Postgres' uuid cast and surface as an opaque
- * error. It cannot name anything in the project either, so it is simply
- * never found.
- */
-type LookupIdsFunction = (ids: Array<string>) => Array<string>;
-
-const lookupIdsOf: LookupIdsFunction = (ids: Array<string>): Array<string> => {
-  return ids.filter((id: string): boolean => {
-    return ObjectID.isValidUUID(id);
-  });
-};
-
 export interface LegacyAssigneeInProject {
   userId: ObjectID | null;
   teamId: ObjectID | null;
@@ -123,189 +98,18 @@ export interface LegacyAssigneeInProject {
 export default class GroupingRuleEpisodeOwners {
   /*
    * The project's own teams among `teamIds`, in the order given. One read,
-   * pinned to the project, so another project's team is never loaded.
+   * pinned to the project (ProjectScopedReferenceValidator.keepIdsInProject),
+   * so another project's team is never loaded.
    */
   public static async getTeamIdsInProject(data: {
     projectId: ObjectID;
     teamIds: Array<string>;
   }): Promise<Array<string>> {
-    const lookupIds: Array<string> = lookupIdsOf(data.teamIds);
-
-    if (lookupIds.length === 0) {
-      return [];
-    }
-
-    const teams: Array<Team> = await TeamService.findBy({
-      query: {
-        _id: QueryHelper.any(lookupIds),
-        projectId: data.projectId,
-      },
-      select: {
-        _id: true,
-      },
-      limit: lookupIds.length,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const found: Set<string> = new Set<string>(
-      teams.map((team: Team): string => {
-        return normalizeId(team._id?.toString() || "");
-      }),
-    );
-
-    return data.teamIds.filter((id: string): boolean => {
-      return found.has(normalizeId(id));
-    });
-  }
-
-  /*
-   * The users among `userIds` the project has a membership for, in the order
-   * given: what the owner picker offers (it lists the project's TeamMember
-   * rows), pending invitations included - refusing someone the picker just
-   * offered would fail a save nobody could explain. The engine is stricter
-   * when it adds them (OwnerRuleAssignment.createOwner): an invitation has
-   * to have been accepted by then.
-   */
-  public static async getUserIdsInProject(data: {
-    projectId: ObjectID;
-    userIds: Array<string>;
-  }): Promise<Array<string>> {
-    const lookupIds: Array<string> = lookupIdsOf(data.userIds);
-
-    if (lookupIds.length === 0) {
-      return [];
-    }
-
-    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
-      query: {
-        projectId: data.projectId,
-        userId: QueryHelper.any(lookupIds),
-      },
-      select: {
-        userId: true,
-      },
-      // One row per team a user is in, so not one row per id.
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const found: Set<string> = new Set<string>(
-      memberships.map((membership: TeamMember): string => {
-        return normalizeId(membership.userId?.toString() || "");
-      }),
-    );
-
-    return data.userIds.filter((id: string): boolean => {
-      return found.has(normalizeId(id));
-    });
-  }
-
-  /*
-   * A rule being created: every owner it names must be the project's. A
-   * write with no project to compare against (a root write without one) is
-   * left to the required project column to refuse.
-   */
-  public static async validateOwnersOnCreate(data: {
-    projectId: ObjectID | undefined;
-    // The rule being written, in any shape a create hook sees it.
-    rule: unknown;
-    // Used in the error message: "incident grouping rule".
-    subject: string;
-  }): Promise<void> {
-    if (!data.projectId) {
-      return;
-    }
-
-    const rule: Dictionary<unknown> = (data.rule || {}) as Dictionary<unknown>;
-
-    await GroupingRuleEpisodeOwners.assertOwnersInProject({
+    return await ProjectScopedReferenceValidator.keepIdsInProject({
+      modelType: Team,
       projectId: data.projectId,
-      userIds: uniqueIds(rule[EPISODE_OWNER_USERS_COLUMN]),
-      teamIds: uniqueIds(rule[EPISODE_OWNER_TEAMS_COLUMN]),
-      subject: data.subject,
+      ids: data.teamIds,
     });
-  }
-
-  /*
-   * A rule being updated: the owners the update adds must be the project's.
-   * Owners every rule the update matches already names are left alone - the
-   * dashboard sends the whole list back on every save, and a member who has
-   * since left the project must not lock the rule against editing (the
-   * engine skips them anyway). An empty list only removes owners.
-   *
-   * Hooks run before the tenant narrows the query, so what the matched rules
-   * hold is read per project (ProjectScopedReferenceValidator.
-   * getHeldRelationIds) and only the caller's project is used; a root update
-   * with no tenant is checked against each matched rule's own project.
-   */
-  public static async validateOwnersOnUpdate<TModel extends BaseModel>(data: {
-    service: DatabaseService<TModel>;
-    updateBy: UpdateBy<TModel>;
-    subject: string;
-  }): Promise<void> {
-    const payload: Dictionary<unknown> = (data.updateBy.data ||
-      {}) as unknown as Dictionary<unknown>;
-
-    const userIds: Array<string> = uniqueIds(
-      payload[EPISODE_OWNER_USERS_COLUMN],
-    );
-    const teamIds: Array<string> = uniqueIds(
-      payload[EPISODE_OWNER_TEAMS_COLUMN],
-    );
-
-    if (userIds.length === 0 && teamIds.length === 0) {
-      return;
-    }
-
-    const columns: Array<string> = [];
-
-    if (userIds.length > 0) {
-      columns.push(EPISODE_OWNER_USERS_COLUMN);
-    }
-
-    if (teamIds.length > 0) {
-      columns.push(EPISODE_OWNER_TEAMS_COLUMN);
-    }
-
-    const heldIds: HeldRelationIds =
-      await ProjectScopedReferenceValidator.getHeldRelationIds({
-        service: data.service as unknown as DatabaseService<BaseModel>,
-        query: data.updateBy.query as unknown as Query<BaseModel>,
-        columns: columns,
-      });
-
-    const projectIds: Array<string> = data.updateBy.props.tenantId
-      ? [data.updateBy.props.tenantId.toString()]
-      : Array.from(heldIds.keys());
-
-    for (const projectId of projectIds) {
-      const held: Dictionary<Set<string>> =
-        heldIds.get(normalizeId(projectId)) || {};
-
-      const isHeld: (column: string, id: string) => boolean = (
-        column: string,
-        id: string,
-      ): boolean => {
-        return Boolean(held[column]?.has(normalizeId(id)));
-      };
-
-      await GroupingRuleEpisodeOwners.assertOwnersInProject({
-        projectId: new ObjectID(projectId),
-        userIds: userIds.filter((id: string): boolean => {
-          return !isHeld(EPISODE_OWNER_USERS_COLUMN, id);
-        }),
-        teamIds: teamIds.filter((id: string): boolean => {
-          return !isHeld(EPISODE_OWNER_TEAMS_COLUMN, id);
-        }),
-        subject: data.subject,
-      });
-    }
   }
 
   /*
@@ -483,69 +287,5 @@ export default class GroupingRuleEpisodeOwners {
     }
 
     return result;
-  }
-
-  private static async assertOwnersInProject(data: {
-    projectId: ObjectID;
-    userIds: Array<string>;
-    teamIds: Array<string>;
-    subject: string;
-  }): Promise<void> {
-    const [teamsFound, usersFound]: [Array<string>, Array<string>] =
-      await Promise.all([
-        GroupingRuleEpisodeOwners.getTeamIdsInProject({
-          projectId: data.projectId,
-          teamIds: data.teamIds,
-        }),
-        GroupingRuleEpisodeOwners.getUserIdsInProject({
-          projectId: data.projectId,
-          userIds: data.userIds,
-        }),
-      ]);
-
-    const teamsInProject: Set<string> = new Set<string>(
-      teamsFound.map(normalizeId),
-    );
-    const usersInProject: Set<string> = new Set<string>(
-      usersFound.map(normalizeId),
-    );
-
-    const foreignTeamIds: Array<string> = data.teamIds.filter(
-      (id: string): boolean => {
-        return !teamsInProject.has(normalizeId(id));
-      },
-    );
-
-    const foreignUserIds: Array<string> = data.userIds.filter(
-      (id: string): boolean => {
-        return !usersInProject.has(normalizeId(id));
-      },
-    );
-
-    const clauses: Array<string> = [];
-
-    if (foreignTeamIds.length > 0) {
-      clauses.push(
-        foreignTeamIds.length === 1
-          ? `names a team that is not in this project: ${describeIds(foreignTeamIds)}.`
-          : `names teams that are not in this project: ${describeIds(foreignTeamIds)}.`,
-      );
-    }
-
-    if (foreignUserIds.length > 0) {
-      clauses.push(
-        foreignUserIds.length === 1
-          ? `names a user who is not a member of this project: ${describeIds(foreignUserIds)}.`
-          : `names users who are not members of this project: ${describeIds(foreignUserIds)}.`,
-      );
-    }
-
-    if (clauses.length === 0) {
-      return;
-    }
-
-    throw new BadDataException(
-      `This ${data.subject} ${clauses.join(" It also ")} Please pick episode owners from this project and try again.`,
-    );
   }
 }

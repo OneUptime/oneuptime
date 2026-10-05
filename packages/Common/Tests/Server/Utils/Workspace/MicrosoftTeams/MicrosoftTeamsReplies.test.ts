@@ -84,7 +84,7 @@ const USER_SETTINGS_ROUTE: string =
 /*
  * A submit that references another project's severity (a tampered submit), or
  * one deleted since the form was sent, and what the reference check says
- * about each: its message names the record, or echoes the id.
+ * about each: the same words, echoing the id sent - never the record's name.
  */
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "3376855b-361c-427c-8982-bad7ada30414",
@@ -93,8 +93,8 @@ const OTHER_PROJECT_SEVERITY_ID: string =
   "cfc2f04f-79cb-4344-8c54-dafe5e3a290c";
 const OTHER_PROJECT_SEVERITY_NAME: string = "Sev 1 - Acme Corp";
 const DELETED_SEVERITY_ID: string = "9c0ba0b3-2f8e-4c02-a8d5-6a4d2f5b9c11";
-const OTHER_PROJECT_REFERENCE_MESSAGE: string = `This incident references records that belong to a different project: Incident Severity "${OTHER_PROJECT_SEVERITY_NAME}". Please pick values from this project and try again.`;
-const DELETED_REFERENCE_MESSAGE: string = `This incident references records that do not exist: Incident Severity "${DELETED_SEVERITY_ID}". Please pick values that exist in this project and try again.`;
+const OTHER_PROJECT_REFERENCE_MESSAGE: string = `This incident references records that are not in this project: Incident Severity "${OTHER_PROJECT_SEVERITY_ID}". Please pick values from this project and try again.`;
+const DELETED_REFERENCE_MESSAGE: string = `This incident references records that are not in this project: Incident Severity "${DELETED_SEVERITY_ID}". Please pick values from this project and try again.`;
 
 const FIRST_BUDGET_IN_BYTES: number = 40 * 1024;
 const SECOND_BUDGET_IN_BYTES: number = 20 * 1024;
@@ -1646,7 +1646,7 @@ describe("MicrosoftTeamsReplies: a submit that references a record the project d
     );
   });
 
-  test("never names another project's record in the reply, although the reference check's message does", async () => {
+  test("never names another project's record, in the reply or in the reference check's message", async () => {
     const otherProjectSeverity: IncidentSeverity = new IncidentSeverity();
     otherProjectSeverity._id = OTHER_PROJECT_SEVERITY_ID;
     otherProjectSeverity.name = OTHER_PROJECT_SEVERITY_NAME;
@@ -1658,12 +1658,13 @@ describe("MicrosoftTeamsReplies: a submit that references a record the project d
     });
 
     /*
-     * The check's own type, and still a BadDataException with the check's
-     * message, so API callers see no change.
+     * The check's own type, and a BadDataException with the check's message,
+     * which echoes the id and never the other project's record.
      */
     expect(error).toBeInstanceOf(ProjectScopedReferenceException);
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toBe(OTHER_PROJECT_REFERENCE_MESSAGE);
+    expect((error as Error).message).not.toContain(OTHER_PROJECT_SEVERITY_NAME);
 
     const reply: string | null =
       MicrosoftTeamsReplies.getUserFacingErrorMessage(error);
@@ -1672,7 +1673,7 @@ describe("MicrosoftTeamsReplies: a submit that references a record the project d
     expect(reply).not.toContain(OTHER_PROJECT_SEVERITY_NAME);
     expect(reply).not.toContain(OTHER_PROJECT_SEVERITY_ID);
 
-    // The log, which is for operators, still says what it was.
+    // The log, which is for operators, still says which id it was.
     expect(MicrosoftTeamsReplies.describeError(error)).toBe(
       `ProjectScopedReferenceException: ${OTHER_PROJECT_REFERENCE_MESSAGE}`,
     );

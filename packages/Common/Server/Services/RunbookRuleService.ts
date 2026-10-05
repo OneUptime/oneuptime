@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/RunbookRule";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -11,7 +11,7 @@ import {
   RUNBOOK_RULE_CRITERIA_FIELDS,
 } from "../../Types/Runbook/RunbookRuleCriteria";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -26,6 +26,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     this.assertCriteriaFitTrigger({
       triggerEntityType: createBy.data.triggerEntityType,
       data: createBy.data as unknown as Record<string, unknown>,
@@ -43,6 +46,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = (updateBy.data || {}) as Record<
       string,
       unknown

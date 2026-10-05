@@ -795,7 +795,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
   it("lets a cross-project severity rejection abort the create", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        "This SLO burn rate rule references records that belong to a different project.",
+        "This SLO burn rate rule references records that are not in this project.",
       ),
     );
 
@@ -804,7 +804,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
         "onBeforeCreate",
         makeValidCreateBy({ incidentSeverityId: INCIDENT_SEVERITY_ID }),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 });
@@ -1562,7 +1562,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
   it("lets a cross-project severity rejection abort the update", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        "This SLO burn rate rule references records that belong to a different project.",
+        "This SLO burn rate rule references records that are not in this project.",
       ),
     );
 
@@ -1574,7 +1574,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
           { isRoot: true, tenantId: PROJECT_ID },
         ),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 });
