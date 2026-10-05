@@ -55,6 +55,12 @@ processors:
       - key: ceph.cluster.name
         value: "${env:CEPH_CLUSTER_NAME}"
         action: upsert
+      # Shown as the agent version on the cluster's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Optionally also stamp the cluster fsid (`ceph fsid`). Uncomment
       # and set CEPH_CLUSTER_FSID in the .env file:
       # - key: ceph.cluster.fsid

@@ -1,14 +1,19 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import yaml from "js-yaml";
 import {
   AGENT_KINDS,
   AgentKind,
   AgentLatestVersionSource,
   AgentVersionState,
+  CEPH_AGENT_VERSION,
   DATABASE_AGENT_VERSION,
   DOCKER_SWARM_AGENT_VERSION,
+  HOST_COLLECTOR_VERSION,
   ONEUPTIME_AGENT_PLACEHOLDER_VERSION,
+  PROXMOX_AGENT_VERSION,
+  VMWARE_AGENT_VERSION,
   getAgentLatestVersion,
   getAgentVersionState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
@@ -18,6 +23,26 @@ import {
   DATABASE_AGENT_ENGINES,
   DatabaseAgentEngine,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
+import {
+  PROXMOX_AGENT_COLLECTOR_CONFIG,
+  PROXMOX_AGENT_COLLECTOR_IMAGE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import { CEPH_AGENT_COLLECTOR_CONFIG } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  VMWARE_AGENT_COLLECTOR_CONFIG,
+  VMWARE_AGENT_COMPOSE_FILE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  HOST_COLLECTOR_METHODS,
+  HostCollectorMethod,
+  getHostCollectorConfig,
+  getHostCollectorUpgradeCommand,
+  getHostSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import {
+  SetupGuideContent,
+  SetupGuideStep,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { AgentVersionStatus } from "../../../Utils/AgentVersionUtil";
 
 /*
@@ -25,8 +50,8 @@ import { AgentVersionStatus } from "../../../Utils/AgentVersionUtil";
  * knows the newest version of it. The "newest" is only right if it is the
  * same kind of number the agent reports, so these tests read the agents' own
  * files: a OneUptime agent must report the OneUptime version it was built
- * from, a pinned-collector agent must report exactly the pin, and an agent
- * whose config reports nothing must stay a kind that is never outdated.
+ * from, and a pinned-collector agent must report exactly the pin its files
+ * run. Only the customer's own SDKs stay kinds that are never outdated.
  * When an agent's files move on, a test here fails and says what to change.
  */
 
@@ -59,17 +84,28 @@ const RELEASED_WITH_ONEUPTIME: Array<AgentKind> = [
 const PINNED_COLLECTOR: Array<AgentKind> = [
   AgentKind.DockerSwarmAgent,
   AgentKind.DatabaseAgent,
-];
-
-const NOT_RELEASED_BY_ONEUPTIME: Array<AgentKind> = [
   AgentKind.HostCollector,
   AgentKind.ProxmoxAgent,
   AgentKind.CephAgent,
   AgentKind.VMwareAgent,
+];
+
+/*
+ * The customer's own OpenTelemetry SDKs (and an IoT fleet's own gateway
+ * collector): OneUptime neither ships nor pins them.
+ */
+const NOT_RELEASED_BY_ONEUPTIME: Array<AgentKind> = [
   AgentKind.IoTExporter,
   AgentKind.ServerlessSdk,
   AgentKind.RumSdk,
 ];
+
+// The value of a `- key: oneuptime.agent.version` stamp in a collector config.
+function stampIn(config: string): string | undefined {
+  return config.match(
+    /- key: oneuptime\.agent\.version\s+value: "([^"]+)"/,
+  )?.[1];
+}
 
 describe("every agent kind is classified", () => {
   test("each kind has a definition with a name", () => {
@@ -390,32 +426,240 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
   });
 });
 
-describe("agents that report no version stay kinds that are never outdated", () => {
-  test.each([["CephAgent"], ["ProxmoxAgent"], ["VMwareAgent"]])(
-    "agents/%s's config stamps no oneuptime.agent.version (decide its AgentKind source if it starts to)",
-    (dir: string) => {
-      expect(
-        readRepoFile("agents", dir, "otel-collector-config.yaml"),
-      ).not.toContain("oneuptime.agent.version");
+/*
+ * The Proxmox, Ceph and VMware agents are the stock collector plus a config:
+ * the compose file pins the collector, and the config reports that pin as
+ * oneuptime.agent.version. Both files, the Dashboard's embedded copy of the
+ * config and the kind's pin must agree, or the sign compares the wrong
+ * number.
+ */
+describe("the Proxmox, Ceph and VMware agents report the collector their compose file pins", () => {
+  const AGENTS: Array<[string, AgentKind, string, string]> = [
+    [
+      "ProxmoxAgent",
+      AgentKind.ProxmoxAgent,
+      PROXMOX_AGENT_VERSION,
+      PROXMOX_AGENT_COLLECTOR_CONFIG,
+    ],
+    [
+      "CephAgent",
+      AgentKind.CephAgent,
+      CEPH_AGENT_VERSION,
+      CEPH_AGENT_COLLECTOR_CONFIG,
+    ],
+    [
+      "VMwareAgent",
+      AgentKind.VMwareAgent,
+      VMWARE_AGENT_VERSION,
+      VMWARE_AGENT_COLLECTOR_CONFIG,
+    ],
+  ];
+
+  test.each(AGENTS)(
+    "agents/%s runs the pinned collector, never :latest",
+    (dir: string, _kind: AgentKind, pin: string) => {
+      const compose: Record<string, unknown> = yaml.load(
+        readRepoFile("agents", dir, "docker-compose.yml"),
+      ) as Record<string, unknown>;
+      const images: Array<string> = Object.values(
+        compose["services"] as Record<string, { image?: string }>,
+      )
+        .map((service: { image?: string }): string => {
+          return service.image || "";
+        })
+        .filter((image: string): boolean => {
+          return image.startsWith("otel/opentelemetry-collector-contrib");
+        });
+      expect(images).toEqual([`otel/opentelemetry-collector-contrib:${pin}`]);
     },
   );
 
-  test("the host guide's collector config stamps no oneuptime.agent.version", () => {
-    expect(
-      readRepoFile(
-        "packages",
-        "App",
-        "FeatureSet",
-        "Dashboard",
-        "src",
-        "Pages",
-        "Host",
-        "Utils",
-        "DocumentationMarkdown.ts",
-      ),
-    ).not.toContain("oneuptime.agent.version");
+  test.each(AGENTS)(
+    "agents/%s's config stamps exactly that pin as oneuptime.agent.version",
+    (dir: string, kind: AgentKind, pin: string) => {
+      const config: string = readRepoFile(
+        "agents",
+        dir,
+        "otel-collector-config.yaml",
+      );
+      expect(stampIn(config)).toBe(pin);
+      // An upsert in the resource processor every pipeline runs.
+      const parsed: {
+        processors: {
+          resource: {
+            attributes: Array<{ key: string; value?: string; action: string }>;
+          };
+        };
+        service: { pipelines: Record<string, { processors: Array<string> }> };
+      } = yaml.load(config) as {
+        processors: {
+          resource: {
+            attributes: Array<{ key: string; value?: string; action: string }>;
+          };
+        };
+        service: { pipelines: Record<string, { processors: Array<string> }> };
+      };
+      expect(
+        parsed.processors.resource.attributes.filter(
+          (attribute: { key: string }): boolean => {
+            return attribute.key === "oneuptime.agent.version";
+          },
+        ),
+      ).toEqual([
+        { key: "oneuptime.agent.version", value: pin, action: "upsert" },
+      ]);
+      for (const pipeline of Object.values(parsed.service.pipelines)) {
+        expect(pipeline.processors).toContain("resource");
+      }
+      expect(AGENT_KINDS[kind].pinnedVersion).toBe(pin);
+      expect(AGENT_KINDS[kind].latestVersionSource).toBe(
+        AgentLatestVersionSource.PinnedCollector,
+      );
+    },
+  );
+
+  test.each(AGENTS)(
+    "the Dashboard's copy of agents/%s's config is the shipped file, stamp included",
+    (dir: string, _kind: AgentKind, pin: string, embedded: string) => {
+      expect(embedded).toBe(
+        readRepoFile("agents", dir, "otel-collector-config.yaml"),
+      );
+      expect(stampIn(embedded)).toBe(pin);
+    },
+  );
+
+  test("the VMware guide's copy of the compose file runs the same pin", () => {
+    expect(VMWARE_AGENT_COMPOSE_FILE).toBe(
+      readRepoFile("agents", "VMwareAgent", "docker-compose.yml"),
+    );
+    expect(VMWARE_AGENT_COMPOSE_FILE).toContain(
+      `image: otel/opentelemetry-collector-contrib:${VMWARE_AGENT_VERSION}`,
+    );
   });
 
+  test("the Proxmox journald wrapper image is built on the same pin", () => {
+    expect(PROXMOX_AGENT_COLLECTOR_IMAGE).toBe(
+      `otel/opentelemetry-collector-contrib:${PROXMOX_AGENT_VERSION}`,
+    );
+    expect(readRepoFile("agents", "ProxmoxAgent", "README.md")).toContain(
+      `FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol`,
+    );
+  });
+});
+
+/*
+ * The host guide is the host agent's only definition: every install method
+ * installs the release it pins, and the one config every method saves
+ * stamps that release.
+ */
+describe("the host guide installs the release it pins, and its config reports it", () => {
+  const URL: string = "https://oneuptime.example.com";
+  const KEY: string = "tik_host_key";
+
+  test("the config stamps HOST_COLLECTOR_VERSION in a resource processor the metrics pipeline runs", () => {
+    const config: string = getHostCollectorConfig({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+    });
+    expect(stampIn(config)).toBe(HOST_COLLECTOR_VERSION);
+    const parsed: {
+      service: { pipelines: { metrics: { processors: Array<string> } } };
+    } = yaml.load(config) as {
+      service: { pipelines: { metrics: { processors: Array<string> } } };
+    };
+    expect(parsed.service.pipelines.metrics.processors).toContain("resource");
+    expect(AGENT_KINDS[AgentKind.HostCollector].pinnedVersion).toBe(
+      HOST_COLLECTOR_VERSION,
+    );
+  });
+
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )(
+    "%s installs and upgrades to exactly that release, and nothing resolves 'latest'",
+    (method: string) => {
+      const guide: SetupGuideContent = getHostSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        method: method as HostCollectorMethod,
+      });
+      const install: string = guide.steps
+        .map((step: SetupGuideStep): string => {
+          return step.markdown || "";
+        })
+        .join("\n");
+      const upgrade: string = getHostCollectorUpgradeCommand(
+        method as HostCollectorMethod,
+      );
+
+      for (const text of [install, upgrade]) {
+        expect(text).not.toMatch(/releases\/latest|contrib:latest/);
+        if (method === "docker") {
+          expect(text).toContain(
+            `otel/opentelemetry-collector-contrib:${HOST_COLLECTOR_VERSION}`,
+          );
+        } else if (method === "windows") {
+          expect(text).toContain(`$version = "${HOST_COLLECTOR_VERSION}"`);
+        } else {
+          expect(text).toContain(`VERSION=${HOST_COLLECTOR_VERSION} `);
+        }
+      }
+    },
+  );
+});
+
+/*
+ * Every pinned collector runs the version the Ops suite validates the
+ * agents' configs against, so the pins here cannot drift from the collector
+ * the configs are known to start on.
+ */
+describe("every pin is the collector the configs are validated against", () => {
+  test.each(PINNED_COLLECTOR)("%s", (kind: AgentKind) => {
+    const validated: string | undefined = readRepoFile(
+      "Tests",
+      "Ops",
+      "validate-collector-configs.sh",
+    ).match(
+      /^COLLECTOR_IMAGE="otel\/opentelemetry-collector-contrib:([^"]+)"$/m,
+    )?.[1];
+    expect(validated).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(AGENT_KINDS[kind].pinnedVersion).toBe(validated);
+  });
+});
+
+/*
+ * An agent installed before its files reported a version sends none: its
+ * version is unknown - "Not reported", never "outdated" - until it is
+ * upgraded to files that report one.
+ */
+describe("an install from before the pin reports no version, and is never called outdated", () => {
+  test.each([
+    [AgentKind.HostCollector],
+    [AgentKind.ProxmoxAgent],
+    [AgentKind.CephAgent],
+    [AgentKind.VMwareAgent],
+  ])("%s", (kind: AgentKind) => {
+    for (const version of [undefined, null, "", "   "]) {
+      expect(stateOf(kind, version)).toEqual({
+        status: AgentVersionStatus.Unknown,
+        latestVersion: null,
+      });
+    }
+  });
+
+  test("a Proxmox or Ceph agent that ran the collector's :latest stamped nothing then", () => {
+    for (const dir of ["ProxmoxAgent", "CephAgent"]) {
+      // The previous files are in git history; today's must not run :latest.
+      expect(readRepoFile("agents", dir, "docker-compose.yml")).not.toContain(
+        "opentelemetry-collector-contrib:latest",
+      );
+    }
+  });
+});
+
+describe("the customer's own SDKs stay kinds that are never outdated", () => {
   test("a RUM application's version is the OpenTelemetry SDK's own (telemetry.sdk.version), not a OneUptime release", () => {
     expect(
       readRepoFile(

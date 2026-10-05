@@ -208,9 +208,9 @@ export class Service extends ProjectReferencesService<Model> {
    * Two callers share this throttle with DISJOINT extras shapes: the
    * metrics snapshot flush (version + counts/health, every batch) and
    * the fenced autoDiscoverCephCluster maintenance path (agentVersion
-   * + optional fsid only — and usually an all-null fingerprint, since
-   * the shipped agent config stamps neither oneuptime.agent.version
-   * nor ceph.cluster.fsid by default). The single fingerprint covers
+   * + optional fsid only — the shipped agent config stamps
+   * oneuptime.agent.version, and ceph.cluster.fsid only when someone
+   * uncomments it). The single fingerprint covers
    * the whole extras object, so each alternation between the two
    * shapes busts the throttle: at most one extra Postgres UPDATE per
    * maintenance-fence window (~5 min), which is accepted. Do NOT key

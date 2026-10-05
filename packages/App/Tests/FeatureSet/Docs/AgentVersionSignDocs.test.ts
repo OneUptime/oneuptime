@@ -4,6 +4,21 @@ import { getDockerAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/
 import { getPodmanAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
 import { getDockerSwarmAgentInstallScriptCommand } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
+import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import {
+  PROXMOX_AGENT_COLLECTOR_IMAGE,
+  getProxmoxAgentDownloadCommand,
+  getProxmoxAgentRecreateCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
+  getCephAgentDownloadCommand,
+  getCephAgentRecreateCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  VMWARE_AGENT_RECREATE_COMMAND,
+  getVMwareAgentDownloadCommand,
+  getVMwareAgentUpgradeCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -208,4 +223,206 @@ describe("the English guides' commands are the ones the upgrade dialog shows", (
     expect(section).toContain("Docker Compose");
     expect(section).toContain("Kubernetes");
   });
+});
+
+/*
+ * Hosts, Proxmox, Ceph and VMware: their agents now report the collector
+ * release their files pin, so their guides say where the sign shows and how
+ * to upgrade - with the commands the dialog shows (the setup guides'
+ * exports) - and every config the host guide hands out stamps the pin.
+ */
+describe("the host collector guide stamps the pin and says how to upgrade, in every language", () => {
+  // The section after "Step 4": the new "Upgrading the collector".
+  function upgradeSection(guide: string): string {
+    const lines: Array<string> = guide.split("\n");
+    const headings: Array<number> = lines
+      .map((line: string, index: number): number => {
+        return line.startsWith("## ") ? index : -1;
+      })
+      .filter((index: number): boolean => {
+        return index >= 0;
+      });
+    expect(lines[headings[5]!]).toMatch(/4|۴/);
+    return lines.slice(headings[6]!, headings[7]!).join("\n");
+  }
+
+  test.each(LANGUAGES)(
+    "%s: the upgrade section names the Agent Version on the Overview and the stamp",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/host-otel-collector.md",
+      ) as string;
+      const section: string = upgradeSection(guide);
+      expect(section).toContain(`**${labelIn(language, "Agent Version")}**`);
+      expect(section).toContain(`**${labelIn(language, "Overview")}**`);
+      expect(section).toContain("`oneuptime.agent.version`");
+      expect(section).toContain("`VERSION`");
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: every resource processor in the examples stamps the release the Dashboard pins",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/host-otel-collector.md",
+      ) as string;
+      const stamps: Array<string> = Array.from(
+        guide.matchAll(
+          /- key: service\.name\n\s+value: [^\n]+\n\s+action: upsert\n\s+- key: oneuptime\.agent\.version\n\s+value: "([^"]+)"\n\s+action: upsert/g,
+        ),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      });
+      // Common pieces, the Linux, macOS and Windows examples, the lean one.
+      expect(stamps).toEqual(Array(5).fill(HOST_COLLECTOR_VERSION));
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: every install downloads that release, never 'the latest'",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/host-otel-collector.md",
+      ) as string;
+      const pins: Array<string> = Array.from(
+        guide.matchAll(/^\$?VERSION\s*=\s*"?(\d+\.\d+\.\d+)"?/gm),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      });
+      // Debian, RHEL, macOS and Windows.
+      expect(pins).toEqual(Array(4).fill(HOST_COLLECTOR_VERSION));
+      expect(guide).not.toContain("pick the latest release tag");
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: the generated config's pipeline the page tells people to merge keeps the version processor",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/host-otel-collector.md",
+      ) as string;
+      expect(guide).toContain(
+        ">       processors: [filter/drop-metrics, resourcedetection, resource, batch]",
+      );
+      expect(guide).not.toContain(
+        'references processor "resource" which is not configured',
+      );
+    },
+  );
+});
+
+describe("the Proxmox, Ceph and VMware guides say the sign follows the pinned collector, with the dialog's commands", () => {
+  // The upgrade section: from its heading to the next.
+  function upgradeSection(guide: string, heading: string): string {
+    const start: number = guide.indexOf(heading);
+    expect(start).toBeGreaterThan(-1);
+    const end: number = guide.indexOf("\n## ", start + heading.length);
+    return guide.slice(start, end);
+  }
+
+  const HEADINGS: Record<string, string> = {
+    en: "## Upgrading the Agent",
+    fa: "## ارتقای عامل",
+  };
+
+  test.each([
+    ["en", "telemetry/proxmox.md"],
+    ["fa", "telemetry/proxmox.md"],
+    ["en", "telemetry/ceph.md"],
+    ["fa", "telemetry/ceph.md"],
+    ["en", "telemetry/vmware.md"],
+    ["fa", "telemetry/vmware.md"],
+  ])(
+    "%s %s: names the Agent Version on the Overview, and pulling alone is gone",
+    (language: string, page: string) => {
+      const section: string = upgradeSection(
+        readGuide(language, page) as string,
+        HEADINGS[language] as string,
+      );
+      expect(section).toContain(`**${labelIn(language, "Agent Version")}**`);
+      expect(section).toContain(`**${labelIn(language, "Overview")}**`);
+      expect(section).toContain("docker compose up -d --force-recreate");
+      expect(section).not.toMatch(
+        /docker compose pull\ndocker compose up -d\n/,
+      );
+    },
+  );
+
+  test.each([
+    ["en", "telemetry/proxmox.md"],
+    ["fa", "telemetry/proxmox.md"],
+  ])(
+    "%s %s: the install script's folder, the files again and the recreate, as the dialog shows them",
+    (language: string, page: string) => {
+      const section: string = upgradeSection(
+        readGuide(language, page) as string,
+        HEADINGS[language] as string,
+      );
+      expect(section).toContain(
+        "```bash\n" +
+          getProxmoxAgentDownloadCommand("install-script") +
+          "\n" +
+          getProxmoxAgentRecreateCommand("docker-compose") +
+          "\n```",
+      );
+    },
+  );
+
+  test.each([
+    ["en", "telemetry/ceph.md"],
+    ["fa", "telemetry/ceph.md"],
+  ])(
+    "%s %s: the install script's folder, the files again and the recreate, as the dialog shows them",
+    (language: string, page: string) => {
+      const section: string = upgradeSection(
+        readGuide(language, page) as string,
+        HEADINGS[language] as string,
+      );
+      expect(section).toContain(
+        "```bash\n" +
+          getCephAgentDownloadCommand("install-script") +
+          "\n" +
+          getCephAgentRecreateCommand("docker-compose") +
+          "\n```",
+      );
+    },
+  );
+
+  test.each(["en", "fa"])(
+    "%s VMware: the install script again, or the files and the recreate",
+    (language: string) => {
+      const section: string = upgradeSection(
+        readGuide(language, "telemetry/vmware.md") as string,
+        HEADINGS[language] as string,
+      );
+      expect(section).toContain(
+        "```bash\n" + getVMwareAgentUpgradeCommand() + "\n```",
+      );
+      expect(section).toContain(
+        "```bash\n" +
+          getVMwareAgentDownloadCommand() +
+          "\n" +
+          VMWARE_AGENT_RECREATE_COMMAND +
+          "\n```",
+      );
+    },
+  );
+
+  test.each(["en", "fa"])(
+    "%s Proxmox: the journald wrapper image is built on the pinned collector",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/proxmox.md",
+      ) as string;
+      expect(guide).toContain(
+        `FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol`,
+      );
+      expect(guide).not.toContain("opentelemetry-collector-contrib:latest");
+    },
+  );
 });

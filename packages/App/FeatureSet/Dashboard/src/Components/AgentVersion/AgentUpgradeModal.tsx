@@ -78,7 +78,11 @@ const AgentUpgradeModal: FunctionComponent<ComponentProps> = (
         : undefined,
       content: (
         <div className="space-y-3">
-          {step.code ? <CodeBlock language="bash" code={step.code} /> : <></>}
+          {step.code ? (
+            <CodeBlock language={step.language || "bash"} code={step.code} />
+          ) : (
+            <></>
+          )}
           {step.needsSetupGuide && props.setupGuideRoute ? (
             <Link
               to={props.setupGuideRoute}

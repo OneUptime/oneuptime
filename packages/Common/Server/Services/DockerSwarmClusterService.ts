@@ -207,10 +207,10 @@ export class Service extends ProjectReferencesService<Model> {
    * read per batch and at most one Postgres UPDATE per minute.
    *
    * Two callers share this throttle with DISJOINT extras shapes: the
-   * metrics snapshot flush (pveVersion + counts, every batch) and the
-   * fenced autoDiscoverDockerSwarmCluster maintenance path (agentVersion
-   * only — and usually an all-null fingerprint, since the shipped
-   * agent config does not stamp oneuptime.agent.version). The single
+   * inventory snapshot flush (counts, every batch) and the fenced
+   * autoDiscoverDockerSwarmCluster maintenance path (agentVersion only —
+   * the oneuptime.agent.version the shipped agent config stamps from
+   * APP_VERSION). The single
    * fingerprint covers the whole extras object, so each alternation
    * between the two shapes busts the throttle: at most one extra
    * Postgres UPDATE per maintenance-fence window (~5 min), which is

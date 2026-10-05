@@ -22,13 +22,13 @@
 
 ## 步驟 1 — 安裝 OpenTelemetry Collector
 
-選擇適合您作業系統的章節。所有範例都假設您正在從 [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) 安裝最新的 `otelcol-contrib` 版本。
+選擇適合您作業系統的章節。所有範例都從 [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) 安裝 `otelcol-contrib` **v0.161.0**：這是 OneUptime 固定的版本，步驟 2 中的設定會將它回報為主機的代理程式版本（請參閱下方「升級收集器」）。
 
 ### Linux（Debian / Ubuntu）
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ Debian 套件會將二進位檔安裝在 `/usr/bin/otelcol-contrib`、預設設�
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ sudo mkdir -p /etc/otelcol-contrib
 在**提升權限的** PowerShell 提示字元中，請整段一起執行 — 每一行都仰賴其上方已設定的變數：
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** 在匯出前將記錄分組，這樣您就不必為每筆記錄付出一次 HTTP 往返。
 - **`resource`** 為每筆記錄標記 `service.name`。如果您希望每台機器在 OneUptime 中以其各自的遙測服務出現，請為每台主機使用不同的值（例如 `prod-web-01`）。
+- **`oneuptime.agent.version`** 是這份設定所對應的收集器版本。OneUptime 會將它顯示為主機的**代理程式版本**；只在更換所安裝的收集器時一起修改它（請參閱下方「升級收集器」）。
 - **`otlphttp`** 透過 HTTPS 傳送至 OneUptime，並附上擷取權杖。
 
 ### 主機指標（Linux、macOS、Windows）
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ sc.exe query "otelcol-contrib"
 3. 開啟 **指標** — 主機指標（CPU、記憶體、檔案系統等）應在一分鐘內出現。
 4. 開啟 **日誌** — 您的檔案日誌 / journald 項目 / Windows 事件記錄應正在串流進來。實用的可搜尋屬性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 與 `winlog.provider.name`。
 5. 如果您啟用了 `systemd`（Linux）或 `windows_service`（Windows）receiver，請開啟 **基礎設施 → 主機**，選擇該主機，並查看 **Systemd Units** / **服務** 分頁 — 每個被抓取的 unit 都應列出並顯示其目前的狀態。
+
+## 升級收集器
+
+本頁的每份設定都會在其 `resource` processor 中，將它所對應的收集器版本標記為 `oneuptime.agent.version`。OneUptime 會在主機的**概覽**中將其顯示為**代理程式版本**，當 OneUptime 固定了更新的版本時，會在旁邊顯示警告標誌。選擇該標誌即可查看依您的安裝方式進行升級的步驟：重新儲存設定，然後在舊版本之上安裝新版本。
+
+手動升級時，請依照安裝這個版本的方式安裝新版本（步驟 1，使用新的 `VERSION`），將設定中的 `oneuptime.agent.version` 設為相同版本，然後重新啟動收集器（步驟 3）。設定中沒有標記版本的收集器不會顯示版本，也永遠不會顯示標誌。
 
 ## 減少收集的資料量
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **正在編輯 OneUptime 為您產生的設定？** 上方的管線對應的是本頁面上的完整範例。來自儀表板（主機 → 文件）的設定，其命名方式並不相同：它的 processor 是 `resourcedetection` 與 `batch`（**沒有** `resource` processor），而它的 exporter 是 `otlphttp/oneuptime`。參照一個未被定義的 processor 會讓 collector 在啟動時停止，並出現 `references processor "resource" which is not configured`。請將 filter 加入既有的內容之中，而不是把這個區塊貼上去覆蓋它：
+> **正在編輯 OneUptime 為您產生的設定？** 上方的管線對應的是本頁面上的完整範例。來自儀表板（主機 → 文件）的設定，其命名方式並不相同：它的 processor 是 `resourcedetection`、`resource` 與 `batch`，而它的 exporter 是 `otlphttp/oneuptime`。參照一個未被定義的 processor 或 exporter 會讓 collector 在啟動時停止。請將 filter 加入既有的內容之中，而不是把這個區塊貼上去覆蓋它：
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> 請保留 `resourcedetection` — OneUptime 是使用它所設定的 `host.name` / `host.id` 來將遙測資料對應到某台主機。該產生的設定也是**僅指標**的：在您加入之前，它並沒有 `logs:` 管線，因此在您於其旁加入一個 `filelog` 或 `journald` receiver 之前，`filter/drop-low-severity` 沒有任何東西可以篩選。
+> 請保留 `resourcedetection` — OneUptime 是使用它所設定的 `host.name` / `host.id` 來將遙測資料對應到某台主機；也請保留回報 collector 版本的 `resource`。該產生的設定也是**僅指標**的：在您加入之前，它並沒有 `logs:` 管線，因此在您於其旁加入一個 `filelog` 或 `journald` receiver 之前，`filter/drop-low-severity` 沒有任何東西可以篩選。
 
 > **在 macOS 上，請使用 tarball，而非 Homebrew。** Homebrew formula 隨附的是**核心（core）** collector，而 `filter` 是 contrib 專屬的 processor — 無論您的 YAML 是否正確，collector 都會拒絕啟動。
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
