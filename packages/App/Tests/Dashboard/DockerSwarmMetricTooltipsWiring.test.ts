@@ -220,14 +220,34 @@ describe("Docker Swarm overview (Index.tsx)", () => {
   );
 
   test("version chips stay plain - they are metadata, not metrics", () => {
-    for (const label of [
+    const docker: string = between(
+      code,
       'label: translator.translateTemplate("Docker {{version}}"',
-      'label: translator.translateTemplate("Agent {{version}}"',
-    ]) {
-      const chip: string = between(code, label, "});");
+      "});",
+    );
 
-      expect(chip).not.toContain("description:");
-    }
+    expect(docker).not.toContain("description:");
+
+    /*
+     * The agent's chip is AgentVersion's own - gray, or amber with a sign
+     * when the agent is behind the collector this release pins - drawn after
+     * the spec chips rather than among them, so it never gets an (i).
+     */
+    const row: string = between(
+      code,
+      "{(specChips.length > 0 || Boolean(cluster.agentVersion)) && (",
+      "</div> )}",
+    );
+
+    expect(row.indexOf("specChips.map((chip: SpecChip")).toBeGreaterThan(-1);
+    expect(
+      row.indexOf(
+        '<AgentVersion kind={AgentKind.DockerSwarmAgent} version={cluster.agentVersion} variant="chip" />',
+      ),
+    ).toBeGreaterThan(row.indexOf("specChips.map((chip: SpecChip"));
+    expect(code).not.toContain(
+      'label: translator.translateTemplate("Agent {{version}}"',
+    );
   });
 
   test("each chip renders its (i) with the static name, never the numbers", () => {
