@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن هستند.** `aiAgent.enabled=true` عامل هوش مصنوعی Kubernetes را در کنار جمع‌کننده اجرا می‌کند: وقتی در این خوشه حادثه یا هشداری رخ دهد، OneUptime AI آن را با `kubectl` فقط‌خواندنی (`get`، `describe`، `logs`، `events`، `top`) بررسی می‌کند و چیزی را تغییر نمی‌دهد. اصلاحات تا وقتی که خودتان اجازه ندهید خاموش می‌مانند. برای نصب بدون آن، به‌جایش از `--set aiAgent.enabled=false` استفاده کنید.
 
 ## گام ۴ — وارسی نصب
 
