@@ -23,6 +23,10 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
  */
 const SITE_KEYS: Array<string> = ["siteId", "site"];
 
+// One answer for a site that is missing and a site of another project.
+export const NETWORK_SITE_NOT_IN_PROJECT_MESSAGE: string =
+  "This network site assignment rule's site is not in this project. Please pick a site from this project and try again.";
+
 const HOSTNAME_OPERATORS: ReadonlySet<RuleCriteriaOperator> = new Set([
   RuleCriteriaOperator.Equals,
   RuleCriteriaOperator.NotEquals,
@@ -75,17 +79,17 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    if (!site) {
-      throw new BadDataException("Network site not found.");
-    }
-
+    /*
+     * Another project's site is answered exactly like a site that does not
+     * exist: which ids exist outside the project is not this project's to
+     * learn.
+     */
     if (
-      site.projectId &&
-      site.projectId.toString() !== data.projectId.toString()
+      !site ||
+      (site.projectId &&
+        site.projectId.toString() !== data.projectId.toString())
     ) {
-      throw new BadDataException(
-        "Network site must belong to the same project.",
-      );
+      throw new BadDataException(NETWORK_SITE_NOT_IN_PROJECT_MESSAGE);
     }
   }
 
