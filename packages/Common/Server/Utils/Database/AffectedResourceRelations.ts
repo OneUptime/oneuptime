@@ -37,6 +37,39 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
  * would capture whichever of them had not finished loading yet as
  * undefined.
  */
+/*
+ * The names of the affected-resource lists `model` has - the lists a service
+ * that checks them with getAffectedResourceRelations names in
+ * ProjectReferencesService.getListsCheckedByService. Only the column names,
+ * so it touches none of the services above.
+ */
+export function getAffectedResourceColumns(
+  model: DatabaseBaseModel,
+): Array<string> {
+  return AFFECTED_RESOURCE_COLUMNS.filter((column: string): boolean => {
+    return model.hasColumn(column);
+  });
+}
+
+const AFFECTED_RESOURCE_COLUMNS: Array<string> = [
+  "hosts",
+  "kubernetesClusters",
+  "kubernetesResources",
+  "kubernetesContainers",
+  "dockerHosts",
+  "podmanHosts",
+  "proxmoxClusters",
+  "vmwareVCenters",
+  "iotFleets",
+  "networkSites",
+  "dockerSwarmClusters",
+  "cephClusters",
+  "databaseServers",
+  "dockerResources",
+  "podmanResources",
+  "services",
+];
+
 export function getAffectedResourceRelations(
   model: DatabaseBaseModel,
 ): Array<ProjectScopedRelation> {

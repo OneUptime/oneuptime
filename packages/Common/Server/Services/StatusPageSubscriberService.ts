@@ -12,7 +12,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -152,7 +152,7 @@ export interface StatusPageSubscriberUnsubscribeBackfillResult {
   markedAddedByTeam: number;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -230,6 +230,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
     logger.debug("onBeforeCreate called with data:", {
       projectId: data.data.projectId?.toString(),
       statusPageId: data.data.statusPageId?.toString(),
@@ -635,6 +637,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
     )?.["isUnsubscribed"];

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
@@ -270,7 +270,7 @@ const KUBERNETES_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnIdentifier(
   KUBERNETES_CLUSTER_IDENTITY,
 );
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -279,6 +279,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.data.projectId ||
       createBy.data.project?.id ||
@@ -377,6 +379,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
 
     this.validateAiRemediationSettings(data);

@@ -4,6 +4,7 @@ import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -160,20 +161,36 @@ export default class ProjectReferenceCheck {
   }
 
   /*
-   * The reference columns a write is checked on: all of them, but for single
-   * relations the service checks itself. A list is always checked.
+   * The reference columns a write is checked on: all of them, but for the
+   * relations and lists the service checks itself (see
+   * ProjectReferencesService.getRelationsCheckedByService and
+   * getListsCheckedByService).
    */
   public static getCheckedColumns(
     model: DatabaseBaseModel,
     relationsCheckedByService?: Array<string> | undefined,
+    listsCheckedByService?: Array<string> | undefined,
   ): Array<ProjectReferenceColumn> {
-    const skipped: Array<string> = relationsCheckedByService || [];
+    const skippedRelations: Array<string> = relationsCheckedByService || [];
+    const skippedLists: Array<string> = listsCheckedByService || [];
 
     return ProjectReferenceCheck.getReferenceColumns(model).filter(
       (column: ProjectReferenceColumn): boolean => {
-        return column.isList || !skipped.includes(column.column);
+        return column.isList
+          ? !skippedLists.includes(column.column)
+          : !skippedRelations.includes(column.column);
       },
     );
+  }
+
+  /*
+   * A write OneUptime makes itself: as root, with no project on the request
+   * - a job, an engine, a service's own helper. Requests made in a project
+   * carry it: an API call, and a workflow, which writes as root with its
+   * project's tenant. A master admin is a person, not the server.
+   */
+  public static isServerWrite(props: DatabaseCommonInteractionProps): boolean {
+    return Boolean(props.isRoot) && !props.tenantId;
   }
 
   // "host owner rule": how the error names the record being written.
@@ -193,6 +210,8 @@ export default class ProjectReferenceCheck {
     createBy: CreateBy<TModel>;
     // See ProjectReferencesService.getRelationsCheckedByService.
     relationsCheckedByService?: Array<string> | undefined;
+    // See ProjectReferencesService.getListsCheckedByService.
+    listsCheckedByService?: Array<string> | undefined;
     // See ProjectReferencesService.getJsonReferenceColumns.
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Promise<void> {
@@ -217,6 +236,7 @@ export default class ProjectReferenceCheck {
         model: model,
         payload: record,
         relationsCheckedByService: data.relationsCheckedByService,
+        listsCheckedByService: data.listsCheckedByService,
         jsonReferenceColumns: data.jsonReferenceColumns,
       });
 
@@ -252,6 +272,8 @@ export default class ProjectReferenceCheck {
     updateBy: UpdateBy<TModel>;
     // See ProjectReferencesService.getRelationsCheckedByService.
     relationsCheckedByService?: Array<string> | undefined;
+    // See ProjectReferencesService.getListsCheckedByService.
+    listsCheckedByService?: Array<string> | undefined;
     // See ProjectReferencesService.getJsonReferenceColumns.
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Promise<void> {
@@ -267,6 +289,7 @@ export default class ProjectReferenceCheck {
         model: model,
         payload: (data.updateBy.data || {}) as unknown as Dictionary<unknown>,
         relationsCheckedByService: data.relationsCheckedByService,
+        listsCheckedByService: data.listsCheckedByService,
         jsonReferenceColumns: data.jsonReferenceColumns,
       });
 
@@ -399,6 +422,7 @@ export default class ProjectReferenceCheck {
     model: DatabaseBaseModel;
     payload: Dictionary<unknown>;
     relationsCheckedByService?: Array<string> | undefined;
+    listsCheckedByService?: Array<string> | undefined;
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Array<ColumnReference> {
     const references: Array<ColumnReference> = [];
@@ -406,6 +430,7 @@ export default class ProjectReferenceCheck {
     for (const column of ProjectReferenceCheck.getCheckedColumns(
       data.model,
       data.relationsCheckedByService,
+      data.listsCheckedByService,
     )) {
       for (const id of ProjectReferenceCheck.getWrittenIds(
         data.payload,

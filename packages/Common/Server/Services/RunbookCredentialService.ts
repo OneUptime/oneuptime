@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import RunnerService from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -8,7 +8,7 @@ import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<RunbookCredential> {
+export class Service extends ProjectReferencesService<RunbookCredential> {
   public constructor() {
     super(RunbookCredential);
   }
@@ -22,6 +22,8 @@ export class Service extends DatabaseService<RunbookCredential> {
   protected override async onBeforeCreate(
     createBy: CreateBy<RunbookCredential>,
   ): Promise<OnCreate<RunbookCredential>> {
+    await super.onBeforeCreate(createBy);
+
     const type: RunbookCredentialType | undefined =
       createBy.data.credentialType;
 
@@ -89,6 +91,8 @@ export class Service extends DatabaseService<RunbookCredential> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<RunbookCredential>,
   ): Promise<OnUpdate<RunbookCredential>> {
+    await super.onBeforeUpdate(updateBy);
+
     await RunnerService.assertNoKubernetesAgentRunners({
       runners: updateBy.data.runners,
       assignedWhat: "credential",

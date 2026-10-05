@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MessageQueueLabelRuleEngineService from "./MessageQueueLabelRuleEngineService";
 import MessageQueueOwnerRuleEngineService from "./MessageQueueOwnerRuleEngineService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -238,7 +238,7 @@ export { resolveManualMessageQueue };
  *   - discovery stops creating rows once a project holds
  *     getAutoCreateBudget() live, non-archived discovered queues.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   // Per project: its auto-created row count, as last read.
   private autoCreateCountMemo: InProcessMemo<AutoCreateCount> =
     new InProcessMemo<AutoCreateCount>({
@@ -280,6 +280,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }

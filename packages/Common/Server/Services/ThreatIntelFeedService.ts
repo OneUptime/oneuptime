@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ThreatIntelFeed";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -14,7 +14,7 @@ import {
 } from "../../Types/SecurityEvent/ThreatIntelConstants";
 import TaxiiClient from "../Utils/SecurityEvent/ThreatIntel/TaxiiClient";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -68,6 +68,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.apiRootUrl) {
       throw new BadDataException("TAXII API root URL is required.");
     }
@@ -95,6 +97,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     this.validateFeed({
       apiRootUrl: updateBy.data.apiRootUrl as string | undefined,
       collectionId: updateBy.data.collectionId as string | undefined,

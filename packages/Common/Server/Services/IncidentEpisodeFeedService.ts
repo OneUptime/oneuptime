@@ -11,7 +11,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   IncidentEpisodeFeedEventType,
 } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -21,13 +21,24 @@ import WorkspaceNotificationRuleService, {
 import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
 
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * Feed items are mostly written by OneUptime itself as things happen, naming
+   * the record they are about and crediting whoever did it - someone who may
+   * have left the project since, or an admin from outside it. Refusing one of
+   * those would only lose the item. A feed item written by an API call or a
+   * workflow is checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   @CaptureSpan()
@@ -56,6 +67,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyIncidentEpisodeRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,

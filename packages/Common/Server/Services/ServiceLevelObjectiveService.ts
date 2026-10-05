@@ -23,7 +23,7 @@ import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceVali
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertSeverityService from "./AlertSeverityService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
@@ -112,7 +112,7 @@ interface SloDeleteCarryForward {
   burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -121,6 +121,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -339,6 +341,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Same string-arrival path as onBeforeCreate — coerce, validate, and write
      * the number back onto the update payload.

@@ -1,5 +1,5 @@
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
@@ -19,7 +19,7 @@ import StatusPageResourceService from "./StatusPageResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
 
-export class Service extends DatabaseService<MonitorGroup> {
+export class Service extends ProjectReferencesService<MonitorGroup> {
   public constructor() {
     super(MonitorGroup);
   }

@@ -42,6 +42,11 @@ export interface ProjectDirectory {
   members?: Array<string> | undefined;
   // Ids that exist in some other project (for mustExist: false references).
   elsewhere?: Array<string> | undefined;
+  /*
+   * Ids of rows every project shares (a global probe), by table name. None
+   * when left out.
+   */
+  shared?: Record<string, Array<string>> | undefined;
 }
 
 export interface ProjectDirectoryStub {
@@ -139,6 +144,30 @@ export function stubProjectDirectory(
             })
             .filter((id: string): boolean => {
               return members ? members.has(id) : true;
+            }),
+        );
+      },
+    );
+
+  jest
+    .spyOn(ProjectScopedReferenceValidator, "findSharedIds")
+    .mockImplementation(
+      async (data: {
+        service: DatabaseService<DatabaseBaseModel>;
+        ids: Array<string>;
+      }): Promise<Set<string>> => {
+        const model: string = data.service.getModel().tableName || "";
+        const shared: Set<string> = lower(
+          (directory.shared && directory.shared[model]) || [],
+        );
+
+        return new Set<string>(
+          data.ids
+            .map((id: string): string => {
+              return id.toLowerCase();
+            })
+            .filter((id: string): boolean => {
+              return shared.has(id);
             }),
         );
       },

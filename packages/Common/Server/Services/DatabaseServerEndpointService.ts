@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerService from "./DatabaseServerService";
 import Model from "../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -87,7 +87,7 @@ const ENDPOINT_EXAMPLE: string =
  * a person typing "Orders-DB.example.com" must land on the same key ingest
  * computes for `server.address=orders-db.example.com`.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -110,6 +110,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }

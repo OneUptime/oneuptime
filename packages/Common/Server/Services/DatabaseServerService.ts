@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
@@ -460,7 +460,7 @@ interface AutoCreateCount {
  *     - a container image may still refine it to a fork, and undo a fork
  *     only client spans named (decideDatabaseSystem).
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   /*
    * In-process front for the fleet-wide auto-restore gate: a collector
    * heartbeat arrives per batch, and asking Redis per batch whether it is time
@@ -514,6 +514,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * A create is held to the same AI access rules as an update, judged
      * against the never-configured defaults a new database starts from: an
@@ -714,6 +716,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

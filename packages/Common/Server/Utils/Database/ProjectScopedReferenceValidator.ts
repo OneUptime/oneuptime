@@ -62,6 +62,11 @@ import User from "../../../Models/DatabaseModels/User";
  *     that is gone, never one that belongs elsewhere: the ids the pinned read
  *     did not find are looked up once more by id alone, again selecting only
  *     the id.
+ *   - A few models keep rows every project shares: a global probe, a global
+ *     AI agent, a global LLM provider (SHARED_ROW_COLUMNS). Those count as
+ *     the project's too, exactly as ProbeService.getProbesAttachableToProject
+ *     lets any project's monitor use a global probe. They are looked up by id
+ *     and the shared flag, selecting only the id.
  *
  * The lookups go through plain DatabaseServices over the referenced models
  * (getLookupService) wherever a caller does not hand over a service of its
@@ -132,6 +137,17 @@ const USER_TABLE_NAME: string = "User";
 
 // How many users one membership read asks about.
 const MEMBERSHIP_LOOKUP_BATCH_SIZE: number = 50;
+
+/*
+ * Models with rows every project shares, by table, and the column that marks
+ * such a row: a global probe runs any project's monitors, a global AI agent
+ * and a global LLM provider serve every project.
+ */
+const SHARED_ROW_COLUMNS: Record<string, string> = {
+  Probe: "isGlobalProbe",
+  AIAgent: "isGlobalAIAgent",
+  LlmProvider: "isGlobalLlm",
+};
 
 /*
  * The plain lookup services, one per model, created on first use: a service
@@ -462,9 +478,24 @@ export default class ProjectScopedReferenceValidator {
         ids: lookupKeys,
       });
 
-    const notInProject: Array<string> = lookupKeys.filter(
+    const notOwnedByProject: Array<string> = lookupKeys.filter(
       (key: string): boolean => {
         return !idsInProject.has(key);
+      },
+    );
+
+    // A row every project shares (a global probe) is the project's to use.
+    const sharedIds: Set<string> =
+      notOwnedByProject.length > 0
+        ? await ProjectScopedReferenceValidator.findSharedIds({
+            service: data.service,
+            ids: notOwnedByProject,
+          })
+        : new Set<string>();
+
+    const notInProject: Array<string> = notOwnedByProject.filter(
+      (key: string): boolean => {
+        return !sharedIds.has(key);
       },
     );
 
@@ -816,11 +847,12 @@ export default class ProjectScopedReferenceValidator {
   }
 
   /*
-   * The ids among `ids` that name records of `modelType` in the project, as
-   * given and in the order given - for engines that act, as root, on ids a
-   * rule saved long ago and must leave out whatever is not the project's
-   * rather than fail. One read pinned to the project (findIdsInProject); an
-   * id that is not a uuid is never sent to the database.
+   * The ids among `ids` that name records of `modelType` in the project (or
+   * rows every project shares, see SHARED_ROW_COLUMNS), as given and in the
+   * order given - for engines that act, as root, on ids a rule saved long ago
+   * and must leave out whatever is not the project's rather than fail. One
+   * read pinned to the project (findIdsInProject); an id that is not a uuid
+   * is never sent to the database.
    */
   public static async keepIdsInProject<TModel extends DatabaseBaseModel>(data: {
     modelType: { new (): TModel };
@@ -843,18 +875,83 @@ export default class ProjectScopedReferenceValidator {
       return [];
     }
 
+    const lookupService: DatabaseService<DatabaseBaseModel> =
+      ProjectScopedReferenceValidator.getLookupService(
+        data.modelType,
+      ) as unknown as DatabaseService<DatabaseBaseModel>;
+
     const found: Set<string> =
       await ProjectScopedReferenceValidator.findIdsInProject({
-        service: ProjectScopedReferenceValidator.getLookupService(
-          data.modelType,
-        ) as unknown as DatabaseService<DatabaseBaseModel>,
+        service: lookupService,
         projectId: data.projectId,
         ids: lookupIds,
       });
 
-    return data.ids.filter((id: string): boolean => {
-      return found.has(normalizeId(id));
+    const notFound: Array<string> = lookupIds.filter((id: string): boolean => {
+      return !found.has(id);
     });
+
+    const shared: Set<string> =
+      notFound.length > 0
+        ? await ProjectScopedReferenceValidator.findSharedIds({
+            service: lookupService,
+            ids: notFound,
+          })
+        : new Set<string>();
+
+    return data.ids.filter((id: string): boolean => {
+      return found.has(normalizeId(id)) || shared.has(normalizeId(id));
+    });
+  }
+
+  /*
+   * The column that marks a row every project shares on this model (a global
+   * probe's isGlobalProbe), or null for a model whose rows are all one
+   * project's. See SHARED_ROW_COLUMNS.
+   */
+  public static getSharedRowColumn(model: DatabaseBaseModel): string | null {
+    return (model.tableName && SHARED_ROW_COLUMNS[model.tableName]) || null;
+  }
+
+  /*
+   * The ids among `ids` (valid uuids) that name rows every project shares -
+   * a global probe - normalized. Nothing for a model without such rows. One
+   * read, by id and the shared flag, selecting nothing but the id.
+   */
+  public static async findSharedIds(data: {
+    service: DatabaseService<DatabaseBaseModel>;
+    ids: Array<string>;
+  }): Promise<Set<string>> {
+    const found: Set<string> = new Set<string>();
+    const sharedRowColumn: string | null =
+      ProjectScopedReferenceValidator.getSharedRowColumn(
+        data.service.getModel(),
+      );
+
+    if (!sharedRowColumn || data.ids.length === 0) {
+      return found;
+    }
+
+    const records: Array<DatabaseBaseModel> = await data.service.findBy({
+      query: {
+        _id: QueryHelper.any(data.ids),
+        [sharedRowColumn]: true,
+      } as Query<DatabaseBaseModel>,
+      select: {
+        _id: true,
+      } as Select<DatabaseBaseModel>,
+      limit: data.ids.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const record of records) {
+      found.add(normalizeId(record._id?.toString() || ""));
+    }
+
+    return found;
   }
 
   /*

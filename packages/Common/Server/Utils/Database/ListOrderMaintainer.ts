@@ -153,9 +153,29 @@ export default class ListOrderMaintainer {
   }
 
   /*
+   * The columns that name a row's list: the model's scope columns, and its
+   * project. A list is a parent's rows in the parent's own project - a
+   * status page's header links, a pipeline's processors - so a row that
+   * names another project's parent is never numbered against that
+   * project's rows, nor steps them aside.
+   */
+  public static getScopeColumns<TBaseModel extends BaseModel>(data: {
+    model: TBaseModel;
+    settings: ListOrderSettings;
+  }): Array<string> {
+    const tenantColumn: string | null = data.model.getTenantColumn();
+
+    if (!tenantColumn || data.settings.scopeColumns.includes(tenantColumn)) {
+      return [...data.settings.scopeColumns];
+    }
+
+    return [...data.settings.scopeColumns, tenantColumn];
+  }
+
+  /*
    * Which list a row belongs to, as a query and as a key. Null when the row
-   * does not say which list it is in - then there is nothing to place it in,
-   * and it is left as the caller wrote it.
+   * does not say which list it is in, or which project - then there is
+   * nothing to place it in, and it is left as the caller wrote it.
    */
   public static getScope<TBaseModel extends BaseModel>(data: {
     model: TBaseModel;
@@ -164,8 +184,9 @@ export default class ListOrderMaintainer {
   }): ListOrderScope<TBaseModel> | null {
     const query: Dictionary<unknown> = {};
     const keyParts: Array<string> = [];
+    const tenantColumn: string | null = data.model.getTenantColumn();
 
-    for (const column of data.settings.scopeColumns) {
+    for (const column of ListOrderMaintainer.getScopeColumns(data)) {
       const value: unknown = ListOrderMaintainer.readScopeValue({
         model: data.model,
         row: data.row,
@@ -173,6 +194,11 @@ export default class ListOrderMaintainer {
       });
 
       if (value === undefined) {
+        return null;
+      }
+
+      // A row of no project belongs to no list.
+      if (value === null && column === tenantColumn) {
         return null;
       }
 
@@ -398,7 +424,10 @@ export default class ListOrderMaintainer {
       [data.settings.column]: true,
     };
 
-    for (const column of data.settings.scopeColumns) {
+    for (const column of ListOrderMaintainer.getScopeColumns({
+      model: data.service.getModel(),
+      settings: data.settings,
+    })) {
       select[column] = true;
     }
 

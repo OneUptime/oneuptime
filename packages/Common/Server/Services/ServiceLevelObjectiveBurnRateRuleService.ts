@@ -30,6 +30,7 @@ import AlertService from "./AlertService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
@@ -221,9 +222,32 @@ const normalizeId: NormalizeIdFunction = (id: string): string => {
   return id.trim().toLowerCase();
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The severities, the on-call policies, the labels and the owners the
+   * rule copies onto what it opens are checked by this service's own hooks
+   * below, with their own words. The SLO it belongs to is checked by
+   * ProjectReferencesService, on update as well as on create.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["alertSeverity", "incidentSeverity"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "onCallDutyPolicies",
+      "incidentOnCallDutyPolicies",
+      "alertLabels",
+      "incidentLabels",
+      "alertOwnerTeams",
+      "incidentOwnerTeams",
+      "alertOwnerUsers",
+      "incidentOwnerUsers",
+    ];
   }
 
   /*
@@ -248,6 +272,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Every numeric column can arrive as a string: the dashboard's number
      * fields hand Formik `e.target.value`, ModelForm copies it verbatim and
@@ -425,6 +451,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // Same string-arrival path as onBeforeCreate: coerce, validate, write back.
     const newThreshold: unknown = updateBy.data.burnRateThreshold as unknown;
 

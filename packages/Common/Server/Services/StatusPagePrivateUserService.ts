@@ -5,7 +5,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageService from "./StatusPageService";
@@ -23,7 +23,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -32,6 +32,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     // check if this user is already invited.
     if (createBy.data.statusPageId && createBy.data.email) {
       const statusPageUser: Model | null = await this.findOneBy({
@@ -86,6 +88,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (updateBy.data.email) {
       const newEmail: string = (updateBy.data.email as Email)
         .toString()
