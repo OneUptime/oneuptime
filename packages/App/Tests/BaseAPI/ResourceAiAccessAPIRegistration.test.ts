@@ -4,6 +4,7 @@ import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBase
 import AllModelTypes from "Common/Models/DatabaseModels/Index";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
@@ -14,7 +15,7 @@ import path from "path";
 
 /*
  * The resource AI access API (Common/Server/API/ResourceAiAccessAPI.ts:
- * status, test connection, reset agent and insights for the AI pages of
+ * status, test connection, reset agent, logs and insights for the AI pages of
  * every resource a resource AI agent serves) only answers once
  * BaseAPI/Index.ts mounts it under the /api prefix — and, like the
  * Kubernetes cluster's AI access API, BEFORE the CRUD routers of the
@@ -86,6 +87,7 @@ const RESOURCE_AI_ACCESS_PATHS: Array<string> = [
   RESOURCE_AI_ACCESS_TEST_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
 ];
 
 describe("Resource AI access API registration in BaseAPI/Index.ts", () => {

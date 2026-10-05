@@ -31,6 +31,13 @@ export function getKubernetesBreadcrumbs(
       PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS,
       ["Project", "Kubernetes", "View Cluster", "AI", "Insights"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, [
       "Project",
       "Kubernetes",

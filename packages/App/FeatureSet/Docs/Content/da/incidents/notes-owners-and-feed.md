@@ -122,7 +122,7 @@ Kortets sidehoved har også en menu **Handlinger**, så du kan handle uden at fo
 
 - **Execute Runbook** — start et [runbook](/docs/runbooks/index) mod denne hændelse.
 - **Udfør vagtpolitik** — tilkald en politik på forlangende.
-- **Add Public Note** — skriveboksen fra siden Offentlige noter, i en dialog: skriv noten, og vælg **Post update**. Skabeloner, **Draft with AI**, vedhæftninger, **Notify status page subscribers** med hvem den når frem til, og **Preview notification** er der alle. Noten offentliggøres nu; vælg **Posted now** for at sætte et tidligere tidspunkt.
+- **Add Public Note** — skriveboksen fra siden Offentlige noter, i en dialog: skriv noten, og vælg **Post update**. Skabeloner, **Draft with AI**, vedhæftninger, **Notify status page subscribers** med hvem den når frem til, og **Preview** er der alle. Noten offentliggøres nu; vælg **Posted now** for at sætte et tidligere tidspunkt.
 - **Tilføj privat note** — skriveboksen fra siden Private noter, i en dialog: skriv noten, og vælg **Add note**.
 
 Alt andet ligger bag knappen **⋯** ved siden af, den samme knap **Flere indstillinger**, som en tabels korthoved har, så hovedet viser så få knapper som muligt:

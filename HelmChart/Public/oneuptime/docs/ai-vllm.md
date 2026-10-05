@@ -52,12 +52,21 @@ The registration is declarative:
   URL, API key) in the Admin Dashboard are overwritten. Other fields — such as
   the token cost used for AI-credit billing — are left alone.
 
+It also works with `billing.enabled: true` or
+`outboundConnections.blockPrivateNetwork: true`. Both refuse private addresses,
+such as the vLLM Service's cluster IP, but only to LLM providers that projects
+configure. A global provider's address comes from the chart or an
+administrator, never from a project member, so it is exempt. Loopback and
+link-local addresses stay refused for every provider.
+
 Two caveats:
 
 - A project's own LLM Provider takes precedence; AI fix tasks fall back to the
   global provider when a project has none.
 - On installs with `billing.enabled: true`, global providers are subject to
-  AI-credit balance checks.
+  AI-credit balance checks once you set their token cost (cost per million
+  tokens) in the Admin Dashboard. The auto-registered provider starts at no
+  cost.
 
 ## Wire it up manually instead
 
@@ -74,6 +83,11 @@ Providers > Create LLM Provider**:
   model id if unset
 - **API Key**: the value of `vllm.apiKey`; leave blank if you did not set one
   (vLLM is keyless by default)
+
+With `billing.enabled: true` or `outboundConnections.blockPrivateNetwork: true`,
+a project's own provider cannot reach the Service's private cluster IP. Create
+it with the same fields in the Admin Dashboard under **Settings > Global LLM
+Providers** instead.
 
 ## Scaling & upgrades
 

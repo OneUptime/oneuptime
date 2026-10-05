@@ -122,7 +122,7 @@ La cabecera de la tarjeta tiene además un menú **Acciones** para que puedas ac
 
 - **Execute Runbook** — inicia un [runbook](/docs/runbooks/index) contra este incidente.
 - **Ejecutar política de guardia** — avisa a una política bajo demanda.
-- **Add Public Note** — el editor de la página de Notas Públicas, en un modal: escribe la nota y luego **Post update**. Plantillas, **Draft with AI**, adjuntos, **Notify status page subscribers** con a quién llegará y **Preview notification** están todos ahí. La nota se publica ahora; para darle una hora anterior, elige **Posted now**.
+- **Add Public Note** — el editor de la página de Notas Públicas, en un modal: escribe la nota y luego **Post update**. Plantillas, **Draft with AI**, adjuntos, **Notify status page subscribers** con a quién llegará y **Preview** están todos ahí. La nota se publica ahora; para darle una hora anterior, elige **Posted now**.
 - **Añadir nota privada** — el editor de la página de Notas Privadas, en un modal: escribe la nota y luego **Add note**.
 
 Todo lo demás está detrás del botón **⋯** de al lado, el mismo botón **Más opciones** que tiene la cabecera de tarjeta de una tabla, para que la cabecera muestre los menos botones posibles:

@@ -85,13 +85,15 @@ jest.mock(
 );
 
 /*
- * The cluster's AI section: "Insights" (what AI investigated and changed)
- * and "Agent" (the Kubernetes AI agent and what AI may do), in a section of
- * their own right after Basic. Basic's resource charts are "Resource Usage"
- * now, so the menu never shows two "Insights" and the LightBulb belongs to
- * AI alone. The old single AI page's route (":id/ai") stays, as a redirect
- * to the agent page; the redirect itself is rendered in
- * KubernetesClusterAiPage.test.tsx.
+ * The cluster's AI section: "Insights" (what AI learned here and what
+ * deserves attention), "Logs" (everything AI did, newest first — the page
+ * that was called Insights before) and "Agent" (the Kubernetes AI agent and
+ * what AI may do), in a section of their own right after Basic. Basic's
+ * resource charts are "Resource Usage" now, so the menu never shows two
+ * "Insights" and the LightBulb belongs to AI alone; AI's "Logs" has a list
+ * icon and a route of its own beside Telemetry's "Logs". The old single AI
+ * page's route (":id/ai") stays, as a redirect to the agent page; the
+ * redirect itself is rendered in KubernetesClusterAiPage.test.tsx.
  */
 
 const CLUSTER_ID: ObjectID = new ObjectID(
@@ -160,7 +162,7 @@ describe("the cluster side menu's AI section", () => {
     ).toHaveLength(1);
   });
 
-  test("holds Insights and Agent, linking to their pages", async () => {
+  test("holds Insights, Logs and Agent, in that order, linking to their pages", async () => {
     await renderClusterMenu();
 
     expect(linksIn("AI")).toEqual([
@@ -169,11 +171,36 @@ describe("the cluster side menu's AI section", () => {
         href: `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID.toString()}/ai/insights`,
       },
       {
+        title: "Logs",
+        href: `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID.toString()}/ai/logs`,
+      },
+      {
         title: "Agent",
         href: `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID.toString()}/ai/agent`,
       },
     ]);
-    expect(iconCountIn("AI")).toBe(2);
+    expect(iconCountIn("AI")).toBe(3);
+  });
+
+  test("AI's Logs and Telemetry's Logs are two pages, each in its own section", async () => {
+    await renderClusterMenu();
+
+    const aiLogs: MenuLink = linksIn("AI").find((link: MenuLink): boolean => {
+      return link.title === "Logs";
+    })!;
+    const telemetryLogs: MenuLink = linksIn("Telemetry").find(
+      (link: MenuLink): boolean => {
+        return link.title === "Logs";
+      },
+    )!;
+
+    expect(aiLogs.href).toBe(
+      clusterRoute(PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS),
+    );
+    expect(telemetryLogs.href).toBe(
+      clusterRoute(PageMap.KUBERNETES_CLUSTER_VIEW_LOGS),
+    );
+    expect(aiLogs.href).not.toBe(telemetryLogs.href);
   });
 
   test("Basic no longer holds an AI item, and its charts are Resource Usage", async () => {
@@ -241,15 +268,40 @@ describe("the cluster side menu's AI section", () => {
       "SideMenuItem",
     );
   });
+
+  // AI → Logs has the list icon; Telemetry → Logs keeps the logs icon.
+  test("the QueueList is used only by AI → Logs", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/SideMenu.tsx",
+      ),
+      "utf8",
+    );
+    expect(source.match(/IconProp\.QueueList/g)).toHaveLength(1);
+    const listAt: number = source.indexOf("IconProp.QueueList");
+    const logsRouteAt: number = source.lastIndexOf(
+      "KUBERNETES_CLUSTER_VIEW_AI_LOGS",
+      listAt,
+    );
+    expect(logsRouteAt).toBeGreaterThan(-1);
+    expect(source.slice(logsRouteAt, listAt)).not.toContain("SideMenuItem");
+  });
 });
 
 describe("the AI routes", () => {
-  test("nest under the cluster: ai/insights and ai/agent", () => {
+  test("nest under the cluster: ai/insights, ai/logs and ai/agent", () => {
     expect(
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS],
     ).toBe(":id/ai/insights");
+    expect(KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS]).toBe(
+      ":id/ai/logs",
+    );
     expect(KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]).toBe(
       ":id/ai/agent",
+    );
+    expect(RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS]!.toString()).toBe(
+      "/dashboard/:projectId/kubernetes/:id/ai/logs",
     );
     // The old page's route stays, so old links still land somewhere.
     expect(KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI]).toBe(
@@ -274,13 +326,18 @@ describe("the AI routes", () => {
         2,
       ),
     ).toBe("ai/insights");
+    expect(
+      RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS, 2),
+    ).toBe("ai/logs");
 
     const source: string = fs.readFileSync(ROUTES_SOURCE, "utf8");
     expect(source).toContain('from "../Pages/Kubernetes/View/AI/Agent"');
     expect(source).toContain('from "../Pages/Kubernetes/View/AI/Insights"');
+    expect(source).toContain('from "../Pages/Kubernetes/View/AI/Logs"');
     expect(source).toContain("<KubernetesClusterViewAiRedirect />");
     for (const key of [
       "KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS",
+      "KUBERNETES_CLUSTER_VIEW_AI_LOGS",
       "KUBERNETES_CLUSTER_VIEW_AI_AGENT",
     ]) {
       expect(source).toMatch(
@@ -291,6 +348,33 @@ describe("the AI routes", () => {
 
   test("the old single AI page is gone", () => {
     expect(fs.existsSync(OLD_AI_PAGE_SOURCE)).toBe(false);
+  });
+
+  /*
+   * The page that listed everything AI did was "AI Insights" on
+   * :id/ai/insights. It is "AI Logs" on :id/ai/logs now, and an old
+   * bookmark of :id/ai/insights lands on the AI Insights page, which links
+   * to it from its heading.
+   */
+  test("ai/insights renders the AI Insights page, ai/logs the AI Logs page", () => {
+    const source: string = fs
+      .readFileSync(ROUTES_SOURCE, "utf8")
+      .replace(/\s+/g, "");
+
+    const insightsMount: number = source.indexOf(
+      "getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS,2",
+    );
+    const logsMount: number = source.indexOf(
+      "getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS,2",
+    );
+    expect(insightsMount).toBeGreaterThan(-1);
+    expect(logsMount).toBeGreaterThan(-1);
+    expect(source.slice(insightsMount, insightsMount + 160)).toContain(
+      "<KubernetesClusterViewAiInsights",
+    );
+    expect(source.slice(logsMount, logsMount + 160)).toContain(
+      "<KubernetesClusterViewAiLogs",
+    );
   });
 });
 
@@ -306,13 +390,20 @@ describe("the AI breadcrumbs", () => {
     });
   }
 
-  test('say "AI Insights" and "AI agent" pages live under AI', () => {
+  test('say the "Insights", "Logs" and "AI agent" pages live under AI', () => {
     expect(crumbTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS)).toEqual([
       "Project",
       "Kubernetes",
       "View Cluster",
       "AI",
       "Insights",
+    ]);
+    expect(crumbTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS)).toEqual([
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "AI",
+      "Logs",
     ]);
     expect(crumbTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT)).toEqual([
       "Project",

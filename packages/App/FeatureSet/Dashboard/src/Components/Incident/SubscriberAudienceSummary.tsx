@@ -99,13 +99,13 @@ const SubscriberAudienceSummary: FunctionComponent<ComponentProps> = (
         data-state="loading"
         className={`${containerClass} border-gray-200 bg-gray-50 text-gray-600`}
       >
-        <p className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Icon
             icon={IconProp.Spinner}
             className="h-4 w-4 shrink-0 animate-spin"
           />
           <span>{translate(IncidentStatusPageScopeCopy.audienceLoading)}</span>
-        </p>
+        </div>
       </div>
     );
   }
@@ -142,13 +142,13 @@ const SubscriberAudienceSummary: FunctionComponent<ComponentProps> = (
       data-state={view.tone}
       className={`${containerClass} ${TONE_CLASSES[view.tone]}`}
     >
-      <p className="flex items-start gap-2 font-medium">
+      <div className="flex items-start gap-2 font-medium">
         <Icon
           icon={view.tone === "info" ? IconProp.Email : IconProp.Info}
           className="mt-0.5 h-4 w-4 shrink-0"
         />
         <span data-testid={`${dataTestId}-headline`}>{view.headline}</span>
-      </p>
+      </div>
 
       {view.pages.length > 0 && (
         <ul

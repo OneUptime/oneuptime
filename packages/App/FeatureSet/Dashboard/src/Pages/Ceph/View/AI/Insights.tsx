@@ -6,8 +6,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The Ceph cluster's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this Ceph cluster, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * has learned about this Ceph cluster from its own work there, and what
+ * deserves attention. The page itself is the generic ResourceAiInsightsPage;
+ * everything AI did, newest first, is AI → Logs.
  */
 const CephClusterAiInsights: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
