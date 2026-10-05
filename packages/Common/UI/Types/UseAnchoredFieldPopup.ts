@@ -33,6 +33,38 @@ const POPUP_MIN_USEFUL_HEIGHT_PX: number = 160;
 export const ANCHORED_POPUP_BOUNDARY_ATTRIBUTE: string =
   "data-anchored-popup-boundary";
 
+type KeepPositionIfUnchangedFunction = (
+  next: AnchoredFieldPopupPosition,
+) => (
+  previous: AnchoredFieldPopupPosition | null,
+) => AnchoredFieldPopupPosition;
+
+/*
+ * The state update for a new position: the previous object when nothing
+ * moved, so placing a popup again - on every observed resize - renders
+ * nothing new and cannot feed back into another resize.
+ */
+const keepPositionIfUnchanged: KeepPositionIfUnchangedFunction = (
+  next: AnchoredFieldPopupPosition,
+) => {
+  return (
+    previous: AnchoredFieldPopupPosition | null,
+  ): AnchoredFieldPopupPosition => {
+    if (
+      previous &&
+      previous.bottom === next.bottom &&
+      previous.left === next.left &&
+      previous.maxHeight === next.maxHeight &&
+      previous.top === next.top &&
+      previous.width === next.width
+    ) {
+      return previous;
+    }
+
+    return next;
+  };
+};
+
 const FOCUSABLE_SELECTOR: string =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -523,13 +555,15 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
         preferredPlacement,
       });
 
-      setPopupPosition({
-        bottom: placed.bottom,
-        left: placed.left,
-        maxHeight: placed.maxHeight,
-        top: placed.top,
-        width: placed.width,
-      });
+      setPopupPosition(
+        keepPositionIfUnchanged({
+          bottom: placed.bottom,
+          left: placed.left,
+          maxHeight: placed.maxHeight,
+          top: placed.top,
+          width: placed.width,
+        }),
+      );
       return;
     }
 
@@ -608,14 +642,41 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
     window.addEventListener("resize", schedulePositionUpdate);
     document.addEventListener("scroll", schedulePositionUpdate, true);
 
+    /*
+     * A popup that picks its side by the height of its content is placed
+     * again whenever that height changes: a section of it opening, and the
+     * Tailwind runtime styling classes it uses for the first time a moment
+     * after they reach the page - the first measure can see the content
+     * unstyled and shorter than it is.
+     */
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (
+      stayInsideBoundary &&
+      popupRef.current &&
+      typeof ResizeObserver !== "undefined"
+    ) {
+      resizeObserver = new ResizeObserver(schedulePositionUpdate);
+      resizeObserver.observe(popupRef.current);
+
+      /*
+       * Its children too: once a maxHeight holds the popup itself to one
+       * size, only they still grow.
+       */
+      for (const child of Array.from(popupRef.current.children)) {
+        resizeObserver.observe(child);
+      }
+    }
+
     return () => {
       window.removeEventListener("resize", schedulePositionUpdate);
       document.removeEventListener("scroll", schedulePositionUpdate, true);
+      resizeObserver?.disconnect();
       if (animationFrame !== null) {
         window.cancelAnimationFrame(animationFrame);
       }
     };
-  }, [isPopupOpen, updatePopupPosition, repositionKey]);
+  }, [isPopupOpen, updatePopupPosition, repositionKey, stayInsideBoundary]);
 
   // Outside click. Portal aware: the popup is not a DOM child of the anchor.
   useEffect(() => {

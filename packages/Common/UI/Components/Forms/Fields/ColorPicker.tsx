@@ -213,17 +213,32 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     }
   }, [isPopupOpen]);
 
-  // An inline panel opened at the foot of a dialog is scrolled into view.
+  /*
+   * An inline panel opened at the foot of a dialog is scrolled into view - on
+   * the next frame, once the Tailwind runtime has styled classes the page had
+   * not used before (the square's height among them); measured straight
+   * away, the panel is still a few pixels tall and already "in view".
+   */
   useEffect(() => {
     if (layout !== "inline" || !isCustomOpen) {
-      return;
+      return undefined;
     }
 
-    const wrapper: HTMLDivElement | null = panelWrapperRef.current;
-
-    if (wrapper && typeof wrapper.scrollIntoView === "function") {
-      wrapper.scrollIntoView({ block: "nearest" });
+    if (typeof window.requestAnimationFrame !== "function") {
+      return undefined;
     }
+
+    const frame: number = window.requestAnimationFrame((): void => {
+      const wrapper: HTMLDivElement | null = panelWrapperRef.current;
+
+      if (wrapper && typeof wrapper.scrollIntoView === "function") {
+        wrapper.scrollIntoView({ block: "nearest" });
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [isCustomOpen]);
 
   type CommitFunction = (hex: string | null) => void;
@@ -289,7 +304,12 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
   const clearLabel: string = props.clearLabel || NO_COLOR_LABEL;
   const customLabel: string =
     translator.translateText(CUSTOM_COLOR_LABEL) || CUSTOM_COLOR_LABEL;
-  // "Custom color, #3e409a": the custom button names the color it holds.
+  /*
+   * "Custom color, #3e409a": the custom button names the color it holds. It
+   * says so to a screen reader and on hover; on screen the button keeps its
+   * words and shows the color in its dot, so it never changes width and
+   * jumps between lines as colors are picked.
+   */
   const customButtonName: string = isCustom
     ? translator.translateTemplate("Custom color, {{code}}", { code: value })
     : customLabel;
@@ -400,7 +420,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             ref={customButtonRef}
             type="button"
             aria-label={customButtonName}
-            title={customLabel}
+            title={customButtonName}
             aria-expanded={isCustomOpen}
             aria-controls={isCustomOpen ? panelId : undefined}
             data-testid="color-picker-custom"
@@ -417,14 +437,17 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             {renderCustomDot("h-5 w-5")}
             <span
               data-testid="color-picker-custom-label"
-              className={isCustom ? "font-mono" : ""}
+              className="whitespace-nowrap"
             >
-              {isCustom ? value : customLabel}
+              {customLabel}
             </span>
           </button>
         </div>
         {isCustomOpen ? (
-          <div ref={panelWrapperRef} className="mt-3 w-full max-w-xs">
+          <div
+            ref={panelWrapperRef}
+            className="mt-3 w-full max-w-xs scroll-mb-5"
+          >
             <CustomColorPanel
               id={panelId}
               value={value}
@@ -563,11 +586,20 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   {renderCustomDot("h-5 w-5")}
-                  <span className="min-w-0 flex-1">{customLabel}</span>
-                  {isCustom ? (
+                  <span
+                    data-testid="color-picker-custom-label"
+                    className="min-w-0 flex-1 truncate whitespace-nowrap"
+                  >
+                    {customLabel}
+                  </span>
+                  {/*
+                   * The code of a custom color, while the panel that shows
+                   * it in its own box is closed.
+                   */}
+                  {isCustom && !isCustomOpen ? (
                     <span
-                      data-testid="color-picker-custom-label"
-                      className="font-mono text-xs text-gray-500"
+                      data-testid="color-picker-custom-code"
+                      className="shrink-0 font-mono text-xs text-gray-500"
                     >
                       {value}
                     </span>

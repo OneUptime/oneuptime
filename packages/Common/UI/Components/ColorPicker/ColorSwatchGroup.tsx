@@ -34,7 +34,28 @@ export interface ClearOption {
   title?: string | undefined;
 }
 
+/*
+ * "row": the swatches in two runs of equal length that wrap as wholes - ten
+ * colors sit on one line where there is room for them, and on two lines of
+ * five on a phone, never nine and one. "grid": five to a line, for a
+ * popover of a fixed width.
+ */
 export type ColorSwatchGroupLayout = "row" | "grid";
+
+/*
+ * The swatches of a row layout, split into the runs that wrap as wholes:
+ * one run up to five colors, otherwise two halves (the first one the longer).
+ */
+export const splitSwatchRuns: <T>(items: ReadonlyArray<T>) => Array<Array<T>> =
+  <T,>(items: ReadonlyArray<T>): Array<Array<T>> => {
+    if (items.length <= 5) {
+      return items.length > 0 ? [[...items]] : [];
+    }
+
+    const firstLength: number = Math.ceil(items.length / 2);
+
+    return [items.slice(0, firstLength), items.slice(firstLength)];
+  };
 
 export interface ComponentProps {
   swatches: ReadonlyArray<ColorSwatchOption>;
@@ -307,6 +328,19 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
   const swatchItems: Array<RadioItem> = clearItem ? items.slice(1) : items;
   const swatchOffset: number = clearItem ? 1 : 0;
 
+  // Each run with the index of its first swatch among all the radios.
+  const runs: Array<{ items: Array<RadioItem>; offset: number }> = [];
+
+  for (const run of splitSwatchRuns(swatchItems)) {
+    const previous: { items: Array<RadioItem>; offset: number } | undefined =
+      runs[runs.length - 1];
+
+    runs.push({
+      items: run,
+      offset: previous ? previous.offset + previous.items.length : swatchOffset,
+    });
+  }
+
   return (
     <div
       role="radiogroup"
@@ -320,7 +354,7 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
       className={
         props.layout === "grid"
           ? "flex flex-col gap-3"
-          : "inline-flex flex-wrap items-center gap-2"
+          : "flex flex-wrap items-center gap-2"
       }
     >
       {props.layout === "grid" ? (
@@ -337,9 +371,27 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
           </div>
         </>
       ) : (
-        items.map((item: RadioItem, index: number) => {
-          return renderItem(item, index);
-        })
+        <>
+          {clearItem ? renderItem(clearItem, 0) : <></>}
+          {runs.map(
+            (
+              run: { items: Array<RadioItem>; offset: number },
+              runIndex: number,
+            ) => {
+              return (
+                <div
+                  key={runIndex}
+                  data-testid="color-picker-swatch-run"
+                  className="flex items-center gap-2"
+                >
+                  {run.items.map((item: RadioItem, index: number) => {
+                    return renderItem(item, run.offset + index);
+                  })}
+                </div>
+              );
+            },
+          )}
+        </>
       )}
     </div>
   );
