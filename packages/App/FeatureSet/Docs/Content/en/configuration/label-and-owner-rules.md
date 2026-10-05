@@ -2,7 +2,7 @@
 
 Label rules and owner rules organize your resources for you. A **label rule** attaches labels to every new resource that matches it, and an **owner rule** adds owner users and teams to it — so a new database incident is labelled _Database_ and owned by the database team without anyone having to remember.
 
-Every product with labels and owners has both, under its **Settings** (on Incidents, Alerts and Scheduled Maintenance, under **Rules**): monitors, incidents and incident episodes, alerts and alert episodes, scheduled maintenance events, status pages, services, hosts, Kubernetes clusters, Docker hosts, Docker Swarm clusters, Podman hosts, Proxmox clusters, VMware vCenters, Ceph clusters, databases, queues, IoT fleets, serverless functions, cloud resources, RUM applications, dashboards, on-call policies, on-call schedules, incoming call policies, workflows, runbooks, network devices and SLOs. The Incidents and Alerts pages have an **Incident Rules** (or **Alert Rules**) tab and an **Episode Rules** tab.
+Every product with labels and owners has both, under its **Settings** (on Incidents, Alerts and Scheduled Maintenance, under **Rules**): monitors, incidents and incident episodes, alerts and alert episodes, scheduled maintenance events, status pages, services, hosts, Kubernetes clusters, Docker hosts, Docker Swarm clusters, Podman hosts, Proxmox clusters, VMware vCenters, Ceph clusters, storage arrays, databases, queues, IoT fleets, serverless functions, cloud resources, RUM applications, dashboards, on-call policies, on-call schedules, incoming call policies, workflows, runbooks, network devices and SLOs. The Incidents and Alerts pages have an **Incident Rules** (or **Alert Rules**) tab and an **Episode Rules** tab.
 
 ## Creating a rule
 
