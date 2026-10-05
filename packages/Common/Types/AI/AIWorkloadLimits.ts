@@ -8,7 +8,7 @@
  * starts as soon as it is queued however many are already running, and fix
  * tasks and their pull requests are opened as often as the work calls for. A
  * project that wants a ceiling sets one — per lane under Incidents or Alerts →
- * Settings → AI, and per repository for open AI pull requests. The
+ * AI → Settings, and per repository for open AI pull requests. The
  * investigation time limit (AIAgentRunLimits) and the daily token limits
  * follow the same rule.
  */

@@ -474,7 +474,7 @@ describe("getRemediationDecisionLines", () => {
         "No Auto Remediation Rule is set up for this kind of incident. A rule can propose or start a runbook when a matching one is created.",
       );
       expect(hrefsOf(incidentLine)).toEqual([
-        `/dashboard/${PROJECT_ID}/incidents/settings/auto-remediation-rules`,
+        `/dashboard/${PROJECT_ID}/incidents/ai/auto-remediation-rules`,
       ]);
       expect(incidentLine.links[0]!.text).toBe(
         "Incident Auto Remediation Rules",
@@ -488,7 +488,7 @@ describe("getRemediationDecisionLines", () => {
         "alert",
       );
       expect(hrefsOf(alertLine)).toEqual([
-        `/dashboard/${PROJECT_ID}/alerts/settings/auto-remediation-rules`,
+        `/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`,
       ]);
     });
 

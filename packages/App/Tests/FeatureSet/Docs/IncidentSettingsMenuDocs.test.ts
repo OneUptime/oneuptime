@@ -13,6 +13,9 @@ import path from "path";
  * Both lists must name exactly the menu's Settings pages, in the menu's
  * order, in English and in Persian (the one translated corpus of the
  * incident pages; every other language falls back to English).
+ *
+ * The AI section is listed the same way: the overview's AI row names the
+ * section's pages in the menu's order, and none of them is in Settings.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -32,6 +35,7 @@ const SETTINGS_PAGE: string = "incidents/settings";
  * The overview's row for the Settings section, and the settings table's Linked Alerts row.
  */
 const OVERVIEW_SETTINGS_ROW: RegExp = /^\|\s*\*\*Settings\*\*\s*\|/;
+const OVERVIEW_AI_ROW: RegExp = /^\|\s*\*\*AI\*\*\s*\|/;
 const LINKED_ALERTS_ROW: RegExp = /^\|\s*\*\*Linked Alerts\*\*\s*\|/;
 
 const SETTINGS_TABLE_HEADING: Record<string, string> = {
@@ -66,26 +70,46 @@ function boldNames(markdown: string): Array<string> {
 }
 
 /*
- * The link titles of the Incidents side menu's Settings section, in order,
- * read from source: the menu is a React component, which an App test must
- * not import.
+ * The link titles of one section of the Incidents side menu, in order, read
+ * from source: the menu is a React component, which an App test must not
+ * import. A section's own title is indented six spaces, its links' titles
+ * twelve - so the AI section's "Settings" link is never taken for the
+ * Settings section.
  */
-function settingsMenuTitles(): Array<string> {
+function sectionMenuTitles(section: string): Array<string> {
   const menu: string = fs.readFileSync(INCIDENTS_SIDE_MENU_FILE, "utf8");
-  const sectionTitle: string = 'title: "Settings",';
-  const start: number = menu.indexOf(sectionTitle);
-  const end: number = menu.indexOf("addDeveloperSideMenuSection(", start);
+  const sectionTitle: RegExp = new RegExp(`\\n {6}title: "${section}",\\n`);
+  const match: RegExpExecArray | null = sectionTitle.exec(menu);
 
-  expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
+  expect({ section: section, found: Boolean(match) }).toEqual({
+    section: section,
+    found: true,
+  });
+
+  const start: number = (match?.index || 0) + (match?.[0].length || 0);
+  const rest: string = menu.slice(start);
+  // The section ends where the next one starts, or at the Developer section.
+  const ends: Array<number> = [
+    rest.search(/\n {6}title: "/),
+    rest.indexOf("addDeveloperSideMenuSection("),
+  ].filter((index: number): boolean => {
+    return index >= 0;
+  });
+  const end: number = Math.min(...ends);
 
   return Array.from(
-    menu
-      .slice(start + sectionTitle.length, end)
-      .matchAll(/title:\s*"([^"]+)"/g),
+    rest.slice(0, end).matchAll(/\n {12}title:\s*"([^"]+)"/g),
   ).map((match: RegExpMatchArray): string => {
     return match[1] as string;
   });
+}
+
+function settingsMenuTitles(): Array<string> {
+  return sectionMenuTitles("Settings");
+}
+
+function aiMenuTitles(): Array<string> {
+  return sectionMenuTitles("AI");
 }
 
 // The first column of the table under the settings page's heading.
@@ -114,12 +138,12 @@ function settingsTablePages(language: string): Array<string> {
     });
 }
 
-// The names the overview's Settings row lists.
-function overviewSettingsRow(language: string): Array<string> {
+// The names one of the overview's side menu rows lists.
+function overviewRow(language: string, pattern: RegExp): Array<string> {
   const row: string | undefined = readPage(OVERVIEW_PAGE, language)
     .split("\n")
     .find((line: string): boolean => {
-      return OVERVIEW_SETTINGS_ROW.test(line);
+      return pattern.test(line);
     });
 
   expect({ language: language, row: Boolean(row) }).toEqual({
@@ -130,15 +154,41 @@ function overviewSettingsRow(language: string): Array<string> {
   return boldNames(tableCells(row || "")[1] || "");
 }
 
+function overviewSettingsRow(language: string): Array<string> {
+  return overviewRow(language, OVERVIEW_SETTINGS_ROW);
+}
+
 describe("Incident docs list the Settings menu's pages", () => {
-  it("reads the menu's Settings pages, Linked Alerts among them", () => {
+  it("reads the menu's Settings pages, Linked Alerts among them and the AI settings not", () => {
     const titles: Array<string> = settingsMenuTitles();
 
     expect(titles.length).toBeGreaterThan(5);
-    expect(titles[0]).toBe("AI");
+    expect(titles[0]).toBe("Incident State");
+    expect(titles[titles.length - 1]).toBe("Number Prefix");
     expect(titles).toContain("Linked Alerts");
+    expect(titles).not.toContain("AI");
+    expect(titles).not.toContain("Auto Remediation Rules");
     expect(new Set(titles).size).toBe(titles.length);
   });
+
+  it("reads the menu's AI pages: Insights, Logs, Settings and Auto Remediation Rules", () => {
+    expect(aiMenuTitles()).toEqual([
+      "Insights",
+      "Logs",
+      "Settings",
+      "Auto Remediation Rules",
+    ]);
+  });
+
+  it.each(LANGUAGES)(
+    "%s: the overview's AI row names every page of the AI section, in menu order",
+    (language: string) => {
+      expect({
+        language: language,
+        pages: overviewRow(language, OVERVIEW_AI_ROW),
+      }).toEqual({ language: language, pages: aiMenuTitles() });
+    },
+  );
 
   it.each(LANGUAGES)(
     "%s: the overview's Settings row names every page, in menu order",

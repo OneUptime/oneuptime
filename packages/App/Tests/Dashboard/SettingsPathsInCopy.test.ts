@@ -23,7 +23,11 @@ import path from "path";
  *      followed by one of its own pages.
  *   2. "<Product> → Settings → Y" for the products below: Y is a page of
  *      that product's Settings section.
- *   3. A dialog that offers Create Template goes to the page its words name.
+ *   3. "Incidents → AI → Z" and "Alerts → AI → Z": Z is a page of that
+ *      product's AI section. The AI settings page and the Auto Remediation
+ *      Rules moved there from Settings and Rules, and a sentence still
+ *      sending people to "Incidents → Settings → AI" fails rule 2.
+ *   4. A dialog that offers Create Template goes to the page its words name.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -124,14 +128,28 @@ const PRODUCT_SIDE_MENUS: Record<string, string> = {
   Users: "Pages/Users/SideMenu.tsx",
 };
 
-function getProductSettingsItems(product: string): Array<MenuItem> {
-  const settings: MenuSection | undefined = readSideMenu(
+function getProductSectionItems(
+  product: string,
+  sectionTitle: string,
+): Array<MenuItem> {
+  const section: MenuSection | undefined = readSideMenu(
     PRODUCT_SIDE_MENUS[product]!,
-  ).find((section: MenuSection): boolean => {
-    return section.title === "Settings";
+  ).find((candidate: MenuSection): boolean => {
+    return candidate.title === sectionTitle;
   });
 
-  return settings ? settings.items : [];
+  return section ? section.items : [];
+}
+
+function getProductSettingsItems(product: string): Array<MenuItem> {
+  return getProductSectionItems(product, "Settings");
+}
+
+// The products whose menu has an AI section a path may name.
+const PRODUCTS_WITH_AI_SECTION: Array<string> = ["Incidents", "Alerts"];
+
+function getProductAiItems(product: string): Array<MenuItem> {
+  return getProductSectionItems(product, "AI");
 }
 
 /*
@@ -285,6 +303,43 @@ function findProductSettingsPathProblems(text: string): Array<string> {
   return problems;
 }
 
+/*
+ * "Incidents → AI → Z" and "Alerts → AI → Z": Z must be a page of that
+ * product's AI section. "AI Features" after "Project Settings →" is not
+ * this path: the product name has to come right before "AI".
+ */
+function findProductAiPathProblems(text: string): Array<string> {
+  const problems: Array<string> = [];
+  const pathStart: RegExp = new RegExp(
+    `(?<![A-Za-z])(${PRODUCTS_WITH_AI_SECTION.join("|")})${SEPARATOR}AI${SEPARATOR}`,
+    "g",
+  );
+
+  for (const match of text.matchAll(pathStart)) {
+    const product: string = match[1]!;
+    const rest: string = text.slice(match.index! + match[0].length);
+
+    if (rest.startsWith("${") || rest.startsWith("{")) {
+      continue;
+    }
+
+    const page: string | null = findTitleAtStart(
+      rest,
+      getProductAiItems(product).map((item: MenuItem): string => {
+        return item.title;
+      }),
+    );
+
+    if (!page) {
+      problems.push(
+        `"${product} → AI → ${shorten(rest)}": the ${product} AI section has no such page`,
+      );
+    }
+  }
+
+  return problems;
+}
+
 function listSourceFiles(directory: string): Array<string> {
   const files: Array<string> = [];
 
@@ -361,6 +416,28 @@ describe("the menus the paths are checked against", () => {
       ]),
     );
   });
+
+  test.each(PRODUCTS_WITH_AI_SECTION)(
+    "the %s menu's AI section holds its AI settings and auto-remediation rules, and Settings no longer does",
+    (product: string) => {
+      const prefix: string = product === "Incidents" ? "INCIDENTS" : "ALERTS";
+
+      expect(getProductAiItems(product)).toEqual(
+        expect.arrayContaining([
+          { title: "Settings", pageMapKey: `${prefix}_SETTINGS_AI` },
+          {
+            title: "Auto Remediation Rules",
+            pageMapKey: `${prefix}_SETTINGS_AUTO_REMEDIATION_RULES`,
+          },
+        ]),
+      );
+      expect(
+        getProductSettingsItems(product).map((item: MenuItem): string => {
+          return item.title;
+        }),
+      ).not.toContain("AI");
+    },
+  );
 });
 
 describe("the path checks", () => {
@@ -390,6 +467,9 @@ describe("the path checks", () => {
     "Configure incident roles in Incidents > Settings > Roles to start.",
     "Create them in Scheduled Maintenance → Settings → Templates.",
     "Add one under Monitors → Settings → Monitor Statuses.",
+    // The AI settings page left Settings for the AI section.
+    "Limits live under Incidents → Settings → AI.",
+    "Raise or unset it under Alerts > Settings > AI to resume.",
   ])("refuse %s", (text: string) => {
     expect(findProductSettingsPathProblems(text)).toHaveLength(1);
   });
@@ -401,9 +481,26 @@ describe("the path checks", () => {
     "Add one under Monitors → Settings → Monitor Status, then try again.",
     "Add one under Alerts → Settings → Alert Severity.",
     "Add custom fields in Users → Settings → Custom Fields.",
-    "Limits live under Incidents → Settings → AI.",
   ])("accept %s", (text: string) => {
     expect(findProductSettingsPathProblems(text)).toEqual([]);
+  });
+
+  test.each([
+    "Limits live under Incidents → AI → Limits.",
+    "Turn it on in Alerts > AI > Investigation.",
+    "Set up a rule in Incidents → AI → Remediation Rules.",
+  ])("refuse %s", (text: string) => {
+    expect(findProductAiPathProblems(text)).toHaveLength(1);
+  });
+
+  test.each([
+    "Limits live under Incidents → AI → Settings.",
+    "Raise or unset it under Alerts > AI > Settings to resume.",
+    "Add one in Incidents → AI → Auto Remediation Rules.",
+    // Not a product's AI section: Project Settings has its own AI section.
+    "Turn AI on in Project Settings → AI → AI Features.",
+  ])("accept %s", (text: string) => {
+    expect(findProductAiPathProblems(text)).toEqual([]);
   });
 });
 
@@ -434,6 +531,27 @@ describe("paths in the Dashboard's copy", () => {
     );
 
     expect(problems).toEqual([]);
+  });
+
+  test("name pages of the product's own AI section", () => {
+    const problems: Array<string> = SOURCES.flatMap(
+      (source: { file: string; text: string }): Array<string> => {
+        return findProductAiPathProblems(source.text).map(
+          (problem: string): string => {
+            return `${source.file}: ${problem}`;
+          },
+        );
+      },
+    );
+
+    expect(problems).toEqual([]);
+  });
+
+  // The one sentence of the Dashboard that names the AI section today.
+  test("the cluster's investigation confirmation sends people to Incidents → AI → Settings", () => {
+    expect(
+      readSource("Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts"),
+    ).toContain("Limits live under Incidents → AI → Settings.");
   });
 
   test("no template dialog says templates are made in Project Settings", () => {

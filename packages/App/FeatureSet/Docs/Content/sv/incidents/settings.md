@@ -12,7 +12,6 @@ Den här sidan är referensen för den konfigurationen — vad varje sida inneh�
 
 | Sida                     | Vad du gör där                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| **AI**                   | Slå på eller av automatisk utredning, automatiska kodfixar och postmortem-utkast, och sätt de valfria gränser som AI arbetar inom — ingen av dem gäller förrän du sätter den. Se [AI SRE](/docs/ai/ai-sre). |
 | **Incidentstatus**       | Lägg till, byt namn, byt färg på och ordna om de tillstånd en incident rör sig genom.                       |
 | **Incidentallvar**       | Lägg till, byt namn, byt färg på och ordna om allvarlighetsgrader.                                          |
 | **Incidentmallar**       | Förifyll en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.                    |
@@ -22,9 +21,11 @@ Den här sidan är referensen för den konfigurationen — vad varje sida inneh�
 | **Incidentroller**       | Definiera de roller du tilldelar svarspersoner, till exempel Incident Commander.                            |
 | **Nummerprefix**   | Nummerprefixen för incidenter och incidentepisoder.                                                         |
 
+Vad OneUptime AI gör på egen hand ställs inte in här: den har en egen sektion, **Incidenter → AI**, på rutter som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår på eller av automatisk utredning, automatiska kodfixar och postmortem-utkast och rymmer de valfria gränser som AI arbetar inom — ingen av dem gäller förrän du sätter den. Bredvid ligger **Regler för automatisk åtgärd**, med **Insikter** och **Loggar**: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+
 **Incidentstatus** och **Incidentallvar** behandlas på djupet i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan tar vid från **Incidentmallar**.
 
-Fäll ut **Regler** så får du nio sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Reminder Rules**. De behandlas längre ned.
+Fäll ut **Regler** så får du åtta sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Reminder Rules**. De behandlas längre ned.
 
 ## Incidentmallar
 
@@ -116,13 +117,13 @@ Ett nytt prefix gäller bara incidenter och episoder som skapas efteråt. Befint
 
 ## Regler som körs när en incident skapas
 
-**Incidenter → Regler** rymmer nio regelmotorer. De gör alla samma sak — tittar på en incident i samma stund som den skapas och agerar om den matchar — men de skiljer sig i vad de gör och i hur flera matchande regler löses upp.
+**Incidenter → Regler** rymmer åtta regelmotorer, och **Incidenter → AI** en nionde, **Regler för automatisk åtgärd**. De gör alla samma sak — tittar på en incident i samma stund som den skapas och agerar om den matchar — men de skiljer sig i vad de gör och i hur flera matchande regler löses upp.
 
 - **Grupperingsregler** — grupperar besläktade incidenter till episoder. Regler utvärderas i prioritetsordning; lägre prioritetsnummer går först.
 - **Jourregler** — kör jourpolicyer för matchande incidenter. Behandlas i detalj nedan.
 - **Ägarregler** — tilldelar ägare automatiskt.
 - **Runbook-regler** — startar ett [runbook](/docs/runbooks/index) när en incident matchar.
-- **Regler för automatisk åtgärd** — föreslår eller startar åtgärds-runbooks när en incident matchar. Står en AI-utredning i kö för incidenten körs de när den är klar, med dess analys i handen. Se [AI SRE](/docs/ai/ai-sre).
+- **Regler för automatisk åtgärd**, under **AI** — föreslår eller startar åtgärds-runbooks när en incident matchar. Står en AI-utredning i kö för incidenten körs de när den är klar, med dess analys i handen. Se [AI SRE](/docs/ai/ai-sre).
 - **Sekretessregler** — avgör om en matchande incident är privat.
 - **Etikettregler** — sätter etiketter automatiskt.
 - **SLA-regler** — följer upp svars- och lösningstider. Regler utvärderas i ordning; lägre ordningsnummer går först.
