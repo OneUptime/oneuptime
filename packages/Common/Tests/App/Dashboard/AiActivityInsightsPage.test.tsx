@@ -1408,16 +1408,18 @@ describe("the page, given any scope", () => {
     ).not.toBeInTheDocument();
     cleanup();
 
-    const failing: jest.Mock<() => Promise<string | null>> = jest.fn(
-      async (): Promise<string | null> => {
-        throw new Error("status route is down");
-      },
-    );
+    let failingCalls: number = 0;
+    const failing: () => Promise<string | null> = async (): Promise<
+      string | null
+    > => {
+      failingCalls++;
+      throw new Error("status route is down");
+    };
     openHarness(failing);
     expect(await findText("Needs attention")).toBeInTheDocument();
     await waitFor(
       () => {
-        expect(failing).toHaveBeenCalledTimes(1);
+        expect(failingCalls).toBe(1);
       },
       { timeout: WAIT_TIMEOUT },
     );
