@@ -25176,5 +25176,18 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "AI 在此处可以执行的操作由 {{agent}} 的配置设置，因此需要在那里更改，而不是在此页面上。选择 AI 可以执行的操作，然后运行下面的命令。代理重新启动后，OneUptime 会立即应用。",
   "With Compose: in the .env next to your docker-compose.yml.": "使用 Compose 时：在您的 docker-compose.yml 旁边的 .env 中。",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 或 false：AI 在调查时是否可以运行只读命令。设置它（或下一个变量）后，AI 代理页面会跟随代理，以只读方式显示。为空：代理的默认值，开启。",
-  "Is Public": "是否公开"
+  "Is Public": "是否公开",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "您的套餐不包含此设置。您可以将其关闭，但再次开启需要 {{planName}} 套餐。",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "您的套餐不包含此设置。您可以将其开启，但再次关闭需要 {{planName}} 套餐。",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "您的套餐不包含“{{choiceName}}”，因此以后再次选择它需要 {{planName}} 套餐。",
+  "Changing this setting needs the {{planName}} plan.": "更改此设置需要 {{planName}} 套餐。",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "从现在起，每种遥测类型都按项目的默认保留期限保存，除非某个服务或资源有自己的保留期限。已存储的数据保留其存储时的保留期限。",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "从现在起，此处的遥测数据按项目的保留期限保存。已存储的数据保留其存储时的保留期限。",
+  "Remove Override": "移除覆盖",
+  "Remove the retention override?": "移除保留覆盖？",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "已移除。从现在起，此处的遥测数据按项目的保留期限保存。",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "已移除。从现在起，遥测数据按项目的默认保留期限保存。",
+  "Retention Override": "保留覆盖",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "部分遥测类型按其自身的保留期限保存，而不是按项目的默认保留期限。您的套餐不包含按遥测类型保留：您可以移除它，但再次设置需要 {{planName}} 套餐。",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "此处的遥测数据按其自身的保留期限保存，而不是按项目的保留期限。您的套餐不包含保留覆盖：您可以移除此覆盖，但再次设置需要 {{planName}} 套餐。"
 }

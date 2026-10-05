@@ -25176,5 +25176,18 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "Hva AI kan gjøre her, er angitt i konfigurasjonen til {{agent}}, så det endres der, ikke på denne siden. Velg hva AI kan gjøre, og kjør deretter kommandoen nedenfor. OneUptime bruker det så snart agenten starter på nytt.",
   "With Compose: in the .env next to your docker-compose.yml.": "Med Compose: i .env ved siden av docker-compose.yml.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true eller false: om AI kan kjøre skrivebeskyttede kommandoer mens den undersøker. Angi den (eller den neste), så følger AI-agentsiden agenten, skrivebeskyttet. Tom: agentens standard, på.",
-  "Is Public": "Er offentlig"
+  "Is Public": "Er offentlig",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "Abonnementet ditt omfatter ikke denne innstillingen. Du kan slå den av, men for å slå den på igjen trenger du {{planName}}-abonnementet.",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "Abonnementet ditt omfatter ikke denne innstillingen. Du kan slå den på, men for å slå den av igjen trenger du {{planName}}-abonnementet.",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "Abonnementet ditt omfatter ikke «{{choiceName}}». For å velge det igjen senere trenger du {{planName}}-abonnementet.",
+  "Changing this setting needs the {{planName}} plan.": "For å endre denne innstillingen trenger du {{planName}}-abonnementet.",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "Fra nå av oppbevares hver type telemetri med prosjektets standard oppbevaringstid, med mindre en tjeneste eller ressurs har sin egen. Det som allerede er lagret, beholder oppbevaringstiden det ble lagret med.",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "Fra nå av oppbevares telemetri herfra med prosjektets oppbevaringstid. Det som allerede er lagret, beholder oppbevaringstiden det ble lagret med.",
+  "Remove Override": "Fjern overstyring",
+  "Remove the retention override?": "Fjerne overstyringen for oppbevaring?",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "Fjernet. Telemetri herfra oppbevares fra nå av med prosjektets oppbevaringstid.",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "Fjernet. Telemetri oppbevares fra nå av med prosjektets standard oppbevaringstid.",
+  "Retention Override": "Overstyring for oppbevaring",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Noen typer telemetri oppbevares med sin egen oppbevaringstid, ikke prosjektets standard. Abonnementet ditt omfatter ikke oppbevaring etter telemetritype: du kan fjerne den, men for å angi den igjen trenger du {{planName}}-abonnementet.",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Telemetri herfra oppbevares med sin egen oppbevaringstid, ikke prosjektets. Abonnementet ditt omfatter ikke overstyringer for oppbevaring: du kan fjerne denne, men for å angi en igjen trenger du {{planName}}-abonnementet."
 }

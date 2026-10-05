@@ -50,6 +50,15 @@ Every edition has the project's default telemetry retention (**Settings >
 Telemetry > Telemetry Data Retention**). Retention overrides are what the
 Enterprise Edition adds on top of it.
 
+On OneUptime Cloud, a paid feature can always be switched off, on any plan.
+A retention override a trial (or a move to a lower plan) left set keeps
+applying to new telemetry, so below the Scale plan the retention pages show
+it under the upgrade card with a **Remove Override** button. Removing it
+works on every plan; setting one again needs the Scale plan. Telemetry
+already stored keeps the retention it was stored with. In the same way,
+**Settings > SSO** shows the **Require SSO for Login** switch under its
+upgrade card while the project still requires SSO, so it can be turned off.
+
 "Not applicable" rows are instance-administration features. On OneUptime
 Cloud, OneUptime operates the instance for you.
 

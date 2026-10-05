@@ -95,6 +95,8 @@ They used to be two cards of their own, **Overall Uptime Percent** and **Downtim
 - **Custom CSS** — placeholder `Insert Custom CSS here.`
 - **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
 
+On OneUptime Cloud, adding or changing any of them needs the **Growth** plan. Emptying one works on every plan, so custom code a trial added can always be removed.
+
 **There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
 
 > Custom JavaScript runs in your visitors' browsers on a page people load precisely when they are worried something is broken. Keep it small, keep it self-hosted where you can, and test it before you rely on it.

@@ -25176,5 +25176,18 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "यहाँ AI क्या कर सकता है, यह {{agent}} के कॉन्फ़िगरेशन में सेट है, इसलिए इसे वहीं बदला जाता है, इस पेज पर नहीं। चुनें कि AI क्या कर सकता है, फिर नीचे दी गई कमांड चलाएँ। एजेंट के फिर से शुरू होते ही OneUptime इसे लागू कर देता है।",
   "With Compose: in the .env next to your docker-compose.yml.": "Compose के साथ: आपकी docker-compose.yml के बगल वाली .env में।",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true या false: क्या AI जाँच के दौरान केवल-पढ़ने वाली कमांड चला सकता है। इसे (या अगले को) सेट करें, तो AI एजेंट पेज एजेंट के अनुसार चलता है, केवल-पढ़ने के रूप में। खाली: एजेंट का डिफ़ॉल्ट, चालू।",
-  "Is Public": "सार्वजनिक है"
+  "Is Public": "सार्वजनिक है",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "आपके प्लान में यह सेटिंग शामिल नहीं है। आप इसे बंद कर सकते हैं, लेकिन इसे फिर से चालू करने के लिए {{planName}} प्लान चाहिए।",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "आपके प्लान में यह सेटिंग शामिल नहीं है। आप इसे चालू कर सकते हैं, लेकिन इसे फिर से बंद करने के लिए {{planName}} प्लान चाहिए।",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "आपके प्लान में “{{choiceName}}” शामिल नहीं है, इसलिए बाद में इसे फिर से चुनने के लिए {{planName}} प्लान चाहिए।",
+  "Changing this setting needs the {{planName}} plan.": "इस सेटिंग को बदलने के लिए {{planName}} प्लान चाहिए।",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "अब से हर प्रकार की टेलीमेट्री प्रोजेक्ट के डिफ़ॉल्ट धारण के अनुसार रखी जाएगी, जब तक किसी सेवा या संसाधन का अपना धारण न हो। जो पहले से संग्रहीत है, वह उसी धारण के साथ रहेगा जिसके साथ उसे संग्रहीत किया गया था।",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "अब से यहाँ की टेलीमेट्री प्रोजेक्ट के धारण के अनुसार रखी जाएगी। जो पहले से संग्रहीत है, वह उसी धारण के साथ रहेगा जिसके साथ उसे संग्रहीत किया गया था।",
+  "Remove Override": "ओवरराइड हटाएँ",
+  "Remove the retention override?": "धारण ओवरराइड हटाएँ?",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "हटा दिया गया। अब से यहाँ की टेलीमेट्री प्रोजेक्ट के धारण के अनुसार रखी जाएगी।",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "हटा दिया गया। अब से टेलीमेट्री प्रोजेक्ट के डिफ़ॉल्ट धारण के अनुसार रखी जाएगी।",
+  "Retention Override": "धारण ओवरराइड",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "कुछ प्रकार की टेलीमेट्री प्रोजेक्ट के डिफ़ॉल्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में टेलीमेट्री प्रकार के अनुसार धारण शामिल नहीं है: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "यहाँ की टेलीमेट्री प्रोजेक्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में धारण ओवरराइड शामिल नहीं हैं: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।"
 }
