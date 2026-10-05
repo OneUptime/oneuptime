@@ -114,11 +114,12 @@ Abra **Incidentes** na navegação à esquerda. Seu menu lateral está organizad
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Visão geral**           | **Todos os incidentes** e **Incidentes ativos** — este último traz um selo vermelho com a contagem de incidentes que não estão no estado resolvido.                    |
 | **Episódios**             | Episódios de incidente, um recurso de agrupamento à parte com suas próprias páginas.                                                                                  |
+| **IA** | **Insights**, **Registros**, **Configurações**, **Regras de remediação automática**: o que a OneUptime AI aprendeu com seus incidentes e tudo o que fez por eles, o que ela pode fazer por conta própria e as regras que corrigem incidentes com runbooks. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Espaço de trabalho**    | Conexões **Slack** e **Microsoft Teams** para incidentes.                                                                                                             |
-| **Regras**                | Os motores de regras: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de remediação automática**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA**, **Reminder Rules**. |
-| **Configurações**         | **IA**, **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Modelos de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Prefixo do número**. |
+| **Regras**                | Os motores de regras: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA**, **Reminder Rules**. |
+| **Configurações**         | **Estado do incidente**, **Severidade do incidente**, **Modelos de incidentes**, **Modelos de notas**, **Modelos de post-mortem**, **Campos personalizados**, **Funções de incidente**, **Prefixo do número**. |
 
-**Regras** e **Configurações** vêm recolhidas por padrão — expanda-as para encontrar as páginas às quais o resto desta documentação se refere. A configuração de incidentes não fica em Configurações do projeto; ela mora toda aqui.
+**IA**, **Regras** e **Configurações** vêm recolhidas por padrão — expanda-as para encontrar as páginas às quais o resto desta documentação se refere. A configuração de incidentes não fica em Configurações do projeto; ela mora toda aqui.
 
 A própria lista de incidentes mostra **Número do incidente**, **Título**, **Estado**, **Gravidade**, **Recursos afetados**, **Declarado**, **Duração**, **Rótulos** e **Proprietários**, com uma ação em lote **Alterar estado** para fechar vários de uma vez.
 

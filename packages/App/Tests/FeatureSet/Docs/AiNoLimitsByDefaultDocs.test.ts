@@ -15,13 +15,15 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Every limit on autonomous AI work is opt-in, and the AI settings left the
- * Incidents and Alerts side menus' own AI section: the settings page is
- * Settings → AI, and remediation is Rules → Auto Remediation Rules. These
- * tests hold the docs to that - the AI SRE page (English and Persian), every
- * language's incident overview and settings pages, and the 13 → 14 upgrade
- * note - and hold the docs' claims to the code that makes them true:
- * AIWorkloadLimits, the side menus and the AI settings pages.
+ * Every limit on autonomous AI work is opt-in, and everything OneUptime AI
+ * does for incidents and alerts lives in the Incidents and Alerts side menus'
+ * own AI section: Insights, Logs, Settings (the AI settings page) and Auto
+ * Remediation Rules - no longer under Settings → AI and Rules → Auto
+ * Remediation Rules. These tests hold the docs to that - the AI SRE page
+ * (English and Persian), every language's incident overview and settings
+ * pages, and the 13 → 14 upgrade note - and hold the docs' claims to the code
+ * that makes them true: AIWorkloadLimits, the side menus, the routes and the
+ * AI settings pages.
  */
 
 const CONTENT_DIR: string = path.join(
@@ -47,6 +49,8 @@ const QUEUE_EXPIRY_IN_MINUTES: number = 30;
 // The side menu names, as each language's incident pages write them.
 interface MenuLabels {
   ai: string;
+  insights: string;
+  logs: string;
   settings: string;
   rules: string;
   runbookRules: string;
@@ -60,6 +64,8 @@ interface MenuLabels {
 const MENU_LABELS: Record<string, MenuLabels> = {
   en: {
     ai: "AI",
+    insights: "Insights",
+    logs: "Logs",
     settings: "Settings",
     rules: "Rules",
     runbookRules: "Runbook Rules",
@@ -67,6 +73,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   da: {
     ai: "AI",
+    insights: "Indsigter",
+    logs: "Protokoller",
     settings: "Indstillinger",
     rules: "Regler",
     runbookRules: "Runbook-regler",
@@ -74,6 +82,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   de: {
     ai: "KI",
+    insights: "Einblicke",
+    logs: "Protokolle",
     settings: "Einstellungen",
     rules: "Regeln",
     runbookRules: "Runbook-Regeln",
@@ -81,6 +91,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   es: {
     ai: "IA",
+    insights: "Análisis",
+    logs: "Registros",
     settings: "Ajustes",
     rules: "Reglas",
     runbookRules: "Reglas de runbook",
@@ -88,6 +100,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   fa: {
     ai: "AI",
+    insights: "Insights",
+    logs: "Logs",
     settings: "Settings",
     rules: "Rules",
     runbookRules: "Runbook Rules",
@@ -95,6 +109,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   fr: {
     ai: "IA",
+    insights: "Analyses",
+    logs: "Journaux",
     settings: "Paramètres",
     rules: "Règles",
     runbookRules: "Règles de runbook",
@@ -102,6 +118,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   hi: {
     ai: "एआई",
+    insights: "इनसाइट्स",
+    logs: "लॉग",
     settings: "सेटिंग्स",
     rules: "नियम",
     runbookRules: "Runbook नियम",
@@ -109,6 +127,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   it: {
     ai: "IA",
+    insights: "Informazioni",
+    logs: "Registri",
     settings: "Impostazioni",
     rules: "Regole",
     runbookRules: "Regole di runbook",
@@ -116,6 +136,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   ja: {
     ai: "AI",
+    insights: "インサイト",
+    logs: "ログ",
     settings: "設定",
     rules: "ルール",
     runbookRules: "Runbook ルール",
@@ -123,6 +145,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   ko: {
     ai: "AI",
+    insights: "인사이트",
+    logs: "로그",
     settings: "설정",
     rules: "규칙",
     runbookRules: "Runbook 규칙",
@@ -130,6 +154,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   nl: {
     ai: "AI",
+    insights: "Inzichten",
+    logs: "Logboeken",
     settings: "Instellingen",
     rules: "Regels",
     runbookRules: "Runbook-regels",
@@ -137,6 +163,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   no: {
     ai: "KI",
+    insights: "Innsikt",
+    logs: "Logger",
     settings: "Innstillinger",
     rules: "Regler",
     runbookRules: "Runbook-regler",
@@ -144,6 +172,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   pt: {
     ai: "IA",
+    insights: "Insights",
+    logs: "Registros",
     settings: "Configurações",
     rules: "Regras",
     runbookRules: "Regras de runbook",
@@ -151,6 +181,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   ru: {
     ai: "ИИ",
+    insights: "Аналитика",
+    logs: "Журналы",
     settings: "Настройки",
     rules: "Правила",
     runbookRules: "Правила runbook-ов",
@@ -158,6 +190,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   sv: {
     ai: "AI",
+    insights: "Insikter",
+    logs: "Loggar",
     settings: "Inställningar",
     rules: "Regler",
     runbookRules: "Runbook-regler",
@@ -165,6 +199,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   "zh-CN": {
     ai: "人工智能",
+    insights: "洞察",
+    logs: "日志",
     settings: "设置",
     rules: "规则",
     runbookRules: "Runbook 规则",
@@ -172,6 +208,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
   },
   "zh-TW": {
     ai: "人工智慧",
+    insights: "洞察",
+    logs: "日誌",
     settings: "設定",
     rules: "規則",
     runbookRules: "Runbook 規則",
@@ -184,14 +222,17 @@ const PERSIAN: string = "fa";
 const ENGLISH_UI_NAME_LANGUAGES: ReadonlyArray<string> = ["en", PERSIAN];
 
 /*
- * The removed side menu section, however a page spells the path: "Incidents >
- * AI > Investigation", "(Incidents or Alerts → AI → Remediation)" and the
- * bare "(Incidents > AI)" all named it.
+ * Where the AI pages are no longer, however a page spells the path: the AI
+ * section's old Investigation and Remediation pages ("Incidents > AI >
+ * Investigation", "(Incidents or Alerts → AI → Remediation)"), and the homes
+ * they had in between ("Incidents > Settings > AI", "(Incidents or Alerts →
+ * Settings → AI)", "Rules → Auto Remediation Rules").
  */
 const REMOVED_MENU_PATTERNS: ReadonlyArray<RegExp> = [
   /\bAI\s*(?:>|→)\s*Investigation\b/,
   /\bAI\s*(?:>|→)\s*Remediation\b/,
-  /\b(?:Incidents|Alerts)\s*(?:>|→)\s*AI\b/,
+  /\b(?:Incidents|Alerts)\s*(?:>|→)\s*Settings\s*(?:>|→)\s*AI\b/,
+  /\bRules\s*(?:>|→)\s*Auto Remediation Rules\b/,
 ];
 
 // The AI SRE page, in the two languages it is written in.
@@ -221,9 +262,9 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
   en: {
     file: path.join(CONTENT_DIR, "en/ai/ai-sre.md"),
     costControlsHeading: "## Cost controls",
-    where: "Incidents or Alerts > Settings > AI",
+    where: "Incidents or Alerts > AI > Settings",
     remediation:
-      "**Incidents > Rules > Auto Remediation Rules** and **Alerts > Rules > Auto Remediation Rules**",
+      "**Incidents > AI > Auto Remediation Rules** and **Alerts > AI > Auto Remediation Rules**",
     oldDefaults: [
       "top two severity tiers",
       "Default **30 minutes**",
@@ -270,9 +311,9 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
   fa: {
     file: path.join(CONTENT_DIR, "fa/ai/ai-sre.md"),
     costControlsHeading: "## کنترل‌های هزینه",
-    where: "Incidents یا Alerts > Settings > AI",
+    where: "Incidents یا Alerts > AI > Settings",
     remediation:
-      "**Incidents > Rules > Auto Remediation Rules** و **Alerts > Rules > Auto Remediation Rules**",
+      "**Incidents > AI > Auto Remediation Rules** و **Alerts > AI > Auto Remediation Rules**",
     oldDefaults: [
       "دو رده شدت بالای",
       "پیش‌فرض **۳۰ دقیقه**",
@@ -412,6 +453,18 @@ const SIDE_MENUS: ReadonlyArray<string> = [
   "Pages/Alerts/SideMenu.tsx",
 ];
 
+// The AI section's pages, in the order both side menus list them.
+const AI_SECTION_PAGES: ReadonlyArray<keyof MenuLabels> = [
+  "insights",
+  "logs",
+  "settings",
+  "autoRemediationRules",
+];
+
+// Where the routes and the forwarding from the old addresses are declared.
+const ROUTE_MAP_SOURCE: string = "Utils/RouteMap.ts";
+const MOVED_PAGE_PATHS_SOURCE: string = "Routes/MovedPagePaths.ts";
+
 type FlatFunction = (markdown: string) => string;
 
 // Line breaks read as one space, so a claim may wrap anywhere.
@@ -550,15 +603,55 @@ const rowStartingWith: RowFunction = (
   );
 };
 
-type TitlesFunction = (source: string) => Array<string>;
+type SectionsFunction = (source: string) => Array<{
+  title: string;
+  pages: Array<string>;
+}>;
 
-// Every `title: "..."` in a dashboard source file, in order.
-const titlesIn: TitlesFunction = (source: string): Array<string> => {
-  return Array.from(source.matchAll(/title: "([^"]+)"/g)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
-    },
-  );
+/*
+ * A side menu's literal sections, in order, each with its pages' titles: a
+ * section's own title is indented six spaces in the source, its links'
+ * titles twelve.
+ */
+const sectionsIn: SectionsFunction = (
+  source: string,
+): Array<{ title: string; pages: Array<string> }> => {
+  const sections: Array<{ title: string; pages: Array<string> }> = [];
+
+  for (const line of source.split("\n")) {
+    const section: RegExpMatchArray | null = line.match(
+      /^ {6}title: "([^"]+)",$/,
+    );
+
+    if (section) {
+      sections.push({ title: section[1] as string, pages: [] });
+      continue;
+    }
+
+    const page: RegExpMatchArray | null = line.match(
+      /^ {12}title: "([^"]+)",$/,
+    );
+
+    if (page && sections.length > 0) {
+      sections[sections.length - 1]?.pages.push(page[1] as string);
+    }
+  }
+
+  return sections;
+};
+
+type LabelsFunction = (
+  labels: MenuLabels,
+  keys: ReadonlyArray<keyof MenuLabels>,
+) => Array<string>;
+
+const labelsOf: LabelsFunction = (
+  labels: MenuLabels,
+  keys: ReadonlyArray<keyof MenuLabels>,
+): Array<string> => {
+  return keys.map((key: keyof MenuLabels): string => {
+    return labels[key];
+  });
 };
 
 type NoteFunction = () => string;
@@ -597,6 +690,8 @@ describe("AI has no limits by default", () => {
       expect({
         language: language,
         ai: locale[english.ai],
+        insights: locale[english.insights],
+        logs: locale[english.logs],
         settings: locale[english.settings],
         rules: locale[english.rules],
         runbookRules: locale[english.runbookRules],
@@ -628,28 +723,78 @@ describe("AI has no limits by default", () => {
       expect(AIWorkloadLimits.getMaxConcurrentInvestigations(500)).toBe(500);
     });
 
-    it("puts AI first under Settings and Auto Remediation Rules right after Runbook Rules, in both side menus", () => {
+    it("gives AI its own section after Episodes, in both side menus, and neither Rules nor Settings holds its pages", () => {
+      const english: MenuLabels = MENU_LABELS["en"] as MenuLabels;
+
       for (const sideMenu of SIDE_MENUS) {
-        const titles: Array<string> = titlesIn(
-          read(path.join(DASHBOARD_SRC, sideMenu)),
+        const sections: Array<{ title: string; pages: Array<string> }> =
+          sectionsIn(read(path.join(DASHBOARD_SRC, sideMenu)));
+        const titles: Array<string> = sections.map(
+          (section: { title: string }): string => {
+            return section.title;
+          },
         );
+        const pagesOf: (title: string) => Array<string> = (
+          title: string,
+        ): Array<string> => {
+          return (
+            sections.find((section: { title: string }): boolean => {
+              return section.title === title;
+            })?.pages || []
+          );
+        };
 
         expect({
           sideMenu: sideMenu,
-          afterSettings: titles[titles.indexOf("Settings") + 1],
-          afterRunbookRules: titles[titles.indexOf("Runbook Rules") + 1],
-          investigationOrRemediation: titles.filter(
-            (title: string): boolean => {
-              return title === "Investigation" || title === "Remediation";
-            },
+          afterEpisodes: titles[titles.indexOf("Episodes") + 1],
+          ai: pagesOf("AI"),
+          rulesHoldAutoRemediation: pagesOf("Rules").includes(
+            english.autoRemediationRules,
           ),
+          settingsHoldAi: pagesOf("Settings").includes(english.ai),
+          afterRunbookRules:
+            pagesOf("Rules")[pagesOf("Rules").indexOf("Runbook Rules") + 1],
+          investigationOrRemediation: sections
+            .flatMap((section: { pages: Array<string> }): Array<string> => {
+              return section.pages;
+            })
+            .filter((title: string): boolean => {
+              return title === "Investigation" || title === "Remediation";
+            }),
         }).toEqual({
           sideMenu: sideMenu,
-          afterSettings: "AI",
-          afterRunbookRules: "Auto Remediation Rules",
+          afterEpisodes: "AI",
+          ai: labelsOf(english, AI_SECTION_PAGES),
+          rulesHoldAutoRemediation: false,
+          settingsHoldAi: false,
+          afterRunbookRules: "Privacy Rules",
           investigationOrRemediation: [],
         });
       }
+    });
+
+    it("serves the AI settings and the auto-remediation rules under ai/, and forwards their old addresses", () => {
+      const routeMap: string = read(path.join(DASHBOARD_SRC, ROUTE_MAP_SOURCE));
+      const moved: string = read(
+        path.join(DASHBOARD_SRC, MOVED_PAGE_PATHS_SOURCE),
+      );
+
+      for (const declaration of [
+        '[PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings"',
+        '[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules"',
+        '[PageMap.ALERTS_SETTINGS_AI]: "ai/settings"',
+        '[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules"',
+      ]) {
+        expect({
+          declaration: declaration,
+          declared: flat(routeMap).includes(declaration),
+        }).toEqual({ declaration: declaration, declared: true });
+      }
+
+      expect(flat(moved)).toContain('aiSettings: "settings/ai"');
+      expect(flat(moved)).toContain(
+        'autoRemediationRules: "settings/auto-remediation-rules"',
+      );
     });
   });
 
@@ -668,15 +813,15 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("sends people to Settings → AI and Rules → Auto Remediation Rules", () => {
+    it("sends people to AI → Settings and AI → Auto Remediation Rules", () => {
       for (const language of Object.keys(AI_SRE_PAGES)) {
         const page: AiSrePage = AI_SRE_PAGES[language] as AiSrePage;
         const markdown: string = flat(read(page.file));
 
         expect({
           language: language,
-          incidents: markdown.includes("**Incidents > Settings > AI**"),
-          alerts: markdown.includes("**Alerts > Settings > AI**"),
+          incidents: markdown.includes("**Incidents > AI > Settings**"),
+          alerts: markdown.includes("**Alerts > AI > Settings**"),
           remediation: markdown.includes(page.remediation),
           removed: removedPathsIn(markdown),
         }).toEqual({
@@ -686,6 +831,30 @@ describe("AI has no limits by default", () => {
           remediation: true,
           removed: [],
         });
+      }
+    });
+
+    it("says what the AI section's Insights and Logs show, and that the old addresses still work", () => {
+      for (const language of Object.keys(AI_SRE_PAGES)) {
+        const page: AiSrePage = AI_SRE_PAGES[language] as AiSrePage;
+        const markdown: string = flat(read(page.file));
+
+        expect({
+          language: language,
+          named: [
+            "**Incidents > AI > Insights**",
+            "**Alerts > AI > Insights**",
+            "**Incidents > AI > Logs**",
+            "**Alerts > AI > Logs**",
+            "**Load older entries**",
+            "`…/settings/ai`",
+            "`…/settings/auto-remediation-rules`",
+            "**AI > Settings**",
+            "**AI > Auto Remediation Rules**",
+          ].filter((name: string): boolean => {
+            return !markdown.includes(name);
+          }),
+        }).toEqual({ language: language, named: [] });
       }
     });
 
@@ -755,7 +924,13 @@ describe("AI has no limits by default", () => {
         "Incidents یا Alerts > AI > Investigation",
         "(Incidents or Alerts → AI → Remediation)",
         "(Incidents or Alerts → AI → Investigation)",
-        "on the incident AI settings page (Incidents > AI)",
+        "**Incidents > Settings > AI**",
+        "**Alerts > Settings > AI**",
+        "Incidents یا Alerts > Settings > AI",
+        "(Incidents or Alerts → Settings → AI)",
+        "on **Incidents → Settings → AI** and **Alerts → Settings → AI**",
+        "(Incidents or Alerts → Rules → Auto Remediation Rules)",
+        "**Incidents > Rules > Auto Remediation Rules**",
       ]) {
         expect({
           removed: removed,
@@ -764,9 +939,12 @@ describe("AI has no limits by default", () => {
       }
 
       for (const kept of [
-        "**Incidents > Settings > AI**",
-        "(Incidents or Alerts → Rules → Auto Remediation Rules)",
+        "**Incidents > AI > Settings**",
+        "**Alerts > AI > Insights**",
+        "(Incidents or Alerts → AI → Auto Remediation Rules)",
+        "on the incident AI settings page (Incidents > AI > Settings)",
         "Project Settings > AI > AI Features > Enable AI",
+        "**Project Settings → AI → LLM Providers**",
         "**AI > Insights > Settings**",
       ]) {
         expect({ kept: kept, caught: removedPathsIn(kept) }).toEqual({
@@ -776,7 +954,7 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("no page names the removed AI section of the Incidents or Alerts side menu", () => {
+    it("no page sends people to where the AI pages of the Incidents or Alerts side menu used to be", () => {
       const offenders: Array<string> = [];
 
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
@@ -802,13 +980,14 @@ describe("AI has no limits by default", () => {
   });
 
   describe("the incident overview's side menu table, in every language", () => {
-    it("has no AI section, starts Settings with the AI page and lists Auto Remediation Rules right after Runbook Rules", () => {
+    it("has an AI row before Rules naming the AI section's pages, which Rules and Settings no longer list", () => {
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const rows: Array<string> = sideMenuTable(
           readPage(language, "incidents/index.md"),
           labels,
         );
+        const aiRow: string = rowStartingWith(rows, `**${labels.ai}**`);
         const settings: Array<string> = boldNames(
           cells(rowStartingWith(rows, `**${labels.settings}**`))[1] || "",
         );
@@ -818,25 +997,62 @@ describe("AI has no limits by default", () => {
 
         expect({
           language: language,
-          aiSection: rowStartingWith(rows, `**${labels.ai}**`),
-          firstSetting: settings[0],
-          afterRunbookRules: rules[rules.indexOf(labels.runbookRules) + 1],
-          autoRemediationRules: rules.filter((name: string): boolean => {
-            return name === labels.autoRemediationRules;
-          }).length,
+          aiPages: boldNames(cells(aiRow)[1] || ""),
+          aiBeforeRules:
+            rows.indexOf(aiRow) >= 0 &&
+            rows.indexOf(aiRow) <
+              rows.indexOf(rowStartingWith(rows, `**${labels.rules}**`)),
+          linksToAiSre: aiRow.includes("](/docs/ai/ai-sre)"),
+          settingsListAi: settings.includes(labels.ai),
+          rulesListAutoRemediation: rules.includes(labels.autoRemediationRules),
+          afterRunbookRules:
+            rules[rules.indexOf(labels.runbookRules) + 1] || "",
         }).toEqual({
           language: language,
-          aiSection: "",
-          firstSetting: labels.ai,
-          afterRunbookRules: labels.autoRemediationRules,
-          autoRemediationRules: 1,
+          aiPages: labelsOf(labels, AI_SECTION_PAGES),
+          aiBeforeRules: true,
+          linksToAiSre: true,
+          settingsListAi: false,
+          rulesListAutoRemediation: false,
+          afterRunbookRules: expect.not.stringMatching(
+            `^${labels.autoRemediationRules}$`,
+          ),
+        });
+      }
+    });
+
+    it("counts the AI section among the sections that start folded", () => {
+      for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
+        const markdown: string = readPage(language, "incidents/index.md");
+        const lines: Array<string> = markdown.split("\n");
+        const lastRow: number = lines.lastIndexOf(
+          sideMenuTable(markdown, labels).slice(-1)[0] as string,
+        );
+        // The paragraph right after the table.
+        const after: string =
+          lines.slice(lastRow + 1).find((line: string): boolean => {
+            return line.trim().length > 0;
+          }) || "";
+        const named: Array<string> = boldNames(after);
+
+        expect({
+          language: language,
+          ai: named.includes(labels.ai),
+          rules: named.includes(labels.rules),
+          settings: named.includes(labels.settings),
+        }).toEqual({
+          language: language,
+          ai: true,
+          rules: true,
+          settings: true,
         });
       }
     });
   });
 
   describe("the incident settings page, in every language", () => {
-    it("lists the AI page first in its Settings table, linked to the AI SRE page", () => {
+    it("leaves the AI settings out of its Settings table, and says they are in the AI section, linked to the AI SRE page", () => {
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const markdown: string = readPage(language, "incidents/settings.md");
@@ -846,21 +1062,34 @@ describe("AI has no limits by default", () => {
             return heading.startsWith("## ");
           }) as string,
         );
-        const firstRow: Array<string> = cells(tableRows(firstSection)[2] || "");
+        const pages: Array<string> = tableRows(firstSection)
+          .slice(2)
+          .map((row: string): string => {
+            return cells(row)[0] || "";
+          });
+        // The paragraph that says where the AI settings went.
+        const pointer: string =
+          firstSection.split("\n").find((line: string): boolean => {
+            return !line.startsWith("|") && line.includes("/incidents/ai/");
+          }) || "";
 
         expect({
           language: language,
-          page: firstRow[0],
-          linksToAiSre: (firstRow[1] || "").includes("](/docs/ai/ai-sre)"),
+          tableHasAi: pages.includes(`**${labels.ai}**`),
+          names: AI_SECTION_PAGES.filter((key: keyof MenuLabels): boolean => {
+            return !pointer.includes(`**${labels[key]}**`);
+          }),
+          linksToAiSre: pointer.includes("](/docs/ai/ai-sre)"),
         }).toEqual({
           language: language,
-          page: `**${labels.ai}**`,
+          tableHasAi: false,
+          names: [],
           linksToAiSre: true,
         });
       }
     });
 
-    it("counts nine Rules pages, with Auto Remediation Rules right after Runbook Rules", () => {
+    it("counts eight Rules pages, and files Auto Remediation Rules under AI", () => {
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const lines: Array<string> = readPage(
@@ -888,17 +1117,25 @@ describe("AI has no limits by default", () => {
             return boldNames(line)[0] || "";
           });
 
+        // The rule engine bullet for Auto Remediation Rules.
+        const autoRemediationBullet: string =
+          lines.find((line: string): boolean => {
+            return line.startsWith(`- **${labels.autoRemediationRules}**`);
+          }) || "";
+
         expect({
           language: language,
           pages: listed.length,
-          afterRunbookRules: listed[listed.indexOf(labels.runbookRules) + 1],
+          listsAutoRemediation: listed.includes(labels.autoRemediationRules),
           bulletAfterRunbookRules:
             bullets[bullets.indexOf(labels.runbookRules) + 1],
+          bulletUnderAi: boldNames(autoRemediationBullet).includes(labels.ai),
         }).toEqual({
           language: language,
-          pages: 9,
-          afterRunbookRules: labels.autoRemediationRules,
+          pages: 8,
+          listsAutoRemediation: false,
           bulletAfterRunbookRules: labels.autoRemediationRules,
+          bulletUnderAi: true,
         });
       }
     });
@@ -966,7 +1203,7 @@ describe("AI has no limits by default", () => {
         `a queued one still expires after ${QUEUE_EXPIRY_IN_MINUTES} minutes`,
         "a daily fix task limit of 0 pauses that lane's fix tasks, and a **Max Open Fix Pull Requests** of 0 blocks AI fix pull requests on that repository.",
         `A cooldown is still held to at most ${MAX_AI_INVESTIGATION_COOLDOWN_IN_MINUTES} minutes (a day).`,
-        "on **Incidents → Settings → AI** and **Alerts → Settings → AI**, and **Max Open Fix Pull Requests** on each repository's **Settings** page.",
+        "on **Incidents → AI → Settings** and **Alerts → AI → Settings**, and **Max Open Fix Pull Requests** on each repository's **Settings** page.",
         "AI work outside incidents and alerts has no setting, so it runs without these limits.",
         "or for the investigation time limit: they were already unset by default, which means no limit.",
       ]) {
@@ -977,14 +1214,14 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("says the AI section moved to Settings → AI and Rules → Auto Remediation Rules, at the same URLs", () => {
+    it("says where the AI pages are now, what was renamed, and that the old addresses still work", () => {
       const text: string = flat(note());
 
       for (const claim of [
-        "the **AI** section there is gone.",
-        "Its **Investigation** page is now **Settings → AI**, the first item under **Settings**",
-        "its **Remediation** page is now **Rules → Auto Remediation Rules**, right after **Runbook Rules**.",
-        "The URLs (`…/settings/ai` and `…/settings/auto-remediation-rules`) have not changed",
+        "Each menu's **AI** section, right after **Episodes** and folded until you open it, holds everything OneUptime AI does for that signal type:",
+        "**Insights** and **Logs**, which are new, then **Settings**, the page that was called **Investigation**, and **Auto Remediation Rules**, the page that was called **Remediation**.",
+        "Their addresses moved from `…/settings/ai` and `…/settings/auto-remediation-rules` to `…/ai/settings` and `…/ai/auto-remediation-rules`.",
+        "The old addresses open the new pages, so bookmarks keep working.",
       ]) {
         expect({ claim: claim, said: text.includes(claim) }).toEqual({
           claim: claim,

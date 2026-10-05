@@ -147,6 +147,8 @@ To start over instead, for example after fixing a template or an SMTP setting, t
 
 Through the API, send `"miscDataProps": {"notifyAddedStatusPagesOfIncidentCreated": true}` with the update that changes `statusPages`. Setting `subscriberNotificationStatusOnIncidentCreated` back to `Pending` yourself still resends the 'created' notification to every page the incident reaches, as it always did: the record is emptied with it. After a failure it resumes where the failed send stopped instead. To send it to every page after a failure too, add `"miscDataProps": {"resendIncidentCreatedToAllStatusPages": true}` to that update. That request is refused for a notification that was skipped, or that is queued or being sent.
 
+Writing `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` is not one of these. It is chosen when the incident is declared, and no project role can change it through the API afterwards. A workflow, which writes as the system, and an instance's master admin can, but that only stores the new value. Writing it back unchanged, as a workflow that copies the whole incident does, sends nothing again, and turning it on later does not send the 'created' notification the incident was declared without. Turned off before that notification has gone out, it is skipped.
+
 ### Removing status pages
 
 Removing a page recalls nothing. The page stops showing the incident, and its subscribers hear nothing more about it, not even that it was resolved. When you remove a page that was already told about the incident, the edit form warns you and suggests a closing public note. Post that note first, while the page is still in the list, and then remove the page.

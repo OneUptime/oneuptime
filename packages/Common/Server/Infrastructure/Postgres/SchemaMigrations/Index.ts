@@ -44,6 +44,7 @@ import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "./179800000
 import { StartFileUploadsPrivate1798100000000 } from "./1798100000000-StartFileUploadsPrivate";
 import { AddProjectAiDailyLimits1798200000000 } from "./1798200000000-AddProjectAiDailyLimits";
 import { AddLlmLogProjectCreatedAtIndex1798300000000 } from "./1798300000000-AddLlmLogProjectCreatedAtIndex";
+import { AddPublicNotePostedWithState1798400000000 } from "./1798400000000-AddPublicNotePostedWithState";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1288,4 +1289,5 @@ export default [
   StartFileUploadsPrivate1798100000000,
   AddProjectAiDailyLimits1798200000000,
   AddLlmLogProjectCreatedAtIndex1798300000000,
+  AddPublicNotePostedWithState1798400000000,
 ];

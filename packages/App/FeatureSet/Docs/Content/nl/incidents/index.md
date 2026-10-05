@@ -114,11 +114,12 @@ Open **Incidenten** in de linkernavigatie. Het zijmenu is opgedeeld in secties:
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overzicht**   | **Alle incidenten** en **Actieve incidenten** — die laatste draagt een rode badge met het aantal incidenten dat niet in de opgeloste status staat.                        |
 | **Episoden**    | Incident-episoden, een aparte groeperingsfunctie met eigen pagina's.                                                                                                      |
+| **AI** | **Inzichten**, **Logboeken**, **Instellingen**, **Regels voor automatisch herstel**: wat OneUptime AI van je incidenten heeft geleerd en alles wat het ervoor heeft gedaan, wat het zelfstandig mag doen, en de regels die incidenten met runbooks oplossen. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Werkruimte**  | **Slack**- en **Microsoft Teams**-verbindingen voor incidenten.                                                                                                          |
-| **Regels**      | De regelmotoren: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **Privacyregels**, **Labelregels**, **SLA-regels**, **Reminder Rules**. |
-| **Instellingen**| **AI**, **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Postmortem-sjablonen**, **Aangepaste velden**, **Incidentrollen**, **Nummervoorvoegsel**. |
+| **Regels**      | De regelmotoren: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels**, **Reminder Rules**. |
+| **Instellingen**| **Status incident**, **Ernst van incident**, **Incident-sjablonen**, **Notitie-sjablonen**, **Postmortem-sjablonen**, **Aangepaste velden**, **Incidentrollen**, **Nummervoorvoegsel**. |
 
-**Regels** en **Instellingen** zijn standaard ingeklapt — vouw ze uit om de pagina's te vinden waar de rest van deze documentatie naar verwijst. Incidentconfiguratie staat niet onder Projectinstellingen; het woont hier allemaal.
+**AI**, **Regels** en **Instellingen** zijn standaard ingeklapt — vouw ze uit om de pagina's te vinden waar de rest van deze documentatie naar verwijst. Incidentconfiguratie staat niet onder Projectinstellingen; het woont hier allemaal.
 
 De incidentenlijst zelf toont **Incidentnummer**, **Titel**, **Status**, **Ernst**, **Getroffen middelen**, **Verklaard**, **Duur**, **Labels** en **Eigenaren**, met een bulkactie **Status wijzigen** om er meerdere tegelijk af te sluiten.
 

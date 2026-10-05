@@ -114,11 +114,12 @@ Derefter kan du skrive en postmortem og eventuelt offentliggøre den på statuss
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Oversigt**       | **Alle hændelser** og **Aktive hændelser** — sidstnævnte har et rødt mærke med antallet af hændelser, der ikke er i den løste tilstand.                                 |
 | **Episoder**       | Hændelsesepisoder, en separat grupperingsfunktion med sine egne sider.                                                                                                  |
+| **AI** | **Indsigter**, **Protokoller**, **Indstillinger**, **Regler for automatisk afhjælpning**: hvad OneUptime AI har lært af dine hændelser og alt, hvad den har gjort for dem, hvad den må gøre på egen hånd, og reglerne, der retter hændelser med runbooks. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde**  | **Slack**- og **Microsoft Teams**-forbindelser til hændelser.                                                                                                           |
-| **Regler**         | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Regler for automatisk afhjælpning**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Reminder Rules**. |
-| **Indstillinger**  | **AI**, **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Nummerpræfiks**. |
+| **Regler**         | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Reminder Rules**. |
+| **Indstillinger**  | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Nummerpræfiks**. |
 
-**Regler** og **Indstillinger** er sammenklappet som standard — fold dem ud for at finde de sider, resten af denne dokumentation henviser til. Hændelseskonfiguration ligger ikke under Projektindstillinger; det hele bor her.
+**AI**, **Regler** og **Indstillinger** er sammenklappet som standard — fold dem ud for at finde de sider, resten af denne dokumentation henviser til. Hændelseskonfiguration ligger ikke under Projektindstillinger; det hele bor her.
 
 Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer**, **Erklæret**, **Varighed**, **Etiketter** og **Ejere**, med massehandlingen **Skift tilstand** til at lukke flere på én gang.
 

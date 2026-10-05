@@ -1,4 +1,5 @@
 import Incident from "./Incident";
+import IncidentState from "./IncidentState";
 import Project from "./Project";
 import User from "./User";
 import File from "./File";
@@ -781,4 +782,81 @@ export default class IncidentPublicNote extends BaseModel {
     nullable: true,
   })
   public postedFromSlackMessageId?: string = undefined;
+
+  /*
+   * The state the incident moved to when this note was posted with that
+   * state change: the public note of the state change dialogs, the Change
+   * State bulk action, or `miscDataProps.publicNote` on a state timeline
+   * create. The note's subscriber messages name it ("Status: Resolved").
+   * Empty for a note posted on its own. OneUptime sets it on the note a
+   * state change posts, and on no other (StateChangePublicNote): no create
+   * or update can write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentPublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "postedWithIncidentStateId",
+    type: TableColumnType.Entity,
+    modelType: IncidentState,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Posted With State Change To",
+    description:
+      "The state the incident moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentState;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "postedWithIncidentStateId" })
+  public postedWithIncidentState?: IncidentState = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentPublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    hideColumnInDocumentation: true,
+    required: false,
+    title: "Posted With State Change To ID",
+    description:
+      "The state the incident moved to when this note was posted with that state change. Subscribers are told this state with the note. Empty for a note posted on its own.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public postedWithIncidentStateId?: ObjectID = undefined;
 }

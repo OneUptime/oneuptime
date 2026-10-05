@@ -249,10 +249,16 @@ describe.each(SERVICE_CASES)(
   },
 );
 
-describe("StatusPageAnnouncement onBeforeUpdate keeps its existing notify toggle behaviour", () => {
+/*
+ * The create-time toggle is the choice made when the announcement was
+ * created: writing it later leaves the original message alone, and its job
+ * skips a message still queued once the toggle is off
+ * (NotifyFlagUpdateNoResend.test.ts).
+ */
+describe("StatusPageAnnouncement onBeforeUpdate leaves the original notification to the create-time toggle", () => {
   const announcementCase: ServiceCase = SERVICE_CASES[0]!;
 
-  test("turning the create-time toggle off still skips the original notification", async () => {
+  test("turning the create-time toggle off neither skips nor queues anything in the update", async () => {
     const result: OnUpdate<BaseModel> = await runBeforeUpdate(
       announcementCase,
       { shouldStatusPageSubscribersBeNotified: false },
@@ -260,9 +266,8 @@ describe("StatusPageAnnouncement onBeforeUpdate keeps its existing notify toggle
 
     const data: JSONObject = result.updateBy.data as JSONObject;
 
-    expect(data["subscriberNotificationStatus"]).toBe(
-      StatusPageSubscriberNotificationStatus.Skipped,
-    );
+    expect(data["subscriberNotificationStatus"]).toBeUndefined();
+    expect(data["subscriberNotificationStatusMessage"]).toBeUndefined();
     expect(
       data["subscriberNotificationStatusOnAnnouncementUpdated"],
     ).toBeUndefined();
@@ -277,9 +282,9 @@ describe("StatusPageAnnouncement onBeforeUpdate keeps its existing notify toggle
 
     const data: JSONObject = result.updateBy.data as JSONObject;
 
-    expect(data["subscriberNotificationStatus"]).toBe(
-      StatusPageSubscriberNotificationStatus.Pending,
-    );
+    // Re-sending the toggle does not send the announcement again...
+    expect(data["subscriberNotificationStatus"]).toBeUndefined();
+    // ...and the edit's own message is queued as asked.
     expect(data["subscriberNotificationStatusOnAnnouncementUpdated"]).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );

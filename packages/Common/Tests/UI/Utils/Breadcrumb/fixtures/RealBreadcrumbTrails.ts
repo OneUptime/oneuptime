@@ -171,13 +171,23 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/settings/ai",
-    titles: ["Project", "Alerts", "AI", "Investigation"],
+    pagePattern: "/dashboard/:projectId/alerts/ai/insights",
+    titles: ["Project", "Alerts", "AI", "Insights"],
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/settings/auto-remediation-rules",
-    titles: ["Project", "Alerts", "AI", "Remediation"],
+    pagePattern: "/dashboard/:projectId/alerts/ai/logs",
+    titles: ["Project", "Alerts", "AI", "Logs"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/settings",
+    titles: ["Project", "Alerts", "AI", "Settings"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/auto-remediation-rules",
+    titles: ["Project", "Alerts", "AI", "Auto Remediation Rules"],
   },
   {
     getter: "getAlertsBreadcrumbs",
@@ -960,14 +970,23 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getIncidentsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/incidents/settings/ai",
-    titles: ["Project", "Incidents", "AI", "Investigation"],
+    pagePattern: "/dashboard/:projectId/incidents/ai/insights",
+    titles: ["Project", "Incidents", "AI", "Insights"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/incidents/settings/auto-remediation-rules",
-    titles: ["Project", "Incidents", "AI", "Remediation"],
+    pagePattern: "/dashboard/:projectId/incidents/ai/logs",
+    titles: ["Project", "Incidents", "AI", "Logs"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/settings",
+    titles: ["Project", "Incidents", "AI", "Settings"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/auto-remediation-rules",
+    titles: ["Project", "Incidents", "AI", "Auto Remediation Rules"],
   },
   {
     getter: "getIncidentsBreadcrumbs",

@@ -1970,7 +1970,7 @@ describe("the automatic-investigation footer", () => {
         projectName: "Acme",
       }),
     ).toBe(
-      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → Settings → AI.",
+      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
     );
     expect(
       getAutomaticInvestigationConfirmation({

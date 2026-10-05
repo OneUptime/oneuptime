@@ -31,3 +31,17 @@ export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
   forms: "settings/forms",
   formView: `settings/forms/${RouteParams.ModelID}`,
 };
+
+/*
+ * The AI settings page and the Auto Remediation Rules moved from the
+ * Settings and Rules sections into the AI section of the Incidents and Alerts
+ * menus (…/ai/settings and …/ai/auto-remediation-rules). Relative to
+ * …/incidents/ and to …/alerts/: both products used the same paths.
+ */
+export const MOVED_AI_SECTION_PATHS: {
+  aiSettings: string;
+  autoRemediationRules: string;
+} = {
+  aiSettings: "settings/ai",
+  autoRemediationRules: "settings/auto-remediation-rules",
+};

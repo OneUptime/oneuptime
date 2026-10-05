@@ -12,7 +12,6 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 
 | Écran                        | Ce que vous y faites                                                                                                 |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **IA**                       | Activer ou désactiver l'investigation automatique, les corrections de code automatiques et les brouillons de post-mortem, et fixer les limites facultatives dans lesquelles l'IA travaille — aucune ne s'applique tant que vous ne l'avez pas fixée. Voir [AI SRE](/docs/ai/ai-sre). |
 | **État de l'incident**       | Ajouter, renommer, recolorer et réordonner les états que traverse un incident.                                       |
 | **Gravité de l'incident**    | Ajouter, renommer, recolorer et réordonner les niveaux de gravité.                                                   |
 | **Modèles d'incident**       | Préremplir un incident entier — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes.   |
@@ -22,9 +21,11 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 | **Rôles d'incident**         | Définir les rôles auxquels vous affectez les intervenants, comme Incident Commander.                                 |
 | **Préfixe de numéro**       | Les préfixes de numéro d'incident et d'épisode d'incident.                                                           |
 
+Ce que OneUptime AI fait de lui-même ne se règle pas ici : il a sa propre section, **Incidents → IA**, sur des routes commençant par `/dashboard/{projectId}/incidents/ai/`. Sa page **Paramètres** active ou désactive l'investigation automatique, les corrections de code automatiques et les brouillons de post-mortem, et regroupe les limites facultatives dans lesquelles l'IA travaille — aucune ne s'applique tant que vous ne l'avez pas fixée. Les **Règles de remédiation automatique** sont à côté, avec **Analyses** et **Journaux** : ce que l'IA a appris de vos incidents, et tout ce qu'elle a fait. Voir [AI SRE](/docs/ai/ai-sre).
+
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir des **Modèles d'incident**.
 
-Dépliez **Règles** et vous obtenez neuf écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
+Dépliez **Règles** et vous obtenez huit écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
 
 ## Modèles d'incident
 
@@ -116,13 +117,13 @@ Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite.
 
 ## Les règles qui s'exécutent à la création d'un incident
 
-**Incidents → Règles** regroupe neuf moteurs de règles. Ils font tous le même travail — regarder un incident à l'instant où il est créé, et agir s'il correspond — mais ils diffèrent par ce qu'ils font et par la façon dont plusieurs règles correspondantes se résolvent.
+**Incidents → Règles** regroupe huit moteurs de règles, et **Incidents → IA** un neuvième, les **Règles de remédiation automatique**. Ils font tous le même travail — regarder un incident à l'instant où il est créé, et agir s'il correspond — mais ils diffèrent par ce qu'ils font et par la façon dont plusieurs règles correspondantes se résolvent.
 
 - **Règles de regroupement** — regrouper des incidents liés en épisodes. Les règles sont évaluées par ordre de priorité ; les numéros de priorité les plus bas passent en premier.
 - **Règles d'astreinte** — exécuter des politiques d'astreinte pour les incidents correspondants. Détaillées plus bas.
 - **Règles de propriétaire** — attribuer des propriétaires automatiquement.
 - **Règles de runbook** — lancer un [runbook](/docs/runbooks/index) quand un incident correspond.
-- **Règles de remédiation automatique** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
+- **Règles de remédiation automatique**, sous **IA** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
 - **Règles de confidentialité** — décider si un incident correspondant est privé.
 - **Règles d'étiquettes** — appliquer des étiquettes automatiquement.
 - **Règles SLA** — suivre les délais de réponse et de résolution. Les règles sont évaluées dans l'ordre ; les numéros d'ordre les plus bas passent en premier.

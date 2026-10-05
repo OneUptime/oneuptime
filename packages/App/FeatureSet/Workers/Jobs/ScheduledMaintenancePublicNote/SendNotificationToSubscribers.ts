@@ -49,6 +49,9 @@ import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNot
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -174,9 +177,14 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
           description: true,
           projectId: true,
           startsAt: true,
-          // Templates offer {{scheduledMaintenanceState}}: the event's state right now.
+          /*
+           * Templates offer {{scheduledMaintenanceState}}: the event's state
+           * right now, unless the note names the state it was posted with.
+           * Read with its colour, as every state an email names is.
+           */
           currentScheduledMaintenanceState: {
             name: true,
+            color: true,
           },
           monitors: {
             _id: true,
@@ -309,7 +317,31 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     const scheduledAtString: string =
       OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
 
+    /*
+     * The state the event moved to, when this note was posted with that
+     * state change (ScheduledMaintenancePublicNote
+     * .postedWithScheduledMaintenanceState). The note is then the one
+     * message subscribers get about the change, so every default message of
+     * it names the state (StateChangeNoteMessage), and so does
+     * {{scheduledMaintenanceState}}. Not for an edit's update notification,
+     * which keeps its own words: the event may have moved on since.
+     */
+    const stateChange: ScheduledMaintenanceState | undefined =
+      trigger === SubscriberNotificationTrigger.Created &&
+      publicNote.postedWithScheduledMaintenanceState?.name?.trim()
+        ? publicNote.postedWithScheduledMaintenanceState
+        : undefined;
+    const stateChangeName: string = stateChange?.name || "";
+
     let notificationSentToAtLeastOneSubscriber: boolean = false;
+
+    /*
+     * "**Status:** Ongoing" under the event, for a note posted with a state
+     * change; for any other note, the blank line that was always there.
+     */
+    const chatStatusLine: string = stateChange
+      ? `\n${StateChangeNoteMessage.getChatStatusLine(stateChangeName)}\n`
+      : "";
 
     for (const statuspage of statusPages) {
       if (!statuspage.id) {
@@ -417,7 +449,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         detailsUrl: scheduledEventDetailsUrl,
         scheduledMaintenanceTitle: event.title || "",
         scheduledMaintenanceState:
-          event.currentScheduledMaintenanceState?.name || "",
+          stateChangeName || event.currentScheduledMaintenanceState?.name || "",
         postedAt: notePostedAt,
       };
 
@@ -538,7 +570,15 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               );
           } else {
             // Use default hard-coded template
-            smsMessage = `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}. Details: ${scheduledEventDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+            const smsHeadline: string = stateChange
+              ? StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
+                  stateName: stateChangeName,
+                  eventTitle: event.title || "",
+                  statusPageName: statusPageName,
+                })
+              : `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}.`;
+
+            smsMessage = `${smsHeadline} Details: ${scheduledEventDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
           }
 
           const sms: SMS = {
@@ -585,7 +625,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             markdownMessage = `## Scheduled Maintenance Update - ${statusPageName}
 
 **Event:** ${event.title || ""}
-
+${chatStatusLine}
 **${copy.chatNoteSentence}**
 
 **Note:** ${publicNote.note || ""}
@@ -620,7 +660,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             markdownMessage = `## Scheduled Maintenance Update - ${statusPageName}
 
 **Event:** ${event.title || ""}
-
+${chatStatusLine}
 **${copy.chatNoteSentence}**
 
 **Note:** ${publicNote.note || ""}
@@ -652,6 +692,10 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 scheduledMaintenanceDescription: event.description || "",
                 resourcesAffected: resourcesAffectedPlainText,
                 note: publicNote.note || "",
+                // The state a note posted with a state change moved the event to.
+                ...(stateChange
+                  ? { scheduledMaintenanceState: stateChangeName }
+                  : {}),
                 detailsUrl: scheduledEventDetailsUrl,
               },
             },
@@ -678,7 +722,14 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   emailTemplate.emailSubject,
                   subscriberPlainTextTemplateVariables,
                 )
-              : copy.customTemplateEmailSubjectPrefix + (event.title || "");
+              : stateChange
+                ? StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject(
+                    {
+                      stateName: stateChangeName,
+                      eventTitle: event.title || "",
+                    },
+                  )
+                : copy.customTemplateEmailSubjectPrefix + (event.title || "");
 
             MailService.sendMail(
               {
@@ -724,6 +775,20 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   scheduledAt: scheduledAtString,
                   eventTitle: event.title || "",
                   /*
+                   * The state a note posted with a state change moved the
+                   * event to, in its own colour: the template's Status row
+                   * shows only when it is set.
+                   */
+                  ...(stateChange
+                    ? {
+                        eventState: stateChangeName,
+                        ...EmailColorUtil.getTemplateVariables(
+                          "eventState",
+                          stateChange.color,
+                        ),
+                      }
+                    : {}),
+                  /*
                    * The template shows this in DetailBoxField's raw-HTML
                    * slot, so it is the rendered Markdown. It used to be the
                    * Markdown as written, which put any HTML the author typed
@@ -736,7 +801,12 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                       statuspage,
                     ),
                 },
-                subject: copy.emailSubjectPrefix + event.title,
+                subject: stateChange
+                  ? StateChangeNoteMessage.getScheduledMaintenanceEmailSubject({
+                      stateName: stateChangeName,
+                      eventTitle: event.title || "",
+                    })
+                  : copy.emailSubjectPrefix + event.title,
                 isSubjectLiteral: true,
               },
               {
@@ -843,6 +913,11 @@ RunCron(
           note: true,
           postedAt: true,
           scheduledMaintenanceId: true,
+          // The state change it was posted with, which its messages name.
+          postedWithScheduledMaintenanceState: {
+            name: true,
+            color: true,
+          },
         },
       });
 

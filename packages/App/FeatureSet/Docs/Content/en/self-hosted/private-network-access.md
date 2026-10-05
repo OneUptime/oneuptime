@@ -106,6 +106,8 @@ DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true
 
 Only the exact value `true` turns it on. On an instance with `BILLING_ENABLED=true` it is always on, whatever you set. It does not change which targets the webhook settings above or the probe setting below allow; each gate is configured on its own. It does change how refusals read, for webhooks and workflow requests too: with it on, a refused host name is reported without saying what it resolved to (see [Verifying it works](#verifying-it-works)).
 
+This setting does not apply to a Global LLM Provider, which an administrator configures rather than a project (with the `GLOBAL_LLM_PROVIDER_*` variables, the Helm chart's `vllm.globalProvider`, or in the Admin Dashboard under **Settings** > **Global LLM Providers**): such a provider can still reach private addresses, though loopback and link-local stay refused for it too.
+
 On Docker Compose, `config.env` has a `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=false` line (add it if your `config.env` predates it). Change that line to `true` rather than adding a second one, then run `npm run start` so the containers are recreated with the new value; `docker compose restart` does not re-read `config.env`.
 
 On Kubernetes, set it in your values file and upgrade the release. The chart passes it to the app and worker pods:

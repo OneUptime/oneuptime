@@ -12,7 +12,6 @@ Abra **Incidentes** na navegação à esquerda e expanda **Configurações** no 
 
 | Tela                     | O que você faz ali                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **IA**                   | Ligar ou desligar a investigação automática, as correções de código automáticas e os rascunhos de post-mortem, e definir os limites opcionais sob os quais a IA trabalha — nenhum se aplica até você defini-lo. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Estado do incidente**       | Adicionar, renomear, recolorir e reordenar os estados pelos quais um incidente passa.                       |
 | **Severidade do incidente**    | Adicionar, renomear, recolorir e reordenar os níveis de severidade.                                            |
 | **Modelos de incidentes**   | Preencher um incidente inteiro de antemão — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
@@ -22,9 +21,11 @@ Abra **Incidentes** na navegação à esquerda e expanda **Configurações** no 
 | **Funções de incidente**       | Definir as funções às quais você atribui os respondentes, como Incident Commander.                       |
 | **Prefixo do número**        | Os prefixos de número de incidente e de episódio de incidente.                                           |
 
+O que a OneUptime AI faz por conta própria não se configura aqui: ela tem uma seção própria, **Incidentes → IA**, em rotas que começam com `/dashboard/{projectId}/incidents/ai/`. A página **Configurações** dela liga ou desliga a investigação automática, as correções de código automáticas e os rascunhos de post-mortem, e guarda os limites opcionais sob os quais a IA trabalha — nenhum se aplica até você defini-lo. Ao lado ficam as **Regras de remediação automática**, com **Insights** e **Registros**: o que a IA aprendeu com seus incidentes e tudo o que ela fez. Veja [AI SRE](/docs/ai/ai-sre).
+
 **Estado do incidente** e **Severidade do incidente** são tratados a fundo em [Estados e severidades de incidentes](/docs/incidents/states-and-severities) — o resto desta página começa em **Modelos de incidentes**.
 
-Expanda **Regras** e você ganha mais nove telas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de remediação automática**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Reminder Rules**. Todas elas aparecem mais adiante.
+Expanda **Regras** e você ganha mais oito telas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Reminder Rules**. Todas elas aparecem mais adiante.
 
 ## Modelos de incidentes
 
@@ -116,13 +117,13 @@ Um prefixo novo só vale para incidentes e episódios criados depois. Os existen
 
 ## Regras que rodam quando um incidente é criado
 
-**Incidentes → Regras** guarda nove motores de regra. Todos fazem o mesmo trabalho — olhar um incidente no instante em que ele é criado e agir se ele corresponder — mas diferem no que fazem e em como várias regras correspondentes se resolvem entre si.
+**Incidentes → Regras** guarda oito motores de regra, e **Incidentes → IA** um nono, as **Regras de remediação automática**. Todos fazem o mesmo trabalho — olhar um incidente no instante em que ele é criado e agir se ele corresponder — mas diferem no que fazem e em como várias regras correspondentes se resolvem entre si.
 
 - **Regras de agrupamento** — agrupam incidentes relacionados em episódios. As regras são avaliadas por ordem de prioridade; números de prioridade menores vêm primeiro.
 - **Regras de Plantão** — executam políticas de plantão para os incidentes correspondentes. Detalhadas mais abaixo.
 - **Regras de proprietário** — atribuem proprietários automaticamente.
 - **Regras de runbook** — iniciam um [runbook](/docs/runbooks/index) quando um incidente corresponde.
-- **Regras de remediação automática** — propõem ou iniciam runbooks de remediação quando um incidente corresponde. Se houver uma investigação de IA na fila para o incidente, elas rodam quando ela termina, já com a análise em mãos. Veja [AI SRE](/docs/ai/ai-sre).
+- **Regras de remediação automática**, em **IA** — propõem ou iniciam runbooks de remediação quando um incidente corresponde. Se houver uma investigação de IA na fila para o incidente, elas rodam quando ela termina, já com a análise em mãos. Veja [AI SRE](/docs/ai/ai-sre).
 - **Regras de privacidade** — decidem se um incidente correspondente é privado.
 - **Regras de Rótulos** — aplicam rótulos automaticamente.
 - **Regras de SLA** — acompanham tempos de resposta e de resolução. As regras são avaliadas em ordem; números de ordem menores vêm primeiro.

@@ -626,8 +626,8 @@ describe("AIService.executeWithLogging budget exhaustion message", () => {
   });
 
   test.each([
-    ["incident", "Incidents > Settings > AI"],
-    ["alert", "Alerts > Settings > AI"],
+    ["incident", "Incidents > AI > Settings"],
+    ["alert", "Alerts > AI > Settings"],
   ])(
     "an exhausted %s lane names where its limit is set now",
     async (lane: string, location: string) => {
