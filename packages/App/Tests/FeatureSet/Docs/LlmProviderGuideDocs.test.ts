@@ -670,3 +670,30 @@ describe("every LLM provider guide sends readers to the page the dashboard has",
     },
   );
 });
+
+describe("every LLM provider guide leads with autonomous investigations", () => {
+  const AI_SRE_LINK: string = "](/docs/ai/ai-sre)";
+
+  test("the AI SRE page exists in English, which every language falls back to", () => {
+    expect(fs.existsSync(path.join(CONTENT_DIR, "en", "ai", "ai-sre.md"))).toBe(
+      true,
+    );
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s links AI SRE from the first thing it says a provider does",
+    (language: string) => {
+      const lines: Array<string> = readPage(language).split("\n");
+      const firstSection: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("## ");
+      });
+      const firstCapability: string | undefined = lines
+        .slice(firstSection)
+        .find((line: string): boolean => {
+          return line.startsWith("- **");
+        });
+
+      expect(firstCapability).toContain(AI_SRE_LINK);
+    },
+  );
+});

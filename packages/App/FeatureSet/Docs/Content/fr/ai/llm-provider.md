@@ -6,6 +6,7 @@ OneUptime prend en charge l'intégration avec divers fournisseurs de grands mod�
 
 Les fournisseurs LLM dans OneUptime vous aident à automatiser et améliorer votre flux de gestion des incidents :
 
+- **Investigations autonomes** : Investigation automatique des nouveaux incidents et alertes, avec publication dans la chronologie d'une analyse des causes racines sourcée — voir [AI SRE](/docs/ai/ai-sre)
 - **Notes d'incident** : Génération automatique de notes et de mises à jour détaillées sur les incidents
 - **Notes d'alerte** : Création de descriptions d'alertes significatives avec contexte
 - **Notes de maintenance programmée** : Génération automatique de notes sur les événements de maintenance

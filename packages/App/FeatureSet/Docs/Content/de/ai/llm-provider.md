@@ -6,6 +6,7 @@ OneUptime unterstützt die Integration verschiedener Large Language Model (LLM)-
 
 LLM-Anbieter in OneUptime helfen Ihnen, Ihren Incident-Management-Workflow zu automatisieren und zu verbessern:
 
+- **Autonome Untersuchungen**: Neue Incidents und Benachrichtigungen automatisch untersuchen und eine belegte Ursachenanalyse in der Zeitleiste veröffentlichen — siehe [AI SRE](/docs/ai/ai-sre)
 - **Incident-Notizen**: Automatisch detaillierte Incident-Notizen und Updates generieren
 - **Benachrichtigungs-Notizen**: Aussagekräftige Benachrichtigungsbeschreibungen und Kontext erstellen
 - **Wartungsnotizen für geplante Wartungen**: Automatisch Notizen zu Wartungsereignissen generieren

@@ -6,6 +6,7 @@ OneUptime understøtter integration med forskellige Large Language Model (LLM)-u
 
 LLM-udbydere i OneUptime hjælper dig med at automatisere og forbedre din incident management-arbejdsgang:
 
+- **Autonome undersøgelser**: Undersøg automatisk nye incidents og alerts, og post en rodårsagsanalyse med kildehenvisninger på tidslinjen — se [AI SRE](/docs/ai/ai-sre)
 - **Incident-noter**: Generer automatisk detaljerede incident-noter og opdateringer
 - **Alert-noter**: Opret meningsfulde alert-beskrivelser og kontekst
 - **Notater om planlagt vedligeholdelse**: Generer noter til vedligeholdelsesbegivenheder automatisk

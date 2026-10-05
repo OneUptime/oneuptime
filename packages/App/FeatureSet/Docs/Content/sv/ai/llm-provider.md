@@ -6,6 +6,7 @@ OneUptime stöder integration med olika leverantörer av stora språkmodeller (L
 
 LLM-leverantörer i OneUptime hjälper dig att automatisera och förbättra ditt arbetsflöde för incidenthantering:
 
+- **Autonoma utredningar**: Utred nya incidenter och varningar automatiskt och publicera en rotorsaksanalys med källhänvisningar på tidslinjen — se [AI SRE](/docs/ai/ai-sre)
 - **Incidentanteckningar**: Generera automatiskt detaljerade incidentanteckningar och uppdateringar
 - **Varningsanteckningar**: Skapa meningsfulla varningsbeskrivningar och sammanhang
 - **Anteckningar för planerat underhåll**: Generera anteckningar för underhållshändelser automatiskt

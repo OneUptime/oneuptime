@@ -6,6 +6,7 @@ OneUptime støtter integrasjon med ulike leverandører av store språkmodeller (
 
 LLM-leverandører i OneUptime hjelper deg med å automatisere og forbedre arbeidsflyten for hendelseshåndtering:
 
+- **Autonome undersøkelser**: Undersøk nye hendelser og varsler automatisk, og publiser en rotårsaksanalyse med kildehenvisninger på tidslinjen — se [AI SRE](/docs/ai/ai-sre)
 - **Hendelsesnotater**: Generer automatisk detaljerte hendelsesnotater og oppdateringer
 - **Varselnotater**: Opprett meningsfulle varselbeskrivelser og kontekst
 - **Planlagt vedlikeholdsnotater**: Generer notater for vedlikeholdshendelser automatisk

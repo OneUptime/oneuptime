@@ -6,6 +6,7 @@ OneUptime supporta l'integrazione con vari provider di Large Language Model (LLM
 
 I Provider LLM in OneUptime ti aiutano ad automatizzare e migliorare il flusso di lavoro di gestione degli incidenti:
 
+- **Indagini autonome**: Indagine automatica su nuovi incidenti e avvisi, con pubblicazione nella cronologia di un'analisi della causa principale corredata di fonti — vedi [AI SRE](/docs/ai/ai-sre)
 - **Note sugli Incidenti**: Generazione automatica di note e aggiornamenti dettagliati sugli incidenti
 - **Note sugli Avvisi**: Creazione di descrizioni e contesti significativi per gli avvisi
 - **Note sulle Manutenzioni Programmate**: Generazione automatica di note per gli eventi di manutenzione

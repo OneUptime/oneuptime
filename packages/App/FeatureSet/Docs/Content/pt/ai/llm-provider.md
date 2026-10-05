@@ -6,6 +6,7 @@ O OneUptime suporta integração com vários provedores de Modelos de Linguagem 
 
 Os Provedores de LLM no OneUptime ajudam você a automatizar e aprimorar seu fluxo de trabalho de gerenciamento de incidentes:
 
+- **Investigações autônomas**: Investigar automaticamente novos incidentes e alertas e publicar na linha do tempo uma análise de causa raiz com as fontes citadas — veja [AI SRE](/docs/ai/ai-sre)
 - **Notas de Incidentes**: Gerar automaticamente notas e atualizações detalhadas de incidentes
 - **Notas de Alertas**: Criar descrições e contexto significativos para alertas
 - **Notas de Manutenção Programada**: Gerar notas de eventos de manutenção automaticamente

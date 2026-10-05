@@ -6,6 +6,7 @@ OneUptime, platform भर में AI-संचालित सुविधा
 
 OneUptime में LLM Providers आपके incident management workflow को स्वचालित और बेहतर बनाने में मदद करते हैं:
 
+- **Autonomous Investigations**: नए incidents और alerts की स्वचालित रूप से जांच करें और timeline पर citations के साथ root cause analysis post करें — देखें [AI SRE](/docs/ai/ai-sre)
 - **Incident Notes**: विस्तृत incident notes और updates स्वचालित रूप से तैयार करें
 - **Alert Notes**: सार्थक alert विवरण और संदर्भ बनाएं
 - **Scheduled Maintenance Notes**: maintenance event notes स्वचालित रूप से तैयार करें

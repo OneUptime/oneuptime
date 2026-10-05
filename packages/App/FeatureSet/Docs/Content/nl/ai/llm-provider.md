@@ -6,6 +6,7 @@ OneUptime ondersteunt integratie met diverse Large Language Model (LLM)-provider
 
 LLM Providers in OneUptime helpen u uw incidentbeheerworkflow te automatiseren en te verbeteren:
 
+- **Autonome onderzoeken**: Nieuwe incidenten en meldingen automatisch onderzoeken en een oorzaakanalyse met bronvermelding op de tijdlijn plaatsen — zie [AI SRE](/docs/ai/ai-sre)
 - **Incidentnotities**: Automatisch gedetailleerde incidentnotities en updates genereren
 - **Meldingsnotities**: Betekenisvolle meldingsbeschrijvingen en context aanmaken
 - **Notities voor gepland onderhoud**: Automatisch notities voor onderhoudsgebeurtenissen genereren
