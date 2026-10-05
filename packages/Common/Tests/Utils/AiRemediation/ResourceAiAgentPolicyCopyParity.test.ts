@@ -274,12 +274,14 @@ function getAgentEntryPoints(): Array<string> {
 }
 
 describe("Resource AI agent: copies of the resource command policy closure", () => {
-  test("the list copies both policy directories whole, and the two leaf files", () => {
+  test("the list copies both policy directories whole, and the three leaf files", () => {
     expect(copyList.commonPolicyDirectories).toEqual([
       "Types/ResourceAiAgent",
       "Utils/AiRemediation/Resource",
     ]);
+    // AgentAiSettings: what AI may do, which ResourceAiAccess reads.
     expect(copyList.commonPolicyFiles).toEqual([
+      "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
     ]);

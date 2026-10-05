@@ -168,6 +168,15 @@ export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
       # VCENTER_ENDPOINT's host (the vCenter appliance, when it is named so).
       # With an IP address as the endpoint, or an appliance VM named
       # otherwise, put the appliance's VM name in ONEUPTIME_AI_PROTECTED_TARGETS.
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION
+      # (true or false) and ONEUPTIME_AI_FIXES (off, ask-for-approval,
+      # automatic or bypass-approval; fixes also need
+      # ONEUPTIME_AI_ALLOW_WRITES=true). Set either and the AI agent page in
+      # OneUptime follows them, read-only; leave both empty for the agent's
+      # defaults (investigation on, fixes Ask for approval when writes are
+      # allowed, else off).
+      - ONEUPTIME_AI_INVESTIGATION=\${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=\${ONEUPTIME_AI_FIXES:-}
       - ONEUPTIME_AI_ALLOW_WRITES=\${ONEUPTIME_AI_ALLOW_WRITES:-false}
       - ONEUPTIME_AI_WRITE_TARGETS=\${ONEUPTIME_AI_WRITE_TARGETS:-}
       - ONEUPTIME_AI_PROTECTED_TARGETS=\${ONEUPTIME_AI_PROTECTED_TARGETS:-}

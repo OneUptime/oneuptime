@@ -484,7 +484,7 @@ function getAiAgentNotes(data: GuideData): string {
     : "Add `- ONEUPTIME_AI_ALLOW_WRITES=true` to its `environment:` list";
 
   return `- **Read-only by default.** It runs commands such as \`docker ps\`, \`docker logs --tail 200 NAME\`, \`docker inspect\` and \`docker stats --no-stream\` — never \`exec\`, \`run\`, \`rm\` or \`prune\`. Environment values in \`docker inspect\` output are masked before anything leaves the host.
-- **Fixes are opt-in.** ${allowWrites} to let it restart, start, stop, pause, kill or change the limits of a named container, then choose on the host's **AI → AI agent** page whether each fix needs approval. \`ONEUPTIME_AI_WRITE_TARGETS\` (comma-separated globs such as \`web-*,api-*\`) limits which containers; \`ONEUPTIME_AI_PROTECTED_TARGETS\` adds containers it must never change. It never changes itself or the collector.
+- **Fixes are opt-in.** ${allowWrites} to let it restart, start, stop, pause, kill or change the limits of a named container. \`ONEUPTIME_AI_FIXES\` beside it says whether each fix needs approval (\`ask-for-approval\`, \`automatic\` or \`bypass-approval\`), and the host's **AI → AI agent** page shows it. \`ONEUPTIME_AI_WRITE_TARGETS\` (comma-separated globs such as \`web-*,api-*\`) limits which containers; \`ONEUPTIME_AI_PROTECTED_TARGETS\` adds containers it must never change. It never changes itself or the collector.
 - It runs as root because the Docker socket is root-owned. The socket's \`:ro\` mount does not make the Docker API read-only — the agent's command policy is the limit.
 - Its logs: \`docker logs -f ${DOCKER_AI_AGENT_CONTAINER_NAME}\`. What it may run, and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts).`;
 }

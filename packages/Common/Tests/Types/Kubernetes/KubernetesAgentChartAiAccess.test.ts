@@ -8,6 +8,14 @@ import {
   PROTECTED_KUBERNETES_NAMESPACES,
   RUNNER_POD_NAMESPACE_ENV,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  AGENT_AI_FIXES_MODES,
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiFixesMode,
+  parseAgentAiFixesSetting,
+} from "../../../Types/AI/AgentAiSettings";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import yaml from "js-yaml";
@@ -115,6 +123,13 @@ const RUNNER_ONLY_ENV_PATTERN: RegExp =
 // The chart's template files: manifests, helpers and NOTES.txt.
 const TEMPLATE_FILE_PATTERN: RegExp = /\.(ya?ml|tpl|txt)$/;
 
+/*
+ * The two AI settings variables, rendered together and only inside the
+ * helper's aiSettingsConfigured gate (a comment may sit between them).
+ */
+const AI_SETTINGS_ENV_PATTERN: RegExp =
+  /\{\{- if \$settings\.aiSettingsConfigured \}\}\n(?:.*\n){0,8}?\s+- name: ONEUPTIME_AI_INVESTIGATION\n\s+value: \{\{ \$settings\.investigation \| quote \}\}\n\s+- name: ONEUPTIME_AI_FIXES\n\s+value: \{\{ \$settings\.fixes \| quote \}\}\n\s+\{\{- end \}\}/;
+
 // A read of the deprecated aiAccess block's Runner image or resources.
 const AI_ACCESS_IMAGE_OR_RESOURCES_PATTERN: RegExp =
   /\$aiAccess\.(image|resources)|\.Values\.aiAccess\.(image|resources)/;
@@ -126,7 +141,7 @@ interface JsonSchema {
   items?: JsonSchema;
   required?: Array<string>;
   additionalProperties?: boolean | JsonSchema;
-  enum?: Array<string>;
+  enum?: Array<string | boolean>;
   pattern?: string;
   minLength?: number;
   maxLength?: number;
@@ -380,7 +395,13 @@ describe("the kubernetes-agent chart's Kubernetes AI agent environment", () => {
 
   it("reserves the switches with a message naming the aiAgent value to change", () => {
     expect(template).toContain(
-      `set $reservedEnv "${KUBECTL_ALLOW_WRITES_ENV}" "the chart sets it from aiAgent.remediation.enabled`,
+      `set $reservedEnv "${KUBECTL_ALLOW_WRITES_ENV}" "the chart sets it from aiAgent.fixes (or aiAgent.remediation.enabled)`,
+    );
+    expect(template).toContain(
+      `set $reservedEnv "${AI_INVESTIGATION_ENV}" "the chart sets it from aiAgent.investigation`,
+    );
+    expect(template).toContain(
+      `set $reservedEnv "${AI_FIXES_ENV}" "the chart sets it from aiAgent.fixes`,
     );
     expect(template).toContain(
       `set $reservedEnv "${KUBECTL_WRITE_NAMESPACES_ENV}" "the chart sets it from aiAgent.remediation.namespaces`,
@@ -550,6 +571,8 @@ describe("the kubernetes-agent chart's aiAgent values and schema", () => {
     const block: string = getValuesAiAgentBlock();
 
     for (const line of [
+      "  # investigation: true",
+      '  # fixes: "off"',
       "  # remediation:",
       "  #   enabled: false",
       "  #   namespaces: []",
@@ -748,6 +771,87 @@ describe("the kubernetes-agent chart's aiAgent tables", () => {
         listed: true,
       });
     }
+  });
+});
+
+/*
+ * "These options should depend on the agent itself." What AI may do on the
+ * cluster — investigation and fixes — is set by aiAgent.investigation and
+ * aiAgent.fixes, which the chart hands the agent under the names the
+ * agent reads (Common/Types/AI/AgentAiSettings), in the spelling the agent
+ * parses, and only when the release names one of them: values.yaml leaves
+ * both unset, so a cluster whose settings were chosen on its AI agent page
+ * keeps them through every upgrade that takes the chart's defaults.
+ */
+describe("the kubernetes-agent chart's investigation and fixes", () => {
+  const template: string = read(TEMPLATE_PATH);
+  const settingsTemplate: string = read(SETTINGS_TEMPLATE_PATH);
+  const values: Record<string, unknown> = yaml.load(
+    read(VALUES_PATH),
+  ) as Record<string, unknown>;
+  const aiAgent: Record<string, unknown> = values["aiAgent"] as Record<
+    string,
+    unknown
+  >;
+  const fixesSchema: JsonSchema = getSchemaProperty(
+    readSchema(),
+    "aiAgent.fixes",
+  );
+  const levels: Array<string> = AGENT_AI_FIXES_MODES.map(
+    (mode: AgentAiFixesMode): string => {
+      return AGENT_AI_FIXES_SETTING_VALUES[mode];
+    },
+  );
+
+  it("hands both to the agent under the names it reads, and only when the release names one", () => {
+    expect(getChartEnvNames(template)).toEqual(
+      expect.arrayContaining([AI_INVESTIGATION_ENV, AI_FIXES_ENV]),
+    );
+    expect(template).toMatch(AI_SETTINGS_ENV_PATTERN);
+  });
+
+  it("accepts exactly the levels the agent parses, plus unset and a bare YAML off", () => {
+    expect(fixesSchema.enum).toEqual(["", ...levels, false]);
+    expect(settingsTemplate).toContain(
+      `has $fixes (list ${levels
+        .map((level: string): string => {
+          return `"${level}"`;
+        })
+        .join(" ")})`,
+    );
+
+    for (const level of levels) {
+      expect({ level, parsed: parseAgentAiFixesSetting(level) }).toEqual({
+        level,
+        parsed: AGENT_AI_FIXES_MODES[levels.indexOf(level)],
+      });
+    }
+  });
+
+  it("lets fixes decide the write RBAC once set: every level but off grants it", () => {
+    expect(settingsTemplate).toContain(
+      '{{- if $fixesSet }}\n{{- $allowWrites = ne $fixes "off" -}}\n{{- $writesKey = "aiAgent.fixes" -}}\n{{- end }}',
+    );
+  });
+
+  it("names a release configured when either value is set", () => {
+    expect(settingsTemplate).toContain(
+      "{{- $aiSettingsConfigured := or $investigationSet $fixesSet -}}",
+    );
+    expect(settingsTemplate).toContain(
+      '{{- $investigationSet := kindIs "bool" $aiAgent.investigation -}}',
+    );
+  });
+
+  it("leaves both unset in values.yaml, so defaults never replace settings chosen on the AI agent page", () => {
+    expect(aiAgent).not.toHaveProperty("investigation");
+    expect(aiAgent).not.toHaveProperty("fixes");
+  });
+
+  it("types investigation as a boolean, so --set 'false' cannot pass as a truthy string", () => {
+    expect(getSchemaProperty(readSchema(), "aiAgent.investigation").type).toBe(
+      "boolean",
+    );
   });
 });
 

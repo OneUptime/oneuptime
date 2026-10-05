@@ -3,6 +3,10 @@ import {
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AgentAiFixesMode,
+} from "Common/Types/AI/AgentAiSettings";
+import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "./DocumentationMarkdown";
@@ -51,6 +55,33 @@ export const AI_AGENT_EXAMPLE_WRITE_NAMESPACES: string = "{web,api}";
 export const AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG: string =
   "--set-json 'aiAgent.remediation.namespaces=[]'";
 
+/*
+ * What OneUptime AI may do on the cluster, as the chart's
+ * aiAgent.investigation and aiAgent.fixes set it.
+ */
+export interface AiAgentChartSettings {
+  investigation: boolean;
+  fixes: AgentAiFixesMode;
+}
+
+/*
+ * The settings the static commands (the docs, the chart README, the
+ * write-access commands) turn fixes on with: investigation on, and a
+ * person approving every fix.
+ */
+export const AI_AGENT_DEFAULT_FIXES_ON_SETTINGS: AiAgentChartSettings = {
+  investigation: true,
+  fixes: "RequireApproval",
+};
+
+// The two flags that set what AI may do, as one continued pair of lines.
+export function getAiAgentSettingsFlags(
+  settings: AiAgentChartSettings,
+): string {
+  return `--set aiAgent.investigation=${settings.investigation ? "true" : "false"} \\
+  --set aiAgent.fixes=${AGENT_AI_FIXES_SETTING_VALUES[settings.fixes]}`;
+}
+
 export interface AiAgentHelmCommands {
   /*
    * Installs (or re-enables) the Kubernetes AI agent, read-only. The one
@@ -61,10 +92,17 @@ export interface AiAgentHelmCommands {
    */
   install: string;
   /*
-   * Write access, the recommended form: the write role bound only in the
-   * namespaces AI may fix, and no node operations. A complete command of
-   * its own, never a line to append — a dropped last line leaves a
-   * trailing backslash behind.
+   * Sets what AI may do and nothing else: the agent's write scope stays as
+   * the release stores it (--reuse-values). What the "Change what AI may
+   * do" dialog shows when no write access has to be granted (fixes off, or
+   * an agent that may already write).
+   */
+  applySettings: string;
+  /*
+   * Write access, the recommended form: the settings, with the write role
+   * bound only in the namespaces AI may fix, and no node operations. A
+   * complete command of its own, never a line to append — a dropped last
+   * line leaves a trailing backslash behind.
    */
   enableRemediationScoped: string;
   /*
@@ -84,21 +122,31 @@ export interface AiAgentHelmCommands {
  * "Additional property aiAgent is not allowed" — which reads as "this
  * feature does not exist". Each command is complete on its own. No chart
  * version is named: published charts carry the OneUptime version.
+ *
+ * Every command that sets fixes names investigation too: a release that
+ * names either one hands both to the agent, so an unnamed investigation
+ * would quietly take the chart's default rather than what the cluster
+ * has. aiAgent.fixes (any level but off) grants the write RBAC itself.
  */
-export function getAiAgentHelmCommands(): AiAgentHelmCommands {
+export function getAiAgentHelmCommands(
+  settings: AiAgentChartSettings = AI_AGENT_DEFAULT_FIXES_ON_SETTINGS,
+): AiAgentHelmCommands {
   const install: string = `helm repo update
 helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
   --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} --reuse-values \\
   --set aiAgent.enabled=true`;
+  const settingsFlags: string = getAiAgentSettingsFlags(settings);
 
   return {
     install,
+    applySettings: `${install} \\
+  ${settingsFlags}`,
     enableRemediationScoped: `${install} \\
-  --set aiAgent.remediation.enabled=true \\
+  ${settingsFlags} \\
   --set "aiAgent.remediation.namespaces=${AI_AGENT_EXAMPLE_WRITE_NAMESPACES}" \\
   --set aiAgent.remediation.nodeOperations=false`,
     enableRemediation: `${install} \\
-  --set aiAgent.remediation.enabled=true \\
+  ${settingsFlags} \\
   ${AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG}`,
   };
 }

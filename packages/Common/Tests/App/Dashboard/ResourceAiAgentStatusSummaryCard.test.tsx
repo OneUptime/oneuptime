@@ -193,6 +193,49 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
       ).toHaveTextContent(`The ${descriptor.agentName} is connected.`);
     });
 
+    test("draws the agent's version with AgentVersion, after when it was last seen", async () => {
+      serveStatus(makeStatus(type));
+      renderCard();
+      await findBadge("connection");
+
+      const details: HTMLElement = screen.getByTestId(
+        `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`,
+      );
+      expect(details.textContent).toMatch(/^last seen [^·]+ · agent 14\.1\.0/);
+      expect(
+        screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`),
+      ).toHaveTextContent("agent 14.1.0");
+    });
+
+    test("a version only the agent's posture reports is drawn too", async () => {
+      serveStatus(
+        makeStatus(type, {
+          agent: {
+            agentId: "99999999-0000-4000-8000-000000000009",
+            connectionStatus: "connected",
+            isOnline: true,
+            lastAliveAt: new Date().toISOString(),
+            posture: {
+              resourceType: type,
+              resourceIdentifier: "prod-01",
+              agentVersion: "14.0.9",
+              allowWrites: false,
+              writeTargets: [],
+              protectedTargets: [],
+              reachable: true,
+              details: {},
+            },
+          },
+        }),
+      );
+      renderCard();
+      await findBadge("connection");
+
+      expect(
+        screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`),
+      ).toHaveTextContent("agent 14.0.9");
+    });
+
     test("is described as the AI agent page is, for this resource", async () => {
       serveStatus(makeStatus(type));
       renderCard();

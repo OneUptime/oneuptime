@@ -1,7 +1,9 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { AgentAiSettingsSource } from "Common/Types/AI/AgentAiSettings";
 import {
   translatableTerm,
   translateTemplate,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -26,22 +28,21 @@ export type AiFixesMode =
   | "BypassApproval";
 
 /*
- * How a badge is coloured:
+ * How a badge is coloured: a setting is off (gray) or on (green), and
+ * nothing else.
  *
- * off:       nothing happens (investigation off, fixes Off).
- * on:        on, and a person stays in charge (investigation, Ask for
- *            approval).
- * automatic: some fixes run with nobody asked (Automatic).
- * bypass:    every allowed fix runs with nobody asked (Bypass approval).
- * danger:    something that should work does not (an AI agent that went
- *            offline, on the Overview's AI agent card).
+ * "When fixes are enabled, why does it show in yellow? That makes me think
+ * that fixes are not enabled, and I need to enable it." A badge answers one
+ * question — is it on? — so every on mode reads on. What a mode does is in
+ * its name (the badge's words: Ask for approval, Automatic, Bypass approval)
+ * and its icon, never in a warning colour that reads as "something is
+ * wrong".
+ *
+ * danger is for that alone: something that should work does not (an AI
+ * agent that went offline, on the Overview's AI agent card) — never a
+ * setting.
  */
-export type AiAccessBadgeTone =
-  | "off"
-  | "on"
-  | "automatic"
-  | "bypass"
-  | "danger";
+export type AiAccessBadgeTone = "off" | "on" | "danger";
 
 export interface AiAccessBadge {
   text: string;
@@ -53,8 +54,8 @@ export const AI_FIXES_MODE_TONES: Readonly<
 > = {
   Disabled: "off",
   RequireApproval: "on",
-  Automatic: "automatic",
-  BypassApproval: "bypass",
+  Automatic: "on",
+  BypassApproval: "on",
 };
 
 // The icon each mode's card shows in the Change modal.
@@ -64,6 +65,77 @@ export const AI_FIXES_MODE_ICONS: Readonly<Record<AiFixesMode, IconProp>> = {
   Automatic: IconProp.Bolt,
   BypassApproval: IconProp.ShieldExclamation,
 };
+
+/*
+ * Where a cluster's or resource's investigation and fixes are set, as the
+ * status reports it (status.aiSettingsSource). A status from a server older
+ * than the field, or a value this build does not know, reads as
+ * "oneuptime": the settings are edited here, as they always were, and the
+ * server still refuses a change its agent's configuration does not allow.
+ */
+export function readAiSettingsSource(value: unknown): AgentAiSettingsSource {
+  return value === "agent_configuration" || value === "agent_defaults"
+    ? value
+    : "oneuptime";
+}
+
+// What AI may do, as an agent's configuration says it.
+export interface AgentAiSettingsChoice {
+  investigation: boolean;
+  fixes: AiFixesMode;
+}
+
+/*
+ * The "Change what AI may do" dialog for settings an agent sets: its intro,
+ * by where the settings are set now. {{agent}} is the agent's name.
+ */
+export const AGENT_AI_SETTINGS_DIALOG_INTRO: Readonly<
+  Record<AgentAiSettingsSource, string>
+> = {
+  agent_configuration: translationKey(
+    "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.",
+  ),
+  agent_defaults: translationKey(
+    "The {{agent}} decides what AI may do here, with its defaults: its configuration sets neither setting. Pick what AI may do, then run the command below to set it there. OneUptime applies it as soon as the agent restarts.",
+  ),
+  oneuptime: translationKey(
+    "These settings are chosen on this page today. Set them in the {{agent}}'s configuration instead and they follow the agent from then on: this page then shows them, read-only. Pick what AI may do, then run the command below.",
+  ),
+};
+
+// The dialog's two choices and what follows them.
+export const AGENT_AI_SETTINGS_INVESTIGATION_OPTIONS: Readonly<
+  Record<"on" | "off", { title: string; description: string }>
+> = {
+  on: {
+    title: translationKey("On"),
+    description: translationKey(
+      "AI may run read-only commands while it investigates. An investigation never changes anything.",
+    ),
+  },
+  off: {
+    title: translationKey("Off"),
+    description: translationKey(
+      "AI investigates with the data OneUptime already has, and runs no commands.",
+    ),
+  },
+};
+
+export const AGENT_AI_SETTINGS_COMMANDS_TITLE: string = translationKey(
+  "Then run this where the agent runs",
+);
+
+export const AGENT_AI_SETTINGS_DONE_TEXT: string = translationKey(
+  "Once the agent restarts, this page shows the new settings within a minute.",
+);
+
+/*
+ * The hint under Fixes while fixes are Off and the agent sets them: the
+ * Change button shows the command, whoever clicks it.
+ */
+export const AI_FIXES_OFF_AGENT_SET_HINT: string = translationKey(
+  "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.",
+);
 
 export const AI_ACCESS_INVESTIGATION_ROW_TITLE: string = "Investigation";
 export const AI_ACCESS_FIXES_ROW_TITLE: string = "Fixes";

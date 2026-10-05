@@ -12,6 +12,10 @@ set -e
 #   ONEUPTIME_TELEMETRY_INGESTION_KEY  the project's telemetry ingestion key
 #   HOST_NAME                          the host.name your collector reports
 #                                      (empty: this host's hostname)
+#   ONEUPTIME_AI_INVESTIGATION         "true" or "false": may AI run read-only
+#                                      programs while it investigates
+#   ONEUPTIME_AI_FIXES                 off, ask-for-approval, automatic or
+#                                      bypass-approval (empty: the defaults)
 #   ONEUPTIME_AI_ALLOW_WRITES          "true" to allow fixes (default false)
 #   ONEUPTIME_AI_WRITE_TARGETS         unit globs fixes may touch (default any)
 #   ONEUPTIME_AI_PROTECTED_TARGETS     unit globs never to change
@@ -25,7 +29,7 @@ for arg in "$@"; do
     case "$arg" in
         --systemd) USE_SYSTEMD=true ;;
         -h|--help)
-            sed -n '4,21p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'
+            sed -n '4,25p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'
             exit 0
             ;;
         *)
@@ -154,7 +158,7 @@ case "$ONEUPTIME_AI_ALLOW_WRITES" in
         ;;
 esac
 
-for name in ONEUPTIME_URL ONEUPTIME_API_KEY ONEUPTIME_TELEMETRY_INGESTION_KEY HOST_NAME ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS; do
+for name in ONEUPTIME_URL ONEUPTIME_API_KEY ONEUPTIME_TELEMETRY_INGESTION_KEY HOST_NAME ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS; do
     case "${!name}" in
         *$'\n'*|*$'\r'*)
             echo "Error: $name must be a single line."
@@ -186,6 +190,8 @@ ONEUPTIME_URL=$(compose_env_quote "$ONEUPTIME_URL")
 ONEUPTIME_API_KEY=$(compose_env_quote "${ONEUPTIME_API_KEY:-}")
 ONEUPTIME_TELEMETRY_INGESTION_KEY=$(compose_env_quote "${ONEUPTIME_TELEMETRY_INGESTION_KEY:-}")
 HOST_NAME=$(compose_env_quote "${HOST_NAME:-}")
+ONEUPTIME_AI_INVESTIGATION=$(compose_env_quote "${ONEUPTIME_AI_INVESTIGATION:-}")
+ONEUPTIME_AI_FIXES=$(compose_env_quote "${ONEUPTIME_AI_FIXES:-}")
 ONEUPTIME_AI_ALLOW_WRITES=$ONEUPTIME_AI_ALLOW_WRITES
 ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "${ONEUPTIME_AI_WRITE_TARGETS:-}")
 ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "${ONEUPTIME_AI_PROTECTED_TARGETS:-}")
@@ -193,6 +199,7 @@ EOF
 chmod 600 "$ENV_FILE"
 
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_API_KEY ONEUPTIME_TELEMETRY_INGESTION_KEY HOST_NAME \
+ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES \
 ONEUPTIME_AI_ALLOW_WRITES ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS"
 
 echo ""
@@ -248,12 +255,13 @@ else
     echo "It serves the Host \"$THIS_HOSTNAME\" in OneUptime (this host's hostname)."
 fi
 if [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
-    echo "It may apply the fixes you allow on the host's AI agent page in OneUptime"
-    echo "(never to itself or the collector)."
+    echo "It may apply the fixes you allow (never to itself or the collector):"
+    echo "ONEUPTIME_AI_FIXES in $ENV_FILE (ask-for-approval, automatic or"
+    echo "bypass-approval) sets how."
 else
     echo "It is read-only: OneUptime AI can look at this host while it investigates, but"
     echo "not change it. To let it apply fixes (restart a unit, signal a process), set"
-    echo "ONEUPTIME_AI_ALLOW_WRITES=true in $ENV_FILE (and ONEUPTIME_AI_WRITE_TARGETS to"
-    echo "limit which units), run 'docker compose up -d' in $INSTALL_DIR, then choose on"
-    echo "the host's AI agent page whether each fix needs approval."
+    echo "ONEUPTIME_AI_ALLOW_WRITES=true and ONEUPTIME_AI_FIXES=ask-for-approval (or"
+    echo "automatic, or bypass-approval) in $ENV_FILE (and ONEUPTIME_AI_WRITE_TARGETS to"
+    echo "limit which units), then run 'docker compose up -d' in $INSTALL_DIR."
 fi

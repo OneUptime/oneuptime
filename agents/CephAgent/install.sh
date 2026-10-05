@@ -151,6 +151,8 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=$ONEUPTIME_TELEMETRY_INGESTION_KEY
 CEPH_CLUSTER_NAME=$CEPH_CLUSTER_NAME
 CEPH_MGR_ENDPOINTS=$CEPH_MGR_ENDPOINTS
 CEPH_CLIENT_ID=$CEPH_CLIENT_ID
+ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
 ONEUPTIME_AI_ALLOW_WRITES=$ONEUPTIME_AI_ALLOW_WRITES
 ONEUPTIME_AI_WRITE_TARGETS=$ONEUPTIME_AI_WRITE_TARGETS
 ONEUPTIME_AI_PROTECTED_TARGETS=$ONEUPTIME_AI_PROTECTED_TARGETS
@@ -176,12 +178,13 @@ if [ ! -s "$CEPH_CONF_FILE" ] || [ ! -s "$CEPH_KEYRING_FILE" ]; then
     echo "then: sudo chown 1000:1000 $CEPH_KEYRING_FILE && sudo chmod 600 $CEPH_KEYRING_FILE"
 elif [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
     echo "The OneUptime AI agent (oneuptime-ceph-ai-agent) may apply fixes, within the caps of"
-    echo "client.$CEPH_CLIENT_ID. Choose on the cluster's AI -> AI agent page in OneUptime"
-    echo "whether a person approves each one."
+    echo "client.$CEPH_CLIENT_ID. ONEUPTIME_AI_FIXES in $INSTALL_DIR/.env (ask-for-approval,"
+    echo "automatic or bypass-approval) sets whether a person approves each one."
 else
     echo "The OneUptime AI agent (oneuptime-ceph-ai-agent) is read-only. To let it apply fixes,"
     echo "give client.$CEPH_CLIENT_ID the fixes caps (README.md, \"Allowing fixes\"), set"
-    echo "ONEUPTIME_AI_ALLOW_WRITES=true in $INSTALL_DIR/.env and run: docker compose up -d"
+    echo "ONEUPTIME_AI_ALLOW_WRITES=true and ONEUPTIME_AI_FIXES=ask-for-approval in"
+    echo "$INSTALL_DIR/.env and run: docker compose up -d"
 fi
 echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"
