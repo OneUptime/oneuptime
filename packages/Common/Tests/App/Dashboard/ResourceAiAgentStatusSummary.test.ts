@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { getResourceAiAgentStatusSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatusSummary";
 import {
   ResourceAiAttention,
-  getResourceAiAgentMetaParts,
+  getResourceAiAgentMeta,
   getResourceAiAgentStatusPill,
   getResourceAiAttention,
   parseResourceAiAccessStatus,
@@ -20,7 +20,11 @@ import {
   AI_FIXES_MODE_TONES,
   getAiInvestigationOffSentence,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
-import { AiAgentStatusSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentStatusSummary";
+import {
+  AI_AGENT_VERSION_DETAIL,
+  AiAgentStatusSummary,
+  getAiAgentConnectionDetails,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentStatusSummary";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -148,11 +152,15 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
 
       test("shows the AI agent page's meta line under it, part by part", () => {
         expect(summary.connectionDetails).toEqual(
-          getResourceAiAgentMetaParts(status, descriptor),
+          getAiAgentConnectionDetails(
+            getResourceAiAgentMeta(status, descriptor),
+          ),
         );
         expect(summary.connectionDetails.length).toBeGreaterThan(0);
         expect(summary.connectionDetails[0]).toMatch(/^last seen /);
-        expect(summary.connectionDetails).toContain("agent v14.1.0");
+        // The version's place: the card draws it with AgentVersion.
+        expect(summary.connectionDetails[1]).toBe(AI_AGENT_VERSION_DETAIL);
+        expect(summary.connectionDetails.join(" ")).not.toContain("14.1.0");
         expect(summary.connectionDetails).toContain("Read-only");
       });
 

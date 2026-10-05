@@ -122,6 +122,11 @@ const DISPLAYS: Record<string, Array<string>> = {
   // Every other resource's AI agent page.
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx":
     ["ResourceAiAgent"],
+  // The Overviews' AI agent cards: a cluster's, and every other resource's.
+  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatusSummaryCard.tsx":
+    ["KubernetesAgent"],
+  "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard.tsx":
+    ["ResourceAiAgent"],
 };
 
 /*

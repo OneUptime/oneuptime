@@ -12,6 +12,8 @@ import {
   getKubernetesAiAgentStatusSummary,
   getKubernetesAiAgentStatusSummaryDescription,
 } from "./KubernetesAiAgentStatusSummary";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
@@ -52,6 +54,14 @@ const KubernetesAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
     });
   const read: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
     props.read || ownRead;
+  // The Kubernetes AI agent ships in the Kubernetes agent chart.
+  const versionElement: ReactElement | undefined = read.status?.aiAgent
+    ?.agentVersion ? (
+    <AgentVersion
+      kind={AgentKind.KubernetesAgent}
+      version={read.status?.aiAgent?.agentVersion}
+    />
+  ) : undefined;
 
   return (
     <AiAgentStatusSummaryCard
@@ -64,6 +74,7 @@ const KubernetesAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
         read.status ? getKubernetesAiAgentStatusSummary(read.status) : null
       }
       isLoading={read.isLoading}
+      versionElement={versionElement}
     />
   );
 };

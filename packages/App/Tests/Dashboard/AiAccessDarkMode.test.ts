@@ -206,18 +206,62 @@ describe("What AI may do in the dark theme", () => {
     ).toEqual([]);
   });
 
-  test("on and off are the only badge looks: no warning colour on a setting", () => {
+  /*
+   * A setting looks off (gray) or on (green), whatever the mode. Red is the
+   * danger tone, for an AI agent that stopped working (the Overview's
+   * Connection badge), never a setting; amber and the rest are not badge
+   * looks at all.
+   */
+  test("on and off are the only looks a setting has: no warning colour on a setting", () => {
     const rowSource: string = fs.readFileSync(
       path.join(COMPONENT_DIR, "AiAccessRow.tsx"),
       "utf8",
     );
-    const badgeClasses: string =
+    const maps: string =
       rowSource.match(
         /const BADGE_CLASSES[\s\S]*?const ROW_ICON_CLASSES[\s\S]*?};/,
       )?.[0] || "";
+    const entries: Array<[string, string]> = Array.from(
+      maps.matchAll(/^\s+(\w+): "([^"]*)",$/gm),
+      (match: RegExpMatchArray): [string, string] => {
+        return [match[1]!, match[2]!];
+      },
+    );
+    const looksOf: (tone: string) => string = (tone: string): string => {
+      return entries
+        .filter(([name]: [string, string]): boolean => {
+          return name === tone;
+        })
+        .map(([, classes]: [string, string]): string => {
+          return classes;
+        })
+        .join(" ");
+    };
 
-    // Harness guard: the maps were found.
-    expect(badgeClasses).toContain("emerald");
-    expect(badgeClasses).not.toMatch(/amber|yellow|indigo|orange|red-/);
+    // Harness guard: the three maps were found, each with every tone.
+    expect(
+      entries.map(([name]: [string, string]): string => {
+        return name;
+      }),
+    ).toEqual([
+      "off",
+      "on",
+      "danger",
+      "off",
+      "on",
+      "danger",
+      "off",
+      "on",
+      "danger",
+    ]);
+
+    expect(looksOf("on")).toContain("emerald");
+    expect(looksOf("off")).toContain("gray");
+    for (const tone of ["off", "on"]) {
+      expect(looksOf(tone)).not.toMatch(/amber|yellow|indigo|orange|red-/);
+    }
+    // Red is danger's alone, and danger has no warning amber either.
+    expect(looksOf("danger")).toContain("red-");
+    expect(looksOf("danger")).not.toMatch(/amber|yellow/);
   });
 });
