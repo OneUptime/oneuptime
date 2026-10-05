@@ -92,6 +92,9 @@ jobs:
       # the product's hand-written SQL against them. The second suite holds
       # the container command projection Postgres computes to its JavaScript
       # twin (reduceContainerCommand), which the discovery job classifies by.
+      # The third runs the metrics snapshot's container upsert on session TEMP
+      # tables: agent labels merged into a row's labels, the start time only
+      # moving forward.
       - name: Test the Databases product's SQL against the migrated schema
         working-directory: packages/Common
         env:
@@ -103,6 +106,7 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DatabaseServerSqlPostgres.test.ts
           Tests/Types/DatabaseServer/DatabaseContainerCommandPostgres.test.ts
+          Tests/Server/Services/ContainerSnapshotUpsertPostgres.test.ts
           --forceExit
 
       # Clones the migrated Queues tables (MessageQueue, its labels and owners,
@@ -626,6 +630,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/TurnOnResourceAiInvestigationByDefaultPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated LlmLog and AIRun tables into an isolated schema,
+      # seeds a long AI Log history and reads the plans Postgres executes for
+      # the daily AI limit sums (the project's limits and every incident and
+      # alert lane): each must read today's rows only, through the
+      # ("projectId", "createdAt") index. Then runs that index's online
+      # migration through TypeORM's runner and beside an INVALID leftover, a
+      # build in progress and a build held up past its bounds.
+      - name: Test the AI daily usage index on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LLM_LOG_USAGE_INDEX_TESTS: "true"
+          LLM_LOG_USAGE_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LLM_LOG_USAGE_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LLM_LOG_USAGE_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/LlmLogDailyUsageIndexPostgres.test.ts
           --forceExit
 
       - name: Test the configurable rule criteria migration on migrated Postgres
