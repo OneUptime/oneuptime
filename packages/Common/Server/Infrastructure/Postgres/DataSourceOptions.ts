@@ -54,12 +54,17 @@ const dataSourceOptions: DataSourceOptions = {
    * instead of the whole history's, and it no longer scales with the number of
    * migrations.
    *
-   * Safe for every existing migration: none use CREATE INDEX CONCURRENTLY (it
-   * cannot run inside a transaction block, which is just as true per-migration
-   * as it was for the single wrapping transaction), and each migration is still
-   * atomic on its own. It is also more correct for the migrations that
-   * `SET LOCAL lock_timeout`, which is transaction-scoped and under "all" would
-   * have leaked into every migration that ran after them.
+   * Safe for every existing migration: each is still atomic on its own. It is
+   * also more correct for the migrations that `SET LOCAL lock_timeout`, which
+   * is transaction-scoped and under "all" would have leaked into every
+   * migration that ran after them.
+   *
+   * "each" is also what lets one migration run outside a transaction: a
+   * migration that sets `transaction = false` runs on its own, without one.
+   * 1798300000000-AddLlmLogProjectCreatedAtIndex does, because CREATE INDEX
+   * CONCURRENTLY cannot run inside a transaction block. Under "all" TypeORM
+   * refuses such a migration (ForbiddenTransactionModeOverrideError) and the
+   * whole run fails, on every install.
    */
   migrationsTransactionMode: "each",
   entities: Entities,
