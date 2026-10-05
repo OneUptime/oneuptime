@@ -25219,5 +25219,10 @@
   "Used today: {{count}} tokens.": "Usati oggi: {{count}} token.",
   "Used today: {{count}} tokens._one": "Usato oggi: {{count}} token.",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} deve essere un numero intero da {{min}} a {{max}}. Lascia vuoto per nessun limite."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} deve essere un numero intero da {{min}} a {{max}}. Lascia vuoto per nessun limite.",
+  "Adds nothing": "Non aggiunge nulla",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Questa regola non aggiunge nulla quando corrisponde. Modificala per scegliere cosa aggiunge, oppure eliminala.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Quando questa regola corrisponde, queste etichette vengono aggiunte. Le etichette già aggiunte non vengono aggiunte due volte. Lascia vuoto il campo se la regola eredita solo le etichette.",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Quando questa regola corrisponde, queste persone e questi team vengono aggiunti come proprietari. I proprietari già assegnati non vengono aggiunti due volte. Lascia vuoto il campo se la regola eredita solo i proprietari.",
+  "Inherit Owners From Monitor": "Eredita proprietari dal monitor"
 }

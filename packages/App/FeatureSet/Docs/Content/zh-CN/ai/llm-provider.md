@@ -181,7 +181,7 @@ OneUptime 会把这个 `options` 对象合并到它发送给 Ollama 的选项中
 
 兼容 OpenAI 的服务器遵循同样的规则，使用各自的端口和 `/v1` 路径，例如 `http://vllm:8000/v1`，或 LM Studio 的 `http://192.168.1.20:1234/v1`。与原生安装的 Ollama 一样，LM Studio 在您于其服务器设置中打开 **Serve on Local Network** 之前只监听 `127.0.0.1`。
 
-**自托管部署可以使用私有地址。** 自托管的 OneUptime 可以访问私有网络地址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 和 IPv6 `fc00::/7`，除非您设置了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，这样它们会像在 OneUptime Cloud 上一样被拒绝。
+**自托管部署可以使用私有地址。** 自托管的 OneUptime 可以访问私有网络地址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 和 IPv6 `fc00::/7`，除非您设置了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，这样它们会像在 OneUptime Cloud 上一样被拒绝。该设置不适用于全局 LLM 提供商：全局 LLM 提供商由管理员（通过 `GLOBAL_LLM_PROVIDER_*` 变量或在管理仪表板中）配置，而不是由项目配置，因此仍可访问私有地址。无论哪个提供商，回环地址和链路本地地址都仍会被拒绝。
 
 **OneUptime Cloud（SaaS）无法访问私有网络。** 对于所有 LLM 提供商，它都会拒绝私有网络地址以及解析到这些地址的主机名。要使用运行在您自己基础设施上的模型，请在能访问该模型的网络中自托管 OneUptime，或将模型发布到可公开访问的端点。请用 API 密钥保护公共端点：**Ollama** 提供商不发送任何凭据，而 **OpenAI Compatible** 会把 API 密钥作为 Bearer 令牌发送（Ollama 也在 `/v1` 下提供兼容 OpenAI 的 API，因此可以放在校验密钥的反向代理之后）。
 
@@ -238,6 +238,8 @@ Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
+
+如果启用了计费，或设置了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（在 Helm values 中为 `outboundConnections.blockPrivateNetwork: true`），项目自有的提供商就无法访问这个集群内地址，因为它会解析到集群的私有 IP。请改为在管理仪表板的 **设置** > **全局 LLM 提供商** 中，用相同的字段创建该提供商：全局 LLM 提供商可以访问这个地址。
 
 有关 GPU 调度、受限模型和调优选项，请参阅 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)。
 

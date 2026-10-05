@@ -450,6 +450,14 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **A rule names only your project's records.** The monitors, labels, severities, on-call policies, roles and teams a rule picks are your project's, and the people are its members — the form's pickers offer nothing else. Rules saved through the API, Terraform or a workflow are held to the same: a rule that names a record from another project, a record that does not exist, or someone who is not a member of the project is refused, and the error names the field and the id. Editing a rule checks only what the edit adds, so a rule that names someone who has since left the project can still be saved. When a rule runs, it adds only your project's own teams as owners and pages only your project's own on-call policies.
 
+## Incident label and owner rules
+
+**Incidents → Rules → Label Rules** attaches labels to new incidents that match, and **Owner Rules** adds owner users and teams to them. **Alerts → Rules** and **Scheduled Maintenance → Rules** have the same two pages and work the same way. Creating a rule takes two steps: **Match**, the conditions an incident must meet, then **Labels** (or **Owners**), what the rule adds. Its **Name** is filled in from what you pick until you type a name of your own, and the optional **Description** (and an owner rule's **Notify Owners**) waits under **More fields**.
+
+**A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty; a new rule that neither names nor inherits anything cannot be saved. Episode rules, on the **Episode Rules** tab, have no inherit switches.
+
+**Older rules that add nothing** — saved before the form asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
+
 ## Incident grouping rules
 
 **Incidents → Rules → Grouping Rules** (`/dashboard/{projectId}/incidents/settings/grouping-rules`) puts related incidents into one episode. When a database goes down and 20 monitors open incidents within five minutes, a rule can put all 20 into one episode that your team acknowledges and resolves together. **Alerts → Rules → Grouping Rules** does the same for alerts.

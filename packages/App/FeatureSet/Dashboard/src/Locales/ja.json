@@ -25219,5 +25219,10 @@
   "Used today: {{count}} tokens.": "今日の使用量: {{count}} トークン。",
   "Used today: {{count}} tokens._one": "今日の使用量: {{count}} トークン。",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} は {{min}} から {{max}} までの整数にしてください。空欄にすると上限なしです。"
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} は {{min}} から {{max}} までの整数にしてください。空欄にすると上限なしです。",
+  "Adds nothing": "何も追加しない",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "このルールは一致しても何も追加しません。編集して追加する内容を選ぶか、削除してください。",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。ラベルを継承するだけのルールでは空のままにしてください。",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "このルールに一致すると、これらのユーザーとチームが所有者として追加されます。すでに割り当てられている所有者が重複して追加されることはありません。所有者を継承するだけのルールでは空のままにしてください。",
+  "Inherit Owners From Monitor": "モニターから所有者を継承"
 }
