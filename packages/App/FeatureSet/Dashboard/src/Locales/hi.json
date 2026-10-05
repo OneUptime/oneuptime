@@ -25219,5 +25219,10 @@
   "Used today: {{count}} tokens.": "आज इस्तेमाल: {{count}} टोकन।",
   "Used today: {{count}} tokens._one": "आज इस्तेमाल: {{count}} टोकन।",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} {{min}} से {{max}} तक की पूर्ण संख्या होनी चाहिए। कोई सीमा न रखने के लिए खाली छोड़ें।"
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}} {{min}} से {{max}} तक की पूर्ण संख्या होनी चाहिए। कोई सीमा न रखने के लिए खाली छोड़ें।",
+  "Adds nothing": "कुछ नहीं जोड़ता",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "यह नियम मेल खाने पर कुछ नहीं जोड़ता। इसे संपादित करके चुनें कि यह क्या जोड़े, या इसे हटा दें।",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "जब यह नियम मेल खाता है, तो ये लेबल जोड़े जाते हैं। पहले से जुड़े लेबल दोबारा नहीं जोड़े जाते। अगर नियम केवल लेबल इनहेरिट करता है, तो इसे खाली छोड़ दें।",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "जब यह नियम मेल खाता है, तो ये लोग और टीमें स्वामी के रूप में जोड़ी जाती हैं। पहले से असाइन किए गए स्वामी दोबारा नहीं जोड़े जाते। अगर नियम केवल स्वामी इनहेरिट करता है, तो इसे खाली छोड़ दें।",
+  "Inherit Owners From Monitor": "मॉनिटर से स्वामी इनहेरिट करें"
 }

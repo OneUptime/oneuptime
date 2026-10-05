@@ -8,7 +8,7 @@ If you have not read it yet, start with the [SLOs Overview](/docs/slo/introducti
 
 ## Label rules
 
-Creating a label rule takes two steps: **Match**, the conditions an SLO must meet (see [Match criteria](#match-criteria)), then **Labels**, where you pick the **Labels to Add**. A rule has to add at least one label. Its **Name** is filled in from the labels you pick (_Add Checkout, Production_) and follows your picks until you type a name of your own. The optional **Description** is under **More fields**. A new rule starts enabled; to pause one without deleting it, switch **Enabled** off on its edit form.
+Creating a label rule takes two steps: **Match**, the conditions an SLO must meet (see [Match criteria](#match-criteria)), then **Labels**, where you pick the **Labels to Add**. A rule has to add at least one label. Its **Name** is filled in from the labels you pick (_Add Checkout, Production_) and follows your picks until you type a name of your own. The optional **Description** is under **More fields**. A new rule starts enabled; to pause one without deleting it, switch **Enabled** off on its edit form. The edit form never insists on labels: an older rule that adds nothing can still be renamed, switched off or deleted, and the list marks it **Adds nothing**.
 
 When the rule matches an SLO, every label in **Labels to Add** is attached to it. Labels the SLO already has are not added twice, and when several rules match, the SLO gets all of their labels.
 
@@ -16,7 +16,7 @@ Label rules can be exported to a file and imported into another project — see 
 
 ## Owner rules
 
-Creating an owner rule takes the same two steps: **Match**, then **Owners**, where you pick the **Owners** to add — people and teams, picked from one list with **Add owner**. A rule has to add at least one owner. Its **Name** is filled in from them (_Add Checkout team as owners_) until you type a name of your own, and **Notify Owners** and the optional **Description** are under **More fields**. Like a label rule, it starts enabled, and its edit form has the **Enabled** switch.
+Creating an owner rule takes the same two steps: **Match**, then **Owners**, where you pick the **Owners** to add — people and teams, picked from one list with **Add owner**. A rule has to add at least one owner. Its **Name** is filled in from them (_Add Checkout team as owners_) until you type a name of your own, and **Notify Owners** and the optional **Description** are under **More fields**. Like a label rule, it starts enabled, its edit form has the **Enabled** switch and never insists on owners, and the list marks a rule that adds nothing **Adds nothing**.
 
 When the rule matches an SLO, every user and team on the rule is added as an owner. Owners the SLO already has are skipped, and when several rules match, the SLO gets all of their owners. SLO owners are who hears about the SLO — see [Error Budgets](/docs/slo/error-budget) for the notifications they get.
 

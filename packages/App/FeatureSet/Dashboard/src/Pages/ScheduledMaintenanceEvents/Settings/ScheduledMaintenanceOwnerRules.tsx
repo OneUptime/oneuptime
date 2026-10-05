@@ -1,6 +1,10 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getInheritingOwnerRuleActionFields,
+  getOwnerRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -13,9 +17,6 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
-import getOwnersFormField, {
-  OWNER_RULE_OWNERS_DESCRIPTION,
-} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const scheduledMaintenanceOwnerDocumentation: string = `
 ### How Scheduled Maintenance Owner Rules Work
@@ -116,50 +117,8 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
             },
           },
         ]}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Match Criteria", id: "match-criteria", columns: 2 },
-          { title: "Owners", id: "owners", columns: 2 },
-          /*
-           * Who to assign, then which resources to inherit owners from:
-           * two questions that were one step of eight fields.
-           */
-          { title: "Inherit Owners", id: "inherit-owners", columns: 2 },
-        ]}
+        formSteps={getOwnerRuleFormSteps<ScheduledMaintenanceOwnerRule>()}
         formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Assign DB team to database maintenance",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this rule.",
-          },
-          {
-            field: { notifyOwners: true },
-            title: "Notify Owners",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Notify owners when they are added by this rule. Disable to add silently.",
-          },
           {
             field: { monitors: true },
             title: "Monitors",
@@ -237,67 +196,9 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
             required: false,
             placeholder: "production|critical",
           },
-          getOwnersFormField({
-            stepId: "owners",
-            description: OWNER_RULE_OWNERS_DESCRIPTION,
-          }),
-          {
-            field: { inheritOwnersFromMonitors: true },
-            title: "Inherit Owners From Monitors",
-            stepId: "inherit-owners",
-            sectionTitle: "Inherit Owners",
-            sectionDescription:
-              "Optionally assign owners from related entities to the event.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's monitors as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromHosts: true },
-            title: "Inherit Owners From Hosts",
-            stepId: "inherit-owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected hosts as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromKubernetesClusters: true },
-            title: "Inherit Owners From Kubernetes Clusters",
-            stepId: "inherit-owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected Kubernetes clusters as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromDockerHosts: true },
-            title: "Inherit Owners From Docker Hosts",
-            stepId: "inherit-owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected Docker hosts as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromPodmanHosts: true },
-            title: "Inherit Owners From Podman Hosts",
-            stepId: "inherit-owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected Podman hosts as an owner of the event.",
-          },
-          {
-            field: { inheritOwnersFromServices: true },
-            title: "Inherit Owners From Services",
-            stepId: "inherit-owners",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Assign every owner of the event's affected services as an owner of the event.",
-          },
+          ...getInheritingOwnerRuleActionFields<ScheduledMaintenanceOwnerRule>(
+            "scheduledMaintenance",
+          ),
         ]}
         showRefreshButton={true}
       />

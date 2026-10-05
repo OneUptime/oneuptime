@@ -19,6 +19,12 @@ import { ModalWidth } from "../Modal/Modal";
 import ModelDelete from "../ModelDelete/ModelDelete";
 import CardModelDetail from "../ModelDetail/CardModelDetail";
 import FieldType from "../Types/FieldType";
+import {
+  doesRuleAddNothing,
+  getRuleActionColumns,
+  RuleActionColumns,
+} from "./RuleAction";
+import RuleAddsNothingPill from "./RuleAddsNothingPill";
 import { getRuleDetailFields, RuleDetailFields } from "./RuleDetailFields";
 import RunRuleNowModal from "./RunRuleNowModal";
 import React, { Fragment, ReactElement, useMemo, useState } from "react";
@@ -80,6 +86,19 @@ const RuleView: <TBaseModel extends BaseModel>(
     typeof ruleValues["name"] === "string" ? ruleValues["name"] : undefined;
   const isEnabled: boolean = ruleValues["isEnabled"] === true;
 
+  /*
+   * A label or owner rule that adds nothing says so on its own page too, as
+   * it does in its table (RuleAction): its card reads what the rule adds
+   * already, as the details it shows.
+   */
+  const ruleAction: RuleActionColumns | null = useMemo(() => {
+    return getRuleActionColumns(model);
+  }, [model]);
+
+  const addsNothing: boolean = Boolean(
+    rule && ruleAction && doesRuleAddNothing(rule, ruleAction),
+  );
+
   const runNowTooltip: string | undefined =
     updateGate.disabledReason ||
     (rule && !isEnabled
@@ -101,6 +120,7 @@ const RuleView: <TBaseModel extends BaseModel>(
             }),
           description:
             "What this rule matches, and what it does to each match.",
+          rightElement: addsNothing ? <RuleAddsNothingPill /> : undefined,
         }}
         isEditable={true}
         formSteps={props.formSteps}

@@ -47,7 +47,7 @@ _RUM → Settings → Label Rules_. A rule attaches labels to matching applicati
 | Field | Behaviour |
 | --- | --- |
 | **Conditions** | What the rule matches. **Application Labels** checks the labels an application already carries (has any of, all of or none of the ones you pick); **Application Name** and **Application Description** compare its name and description - contains, equals, starts with, ends with, or a case-insensitive regex or `*` wildcard pattern. With two or more conditions, choose **Match all** or **Match any**. |
-| **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. A rule has to add at least one. |
+| **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. A new rule has to add at least one; the edit form does not insist, and the list marks a rule that adds nothing **Adds nothing**. |
 | **Name** | Filled in from the labels you pick (_Add team:payments_) until you type a name of your own. |
 | **Description** | Optional, under **More fields**. |
 | **Enabled** | On for a new rule. Turn it off on the rule's edit form to pause the rule without deleting it. |
@@ -58,7 +58,7 @@ A rule with no conditions matches everything, which is a legitimate way to say "
 
 ## Owner rules and ownership
 
-_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list. A rule has to add at least one owner, and its **Name** is filled in from them (_Add Payments as owners_) until you type a name of your own.
+_RUM → Settings → Owner Rules_. Same conditions as label rules, but the outcome is **Owners**: the people and teams the rule adds as owners, picked from one list. A new rule has to add at least one owner (the edit form does not insist), and its **Name** is filled in from them (_Add Payments as owners_) until you type a name of your own.
 
 Owners are the people responsible for an application; they are who notifications about it reach. **Notify Owners** (under **More fields**, on by default) controls whether being added by the rule sends a notification — turn it off for a bulk backfill you do not want to page anyone about.
 

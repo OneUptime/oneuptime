@@ -25219,5 +25219,10 @@
   "Used today: {{count}} tokens.": "Использовано сегодня токенов: {{count}}.",
   "Used today: {{count}} tokens._one": "Использовано сегодня: {{count}} токен.",
   "macOS": "macOS",
-  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}}: нужно целое число от {{min}} до {{max}}. Оставьте пустым, чтобы не ограничивать."
+  "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.": "{{field}}: нужно целое число от {{min}} до {{max}}. Оставьте пустым, чтобы не ограничивать.",
+  "Adds nothing": "Ничего не добавляет",
+  "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Это правило ничего не добавляет при срабатывании. Измените его, чтобы выбрать, что оно добавляет, или удалите его.",
+  "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Когда это правило срабатывает, эти метки добавляются. Уже добавленные метки повторно не добавляются. Оставьте поле пустым, если правило только наследует метки.",
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Когда это правило срабатывает, эти люди и команды добавляются как владельцы. Уже назначенные владельцы повторно не добавляются. Оставьте поле пустым, если правило только наследует владельцев.",
+  "Inherit Owners From Monitor": "Наследовать владельцев от монитора"
 }
