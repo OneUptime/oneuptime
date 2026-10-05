@@ -831,7 +831,6 @@
   "Webhook Secret Token": "Webhook 密鑰權杖",
   "Webhook Verify Token": "Webhook 驗證權杖",
   "Webhook verify token": "Webhook 驗證權杖",
-  "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "您希望此專案的擁有者是誰？若留空——您將成為此專案的擁有者",
   "Yearly Plan": "年度方案",
   "You can find this in your Twilio console.": "您可以在 Twilio 主控台中找到此項目。",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "您的機器人的 Telegram 使用者名稱，不含開頭的 @。Telegram 使用者名稱以「bot」結尾。",

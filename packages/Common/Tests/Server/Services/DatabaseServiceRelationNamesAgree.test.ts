@@ -6,6 +6,7 @@ import RelationNames, {
 import Entities from "../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -94,6 +95,18 @@ const CASES: Array<ReferenceCase> = (Entities as Array<ModelType>).flatMap(
         };
       },
     );
+  },
+);
+
+/*
+ * Who did something to a record - its creator, who archived it - is never a
+ * write's to name: DatabaseService takes both names out of every write made
+ * in a project before this check (DatabaseServiceUserAttribution.test.ts),
+ * so the two cannot disagree. Every other reference is held to the check.
+ */
+const CASES_A_WRITE_NAMES: Array<ReferenceCase> = CASES.filter(
+  (reference: ReferenceCase): boolean => {
+    return !UserAttribution.isColumn(reference.relation.idColumn);
   },
 );
 
@@ -199,6 +212,8 @@ afterEach(() => {
 
 test("the sweep sees the references of every model", () => {
   expect(CASES.length).toBeGreaterThan(1000);
+  expect(CASES_A_WRITE_NAMES.length).toBeGreaterThan(500);
+  expect(CASES_A_WRITE_NAMES.length).toBeLessThan(CASES.length);
   expect(
     CASES.some((reference: ReferenceCase): boolean => {
       return (
@@ -213,7 +228,7 @@ describe.each(WRITES)("%s", (_name: string, write: Write) => {
   test("two names naming different records are refused, with a message naming both fields, before any hook", async () => {
     const wrong: Array<string> = [];
 
-    for (const reference of CASES) {
+    for (const reference of CASES_A_WRITE_NAMES) {
       const outcome: unknown = await write(
         reference,
         {
@@ -239,7 +254,7 @@ describe.each(WRITES)("%s", (_name: string, write: Write) => {
   test("a record under one name and a clear under the other are refused", async () => {
     const wrong: Array<string> = [];
 
-    for (const reference of CASES) {
+    for (const reference of CASES_A_WRITE_NAMES) {
       const outcome: unknown = await write(
         reference,
         {
@@ -428,7 +443,25 @@ describe("who created a record is the person making the request", () => {
     expect(reached()?.["title"]).toBe("Payments are down");
   });
 
-  test("with no person on the request, the creator the write names stays", async () => {
+  test("with no person on the request, the creator the write names is taken out under both names", async () => {
+    const { service, reached } = capturedCreate();
+
+    const outcome: unknown = await outcomeOf(
+      service.create({
+        data: payloadFor(Incident as unknown as ModelType, {
+          createdByUserId: new ObjectID(ID_A),
+          createdByUser: { _id: ID_B },
+        }),
+        props: WORKFLOW_PROPS,
+      }),
+    );
+
+    expect(outcome).toBeInstanceOf(PastTheCheck);
+    expect(reached()?.["createdByUser"]).toBeUndefined();
+    expect(reached()?.["createdByUserId"]).toBeUndefined();
+  });
+
+  test("OneUptime's own write keeps the creator it names", async () => {
     const { service, reached } = capturedCreate();
 
     await outcomeOf(
@@ -436,10 +469,11 @@ describe("who created a record is the person making the request", () => {
         data: payloadFor(Incident as unknown as ModelType, {
           createdByUser: { _id: ID_B },
         }),
-        props: WORKFLOW_PROPS,
+        props: SERVER_PROPS,
       }),
     );
 
     expect(reached()?.["createdByUser"]).toEqual({ _id: ID_B });
+    expect(String(reached()?.["createdByUserId"])).toBe(ID_B);
   });
 });

@@ -3,12 +3,26 @@ import { ColumnAccessControl } from "../../BaseDatabase/AccessControl";
 import getCanonicalModelInstance from "../CanonicalModelInstance";
 import Dictionary from "../../Dictionary";
 import { ReflectionMetadataType } from "../../Reflection";
+import UserAttribution from "../UserAttribution";
 import "reflect-metadata";
 
 const accessControlSymbol: symbol = Symbol("ColumnAccessControl");
 
+/*
+ * A column that records who did something to its record - `createdByUserId`,
+ * `archivedByUser` - is read as declared and written by no request, whatever
+ * its create and update lists say: OneUptime fills it in (see
+ * UserAttribution).
+ */
 export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
-  return Reflect.metadata(accessControlSymbol, accessControl);
+  return ((target: object, propertyKey?: string | symbol): void => {
+    Reflect.defineMetadata(
+      accessControlSymbol,
+      UserAttribution.getAccessControl(propertyKey, accessControl),
+      target,
+      propertyKey as string | symbol,
+    );
+  }) as ReflectionMetadataType;
 };
 
 type GetColumnAccessControlFunction = (

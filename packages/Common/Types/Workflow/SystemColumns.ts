@@ -4,23 +4,23 @@
  * The record editor's "Add a field" list is built from /model-schema, and that
  * endpoint gates columns on their permission lists. The record's own ID and
  * timestamps borrow the model's record-level permissions
- * (DatabaseBaseModel.getColumnAccessControlForAllColumns), and createdByUserId
- * carries a create list on almost every model, so Create One Incident offered
- * "Created At", "Updated At" and "Created by User ID" next to the incident's
- * real fields - each one a value the server stamps on its own.
+ * (DatabaseBaseModel.getColumnAccessControlForAllColumns), so Create One
+ * Incident offered "Created At" and "Updated At" next to the incident's real
+ * fields - each one a value the server stamps on its own.
  *
  * Most such columns are already marked on the model: `computed: true` covers
  * the ID, the timestamps, every slug, numbering and notification status, and
- * forceGetDefaultValueOnCreate overwrites whatever is sent. This list is the
- * backstop for the ones no flag describes, and the one place both the
- * endpoint and the editor read, so they cannot disagree.
+ * every "who did it" column - createdByUserId, archivedByUserId and the rest
+ * (UserAttribution) - while forceGetDefaultValueOnCreate overwrites whatever
+ * is sent. This list is the backstop for the ones no flag describes, and the
+ * one place both the endpoint and the editor read, so they cannot disagree.
  */
 
 /**
  * Columns every model inherits from DatabaseBaseModel, plus the "who did it"
- * columns the write path stamps from the request (DatabaseService sets
- * createdByUserId on create and archivedAt/archivedByUserId when a record is
- * archived).
+ * columns OneUptime decides itself (DatabaseService sets createdByUserId on
+ * create and archivedAt/archivedByUserId when a record is archived; a
+ * workflow never sets them - see UserAttribution).
  */
 const SYSTEM_COLUMN_IDS: Array<string> = [
   "_id",

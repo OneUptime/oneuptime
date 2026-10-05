@@ -4,6 +4,7 @@ import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import { ReflectionMetadataType } from "../Reflection";
 import TableColumnType from "./TableColumnType";
+import UserAttribution from "./UserAttribution";
 import "reflect-metadata";
 
 const tableColumn: symbol = Symbol("TableColumn");
@@ -53,8 +54,20 @@ export interface TableColumnMetadata {
   ordered?: boolean;
 }
 
+/*
+ * A column that records who did something to its record - `createdByUserId`,
+ * `archivedByUser` - is computed whatever its declaration says: OneUptime
+ * fills it in, never a write (see UserAttribution).
+ */
 export default (props: TableColumnMetadata): ReflectionMetadataType => {
-  return Reflect.metadata(tableColumn, props);
+  return ((target: object, propertyKey?: string | symbol): void => {
+    Reflect.defineMetadata(
+      tableColumn,
+      UserAttribution.getColumnMetadata(propertyKey, props),
+      target,
+      propertyKey as string | symbol,
+    );
+  }) as ReflectionMetadataType;
 };
 
 /*

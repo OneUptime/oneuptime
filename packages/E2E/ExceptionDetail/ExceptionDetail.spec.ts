@@ -313,8 +313,12 @@ test.describe("header", () => {
     ]);
     expect(updates[0]!.id).toBe(EXCEPTION_ID);
     expect(updates[0]!.data["markedAsResolvedAt"]).toBeTruthy();
-    expect(updates[0]!.data["markedAsResolvedByUserId"]).toBeTruthy();
     expect(updates[2]!.data["markedAsResolvedAt"]).toBeNull();
+    // Who resolved or archived it is the server's to record, never sent.
+    for (const update of updates) {
+      expect(update.data).not.toHaveProperty("markedAsResolvedByUserId");
+      expect(update.data).not.toHaveProperty("markedAsArchivedByUserId");
+    }
   });
 
   test("a refused update is explained inline and can be dismissed", async ({

@@ -24,7 +24,6 @@ import API from "Common/UI/Utils/API/API";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import Project from "Common/Models/DatabaseModels/Project";
-import User from "Common/Models/DatabaseModels/User";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -59,21 +58,12 @@ const Projects: FunctionComponent = (): ReactElement => {
         required: true,
         stepId: BILLING_ENABLED ? "basic" : undefined,
       },
-      {
-        field: {
-          createdByUser: true,
-        },
-        title: "Owner",
-        description:
-          "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project",
-        fieldType: FormFieldSchemaType.Dropdown,
-        stepId: BILLING_ENABLED ? "basic" : undefined,
-        dropdownModal: {
-          type: User,
-          labelField: "email",
-          valueField: "_id",
-        },
-      },
+      /*
+       * No Owner field: a project is created by the admin who makes it, as
+       * OneUptime decides every record's creator, and the creator is its
+       * first owner. Add the customer to the project's Owners team from the
+       * project's Users page afterwards.
+       */
     ];
 
     if (BILLING_ENABLED) {

@@ -32,6 +32,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import { getUniqueColumnsBy } from "../../../Types/Database/UniqueColumnBy";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -219,8 +220,9 @@ const RULE_CRITERIA_FIELDS: Array<string> = [
 
 /*
  * Every column DatabaseServerService.onBeforeCreate may set on a manual
- * (non-root) create, plus what DatabaseService itself stamps
- * (projectId, createdByUserId) and what the create form may send.
+ * (non-root) create, plus the project DatabaseService stamps and what the
+ * create form may send. Who created it is not one: OneUptime decides that
+ * (UserAttribution), and no request writes it.
  */
 const DATABASE_SERVER_USER_CREATE_COLUMNS: Array<string> = [
   "project",
@@ -236,8 +238,6 @@ const DATABASE_SERVER_USER_CREATE_COLUMNS: Array<string> = [
   "retainTelemetryDataForDays",
   "telemetryRetentionConfig",
   "isArchived",
-  "createdByUser",
-  "createdByUserId",
 ];
 
 // Columns a person may change after creation.
@@ -884,6 +884,8 @@ describe("Databases (DatabaseServer) models", () => {
         ...DATABASE_SERVER_USER_CREATE_COLUMNS,
         ...DATABASE_SERVER_AI_ACCESS_SETTING_COLUMNS,
         ...DATABASE_SERVER_ROOT_ONLY_COLUMNS,
+        // Who created it: OneUptime decides (UserAttribution).
+        ...UserAttribution.getColumns(model),
       ]);
       const unaccounted: Array<string> = ownColumns(model).filter(
         (column: string): boolean => {
@@ -1174,6 +1176,38 @@ describe("Databases (DatabaseServer) models", () => {
       },
     );
 
+    /*
+     * Who created, archived or deleted it is OneUptime's to say
+     * (UserAttribution): read as declared, written by no request, and
+     * computed, so DatabaseService's own stamps pass the column check while
+     * a value a request sends is taken out before the hooks run.
+     */
+    test("who created, archived or deleted it is written by no request", () => {
+      const columns: Array<string> = UserAttribution.getColumns(model);
+
+      expect(columns).toEqual(
+        expect.arrayContaining([
+          "createdByUser",
+          "createdByUserId",
+          "archivedByUser",
+          "archivedByUserId",
+          "deletedByUser",
+          "deletedByUserId",
+        ]),
+      );
+
+      for (const column of columns) {
+        const accessControl: ColumnAccessControl = columnAccess(model, column);
+
+        expect({
+          column,
+          create: accessControl.create || [],
+          update: accessControl.update || [],
+          computed: Boolean(model.getTableColumnMetadata(column).computed),
+        }).toEqual({ column, create: [], update: [], computed: true });
+      }
+    });
+
     test("identity columns are creatable but never updatable", () => {
       /*
        * Re-pointing a row at a different engine or endpoint by editing it
@@ -1187,7 +1221,6 @@ describe("Databases (DatabaseServer) models", () => {
         "serverAddress",
         "serverPort",
         "discoverySource",
-        "createdByUserId",
       ]) {
         expect({ column, update: columnAccess(model, column).update }).toEqual({
           column,
@@ -1275,8 +1308,12 @@ describe("Databases (DatabaseServer) models", () => {
 
       test.each(
         DATABASE_SERVER_ROOT_ONLY_COLUMNS.filter((column: string): boolean => {
-          // slug is a Slug column, which ColumnPermission always skips.
-          return column !== "slug";
+          /*
+           * slug is a Slug column, which ColumnPermission always skips. Who
+           * archived or deleted it is computed: DatabaseService takes a
+           * value a request sends out before this check (UserAttribution).
+           */
+          return column !== "slug" && !UserAttribution.isColumn(column);
         }),
       )("a non-root create carrying %s is refused", (column: string) => {
         const data: DatabaseServer = manualCreateData();
@@ -1582,8 +1619,6 @@ describe("Databases (DatabaseServer) models", () => {
         "endpoint",
         "source",
         "isPrimary",
-        "createdByUser",
-        "createdByUserId",
       ]) {
         expect({
           column,
@@ -1591,8 +1626,11 @@ describe("Databases (DatabaseServer) models", () => {
         }).toEqual({ column, create: sorted(model.getCreatePermissions()) });
       }
 
+      // Who added it is OneUptime's to say (UserAttribution).
       for (const column of [
         "lastMatchedAt",
+        "createdByUser",
+        "createdByUserId",
         "deletedByUser",
         "deletedByUserId",
       ]) {

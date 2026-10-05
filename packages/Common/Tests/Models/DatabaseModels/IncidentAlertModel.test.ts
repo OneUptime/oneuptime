@@ -25,6 +25,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import { getFeedEventTypeLabel } from "../../../UI/Components/Feed/FeedOptions";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
@@ -283,18 +284,23 @@ describe("IncidentAlert table permissions", () => {
     }).toThrow();
   });
 
-  test("nobody can set who deleted a link", () => {
-    const link: IncidentAlert = linkPayload();
-    link.deletedByUserId = ObjectID.generate();
+  /*
+   * Who linked or deleted a link is OneUptime's to say (UserAttribution):
+   * no request may write either, DatabaseService takes them out of every
+   * write it does not make itself, and the column check skips them as
+   * computed, so a client that still sends one is not refused for it.
+   */
+  test.each(["createdByUser", "createdByUserId", "deletedByUser", "deletedByUserId"])(
+    "nobody can set %s",
+    (column: string) => {
+      const model: IncidentAlert = new IncidentAlert();
 
-    expect(() => {
-      ModelPermission.checkCreatePermissions(
-        IncidentAlert,
-        link,
-        propsWith(Permission.ProjectAdmin),
-      );
-    }).toThrow("deletedByUserId");
-  });
+      expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
+      expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
+      expect(model.getTableColumnMetadata(column).computed).toBe(true);
+      expect(UserAttribution.getColumns(model)).toContain(column);
+    },
+  );
 });
 
 describe("IncidentAlert columns", () => {

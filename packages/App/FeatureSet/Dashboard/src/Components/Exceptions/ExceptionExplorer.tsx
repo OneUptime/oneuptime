@@ -26,7 +26,6 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
-import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -398,6 +397,10 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           const isResolveChange: boolean =
             action.id === "resolve" || action.id === "unresolve";
 
+          /*
+           * Who resolved or archived it is not sent: the server records the
+           * person making the change from the switch it turns.
+           */
           await ModelAPI.updateById<TelemetryException>({
             id: props.telemetryExceptionId,
             modelType: TelemetryException,
@@ -407,17 +410,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                   markedAsResolvedAt: action.nextState.isResolved
                     ? OneUptimeDate.getCurrentDate()
                     : null,
-                  markedAsResolvedByUserId: action.nextState.isResolved
-                    ? User.getUserId() || null
-                    : null,
                 }
               : {
                   isArchived: action.nextState.isArchived,
                   markedAsArchivedAt: action.nextState.isArchived
                     ? OneUptimeDate.getCurrentDate()
-                    : null,
-                  markedAsArchivedByUserId: action.nextState.isArchived
-                    ? User.getUserId() || null
                     : null,
                 },
           });
