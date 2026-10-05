@@ -103,6 +103,17 @@ Replace `{web,api}` with the namespaces AI may fix. Every namespace you list mus
 
 Then choose how fixes run under **What AI may do** on the AI agent page. If nobody has chosen AI settings for the cluster yet, granting write access starts fixes in **Ask for approval**. Otherwise the cluster keeps the mode its AI agent page shows (**Off** until someone changes it), because the server never flips a switch an operator owns: pick the mode there after the upgrade. The only project switch fixes need is **Enable AI** (Project Settings > AI > AI Features), which is on unless someone turned it off.
 
+### Which incidents a cluster's fixes act on
+
+A cluster's fixes need no Auto Remediation Rule: OneUptime AI fixes every incident and alert the cluster is linked to, in the mode its AI agent page sets. What it is not linked to, it does not touch — however clearly the cause sits in the cluster. An incident or alert is linked to a cluster when:
+
+- the telemetry it was raised from names the cluster (a metric, log or trace monitor on the cluster's data);
+- its monitor is a Kubernetes monitor of the cluster;
+- its monitor is linked to the cluster under **Monitor → Overview → Linked Resources** — the way to link a website, API or synthetic monitor to the cluster that serves what it checks;
+- someone picked the cluster under **Other Affected Resources** when declaring it (picking a linked monitor adds it there for you).
+
+Each incident and alert says on its **Remediation** card whether it was linked to a cluster and what the cluster's fixes did; see [What auto-remediation did](#what-auto-remediation-did). The same holds for an infrastructure resource and its AI agent.
+
 ### Who may change it
 
 Turning fixes on — any move from **Off** to another mode — and loosening them — switching to **Automatic** or **Bypass approval**, writing the kubectl allowlist, binding a Runner or credential, or removing that binding from a cluster that has a Kubernetes AI agent — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission, the same people who may create a fully automatic remediation rule. Binding a credential also needs the **Read Runbook Credential** permission, unless you are a Project Owner or Project Admin. **Reset agent** takes the same people as turning fixes on. Tightening it — **Off**, going back to **Ask for approval**, clearing the allowlist — is open to anyone who may edit the cluster.
@@ -179,7 +190,20 @@ If the project uses auto-remediation rules (rules under **Incidents > Rules > Au
 
 An investigation that fails, expires, or goes stale still releases remediation — the deferral delays remediation until the outcome is known; it never cancels it.
 
+While remediation waits, the incident's or alert's **Remediation** card says so, and shows what happened once the investigation settles.
+
 Auto-remediation does depend on **Enable AI** (Project Settings > AI > AI Features), the project's one AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.
+
+## What auto-remediation did
+
+Every incident and alert has a **Remediation** card that says what auto-remediation did with it — including when it did nothing. Each time the engine evaluates the incident or alert, it records one line per way it can be fixed:
+
+- **Each Kubernetes cluster it is linked to** — OneUptime AI started a fix (and whether it asks for approval or runs on its own); fixes are off on the cluster; fixes are on but blocked, with the reason and the next step the cluster's AI agent page gives; the cluster already has a fix for it; or the fix could not start.
+- **Each infrastructure resource it is linked to** — the same, and that another linked resource got the one AI fix an incident gets.
+- **The Auto Remediation Rules** — none is set up, none matched (and how many were checked), or what each matching rule did: proposed or started a runbook, had AI compose commands or pick a runbook, or could not, and why.
+- **The project** — **Enable AI** is off, so nothing runs; the incident already has the most fixes it can get; or the evaluation stopped on an error.
+
+When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with a link to each of its monitors, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the Auto Remediation Rules, the AI settings or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed.
 
 ## Cost controls
 

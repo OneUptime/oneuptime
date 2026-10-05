@@ -137,6 +137,11 @@ describe("MonitorIncident - incident roles from the criteria", () => {
     jest
       .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
       .mockResolvedValue(emptyResourceContext());
+
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
       .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] });

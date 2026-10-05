@@ -19,6 +19,10 @@ import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemed
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
+  AutoRemediationDecisionLane,
+  AutoRemediationDecisionReason,
+} from "../../Types/AutoRemediation/AutoRemediationDecision";
+import {
   APPROVED_COMMAND_STEP_ID_PREFIX,
   INLINE_COMMAND_STEP_ID_PREFIX,
   KUBECTL_ALWAYS_ASKS_SUMMARY,
@@ -62,6 +66,7 @@ import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import AutoRemediationDecisionRecorder from "../Utils/AutoRemediation/AutoRemediationDecisionRecorder";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
@@ -1118,17 +1123,44 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
+    /*
+     * Whatever the evaluation does - acts, finds nothing to do, or stops on
+     * an error - the incident's Remediation card says so afterwards.
+     */
+    const recorder: AutoRemediationDecisionRecorder =
+      new AutoRemediationDecisionRecorder({
+        projectId: incident.projectId,
+        incidentId: incident.id,
+        // Model instances or bare {_id} rows, as the create hook holds them.
+        monitorIds: (incident.monitors || [])
+          .map((monitor: Monitor): ObjectID | undefined => {
+            const id: string | undefined =
+              monitor?.id?.toString() || monitor?._id?.toString();
+            return id ? new ObjectID(id) : undefined;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
+
     try {
       await this.applyRules({
         projectId: incident.projectId,
         triggerEntityType: AutoRemediationTriggerEntity.Incident,
         incident,
+        recorder,
       });
     } catch (error) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Project,
+        reason: AutoRemediationDecisionReason.EvaluationFailed,
+      });
       logger.error(`Error applying auto-remediation rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
+    } finally {
+      await recorder.save();
     }
   }
 
@@ -1138,18 +1170,96 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
+    // As for an incident: the alert's Remediation card says what happened.
+    const recorder: AutoRemediationDecisionRecorder =
+      new AutoRemediationDecisionRecorder({
+        projectId: alert.projectId,
+        alertId: alert.id,
+        monitorIds: alert.monitorId ? [alert.monitorId] : [],
+      });
+
     try {
       await this.applyRules({
         projectId: alert.projectId,
         triggerEntityType: AutoRemediationTriggerEntity.Alert,
         alert,
+        recorder,
       });
     } catch (error) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Project,
+        reason: AutoRemediationDecisionReason.EvaluationFailed,
+      });
       logger.error(`Error applying auto-remediation rules: ${error}`, {
         projectId: alert.projectId?.toString(),
         alertId: alert.id?.toString(),
       } as LogAttributes);
+    } finally {
+      await recorder.save();
     }
+  }
+
+  /*
+   * What a new incident's create hook does with auto-remediation. Without
+   * a queued AI investigation the rules are applied now. With one, they wait
+   * for it to settle (RCA-first: RemediationHandoff applies them then, with
+   * the root cause analysis in hand), and the incident's Remediation card
+   * says it waits instead of saying nothing. Never throws.
+   */
+  @CaptureSpan()
+  public async onIncidentCreated(data: {
+    incident: Incident;
+    isInvestigationQueued: boolean;
+  }): Promise<void> {
+    if (!data.isInvestigationQueued) {
+      await this.applyRulesToIncident(data.incident);
+      return;
+    }
+
+    if (data.incident.projectId && data.incident.id) {
+      await this.recordWaitingForInvestigation({
+        projectId: data.incident.projectId,
+        incidentId: data.incident.id,
+      });
+    }
+  }
+
+  // The alert twin of onIncidentCreated.
+  @CaptureSpan()
+  public async onAlertCreated(data: {
+    alert: Alert;
+    isInvestigationQueued: boolean;
+  }): Promise<void> {
+    if (!data.isInvestigationQueued) {
+      await this.applyRulesToAlert(data.alert);
+      return;
+    }
+
+    if (data.alert.projectId && data.alert.id) {
+      await this.recordWaitingForInvestigation({
+        projectId: data.alert.projectId,
+        alertId: data.alert.id,
+      });
+    }
+  }
+
+  /*
+   * The create hook queued an AI investigation for this incident or alert,
+   * so remediation waits for it (RCA-first, see RemediationHandoff). Says so
+   * on the signal's Remediation card until the evaluation that follows the
+   * investigation replaces it. Never throws.
+   */
+  @CaptureSpan()
+  public async recordWaitingForInvestigation(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<void> {
+    await AutoRemediationDecisionRecorder.recordWaitingForInvestigation({
+      projectId: data.projectId,
+      incidentId: data.incidentId,
+      alertId: data.alertId,
+    });
   }
 
   @CaptureSpan()
@@ -1158,7 +1268,10 @@ class AutoRemediationRuleEngineServiceClass {
     triggerEntityType: AutoRemediationTriggerEntity;
     incident?: Incident | undefined;
     alert?: Alert | undefined;
+    recorder: AutoRemediationDecisionRecorder;
   }): Promise<void> {
+    const recorder: AutoRemediationDecisionRecorder = data.recorder;
+
     /*
      * Project-level kill switch: Enable AI, the project's only AI switch,
      * stops every lane below — cluster and resource rounds, AI rules and
@@ -1173,7 +1286,17 @@ class AutoRemediationRuleEngineServiceClass {
       props: { isRoot: true },
     });
 
-    if (!project || project.enableAi === false) {
+    if (!project) {
+      // The project is gone: there is no card left to explain anything on.
+      recorder.discard();
+      return;
+    }
+
+    if (project.enableAi === false) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Project,
+        reason: AutoRemediationDecisionReason.EnableAiOff,
+      });
       return;
     }
 
@@ -1208,6 +1331,10 @@ class AutoRemediationRuleEngineServiceClass {
       MAX_SUGGESTIONS_PER_SUBJECT - existingSuggestions.length;
 
     if (remainingBudget <= 0) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Project,
+        reason: AutoRemediationDecisionReason.SuggestionLimitReached,
+      });
       logger.debug(
         `AutoRemediationRuleEngine: suggestion cap reached for subject; skipping.`,
         {
@@ -1231,11 +1358,20 @@ class AutoRemediationRuleEngineServiceClass {
         linkage,
         existingSuggestions,
         budget: remainingBudget,
+        recorder,
       });
 
     remainingBudget -= clusterRoundsStarted;
 
     if (remainingBudget <= 0) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceSkippedLimit,
+      });
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.RulesSkippedLimit,
+      });
       return;
     }
 
@@ -1252,9 +1388,14 @@ class AutoRemediationRuleEngineServiceClass {
       existingSuggestions,
       budget: remainingBudget,
       clusterRoundStarted: clusterRoundsStarted > 0,
+      recorder,
     });
 
     if (remainingBudget <= 0) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.RulesSkippedLimit,
+      });
       return;
     }
 
@@ -1295,6 +1436,10 @@ class AutoRemediationRuleEngineServiceClass {
     });
 
     if (rules.length === 0) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.NoRulesConfigured,
+      });
       return;
     }
 
@@ -1313,6 +1458,11 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     if (matchedRules.length === 0) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.NoRuleMatched,
+        rulesChecked: rules.length,
+      });
       return;
     }
 
@@ -1333,11 +1483,26 @@ class AutoRemediationRuleEngineServiceClass {
     let aiAvailable: boolean | null = null;
 
     for (const rule of matchedRules) {
+      const ruleNames: { ruleId?: string | undefined; ruleName?: string } = {
+        ruleId: rule.id?.toString(),
+        ruleName: rule.name || "",
+      };
+
       if (remainingBudget <= 0) {
-        break;
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.RuleSkippedLimit,
+          ...ruleNames,
+        });
+        continue;
       }
 
       if (rule.id && ruleIdsWithExistingSuggestion.has(rule.id.toString())) {
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.RuleAlreadyProposed,
+          ...ruleNames,
+        });
         continue;
       }
 
@@ -1354,6 +1519,11 @@ class AutoRemediationRuleEngineServiceClass {
         }
 
         if (!aiAvailable) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+            ...ruleNames,
+          });
           logger.debug(
             `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — no LLM provider configured.`,
             { projectId: data.projectId.toString() } as LogAttributes,
@@ -1361,10 +1531,17 @@ class AutoRemediationRuleEngineServiceClass {
           continue;
         }
 
-        await this.startAiCommandRun({
+        const isCommandRunStarted: boolean = await this.startAiCommandRun({
           projectId: data.projectId,
           rule,
           linkage,
+        });
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: isCommandRunStarted
+            ? AutoRemediationDecisionReason.RuleAiComposingCommands
+            : AutoRemediationDecisionReason.RuleAiRunNotStarted,
+          ...ruleNames,
         });
         remainingBudget -= 1;
         continue;
@@ -1379,6 +1556,11 @@ class AutoRemediationRuleEngineServiceClass {
         }
 
         if (!aiAvailable) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+            ...ruleNames,
+          });
           logger.debug(
             `AutoRemediationRuleEngine: skipping AI rule ${rule.id?.toString()} — no LLM provider configured.`,
             { projectId: data.projectId.toString() } as LogAttributes,
@@ -1386,10 +1568,17 @@ class AutoRemediationRuleEngineServiceClass {
           continue;
         }
 
-        await this.startAiPlanning({
+        const isPlanningStarted: boolean = await this.startAiPlanning({
           projectId: data.projectId,
           rule,
           linkage,
+        });
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: isPlanningStarted
+            ? AutoRemediationDecisionReason.RuleAiPickingRunbook
+            : AutoRemediationDecisionReason.RuleAiRunNotStarted,
+          ...ruleNames,
         });
         remainingBudget -= 1;
         continue;
@@ -1399,6 +1588,11 @@ class AutoRemediationRuleEngineServiceClass {
       const runbooks: Array<Runbook> = rule.runbooks || [];
 
       if (runbooks.length === 0) {
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.RuleHasNoRunbooks,
+          ...ruleNames,
+        });
         logger.warn(
           `AutoRemediationRuleEngine: rule ${rule.id?.toString()} matched but has no runbooks attached and does not use AI selection; skipping.`,
           { projectId: data.projectId.toString() } as LogAttributes,
@@ -1413,12 +1607,18 @@ class AutoRemediationRuleEngineServiceClass {
           runbooks,
           linkage,
           budget: remainingBudget,
+          recorder,
         });
         continue;
       }
 
       for (const runbook of runbooks) {
         if (remainingBudget <= 0) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RuleSkippedLimit,
+            ...ruleNames,
+          });
           break;
         }
         if (!runbook.id) {
@@ -1431,6 +1631,13 @@ class AutoRemediationRuleEngineServiceClass {
           runbook,
           linkage,
           downgradedByCircuitBreaker: false,
+        });
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.RuleRunbookProposed,
+          ...ruleNames,
+          runbookId: runbook.id.toString(),
+          runbookName: runbook.name || "",
         });
         remainingBudget -= 1;
       }
@@ -1456,6 +1663,7 @@ class AutoRemediationRuleEngineServiceClass {
     runbooks: Array<Runbook>;
     linkage: SubjectLinkage;
     budget: number;
+    recorder?: AutoRemediationDecisionRecorder | undefined;
   }): Promise<number> {
     let mutex: SemaphoreMutex | null = null;
     try {
@@ -1495,11 +1703,29 @@ class AutoRemediationRuleEngineServiceClass {
 
       for (const runbook of data.runbooks) {
         if (consumed >= data.budget) {
+          data.recorder?.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RuleSkippedLimit,
+            ruleId: data.rule.id?.toString(),
+            ruleName: data.rule.name || "",
+          });
           break;
         }
         if (!runbook.id) {
           continue;
         }
+
+        const runbookNames: {
+          ruleId?: string | undefined;
+          ruleName: string;
+          runbookId: string;
+          runbookName: string;
+        } = {
+          ruleId: data.rule.id?.toString(),
+          ruleName: data.rule.name || "",
+          runbookId: runbook.id.toString(),
+          runbookName: runbook.name || "",
+        };
 
         if (executedInWindow >= MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR) {
           logger.warn(
@@ -1513,12 +1739,25 @@ class AutoRemediationRuleEngineServiceClass {
             linkage: data.linkage,
             downgradedByCircuitBreaker: true,
           });
+          data.recorder?.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason:
+              AutoRemediationDecisionReason.RuleRunbookProposedByCircuitBreaker,
+            ...runbookNames,
+          });
         } else {
-          await this.autoExecuteRunbook({
+          const isRunbookStarted: boolean = await this.autoExecuteRunbook({
             projectId: data.projectId,
             rule: data.rule,
             runbook,
             linkage: data.linkage,
+          });
+          data.recorder?.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: isRunbookStarted
+              ? AutoRemediationDecisionReason.RuleRunbookStarted
+              : AutoRemediationDecisionReason.RuleRunbookNotStarted,
+            ...runbookNames,
           });
           /*
            * Counted even when the start failed (no row written): within
@@ -1576,10 +1815,16 @@ class AutoRemediationRuleEngineServiceClass {
     linkage: SubjectLinkage;
     existingSuggestions: Array<AutoRemediationSuggestion>;
     budget: number;
+    recorder?: AutoRemediationDecisionRecorder | undefined;
   }): Promise<number> {
     let consumed: number = 0;
+    const recorder: AutoRemediationDecisionRecorder | undefined = data.recorder;
 
     if (hasResourceRound(data.existingSuggestions)) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: AutoRemediationDecisionReason.ClusterSkippedForResourceRound,
+      });
       return 0;
     }
 
@@ -1592,6 +1837,10 @@ class AutoRemediationRuleEngineServiceClass {
         alertId: data.linkage.alertId,
       });
     } catch (error) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: AutoRemediationDecisionReason.ClusterLookupFailed,
+      });
       logger.error(
         `AutoRemediationRuleEngine: could not resolve cluster access for the subject; skipping cluster-level remediation: ${error}`,
         { projectId: data.projectId.toString() } as LogAttributes,
@@ -1599,12 +1848,51 @@ class AutoRemediationRuleEngineServiceClass {
       return 0;
     }
 
+    if (statuses.length === 0 && recorder) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: AutoRemediationDecisionReason.ClusterNoneLinked,
+        monitors: await recorder.getSubjectMonitors(),
+      });
+    }
+
     for (const status of statuses) {
+      const clusterNames: {
+        kubernetesClusterId: string;
+        kubernetesClusterName: string;
+        remediationMode: string;
+      } = {
+        kubernetesClusterId: status.clusterId,
+        kubernetesClusterName: status.clusterName,
+        remediationMode: status.remediationMode,
+      };
+
       if (consumed >= data.budget) {
-        break;
+        recorder?.add({
+          lane: AutoRemediationDecisionLane.KubernetesCluster,
+          reason: AutoRemediationDecisionReason.ClusterSkippedLimit,
+          ...clusterNames,
+        });
+        continue;
       }
 
       if (!status.isRemediationReady) {
+        recorder?.add(
+          status.remediationMode === KubernetesAiRemediationMode.Disabled
+            ? {
+                lane: AutoRemediationDecisionLane.KubernetesCluster,
+                reason: AutoRemediationDecisionReason.ClusterFixesOff,
+                ...clusterNames,
+              }
+            : {
+                lane: AutoRemediationDecisionLane.KubernetesCluster,
+                reason: AutoRemediationDecisionReason.ClusterNotReady,
+                ...clusterNames,
+                gaps: AutoRemediationDecisionRecorder.getClusterRemediationGaps(
+                  status,
+                ),
+              },
+        );
         continue;
       }
 
@@ -1618,6 +1906,11 @@ class AutoRemediationRuleEngineServiceClass {
       );
 
       if (alreadyHasRound) {
+        recorder?.add({
+          lane: AutoRemediationDecisionLane.KubernetesCluster,
+          reason: AutoRemediationDecisionReason.ClusterAlreadyHasRound,
+          ...clusterNames,
+        });
         continue;
       }
 
@@ -1626,6 +1919,14 @@ class AutoRemediationRuleEngineServiceClass {
         cluster: status,
         linkage: data.linkage,
         round: 1,
+      });
+
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: started
+          ? AutoRemediationDecisionReason.ClusterRoundStarted
+          : AutoRemediationDecisionReason.ClusterRoundNotStarted,
+        ...clusterNames,
       });
 
       if (started) {
@@ -1954,8 +2255,23 @@ class AutoRemediationRuleEngineServiceClass {
     existingSuggestions: Array<AutoRemediationSuggestion>;
     budget: number;
     clusterRoundStarted: boolean;
+    recorder?: AutoRemediationDecisionRecorder | undefined;
   }): Promise<number> {
-    if (data.budget <= 0 || data.clusterRoundStarted) {
+    const recorder: AutoRemediationDecisionRecorder | undefined = data.recorder;
+
+    if (data.budget <= 0) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceSkippedLimit,
+      });
+      return 0;
+    }
+
+    if (data.clusterRoundStarted) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
+      });
       return 0;
     }
 
@@ -1966,6 +2282,10 @@ class AutoRemediationRuleEngineServiceClass {
     );
 
     if (hasOtherAiRound) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceSkippedForOtherRound,
+      });
       return 0;
     }
 
@@ -1978,11 +2298,29 @@ class AutoRemediationRuleEngineServiceClass {
         alertId: data.linkage.alertId,
       });
     } catch (error) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceLookupFailed,
+      });
       logger.error(
         `AutoRemediationRuleEngine: could not resolve infrastructure access for the subject; skipping resource-level remediation: ${error}`,
         { projectId: data.projectId.toString() } as LogAttributes,
       );
       return 0;
+    }
+
+    const aiStatuses: Array<ResourceAiAccessStatus> = statuses.filter(
+      (status: ResourceAiAccessStatus): boolean => {
+        return isAiResourceType(status.resourceType);
+      },
+    );
+
+    if (aiStatuses.length === 0 && recorder) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceNoneLinked,
+        monitors: await recorder.getSubjectMonitors(),
+      });
     }
 
     const eligible: ResourceAiAccessStatus | undefined = statuses
@@ -2000,9 +2338,63 @@ class AutoRemediationRuleEngineServiceClass {
         );
       })[0];
 
+    // Every linked resource that did not get the round says why.
+    for (const status of aiStatuses) {
+      if (status === eligible) {
+        continue;
+      }
+
+      const resourceNames: {
+        resourceType: string;
+        resourceId: string;
+        resourceName: string;
+        remediationMode: string;
+      } = {
+        resourceType: status.resourceType,
+        resourceId: status.resourceId,
+        resourceName: status.resourceName,
+        remediationMode: status.aiRemediationMode,
+      };
+
+      if (status.aiRemediationMode === ResourceAiRemediationMode.Disabled) {
+        recorder?.add({
+          lane: AutoRemediationDecisionLane.Resource,
+          reason: AutoRemediationDecisionReason.ResourceFixesOff,
+          ...resourceNames,
+        });
+      } else if (!status.isRemediationReady) {
+        recorder?.add({
+          lane: AutoRemediationDecisionLane.Resource,
+          reason: AutoRemediationDecisionReason.ResourceNotReady,
+          ...resourceNames,
+          gaps: AutoRemediationDecisionRecorder.getResourceRemediationGaps(
+            status,
+          ),
+        });
+      } else {
+        recorder?.add({
+          lane: AutoRemediationDecisionLane.Resource,
+          reason: AutoRemediationDecisionReason.ResourceNotChosen,
+          ...resourceNames,
+        });
+      }
+    }
+
     if (!eligible) {
       return 0;
     }
+
+    const eligibleNames: {
+      resourceType: string;
+      resourceId: string;
+      resourceName: string;
+      remediationMode: string;
+    } = {
+      resourceType: eligible.resourceType,
+      resourceId: eligible.resourceId,
+      resourceName: eligible.resourceName,
+      remediationMode: eligible.aiRemediationMode,
+    };
 
     try {
       const started: boolean = await this.startResourceCommandRun({
@@ -2012,8 +2404,21 @@ class AutoRemediationRuleEngineServiceClass {
         round: 1,
       });
 
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: started
+          ? AutoRemediationDecisionReason.ResourceRoundStarted
+          : AutoRemediationDecisionReason.ResourceRoundNotStarted,
+        ...eligibleNames,
+      });
+
       return started ? 1 : 0;
     } catch (error) {
+      recorder?.add({
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceRoundNotStarted,
+        ...eligibleNames,
+      });
       logger.error(
         `AutoRemediationRuleEngine: could not start resource-level remediation for ${eligible.resourceType} ${eligible.resourceId}: ${error}`,
         { projectId: data.projectId.toString() } as LogAttributes,
@@ -2283,11 +2688,12 @@ class AutoRemediationRuleEngineServiceClass {
    * and rationale (or NoneApplicable). AI-picked runbooks are always
    * suggest-only — never full-auto.
    */
+  // Whether the AI planning run was queued.
   private async startAiPlanning(data: {
     projectId: ObjectID;
     rule: AutoRemediationRule;
     linkage: SubjectLinkage;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const suggestion: AutoRemediationSuggestion =
       new AutoRemediationSuggestion();
     suggestion.projectId = data.projectId;
@@ -2334,7 +2740,7 @@ class AutoRemediationRuleEngineServiceClass {
         },
         props: { isRoot: true },
       });
-      return;
+      return false;
     }
 
     await AutoRemediationSuggestionService.updateOneById({
@@ -2351,6 +2757,8 @@ class AutoRemediationRuleEngineServiceClass {
       markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`,
       pingWorkspace: false,
     });
+
+    return true;
   }
 
   /*
@@ -2360,11 +2768,12 @@ class AutoRemediationRuleEngineServiceClass {
    * mode + allowlist + circuit breaker at run time; the suggestion's
    * executionMode snapshots the rule's intent for display.
    */
+  // Whether the AI command run was queued.
   private async startAiCommandRun(data: {
     projectId: ObjectID;
     rule: AutoRemediationRule;
     linkage: SubjectLinkage;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const suggestion: AutoRemediationSuggestion =
       new AutoRemediationSuggestion();
     suggestion.projectId = data.projectId;
@@ -2412,7 +2821,7 @@ class AutoRemediationRuleEngineServiceClass {
         },
         props: { isRoot: true },
       });
-      return;
+      return false;
     }
 
     await AutoRemediationSuggestionService.updateOneById({
@@ -2429,6 +2838,8 @@ class AutoRemediationRuleEngineServiceClass {
       markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`,
       pingWorkspace: false,
     });
+
+    return true;
   }
 
   // Deterministic Suggest path: propose the runbook for one-click approval.
@@ -2481,12 +2892,13 @@ class AutoRemediationRuleEngineServiceClass {
    * project ownership, isEnabled and non-empty steps, so a stale or
    * cross-project runbook reference can never execute.
    */
+  // Whether the runbook was started.
   private async autoExecuteRunbook(data: {
     projectId: ObjectID;
     rule: AutoRemediationRule;
     runbook: Runbook;
     linkage: SubjectLinkage;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const runbookLinkage: { incidentId?: ObjectID; alertId?: ObjectID } = {};
     if (data.linkage.incidentId) {
       runbookLinkage.incidentId = data.linkage.incidentId;
@@ -2513,7 +2925,7 @@ class AutoRemediationRuleEngineServiceClass {
         markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched, but runbook "${data.runbook.name}" could not be started** (it may be disabled or have no steps).`,
         pingWorkspace: false,
       });
-      return;
+      return false;
     }
 
     const suggestion: AutoRemediationSuggestion =
@@ -2558,6 +2970,8 @@ class AutoRemediationRuleEngineServiceClass {
       markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" automatically started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`,
       pingWorkspace: true,
     });
+
+    return true;
   }
 
   // Feed posting is best-effort observability — the feed services never throw.
