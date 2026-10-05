@@ -11,6 +11,8 @@ import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -2009,9 +2011,17 @@ const HostOverview: FunctionComponent<
                       {
                         key: "agentVersion",
                         title: "Agent Version",
-                        fieldType: FieldType.Text,
+                        fieldType: FieldType.Element,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.agentVersion);
+                        },
+                        getElement: (item: Host): ReactElement => {
+                          return (
+                            <AgentVersion
+                              kind={AgentKind.HostCollector}
+                              version={item.agentVersion}
+                            />
+                          );
                         },
                       },
                     ] as Array<DetailField<Host>>

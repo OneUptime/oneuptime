@@ -67,6 +67,7 @@ import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolic
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import logger from "../../../../Server/Utils/Logger";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
 import {
   RuleApplicationResult,
@@ -546,6 +547,9 @@ function mockEngine(
   const memberCheck: jest.SpyInstance = jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
     .mockResolvedValue(data.userIsProjectMember !== false);
+
+  // The rule's teams are the project's (OwnerRuleAssignment.test.ts covers others').
+  stubProjectDirectory({});
 
   return {
     ruleRead: ruleRead,

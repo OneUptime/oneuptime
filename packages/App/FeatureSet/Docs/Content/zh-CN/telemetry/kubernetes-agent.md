@@ -349,6 +349,8 @@ clusterName: prod
 
 ## 升级代理
 
+当代理比你的 OneUptime 旧时，集群的 **集群详情** 中 **代理版本** 旁会出现一个警告标志。选中它即可查看这条命令。
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

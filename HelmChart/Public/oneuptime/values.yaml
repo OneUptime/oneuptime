@@ -2210,9 +2210,10 @@ runner:
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.
 # Note: This is disabled by default. Enabling it requires NVIDIA GPU nodes
-# (device plugin or GPU Operator installed). Once running, connect OneUptime to
-# it from the dashboard: AI Agents > LLM Providers > Create LLM Provider,
-# with LLM Provider "OpenAI" and Base URL:
+# (device plugin or GPU Operator installed). Once running, it is registered as
+# a Global LLM Provider automatically (see vllm.globalProvider below). To
+# connect it by hand instead: Project Settings > AI > LLM Providers > Create
+# LLM Provider, with LLM Provider "OpenAI Compatible" and Base URL:
 #   http://<release>-vllm.<namespace>.svc.<clusterDomain>:8000/v1
 vllm:
   enabled: false
@@ -2275,8 +2276,7 @@ vllm:
   # Optional API key. When set, /v1/* requires "Authorization: Bearer <key>"
   # (injected as VLLM_API_KEY via a chart-managed secret) - use the same value
   # as the API Key in the OneUptime LLM Provider form. When unset, the server is
-  # unauthenticated (in-cluster ClusterIP only) and any placeholder value
-  # satisfies the form.
+  # unauthenticated (in-cluster ClusterIP only); leave the form's API Key blank.
   apiKey: ""
   # Alternative to apiKey: reference an existing secret containing the API key.
   existingApiKeySecret:
@@ -2296,10 +2296,10 @@ vllm:
   # the auto-registered provider on the next deploy, and manual edits to its
   # env-managed fields (name, description, type, model, base URL, API key) in the
   # Admin Dashboard are overwritten (other fields, e.g. token cost, are kept).
-  # Note: project-scoped AI Agents cannot
-  # use global providers (product rule) - they still need a project-specific
-  # LLM Provider. Intended for self-hosted installs; with billing.enabled=true
-  # global providers are subject to AI-credit balance checks.
+  # A project's own LLM Provider takes precedence; AI fix tasks fall back to
+  # this one when a project has none. Intended for self-hosted installs; with
+  # billing.enabled=true global providers are subject to AI-credit balance
+  # checks.
   globalProvider:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.

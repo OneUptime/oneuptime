@@ -348,6 +348,8 @@ clusterName: prod
 
 ## エージェントのアップグレード
 
+エージェントが OneUptime より古い場合、クラスターの **クラスターの詳細** にある **エージェントバージョン** の横に警告サインが表示されます。それを選ぶと、このコマンドが表示されます。
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

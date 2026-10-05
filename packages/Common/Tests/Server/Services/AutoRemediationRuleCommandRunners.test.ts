@@ -10,6 +10,7 @@ import Runner from "../../../Models/DatabaseModels/Runner";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * Contract under test — an auto-remediation rule's Command Runners (the
@@ -162,6 +163,8 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
   let storedRules: Array<unknown>;
 
   beforeEach(() => {
+    // The Runners these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     storedRules = [storedRule(RULE_ID, [])];
 
     // Answered from the ids actually asked for, as Postgres would.
