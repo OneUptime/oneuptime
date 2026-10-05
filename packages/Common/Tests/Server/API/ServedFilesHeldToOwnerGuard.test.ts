@@ -18,7 +18,7 @@ import ts from "typescript";
  *
  *   - Response.sendFileResponse(req, res, file): `file` is a local variable
  *     set from FileOwnership.keepProjectFile / findProjectAttachment or
- *     FileViewerAccess.keepReadableFile / keepPublicFile, or the send sits
+ *     FileViewerAccess.findReadableFile / findPublicFile, or the send sits
  *     inside an `if` that asks FileOwnership.isFileOfProject / isFileOfUser;
  *   - DashboardAPI.getFileAsBase64JSONObject(file): `file` is
  *     FileOwnership.keepProjectFile(...).

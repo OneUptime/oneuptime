@@ -35,7 +35,6 @@ jest.mock("../../../Server/Utils/Response", () => {
 jest.mock("../../../Server/Services/FileService", () => {
   return {
     findOneBy: jest.fn(),
-    findOneById: jest.fn(),
   };
 });
 
@@ -94,16 +93,63 @@ const buildFile: BuildFileFunction = (isPublic: unknown): File => {
   return file;
 };
 
+// Every read of the stored file, and whether it came back with its bytes.
+let reads: Array<{ query: Record<string, unknown>; gotBytes: boolean }> = [];
+
 type StoreFunction = (file: File | null) => void;
 
-// What both reads find: the same row, as the database holds it.
+/*
+ * The one stored row, read as the database would: a read that asks only for
+ * a public file finds it only when it is exactly public, and the bytes come
+ * back only when the read selected them.
+ */
 const store: StoreFunction = (file: File | null): void => {
-  (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue(
-    file as never,
+  (FileService.findOneBy as unknown as jest.Mock).mockImplementation(
+    (async (find: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    }) => {
+      const matches: boolean = Boolean(
+        file &&
+          (find.query["isPublic"] === undefined ||
+            (file as unknown as { isPublic: unknown }).isPublic ===
+              find.query["isPublic"]),
+      );
+
+      reads.push({
+        query: find.query,
+        gotBytes: matches && Boolean(find.select["file"]),
+      });
+
+      if (!matches || !file) {
+        return null;
+      }
+
+      const row: File = new File();
+      row._id = file._id!;
+      row.projectId = file.projectId!;
+      (row as unknown as { isPublic: unknown }).isPublic = (
+        file as unknown as { isPublic: unknown }
+      ).isPublic;
+
+      if (file.fileType) {
+        row.fileType = file.fileType;
+      }
+
+      if (find.select["file"] && file.file) {
+        row.file = file.file;
+      }
+
+      return row;
+    }) as never,
   );
-  (FileService.findOneById as unknown as jest.Mock).mockResolvedValue(
-    file as never,
-  );
+};
+
+// Whether any read came back with the file's bytes.
+const readAnyBytes: () => boolean = (): boolean => {
+  return reads.some((read: { gotBytes: boolean }): boolean => {
+    return read.gotBytes;
+  });
 };
 
 type CallRouteFunction = (
@@ -163,6 +209,7 @@ describe("FileAPI access control", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    reads = [];
     setSession(null);
     setMember(false);
     store(null);
@@ -183,7 +230,7 @@ describe("FileAPI access control", () => {
       await callRoute(TOKEN_ROUTE, { token: "abc123" });
 
       expectRefused();
-      expect(FileService.findOneById).not.toHaveBeenCalled();
+      expect(readAnyBytes()).toBe(false);
     });
 
     /*
@@ -234,27 +281,17 @@ describe("FileAPI access control", () => {
       expectRefused();
     });
 
-    it("reads who may see the file first, and its bytes only to serve it", async () => {
+    it("reads a public file whole at once, asking only for a public file", async () => {
       store(buildFile(true));
 
       await callRoute(TOKEN_ROUTE, { token: "abc123" });
 
-      const ownersRead: { query: unknown; select: Record<string, unknown> } = (
-        FileService.findOneBy as unknown as jest.Mock
-      ).mock.calls[0]![0] as {
-        query: unknown;
-        select: Record<string, unknown>;
-      };
-
-      expect(ownersRead.query).toEqual({ imageAccessToken: "abc123" });
-      expect(ownersRead.select["file"]).toBeUndefined();
-
-      const bytesRead: { id: ObjectID; select: Record<string, unknown> } = (
-        FileService.findOneById as unknown as jest.Mock
-      ).mock.calls[0]![0] as { id: ObjectID; select: Record<string, unknown> };
-
-      expect(bytesRead.id.toString()).toBe(IMAGE_ID);
-      expect(bytesRead.select["file"]).toBe(true);
+      expect(reads).toEqual([
+        {
+          query: { imageAccessToken: "abc123", isPublic: true },
+          gotBytes: true,
+        },
+      ]);
     });
   });
 
@@ -267,6 +304,16 @@ describe("FileAPI access control", () => {
       await callRoute(TOKEN_ROUTE, { token: "abc123" });
 
       expectServed();
+
+      // Who may see it first, its bytes only once they may.
+      expect(reads).toEqual([
+        {
+          query: { imageAccessToken: "abc123", isPublic: true },
+          gotBytes: false,
+        },
+        { query: { imageAccessToken: "abc123" }, gotBytes: false },
+        { query: { _id: IMAGE_ID }, gotBytes: true },
+      ]);
 
       // Asked about the file's own project, for the signed-in user.
       expect(
@@ -287,7 +334,7 @@ describe("FileAPI access control", () => {
       await callRoute(TOKEN_ROUTE, { token: "abc123" });
 
       expectRefused();
-      expect(FileService.findOneById).not.toHaveBeenCalled();
+      expect(readAnyBytes()).toBe(false);
     });
 
     it("refuses a private file when the session has no user", async () => {
@@ -320,7 +367,7 @@ describe("FileAPI access control", () => {
       await callRoute(TOKEN_ROUTE, { token: "abc123" });
 
       expectRefused();
-      expect(FileService.findOneById).not.toHaveBeenCalled();
+      expect(readAnyBytes()).toBe(false);
     });
   });
 
@@ -333,17 +380,14 @@ describe("FileAPI access control", () => {
       expectServed();
     });
 
-    it("reads only a public file", async () => {
+    it("asks only for a public file", async () => {
       store(buildFile(true));
 
       await callRoute(ID_ROUTE, { imageId: IMAGE_ID });
 
-      const read: { query: Record<string, unknown> } = (
-        FileService.findOneBy as unknown as jest.Mock
-      ).mock.calls[0]![0] as { query: Record<string, unknown> };
-
-      expect(String(read.query["_id"])).toBe(IMAGE_ID);
-      expect(read.query["isPublic"]).toBe(true);
+      expect(reads).toHaveLength(1);
+      expect(String(reads[0]!.query["_id"])).toBe(IMAGE_ID);
+      expect(reads[0]!.query["isPublic"]).toBe(true);
     });
 
     it("refuses a private file", async () => {

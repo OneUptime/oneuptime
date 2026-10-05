@@ -83,14 +83,28 @@ export default class FileViewerAccess {
   /**
    * The file the access-token image route serves to the person asking, with
    * its bytes, or undefined - and the route answers as for a file that does
-   * not exist. Who may see it is decided first, from a read of its owners
-   * alone (keepReadableFile); the bytes are read only for someone who may.
+   * not exist.
+   *
+   * A public file is read whole at once: anyone may see it, and status
+   * pages ask for public images more than for anything else. Otherwise who
+   * may see the file is decided from a read of its owners alone
+   * (keepReadableFile), and its bytes are read only for someone who may -
+   * still public, if being public is what let them see it.
    */
   public static async findReadableFile(data: {
     req: ExpressRequest;
     query: Query<File>;
   }): Promise<File | undefined> {
-    const found: File | null = await FileService.findOneBy({
+    const publicFile: File | undefined = await this.readFile({
+      ...data.query,
+      isPublic: true,
+    });
+
+    if (publicFile) {
+      return publicFile;
+    }
+
+    const owners: File | null = await FileService.findOneBy({
       query: data.query,
       select: FILE_VIEWERS_SELECT,
       props: {
@@ -101,23 +115,17 @@ export default class FileViewerAccess {
 
     const readable: File | undefined = await this.keepReadableFile({
       req: data.req,
-      file: found,
+      file: owners,
     });
 
     if (!readable || !readable._id) {
       return undefined;
     }
 
-    return (
-      (await FileService.findOneById({
-        id: new ObjectID(readable._id.toString()),
-        select: SERVED_FILE_SELECT,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      })) || undefined
-    );
+    return await this.readFile({
+      _id: readable._id.toString(),
+      ...(this.isPublic(readable) ? { isPublic: true } : {}),
+    });
   }
 
   /**
@@ -127,26 +135,24 @@ export default class FileViewerAccess {
    * served by it, however the request is signed in.
    */
   public static async findPublicFile(id: ObjectID): Promise<File | undefined> {
-    const file: File | null = await FileService.findOneBy({
-      query: {
-        _id: id,
-        isPublic: true,
-      },
-      select: SERVED_FILE_SELECT,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
+    return await this.readFile({
+      _id: id,
+      isPublic: true,
     });
-
-    return this.keepPublicFile(file);
   }
 
-  // A file the id-based image route may serve: a public one.
-  public static keepPublicFile<T extends ViewableFile>(
-    file: T | null | undefined,
-  ): T | undefined {
-    return file && this.isPublic(file) ? file : undefined;
+  // One file, whole, as the image routes serve it.
+  private static async readFile(query: Query<File>): Promise<File | undefined> {
+    return (
+      (await FileService.findOneBy({
+        query: query,
+        select: SERVED_FILE_SELECT,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      })) || undefined
+    );
   }
 
   /**
@@ -286,18 +292,16 @@ export default class FileViewerAccess {
   }
 
   /*
-   * How long a browser or a proxy may keep what an image route served: it
-   * asks again before every use, since a file stops being public when the
-   * record that showed it is unpublished. A private file was served to one
-   * person, so nothing between them and OneUptime may keep it at all.
+   * A private file was served to one person, so no cache between them and
+   * OneUptime may keep it, and their own browser asks again before reusing
+   * it. A public file's answer is cached as it always was.
    */
   public static setCacheHeaders(
     res: ExpressResponse,
     file: ViewableFile,
   ): void {
-    res.set(
-      "Cache-Control",
-      this.isPublic(file) ? "no-cache" : "private, no-cache",
-    );
+    if (!this.isPublic(file)) {
+      res.set("Cache-Control", "private, no-cache");
+    }
   }
 }

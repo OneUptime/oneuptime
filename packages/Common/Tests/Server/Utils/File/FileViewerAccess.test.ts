@@ -124,25 +124,6 @@ describe("FileViewerAccess.isPublic", () => {
   });
 });
 
-describe("FileViewerAccess.keepPublicFile: the id-based image route", () => {
-  test("keeps a public file", () => {
-    const icon: ViewableFile = file({ isPublic: true, projectId: PROJECT_ID });
-
-    expect(FileViewerAccess.keepPublicFile(icon)).toBe(icon);
-  });
-
-  test("drops a private file, or none", () => {
-    expect(
-      FileViewerAccess.keepPublicFile(file({ isPublic: false })),
-    ).toBeUndefined();
-    expect(
-      FileViewerAccess.keepPublicFile(file({ isPublic: "true" })),
-    ).toBeUndefined();
-    expect(FileViewerAccess.keepPublicFile(null)).toBeUndefined();
-    expect(FileViewerAccess.keepPublicFile(undefined)).toBeUndefined();
-  });
-});
-
 describe("FileViewerAccess.getViewer: the signed-in person an image request comes from", () => {
   test("nobody without a session", async () => {
     signedInAs(null);
@@ -411,31 +392,71 @@ describe("FileViewerAccess.keepReadableFile when who may see a file cannot be fo
   });
 });
 
-describe("FileViewerAccess's reads: who a file belongs to first, its bytes only to serve it", () => {
+describe("FileViewerAccess's reads: a public file whole at once, a private one only once it may be served", () => {
   const FILE_ID: string = "f0000000-0000-4000-8000-000000000001";
+  const TOKEN: string = "a1".repeat(32);
 
-  function stored(isPublic: boolean): File {
-    const row: File = new File();
-    row._id = FILE_ID;
-    row.file = Buffer.from("image-bytes");
-    row.fileType = MimeType.png;
-    row.projectId = PROJECT_ID;
-    row.isPublic = isPublic;
-    return row;
+  interface Read {
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    // Whether the read came back with the file's bytes.
+    gotBytes: boolean;
   }
 
-  function reads(): {
-    findOneBy: ReturnType<typeof jest.spyOn>;
-    findOneById: ReturnType<typeof jest.spyOn>;
-  } {
-    return {
-      findOneBy: jest
-        .spyOn(FileService, "findOneBy")
-        .mockResolvedValue(stored(false) as never),
-      findOneById: jest
-        .spyOn(FileService, "findOneById")
-        .mockResolvedValue(stored(false) as never),
-    };
+  /*
+   * One stored file, read as Postgres would: a query by token or id,
+   * optionally only if public, and the bytes only when selected.
+   * `flipsBeforeReads` turns isPublic over just before the reads it lists
+   * (0 is the first), as a note published or unpublished between two reads
+   * would.
+   */
+  function database(data: {
+    isPublic: boolean;
+    flipsBeforeReads?: Array<number>;
+  }): Array<Read> {
+    const reads: Array<Read> = [];
+    let isPublic: boolean = data.isPublic;
+
+    jest.spyOn(FileService, "findOneBy").mockImplementation((async (find: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    }) => {
+      if ((data.flipsBeforeReads || []).includes(reads.length)) {
+        isPublic = !isPublic;
+      }
+
+      const matches: boolean =
+        (find.query["imageAccessToken"] === undefined ||
+          find.query["imageAccessToken"] === TOKEN) &&
+        (find.query["_id"] === undefined ||
+          String(find.query["_id"]) === FILE_ID) &&
+        (find.query["isPublic"] === undefined ||
+          find.query["isPublic"] === isPublic);
+
+      reads.push({
+        query: find.query,
+        select: find.select,
+        gotBytes: matches && Boolean(find.select["file"]),
+      });
+
+      if (!matches) {
+        return null;
+      }
+
+      const row: File = new File();
+      row._id = FILE_ID;
+      row.projectId = PROJECT_ID;
+      row.isPublic = isPublic;
+      row.fileType = MimeType.png;
+
+      if (find.select["file"]) {
+        row.file = Buffer.from("image-bytes");
+      }
+
+      return row;
+    }) as never);
+
+    return reads;
   }
 
   test("deciding reads no bytes; serving reads them", () => {
@@ -452,103 +473,148 @@ describe("FileViewerAccess's reads: who a file belongs to first, its bytes only 
     });
   });
 
+  test("a public file: one read, whole, asking only for a public file", async () => {
+    signedInAs(null);
+    const reads: Array<Read> = database({ isPublic: true });
+
+    const served: File | undefined = await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+
+    expect(served?.file?.toString()).toBe("image-bytes");
+    expect(reads).toEqual([
+      {
+        query: { imageAccessToken: TOKEN, isPublic: true },
+        select: SERVED_FILE_SELECT,
+        gotBytes: true,
+      },
+    ]);
+  });
+
   test("a private file someone may not see: its owners are read, its bytes never", async () => {
     signedInAs(null);
-    const { findOneBy, findOneById } = reads();
+    const reads: Array<Read> = database({ isPublic: false });
 
     expect(
       await FileViewerAccess.findReadableFile({
         req: REQUEST,
-        query: { imageAccessToken: "a1".repeat(32) },
+        query: { imageAccessToken: TOKEN },
       }),
     ).toBeUndefined();
 
-    expect(findOneBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: { imageAccessToken: "a1".repeat(32) },
+    expect(reads).toEqual([
+      {
+        query: { imageAccessToken: TOKEN, isPublic: true },
+        select: SERVED_FILE_SELECT,
+        gotBytes: false,
+      },
+      {
+        query: { imageAccessToken: TOKEN },
         select: FILE_VIEWERS_SELECT,
-      }),
-    );
-    expect(findOneById).not.toHaveBeenCalled();
+        gotBytes: false,
+      },
+    ]);
   });
 
   test("a private file a member may see: read whole, by its id, after the decision", async () => {
     signedInAs({ userId: USER_ID });
     canOpenProject(true);
-    const { findOneById } = reads();
+    const reads: Array<Read> = database({ isPublic: false });
 
     const served: File | undefined = await FileViewerAccess.findReadableFile({
       req: REQUEST,
-      query: { imageAccessToken: "a1".repeat(32) },
+      query: { imageAccessToken: TOKEN },
     });
 
     expect(served?.file?.toString()).toBe("image-bytes");
-    expect(findOneById).toHaveBeenCalledWith(
-      expect.objectContaining({ select: SERVED_FILE_SELECT }),
-    );
     expect(
-      (findOneById.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
-    ).toBe(FILE_ID);
+      reads.map((read: Read) => {
+        return { query: read.query, gotBytes: read.gotBytes };
+      }),
+    ).toEqual([
+      { query: { imageAccessToken: TOKEN, isPublic: true }, gotBytes: false },
+      { query: { imageAccessToken: TOKEN }, gotBytes: false },
+      { query: { _id: FILE_ID }, gotBytes: true },
+    ]);
   });
 
-  test("a public file: served to anyone, read whole only after its owners", async () => {
+  test("a file that was public when decided is read whole only if it still is", async () => {
     signedInAs(null);
-    jest
-      .spyOn(FileService, "findOneBy")
-      .mockResolvedValue(stored(true) as never);
-    const findOneById: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(FileService, "findOneById")
-      .mockResolvedValue(stored(true) as never);
 
-    expect(
-      (
-        await FileViewerAccess.findReadableFile({
-          req: REQUEST,
-          query: { imageAccessToken: "a1".repeat(32) },
-        })
-      )?.file?.toString(),
-    ).toBe("image-bytes");
-    expect(findOneById).toHaveBeenCalledTimes(1);
-  });
-
-  test("no file: nothing read whole", async () => {
-    jest.spyOn(FileService, "findOneBy").mockResolvedValue(null as never);
-    const findOneById: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      FileService,
-      "findOneById",
-    );
+    // Public when its owners are read, private again by the whole read.
+    const reads: Array<Read> = database({
+      isPublic: false,
+      flipsBeforeReads: [1, 2],
+    });
 
     expect(
       await FileViewerAccess.findReadableFile({
         req: REQUEST,
-        query: { imageAccessToken: "a1".repeat(32) },
+        query: { imageAccessToken: TOKEN },
       }),
     ).toBeUndefined();
-    expect(findOneById).not.toHaveBeenCalled();
+
+    expect(reads[2]?.query).toEqual({ _id: FILE_ID, isPublic: true });
+    expect(reads[2]?.gotBytes).toBe(false);
   });
 
-  test("by id: only a public file is asked for, and only a strictly public one kept", async () => {
-    const findOneBy: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(FileService, "findOneBy")
-      .mockResolvedValue(stored(true) as never);
+  test("a file that was public when decided, and still is, is served", async () => {
+    signedInAs(null);
+
+    // Turned public between the first read and its owners read.
+    const reads: Array<Read> = database({
+      isPublic: false,
+      flipsBeforeReads: [1],
+    });
+
+    const served: File | undefined = await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+
+    expect(served?.file?.toString()).toBe("image-bytes");
+    expect(reads[2]?.query).toEqual({ _id: FILE_ID, isPublic: true });
+  });
+
+  test("no file: nothing read whole", async () => {
+    signedInAs(null);
+    jest.spyOn(FileService, "findOneBy").mockResolvedValue(null as never);
+
+    expect(
+      await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: TOKEN },
+      }),
+    ).toBeUndefined();
+  });
+
+  test("by id: only a public file is asked for", async () => {
+    const reads: Array<Read> = database({ isPublic: true });
 
     expect(
       (await FileViewerAccess.findPublicFile(new ObjectID(FILE_ID)))?.file,
     ).toBeDefined();
-    expect(findOneBy).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(reads).toEqual([
+      {
         query: { _id: new ObjectID(FILE_ID), isPublic: true },
         select: SERVED_FILE_SELECT,
-      }),
-    );
+        gotBytes: true,
+      },
+    ]);
+  });
 
-    const loose: File = stored(true);
-    (loose as unknown as { isPublic: unknown }).isPublic = "true";
-    findOneBy.mockResolvedValue(loose as never);
+  test("by id: a private file is never read whole", async () => {
+    const reads: Array<Read> = database({ isPublic: false });
 
     expect(
       await FileViewerAccess.findPublicFile(new ObjectID(FILE_ID)),
     ).toBeUndefined();
+    expect(
+      reads.map((read: Read) => {
+        return read.gotBytes;
+      }),
+    ).toEqual([false]);
   });
 });
 
@@ -566,10 +632,8 @@ describe("FileViewerAccess.setCacheHeaders", () => {
     return headers;
   }
 
-  test("a public file is asked for again before every use", () => {
-    expect(headersFor(file({ isPublic: true }))).toEqual({
-      "Cache-Control": "no-cache",
-    });
+  test("a public file's answer is cached as it always was", () => {
+    expect(headersFor(file({ isPublic: true }))).toEqual({});
   });
 
   test("a private file is kept by no cache between its viewer and OneUptime", () => {
