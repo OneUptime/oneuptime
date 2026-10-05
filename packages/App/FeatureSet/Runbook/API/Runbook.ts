@@ -2,6 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import PartialEntity from "Common/Types/Database/PartialEntity";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import {
@@ -16,6 +17,7 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import logger from "Common/Server/Utils/Logger";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
@@ -28,6 +30,11 @@ import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus"
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
+import {
+  decideRunbookStepAction,
+  RunbookStepAction,
+  RunbookStepActionDecision,
+} from "Common/Types/Runbook/RunbookStepAction";
 import RunRunbook from "../Services/RunRunbook";
 
 export default class RunbookAPI {
@@ -252,21 +259,13 @@ export default class RunbookAPI {
         CommonAPI.assertAuthenticatedProjectPrincipal(props);
       assertCanAdvanceRunbookExecutions(props, projectId);
 
-      const updated: RunbookStepExecutionState | null = await updateStepStatus({
+      await advanceStep({
+        action: RunbookStepAction.Complete,
         executionId,
         stepId,
         projectId,
-        newStatus: RunbookStepExecutionStatus.Completed,
         notes: typeof req.body?.notes === "string" ? req.body.notes : undefined,
         userId: props.userId ? props.userId.toString() : undefined,
-      });
-
-      if (!updated) {
-        throw new NotFoundException("Step or execution not found");
-      }
-
-      await RunRunbook.startExecution({
-        runbookExecutionId: new ObjectID(executionId),
       });
 
       return Response.sendJsonObjectResponse(req, res, { status: "ok" });
@@ -300,22 +299,14 @@ export default class RunbookAPI {
         CommonAPI.assertAuthenticatedProjectPrincipal(props);
       assertCanAdvanceRunbookExecutions(props, projectId);
 
-      const updated: RunbookStepExecutionState | null = await updateStepStatus({
+      await advanceStep({
+        action: RunbookStepAction.Skip,
         executionId,
         stepId,
         projectId,
-        newStatus: RunbookStepExecutionStatus.Skipped,
         notes:
           typeof req.body?.reason === "string" ? req.body.reason : undefined,
         userId: props.userId ? props.userId.toString() : undefined,
-      });
-
-      if (!updated) {
-        throw new NotFoundException("Step or execution not found");
-      }
-
-      await RunRunbook.startExecution({
-        runbookExecutionId: new ObjectID(executionId),
       });
 
       return Response.sendJsonObjectResponse(req, res, { status: "ok" });
@@ -442,14 +433,33 @@ async function assertBelongsToProject(data: {
   }
 }
 
-async function updateStepStatus(args: {
+/*
+ * Completes or skips one step of an execution, under the rules in
+ * RunbookStepAction (only the step the execution is paused on, or a later
+ * plain automated step skipped ahead of time), and resumes the execution when
+ * the step was the one it was paused on.
+ *
+ * The write is a compare-and-set on the status and version the rules were
+ * checked against. Two responders approving the same step at once must not
+ * both resume it: every resume enqueues a run of the execution loop, and two
+ * loops over one execution would run every later step twice. Only the request
+ * whose write lands moves the execution out of WaitingForManualStep, and only
+ * that request enqueues it. The version stops a skip and an approval made at
+ * the same moment from silently overwriting each other's step list.
+ *
+ * A resumed execution goes back to Scheduled — queued, not yet picked up —
+ * until a Worker takes it and marks it Running. Scheduled is what the
+ * stuck-execution sweep leaves alone, so a resume waiting behind a busy queue
+ * is not failed for making no progress.
+ */
+async function advanceStep(args: {
+  action: RunbookStepAction;
   executionId: string;
   stepId: string;
   projectId: ObjectID;
-  newStatus: RunbookStepExecutionStatus;
   notes?: string | undefined;
   userId?: string | undefined;
-}): Promise<RunbookStepExecutionState | null> {
+}): Promise<void> {
   const execution: RunbookExecution | null =
     await RunbookExecutionService.findOneById({
       id: new ObjectID(args.executionId),
@@ -458,28 +468,19 @@ async function updateStepStatus(args: {
         projectId: true,
         status: true,
         stepExecutions: true,
+        version: true,
       },
       props: { isRoot: true },
     });
 
   if (!execution) {
-    return null;
+    throw new NotFoundException("Step or execution not found");
   }
 
   CommonAPI.assertResourceBelongsToProject({
     resourceProjectId: execution.projectId,
     projectId: args.projectId,
   });
-
-  if (
-    execution.status === RunbookExecutionStatus.Completed ||
-    execution.status === RunbookExecutionStatus.Failed ||
-    execution.status === RunbookExecutionStatus.Cancelled
-  ) {
-    throw new BadDataException(
-      `Cannot update step on a ${execution.status} execution`,
-    );
-  }
 
   const stepExecutions: RunbookStepExecutionState[] =
     (execution.stepExecutions as unknown as RunbookStepExecutionState[]) || [];
@@ -491,10 +492,28 @@ async function updateStepStatus(args: {
   );
 
   if (!stepExec) {
-    return null;
+    throw new NotFoundException("Step or execution not found");
   }
 
-  stepExec.status = args.newStatus;
+  const decision: RunbookStepActionDecision = decideRunbookStepAction({
+    action: args.action,
+    executionStatus: execution.status,
+    stepExecutions,
+    stepId: args.stepId,
+  });
+
+  if (!decision.allowed) {
+    throw new BadDataException(decision.reason);
+  }
+
+  const stepExecutionsBefore: JSONArray = JSON.parse(
+    JSON.stringify(stepExecutions),
+  ) as JSONArray;
+
+  stepExec.status =
+    args.action === RunbookStepAction.Complete
+      ? RunbookStepExecutionStatus.Completed
+      : RunbookStepExecutionStatus.Skipped;
   stepExec.completedAt = new Date().toISOString();
   if (args.notes) {
     stepExec.notes = args.notes;
@@ -503,13 +522,67 @@ async function updateStepStatus(args: {
     stepExec.completedByUserId = args.userId;
   }
 
-  await RunbookExecutionService.updateOneById({
-    id: new ObjectID(args.executionId),
-    data: {
-      stepExecutions: stepExecutions as unknown as JSONArray,
-    } as unknown as JSONObject,
-    props: { isRoot: true },
-  });
+  const version: number | undefined =
+    typeof execution.version === "number" ? execution.version : undefined;
 
-  return stepExec;
+  const written: boolean =
+    await RunbookExecutionService.compareAndSetColumnsByIdWithoutHooks({
+      id: new ObjectID(args.executionId),
+      data: {
+        stepExecutions: stepExecutions as unknown as JSONArray,
+        ...(decision.resumesExecution
+          ? { status: RunbookExecutionStatus.Scheduled }
+          : {}),
+        ...(version !== undefined ? { version: version + 1 } : {}),
+      } as unknown as PartialEntity<RunbookExecution>,
+      expectedData: {
+        status: RunbookExecutionStatus.WaitingForManualStep,
+        ...(version !== undefined ? { version } : {}),
+      } as unknown as PartialEntity<RunbookExecution>,
+    });
+
+  if (!written) {
+    throw new BadDataException(
+      "This execution changed while your request was being handled, so nothing was updated. Someone may have just acted on it — refresh and try again.",
+    );
+  }
+
+  if (!decision.resumesExecution) {
+    return;
+  }
+
+  try {
+    await RunRunbook.startExecution({
+      runbookExecutionId: new ObjectID(args.executionId),
+    });
+  } catch (err) {
+    /*
+     * Nothing picks a Scheduled execution up without its queue job, and the
+     * step is no longer waiting, so it could not be approved again either.
+     * Put the pause back — unless a Worker has taken the run after all — so
+     * the request can simply be retried.
+     */
+    try {
+      await RunbookExecutionService.compareAndSetColumnsByIdWithoutHooks({
+        id: new ObjectID(args.executionId),
+        data: {
+          stepExecutions: stepExecutionsBefore,
+          status: RunbookExecutionStatus.WaitingForManualStep,
+          ...(version !== undefined ? { version: version + 2 } : {}),
+        } as unknown as PartialEntity<RunbookExecution>,
+        expectedData: {
+          status: RunbookExecutionStatus.Scheduled,
+          ...(version !== undefined ? { version: version + 1 } : {}),
+        } as unknown as PartialEntity<RunbookExecution>,
+      });
+    } catch (rollbackError) {
+      logger.error(
+        `Runbook execution ${args.executionId} could not be queued to resume, and its pause could not be restored:`,
+        { service: "runbook" },
+      );
+      logger.error(rollbackError, { service: "runbook" });
+    }
+
+    throw err;
+  }
 }

@@ -118,11 +118,12 @@ test.describe.skip("VMware Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "VMware" });
+
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E VMware Monitor " + Faker.generateName().toString());
-
-    await selectMonitorTypeCard({ page, cardValue: "VMware" });
 
     /*
      * Monitor Info is not the last step: its one way on is a plain Next

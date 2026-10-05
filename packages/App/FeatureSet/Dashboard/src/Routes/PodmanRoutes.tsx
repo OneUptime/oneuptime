@@ -16,6 +16,7 @@ import PodmanHostContainerDetail from "../Pages/Podman/View/ContainerDetail";
 import PodmanHostMetrics from "../Pages/Podman/View/Metrics";
 import PodmanHostRecommendations from "../Pages/Podman/View/Recommendations";
 import PodmanHostAiInsights from "../Pages/Podman/View/AI/Insights";
+import PodmanHostAiLogs from "../Pages/Podman/View/AI/Logs";
 import PodmanHostAiAgent from "../Pages/Podman/View/AI/Agent";
 import PodmanHostLogs from "../Pages/Podman/View/Logs";
 import PodmanHostTraces from "../Pages/Podman/View/Traces";
@@ -180,7 +181,7 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        {/* AI: Insights, Logs, and the resource AI agent */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS,
@@ -192,6 +193,19 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <PodmanHostAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.PODMAN_HOST_VIEW_AI_LOGS] as Route}
             />
           }
         />

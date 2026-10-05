@@ -409,6 +409,8 @@ describe("a Kubernetes cluster: what a visit starts with stays open", () => {
     [PageMap.KUBERNETES_CLUSTER_VIEW_HPAS, "Scaling", "HPAs"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS, "Observability", "Events"],
     [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS, "AI", "Insights"],
+    // Only AI's Logs is marked, never Telemetry's Logs as well.
+    [PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS, "AI", "Logs"],
   ])(
     "the %s page opens %s and marks %s",
     async (page: string, section: string, entry: string) => {

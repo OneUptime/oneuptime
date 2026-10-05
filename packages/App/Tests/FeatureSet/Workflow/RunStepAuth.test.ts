@@ -510,6 +510,28 @@ describe("POST /workflow/run-step/:workflowId", () => {
     });
 
     /*
+     * Deleting workflows is not editing one, and running a step needs what
+     * editing the workflow needs.
+     */
+    test("the caller may only delete workflows", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.DeleteWorkflow],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    });
+
+    /*
      * The claimed tenant comes from a caller-supplied header, so being a
      * legitimate member of SOME project cannot be enough.
      */

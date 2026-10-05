@@ -178,8 +178,8 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
 
       {/*
        * Right after the first section, as on a Kubernetes cluster: what
-       * OneUptime AI investigated and changed here, and the Host AI agent
-       * it works through (with what AI may do).
+       * OneUptime AI learned here (Insights), everything it did (Logs), and the
+       * Host AI agent it works through (with what AI may do).
        */}
       <SideMenuSection title="AI">
         <SideMenuItem
@@ -191,6 +191,16 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
         />
         <SideMenuItem
           link={{

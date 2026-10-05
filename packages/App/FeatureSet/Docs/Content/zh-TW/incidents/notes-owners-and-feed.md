@@ -122,7 +122,7 @@ OneUptime 把這兩種讀者分開。**公開備註** 會發佈到你的狀態�
 
 - **Execute Runbook** —— 對這個事件啟動一份 [runbook](/docs/runbooks/index)。
 - **執行待命策略** —— 隨時呼叫一條策略。
-- **Add Public Note** —— 在對話框裡開啟公開備註頁面的編輯框：寫好備註，然後按 **Post update**。範本、**Draft with AI**、附件、顯示會送達誰的 **Notify status page subscribers**，以及 **Preview notification** 都在。備註以現在的時間發布；要用更早的時間，按 **Posted now**。
+- **Add Public Note** —— 在對話框裡開啟公開備註頁面的編輯框：寫好備註，然後按 **Post update**。範本、**Draft with AI**、附件、顯示會送達誰的 **Notify status page subscribers**，以及 **Preview** 都在。備註以現在的時間發布；要用更早的時間，按 **Posted now**。
 - **新增私人註記** —— 在對話框裡開啟私人備註頁面的編輯框：寫好備註，然後按 **Add note**。
 
 其餘功能都在旁邊的 **⋯** 按鈕裡，與表格卡片標頭的 **更多選項** 按鈕是同一個，讓標頭顯示盡可能少的按鈕：

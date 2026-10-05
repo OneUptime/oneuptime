@@ -74,6 +74,7 @@ const DATABASE_PAGE_KEYS: ReadonlyArray<string> = [
   "DATABASE_SERVER_VIEW_ENDPOINTS",
   "DATABASE_SERVER_VIEW_RECOMMENDATIONS",
   "DATABASE_SERVER_VIEW_AI_INSIGHTS",
+  "DATABASE_SERVER_VIEW_AI_LOGS",
   "DATABASE_SERVER_VIEW_AI_AGENT",
   "DATABASE_SERVER_VIEW_SETTINGS",
   "DATABASE_SERVER_VIEW_DOCUMENTATION",
@@ -106,12 +107,14 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
 ];
 
 /*
- * The database's AI section (AI → Insights, AI → AI agent): thin pages in
- * View/AI that render the generic resource AI components, mounted two path
- * segments deep (ai/insights, ai/agent) under the view layout.
+ * The database's AI section (AI → Insights, AI → Logs, AI → AI agent): thin
+ * pages in View/AI that render the generic resource AI components, mounted
+ * two path segments deep (ai/insights, ai/logs, ai/agent) under the view
+ * layout.
  */
 const AI_PAGES: ReadonlyArray<[string, string, string]> = [
   ["Insights.tsx", "DATABASE_SERVER_VIEW_AI_INSIGHTS", "ai/insights"],
+  ["Logs.tsx", "DATABASE_SERVER_VIEW_AI_LOGS", "ai/logs"],
   ["Agent.tsx", "DATABASE_SERVER_VIEW_AI_AGENT", "ai/agent"],
 ];
 
@@ -404,7 +407,7 @@ describe("the side menus reach the whole product", () => {
     }
   });
 
-  test("the database side menu links to both AI pages in its AI section", () => {
+  test("the database side menu links to every AI page in its AI section", () => {
     const sideMenu: string = dense(
       readSource("Pages", "Database", "View", "SideMenu.tsx"),
     );

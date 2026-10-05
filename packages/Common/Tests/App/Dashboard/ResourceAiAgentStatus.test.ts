@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_ROUTE,
+  RESOURCE_AI_ACCESS_LOGS_ROUTE,
   RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE,
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   RESOURCE_AI_ACCESS_TEST_ROUTE,
@@ -46,6 +47,7 @@ import {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
@@ -169,38 +171,46 @@ describe("the descriptors", () => {
     [AiResourceType.Host]: Host,
   };
 
-  const PAGES: Record<AiResourceType, [PageMap, PageMap]> = {
+  const PAGES: Record<AiResourceType, [PageMap, PageMap, PageMap]> = {
     [AiResourceType.DockerHost]: [
       PageMap.DOCKER_HOST_VIEW_AI_AGENT,
       PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
+      PageMap.DOCKER_HOST_VIEW_AI_LOGS,
     ],
     [AiResourceType.PodmanHost]: [
       PageMap.PODMAN_HOST_VIEW_AI_AGENT,
       PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS,
+      PageMap.PODMAN_HOST_VIEW_AI_LOGS,
     ],
     [AiResourceType.DockerSwarmCluster]: [
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
+      PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.ProxmoxCluster]: [
       PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT,
       PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS,
+      PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.VMwareVCenter]: [
       PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
       PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS,
+      PageMap.VMWARE_VCENTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.CephCluster]: [
       PageMap.CEPH_CLUSTER_VIEW_AI_AGENT,
       PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS,
+      PageMap.CEPH_CLUSTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.DatabaseServer]: [
       PageMap.DATABASE_SERVER_VIEW_AI_AGENT,
       PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS,
+      PageMap.DATABASE_SERVER_VIEW_AI_LOGS,
     ],
     [AiResourceType.Host]: [
       PageMap.HOST_VIEW_AI_AGENT,
       PageMap.HOST_VIEW_AI_INSIGHTS,
+      PageMap.HOST_VIEW_AI_LOGS,
     ],
   };
 
@@ -220,6 +230,7 @@ describe("the descriptors", () => {
       expect(descriptor.modelType).toBe(MODELS[type]);
       expect(descriptor.agentPage).toBe(PAGES[type][0]);
       expect(descriptor.insightsPage).toBe(PAGES[type][1]);
+      expect(descriptor.logsPage).toBe(PAGES[type][2]);
     },
   );
 
@@ -314,16 +325,19 @@ describe("the routes and request body", () => {
     expect(RESOURCE_AI_ACCESS_INSIGHTS_ROUTE).toBe(
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
     );
+    expect(RESOURCE_AI_ACCESS_LOGS_ROUTE).toBe(RESOURCE_AI_ACCESS_LOGS_PATH);
     expect([
       RESOURCE_AI_ACCESS_STATUS_ROUTE,
       RESOURCE_AI_ACCESS_TEST_ROUTE,
       RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE,
       RESOURCE_AI_ACCESS_INSIGHTS_ROUTE,
+      RESOURCE_AI_ACCESS_LOGS_ROUTE,
     ]).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
       "/resource-ai-access/insights",
+      "/resource-ai-access/logs",
     ]);
   });
 
@@ -1366,7 +1380,7 @@ describe("the write-access instructions", () => {
   });
 });
 
-describe("the AI Insights page's pointer to the agent page", () => {
+describe("the AI Insights and AI Logs pages' pointer to the agent page", () => {
   test("only when AI cannot run commands on the resource", () => {
     expect(getResourceAiAgentPageHint(null, DOCKER)).toBeNull();
     expect(getResourceAiAgentPageHint(makeStatus(), DOCKER)).toBeNull();

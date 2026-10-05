@@ -118,11 +118,12 @@ test.describe.skip("Proxmox Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "Proxmox" });
+
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E Proxmox Monitor " + Faker.generateName().toString());
-
-    await selectMonitorTypeCard({ page, cardValue: "Proxmox" });
 
     /*
      * Monitor Info is not the last step: its one way on is a plain Next

@@ -45,7 +45,7 @@ export const AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
 export const REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
 
-// The page's heading, matching the AI Insights page's title and subtitle.
+// The page's heading, matching the AI Insights and AI Logs pages' headings.
 export const AI_AGENT_PAGE_TITLE: string = "AI agent";
 
 export const AI_AGENT_PAGE_SUBTITLE: string =

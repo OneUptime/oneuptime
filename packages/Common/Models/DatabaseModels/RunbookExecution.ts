@@ -246,6 +246,14 @@ export default class RunbookExecution extends BaseModel {
   })
   public runbookNameSnapshot?: string = undefined;
 
+  /*
+   * Server-managed, like stepExecutions below: no update grant for anyone.
+   * The execution's state machine — the Worker running it and the step
+   * complete / skip / cancel routes, all writing as root — is the only
+   * writer. A direct update through the generic API would step around the
+   * rules those routes enforce: parking a run as WaitingForManualStep so it
+   * can be "resumed" into a second loop, say.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -258,12 +266,7 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditRunbookExecution,
-      Permission.RunbookAdmin,
-    ],
+    update: [],
   })
   @TableColumn({
     required: true,
@@ -297,12 +300,17 @@ export default class RunbookExecution extends BaseModel {
       Permission.RunbookViewer,
       Permission.ReadRunbookExecution,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditRunbookExecution,
-      Permission.RunbookAdmin,
-    ],
+    /*
+     * No update grant for anyone. Each entry carries the step's status AND
+     * its definition — the script, the target Runner — and the Worker runs
+     * the step from here, not from the runbook. Writable through the generic
+     * API, it let an execution's editor pre-approve a gate the run had not
+     * reached (marking it Completed, so the run never stops there) or rewrite
+     * the script a later step will run. Steps are completed and skipped
+     * through the runbook execution routes, which allow only the step the run
+     * is paused on (see Types/Runbook/RunbookStepAction).
+     */
+    update: [],
   })
   @TableColumn({
     required: false,

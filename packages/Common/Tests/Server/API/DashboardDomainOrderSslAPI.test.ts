@@ -22,7 +22,10 @@ import {
  *     within it gets the last order's error: an order that fails leaves the
  *     domain unordered, so every click on a failing domain used to place
  *     another order against the account the whole installation shares;
- *   - nothing ordered is never reported as a success.
+ *   - nothing ordered is never reported as a success;
+ *   - ordering is a change, so it takes what editing the domain takes
+ *     (CustomDomainRoutes.getChangeRefusal; the permission matrix is
+ *     CustomDomainChangePermission.test.ts).
  */
 
 const mockCNameRecord: string = "dashboards.example.com";
@@ -96,7 +99,9 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
+import Permission from "../../../Types/Permission";
+import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
+import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -107,10 +112,10 @@ const sendErrorResponseMock: MockedFn =
 
 const ORDER_ROUTE: string = "/dashboard-domain/order-ssl/:id";
 
-const callerProps: DatabaseCommonInteractionProps = {
-  userId: ObjectID.generate(),
-  tenantId: ObjectID.generate(),
-} as DatabaseCommonInteractionProps;
+// Somebody who may read and edit the project's dashboard domains.
+const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
+  permissions: [Permission.ReadDashboardDomain, Permission.EditDashboardDomain],
+});
 
 let domainId: ObjectID;
 
@@ -138,7 +143,6 @@ function makeDomain(extra: Partial<DomainRow> = {}): DomainRow {
 }
 
 type Spies = {
-  countBy: MockedFn;
   findOneBy: MockedFn;
   orderCertIfMissing: MockedFn;
   orderCert: MockedFn;
@@ -153,15 +157,15 @@ function setUp(data: {
   claim?: { mayOrder: boolean; lastError?: string };
 }): Spies {
   return {
-    countBy: jest
-      .spyOn(DashboardDomainService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(data.canSee === false ? 0 : 1),
-      ) as unknown as MockedFn,
+    /*
+     * The one lookup the route makes: the domain, read on the query the
+     * update check narrowed to the caller's scope - nothing when the domain
+     * is outside it.
+     */
     findOneBy: jest
       .spyOn(DashboardDomainService, "findOneBy")
       .mockResolvedValue(
-        (data.domain || makeDomain()) as never,
+        (data.canSee === false ? null : data.domain || makeDomain()) as never,
       ) as unknown as MockedFn,
     orderCertIfMissing: jest
       .spyOn(DashboardDomainService, "orderCertIfMissing")
@@ -239,18 +243,35 @@ describe("dashboard order-ssl", () => {
     );
   });
 
-  test("checks access with the caller's own props, and a domain they cannot see orders nothing", async () => {
+  test("looks for the domain inside the caller's update scope, and a domain outside it orders nothing", async () => {
     const spies: Spies = setUp({ canSee: false });
 
     await callRoute();
 
-    const countArgs: { props: unknown } = spies.countBy.mock.calls[0]![0] as {
-      props: unknown;
+    // One lookup: the domain, as root, on the query the update check narrowed.
+    expect(spies.findOneBy).toHaveBeenCalledTimes(1);
+
+    const lookup: {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = spies.findOneBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
     };
 
-    expect(countArgs.props).toBe(callerProps);
+    expect(lookup.query["_id"]).toBe(domainId.toString());
+    expect(JSON.stringify(lookup.query["projectId"])).toContain(
+      callerProps.tenantId!.toString(),
+    );
+    expect(lookup.props).toEqual({ isRoot: true });
     expect(spies.claim).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
   });
 
   test("orders through orderCertIfMissing, on demand, so a click and a sweep never order one name twice", async () => {
