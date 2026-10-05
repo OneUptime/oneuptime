@@ -8,6 +8,12 @@ export type InvestigationNotStartedCode =
    * refused with "Insufficient AI balance", so no run is started.
    */
   | "insufficient_ai_balance"
+  /*
+   * The project had reached one of its own daily AI limits (Project
+   * Settings → AI Features → More settings) - the token limit, or the
+   * spend limit on billed AI - so no run is started until midnight UTC.
+   */
+  | "project_daily_limit_reached"
   | "severity_below_threshold"
   | "monitor_cooldown"
   | "daily_budget_exhausted"

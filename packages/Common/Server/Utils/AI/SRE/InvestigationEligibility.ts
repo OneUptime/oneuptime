@@ -88,6 +88,17 @@ export default class InvestigationEligibility {
           ? "Review AI credits under Project Settings → AI Credits, or turn on auto-recharge. Adding credits later does not retry this record."
           : "Add AI credits under Project Settings → AI Credits, or turn on auto-recharge. Existing records are not automatically retried.",
       },
+      project_daily_limit_reached: {
+        title: recorded
+          ? "The project's daily AI limit had been reached at creation"
+          : "The project's daily AI limit is currently reached",
+        description: recorded
+          ? `This project had reached one of its own daily AI limits when this ${kind} was created, so its automatic investigation did not start.`
+          : "This project has reached one of its own daily AI limits today, so new automatic investigations cannot start.",
+        nextStep: recorded
+          ? "Review the project's daily AI limits under Project Settings → AI Features → More settings. Usage resets at midnight UTC; skipped records are not automatically retried after the reset."
+          : "Raise or remove the limit under Project Settings → AI Features → More settings, or wait for midnight UTC, when usage resets. Existing records are not automatically retried.",
+      },
       severity_below_threshold: {
         title: recorded
           ? "Severity was below the investigation threshold at creation"

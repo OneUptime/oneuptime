@@ -43,7 +43,11 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
-import AIService, { AI_DISABLED_MESSAGE } from "../Services/AIService";
+import AIService, {
+  AI_DISABLED_MESSAGE,
+  getProjectDailyLimitMessage,
+  ProjectAiDailyLimitStatus,
+} from "../Services/AIService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
@@ -1643,6 +1647,24 @@ export default class SlackAPI {
                 return;
               }
 
+              /*
+               * The project's own daily AI limits, read before we
+               * acknowledge for the same reason: a question refused by a
+               * limit would leave "Looking into it…" unanswered.
+               */
+              const dailyLimitRefusal: string | null =
+                await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+              if (dailyLimitRefusal) {
+                await SlackUtil.sendMessageToThread({
+                  authToken: context.projectAuthToken,
+                  channelId: slackChannelId,
+                  threadTs: threadTs,
+                  text: dailyLimitRefusal,
+                });
+                return;
+              }
+
               // Immediate acknowledgement so the user sees we are working.
               try {
                 await SlackUtil.sendMessageToThread({
@@ -1794,6 +1816,24 @@ export default class SlackAPI {
               data: {
                 response_type: "ephemeral",
                 text: SlackAPI.getAiDisabledMessage(),
+              },
+              headers: {
+                ["Content-Type"]: "application/json",
+              },
+            });
+            return;
+          }
+
+          // The project's own daily AI limits: refused the same way.
+          const dailyLimitRefusal: string | null =
+            await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+          if (dailyLimitRefusal) {
+            await API.post({
+              url: URL.fromString(responseUrl),
+              data: {
+                response_type: "ephemeral",
+                text: dailyLimitRefusal,
               },
               headers: {
                 ["Content-Type"]: "application/json",
@@ -2086,5 +2126,20 @@ export default class SlackAPI {
    */
   private static getAiDisabledMessage(): string {
     return AI_DISABLED_MESSAGE;
+  }
+
+  /*
+   * The same for the project's own daily AI limits (Project Settings → AI
+   * Features → More settings): the sentence that says which limit was
+   * reached and when AI starts again, or null while there is room. Read
+   * before the acknowledgement, like the AI switch.
+   */
+  private static async getDailyLimitRefusal(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    const reached: ProjectAiDailyLimitStatus | null =
+      await AIService.getReachedProjectDailyLimit({ projectId });
+
+    return reached ? getProjectDailyLimitMessage(reached) : null;
   }
 }
