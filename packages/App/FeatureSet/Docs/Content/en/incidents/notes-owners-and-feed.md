@@ -68,6 +68,13 @@ Where they diverge is who can fetch the file:
 
 That makes attachments the same public/private decision as the note text. A customer-facing timeline image goes on a public note; a config dump goes on a private one.
 
+Images follow the same decision. An image you paste or drop into a note, or add with **Upload Image**, is stored in the incident's project and shown inside the note, and who can see it follows the note:
+
+- **In a private note** — or in a public note before it is posted — an image is shown only to the members of the project, signed in the way the project requires. Anyone else who opens its address sees nothing, as if there were no image there.
+- **In a public note** an image is shown to everyone who can see the note: on the status page, and in the emails its subscribers get.
+
+Every upload starts private, from the dashboard and from the API alike. An image becomes viewable by everyone only when a public record shows it — a public note, an announcement, a postmortem published on the status page.
+
 ## Generating a note with AI
 
 The composer has a **Draft with AI** button, on both note pages and in the feed's **Add Public Note** and **Add Private Note** dialogs. It sends the incident to your project's AI provider and drops the generated Markdown into the note, where you edit it before posting — nothing is published automatically.

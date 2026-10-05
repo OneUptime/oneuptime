@@ -89,3 +89,55 @@ describe("Public dashboard branding docs: the images are the project's own files
     }
   });
 });
+
+describe("Status page branding docs: emails show only a logo the page can show", () => {
+  it("says the page's emails leave out a logo the page cannot show", () => {
+    expect(readPage("status-pages/branding-and-domains.md")).toContain(
+      "The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.",
+    );
+  });
+});
+
+describe("Incident notes docs: who sees an image in a note", () => {
+  const page: string = readPage("incidents/notes-owners-and-feed.md");
+
+  // A section, from its heading to the next one.
+  function section(heading: string): string {
+    const start: number = page.indexOf(`## ${heading}\n`);
+
+    expect(start).toBeGreaterThan(-1);
+
+    const next: number = page.indexOf("\n## ", start + 1);
+
+    return page.slice(start, next === -1 ? undefined : next);
+  }
+
+  /*
+   * Inside the attachments' section, as the same public/private decision:
+   * a heading of its own would have to be added to every translation, whose
+   * headings mirror the English ones (IncidentLinkedAlertsDocs).
+   */
+  it("is told with the attachments, as the same decision", () => {
+    expect(section("Attachments on notes")).toContain(
+      "Images follow the same decision.",
+    );
+  });
+
+  it("says a private note's image is shown only to the project's members", () => {
+    expect(section("Attachments on notes")).toContain(
+      "an image is shown only to the members of the project, signed in the way the project requires",
+    );
+  });
+
+  it("says a public note's image is shown to everyone who can see the note", () => {
+    expect(section("Attachments on notes")).toContain(
+      "**In a public note** an image is shown to everyone who can see the note: on the status page, and in the emails its subscribers get.",
+    );
+  });
+
+  it("says every upload starts private, from the dashboard and the API alike", () => {
+    expect(section("Attachments on notes")).toContain(
+      "Every upload starts private, from the dashboard and from the API alike.",
+    );
+  });
+});

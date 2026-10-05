@@ -4,7 +4,6 @@ import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -45,6 +44,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "Common/Models/DatabaseModels/StatusPagePrivateUserSession";
 import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "Common/Types/StatusPage/MasterPassword";
+import StatusPageEmailLogo, {
+  STATUS_PAGE_EMAIL_LOGO_SELECT,
+} from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -577,7 +579,7 @@ router.post(
             _id: true,
             name: true,
             pageTitle: true,
-            logoFileId: true,
+            ...STATUS_PAGE_EMAIL_LOGO_SELECT,
             requireSsoForLogin: true,
             projectId: true,
             smtpConfig: {
@@ -656,8 +658,6 @@ router.post(
 
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-        const statusPageIdString: string | null =
-          statusPage.id?.toString() || statusPage._id?.toString() || null;
 
         MailService.sendMail(
           {
@@ -667,13 +667,11 @@ router.post(
             templateType: EmailTemplateType.StatusPageForgotPassword,
             vars: {
               statusPageName: statusPageName!,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               homeURL: statusPageURL,
               tokenVerifyUrl: URL.fromString(statusPageURL)
                 .addRoute("/reset-password/" + token)
@@ -785,7 +783,7 @@ router.post(
             _id: true,
             name: true,
             pageTitle: true,
-            logoFileId: true,
+            ...STATUS_PAGE_EMAIL_LOGO_SELECT,
             requireSsoForLogin: true,
             projectId: true,
             smtpConfig: {
@@ -840,8 +838,6 @@ router.post(
 
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-      const statusPageIdString: string | null =
-        statusPage.id?.toString() || statusPage._id?.toString() || null;
 
       MailService.sendMail(
         {
@@ -852,13 +848,11 @@ router.post(
           vars: {
             homeURL: statusPageURL,
             statusPageName: statusPageName || "",
-            logoUrl:
-              statusPage.logoFileId && statusPageIdString
-                ? new URL(httpProtocol, host)
-                    .addRoute(StatusPageApiRoute)
-                    .addRoute(`/logo/${statusPageIdString}`)
-                    .toString()
-                : "",
+            logoUrl: StatusPageEmailLogo.getLogoUrl({
+              statusPage: statusPage,
+              host: host,
+              httpProtocol: httpProtocol,
+            }),
           },
         },
         {

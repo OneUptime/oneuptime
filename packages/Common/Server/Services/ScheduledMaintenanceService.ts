@@ -54,7 +54,6 @@ import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
 import OneUptimeDate from "../../Types/Date";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import SMS from "../../Types/SMS/SMS";
@@ -103,6 +102,7 @@ import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/St
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import Select from "../Types/Database/Select";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -514,8 +514,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
           if (subscriber.subscriberEmail) {
             // send email here.
-            const statusPageIdString: string | null =
-              statuspage.id?.toString() || statuspage._id?.toString() || null;
 
             const scheduledAtHtml: string =
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -535,13 +533,11 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
               detailsUrl: scheduledEventDetailsUrl,
-              logoUrl:
-                statuspage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statuspage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               isPublicStatusPage: statuspage.isPublicStatusPage
                 ? "true"
                 : "false",

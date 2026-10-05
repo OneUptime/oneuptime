@@ -890,3 +890,134 @@ describe("Status page /reset-password - token and password must be present", () 
     expect(query["resetPasswordToken"].length).toBeGreaterThan(0);
   });
 });
+
+/*
+ * The password emails show the status page's logo by its address on the
+ * page's logo route, which serves only a logo of the page's own project. A
+ * logo the route would not serve - another project's, or one with no project
+ * - is left out of the email rather than shown broken (StatusPageEmailLogo).
+ */
+describe("Status page password emails show the logo only when the logo route serves it", () => {
+  const PROJECT_ID: string = "0a7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6";
+  const OTHER_PROJECT_ID: string = "1b7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6";
+  // The logo route's address, on whatever host this instance is served from.
+  const LOGO_URL: RegExp = new RegExp(
+    `/status-page-api/logo/${PUBLIC_STATUS_PAGE_ID}$`,
+  );
+
+  function page(logoProjectId: string | null): Record<string, unknown> {
+    return {
+      id: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      _id: PUBLIC_STATUS_PAGE_ID,
+      name: "Acme",
+      requireSsoForLogin: false,
+      projectId: new ObjectID(PROJECT_ID),
+      logoFileId: new ObjectID("2c7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6"),
+      logoFile: {
+        _id: "2c7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6",
+        ...(logoProjectId ? { projectId: new ObjectID(logoProjectId) } : {}),
+      },
+    };
+  }
+
+  function sentLogoUrl(): unknown {
+    expect(sendMail).toHaveBeenCalledTimes(1);
+
+    return (
+      (sendMail.mock.calls[0]![0] as Record<string, unknown>)["vars"] as Record<
+        string,
+        unknown
+      >
+    )["logoUrl"];
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    privateUserUpdateOneBy.mockResolvedValue(1 as never);
+    privateUserUpdateOneById.mockResolvedValue(1 as never);
+  });
+
+  it.each([
+    ["a logo of the page's own project", PROJECT_ID, LOGO_URL],
+    ["a logo of another project", OTHER_PROJECT_ID, null],
+    ["a logo with no project", null, null],
+  ])(
+    "forgot password: %s",
+    async (
+      _label: string,
+      logoProjectId: string | null,
+      expected: RegExp | null,
+    ) => {
+      statusPageFindOneById.mockResolvedValue(page(logoProjectId) as never);
+      privateUserFindOneBy.mockResolvedValue({
+        _id: "3d7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6",
+        email: "subscriber@example.com",
+      } as never);
+
+      await invoke("/forgot-password", {
+        data: {
+          statusPageId: PUBLIC_STATUS_PAGE_ID,
+          email: "subscriber@example.com",
+        },
+      });
+
+      // The page is read with the logo's project.
+      expect(
+        (statusPageFindOneById.mock.calls[0]![0] as Record<string, any>)[
+          "select"
+        ],
+      ).toMatchObject({
+        projectId: true,
+        logoFile: { _id: true, projectId: true },
+      });
+      if (expected) {
+        expect(sentLogoUrl()).toMatch(expected);
+      } else {
+        expect(sentLogoUrl()).toBe("");
+      }
+    },
+  );
+
+  it.each([
+    ["a logo of the page's own project", PROJECT_ID, LOGO_URL],
+    ["a logo of another project", OTHER_PROJECT_ID, null],
+    ["a logo with no project", null, null],
+  ])(
+    "password changed: %s",
+    async (
+      _label: string,
+      logoProjectId: string | null,
+      expected: RegExp | null,
+    ) => {
+      statusPageFindOneById.mockResolvedValue(page(logoProjectId) as never);
+      privateUserFindOneBy.mockResolvedValue({
+        _id: "3d7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6",
+        id: new ObjectID("3d7f4d2a-1b3c-4d5e-8f90-a1b2c3d4e5f6"),
+        email: "subscriber@example.com",
+        resetPasswordExpires: new Date(Date.now() + 60 * 60 * 1000),
+      } as never);
+
+      await invoke("/reset-password", {
+        data: {
+          statusPageId: PUBLIC_STATUS_PAGE_ID,
+          resetPasswordToken: "a-real-token",
+          password: { _type: "HashedString", value: "new-password" },
+        },
+      });
+
+      expect(
+        (statusPageFindOneById.mock.calls[0]![0] as Record<string, any>)[
+          "select"
+        ],
+      ).toMatchObject({
+        projectId: true,
+        logoFile: { _id: true, projectId: true },
+      });
+      if (expected) {
+        expect(sentLogoUrl()).toMatch(expected);
+      } else {
+        expect(sentLogoUrl()).toBe("");
+      }
+    },
+  );
+});

@@ -41,6 +41,7 @@ import { AddFormBranding1797700000000 } from "./1797700000000-AddFormBranding";
 import { AddMonitorLinkedResourcesAndRemediationDecision1797800000000 } from "./1797800000000-AddMonitorLinkedResourcesAndRemediationDecision";
 import { BackfillFileOwners1797900000000 } from "./1797900000000-BackfillFileOwners";
 import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "./1798000000000-TurnOnResourceAiInvestigationByDefault";
+import { StartFileUploadsPrivate1798100000000 } from "./1798100000000-StartFileUploadsPrivate";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1282,4 +1283,5 @@ export default [
   AddMonitorLinkedResourcesAndRemediationDecision1797800000000,
   BackfillFileOwners1797900000000,
   TurnOnResourceAiInvestigationByDefault1798000000000,
+  StartFileUploadsPrivate1798100000000,
 ];
