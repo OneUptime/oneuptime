@@ -24,6 +24,7 @@ import DatabaseServerFeed from "../Pages/Database/View/Feed";
 import DatabaseServerOwners from "../Pages/Database/View/Owners";
 import DatabaseServerEndpoints from "../Pages/Database/View/Endpoints";
 import DatabaseServerRecommendations from "../Pages/Database/View/Recommendations";
+import DatabaseServerAiInsights from "../Pages/Database/View/AI/Insights";
 import DatabaseServerAiLogs from "../Pages/Database/View/AI/Logs";
 import DatabaseServerAiAgent from "../Pages/Database/View/AI/Agent";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
@@ -282,14 +283,14 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        {/* AI: Insights, Logs, and the resource AI agent */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS,
             2,
           )}
           element={
-            <DatabaseServerAiLogs
+            <DatabaseServerAiInsights
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS] as Route

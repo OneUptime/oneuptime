@@ -15,6 +15,7 @@ import DockerHostContainers from "../Pages/Docker/View/Containers";
 import DockerHostContainerDetail from "../Pages/Docker/View/ContainerDetail";
 import DockerHostMetrics from "../Pages/Docker/View/Metrics";
 import DockerHostRecommendations from "../Pages/Docker/View/Recommendations";
+import DockerHostAiInsights from "../Pages/Docker/View/AI/Insights";
 import DockerHostAiLogs from "../Pages/Docker/View/AI/Logs";
 import DockerHostAiAgent from "../Pages/Docker/View/AI/Agent";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
@@ -180,14 +181,14 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        {/* AI: Insights, Logs, and the resource AI agent */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
             2,
           )}
           element={
-            <DockerHostAiLogs
+            <DockerHostAiInsights
               {...props}
               pageRoute={
                 RouteMap[PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS] as Route

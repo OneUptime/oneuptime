@@ -2527,7 +2527,7 @@ describe("Runner and credential picker permissions", () => {
 });
 
 /*
- * The kubectl command history (now on the AI Insights page) is RunnerJob
+ * The kubectl command history (now on the AI Logs page) is RunnerJob
  * rows, which roles that may open the cluster's pages may not read.
  */
 describe("command history permission", () => {

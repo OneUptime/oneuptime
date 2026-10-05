@@ -28,6 +28,7 @@ import DockerSwarmClusterVolumes from "../Pages/DockerSwarm/View/Volumes";
 import DockerSwarmClusterInsights from "../Pages/DockerSwarm/View/Insights";
 import DockerSwarmClusterMetrics from "../Pages/DockerSwarm/View/Metrics";
 import DockerSwarmClusterRecommendations from "../Pages/DockerSwarm/View/Recommendations";
+import DockerSwarmClusterAiInsights from "../Pages/DockerSwarm/View/AI/Insights";
 import DockerSwarmClusterAiLogs from "../Pages/DockerSwarm/View/AI/Logs";
 import DockerSwarmClusterAiAgent from "../Pages/DockerSwarm/View/AI/Agent";
 import DockerSwarmClusterLogs from "../Pages/DockerSwarm/View/Logs";
@@ -362,14 +363,14 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        {/* AI: Insights, Logs, and the resource AI agent */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
             2,
           )}
           element={
-            <DockerSwarmClusterAiLogs
+            <DockerSwarmClusterAiInsights
               {...props}
               pageRoute={
                 RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS] as Route

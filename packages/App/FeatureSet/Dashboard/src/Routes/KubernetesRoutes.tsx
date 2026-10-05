@@ -42,6 +42,7 @@ import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
 import KubernetesClusterViewAiAgent, {
   KubernetesClusterViewAiRedirect,
 } from "../Pages/Kubernetes/View/AI/Agent";
+import KubernetesClusterViewAiInsights from "../Pages/Kubernetes/View/AI/Insights";
 import KubernetesClusterViewAiLogs from "../Pages/Kubernetes/View/AI/Logs";
 import KubernetesClusterViewRecommendations from "../Pages/Kubernetes/View/Recommendations";
 import KubernetesClusterViewCosts from "../Pages/Kubernetes/View/Costs";
@@ -622,8 +623,10 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/*
-         * AI. ":id/ai" was the single AI page before the section had two;
-         * it now sends old links and bookmarks to the AI agent page.
+         * AI. ":id/ai" was the single AI page before the section had pages of
+         * its own; it now sends old links and bookmarks to the AI agent page.
+         * ":id/ai/insights" is the AI Insights page, as it always was by name;
+         * the list of everything AI did that it showed before is ":id/ai/logs".
          */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI)}
@@ -636,7 +639,7 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             2,
           )}
           element={
-            <KubernetesClusterViewAiLogs
+            <KubernetesClusterViewAiInsights
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS] as Route

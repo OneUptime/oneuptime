@@ -180,7 +180,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  *     rows are shared with the cluster page, ../AiAccess), and the write
  *     switch when fixes need it.
  *
- * What AI did on the resource lives on the AI Insights page (AI → Insights).
+ * What AI did on the resource lives on the AI Logs page (AI → Logs), and
+ * what it learned there on the AI Insights page (AI → Insights).
  */
 
 export interface ComponentProps extends PageComponentProps {
@@ -994,7 +995,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     });
   };
 
-  // Shown in every state, like the AI Insights page's heading.
+  // Shown in every state, like the AI Insights and AI Logs pages' headings.
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
