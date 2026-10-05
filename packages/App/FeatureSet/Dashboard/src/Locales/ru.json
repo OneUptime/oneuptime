@@ -24960,5 +24960,12 @@
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "Вы не можете добавлять людей в {{teams}} через этого провайдера: это даёт больше доступа, чем есть у вас. Выберите команды, в которые вы могли бы кого-то пригласить, или попросите владельца проекта сохранить этого провайдера.",
   "Only a project owner can add or change SCIM connections.": "Добавлять и изменять подключения SCIM может только владелец проекта.",
   "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "Через SCIM ваш поставщик удостоверений может добавлять людей в любую команду этого проекта, поэтому для добавления подключения, его изменения, а также просмотра или сброса его Bearer-токена нужен доступ, охватывающий все команды.",
-  "Switching it off, with nothing else changed, is still allowed.": "Отключить его по-прежнему можно, если больше ничего не менять."
+  "Switching it off, with nothing else changed, is still allowed.": "Отключить его по-прежнему можно, если больше ничего не менять.",
+  "Incoming Email": "Incoming Email",
+  "Plain text body of the email.": "Plain text body of the email.",
+  "Sender's email address.": "Sender's email address.",
+  "Subject of the email.": "Subject of the email.",
+  "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.": "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.",
+  "When the email was received. Empty until the first email arrives.": "When the email was received. Empty until the first email arrives.",
+  "Who the email was sent to. This monitor's own address is masked.": "Who the email was sent to. This monitor's own address is masked."
 }

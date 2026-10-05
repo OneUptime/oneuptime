@@ -26,9 +26,10 @@ import {
 /*
  * buildTemplateStorageMap defines the variable surface that incident and
  * alert title/description templates can reference for each monitor type;
- * processTemplateString renders against it. The NetworkDevice branch, the
- * series-label fold and the series-context variables have their own suites
- * (MonitorTemplateUtilNetworkDevice / MonitorTemplatePrototypePollution /
+ * processTemplateString renders against it. The NetworkDevice and
+ * IncomingEmail branches, the series-label fold and the series-context
+ * variables have their own suites (MonitorTemplateUtilNetworkDevice /
+ * MonitorTemplateUtilIncomingEmail / MonitorTemplatePrototypePollution /
  * MonitorTemplateUtilSeriesContext); this suite pins every other branch.
  */
 

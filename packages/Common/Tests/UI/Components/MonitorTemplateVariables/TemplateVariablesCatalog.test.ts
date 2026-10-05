@@ -62,7 +62,6 @@ const INFRA_TYPES: Array<MonitorType> = [
 const IDENTITY_ONLY_TYPES: Array<MonitorType> = [
   MonitorType.Manual,
   MonitorType.IoTDevice,
-  MonitorType.IncomingEmail,
   MonitorType.SQLQuery,
   MonitorType.Logs,
   MonitorType.Traces,
@@ -112,6 +111,17 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "requestBody",
       "requestHeaders",
       "incomingRequestReceivedAt",
+    ],
+  },
+  {
+    monitorType: MonitorType.IncomingEmail,
+    title: "Incoming Email",
+    keys: [
+      "emailSubject",
+      "emailFrom",
+      "emailTo",
+      "emailBody",
+      "emailReceivedAt",
     ],
   },
   {
