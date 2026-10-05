@@ -11,37 +11,26 @@ import BaseAPI from "./BaseAPI";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import File from "../../Models/DatabaseModels/File";
-import UserMiddleware from "../Middleware/UserAuthorization";
-import JSONWebToken from "../Utils/JsonWebToken";
-import logger from "../Utils/Logger";
+import FileViewerAccess from "../Utils/File/FileViewerAccess";
 
-const isAuthenticatedRequest: (req: ExpressRequest) => boolean = (
-  req: ExpressRequest,
-): boolean => {
-  const accessToken: string | undefined =
-    UserMiddleware.getAccessTokenFromExpressRequest(req);
-  if (!accessToken) {
-    return false;
-  }
-  try {
-    const decoded: { userId?: unknown } = JSONWebToken.decode(accessToken);
-    return Boolean(decoded?.userId);
-  } catch (err) {
-    logger.error(err);
-    return false;
-  }
+// What the image routes read of a file: its bytes, and who may see them.
+const SERVED_FILE_SELECT: {
+  file: true;
+  fileType: true;
+  isPublic: true;
+  name: true;
+  projectId: true;
+  createdByUserId: true;
+} = {
+  file: true,
+  fileType: true,
+  isPublic: true,
+  name: true,
+  projectId: true,
+  createdByUserId: true,
 };
 
-/*
- * isPublic is a real boolean column, but this stays deliberately strict.
- * It was created as a varchar, so every row held the STRING 'true'/'false'
- * — and 'false' is truthy, which silently disabled both gates below. Treat
- * anything that is not exactly `true` as private so a loose value can never
- * re-open them.
- */
-const isFilePublic: (file: File) => boolean = (file: File): boolean => {
-  return (file.isPublic as unknown) === true;
-};
+const FILE_NOT_FOUND_MESSAGE: string = "File not found";
 
 export default class FileAPI extends BaseAPI<File, FileServiceType> {
   public constructor() {
@@ -50,101 +39,108 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
     /*
      * Token-based image route. Used for inline images embedded in
      * markdown (post-mortems, internal notes, etc.) where we don't want
-     * the file's ObjectID to be enumerable. Anonymous requests are
-     * served only when the file is explicitly marked public; otherwise
-     * the request must carry a valid OneUptime session.
+     * the file's ObjectID to be enumerable. A public image is served to
+     * anyone; a private one only to the people who may see it - the members
+     * of the project it was uploaded in (FileViewerAccess) - and anyone else
+     * is answered as for an image that does not exist.
      *
      * Registered before the id-based route so the longer path matches
      * first.
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/image/access-token/:token`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        _next: NextFunction,
-      ) => {
-        const token: string | undefined = req.params["token"];
-        if (!token) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("File not found"),
-          );
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const token: string | undefined = req.params["token"];
+
+          if (!token) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException(FILE_NOT_FOUND_MESSAGE),
+            );
+          }
+
+          const file: File | null = await FileService.findOneBy({
+            query: {
+              imageAccessToken: token,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+            select: SERVED_FILE_SELECT,
+          });
+
+          const image: File | undefined =
+            await FileViewerAccess.keepReadableFile({
+              req: req,
+              file: file,
+            });
+
+          if (!image || !image.file || !image.fileType) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException(FILE_NOT_FOUND_MESSAGE),
+            );
+          }
+
+          FileViewerAccess.setCacheHeaders(res, image);
+
+          return Response.sendFileResponse(req, res, image);
+        } catch (err) {
+          return next(err);
         }
-
-        const file: File | null = await FileService.findOneBy({
-          query: {
-            imageAccessToken: token,
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-          select: {
-            file: true,
-            fileType: true,
-            isPublic: true,
-            name: true,
-          },
-        });
-
-        if (!file || !file.file || !file.fileType) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("File not found"),
-          );
-        }
-
-        if (!isFilePublic(file) && !isAuthenticatedRequest(req)) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("File not found"),
-          );
-        }
-
-        return Response.sendFileResponse(req, res, file);
       },
     );
 
     /*
      * Legacy id-based image route. Kept for assets that are intentionally
-     * public (probe icons, AI agent icons). Now requires isPublic=true
-     * so private inline-upload images cannot be fetched by guessing or
-     * leaking an ObjectID.
+     * public (probe icons, AI agent icons), and serves only public files:
+     * an id is no secret, so a private file - an inline image, an
+     * attachment - is never served by it, however the request is signed in.
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/image/:imageId`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        _next: NextFunction,
-      ) => {
-        const file: File | null = await FileService.findOneById({
-          id: new ObjectID(req.params["imageId"]!),
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-          select: {
-            file: true,
-            fileType: true,
-            isPublic: true,
-            name: true,
-          },
-        });
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const imageId: string = (req.params["imageId"] || "").trim();
 
-        if (!file || !file.file || !file.fileType || !isFilePublic(file)) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("File not found"),
-          );
+          // Not an id: no file has it, and the database is not asked.
+          if (!ObjectID.isValidUUID(imageId)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException(FILE_NOT_FOUND_MESSAGE),
+            );
+          }
+
+          const file: File | null = await FileService.findOneById({
+            id: new ObjectID(imageId),
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+            select: SERVED_FILE_SELECT,
+          });
+
+          const icon: File | undefined = FileViewerAccess.keepPublicFile(file);
+
+          if (!icon || !icon.file || !icon.fileType) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException(FILE_NOT_FOUND_MESSAGE),
+            );
+          }
+
+          FileViewerAccess.setCacheHeaders(res, icon);
+
+          return Response.sendFileResponse(req, res, icon);
+        } catch (err) {
+          return next(err);
         }
-
-        return Response.sendFileResponse(req, res, file);
       },
     );
   }

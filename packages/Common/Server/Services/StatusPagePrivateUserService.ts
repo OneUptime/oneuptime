@@ -9,7 +9,6 @@ import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageService from "./StatusPageService";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
@@ -22,6 +21,9 @@ import HashedString from "../../Types/HashedString";
 import BadDataException from "../../Types/Exception/BadDataException";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import StatusPageEmailLogo, {
+  STATUS_PAGE_EMAIL_LOGO_SELECT,
+} from "../Utils/StatusPage/StatusPageEmailLogo";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -159,7 +161,7 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         name: true,
         pageTitle: true,
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         projectId: true,
         requireSsoForLogin: true,
         smtpConfig: {
@@ -234,8 +236,6 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-    const statusPageIdString: string | null =
-      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     MailService.sendMail(
       {
@@ -246,13 +246,11 @@ export class Service extends DatabaseService<Model> {
         vars: {
           statusPageName: statusPageName!,
           statusPageUrl: statusPageURL,
-          logoUrl:
-            statusPage.logoFileId && statusPageIdString
-              ? new URL(httpProtocol, host)
-                  .addRoute(StatusPageApiRoute)
-                  .addRoute(`/logo/${statusPageIdString}`)
-                  .toString()
-              : "",
+          logoUrl: StatusPageEmailLogo.getLogoUrl({
+            statusPage: statusPage,
+            host: host,
+            httpProtocol: httpProtocol,
+          }),
           homeURL: statusPageURL,
           tokenVerifyUrl: URL.fromString(statusPageURL)
             .addRoute("/reset-password/" + token)

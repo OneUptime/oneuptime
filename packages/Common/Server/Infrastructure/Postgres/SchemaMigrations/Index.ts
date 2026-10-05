@@ -40,6 +40,7 @@ import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from 
 import { AddFormBranding1797700000000 } from "./1797700000000-AddFormBranding";
 import { AddMonitorLinkedResourcesAndRemediationDecision1797800000000 } from "./1797800000000-AddMonitorLinkedResourcesAndRemediationDecision";
 import { BackfillFileOwners1797900000000 } from "./1797900000000-BackfillFileOwners";
+import { StartFileUploadsPrivate1798000000000 } from "./1798000000000-StartFileUploadsPrivate";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1280,4 +1281,5 @@ export default [
   AddFormBranding1797700000000,
   AddMonitorLinkedResourcesAndRemediationDecision1797800000000,
   BackfillFileOwners1797900000000,
+  StartFileUploadsPrivate1798000000000,
 ];

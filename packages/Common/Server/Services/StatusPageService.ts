@@ -52,7 +52,6 @@ import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -116,6 +115,7 @@ import StatusPageReportScheduleUtil, {
   StatusPageReportScheduleColumns,
   StatusPageReportScheduleWrite,
 } from "../../Utils/StatusPage/ReportSchedule";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 
 export {
   StatusPageReport,
@@ -1491,9 +1491,6 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
 
-    const statusPageIdString: string | null =
-      statuspage.id?.toString() || statuspage._id?.toString() || null;
-
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
       reportPeriod: Service.getReportPeriodForStatusPage(statuspage),
@@ -1537,13 +1534,11 @@ export class Service extends DatabaseService<StatusPage> {
         detailsUrl: statusPageURL,
         hasResources: report.totalResources > 0 ? "true" : "false",
         report: report as any,
-        logoUrl:
-          statuspage.logoFileId && statusPageIdString
-            ? new URL(httpProtocol, host)
-                .addRoute(StatusPageApiRoute)
-                .addRoute(`/logo/${statusPageIdString}`)
-                .toString()
-            : "",
+        logoUrl: StatusPageEmailLogo.getLogoUrl({
+          statusPage: statuspage,
+          host: host,
+          httpProtocol: httpProtocol,
+        }),
         isPublicStatusPage: statuspage.isPublicStatusPage ? "true" : "false",
 
         unsubscribeUrl: unsubscribeUrl?.toString() || "",
