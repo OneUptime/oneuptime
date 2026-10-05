@@ -72,8 +72,8 @@ OneUptime ondersteunt momenteel de volgende LLM-providers:
 ### Stap 1: Navigeer naar de instellingen van LLM Providers
 
 1. Log in op uw OneUptime-dashboard
-2. Ga naar **AI-agenten** > **LLM-providers**
-3. Klik op **LLM Provider aanmaken** om een nieuwe provider toe te voegen
+2. Ga naar **Projectinstellingen** > **AI** > **LLM-providers**
+3. Klik op **LLM-provider aanmaken** om een nieuwe provider toe te voegen
 
 ### Stap 2: Configureer uw provider
 

@@ -20,8 +20,9 @@ import path from "path";
  * reading it: the English page's sections in the English page's order, the
  * same GLOBAL_LLM_PROVIDER_* variables and examples, the provider types the
  * startup sync accepts, the provider form's fields under the names the
- * dashboard gives them in that language, and the models OneUptime itself
- * asks for when a provider's Model Name is left blank.
+ * dashboard gives them in that language, the way to the LLM Providers page,
+ * and the models OneUptime itself asks for when a provider's Model Name is
+ * left blank.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -43,6 +44,13 @@ const STARTUP_SYNC: string =
 // The form Project Settings > AI > LLM Providers creates a provider with.
 const PROVIDER_FORM: string =
   "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx";
+
+// Where Project Settings > AI > LLM Providers comes from.
+const SETTINGS_LAYOUT: string =
+  "App/FeatureSet/Dashboard/src/Pages/Settings/Layout.tsx";
+const SETTINGS_MENU: string =
+  "App/FeatureSet/Dashboard/src/Pages/Settings/SideMenu.tsx";
+const PROVIDER_MODEL: string = "Common/Models/DatabaseModels/LlmProvider.ts";
 
 // The guides quote the dashboard in English in these languages.
 const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
@@ -611,4 +619,54 @@ describe("no LLM provider guide says AI fix tasks cannot use the global provider
       "agent fix tasks use the global provider when the project owns no provider of its own",
     );
   });
+});
+
+describe("every LLM provider guide sends readers to the page the dashboard has", () => {
+  function readSource(file: string): string {
+    return fs.readFileSync(path.join(PACKAGES_ROOT, file), "utf8");
+  }
+
+  test("LLM Providers is under AI in the Project Settings menu", () => {
+    const menu: string = readSource(SETTINGS_MENU);
+    const aiSection: number = menu.search(/title: "AI",\s*items:/);
+    const aiItems: number = menu.indexOf("items:", aiSection);
+    // The next section's items, which end the AI section's.
+    const nextItems: number = menu.indexOf("items:", aiItems + 1);
+
+    expect(aiSection).toBeGreaterThan(-1);
+    expect(
+      menu.slice(aiSection, nextItems === -1 ? undefined : nextItems),
+    ).toContain('title: "LLM Providers"');
+    expect(readSource(SETTINGS_LAYOUT)).toContain('title={"Project Settings"}');
+    expect(readSource(PROVIDER_MODEL)).toContain(
+      'singularName: "LLM Provider"',
+    );
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s gives the way there, and the create button, in the dashboard's words",
+    (language: string) => {
+      const markdown: string = readPage(language);
+      const way: string = [
+        dashboardLabel(language, "Project Settings"),
+        dashboardLabel(language, "AI"),
+        dashboardLabel(language, "LLM Providers"),
+      ]
+        .map((label: string): string => {
+          return `**${label}**`;
+        })
+        .join(" > ");
+      const createButton: string = dashboardLabel(
+        language,
+        "Create {{itemName}}",
+      ).replace("{{itemName}}", dashboardLabel(language, "LLM Provider"));
+
+      // Step 1, and where the GLOBAL_LLM_PROVIDER_* section ends.
+      expect({ way, times: markdown.split(way).length - 1 }).toEqual({
+        way,
+        times: 2,
+      });
+      expect(markdown).toContain(`**${createButton}**`);
+    },
+  );
 });

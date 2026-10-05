@@ -72,8 +72,8 @@ OneUptime supporta attualmente i seguenti provider LLM:
 ### Passo 1: Naviga alle Impostazioni dei Provider LLM
 
 1. Accedi alla dashboard di OneUptime
-2. Vai su **Agenti IA** > **Provider LLM**
-3. Clicca su **Crea Provider LLM** per aggiungere un nuovo provider
+2. Vai su **Impostazioni del progetto** > **IA** > **Provider LLM**
+3. Clicca su **Crea: Provider LLM** per aggiungere un nuovo provider
 
 ### Passo 2: Configura il tuo Provider
 

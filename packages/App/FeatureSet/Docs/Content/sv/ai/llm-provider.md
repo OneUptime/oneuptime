@@ -72,7 +72,7 @@ OneUptime stöder för närvarande följande LLM-leverantörer:
 ### Steg 1: Navigera till inställningar för LLM-leverantörer
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Gå till **AI** > **LLM-leverantörer**
+2. Gå till **Projektinställningar** > **AI** > **LLM-leverantörer**
 3. Klicka på **Skapa LLM-leverantör** för att lägga till en ny leverantör
 
 ### Steg 2: Konfigurera din leverantör

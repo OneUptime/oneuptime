@@ -73,7 +73,7 @@ OneUptime prend actuellement en charge les fournisseurs LLM suivants :
 
 1. Connectez-vous à votre tableau de bord OneUptime
 2. Accédez à **Paramètres du projet** > **IA** > **Fournisseurs LLM**
-3. Cliquez sur **Créer un fournisseur LLM** pour ajouter un nouveau fournisseur
+3. Cliquez sur **Créer : Fournisseur LLM** pour ajouter un nouveau fournisseur
 
 ### Étape 2 : Configurer votre fournisseur
 

@@ -72,8 +72,8 @@ OneUptime actualmente admite los siguientes proveedores LLM:
 ### Paso 1: Navegar a la configuración de proveedores LLM
 
 1. Inicia sesión en tu panel de OneUptime
-2. Ve a **Agentes de IA** > **Proveedores LLM**
-3. Haz clic en **Crear proveedor LLM** para agregar un nuevo proveedor
+2. Ve a **Ajustes del proyecto** > **IA** > **Proveedores de LLM**
+3. Haz clic en **Crear Proveedor de LLM** para agregar un nuevo proveedor
 
 ### Paso 2: Configurar tu proveedor
 
