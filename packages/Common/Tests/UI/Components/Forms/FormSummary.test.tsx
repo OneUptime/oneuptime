@@ -650,6 +650,25 @@ describe("FormSummary: folded sections", () => {
     collapsibleSection: ADVANCED,
   };
 
+  /*
+   * A folded custom element that keeps its value elsewhere - a switch and
+   * its minutes in two columns - says itself whether it is set
+   * (Field.getFoldedValue): its own value is a carrier, always there.
+   */
+  const REOPEN: Field<JSONObject> = {
+    overrideFieldKey: "reopenWindowSetting",
+    title: "Reopen recently resolved episodes",
+    fieldType: FormFieldSchemaType.CustomComponent,
+    stepId: "details",
+    getDefaultValue: (): boolean => {
+      return true;
+    },
+    getFoldedValue: (values: FormValues<JSONObject>): string | null => {
+      return values["enableReopenWindow"] === true ? "30 minutes" : null;
+    },
+    collapsibleSection: ADVANCED,
+  };
+
   const ON_CALL: Field<JSONObject> = {
     field: { onCallDutyPolicies: true },
     title: "On-Call Policy",
@@ -798,6 +817,18 @@ describe("FormSummary: folded sections", () => {
     ["a folded switch at its default", false, PRIVATE, { isPrivate: false }],
     ["a folded switch never touched", false, PRIVATE, {}],
     ["a folded switch turned on", true, PRIVATE, { isPrivate: true }],
+    [
+      "a folded custom setting that says it is off",
+      false,
+      REOPEN,
+      { reopenWindowSetting: true, enableReopenWindow: false },
+    ],
+    [
+      "a folded custom setting that says it is on",
+      true,
+      REOPEN,
+      { reopenWindowSetting: true, enableReopenWindow: true },
+    ],
     [
       "an open field the form hides",
       false,

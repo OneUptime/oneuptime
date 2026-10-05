@@ -219,14 +219,6 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
   field: Field<TEntity>,
   values: FormValues<TEntity>,
 ): boolean => {
-  /*
-   * Its own form value says nothing - a carrier, or nothing at all - so it
-   * says for itself, from the values it edits.
-   */
-  if (field.getFoldedValue) {
-    return field.getFoldedValue(values) !== null;
-  }
-
   const formValues: Record<string, unknown> = (values || {}) as Record<
     string,
     unknown
@@ -242,6 +234,14 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
         return !isEmptyValue(formValues[valueKey]);
       },
     );
+  }
+
+  /*
+   * Its own form value says nothing - a carrier, or nothing at all - so it
+   * says for itself, from the values it edits.
+   */
+  if (field.getFoldedValue) {
+    return field.getFoldedValue(values) !== null;
   }
 
   const fieldName: string | undefined =

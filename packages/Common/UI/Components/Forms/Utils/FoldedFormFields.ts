@@ -176,15 +176,6 @@ export const getFoldedFieldValue: GetFoldedFieldValueFunction = <TEntity>(
   field: Field<TEntity>,
   values: FormValues<TEntity>,
 ): FoldedFieldValue | undefined => {
-  // Said by the field itself, from the values it edits, in the reader's words.
-  if (field.getFoldedValue) {
-    const said: string | null = field.getFoldedValue(values);
-
-    return said && said.trim()
-      ? { value: shorten(said), translateValue: false }
-      : undefined;
-  }
-
   const formValues: Record<string, unknown> = (values || {}) as Record<
     string,
     unknown
@@ -222,6 +213,15 @@ export const getFoldedFieldValue: GetFoldedFieldValueFunction = <TEntity>(
     field.fieldType === FormFieldSchemaType.EncryptedText
   ) {
     return undefined;
+  }
+
+  // Said by the field itself, from the values it edits, in the reader's words.
+  if (field.getFoldedValue) {
+    const said: string | null = field.getFoldedValue(values);
+
+    return said && said.trim()
+      ? { value: shorten(said), translateValue: false }
+      : undefined;
   }
 
   if (

@@ -522,14 +522,15 @@ describe("the project's forms", () => {
   /*
    * Their On-Call & Ownership step asked "Default Assign To Team" and
    * "Default Assign To User", which filled an assignee no page shows. It asks
-   * for the episodes' owners instead, with one picker, and reads the old
-   * pair only to say a rule still has it.
+   * for the episodes' owners instead, with one picker - folded under More
+   * fields on the Grouping step now, below its On-Call & Ownership heading -
+   * and reads the old pair only to say a rule still has it.
    */
   test.each([
     ["Incidents/Settings/IncidentGroupingRules.tsx"],
     ["Alerts/Settings/AlertGroupingRules.tsx"],
   ])(
-    "the grouping rule form in %s asks for its episodes' owners with one picker, on On-Call & Ownership",
+    "the grouping rule form in %s asks for its episodes' owners with one picker, under More fields",
     (file: string) => {
       const form: FormFacts | undefined = forms.find(
         (candidate: FormFacts): boolean => {
@@ -546,7 +547,14 @@ describe("the project's forms", () => {
         peoplePickers([form!]).map((field: FormFieldFacts): string => {
           return `${field.title} on ${field.stepId}`;
         }),
-      ).toEqual(["GROUPING_RULE_COPY.episodeOwnersTitle on on-call-ownership"]);
+      ).toEqual(["GROUPING_RULE_COPY.episodeOwnersTitle on grouping"]);
+
+      // In the fold every other field of it names.
+      expect(
+        peoplePickers([form!]).map((field: FormFieldFacts): string => {
+          return field.collapsibleSection || "";
+        }),
+      ).toEqual(["MORE_FIELDS"]);
 
       // Nothing on the form asks for the old pair any more.
       expect(

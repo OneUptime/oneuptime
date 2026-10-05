@@ -25,7 +25,6 @@ import {
   LegacyDefaultAssigneeAction,
   MAX_SETTING_MINUTES,
   MINUTES_VALIDATION_MESSAGE,
-  SHOW_ADVANCED_SETTINGS_FIELD_KEY,
   formatGroupingDuration,
   getDefaultTimeWindowMinutes,
   getEffectiveTimeWindowMinutes,
@@ -38,6 +37,7 @@ import {
   getGroupingRuleUiStrings,
   getLegacyDefaultAssignee,
   getMinutesSettingDisplay,
+  getMinutesSettingFoldedValue,
   getMinutesSettingValues,
   getMinutesValidationError,
   getNewGroupingRuleValues,
@@ -46,7 +46,6 @@ import {
   getTemplateRuleValues,
   getValuesForGroupingModeChange,
   getValuesForLegacyDefaultAssigneeChange,
-  hasAdvancedSettings,
   isGroupingMode,
   isLegacyDefaultAssigneeChange,
   isSuggestedRuleName,
@@ -1299,94 +1298,136 @@ describe("getGroupingRuleSummarySelect", () => {
   });
 });
 
-describe("hasAdvancedSettings", () => {
-  test("a blank rule, a template's rule and the grouping answers alone use none", () => {
-    expect(hasAdvancedSettings({})).toBe(false);
+/*
+ * What a lifecycle setting - reopen recently resolved episodes, wait before
+ * resolving one, resolve quiet ones - says on the folded header of the
+ * rule's More fields: its minutes while the engines act on it, nothing
+ * otherwise. It must agree with what the switch shows
+ * (getMinutesSettingDisplay), so a chip never says a setting is on that the
+ * opened fold shows off, or the other way round.
+ */
+describe("getMinutesSettingFoldedValue", () => {
+  const folded: (
+    enabled: unknown,
+    minutes: unknown,
+    fallbackMinutes?: number | null,
+  ) => string | null = (
+    enabled: unknown,
+    minutes: unknown,
+    fallbackMinutes: number | null = null,
+  ): string | null => {
+    return getMinutesSettingFoldedValue({
+      enabled,
+      minutes,
+      fallbackMinutes,
+      translate: english,
+    });
+  };
 
-    for (const kind of KINDS) {
-      expect(
-        hasAdvancedSettings(
-          getNewGroupingRuleValues({ kind, translate: english }),
-        ),
-      ).toBe(false);
+  test("says the minutes of a setting that is on, the way the list's summary says them", () => {
+    expect(folded(true, 30)).toBe("30 minutes");
+    expect(folded(true, 1)).toBe("1 minute");
+    expect(folded(true, 60)).toBe("1 hour");
+    expect(folded(true, 240)).toBe("4 hours");
+    expect(folded(true, 1440)).toBe("1 day");
+    expect(folded(true, 2880)).toBe("2 days");
+    expect(folded(true, 90)).toBe("90 minutes");
+    expect(folded(true, MAX_SETTING_MINUTES)).toBe("365 days");
+  });
 
-      for (const template of GROUPING_RULE_TEMPLATES) {
-        expect(
-          hasAdvancedSettings(
-            getTemplateRuleValues({ template, kind, translate: english }),
-          ),
-        ).toBe(false);
-      }
-    }
+  test("says nothing for a setting that is off, whatever minutes it keeps", () => {
+    expect(folded(false, 30)).toBeNull();
+    expect(folded(undefined, 30)).toBeNull();
+    expect(folded(null, undefined)).toBeNull();
+    // Only true is on: the engines read the column the same way.
+    expect(folded("true", 30)).toBeNull();
+    expect(folded(1, 30)).toBeNull();
+  });
 
-    expect(
-      hasAdvancedSettings({
-        groupByMonitor: true,
-        groupBySeverity: true,
-        enableTimeWindow: false,
-        isEnabled: false,
-        name: "x",
+  test("says nothing for a setting the old form saved on with no minutes - the engines skip it", () => {
+    expect(folded(true, 0)).toBeNull();
+    expect(folded(true, null)).toBeNull();
+    expect(folded(true, undefined)).toBeNull();
+    expect(folded(true, -5)).toBeNull();
+  });
+
+  test("says the engines' fallback for a setting that has one", () => {
+    // The time window's hour: not folded today, but read the same way.
+    expect(folded(true, 0, ENGINE_FALLBACK_TIME_WINDOW_MINUTES)).toBe(
+      "1 hour",
+    );
+  });
+
+  test("says minutes saved before the box had a ceiling, as the engines use them", () => {
+    expect(folded(true, MAX_SETTING_MINUTES + 60)).toBe(
+      english(GROUPING_SUMMARY_COPY.hours, {
+        count: (MAX_SETTING_MINUTES + 60) / 60,
       }),
-    ).toBe(false);
+    );
+  });
+
+  test("names a setting switched on while its minutes are still being typed, without them", () => {
+    expect(folded(true, "")).toBe("");
+    expect(folded(true, "abc")).toBe("");
+    expect(folded(true, "0")).toBe("");
+    // A whole number typed is read like a stored one.
+    expect(folded(true, "45")).toBe("45 minutes");
+    expect(folded(true, " 120 ")).toBe("2 hours");
+  });
+
+  test("is in the reader's language", () => {
+    expect(
+      getMinutesSettingFoldedValue({
+        enabled: true,
+        minutes: 30,
+        fallbackMinutes: null,
+        translate: marked,
+      }),
+    ).toBe("«30 minutes»");
   });
 
   test.each([
-    ["showEpisodeOnStatusPage", true],
-    ["description", "Groups production storms"],
-    ["episodeTitleTemplate", "{{monitorName}} storm"],
-    ["episodeDescriptionTemplate", "Started by {{incidentTitle}}"],
-    ["episodeLabels", [{ _id: "label" }]],
-    ["onCallDutyPolicies", ["policy"]],
-    ["defaultAssignToTeam", "team-id"],
-    ["defaultAssignToTeamId", { id: "team-id" }],
-    ["defaultAssignToUser", { _id: "user" }],
-    ["defaultAssignToUserId", "user-id"],
-    ["episodeMemberRoleAssignments", [{ userId: "u", incidentRoleId: "r" }]],
-  ])("%s set to %j counts", (key: string, value: unknown) => {
-    expect(hasAdvancedSettings({ [key]: value })).toBe(true);
-  });
-
-  test.each([
-    ["enableReopenWindow", true],
-    ["enableResolveDelay", true],
-    ["enableInactivityTimeout", true],
-    ["enableReopenWindow", false],
-    ["showEpisodeOnStatusPage", false],
-    ["description", "   "],
-    ["episodeTitleTemplate", ""],
-    ["episodeLabels", []],
-    ["onCallDutyPolicies", []],
-    ["defaultAssignToTeam", null],
-    ["defaultAssignToUser", undefined],
-    ["episodeMemberRoleAssignments", []],
-  ])("%s set to %j does not", (key: string, value: unknown) => {
-    expect(hasAdvancedSettings({ [key]: value })).toBe(false);
-  });
-
-  test.each([
-    ["enableReopenWindow", "reopenWindowMinutes"],
-    ["enableResolveDelay", "resolveDelayMinutes"],
-    ["enableInactivityTimeout", "inactivityTimeoutMinutes"],
+    [true, 45],
+    [true, 0],
+    [false, 45],
+    [true, "abc"],
+    [true, "15"],
+    [undefined, undefined],
+    [true, MAX_SETTING_MINUTES + 1],
   ])(
-    "%s counts while the engines act on it - on, with minutes above 0",
-    (enabledField: string, minutesField: string) => {
-      expect(
-        hasAdvancedSettings({ [enabledField]: true, [minutesField]: 30 }),
-      ).toBe(true);
-      expect(
-        hasAdvancedSettings({ [enabledField]: true, [minutesField]: 0 }),
-      ).toBe(false);
-      expect(
-        hasAdvancedSettings({ [enabledField]: false, [minutesField]: 30 }),
-      ).toBe(false);
+    "agrees with what the switch shows for enabled %j and minutes %j",
+    (enabled: unknown, minutes: unknown) => {
+      const shown: boolean = getMinutesSettingDisplay({
+        enabled,
+        minutes,
+        fallbackMinutes: null,
+      }).enabled;
+
+      expect(folded(enabled, minutes) !== null).toBe(shown);
     },
   );
 
-  test("the show-advanced switch is a form key of its own, not a rule column", () => {
-    expect(SHOW_ADVANCED_SETTINGS_FIELD_KEY).toBe("showAdvancedSettings");
-    expect(
-      hasAdvancedSettings({ [SHOW_ADVANCED_SETTINGS_FIELD_KEY]: true }),
-    ).toBe(false);
+  test("a blank rule and every template's rule have no lifecycle setting on", () => {
+    for (const kind of KINDS) {
+      const rules: Array<GroupingRuleValues> = [
+        getNewGroupingRuleValues({ kind, translate: english }),
+        ...GROUPING_RULE_TEMPLATES.map(
+          (template: GroupingRuleTemplate): GroupingRuleValues => {
+            return getTemplateRuleValues({ template, kind, translate: english });
+          },
+        ),
+      ];
+
+      for (const rule of rules) {
+        for (const [enabledField, minutesField] of [
+          ["enableReopenWindow", "reopenWindowMinutes"],
+          ["enableResolveDelay", "resolveDelayMinutes"],
+          ["enableInactivityTimeout", "inactivityTimeoutMinutes"],
+        ] as Array<[string, string]>) {
+          expect(folded(rule[enabledField], rule[minutesField])).toBeNull();
+        }
+      }
+    }
   });
 });
 
@@ -1402,7 +1443,7 @@ describe("getGroupingRuleUiStrings", () => {
       expect.arrayContaining([
         GROUPING_RULE_COPY.cardDescription[GroupingRuleKind.Incident],
         GROUPING_RULE_COPY.cardDescription[GroupingRuleKind.Alert],
-        GROUPING_RULE_COPY.showAdvancedTitle,
+        GROUPING_RULE_COPY.reopenWindowTitle,
         GROUPING_MODE_OPTIONS[1]!.title,
         GROUPING_RULE_TEMPLATES[3]!.description[GroupingRuleKind.Alert],
         GROUPING_SUMMARY_COPY.perCombination,
@@ -1416,6 +1457,15 @@ describe("getGroupingRuleUiStrings", () => {
     for (const text of strings) {
       expect(typeof text).toBe("string");
       expect(text.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  test("no longer holds the Show advanced settings switch, which More fields replaced", () => {
+    expect(GROUPING_RULE_COPY).not.toHaveProperty("showAdvancedTitle");
+    expect(GROUPING_RULE_COPY).not.toHaveProperty("showAdvancedDescription");
+
+    for (const text of strings) {
+      expect(text).not.toMatch(/advanced settings/i);
     }
   });
 });
@@ -1440,35 +1490,26 @@ describe("episode owners and the old default assignee", () => {
     expect(LEGACY_DEFAULT_ASSIGNEE_TEAM_COLUMN).toBe("defaultAssignToTeamId");
   });
 
-  test.each([
-    ["episodeOwnerUsers", [USER]],
-    ["episodeOwnerTeams", [{ _id: TEAM }]],
-  ])(
-    "a rule whose %s names someone opens with advanced settings shown",
-    (key: string, value: unknown) => {
-      expect(hasAdvancedSettings({ [key]: value })).toBe(true);
-    },
-  );
-
-  test.each([["episodeOwnerUsers"], ["episodeOwnerTeams"]])(
-    "an empty %s does not count",
-    (key: string) => {
-      expect(hasAdvancedSettings({ [key]: [] })).toBe(false);
-      expect(hasAdvancedSettings({ [key]: null })).toBe(false);
-    },
-  );
-
-  test("the old pair still counts, so a rule that has it shows the line about it", () => {
-    expect(hasAdvancedSettings({ defaultAssignToUserId: USER })).toBe(true);
+  test("a rule that still has the old pair is told so, and one that settled it is not", () => {
+    expect(getLegacyDefaultAssignee({ defaultAssignToUserId: USER })).toEqual(
+      { userId: USER, teamId: null },
+    );
     expect(
-      hasAdvancedSettings({ defaultAssignToTeamId: new ObjectID(TEAM) }),
-    ).toBe(true);
+      getLegacyDefaultAssignee({ defaultAssignToTeamId: new ObjectID(TEAM) }),
+    ).toEqual({ userId: null, teamId: TEAM });
     expect(
-      hasAdvancedSettings({
+      getLegacyDefaultAssignee({
         defaultAssignToUserId: null,
         defaultAssignToTeamId: null,
       }),
-    ).toBe(false);
+    ).toBeNull();
+    // Owners are a setting of their own, not the old pair.
+    expect(
+      getLegacyDefaultAssignee({
+        episodeOwnerUsers: [USER],
+        episodeOwnerTeams: [{ _id: TEAM }],
+      }),
+    ).toBeNull();
   });
 
   test.each([
@@ -1625,10 +1666,6 @@ describe("episode owners and the old default assignee", () => {
     );
     expect(GROUPING_RULE_COPY.legacyAssigneeAddAsOwners).toBe("Add as owners");
     expect(GROUPING_RULE_COPY.legacyAssigneeRemove).toBe("Remove");
-    // The advanced switch's own help already promised owners.
-    expect(GROUPING_RULE_COPY.showAdvancedDescription).toContain(
-      "assign owners",
-    );
 
     const strings: Array<string> = getGroupingRuleUiStrings();
 

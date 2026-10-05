@@ -37,8 +37,9 @@ import {
  *      icon;
  *   4. the old way of showing extra options - an "Advanced: ..." link that
  *      reveals an "Advanced Options" box, a "Show/Hide Advanced Options"
- *      button, a "Show N advanced settings" link - outside the forms listed
- *      below with the reason they keep it.
+ *      button, a "Show N advanced settings" link, a "Show advanced settings"
+ *      switch - anywhere. The last forms that had one (below) fold their
+ *      extra options under More fields now, so no form keeps one.
  * Wizard steps titled Advanced or More are AdvancedStepsGuard's.
  */
 
@@ -63,27 +64,19 @@ interface Finding {
   text: string;
 }
 
-interface ListedFile {
-  file: string;
-  reason: string;
-}
-
 /*
- * Forms that keep an old way of showing extra options, and why. The
- * telemetry monitors (logs, traces, exceptions, security events) were the
- * last forms with a Show / Hide Advanced Options button: their extra
- * filters now fold under the shared More fields section, so none of them
- * may bring one back.
+ * The forms that kept an old toggle longest, each listed once with the
+ * reason it kept it, until it folded under More fields as well:
+ *   - the telemetry monitors (logs, traces, exceptions, security events)
+ *     had a Show / Hide Advanced Options button over their extra filters
+ *     (#4378);
+ *   - the incident and alert grouping rules had a Show advanced settings
+ *     switch that added three wizard steps - Episode Lifecycle, Details,
+ *     On-Call & Ownership. Those settings are one More fields fold at the
+ *     end of the Grouping step now, under three small headings, and the
+ *     wizard never grows.
+ * Each must keep folding with the shared section and hold no toggle state.
  */
-export const OLD_ADVANCED_TOGGLE_ALLOWED: Array<ListedFile> = [
-  {
-    file: `${DASHBOARD}/Utils/GroupingRule/GroupingRuleSetup.ts`,
-    reason:
-      "Grouping rules' Show advanced settings is a switch that adds the rule's optional wizard steps (Episode Lifecycle, Details, On-Call & Ownership), not a fold of fields: a step cannot sit in a folded section. Its wording is the maintainer's call.",
-  },
-];
-
-// The telemetry monitors' step forms, once listed above with their button.
 const TELEMETRY_MONITOR_FILTER_FORMS: Array<string> = [
   "LogMonitor/LogMonitorStepFrom.tsx",
   "TraceMonitor/TraceMonitorStepForm.tsx",
@@ -92,6 +85,21 @@ const TELEMETRY_MONITOR_FILTER_FORMS: Array<string> = [
 ].map((file: string): string => {
   return `${DASHBOARD}/Components/Form/Monitor/${file}`;
 });
+
+const GROUPING_RULE_FORMS: Array<string> = [
+  `${DASHBOARD}/Pages/Incidents/Settings/IncidentGroupingRules.tsx`,
+  `${DASHBOARD}/Pages/Alerts/Settings/AlertGroupingRules.tsx`,
+];
+
+// Where the grouping rule form's fields and words are built.
+const GROUPING_RULE_HELPERS: Array<string> = [
+  `${DASHBOARD}/Components/GroupingRule/GroupingRuleFormFields.tsx`,
+  `${DASHBOARD}/Utils/GroupingRule/GroupingRuleSetup.ts`,
+];
+
+// The switch's form key and its builders, gone with it.
+const RETIRED_GROUPING_RULE_SWITCH: RegExp =
+  /showAdvancedSettings|SHOW_ADVANCED_SETTINGS|ShowAdvancedSettings|hasAdvancedSettings|showAdvancedTitle|showAdvancedDescription/;
 
 // "Advanced: Port, Timeout and Retries" - the link that opened a box.
 const ADVANCED_LINK_TITLE: RegExp = /^\s*Advanced\s*:/i;
@@ -397,24 +405,11 @@ describe("folded sections of rarely needed options", () => {
     ).toEqual([]);
   });
 
-  test("are folds, not an 'Advanced: ...' link or a Show Advanced Options button", () => {
-    const allowed: Set<string> = new Set<string>(
-      OLD_ADVANCED_TOGGLE_ALLOWED.map((entry: ListedFile): string => {
-        return entry.file;
-      }),
-    );
-
+  test("are folds, never an 'Advanced: ...' link, a Show Advanced Options button or a Show advanced settings switch", () => {
     expect(
-      scanned
-        .flatMap((findings: FileFindings) => {
-          return findings.oldAdvancedToggles;
-        })
-        .filter((finding: Finding): boolean => {
-          return !allowed.has(finding.file);
-        })
-        .map((finding: Finding): string => {
-          return `${finding.file}:${finding.line} ${finding.text}`;
-        }),
+      all((findings: FileFindings) => {
+        return findings.oldAdvancedToggles;
+      }),
     ).toEqual([]);
   });
 
@@ -439,17 +434,44 @@ describe("folded sections of rarely needed options", () => {
     }
   });
 
-  test("the forms listed with the old toggle still have it, so the list never goes stale", () => {
-    for (const entry of OLD_ADVANCED_TOGGLE_ALLOWED) {
-      const findings: FileFindings = scanFile(
-        path.join(REPOSITORY_ROOT, entry.file),
+  test("the grouping rules, the last behind a Show advanced settings switch, fold under More fields", () => {
+    for (const file of GROUPING_RULE_FORMS) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
       );
 
       expect({
-        file: entry.file,
-        hasOldToggle: findings.oldAdvancedToggles.length > 0,
-      }).toEqual({ file: entry.file, hasOldToggle: true });
-      expect(entry.reason.length).toBeGreaterThan(40);
+        file: file,
+        oldToggles: scanSource(file, source).oldAdvancedToggles,
+        foldsWithTheSharedSection: source.includes("getAdvancedFormSection<"),
+        namesTheRetiredSwitch: RETIRED_GROUPING_RULE_SWITCH.test(source),
+        // One section, built once: every field in the fold names it.
+        sectionsBuilt: source.split("getAdvancedFormSection<").length - 1,
+      }).toEqual({
+        file: file,
+        oldToggles: [],
+        foldsWithTheSharedSection: true,
+        namesTheRetiredSwitch: false,
+        sectionsBuilt: 1,
+      });
+    }
+
+    for (const file of GROUPING_RULE_HELPERS) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
+
+      expect({
+        file: file,
+        oldToggles: scanSource(file, source).oldAdvancedToggles,
+        namesTheRetiredSwitch: RETIRED_GROUPING_RULE_SWITCH.test(source),
+      }).toEqual({
+        file: file,
+        oldToggles: [],
+        namesTheRetiredSwitch: false,
+      });
     }
   });
 });
@@ -519,5 +541,32 @@ describe("the detector", () => {
       "Show {{count}} advanced setting",
       "Show {{count}} advanced settings",
     ]);
+  });
+
+  test("finds the grouping rules' switch, however its title is written", () => {
+    const findings: FileFindings = scanSnippet(`
+      const COPY = { showAdvancedTitle: "Show advanced settings" };
+      const field = { title: "Show Advanced Settings", fieldType: FormFieldSchemaType.Toggle };
+      const toggle = <Toggle title="Hide advanced settings" />;
+    `);
+
+    expect(
+      findings.oldAdvancedToggles.map((finding: Finding): string => {
+        return finding.text;
+      }),
+    ).toEqual([
+      "Show advanced settings",
+      "Show Advanced Settings",
+      '<Toggle title="Hide advanced settings">',
+    ]);
+  });
+
+  test("leaves the words alone where they are not a toggle's", () => {
+    const findings: FileFindings = scanSnippet(`
+      const a = <p>{translateText("Advanced settings for experts live in the API.")}</p>;
+      const b = <Card title="Episode Lifecycle" description="Reopen and resolve episodes." />;
+    `);
+
+    expect(findings.oldAdvancedToggles).toEqual([]);
   });
 });
