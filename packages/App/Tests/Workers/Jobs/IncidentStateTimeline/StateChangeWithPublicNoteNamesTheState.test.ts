@@ -255,6 +255,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const STATE_CHANGE_JOB: string =
   "IncidentStateTimeline:SendNotificationToSubscribers";
@@ -601,7 +602,11 @@ function nothingSent(): void {
   });
 }
 
-let createNote: jest.SpyInstance;
+/*
+ * Typed with jest-mock's SpyInstance: `jest` here is @jest/globals' (jest-mock
+ * 28), whose spyOn does not return the global @types/jest `jest.SpyInstance`.
+ */
+let createNote: SpyInstance<typeof IncidentPublicNoteService.create>;
 
 beforeEach(() => {
   jest.clearAllMocks();
